@@ -349,11 +349,6 @@ int Serial_Init (void)
 {
 	int     n;
 
-// LATER do Win32 serial support
-#ifdef	_WIN32
-	return -1;
-#endif
-
 	if (COM_CheckParm("-nolan"))
 		return -1;
 	if (COM_CheckParm ("-noserial"))

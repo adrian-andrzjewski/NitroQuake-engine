@@ -23,12 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BAN_TEST
 
 #ifdef BAN_TEST
-#if defined(_WIN32)
-#include <windows.h>
-#elif defined (NeXT)
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#else
 #define AF_INET 		2	/* internet */
 struct in_addr
 {
@@ -50,7 +44,6 @@ struct sockaddr_in
 char *inet_ntoa(struct in_addr in);
 unsigned long inet_addr(const char *cp);
 #endif
-#endif	// BAN_TEST
 
 #include "quakedef.h"
 #include "net_dgrm.h"

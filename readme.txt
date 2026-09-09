@@ -1,17 +1,17 @@
 
-This is the complete source code for winquake, glquake, quakeworld, and 
-glquakeworld.
+This working tree contains the MS-DOS WinQuake engine and software renderer
+subset of the original source release.  The QuakeWorld, QuakeC, Windows,
+Linux, Sun, and OpenGL-only sources have been removed from this checkout.
 
-The projects have been tested with visual C++ 6.0, but masm is also required 
-to build the assembly language files.  It is possible to change a #define and 
-build with only C code, but the software rendering versions lose almost half 
-its speed.  The OpenGL versions will not be effected very much.  The 
-gas2masm tool was created to allow us to use the same source for the dos, 
-linux, and windows versions, but I don't really recommend anyone mess 
-with the asm code.
+The original unfiltered source tree is preserved locally at the
+`archive/full-source` tag.
 
-The original dos version of Quake should also be buildable from these 
-sources, but we didn't bother trying.
+The DOS build uses the original x86 assembly language renderer and requires
+the historical DOS/DJGPP toolchain.  The DOS support files and runtime helper
+are retained with the engine sources.
+
+No game data is included here.  Supply legally obtained Quake data files when
+running the DOS engine.
 
 The code is all licensed under the terms of the GPL (gnu public license).  
 You should read the entire license, but the gist of it is that you can do 

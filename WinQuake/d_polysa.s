@@ -54,10 +54,8 @@ lzistepx:		.long	0
 
 	.text
 
-#ifndef NeXT
 	.extern C(D_PolysetSetEdgeTable)
 	.extern C(D_RasterizeAliasPolySmooth)
-#endif
 
 //----------------------------------------------------------------------
 // affine triangle gradient calculation code

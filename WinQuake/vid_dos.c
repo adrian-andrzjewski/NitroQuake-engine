@@ -44,16 +44,8 @@ cvar_t		vid_wait = {"vid_wait","0"};
 cvar_t		vid_nopageflip = {"vid_nopageflip","0", true};
 cvar_t		_vid_wait_override = {"_vid_wait_override", "0", true};
 cvar_t		_vid_default_mode = {"_vid_default_mode","0", true};
-cvar_t		_vid_default_mode_win = {"_vid_default_mode_win","1", true};
-cvar_t		vid_config_x = {"vid_config_x","800", true};
-cvar_t		vid_config_y = {"vid_config_y","600", true};
 cvar_t		vid_stretch_by_2 = {"vid_stretch_by_2","1", true};
-cvar_t		_windowed_mouse = {"_windowed_mouse","0", true};
-cvar_t		vid_fullscreen_mode = {"vid_fullscreen_mode","3", true};
-cvar_t		vid_windowed_mode = {"vid_windowed_mode","0", true};
 cvar_t		block_switch = {"block_switch","0", true};
-cvar_t		vid_window_x = {"vid_window_x", "0", true};
-cvar_t		vid_window_y = {"vid_window_y", "0", true};
 
 int	d_con_indirect = 0;
 
@@ -94,13 +86,7 @@ void    VID_Init (unsigned char *palette)
 	Cvar_RegisterVariable (&vid_nopageflip);
 	Cvar_RegisterVariable (&_vid_wait_override);
 	Cvar_RegisterVariable (&_vid_default_mode);
-	Cvar_RegisterVariable (&_vid_default_mode_win);
-	Cvar_RegisterVariable (&vid_config_x);
-	Cvar_RegisterVariable (&vid_config_y);
 	Cvar_RegisterVariable (&vid_stretch_by_2);
-	Cvar_RegisterVariable (&_windowed_mouse);
-	Cvar_RegisterVariable (&vid_fullscreen_mode);
-	Cvar_RegisterVariable (&vid_windowed_mode);
 	Cvar_RegisterVariable (&block_switch);
 
 	Cmd_AddCommand ("vid_testmode", VID_TestMode_f);
