@@ -64,6 +64,9 @@ extern unsigned long bench486_solid_span_count;
 extern unsigned long bench486_line_setup_calls;
 extern unsigned long bench486_axis_cache_hits;
 extern unsigned long bench486_axis_cache_misses;
+extern double bench486_alias_seconds;
+extern double bench486_surface_seconds;
+extern double bench486_turbulent_seconds;
 #endif
 
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!

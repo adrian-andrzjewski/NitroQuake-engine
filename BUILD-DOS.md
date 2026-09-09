@@ -108,6 +108,21 @@ unchanged when comparing results.  The current change is a small measured
 improvement over the earlier 13.903 FPS median; it does not support a claim of
 a 5% end-to-end gain.
 
+The renderer's per-frame texture-axis cache can be screened at 64, 128, or
+256 entries without editing source files.  Each value uses a separate ignored
+build directory:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -TextureAxisCacheEntries 128
+.\tools\timedemo-dos.ps1 -TextureAxisCacheEntries 128 -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+~~~
+
+A one-run demo1 screen under the same pinned profile completed all 969 frames
+at 13.917021 FPS (64 entries), 13.917025 FPS (128), and 13.917031 FPS (256).
+Those differences are within run noise, so the fidelity-preserving default
+remains 256 entries.  Use matched multi-run measurements before selecting a
+different footprint for a specific target.
+
 For an AMD 5x86/486DX5-133-class target, add this option to the DOSBox-X
 command line:
 
@@ -162,7 +177,8 @@ variant is available for comparison and is written beside the default build:
 ~~~
 
 On the same pinned `demo1` measurement, this profile reached a **14.045 FPS**
-median versus **13.917 FPS** for `baseline` (about 0.9% faster).  It remains
+median (14.044623 FPS) versus **13.917 FPS** for `baseline` (13.917071 FPS),
+about 0.9% faster.  It remains
 an opt-in comparison build; no visual-quality switch or newer CPU instruction
 set is enabled.
 
@@ -176,7 +192,13 @@ and collect renderer call/cache counters through the timedemo runner:
 
 Instrumentation changes timing, so its FPS is diagnostic only.  The profile
 reports repeated texture-axis transforms avoided by the per-frame cache;
-compare release-style `qbench.exe` runs for performance conclusions.
+compare release-style `qbench.exe` runs for performance conclusions.  It also
+reports coarse phase timings.  A post-validation demo1 diagnostic run
+recorded 5,473 alias models, 58,107 surfaces, 46,926 cache hits, 11,180
+misses, 9.880244 seconds in alias-model work, 39.764400 seconds in surface
+drawing, and 1.997400 seconds in turbulent spans.  These counters identify
+where the 486 renderer spends time; they are not a visual-parity or release
+performance claim.
 
 ## Reprovisioning
 

@@ -25,7 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static int	miplevel;
 static float	d_mipscale_values[4] = {1.0, 0.5, 0.25, 0.125};
 
+#ifndef D_TEXAXIS_CACHE_SIZE
 #define D_TEXAXIS_CACHE_SIZE	256
+#endif
 
 typedef struct
 {
@@ -245,6 +247,11 @@ void D_DrawSurfaces (void)
 	surfcache_t		*pcurrentcache;
 	vec3_t			world_transformed_modelorg;
 	vec3_t			local_modelorg;
+#ifdef PROFILE486
+	double			bench486_surface_start;
+
+	bench486_surface_start = Sys_FloatTime ();
+#endif
 
 	currententity = &cl_entities[0];
 	TransformVector (modelorg, transformed_modelorg);
@@ -402,5 +409,9 @@ void D_DrawSurfaces (void)
 			}
 		}
 	}
+
+#ifdef PROFILE486
+	bench486_surface_seconds += Sys_FloatTime () - bench486_surface_start;
+#endif
 }
 

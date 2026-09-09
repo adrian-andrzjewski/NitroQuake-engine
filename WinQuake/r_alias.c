@@ -705,6 +705,13 @@ void R_AliasDrawModel (alight_t *plighting)
 	finalvert_t		finalverts[MAXALIASVERTS +
 						((CACHE_SIZE - 1) / sizeof(finalvert_t)) + 1];
 	auxvert_t		auxverts[MAXALIASVERTS];
+#ifdef PROFILE486
+	double			bench486_alias_start;
+#endif
+
+#ifdef PROFILE486
+	bench486_alias_start = Sys_FloatTime ();
+#endif
 
 	r_amodels_drawn++;
 
@@ -757,5 +764,9 @@ void R_AliasDrawModel (alight_t *plighting)
 		R_AliasPrepareUnclippedPoints ();
 	else
 		R_AliasPreparePoints ();
+
+#ifdef PROFILE486
+	bench486_alias_seconds += Sys_FloatTime () - bench486_alias_start;
+#endif
 }
 

@@ -6,6 +6,8 @@ param(
     [switch]$NoBootstrap,
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'baseline',
+    [ValidateSet(64, 128, 256)]
+    [int]$TextureAxisCacheEntries = 256,
     [string]$ToolRoot
 )
 
@@ -49,6 +51,9 @@ $sourceRoot = Join-Path $repoRoot 'WinQuake'
 $profileSuffixParts = @()
 if ($OptimizationProfile -eq 'aggressive') {
     $profileSuffixParts += 'aggressive'
+}
+if ($TextureAxisCacheEntries -ne 256) {
+    $profileSuffixParts += "cache$TextureAxisCacheEntries"
 }
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
@@ -120,7 +125,8 @@ try {
         '-fno-strict-aliasing',
         '-fcommon',
         '-ffast-math',
-        '-std=gnu89'
+        '-std=gnu89',
+        "-DD_TEXAXIS_CACHE_SIZE=$TextureAxisCacheEntries"
     )
     if ($Benchmark) {
         $cFlags += '-DBENCH486'
@@ -185,6 +191,7 @@ try {
         profileBuild = [bool]$Instrumentation
         optimizationProfile = $OptimizationProfile
         optimizationLevel = $optimizationLevel
+        textureAxisCacheEntries = $TextureAxisCacheEntries
         cSources = @($cSources.Name)
         assemblySources = @($asmSources.Name)
         sourceCommit = $commit

@@ -7,6 +7,8 @@ param(
     [string]$DataRoot,
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'baseline',
+    [ValidateSet(64, 128, 256)]
+    [int]$TextureAxisCacheEntries = 256,
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -38,6 +40,9 @@ $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain
 $profileSuffixParts = @()
 if ($OptimizationProfile -eq 'aggressive') {
     $profileSuffixParts += 'aggressive'
+}
+if ($TextureAxisCacheEntries -ne 256) {
+    $profileSuffixParts += "cache$TextureAxisCacheEntries"
 }
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
@@ -71,7 +76,8 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
     }
 
-    $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile, '-ToolRoot', $ToolRoot)
+    $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile,
+        '-TextureAxisCacheEntries', $TextureAxisCacheEntries, '-ToolRoot', $ToolRoot)
     if ($Instrumentation) {
         $buildArgs += '-Instrumentation'
     }
@@ -225,6 +231,9 @@ $result = [ordered]@{
     profile = $profilePath
     profileSha256 = $profileHash
     executable = $benchmarkExe
+    optimizationProfile = $OptimizationProfile
+    textureAxisCacheEntries = $TextureAxisCacheEntries
+    instrumentation = [bool]$Instrumentation
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     results = $results

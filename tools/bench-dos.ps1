@@ -6,6 +6,8 @@ param(
     [string]$DataRoot,
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'baseline',
+    [ValidateSet(64, 128, 256)]
+    [int]$TextureAxisCacheEntries = 256,
     [int]$TimeoutSeconds = 180
 )
 
@@ -30,7 +32,19 @@ if ($TimeoutSeconds -lt 10) {
 }
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-$profileSuffix = if ($OptimizationProfile -eq 'aggressive') { '-aggressive' } else { '' }
+$profileSuffixParts = @()
+if ($OptimizationProfile -eq 'aggressive') {
+    $profileSuffixParts += 'aggressive'
+}
+if ($TextureAxisCacheEntries -ne 256) {
+    $profileSuffixParts += "cache$TextureAxisCacheEntries"
+}
+$profileSuffix = if ($profileSuffixParts.Count) {
+    '-' + ($profileSuffixParts -join '-')
+}
+else {
+    ''
+}
 $benchmarkExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\qbench.exe')
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
 $dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
@@ -53,7 +67,8 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
     }
 
-    $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile, '-ToolRoot', $ToolRoot)
+    $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile,
+        '-TextureAxisCacheEntries', $TextureAxisCacheEntries, '-ToolRoot', $ToolRoot)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
     }
@@ -159,6 +174,8 @@ if ($dosboxExit -ne 0) {
 $result = [ordered]@{
     dosboxExitCode = $dosboxExit
     executable = $benchmarkExe
+    optimizationProfile = $OptimizationProfile
+    textureAxisCacheEntries = $TextureAxisCacheEntries
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     report = $report

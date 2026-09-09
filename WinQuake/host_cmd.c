@@ -42,6 +42,9 @@ unsigned long bench486_solid_span_count;
 unsigned long bench486_line_setup_calls;
 unsigned long bench486_axis_cache_hits;
 unsigned long bench486_axis_cache_misses;
+double bench486_alias_seconds;
+double bench486_surface_seconds;
+double bench486_turbulent_seconds;
 #endif
 
 extern void D_PolysetSetUpForLineScan (fixed8_t startvertu,
@@ -77,16 +80,19 @@ static void Bench486Printf (char *format, ...)
 void Bench486WriteTimedemoCounters (int report_handle)
 {
 #ifdef PROFILE486
-	char text[192];
+	char text[384];
 
 	sprintf (text,
 			"profile alias-models %lu alias-vertices %lu surfaces %lu "
 			"gradients %lu solid-spans %lu line-setups %lu "
-			"axis-hits %lu axis-misses %lu\n",
+			"axis-hits %lu axis-misses %lu alias-sec %.6f "
+			"surface-sec %.6f turbulent-sec %.6f\n",
 			bench486_alias_models, bench486_alias_vertices,
 			bench486_surface_count, bench486_gradient_calls,
 			bench486_solid_span_count, bench486_line_setup_calls,
-			bench486_axis_cache_hits, bench486_axis_cache_misses);
+			bench486_axis_cache_hits, bench486_axis_cache_misses,
+			bench486_alias_seconds, bench486_surface_seconds,
+			bench486_turbulent_seconds);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));
