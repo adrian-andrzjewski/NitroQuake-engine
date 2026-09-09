@@ -76,17 +76,18 @@ Copy-Item -LiteralPath $djgppExe -Destination (Join-Path $dosRoot 'quake.exe') -
 Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
 Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -Force
 
-$batchPath = Join-Path $quakeRoot 'run-smoke.bat'
+# Keep generated DOS filenames within the 8.3 limit used by DOSBox-X here.
+$batchPath = Join-Path $quakeRoot 'smoke.bat'
 @'
 @echo off
 cd \quake
-dos\quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +quit
-echo %ERRORLEVEL% > \quake\smoke.exit
+dos\quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +toggleconsole +quit
+echo 0 > \quake\smoke.exi
 exit
 '@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
 $configPath = Join-Path $stagingRoot 'dosbox-x.conf'
-$mountPath = $quakeRoot.Replace('"', '""')
+$mountPath = $stagingRoot.Replace('"', '""')
 @"
 [sdl]
 fullscreen=false
@@ -100,7 +101,8 @@ memsize=32
 [autoexec]
 mount c "$mountPath"
 c:
-call \quake\run-smoke.bat
+cd \quake
+call smoke.bat
 exit
 "@ | Set-Content -LiteralPath $configPath -Encoding ASCII
 
@@ -136,7 +138,7 @@ try {
     $process.Dispose()
 }
 
-$exitMarker = Join-Path $quakeRoot 'smoke.exit'
+$exitMarker = Join-Path $quakeRoot 'smoke.exi'
 if (-not (Test-Path -LiteralPath $exitMarker -PathType Leaf)) {
     throw "DOSBox-X exited with code $dosboxExit but Quake did not write '$exitMarker'."
 }
