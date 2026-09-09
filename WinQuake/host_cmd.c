@@ -26,6 +26,163 @@ int	current_skill;
 
 void Mod_Print (void);
 
+#ifdef BENCH486
+
+static byte bench486_source[4104];
+static byte bench486_dest[4104];
+static volatile unsigned bench486_sink;
+static int bench486_report_handle;
+
+extern void D_PolysetSetUpForLineScan (fixed8_t startvertu,
+		fixed8_t startvertv, fixed8_t endvertu, fixed8_t endvertv);
+extern int ubasestep, erroradjustup, erroradjustdown;
+
+static unsigned Bench486Checksum (byte *buffer, int count)
+{
+	int		i;
+	unsigned	checksum;
+
+	checksum = 0;
+	for (i=0 ; i<count ; i++)
+		checksum = checksum * 33 + buffer[i];
+
+	return checksum;
+}
+
+static void Bench486Printf (char *format, ...)
+{
+	char		text[192];
+	va_list		argptr;
+
+	va_start (argptr, format);
+	vsprintf (text, format, argptr);
+	va_end (argptr);
+
+	Con_Printf ("%s", text);
+	if (bench486_report_handle != -1)
+		Sys_FileWrite (bench486_report_handle, text, Q_strlen(text));
+}
+
+static void Bench486MemoryCase (char *name, int count, int iterations,
+		qboolean set, qboolean unaligned)
+{
+	byte		*source, *dest;
+	int		i;
+	double		start, elapsed, rate;
+	unsigned	checksum;
+
+	source = (byte *)(((long)bench486_source + 3) & ~3);
+	dest = (byte *)(((long)bench486_dest + 3) & ~3);
+	if (unaligned)
+	{
+		source++;
+		dest++;
+	}
+
+	for (i=0 ; i<4096 ; i++)
+		source[i] = (byte)(i * 17 + 3);
+	Q_memset (dest, 0, count);
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+	{
+		if (set)
+			Q_memset (dest, i, count);
+		else
+			Q_memcpy (dest, source, count);
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	checksum = Bench486Checksum (dest, count);
+	bench486_sink ^= checksum;
+	rate = elapsed > 0.0 ? (double)iterations / elapsed : 0.0;
+	Bench486Printf ("%s %d bytes %d ops %.3f sec %.0f ops/sec checksum %u\n",
+			name, count, iterations, elapsed, rate, checksum);
+}
+
+static void Bench486LineCase (char *name, int iterations,
+		fixed8_t startu, fixed8_t startv, fixed8_t endu, fixed8_t endv)
+{
+	int		i;
+	double		start, elapsed, rate;
+	unsigned	checksum;
+
+	checksum = 0;
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+	{
+		D_PolysetSetUpForLineScan (startu, startv, endu, endv);
+		checksum ^= (unsigned)(ubasestep + erroradjustup +
+				erroradjustdown);
+	}
+	elapsed = Sys_FloatTime () - start;
+	bench486_sink ^= checksum;
+	rate = elapsed > 0.0 ? (double)iterations / elapsed : 0.0;
+	Bench486Printf ("%s %d ops %.3f sec %.0f ops/sec checksum %u\n",
+			name, iterations, elapsed, rate, checksum);
+}
+
+static void Bench486FillCase (void)
+{
+	vrect_t	rect;
+	int		i;
+	double		start, elapsed, rate;
+	unsigned	checksum;
+
+	if (!vid.buffer)
+	{
+		Bench486Printf ("fill-rect skipped: no video buffer\n");
+		return;
+	}
+
+	rect.x = 0;
+	rect.y = 0;
+	rect.width = vid.width;
+	rect.height = vid.height;
+	rect.pnext = NULL;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<128 ; i++)
+		D_FillRect (&rect, i);
+	elapsed = Sys_FloatTime () - start;
+
+	checksum = Bench486Checksum ((byte *)vid.buffer,
+			(int)(vid.rowbytes * vid.height));
+	bench486_sink ^= checksum;
+	rate = elapsed > 0.0 ? 128.0 / elapsed : 0.0;
+	Bench486Printf ("fill-rect %ux%u 128 ops %.3f sec %.0f ops/sec checksum %u\n",
+			vid.width, vid.height, elapsed, rate, checksum);
+}
+
+static void Bench486_f (void)
+{
+	bench486_report_handle = Sys_FileOpenWrite ("bench486.txt");
+	if (bench486_report_handle == -1)
+		Con_Printf ("bench486: could not create bench486.txt\n");
+
+	Bench486Printf ("486 benchmark begin\n");
+	Bench486MemoryCase ("memcpy-aligned", 256, 250000, false, false);
+	Bench486MemoryCase ("memcpy-unaligned", 255, 250000, false, true);
+	Bench486MemoryCase ("memset-aligned", 256, 250000, true, false);
+	Bench486MemoryCase ("memset-unaligned", 255, 250000, true, true);
+	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
+	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
+	Bench486FillCase ();
+	Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+
+	if (bench486_report_handle != -1)
+	{
+		Sys_FileClose (bench486_report_handle);
+		bench486_report_handle = -1;
+	}
+
+	/* The DOS runner uses this switch to exit without opening the quit menu. */
+	if (COM_CheckParm ("-benchexit"))
+		Sys_Quit ();
+}
+
+#endif
+
 /*
 ==================
 Host_Quit_f
@@ -1922,4 +2079,7 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("viewprev", Host_Viewprev_f);
 
 	Cmd_AddCommand ("mcache", Mod_Print);
+#ifdef BENCH486
+	Cmd_AddCommand ("bench486", Bench486_f);
+#endif
 }

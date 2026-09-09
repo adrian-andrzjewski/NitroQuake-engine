@@ -490,11 +490,8 @@ D_PolysetSetUpForLineScan
 void D_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 		fixed8_t endvertu, fixed8_t endvertv)
 {
-	double		dm, dn;
 	int			tm, tn;
 	adivtab_t	*ptemp;
-
-// TODO: implement x86 version
 
 	errorterm = -1;
 
@@ -511,12 +508,40 @@ void D_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 	}
 	else
 	{
-		dm = (double)tm;
-		dn = (double)tn;
+		/*
+		 * Edge heights are positive in the rasterizer.  Keep the exact
+		 * floor-division/remainder convention used by FloorDivMod, but avoid
+		 * promoting every long edge to double precision on a 486DX.
+		 */
+		if (tn > 0)
+		{
+			if (tm >= 0)
+			{
+				ubasestep = tm / tn;
+				erroradjustup = tm % tn;
+			}
+			else
+			{
+				int magnitude;
 
-		FloorDivMod (dm, dn, &ubasestep, &erroradjustup);
-
-		erroradjustdown = dn;
+				magnitude = -tm;
+				ubasestep = -(magnitude / tn);
+				erroradjustup = magnitude % tn;
+				if (erroradjustup)
+				{
+					ubasestep--;
+					erroradjustup = tn - erroradjustup;
+				}
+			}
+			erroradjustdown = tn;
+		}
+		else
+		{
+			/* Preserve the historical error behavior for invalid heights. */
+			FloorDivMod ((double)tm, (double)tn,
+					&ubasestep, &erroradjustup);
+			erroradjustdown = tn;
+		}
 	}
 }
 

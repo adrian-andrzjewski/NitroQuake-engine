@@ -67,12 +67,11 @@ if (Test-Path -LiteralPath $stagingRoot) {
     Remove-Item -LiteralPath $stagingRoot -Recurse -Force
 }
 $quakeRoot = Join-Path $stagingRoot 'quake'
-$dosRoot = Join-Path $quakeRoot 'dos'
 $stagedData = Join-Path $quakeRoot 'id1'
-New-Item -ItemType Directory -Path $dosRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $quakeRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
-Copy-Item -LiteralPath $djgppExe -Destination (Join-Path $dosRoot 'quake.exe') -Force
+Copy-Item -LiteralPath $djgppExe -Destination (Join-Path $quakeRoot 'quake.exe') -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
 Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -Force
 
@@ -81,7 +80,7 @@ $batchPath = Join-Path $quakeRoot 'smoke.bat'
 @'
 @echo off
 cd \quake
-dos\quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +toggleconsole +quit
+quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +toggleconsole +quit
 echo 0 > \quake\smoke.exi
 exit
 '@ | Set-Content -LiteralPath $batchPath -Encoding ASCII

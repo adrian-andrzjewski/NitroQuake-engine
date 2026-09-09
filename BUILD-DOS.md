@@ -53,8 +53,84 @@ Then run:
 The script stages a fresh DOS directory under out\dos-smoke, starts
 DOSBox-X, initializes the DOS software renderer with sound/input/CD disabled,
 and exits through the Quake command line.  It verifies both the DOSBox-X exit
-code and a Quake exit marker.  Use -DataRoot to point at another local data
+code and a Quake exit marker.  The staged runtime uses the normal Quake layout:
+`quake.exe`, `cwsdpmi.exe`, and the `id1` directory are siblings under the
+mounted `quake` directory.  Use -DataRoot to point at another local data
 directory, or -SkipBuild when the executable is already available.
+
+## 486-class timedemo
+
+For a repeatable performance check, use the repository-owned
+`tools/dosbox-x-486-high.conf` profile.  It targets a high-end 486DX4/100
+class CPU (`cputype=486`, dynamic core, fixed 33445 cycles), an S3 SVGA
+adapter, 16 MB of RAM, no frame skipping, no scaling, and no host vsync.
+
+After running the smoke test so that `out\dos-smoke` contains the staged
+executable and legally obtained data, launch a timedemo from the repository
+root:
+
+~~~powershell
+$dosbox = Join-Path $env:LOCALAPPDATA '486quake\tools\dosbox-x-2026.08.31\dosbox-x.exe'
+$profile = (Resolve-Path '.\tools\dosbox-x-486-high.conf').Path
+$mount = (Resolve-Path '.\out\dos-smoke').Path.Replace('\', '/')
+& $dosbox -conf $profile `
+  -c ('mount c "' + $mount + '"') `
+  -c 'c:' `
+  -c 'cd \quake' `
+  -c 'quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +toggleconsole +timedemo demo1'
+~~~
+
+The built-in `demo1.dem`, `demo2.dem`, and `demo3.dem` are in the supplied
+Quake data.  Replace `demo1` with either other name to repeat the test.  The
+result is printed in the Quake console as frames, seconds, and FPS.
+
+### Current baseline
+
+The current build has a reported baseline of **13 FPS**.  Treat this as the
+starting comparison point; for a reproducible record, keep the demo name,
+DOSBox-X version, 486 profile, fixed cycle count, video mode, and command-line
+options alongside each result.
+
+For an AMD 5x86/486DX5-133-class target, add this option to the DOSBox-X
+command line:
+
+~~~powershell
+-set 'cpu cycles=fixed 47810'
+~~~
+
+Keep the DOSBox-X version, profile, demo, and cycle setting unchanged when
+comparing results.  Timedemo FPS is emulator evidence, not a native Windows
+performance measurement.
+
+## 486 microbenchmark build
+
+Build an isolated, DOS 8.3-compatible benchmark executable so the normal
+`quake.exe` is not overwritten:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark
+~~~
+
+With Quake data available, the repository runner can stage and execute the
+benchmark under the pinned 486 DOSBox-X profile:
+
+~~~powershell
+.\tools\bench-dos.ps1 -DataRoot 'C:\path\to\Quake\id1'
+~~~
+
+Stage `out\dos\qbench.exe` beside `cwsdpmi.exe` and the `id1` data
+directory, then run it in DOSBox-X with the same 486 profile and this command:
+
+~~~text
+qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchexit
+~~~
+
+The `bench486` command measures the 486-specific memory, rectangle-fill, and
+alias-edge setup paths.  It prints results to the console and writes
+`bench486.txt` in the Quake directory.  Compare runs using the same DOSBox-X
+version, profile, cycle count, executable mode, and data set.  The benchmark is
+diagnostic evidence for these routines; timedemo FPS remains the end-to-end
+renderer check.
 
 ## Reprovisioning
 

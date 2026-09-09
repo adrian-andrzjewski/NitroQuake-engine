@@ -135,35 +135,144 @@ void InsertLinkAfter (link_t *l, link_t *after)
 ============================================================================
 */
 
+#if id386 && defined(__GNUC__)
+
+/*
+ * REP MOVSD/STOSD are a good fit for the 486's flat 32-bit address space,
+ * but the setup cost is not worthwhile for a single dword.  Keep the short
+ * copies in C and use the string instructions for the larger blocks that
+ * occur while loading and moving renderer data.
+ */
+#define Q_REP_MIN_DWORDS	4
+
+static __inline__ void Q_CopyDwords (byte *dest, byte *src, int count)
+{
+	__asm__ __volatile__ (
+		"cld\n\t"
+		"rep\n\t"
+		"movsl"
+		: "+D" (dest), "+S" (src), "+c" (count)
+		:
+		: "cc", "memory");
+}
+
+static __inline__ void Q_SetDwords (byte *dest, unsigned long value,
+		int count)
+{
+	__asm__ __volatile__ (
+		"cld\n\t"
+		"rep\n\t"
+		"stosl"
+		: "+D" (dest), "+c" (count)
+		: "a" (value)
+		: "cc", "memory");
+}
+
+#endif
+
 void Q_memset (void *dest, int fill, int count)
 {
-	int             i;
-	
-	if ( (((long)dest | count) & 3) == 0)
+	byte		*d;
+	int		dwords;
+
+	if (count <= 0)
+		return;
+
+	d = (byte *)dest;
+	fill &= 0xff;
+
+#if id386 && defined(__GNUC__)
+	/* Bring the destination to a dword boundary first. */
+	while (((long)d & 3) && count)
 	{
-		count >>= 2;
-		fill = fill | (fill<<8) | (fill<<16) | (fill<<24);
-		for (i=0 ; i<count ; i++)
-			((int *)dest)[i] = fill;
+		*d++ = (byte)fill;
+		count--;
+	}
+
+	dwords = count >> 2;
+	if (dwords >= Q_REP_MIN_DWORDS)
+	{
+		unsigned long pattern;
+
+		pattern = (unsigned long)fill;
+		pattern |= pattern << 8;
+		pattern |= pattern << 16;
+		Q_SetDwords (d, pattern, dwords);
+		d += dwords << 2;
+		count &= 3;
 	}
 	else
-		for (i=0 ; i<count ; i++)
-			((byte *)dest)[i] = fill;
+#endif
+	{
+	#if !(id386 && defined(__GNUC__))
+		/* Keep the non-GCC/non-i386 fallback safe for unaligned targets. */
+		if ((long)d & 3)
+		{
+			while (count--)
+				*d++ = (byte)fill;
+			return;
+		}
+	#endif
+		dwords = count >> 2;
+		while (dwords--)
+		{
+			*((unsigned long *)d) = (unsigned long)fill |
+					((unsigned long)fill << 8) |
+					((unsigned long)fill << 16) |
+					((unsigned long)fill << 24);
+			d += 4;
+		}
+		count &= 3;
+	}
+
+	while (count--)
+		*d++ = (byte)fill;
 }
 
 void Q_memcpy (void *dest, void *src, int count)
 {
-	int             i;
-	
-	if (( ( (long)dest | (long)src | count) & 3) == 0 )
+	byte		*d, *s;
+	int		dwords;
+
+	if (count <= 0)
+		return;
+
+	d = (byte *)dest;
+	s = (byte *)src;
+
+#if id386 && defined(__GNUC__)
+	/* A forward copy can become dword-aligned when both offsets match. */
+	if ((((long)d ^ (long)s) & 3) == 0)
 	{
-		count>>=2;
-		for (i=0 ; i<count ; i++)
-			((int *)dest)[i] = ((int *)src)[i];
+		while (((long)d & 3) && count)
+		{
+			*d++ = *s++;
+			count--;
+		}
+
+		dwords = count >> 2;
+		if (dwords >= Q_REP_MIN_DWORDS)
+		{
+			Q_CopyDwords (d, s, dwords);
+			d += dwords << 2;
+			s += dwords << 2;
+			count &= 3;
+		}
+		else
+		{
+			while (dwords--)
+			{
+				*((unsigned long *)d) = *((unsigned long *)s);
+				d += 4;
+				s += 4;
+			}
+			count &= 3;
+		}
 	}
-	else
-		for (i=0 ; i<count ; i++)
-			((byte *)dest)[i] = ((byte *)src)[i];
+#endif
+
+	while (count--)
+		*d++ = *s++;
 }
 
 int Q_memcmp (void *m1, void *m2, int count)

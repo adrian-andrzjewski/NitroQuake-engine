@@ -30,6 +30,7 @@ D_FillRect
 void D_FillRect (vrect_t *rect, int color)
 {
 	int				rx, ry, rwidth, rheight;
+	int				y;
 	unsigned char	*dest;
 	unsigned		*ldest;
 
@@ -48,15 +49,28 @@ void D_FillRect (vrect_t *rect, int color)
 		rheight += ry;
 		ry = 0;
 	}
-	if (rx+rwidth > vid.width)
-		rwidth = vid.width - rx;
-	if (ry+rheight > vid.height)
-		rheight = vid.height - rx;
+	if (rx >= (int)vid.width || ry >= (int)vid.height)
+		return;
+	if (rx+rwidth > (int)vid.width)
+		rwidth = (int)vid.width - rx;
+	if (ry+rheight > (int)vid.height)
+		rheight = (int)vid.height - ry;
 		
 	if (rwidth < 1 || rheight < 1)
 		return;
 
 	dest = ((byte *)vid.buffer + ry*vid.rowbytes + rx);
+
+	/* Large rows go through the 486-tuned dword clear, including tails. */
+	if (rwidth >= 16)
+	{
+		for (y=0 ; y<rheight ; y++)
+		{
+			Q_memset (dest, color, rwidth);
+			dest += vid.rowbytes;
+		}
+		return;
+	}
 
 	if (((rwidth & 0x03) == 0) && (((long)dest & 0x03) == 0))
 	{

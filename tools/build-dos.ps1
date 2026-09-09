@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Clean,
+    [switch]$Benchmark,
     [switch]$NoBootstrap,
     [string]$ToolRoot
 )
@@ -39,11 +40,24 @@ foreach ($requiredPath in @($compiler, $objdump)) {
 
 $sourceRoot = Join-Path $repoRoot 'WinQuake'
 $outputRoot = Join-Path $repoRoot 'out\dos'
-$objectRoot = Join-Path $outputRoot 'obj'
-$executable = Join-Path $outputRoot 'quake.exe'
+$objectDirectoryName = if ($Benchmark) { 'obj-bench' } else { 'obj' }
+$objectRoot = Join-Path $outputRoot $objectDirectoryName
+$executableName = if ($Benchmark) { 'qbench.exe' } else { 'quake.exe' }
+$executable = Join-Path $outputRoot $executableName
+$manifestName = if ($Benchmark) { 'build-manifest-bench.json' } else { 'build-manifest.json' }
 
 if ($Clean -and (Test-Path -LiteralPath $outputRoot)) {
-    Remove-Item -LiteralPath $outputRoot -Recurse -Force
+	if ($Benchmark) {
+		foreach ($benchmarkPath in @($objectRoot, $executable,
+				(Join-Path $outputRoot $manifestName))) {
+			if (Test-Path -LiteralPath $benchmarkPath) {
+				Remove-Item -LiteralPath $benchmarkPath -Recurse -Force
+			}
+		}
+	}
+	else {
+		Remove-Item -LiteralPath $outputRoot -Recurse -Force
+	}
 }
 New-Item -ItemType Directory -Path $objectRoot -Force | Out-Null
 
@@ -81,6 +95,9 @@ try {
         '-ffast-math',
         '-std=gnu89'
     )
+    if ($Benchmark) {
+        $cFlags += '-DBENCH486'
+    }
     $asmFlags = @(
         "-I$sourceRoot",
         '-O2',
@@ -101,7 +118,7 @@ try {
         $objects += $object
     }
 
-    Write-Host 'Linking quake.exe'
+    Write-Host "Linking $executableName"
     $linkFlags = @('-O2', '-march=i486', '-s') + $objects + @('-lm', '-o', $executable)
     & $compiler @linkFlags
     if ($LASTEXITCODE -ne 0) {
@@ -134,12 +151,13 @@ try {
         includedCSourceCount = $includedCSources.Count
         includedCSources = $includedCSources
         assemblySourceCount = $asmSources.Count
+        benchmarkBuild = [bool]$Benchmark
         cSources = @($cSources.Name)
         assemblySources = @($asmSources.Name)
         sourceCommit = $commit
         executable = $executable
     }
-    $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $outputRoot 'build-manifest.json') -Encoding ASCII
+    $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $outputRoot $manifestName) -Encoding ASCII
 
     Write-Host "Built $executable"
     Write-Host "C sources: $($allCSources.Count) retained, $($cSources.Count) standalone; assembly sources: $($asmSources.Count)"
