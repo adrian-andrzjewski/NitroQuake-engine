@@ -2,12 +2,19 @@
 param(
     [switch]$Clean,
     [switch]$Benchmark,
+    [switch]$Instrumentation,
     [switch]$NoBootstrap,
+    [ValidateSet('baseline', 'aggressive')]
+    [string]$OptimizationProfile = 'baseline',
     [string]$ToolRoot
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($Instrumentation -and -not $Benchmark) {
+    throw 'Profile builds require -Benchmark.'
+}
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if ([string]::IsNullOrWhiteSpace($ToolRoot)) {
@@ -39,10 +46,29 @@ foreach ($requiredPath in @($compiler, $objdump)) {
 }
 
 $sourceRoot = Join-Path $repoRoot 'WinQuake'
-$outputRoot = Join-Path $repoRoot 'out\dos'
-$objectDirectoryName = if ($Benchmark) { 'obj-bench' } else { 'obj' }
+$profileSuffixParts = @()
+if ($OptimizationProfile -eq 'aggressive') {
+    $profileSuffixParts += 'aggressive'
+}
+if ($Instrumentation) {
+    $profileSuffixParts += 'profile'
+}
+$profileSuffix = if ($profileSuffixParts.Count) {
+    '-' + ($profileSuffixParts -join '-')
+}
+else {
+    ''
+}
+$outputRoot = Join-Path $repoRoot ('out\dos' + $profileSuffix)
+$objectDirectoryName = 'obj'
+if ($Benchmark) {
+    $objectDirectoryName += '-bench'
+}
+if ($Instrumentation) {
+    $objectDirectoryName += '-profile'
+}
 $objectRoot = Join-Path $outputRoot $objectDirectoryName
-$executableName = if ($Benchmark) { 'qbench.exe' } else { 'quake.exe' }
+$executableName = if ($Instrumentation) { 'qprof.exe' } elseif ($Benchmark) { 'qbench.exe' } else { 'quake.exe' }
 $executable = Join-Path $outputRoot $executableName
 $manifestName = if ($Benchmark) { 'build-manifest-bench.json' } else { 'build-manifest.json' }
 
@@ -85,9 +111,10 @@ try {
     $env:GCC_EXEC_PREFIX = Join-Path $djgppRoot 'lib\gcc\'
     $env:PATH = (Join-Path $djgppRoot 'bin') + ';' + (Join-Path $djgppRoot 'i586-pc-msdosdjgpp\bin') + ';' + $oldPath
 
+    $optimizationLevel = if ($OptimizationProfile -eq 'aggressive') { '-O3' } else { '-O2' }
     $cFlags = @(
         "-I$sourceRoot",
-        '-O2',
+        $optimizationLevel,
         '-march=i486',
         '-fomit-frame-pointer',
         '-fno-strict-aliasing',
@@ -98,9 +125,12 @@ try {
     if ($Benchmark) {
         $cFlags += '-DBENCH486'
     }
+    if ($Instrumentation) {
+        $cFlags += '-DPROFILE486'
+    }
     $asmFlags = @(
         "-I$sourceRoot",
-        '-O2',
+        $optimizationLevel,
         '-march=i486',
         '-x',
         'assembler-with-cpp'
@@ -119,7 +149,7 @@ try {
     }
 
     Write-Host "Linking $executableName"
-    $linkFlags = @('-O2', '-march=i486', '-s') + $objects + @('-lm', '-o', $executable)
+    $linkFlags = @($optimizationLevel, '-march=i486', '-s') + $objects + @('-lm', '-o', $executable)
     & $compiler @linkFlags
     if ($LASTEXITCODE -ne 0) {
         throw "DJGPP link failed with exit code $LASTEXITCODE."
@@ -152,6 +182,9 @@ try {
         includedCSources = $includedCSources
         assemblySourceCount = $asmSources.Count
         benchmarkBuild = [bool]$Benchmark
+        profileBuild = [bool]$Instrumentation
+        optimizationProfile = $OptimizationProfile
+        optimizationLevel = $optimizationLevel
         cSources = @($cSources.Name)
         assemblySources = @($asmSources.Name)
         sourceCommit = $commit

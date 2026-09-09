@@ -708,6 +708,10 @@ void R_AliasDrawModel (alight_t *plighting)
 
 	r_amodels_drawn++;
 
+#ifdef PROFILE486
+	bench486_alias_models++;
+#endif
+
 // cache align
 	pfinalverts = (finalvert_t *)
 			(((long)&finalverts[0] + CACHE_SIZE - 1) & ~(CACHE_SIZE - 1));
@@ -715,6 +719,10 @@ void R_AliasDrawModel (alight_t *plighting)
 
 	paliashdr = (aliashdr_t *)Mod_Extradata (currententity->model);
 	pmdl = (mdl_t *)((byte *)paliashdr + paliashdr->model);
+
+#ifdef PROFILE486
+	bench486_alias_vertices += pmdl->numverts;
+#endif
 
 	R_AliasSetupSkin ();
 	R_AliasSetUpTransform (currententity->trivial_accept);

@@ -86,10 +86,27 @@ result is printed in the Quake console as frames, seconds, and FPS.
 
 ### Current baseline
 
-The current build has a reported baseline of **13 FPS**.  Treat this as the
-starting comparison point; for a reproducible record, keep the demo name,
-DOSBox-X version, 486 profile, fixed cycle count, video mode, and command-line
-options alongside each result.
+The reported **13 FPS** is reproducible on the pinned profile.  A three-run
+`demo1` measurement on 2026-09-09 produced 969 frames per run and a median of
+**13.917 FPS** (`69.626730` seconds for the median run).  The runs used
+`qbench.exe`, the default `baseline` optimization profile, DOSBox-X 2026.08.31,
+`cputype=486`, and fixed 33445 cycles.  The result is recorded under
+`out\dos-timedemo-*\timedemo-result.json` and is emulator evidence, not a native
+Windows performance measurement.
+
+Use the repository runner for repeatable measurements instead of manually
+copying executables:
+
+~~~powershell
+.\tools\timedemo-dos.ps1 -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+~~~
+
+It stages a fresh DOS directory for every run, writes six-decimal timing data,
+and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
+fixed cycle count, video mode, optimization profile, and command-line options
+unchanged when comparing results.  The current change is a small measured
+improvement over the earlier 13.903 FPS median; it does not support a claim of
+a 5% end-to-end gain.
 
 For an AMD 5x86/486DX5-133-class target, add this option to the DOSBox-X
 command line:
@@ -131,6 +148,35 @@ alias-edge setup paths.  It prints results to the console and writes
 version, profile, cycle count, executable mode, and data set.  The benchmark is
 diagnostic evidence for these routines; timedemo FPS remains the end-to-end
 renderer check.
+
+### Optimization profiles and instrumentation
+
+The default build is the fidelity-preserving `baseline` profile (`-O2`,
+`-march=i486`, and no newer instruction-set requirement).  An isolated `-O3`
+variant is available for comparison and is written beside the default build:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -OptimizationProfile aggressive
+.\tools\timedemo-dos.ps1 -OptimizationProfile aggressive `
+  -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+~~~
+
+On the same pinned `demo1` measurement, this profile reached a **14.045 FPS**
+median versus **13.917 FPS** for `baseline` (about 0.9% faster).  It remains
+an opt-in comparison build; no visual-quality switch or newer CPU instruction
+set is enabled.
+
+Use `-Instrumentation` with `-Benchmark` to build `out\dos-profile\qprof.exe`
+and collect renderer call/cache counters through the timedemo runner:
+
+~~~powershell
+.\tools\timedemo-dos.ps1 -Instrumentation `
+  -DataRoot 'C:\path\to\Quake\id1' -Runs 1
+~~~
+
+Instrumentation changes timing, so its FPS is diagnostic only.  The profile
+reports repeated texture-axis transforms avoided by the per-frame cache;
+compare release-style `qbench.exe` runs for performance conclusions.
 
 ## Reprovisioning
 

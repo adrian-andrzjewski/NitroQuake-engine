@@ -4,6 +4,8 @@ param(
     [switch]$NoBootstrap,
     [string]$ToolRoot,
     [string]$DataRoot,
+    [ValidateSet('baseline', 'aggressive')]
+    [string]$OptimizationProfile = 'baseline',
     [int]$TimeoutSeconds = 180
 )
 
@@ -28,7 +30,8 @@ if ($TimeoutSeconds -lt 10) {
 }
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-$benchmarkExe = Join-Path $repoRoot 'out\dos\qbench.exe'
+$profileSuffix = if ($OptimizationProfile -eq 'aggressive') { '-aggressive' } else { '' }
+$benchmarkExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\qbench.exe')
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
 $dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
 $profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
@@ -50,7 +53,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
     }
 
-    $buildArgs = @('-Benchmark', '-ToolRoot', $ToolRoot)
+    $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile, '-ToolRoot', $ToolRoot)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
     }
@@ -93,14 +96,14 @@ exit
 
 $profileText = Get-Content -LiteralPath $profilePath -Raw
 $mountPath = $stagingRoot.Replace('"', '""')
-$autoexec = @"
+$autoexec = (@"
 [autoexec]
 mount c "$mountPath"
 c:
 cd \quake
 call bench.bat
 exit
-"@.TrimEnd()
+"@).TrimEnd() + [Environment]::NewLine
 $runtimeConfig = [regex]::Replace(
     $profileText,
     '(?ms)^\[autoexec\]\s*.*?(?=^\[devices\])',

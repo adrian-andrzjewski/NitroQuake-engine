@@ -105,10 +105,6 @@ Lloop:
 	movl	stv_onseam(%ebp),%eax
 	movl	%eax,fv_flags(%edi)
 
-	movl	fv_size(%edi),%eax
-	movl	stv_size(%ebp),%eax
-	movl	4(%esi),%eax
-
 	leal	(%edx,%edx,2),%eax	// index*3
 
 	fxch	%st(3)				// v[0] | v[2] | v[1] | zi

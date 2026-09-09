@@ -493,6 +493,10 @@ void D_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 	int			tm, tn;
 	adivtab_t	*ptemp;
 
+#ifdef PROFILE486
+	bench486_line_setup_calls++;
+#endif
+
 	errorterm = -1;
 
 	tm = endvertu - startvertu;

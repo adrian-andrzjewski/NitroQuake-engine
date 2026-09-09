@@ -33,6 +33,17 @@ static byte bench486_dest[4104];
 static volatile unsigned bench486_sink;
 static int bench486_report_handle;
 
+#ifdef PROFILE486
+unsigned long bench486_alias_models;
+unsigned long bench486_alias_vertices;
+unsigned long bench486_surface_count;
+unsigned long bench486_gradient_calls;
+unsigned long bench486_solid_span_count;
+unsigned long bench486_line_setup_calls;
+unsigned long bench486_axis_cache_hits;
+unsigned long bench486_axis_cache_misses;
+#endif
+
 extern void D_PolysetSetUpForLineScan (fixed8_t startvertu,
 		fixed8_t startvertv, fixed8_t endvertu, fixed8_t endvertv);
 extern int ubasestep, erroradjustup, erroradjustdown;
@@ -61,6 +72,27 @@ static void Bench486Printf (char *format, ...)
 	Con_Printf ("%s", text);
 	if (bench486_report_handle != -1)
 		Sys_FileWrite (bench486_report_handle, text, Q_strlen(text));
+}
+
+void Bench486WriteTimedemoCounters (int report_handle)
+{
+#ifdef PROFILE486
+	char text[192];
+
+	sprintf (text,
+			"profile alias-models %lu alias-vertices %lu surfaces %lu "
+			"gradients %lu solid-spans %lu line-setups %lu "
+			"axis-hits %lu axis-misses %lu\n",
+			bench486_alias_models, bench486_alias_vertices,
+			bench486_surface_count, bench486_gradient_calls,
+			bench486_solid_span_count, bench486_line_setup_calls,
+			bench486_axis_cache_hits, bench486_axis_cache_misses);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
+#else
+	(void)report_handle;
+#endif
 }
 
 static void Bench486MemoryCase (char *name, int count, int iterations,

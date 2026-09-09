@@ -23,6 +23,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 
 static int	miplevel;
+static float	d_mipscale_values[4] = {1.0, 0.5, 0.25, 0.125};
+
+#define D_TEXAXIS_CACHE_SIZE	256
+
+typedef struct
+{
+	mtexinfo_t	*texinfo;
+	entity_t	*entity;
+	int			frame;
+	vec3_t		saxis;
+	vec3_t		taxis;
+} d_texaxis_cache_t;
+
+static d_texaxis_cache_t	d_texaxis_cache[D_TEXAXIS_CACHE_SIZE];
+
+// The view basis is stable for an entity during one render frame.  The
+// entity and frame keys therefore invalidate entries when world or bmodel
+// orientation changes, while collisions only cause a harmless recompute.
 
 float		scale_for_mip;
 int			screenwidth;
@@ -89,7 +107,16 @@ void D_DrawSolidSurface (surf_t *surf, int color)
 	pix = (color<<24) | (color<<16) | (color<<8) | color;
 	for (span=surf->spans ; span ; span=span->pnext)
 	{
+#ifdef PROFILE486
+		bench486_solid_span_count++;
+#endif
 		pdest = (byte *)d_viewbuffer + screenwidth*span->v;
+		if (span->count >= 16)
+		{
+			Q_memset (pdest + span->u, color, span->count);
+			continue;
+		}
+
 		u = span->u;
 		u2 = span->u + span->count - 1;
 		((byte *)pdest)[u] = pix;
@@ -117,6 +144,43 @@ void D_DrawSolidSurface (surf_t *surf, int color)
 
 /*
 ==============
+D_GetTextureAxes
+==============
+*/
+static d_texaxis_cache_t *D_GetTextureAxes (mtexinfo_t *texinfo)
+{
+	unsigned int		index;
+	d_texaxis_cache_t	*entry;
+
+	index = (((unsigned long)texinfo >> 4) ^
+			((unsigned long)currententity >> 4)) &
+			(D_TEXAXIS_CACHE_SIZE - 1);
+	entry = &d_texaxis_cache[index];
+
+	if (entry->texinfo == texinfo && entry->entity == currententity &&
+		entry->frame == r_framecount)
+	{
+#ifdef PROFILE486
+		bench486_axis_cache_hits++;
+#endif
+		return entry;
+	}
+
+	TransformVector (texinfo->vecs[0], entry->saxis);
+	TransformVector (texinfo->vecs[1], entry->taxis);
+
+	entry->texinfo = texinfo;
+	entry->entity = currententity;
+	entry->frame = r_framecount;
+#ifdef PROFILE486
+	bench486_axis_cache_misses++;
+#endif
+	return entry;
+}
+
+
+/*
+==============
 D_CalcGradients
 ==============
 */
@@ -125,36 +189,39 @@ void D_CalcGradients (msurface_t *pface)
 	mplane_t	*pplane;
 	float		mipscale;
 	vec3_t		p_temp1;
-	vec3_t		p_saxis, p_taxis;
+	d_texaxis_cache_t *axes;
 	float		t;
+
+#ifdef PROFILE486
+	bench486_gradient_calls++;
+#endif
 
 	pplane = pface->plane;
 
-	mipscale = 1.0 / (float)(1 << miplevel);
+	mipscale = d_mipscale_values[miplevel];
 
-	TransformVector (pface->texinfo->vecs[0], p_saxis);
-	TransformVector (pface->texinfo->vecs[1], p_taxis);
+	axes = D_GetTextureAxes (pface->texinfo);
 
 	t = xscaleinv * mipscale;
-	d_sdivzstepu = p_saxis[0] * t;
-	d_tdivzstepu = p_taxis[0] * t;
+	d_sdivzstepu = axes->saxis[0] * t;
+	d_tdivzstepu = axes->taxis[0] * t;
 
 	t = yscaleinv * mipscale;
-	d_sdivzstepv = -p_saxis[1] * t;
-	d_tdivzstepv = -p_taxis[1] * t;
+	d_sdivzstepv = -axes->saxis[1] * t;
+	d_tdivzstepv = -axes->taxis[1] * t;
 
-	d_sdivzorigin = p_saxis[2] * mipscale - xcenter * d_sdivzstepu -
+	d_sdivzorigin = axes->saxis[2] * mipscale - xcenter * d_sdivzstepu -
 			ycenter * d_sdivzstepv;
-	d_tdivzorigin = p_taxis[2] * mipscale - xcenter * d_tdivzstepu -
+	d_tdivzorigin = axes->taxis[2] * mipscale - xcenter * d_tdivzstepu -
 			ycenter * d_tdivzstepv;
 
 	VectorScale (transformed_modelorg, mipscale, p_temp1);
 
 	t = 0x10000*mipscale;
-	sadjust = ((fixed16_t)(DotProduct (p_temp1, p_saxis) * 0x10000 + 0.5)) -
+	sadjust = ((fixed16_t)(DotProduct (p_temp1, axes->saxis) * 0x10000 + 0.5)) -
 			((pface->texturemins[0] << 16) >> miplevel)
 			+ pface->texinfo->vecs[0][3]*t;
-	tadjust = ((fixed16_t)(DotProduct (p_temp1, p_taxis) * 0x10000 + 0.5)) -
+	tadjust = ((fixed16_t)(DotProduct (p_temp1, axes->taxis) * 0x10000 + 0.5)) -
 			((pface->texturemins[1] << 16) >> miplevel)
 			+ pface->texinfo->vecs[1][3]*t;
 
@@ -191,6 +258,10 @@ void D_DrawSurfaces (void)
 			if (!s->spans)
 				continue;
 
+#ifdef PROFILE486
+			bench486_surface_count++;
+#endif
+
 			d_zistepu = s->d_zistepu;
 			d_zistepv = s->d_zistepv;
 			d_ziorigin = s->d_ziorigin;
@@ -205,6 +276,10 @@ void D_DrawSurfaces (void)
 		{
 			if (!s->spans)
 				continue;
+
+#ifdef PROFILE486
+			bench486_surface_count++;
+#endif
 
 			r_drawnpolycount++;
 

@@ -55,6 +55,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define UNALIGNED_OK	0
 #endif
 
+#ifdef PROFILE486
+extern unsigned long bench486_alias_models;
+extern unsigned long bench486_alias_vertices;
+extern unsigned long bench486_surface_count;
+extern unsigned long bench486_gradient_calls;
+extern unsigned long bench486_solid_span_count;
+extern unsigned long bench486_line_setup_calls;
+extern unsigned long bench486_axis_cache_hits;
+extern unsigned long bench486_axis_cache_misses;
+#endif
+
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
 #define CACHE_SIZE	32		// used to align key data structures
 

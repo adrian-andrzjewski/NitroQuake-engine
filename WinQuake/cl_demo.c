@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void CL_FinishTimeDemo (void);
 
+#ifdef BENCH486
+void Bench486WriteTimedemoCounters (int report_handle);
+#endif
+
 /*
 ==============================================================================
 
@@ -326,6 +330,10 @@ void CL_FinishTimeDemo (void)
 {
 	int		frames;
 	float	time;
+#ifdef BENCH486
+	char	text[128];
+	int		report_handle;
+#endif
 	
 	cls.timedemo = false;
 	
@@ -334,7 +342,24 @@ void CL_FinishTimeDemo (void)
 	time = realtime - cls.td_starttime;
 	if (!time)
 		time = 1;
-	Con_Printf ("%i frames %5.1f seconds %5.1f fps\n", frames, time, frames/time);
+	Con_Printf ("%i frames %5.1f seconds %5.1f fps\n",
+			frames, time, frames/time);
+
+#ifdef BENCH486
+	if (COM_CheckParm ("-timedemoexit"))
+	{
+		sprintf (text, "%i frames %.6f seconds %.6f fps\n",
+				frames, time, frames/time);
+		report_handle = Sys_FileOpenWrite ("timedemo.txt");
+		if (report_handle != -1)
+		{
+			Sys_FileWrite (report_handle, text, Q_strlen(text));
+			Bench486WriteTimedemoCounters (report_handle);
+			Sys_FileClose (report_handle);
+		}
+		Sys_Quit ();
+	}
+#endif
 }
 
 /*
