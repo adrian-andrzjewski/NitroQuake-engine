@@ -796,6 +796,8 @@ C(D_DrawZSpans):
 
 	flds	C(d_zistepu)
 	movl	C(d_zistepu),%eax
+	// Keep the z-buffer base in %ebp; it is invariant across this span list.
+	movl	C(d_pzbuffer),%ebp
 	movl	pzspans(%esp),%esi
 	testl	%eax,%eax
 	jz		LFNegSpan
@@ -810,7 +812,7 @@ LFSpanLoop:
 	fildl	espan_t_v(%esi)
 	fildl	espan_t_u(%esi)
 	movl	espan_t_v(%esi),%ecx
-	movl	C(d_pzbuffer),%edi
+	movl	%ebp,%edi
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
 	fmuls	C(d_zistepv)
@@ -883,15 +885,15 @@ LFMiddleLoop:
 	addl	%ebx,%edx
 	andl	$0xFFFF0000,%esi
 	orl		%esi,%eax
-	movl	%edx,%ebp
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
-	shrl	$16,%ebp
+	// %eax is free after the first store; %ebp remains the z-buffer base.
+	shrl	$16,%eax
 	movl	%edx,%esi
 	addl	%ebx,%edx
 	andl	$0xFFFF0000,%esi
-	orl		%esi,%ebp
-	movl	%ebp,4(%edi)	// FIXME: eliminate register contention
+	orl		%esi,%eax
+	movl	%eax,4(%edi)
 	addl	$8,%edi
 
 	decl	%ecx
@@ -925,7 +927,7 @@ LFNegSpanLoop:
 	fildl	espan_t_v(%esi)
 	fildl	espan_t_u(%esi)
 	movl	espan_t_v(%esi),%ecx
-	movl	C(d_pzbuffer),%edi
+	movl	%ebp,%edi
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
 	fmuls	C(d_zistepv)
@@ -998,15 +1000,14 @@ LFNegMiddleLoop:
 	subl	%ebx,%edx
 	andl	$0xFFFF0000,%esi
 	orl		%esi,%eax
-	movl	%edx,%ebp
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
-	shrl	$16,%ebp
+	shrl	$16,%eax
 	movl	%edx,%esi
 	subl	%ebx,%edx
 	andl	$0xFFFF0000,%esi
-	orl		%esi,%ebp
-	movl	%ebp,4(%edi)	// FIXME: eliminate register contention
+	orl		%esi,%eax
+	movl	%eax,4(%edi)
 	addl	$8,%edi
 
 	decl	%ecx

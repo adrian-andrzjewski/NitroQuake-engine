@@ -104,9 +104,14 @@ copying executables:
 It stages a fresh DOS directory for every run, writes six-decimal timing data,
 and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
 fixed cycle count, video mode, optimization profile, and command-line options
-unchanged when comparing results.  The current change is a small measured
-improvement over the earlier 13.903 FPS median; it does not support a claim of
-a 5% end-to-end gain.
+unchanged when comparing results.  The current default renderer pass completed
+all 969 frames at a 13.981354 FPS median (69.306593 seconds), about 0.46%
+above the baseline.  It is a narrow measured improvement and does not support
+a claim of a 5% end-to-end gain.
+
+The default pass keeps the z-buffer base in a register across each z-span list
+and reuses a dead register for the second packed depth pair.  The depth
+arithmetic, water rendering, and turbulent-span color paths are unchanged.
 
 The renderer's per-frame texture-axis cache can be screened at 64, 128, or
 256 entries without editing source files.  Each value uses a separate ignored
@@ -176,9 +181,9 @@ variant is available for comparison and is written beside the default build:
   -DataRoot 'C:\path\to\Quake\id1' -Runs 3
 ~~~
 
-On the same pinned `demo1` measurement, this profile reached a **14.045 FPS**
-median (14.044623 FPS) versus **13.917 FPS** for `baseline` (13.917071 FPS),
-about 0.9% faster.  It remains
+On the same pinned `demo1` measurement, this profile reached a **14.110 FPS**
+median (14.110300 FPS) versus **13.917 FPS** for `baseline` (13.917071 FPS),
+about 1.4% faster.  It remains
 an opt-in comparison build; no visual-quality switch or newer CPU instruction
 set is enabled.
 
@@ -194,9 +199,9 @@ Instrumentation changes timing, so its FPS is diagnostic only.  The profile
 reports repeated texture-axis transforms avoided by the per-frame cache;
 compare release-style `qbench.exe` runs for performance conclusions.  It also
 reports coarse phase timings.  A post-validation demo1 diagnostic run
-recorded 5,473 alias models, 58,107 surfaces, 46,926 cache hits, 11,180
-misses, 9.880244 seconds in alias-model work, 39.764400 seconds in surface
-drawing, and 1.997400 seconds in turbulent spans.  These counters identify
+recorded 5,473 alias models, 58,105 surfaces, 46,925 cache hits, 11,180
+misses, 9.880174 seconds in alias-model work, 39.442585 seconds in surface
+drawing, and 1.997233 seconds in turbulent spans.  These counters identify
 where the 486 renderer spends time; they are not a visual-parity or release
 performance claim.
 
