@@ -42,10 +42,14 @@ typedef struct surfcache_s
 	int					dlight;
 	int					size;		// including header
 	unsigned			width;
-	unsigned			height;		// DEBUG only needed for debug
+#ifdef DEBUG
+	unsigned			height;		// diagnostic builds only
+#endif
 	float				mipscale;
 	struct texture_s	*texture;	// checked for animating textures
-	byte				data[4];	// width*height elements
+	// This is a variable-size tail.  Keep sizeof(surfcache_t) equal to the
+	// header used by D_SCAlloc instead of charging a four-byte placeholder.
+	byte				data[0];	// width*height elements
 } surfcache_t;
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!

@@ -106,7 +106,7 @@ It stages a fresh DOS directory for every run, writes six-decimal timing data,
 and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
 fixed cycle count, video mode, optimization profile, and command-line options
 unchanged when comparing results.  The current default renderer pass completed
-all 969 frames at a 13.992452 FPS median (69.251623 seconds), about 0.54%
+all 969 frames at a 13.993993 FPS median (69.243995 seconds), about 0.55%
 above the baseline.  It is a narrow measured improvement and does not support
 a claim of a 5% end-to-end gain.
 
@@ -118,6 +118,14 @@ The default pass keeps the z-buffer base in a register across each z-span list
 and reuses a dead register for the second packed depth pair.  The turbulent
 span routine also loads its invariant table pointer once per span call.  The
 depth arithmetic, water sampling, and turbulent-span color results are unchanged.
+
+The release surface-cache header keeps the variable pixel tail at a four-byte
+boundary and omits the unused debug-only height field.  This moves the pixel
+data from offset 48 to 44 and recovers 4 bytes per allocated cache block;
+builds with `DEBUG` retain the height field and original layout.  The cache
+manager also skips redundant LRU unlink/relink work for a block already at
+the head and returns newly allocated blocks directly.  These are memory and
+allocator-path improvements; the matched timedemo change is within run noise.
 
 The renderer's per-frame texture-axis cache can be screened at 64, 128, or
 256 entries without editing source files.  Each value uses a separate ignored

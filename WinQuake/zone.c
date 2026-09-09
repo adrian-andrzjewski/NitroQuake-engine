@@ -856,8 +856,11 @@ void *Cache_Check (cache_user_t *c)
 	cs = ((cache_system_t *)c->data) - 1;
 
 // move to head of LRU
-	Cache_UnlinkLRU (cs);
-	Cache_MakeLRU (cs);
+	if (cs != cache_head.lru_next)
+	{
+		Cache_UnlinkLRU (cs);
+		Cache_MakeLRU (cs);
+	}
 	
 	return c->data;
 }
@@ -899,7 +902,8 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name)
 		Cache_Free ( cache_head.lru_prev->user );
 	} 
 	
-	return Cache_Check (c);
+	// Cache_TryAlloc already placed this new block at the LRU head.
+	return c->data;
 }
 
 //============================================================================
