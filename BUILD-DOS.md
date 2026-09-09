@@ -88,7 +88,8 @@ result is printed in the Quake console as frames, seconds, and FPS.
 
 The reported **13 FPS** is reproducible on the pinned profile.  A three-run
 `demo1` measurement on 2026-09-09 produced 969 frames per run and a median of
-**13.917 FPS** (`69.626730` seconds for the median run).  The runs used
+**13.917 FPS** (`13.917069 FPS`, `69.626730` seconds for the median run).
+The runs used
 `qbench.exe`, the default `baseline` optimization profile, DOSBox-X 2026.08.31,
 `cputype=486`, and fixed 33445 cycles.  The result is recorded under
 `out\dos-timedemo-*\timedemo-result.json` and is emulator evidence, not a native
@@ -105,13 +106,18 @@ It stages a fresh DOS directory for every run, writes six-decimal timing data,
 and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
 fixed cycle count, video mode, optimization profile, and command-line options
 unchanged when comparing results.  The current default renderer pass completed
-all 969 frames at a 13.981354 FPS median (69.306593 seconds), about 0.46%
+all 969 frames at a 13.992452 FPS median (69.251623 seconds), about 0.54%
 above the baseline.  It is a narrow measured improvement and does not support
 a claim of a 5% end-to-end gain.
 
+For an odd number of runs, the runner selects the middle sorted sample.  Older
+generated JSON records may contain the highest sample in `medianFps`; use the
+individual `results` entries when auditing those records.
+
 The default pass keeps the z-buffer base in a register across each z-span list
-and reuses a dead register for the second packed depth pair.  The depth
-arithmetic, water rendering, and turbulent-span color paths are unchanged.
+and reuses a dead register for the second packed depth pair.  The turbulent
+span routine also loads its invariant table pointer once per span call.  The
+depth arithmetic, water sampling, and turbulent-span color results are unchanged.
 
 The renderer's per-frame texture-axis cache can be screened at 64, 128, or
 256 entries without editing source files.  Each value uses a separate ignored
@@ -181,9 +187,10 @@ variant is available for comparison and is written beside the default build:
   -DataRoot 'C:\path\to\Quake\id1' -Runs 3
 ~~~
 
-On the same pinned `demo1` measurement, this profile reached a **14.110 FPS**
-median (14.110300 FPS) versus **13.917 FPS** for `baseline` (13.917071 FPS),
-about 1.4% faster.  It remains
+On the same pinned `demo1` measurement, this profile reached a **14.122 FPS**
+median (14.121687 FPS; `68.617862` seconds for the median run) versus
+**13.917 FPS** for `baseline` (13.917069 FPS),
+about 1.5% faster.  It remains
 an opt-in comparison build; no visual-quality switch or newer CPU instruction
 set is enabled.
 

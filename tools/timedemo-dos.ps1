@@ -215,7 +215,7 @@ for ($run = 1; $run -le $Runs; $run++) {
 }
 
 $fpsValues = @($results | ForEach-Object { [double]$_.fps } | Sort-Object)
-$middle = [int]($fpsValues.Count / 2)
+$middle = [int][math]::Floor($fpsValues.Count / 2)
 if (($fpsValues.Count % 2) -eq 1) {
     $medianFps = $fpsValues[$middle]
 }

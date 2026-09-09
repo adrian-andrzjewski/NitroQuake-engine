@@ -49,12 +49,12 @@ C(D_DrawTurbulent8Span):
 	movl	C(r_turb_t),%ecx
 	movl	C(r_turb_pdest),%edi
 	movl	C(r_turb_spancount),%ebx
+	movl	C(r_turb_turb),%ebp	// table base is invariant for this span
 
 Llp:
 	movl	%ecx,%eax
 	movl	%esi,%edx
 	sarl	$16,%eax
-	movl	C(r_turb_turb),%ebp
 	sarl	$16,%edx
 	andl	$(CYCLE-1),%eax
 	andl	$(CYCLE-1),%edx
@@ -67,12 +67,12 @@ Llp:
 	andl	$(TURB_TEX_SIZE-1),%eax
 	andl	$(TURB_TEX_SIZE-1),%edx
 	shll	$6,%edx
-	movl	C(r_turb_pbase),%ebp
 	addl	%eax,%edx
 	incl	%edi
 	addl	C(r_turb_sstep),%esi
 	addl	C(r_turb_tstep),%ecx
-	movb	(%ebp,%edx,1),%dl
+	movl	C(r_turb_pbase),%eax
+	movb	(%eax,%edx,1),%dl
 	decl	%ebx
 	movb	%dl,-1(%edi)
 	jnz		Llp
