@@ -6,9 +6,9 @@ Linux, Sun, and OpenGL-only sources have been removed from this checkout.
 The original unfiltered source tree is preserved locally at the
 `archive/full-source` tag.
 
-The DOS build uses the original x86 assembly language renderer and requires
-the historical DOS/DJGPP toolchain.  The DOS support files and runtime helper
-are retained with the engine sources.
+The DOS build uses the original x86 assembly language renderer.  Windows 10
+build and smoke-test instructions are in BUILD-DOS.md; the repository includes
+a pinned, user-local DJGPP/DOSBox-X bootstrap for that workflow.
 
 No game data is included here.  Supply legally obtained Quake data files when
 running the DOS engine.

@@ -1,0 +1,13 @@
+# Windows-hosted DOS build output and emulator staging.
+/out/
+/testdata/
+
+# Local compiler/emulator cache if a user points the bootstrapper here.
+/tools/.cache/
+
+# Legacy/compiler intermediates.
+*.obj
+*.o
+*.map
+*.err
+*.log
