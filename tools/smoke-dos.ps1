@@ -97,6 +97,11 @@ autolock=false
 machine=svga_s3
 memsize=16
 
+[cpu]
+core=dynamic
+cputype=486
+cycles=fixed 33445
+
 [autoexec]
 mount c "$mountPath"
 c:
