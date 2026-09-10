@@ -449,3 +449,100 @@ C(R_RecursiveWorldNodeClip_asm486):
 	popl	%edi
 	popl	%ebp
 	ret
+
+	.align 4
+
+// int R_AliasCheckBBoxProject_asm486(auxvert_t *viewaux,
+//                                    finalvert_t *viewpts, int numv)
+// Project the unclipped alias bounding-box vertices and return anyclip in the
+// low byte and allclip in the next byte.  Keep the reciprocal and both screen
+// coordinates in the x87 stack while the integer registers hold the loop
+// state and clip masks.
+#define bbox_aux_size	12
+#define bbox_fv_flags	24
+#define bbox_fv_size	32
+#define bbox_r_fvrectx	60
+#define bbox_r_fvrecty	64
+#define bbox_r_fvrectright	92
+#define bbox_r_fvrectbottom	96
+
+C(R_AliasCheckBBoxProject_asm486):
+	.globl C(R_AliasCheckBBoxProject_asm486)
+	pushl	%ebp
+	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
+	movl	20(%esp),%esi		// viewaux
+	movl	24(%esp),%edi		// viewpts
+	movl	28(%esp),%ecx		// numv
+	xorl	%edx,%edx			// anyclip
+	movl	$0x000f,%ebx			// allclip
+	testl	%ecx,%ecx
+	jle	.Lalias_bbox_project_done
+
+.Lalias_bbox_project_loop:
+	xorl	%ebp,%ebp			// flags
+	testl	$0x0010,bbox_fv_flags(%edi)
+	jnz	.Lalias_bbox_project_next
+
+	// zi = 1.0 / viewaux->fv[2]; keep zi below the projected value.
+	fld1
+	fdivs	8(%esi)
+
+	// v0 = viewaux->fv[0] * aliasxscale * zi + aliasxcenter.
+	flds	0(%esi)
+	fmuls	C(aliasxscale)
+	fmul	%st(1),%st
+	fadds	C(aliasxcenter)
+	fcoms	C(r_refdef)+bbox_r_fvrectx
+	fnstsw	%ax
+	testb	$1,%ah
+	jz	.Lalias_bbox_project_no_left
+	orl	$0x0001,%ebp
+.Lalias_bbox_project_no_left:
+	fcoms	C(r_refdef)+bbox_r_fvrectright
+	fnstsw	%ax
+	testb	$0x45,%ah
+	jnz	.Lalias_bbox_project_no_right
+	orl	$0x0004,%ebp
+.Lalias_bbox_project_no_right:
+	fstp	%st(0)			// discard v0, leave zi
+
+	// v1 = viewaux->fv[1] * aliasyscale * zi + aliasycenter.
+	flds	4(%esi)
+	fmuls	C(aliasyscale)
+	fmul	%st(1),%st
+	fadds	C(aliasycenter)
+	fcoms	C(r_refdef)+bbox_r_fvrecty
+	fnstsw	%ax
+	testb	$1,%ah
+	jz	.Lalias_bbox_project_no_top
+	orl	$0x0002,%ebp
+.Lalias_bbox_project_no_top:
+	fcoms	C(r_refdef)+bbox_r_fvrectbottom
+	fnstsw	%ax
+	testb	$0x45,%ah
+	jnz	.Lalias_bbox_project_no_bottom
+	orl	$0x0008,%ebp
+.Lalias_bbox_project_no_bottom:
+	fstp	%st(0)			// discard v1
+	fstp	%st(0)			// discard zi
+
+	orl	%ebp,%edx
+	andl	%ebp,%ebx
+
+.Lalias_bbox_project_next:
+	addl	$bbox_aux_size,%esi
+	addl	$bbox_fv_size,%edi
+	decl	%ecx
+	jnz	.Lalias_bbox_project_loop
+
+.Lalias_bbox_project_done:
+	shll	$8,%ebx
+	movl	%ebx,%eax
+	orl	%edx,%eax
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+	ret

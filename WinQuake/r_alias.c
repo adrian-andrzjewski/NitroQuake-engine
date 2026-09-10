@@ -200,7 +200,16 @@ qboolean R_AliasCheckBBox (void)
 	anyclip = 0;
 	allclip = ALIAS_XY_CLIP_MASK;
 
-// TODO: probably should do this loop in ASM, especially if we use floats
+#ifdef ASM486_ALIAS_BBOX_PROJECT
+	{
+		int clipresult;
+
+		clipresult = R_AliasCheckBBoxProject_asm486 (viewaux, viewpts, numv);
+		anyclip = clipresult & 0xff;
+		allclip = (clipresult >> 8) & 0xff;
+	}
+#else
+// Keep the original C loop as the reference implementation for comparison.
 	for (i=0 ; i<numv ; i++)
 	{
 	// we don't need to bother with vertices that were z-clipped
@@ -227,6 +236,7 @@ qboolean R_AliasCheckBBox (void)
 		anyclip |= flags;
 		allclip &= flags;
 	}
+#endif
 
 	if (allclip)
 		return false;	// trivial reject off one side
@@ -243,6 +253,53 @@ qboolean R_AliasCheckBBox (void)
 
 	return true;
 }
+
+#ifdef BENCH486
+/*
+===============
+R_AliasCheckBBoxProject_C
+
+Reference version of the projection and XY clip loop from R_AliasCheckBBox.
+The result packs anyclip in the low byte and allclip in the next byte so the
+benchmark can compare the complete loop without changing renderer state.
+===============
+*/
+int R_AliasCheckBBoxProject_C (auxvert_t *viewaux, finalvert_t *viewpts,
+	int numv)
+{
+	int			i, flags;
+	float			zi, v0, v1;
+	unsigned		anyclip, allclip;
+
+	anyclip = 0;
+	allclip = ALIAS_XY_CLIP_MASK;
+
+	for (i=0 ; i<numv ; i++)
+	{
+		if (viewpts[i].flags & ALIAS_Z_CLIP)
+			continue;
+
+		zi = 1.0 / viewaux[i].fv[2];
+		v0 = (viewaux[i].fv[0] * aliasxscale * zi) + aliasxcenter;
+		v1 = (viewaux[i].fv[1] * aliasyscale * zi) + aliasycenter;
+
+		flags = 0;
+		if (v0 < r_refdef.fvrectx)
+			flags |= ALIAS_LEFT_CLIP;
+		if (v1 < r_refdef.fvrecty)
+			flags |= ALIAS_TOP_CLIP;
+		if (v0 > r_refdef.fvrectright)
+			flags |= ALIAS_RIGHT_CLIP;
+		if (v1 > r_refdef.fvrectbottom)
+			flags |= ALIAS_BOTTOM_CLIP;
+
+		anyclip |= flags;
+		allclip &= flags;
+	}
+
+	return (int)(anyclip | (allclip << 8));
+}
+#endif
 
 
 /*

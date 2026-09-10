@@ -174,6 +174,22 @@ under `BENCH486` for direct correctness and timing comparisons.  This is an
 opt-in learning experiment because its focused results are mixed and its
 integrated timedemo result is slower.
 
+The alias bounding-box projection loop is independently selectable with
+`-AliasBBoxProjectImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -AliasBBoxProjectImplementation c
+.\tools\build-dos.ps1 -Benchmark -AliasBBoxProjectImplementation asm
+~~~
+
+`asm` is the measured target default and uses `out\dos`; `c` is the
+reference/control implementation and uses `out\dos-aliasbboxc`.  The ASM
+helper replaces only the projection and XY clip loop in `R_AliasCheckBBox`.
+The original C loop remains intact for controlled comparison.  It keeps the
+vertex pointers, loop count, and clip masks in registers and uses one x87
+reciprocal for both projected coordinates.  This is a controlled integration:
+the C implementation remains available with `-AliasBBoxProjectImplementation c`.
+
 ## Runtime smoke test
 
 Place legally obtained Quake data in the ignored directory:
@@ -408,20 +424,21 @@ The focused benchmark can select each implementation independently:
   -SurfaceCacheImplementation c `
   -MipLevelImplementation c `
   -TurbulentImplementation asm `
+  -AliasBBoxProjectImplementation c `
   -DataRoot 'C:\path\to\Quake\id1'
 ~~~
 
 Individual C/ASM implementation switches can be omitted; the existing probes
 default to `c`; the turbulent selector defaults to the measured `stosb` path,
-and the alias projection, texture-animation, and lightmap-normalization
-selectors default to their measured `asm` paths; the BSP plane-dot and BSP
-clip selectors default to their C paths.  Pass
+and the alias projection, alias bounding-box projection, texture-animation,
+and lightmap-normalization selectors default to their measured `asm` paths;
+the BSP plane-dot and BSP clip selectors default to their C paths.  Pass
 `-TurbulentImplementation asm` for the existing ASM control.  The runner
-records all ten selections in `bench-result.json` and uses a matching output
+records all eleven selections in `bench-result.json` and uses a matching output
 directory suffix.  Use `-TurbulentOnly`, `-AliasProjectOnly`,
-`-TextureAnimationOnly`, `-LightMapNormalizeOnly`, `-BspPlaneDotOnly`, or
-`-BspClipOnly` to run only the corresponding focused experiment instead of the
-longer general matrix.
+`-AliasBBoxProjectOnly`, `-TextureAnimationOnly`, `-LightMapNormalizeOnly`,
+`-BspPlaneDotOnly`, or `-BspClipOnly` to run only the corresponding focused
+experiment instead of the longer general matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -834,6 +851,51 @@ default and `-BspClipImplementation asm` remains an opt-in 486 learning aid.
 The timedemo results are
 `out\dos-timedemo-20260910-194827\timedemo-result.json` and
 `out\dos-timedemo-20260910-195220\timedemo-result.json`.
+
+### Alias bounding-box projection result
+
+This experiment isolated the projection and four-way XY clip loop in
+`R_AliasCheckBBox`.  The original C loop remains in the source as the
+reference implementation; the ASM build selects a small helper that keeps
+the two vertex pointers, loop state, and clip masks in registers.  It uses
+the x87 reciprocal once per eligible vertex and reuses it for the X and Y
+projections.
+
+The focused benchmark used five alternating samples of 200,000 calls per
+case.  All four cases produced identical C/ASM results and ended with
+`486 benchmark correctness PASS`:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| Inside, 8 vertices | 2.476012 s | 2.015502 s | 18.599% |
+| Mixed XY clipping, 8 vertices | 2.523859 s | 2.063348 s | 18.246% |
+| Z-clipped, 16 vertices | 3.002316 s | 2.398260 s | 20.120% |
+| All-left clipping, 8 vertices | 2.476012 s | 2.063341 s | 16.667% |
+
+The focused report is `out\dos-bench-20260910-202504\bench-result.json`.
+
+Matched three-run `demo1` timedemos used DOSBox-X 2026.08.31,
+`cputype=486`, fixed 33445 cycles, the baseline `-O2 -march=i486` build, and
+the same staged `id1` data.  Every run completed 969 frames with framebuffer
+checksum `4154140932`:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C reference loop | 69.081275 / 69.081372 / 69.081242 | 14.026956 |
+| ASM helper | 69.063016 / 69.062994 / 69.063055 | 14.030664 |
+
+The ASM helper is 18.259 ms faster per timedemo, or 0.0264%.  A matching
+instrumented one-run profile also preserved the checksum (instrumentation
+changes timing): C took 76.930752 s and ASM took 76.912577 s.  The profile
+workload contained 5,470 alias-model work items and 43,956,198 texture pixels,
+which explains why a strong 16.7--20.1% isolated loop result becomes a small
+end-to-end gain.  The repeatable release win is sufficient for the ASM path to
+be the default, while the C path remains a build-time control for regression
+testing.
+
+The timedemo results are
+`out\dos-timedemo-20260910-202746\timedemo-result.json` and
+`out\dos-timedemo-20260910-203140\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 

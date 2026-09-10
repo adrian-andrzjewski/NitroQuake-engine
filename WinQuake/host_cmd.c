@@ -1230,6 +1230,8 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_BSP_PLANE_DOT_ITERATIONS	500000
 #define BENCH486_BSP_CLIP_SAMPLES	5
 #define BENCH486_BSP_CLIP_ITERATIONS	200000
+#define BENCH486_ALIAS_BBOX_PROJECT_SAMPLES	5
+#define BENCH486_ALIAS_BBOX_PROJECT_ITERATIONS	200000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
@@ -1246,6 +1248,8 @@ typedef void (*bench486_lightmap_normalize_fn_t) (unsigned *lights,
 		int size);
 typedef double (*bench486_bsp_plane_dot_fn_t) (mplane_t *plane);
 typedef int (*bench486_bsp_clip_fn_t) (mnode_t *node, int clipflags);
+typedef int (*bench486_alias_bbox_project_fn_t) (auxvert_t *viewaux,
+		finalvert_t *viewpts, int numv);
 
 static int bench486_turbulent_table[128];
 
@@ -2268,6 +2272,189 @@ static void Bench486BspClipCases (void)
 	Bench486BspClipCase ("single-plane", 1, 1);
 }
 
+static double Bench486MeasureAliasBBoxProject (
+		bench486_alias_bbox_project_fn_t function, auxvert_t *viewaux,
+		finalvert_t *viewpts, int numv, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	unsigned result_sum;
+	int i, result;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (viewaux, viewpts, numv);
+
+	start = Sys_FloatTime ();
+	result_sum = 0;
+	for (i=0 ; i<iterations ; i++)
+	{
+		result = function (viewaux, viewpts, numv);
+		result_sum = result_sum * 33 + (unsigned)result;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = result_sum;
+	bench486_sink ^= result_sum;
+	return elapsed;
+}
+
+static void Bench486AliasBBoxProjectCase (char *name, int numv,
+	int zmask, int mode)
+{
+	auxvert_t viewaux[16];
+	finalvert_t viewpts[16];
+	double c_samples[BENCH486_ALIAS_BBOX_PROJECT_SAMPLES];
+	double asm_samples[BENCH486_ALIAS_BBOX_PROJECT_SAMPLES];
+	double c_median, asm_median, delta;
+	float saved_xscale, saved_yscale, saved_xcenter, saved_ycenter;
+	float saved_fvrectx, saved_fvrecty;
+	float saved_fvrectright, saved_fvrectbottom;
+	unsigned c_checksum, asm_checksum;
+	int i, sample, c_result, asm_result, failure;
+
+	saved_xscale = aliasxscale;
+	saved_yscale = aliasyscale;
+	saved_xcenter = aliasxcenter;
+	saved_ycenter = aliasycenter;
+	saved_fvrectx = r_refdef.fvrectx;
+	saved_fvrecty = r_refdef.fvrecty;
+	saved_fvrectright = r_refdef.fvrectright;
+	saved_fvrectbottom = r_refdef.fvrectbottom;
+
+	aliasxscale = 320.0;
+	aliasyscale = 240.0;
+	aliasxcenter = 160.0;
+	aliasycenter = 120.0;
+	r_refdef.fvrectx = 0.0;
+	r_refdef.fvrecty = 0.0;
+	r_refdef.fvrectright = 320.0;
+	r_refdef.fvrectbottom = 240.0;
+
+	Q_memset (viewaux, 0, sizeof(viewaux));
+	Q_memset (viewpts, 0, sizeof(viewpts));
+	for (i=0 ; i<numv ; i++)
+	{
+		viewaux[i].fv[2] = 8.0 + (float)(i & 3);
+		if (mode == 1)
+		{
+			switch (i & 3)
+			{
+			case 0:
+				viewaux[i].fv[0] = -8.0;
+				break;
+			case 1:
+				viewaux[i].fv[0] = 8.0;
+				break;
+			case 2:
+				viewaux[i].fv[1] = -8.0;
+				break;
+			default:
+				viewaux[i].fv[1] = 8.0;
+				break;
+			}
+		}
+		else if (mode == 2)
+		{
+			viewaux[i].fv[0] = -12.0;
+		}
+		else
+		{
+			viewaux[i].fv[0] = 0.25;
+			viewaux[i].fv[1] = -0.25;
+		}
+		if (zmask & (1 << i))
+			viewpts[i].flags = ALIAS_Z_CLIP;
+	}
+
+	c_result = R_AliasCheckBBoxProject_C (viewaux, viewpts, numv);
+	asm_result = R_AliasCheckBBoxProject_asm486 (viewaux, viewpts, numv);
+	failure = c_result != asm_result;
+	if (failure)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("alias-bbox-project %s correctness FAIL c 0x%x asm 0x%x\n",
+				name, c_result, asm_result);
+	}
+
+	if (!failure)
+	{
+		for (sample=0 ; sample<BENCH486_ALIAS_BBOX_PROJECT_SAMPLES ; sample++)
+		{
+			if ((sample & 1) == 0)
+			{
+				c_samples[sample] = Bench486MeasureAliasBBoxProject (
+						R_AliasCheckBBoxProject_C, viewaux, viewpts, numv,
+						BENCH486_ALIAS_BBOX_PROJECT_ITERATIONS, &c_checksum);
+				asm_samples[sample] = Bench486MeasureAliasBBoxProject (
+						R_AliasCheckBBoxProject_asm486, viewaux, viewpts, numv,
+						BENCH486_ALIAS_BBOX_PROJECT_ITERATIONS, &asm_checksum);
+			}
+			else
+			{
+				asm_samples[sample] = Bench486MeasureAliasBBoxProject (
+						R_AliasCheckBBoxProject_asm486, viewaux, viewpts, numv,
+						BENCH486_ALIAS_BBOX_PROJECT_ITERATIONS, &asm_checksum);
+				c_samples[sample] = Bench486MeasureAliasBBoxProject (
+						R_AliasCheckBBoxProject_C, viewaux, viewpts, numv,
+						BENCH486_ALIAS_BBOX_PROJECT_ITERATIONS, &c_checksum);
+			}
+
+			if (c_checksum != asm_checksum)
+			{
+				bench486_memory_failures++;
+				Bench486Printf ("alias-bbox-project %s checksum correctness FAIL\n",
+						name);
+				failure = 1;
+				break;
+			}
+		}
+	}
+
+	if (!failure)
+	{
+		Bench486SortSamples (c_samples,
+				BENCH486_ALIAS_BBOX_PROJECT_SAMPLES);
+		Bench486SortSamples (asm_samples,
+				BENCH486_ALIAS_BBOX_PROJECT_SAMPLES);
+		c_median = c_samples[BENCH486_ALIAS_BBOX_PROJECT_SAMPLES / 2];
+		asm_median = asm_samples[BENCH486_ALIAS_BBOX_PROJECT_SAMPLES / 2];
+		delta = c_median > 0.0 ?
+				(c_median - asm_median) / c_median * 100.0 : 0.0;
+		Bench486Printf ("alias-bbox-project %s vertices %d zmask 0x%x mode %d "
+				"iterations %d samples %d result 0x%x\n",
+				name, numv, zmask, mode,
+				BENCH486_ALIAS_BBOX_PROJECT_ITERATIONS,
+				BENCH486_ALIAS_BBOX_PROJECT_SAMPLES, c_result);
+		Bench486Printf ("  c median %.6f sec checksum %u samples",
+				c_median, c_checksum);
+		for (i=0 ; i<BENCH486_ALIAS_BBOX_PROJECT_SAMPLES ; i++)
+			Bench486Printf (" %.6f", c_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486 median %.6f sec checksum %u samples",
+				asm_median, asm_checksum);
+		for (i=0 ; i<BENCH486_ALIAS_BBOX_PROJECT_SAMPLES ; i++)
+			Bench486Printf (" %.6f", asm_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+	}
+
+	aliasxscale = saved_xscale;
+	aliasyscale = saved_yscale;
+	aliasxcenter = saved_xcenter;
+	aliasycenter = saved_ycenter;
+	r_refdef.fvrectx = saved_fvrectx;
+	r_refdef.fvrecty = saved_fvrecty;
+	r_refdef.fvrectright = saved_fvrectright;
+	r_refdef.fvrectbottom = saved_fvrectbottom;
+}
+
+static void Bench486AliasBBoxProjectCases (void)
+{
+	Bench486AliasBBoxProjectCase ("inside", 8, 0x0000, 0);
+	Bench486AliasBBoxProjectCase ("mixed", 8, 0x0000, 1);
+	Bench486AliasBBoxProjectCase ("z-clipped", 16, 0xaaaa, 1);
+	Bench486AliasBBoxProjectCase ("all-left", 8, 0x0000, 2);
+}
+
 static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
 		void *entry, void *texinfo, void *entity, int frame, int iterations,
 		unsigned *hits)
@@ -2770,6 +2957,23 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchaliasbboxproject"))
+	{
+		Bench486Printf ("alias-bbox-project experiment compares the C projection loop\n");
+		Bench486Printf ("with a register-held 486 x87 projection helper\n");
+		Bench486AliasBBoxProjectCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchtextureanimation"))
 	{
 		Bench486Printf ("texture-animation experiment compares the C frame loop\n");
@@ -2900,6 +3104,9 @@ static void Bench486_f (void)
 	Bench486Printf ("bsp-clip experiment compares the C frustum loop with\n");
 	Bench486Printf ("the four-plane 486 x87 clipping helper\n");
 	Bench486BspClipCases ();
+	Bench486Printf ("alias-bbox-project experiment compares the C projection loop with\n");
+	Bench486Printf ("the register-held 486 x87 projection helper\n");
+	Bench486AliasBBoxProjectCases ();
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();
