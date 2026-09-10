@@ -265,6 +265,12 @@ D_CacheSurface
 surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 {
 	surfcache_t     *cache;
+#ifdef PROFILE486
+	double			bench486_surface_cache_start;
+
+	if (bench486_profile_frame_active)
+		bench486_surface_cache_start = Sys_FloatTime ();
+#endif
 
 //
 // if the surface is animating or flashing, flush the cache
@@ -286,7 +292,14 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 			&& cache->lightadj[1] == r_drawsurf.lightadj[1]
 			&& cache->lightadj[2] == r_drawsurf.lightadj[2]
 			&& cache->lightadj[3] == r_drawsurf.lightadj[3] )
+	{
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_surface_cache_seconds += Sys_FloatTime () -
+					bench486_surface_cache_start;
+#endif
 		return cache;
+	}
 
 //
 // determine shape of surface
@@ -329,6 +342,12 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 
 	c_surf++;
 	R_DrawSurface ();
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_surface_cache_seconds += Sys_FloatTime () -
+				bench486_surface_cache_start;
+#endif
 
 	return surface->cachespots[miplevel];
 }

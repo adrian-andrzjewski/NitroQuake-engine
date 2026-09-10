@@ -34,6 +34,17 @@ static volatile unsigned bench486_sink;
 static int bench486_report_handle;
 
 #ifdef PROFILE486
+int bench486_profile_frame_active;
+unsigned long bench486_profile_frames;
+double bench486_frame_seconds;
+double bench486_render_seconds;
+double bench486_visibility_seconds;
+double bench486_world_seconds;
+double bench486_edge_scan_seconds;
+double bench486_surface_cache_seconds;
+double bench486_span_draw_seconds;
+double bench486_sound_seconds;
+double bench486_framebuffer_seconds;
 unsigned long bench486_alias_models;
 unsigned long bench486_alias_vertices;
 unsigned long bench486_surface_count;
@@ -79,24 +90,67 @@ static void Bench486Printf (char *format, ...)
 		Sys_FileWrite (bench486_report_handle, text, Q_strlen(text));
 }
 
+#ifdef PROFILE486
+void Bench486ResetTimedemoCounters (void)
+{
+	bench486_profile_frame_active = false;
+	bench486_profile_frames = 0;
+	bench486_frame_seconds = 0;
+	bench486_render_seconds = 0;
+	bench486_visibility_seconds = 0;
+	bench486_world_seconds = 0;
+	bench486_edge_scan_seconds = 0;
+	bench486_surface_cache_seconds = 0;
+	bench486_span_draw_seconds = 0;
+	bench486_sound_seconds = 0;
+	bench486_framebuffer_seconds = 0;
+	bench486_alias_models = 0;
+	bench486_alias_vertices = 0;
+	bench486_surface_count = 0;
+	bench486_gradient_calls = 0;
+	bench486_solid_span_count = 0;
+	bench486_line_setup_calls = 0;
+	bench486_axis_cache_hits = 0;
+	bench486_axis_cache_misses = 0;
+	bench486_alias_seconds = 0;
+	bench486_surface_seconds = 0;
+	bench486_turbulent_seconds = 0;
+	bench486_particle_count = 0;
+	bench486_particle_seconds = 0;
+}
+
+void Bench486BeginTimedemoProfile (void)
+{
+	bench486_profile_frame_active = true;
+}
+#endif
+
 void Bench486WriteTimedemoCounters (int report_handle)
 {
 #ifdef PROFILE486
-	char text[512];
+	char text[1024];
 
 	sprintf (text,
-			"profile alias-models %lu alias-vertices %lu surfaces %lu "
+			"profile frames %lu frame-sec %.6f render-sec %.6f "
+			"visibility-sec %.6f world-sec %.6f edge-scan-sec %.6f "
+			"surface-sec %.6f surface-cache-sec %.6f span-draw-sec %.6f "
+			"alias-sec %.6f turbulent-sec %.6f particles %lu "
+			"particle-sec %.6f sound-sec %.6f framebuffer-sec %.6f "
+			"alias-models %lu alias-vertices %lu surfaces %lu "
 			"gradients %lu solid-spans %lu line-setups %lu "
-			"axis-hits %lu axis-misses %lu alias-sec %.6f "
-			"surface-sec %.6f turbulent-sec %.6f particles %lu "
-			"particle-sec %.6f\n",
+			"axis-hits %lu axis-misses %lu\n",
+			bench486_profile_frames, bench486_frame_seconds,
+			bench486_render_seconds, bench486_visibility_seconds,
+			bench486_world_seconds, bench486_edge_scan_seconds,
+			bench486_surface_seconds, bench486_surface_cache_seconds,
+			bench486_span_draw_seconds, bench486_alias_seconds,
+			bench486_turbulent_seconds, bench486_particle_count,
+			bench486_particle_seconds, bench486_sound_seconds,
+			bench486_framebuffer_seconds,
 			bench486_alias_models, bench486_alias_vertices,
 			bench486_surface_count, bench486_gradient_calls,
 			bench486_solid_span_count, bench486_line_setup_calls,
-			bench486_axis_cache_hits, bench486_axis_cache_misses,
-			bench486_alias_seconds, bench486_surface_seconds,
-			bench486_turbulent_seconds, bench486_particle_count,
-			bench486_particle_seconds);
+			bench486_axis_cache_hits, bench486_axis_cache_misses);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));

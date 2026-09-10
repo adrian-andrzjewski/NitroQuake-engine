@@ -106,7 +106,7 @@ It stages a fresh DOS directory for every run, writes six-decimal timing data,
 and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
 fixed cycle count, video mode, optimization profile, and command-line options
 unchanged when comparing results.  The current default renderer pass completed
-all 969 frames at a 13.995823 FPS median (69.234944 seconds), about 0.57%
+all 969 frames at a 13.995835 FPS median (69.234883 seconds), about 0.57%
 above the baseline.  It is a narrow measured improvement and does not support
 a claim of a 5% end-to-end gain.
 
@@ -224,14 +224,49 @@ and collect renderer call/cache counters through the timedemo runner:
 
 Instrumentation changes timing, so its FPS is diagnostic only.  The profile
 reports repeated texture-axis transforms avoided by the per-frame cache;
-compare release-style `qbench.exe` runs for performance conclusions.  It also
-reports coarse phase timings.  A post-validation demo1 diagnostic run
-recorded 5,473 alias models, 58,107 surfaces, 46,932 cache hits, 11,175
-misses, 9.878070 seconds in alias-model work, 39.383286 seconds in surface
-drawing, 1.941758 seconds in turbulent spans, and 135,542 particles in
-0.619560 seconds of particle work.  These counters identify
-where the 486 renderer spends time; they are not a visual-parity or release
-performance claim.
+compare release-style `qbench.exe` runs for performance conclusions.  The
+profile also records whole-frame time and the major renderer, audio, and video
+stages.  A 2026-09-10 baseline profile run completed the same 969-frame
+`demo1` at 13.679173 FPS; the isolated instrumentation run recorded 70.822785
+seconds across 969 profiled frames.  The profile FPS is slower because timing
+probes add overhead, so the release timedemo result remains the authoritative
+969-frame baseline.
+
+The profile timings below are inclusive.  `edge-scan-sec` includes
+`surface-sec`, while `surface-cache-sec` and `span-draw-sec` are components of
+surface drawing; percentages therefore must not be added together.  They are
+all percentages of the instrumented `frame-sec` total and are used only to
+rank work:
+
+| Profile stage | Seconds | % of frame time | Scope |
+| --- | ---: | ---: | --- |
+| Whole processed frame | 70.822785 | 100.00% | Simulation, screen, render, audio, and video |
+| 3D render | 68.968001 | 97.38% | Inclusive `V_RenderView` total |
+| Edge scan | 47.352695 | 66.86% | Span scheduling plus surface drawing |
+| Surface drawing | 40.633701 | 57.37% | Texture, z, turbulent, and cache use |
+| Texture-span drawing | 18.729525 | 26.45% | Direct sky/affine texture span routines |
+| Surface cache/lightmap | 10.838854 | 15.30% | Cache checks and surface lightmap generation |
+| Alias models | 9.897909 | 13.98% | Alias setup and rasterization |
+| World BSP/edge emission | 8.170393 | 11.54% | World traversal and edge emission |
+| Particles | 0.630367 | 0.89% | 135,634 live-particle draws |
+| Framebuffer copy | 0.421394 | 0.59% | Final VGA/DOS video transfer |
+| Visibility | 0.060456 | 0.09% | PVS/BSP visibility marking |
+| Sound mixer | 0.022343 | 0.03% | Disabled by the locked `-nosound` runner |
+
+For a non-overlapping prioritization, subtracting surface drawing from edge
+scan leaves 6.718994 seconds (9.49%) of edge/span scheduling.  The top three
+independent consumers are therefore surface drawing, alias-model work, and
+world BSP/edge emission.  The first optimization target is the software
+surface rasterizer, with texture-span sampling as the first sub-area to
+measure again after any change.  No architecture change is justified by this
+profile alone.
+
+Supporting counters from this run were 5,470 alias models, 58,046 surfaces,
+46,873 texture-axis cache hits, 11,173 misses, and 135,634 particles.  Because
+the locked benchmark disables sound, the small sound number is call/guard
+overhead rather than an exercised mixer workload.  These counters identify
+where the 486 renderer spends time; they are not visual-parity or release
+performance claims.
 
 ## Reprovisioning
 

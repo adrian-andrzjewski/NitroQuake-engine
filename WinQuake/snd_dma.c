@@ -803,9 +803,21 @@ void S_Update_(void)
 {
 	unsigned        endtime;
 	int				samps;
+#ifdef PROFILE486
+	double			bench486_sound_start;
+
+	if (bench486_profile_frame_active)
+		bench486_sound_start = Sys_FloatTime ();
+#endif
 	
 	if (!sound_started || (snd_blocked > 0))
+	{
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_sound_seconds += Sys_FloatTime () - bench486_sound_start;
+#endif
 		return;
+	}
 
 // Updates DMA time
 	GetSoundtime();
@@ -826,6 +838,11 @@ void S_Update_(void)
 	S_PaintChannels (endtime);
 
 	SNDDMA_Submit ();
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_sound_seconds += Sys_FloatTime () - bench486_sound_start;
+#endif
 }
 
 /*

@@ -23,6 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void CL_FinishTimeDemo (void);
 
 #ifdef BENCH486
+#ifdef PROFILE486
+void Bench486ResetTimedemoCounters (void);
+#endif
+void Bench486BeginTimedemoProfile (void);
 void Bench486WriteTimedemoCounters (int report_handle);
 #endif
 
@@ -109,7 +113,12 @@ int CL_GetMessage (void)
 			// if this is the second frame, grab the real td_starttime
 			// so the bogus time on the first frame doesn't count
 				if (host_framecount == cls.td_startframe + 1)
+				{
 					cls.td_starttime = realtime;
+#ifdef PROFILE486
+					Bench486BeginTimedemoProfile ();
+#endif
+				}
 			}
 			else if ( /* cl.time > 0 && */ cl.time <= cl.mtime[0])
 			{
@@ -381,6 +390,12 @@ void CL_TimeDemo_f (void)
 	}
 
 	CL_PlayDemo_f ();
+
+#ifdef BENCH486
+#ifdef PROFILE486
+	Bench486ResetTimedemoCounters ();
+#endif
+#endif
 	
 // cls.td_starttime will be grabbed at the second frame of the demo, so
 // all the loading time doesn't get counted

@@ -810,6 +810,9 @@ void SCR_UpdateScreen (void)
 	static float	oldscr_viewsize;
 	static float	oldlcd_x;
 	vrect_t		vrect;
+#ifdef PROFILE486
+	double		bench486_render_start;
+#endif
 	
 	if (scr_skipupdate || block_drawing)
 		return;
@@ -890,7 +893,15 @@ void SCR_UpdateScreen (void)
 
 	VID_LockBuffer ();
 
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_render_start = Sys_FloatTime ();
+#endif
 	V_RenderView ();
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_render_seconds += Sys_FloatTime () - bench486_render_start;
+#endif
 
 	VID_UnlockBuffer ();
 

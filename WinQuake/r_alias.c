@@ -710,13 +710,15 @@ void R_AliasDrawModel (alight_t *plighting)
 #endif
 
 #ifdef PROFILE486
-	bench486_alias_start = Sys_FloatTime ();
+	if (bench486_profile_frame_active)
+		bench486_alias_start = Sys_FloatTime ();
 #endif
 
 	r_amodels_drawn++;
 
 #ifdef PROFILE486
-	bench486_alias_models++;
+	if (bench486_profile_frame_active)
+		bench486_alias_models++;
 #endif
 
 // cache align
@@ -728,7 +730,8 @@ void R_AliasDrawModel (alight_t *plighting)
 	pmdl = (mdl_t *)((byte *)paliashdr + paliashdr->model);
 
 #ifdef PROFILE486
-	bench486_alias_vertices += pmdl->numverts;
+	if (bench486_profile_frame_active)
+		bench486_alias_vertices += pmdl->numverts;
 #endif
 
 	R_AliasSetupSkin ();
@@ -766,7 +769,8 @@ void R_AliasDrawModel (alight_t *plighting)
 		R_AliasPreparePoints ();
 
 #ifdef PROFILE486
-	bench486_alias_seconds += Sys_FloatTime () - bench486_alias_start;
+	if (bench486_profile_frame_active)
+		bench486_alias_seconds += Sys_FloatTime () - bench486_alias_start;
 #endif
 }
 

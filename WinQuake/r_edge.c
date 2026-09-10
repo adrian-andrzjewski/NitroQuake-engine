@@ -666,6 +666,12 @@ void R_ScanEdges (void)
 	byte	basespans[MAXSPANS*sizeof(espan_t)+CACHE_SIZE];
 	espan_t	*basespan_p;
 	surf_t	*s;
+#ifdef PROFILE486
+	double	bench486_edge_scan_start;
+
+	if (bench486_profile_frame_active)
+		bench486_edge_scan_start = Sys_FloatTime ();
+#endif
 
 	basespan_p = (espan_t *)
 			((long)(basespans + CACHE_SIZE - 1) & ~(CACHE_SIZE - 1));
@@ -769,6 +775,11 @@ void R_ScanEdges (void)
 		R_DrawCulledPolys ();
 	else
 		D_DrawSurfaces ();
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_edge_scan_seconds += Sys_FloatTime () - bench486_edge_scan_start;
+#endif
 }
 
 

@@ -494,7 +494,8 @@ void D_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 	adivtab_t	*ptemp;
 
 #ifdef PROFILE486
-	bench486_line_setup_calls++;
+	if (bench486_profile_frame_active)
+		bench486_line_setup_calls++;
 #endif
 
 	errorterm = -1;

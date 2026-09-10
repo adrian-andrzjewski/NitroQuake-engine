@@ -663,7 +663,8 @@ void R_DrawParticles (void)
 #endif
 	
 #ifdef PROFILE486
-	particle_start = Sys_FloatTime ();
+	if (bench486_profile_frame_active)
+		particle_start = Sys_FloatTime ();
 #endif
 	D_StartParticles ();
 
@@ -671,7 +672,8 @@ void R_DrawParticles (void)
 	{
 		D_EndParticles ();
 #ifdef PROFILE486
-		bench486_particle_seconds += Sys_FloatTime () - particle_start;
+		if (bench486_profile_frame_active)
+			bench486_particle_seconds += Sys_FloatTime () - particle_start;
 #endif
 		return;
 	}
@@ -700,7 +702,8 @@ void R_DrawParticles (void)
 		}
 
 #ifdef PROFILE486
-		bench486_particle_count++;
+		if (bench486_profile_frame_active)
+			bench486_particle_count++;
 #endif
 		D_DrawParticle (p);
 		p->org[0] += p->vel[0]*frametime;
@@ -768,7 +771,8 @@ void R_DrawParticles (void)
 
 	D_EndParticles ();
 #ifdef PROFILE486
-	bench486_particle_seconds += Sys_FloatTime () - particle_start;
+	if (bench486_profile_frame_active)
+		bench486_particle_seconds += Sys_FloatTime () - particle_start;
 #endif
 }
 

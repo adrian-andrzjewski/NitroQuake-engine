@@ -636,6 +636,9 @@ void _Host_Frame (float time)
 	static double		time2 = 0;
 	static double		time3 = 0;
 	int			pass1, pass2, pass3;
+#ifdef PROFILE486
+	double			bench486_frame_start;
+#endif
 
 	if (setjmp (host_abortserver) )
 		return;			// something bad happened, or the server disconnected
@@ -646,6 +649,10 @@ void _Host_Frame (float time)
 // decide the simulation time
 	if (!Host_FilterTime (time))
 		return;			// don't run too fast, or packets will flood out
+
+#ifdef PROFILE486
+	bench486_frame_start = Sys_FloatTime ();
+#endif
 		
 // get new key events
 	Sys_SendKeyEvents ();
@@ -722,6 +729,14 @@ void _Host_Frame (float time)
 		Con_Printf ("%3i tot %3i server %3i gfx %3i snd\n",
 					pass1+pass2+pass3, pass1, pass2, pass3);
 	}
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+	{
+		bench486_frame_seconds += Sys_FloatTime () - bench486_frame_start;
+		bench486_profile_frames++;
+	}
+#endif
 	
 	host_framecount++;
 }

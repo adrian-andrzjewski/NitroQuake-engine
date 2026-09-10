@@ -879,6 +879,9 @@ void R_EdgeDrawing (void)
 				((CACHE_SIZE - 1) / sizeof(edge_t)) + 1];
 	surf_t	lsurfs[NUMSTACKSURFACES +
 				((CACHE_SIZE - 1) / sizeof(surf_t)) + 1];
+#ifdef PROFILE486
+	double	bench486_world_start;
+#endif
 
 	if (auxedges)
 	{
@@ -908,7 +911,15 @@ void R_EdgeDrawing (void)
 		rw_time1 = Sys_FloatTime ();
 	}
 
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_world_start = Sys_FloatTime ();
+#endif
 	R_RenderWorld ();
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_world_seconds += Sys_FloatTime () - bench486_world_start;
+#endif
 
 	if (r_drawculledpolys)
 		R_ScanEdges ();
@@ -953,6 +964,9 @@ r_refdef must be set before the first call
 void R_RenderView_ (void)
 {
 	byte	warpbuffer[WARP_WIDTH * WARP_HEIGHT];
+#ifdef PROFILE486
+	double	bench486_visibility_start;
+#endif
 
 	r_warpbuffer = warpbuffer;
 
@@ -961,10 +975,20 @@ void R_RenderView_ (void)
 
 	R_SetupFrame ();
 
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_visibility_start = Sys_FloatTime ();
+#endif
+
 #ifdef PASSAGES
 SetVisibilityByPassages ();
 #else
 	R_MarkLeaves ();	// done here so we know if we're in water
+#endif
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_visibility_seconds += Sys_FloatTime () - bench486_visibility_start;
 #endif
 
 // make FDIV fast. This reduces timing precision after we've been running for a

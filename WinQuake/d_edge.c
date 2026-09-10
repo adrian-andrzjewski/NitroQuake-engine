@@ -110,7 +110,8 @@ void D_DrawSolidSurface (surf_t *surf, int color)
 	for (span=surf->spans ; span ; span=span->pnext)
 	{
 #ifdef PROFILE486
-		bench486_solid_span_count++;
+		if (bench486_profile_frame_active)
+			bench486_solid_span_count++;
 #endif
 		pdest = (byte *)d_viewbuffer + screenwidth*span->v;
 		if (span->count >= 16)
@@ -163,7 +164,8 @@ static d_texaxis_cache_t *D_GetTextureAxes (mtexinfo_t *texinfo)
 		entry->frame == r_framecount)
 	{
 #ifdef PROFILE486
-		bench486_axis_cache_hits++;
+		if (bench486_profile_frame_active)
+			bench486_axis_cache_hits++;
 #endif
 		return entry;
 	}
@@ -175,7 +177,8 @@ static d_texaxis_cache_t *D_GetTextureAxes (mtexinfo_t *texinfo)
 	entry->entity = currententity;
 	entry->frame = r_framecount;
 #ifdef PROFILE486
-	bench486_axis_cache_misses++;
+	if (bench486_profile_frame_active)
+		bench486_axis_cache_misses++;
 #endif
 	return entry;
 }
@@ -195,7 +198,8 @@ void D_CalcGradients (msurface_t *pface)
 	float		t;
 
 #ifdef PROFILE486
-	bench486_gradient_calls++;
+	if (bench486_profile_frame_active)
+		bench486_gradient_calls++;
 #endif
 
 	pplane = pface->plane;
@@ -249,8 +253,10 @@ void D_DrawSurfaces (void)
 	vec3_t			local_modelorg;
 #ifdef PROFILE486
 	double			bench486_surface_start;
+	double			bench486_span_draw_start;
 
-	bench486_surface_start = Sys_FloatTime ();
+	if (bench486_profile_frame_active)
+		bench486_surface_start = Sys_FloatTime ();
 #endif
 
 	currententity = &cl_entities[0];
@@ -266,7 +272,8 @@ void D_DrawSurfaces (void)
 				continue;
 
 #ifdef PROFILE486
-			bench486_surface_count++;
+			if (bench486_profile_frame_active)
+				bench486_surface_count++;
 #endif
 
 			d_zistepu = s->d_zistepu;
@@ -285,7 +292,8 @@ void D_DrawSurfaces (void)
 				continue;
 
 #ifdef PROFILE486
-			bench486_surface_count++;
+			if (bench486_profile_frame_active)
+				bench486_surface_count++;
 #endif
 
 			r_drawnpolycount++;
@@ -301,7 +309,17 @@ void D_DrawSurfaces (void)
 					R_MakeSky ();
 				}
 
+#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+					bench486_span_draw_start = Sys_FloatTime ();
+#endif
 				D_DrawSkyScans8 (s->spans);
+
+#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+					bench486_span_draw_seconds += Sys_FloatTime () -
+							bench486_span_draw_start;
+#endif
 				D_DrawZSpans (s->spans);
 			}
 			else if (s->flags & SURF_DRAWBACKGROUND)
@@ -386,7 +404,17 @@ void D_DrawSurfaces (void)
 
 				D_CalcGradients (pface);
 
+#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+					bench486_span_draw_start = Sys_FloatTime ();
+#endif
 				(*d_drawspans) (s->spans);
+
+#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+					bench486_span_draw_seconds += Sys_FloatTime () -
+							bench486_span_draw_start;
+#endif
 
 				D_DrawZSpans (s->spans);
 
@@ -411,7 +439,8 @@ void D_DrawSurfaces (void)
 	}
 
 #ifdef PROFILE486
-	bench486_surface_seconds += Sys_FloatTime () - bench486_surface_start;
+	if (bench486_profile_frame_active)
+		bench486_surface_seconds += Sys_FloatTime () - bench486_surface_start;
 #endif
 }
 

@@ -311,6 +311,13 @@ VID_Update
 */
 void    VID_Update (vrect_t *rects)
 {
+#ifdef PROFILE486
+	double		bench486_framebuffer_start;
+
+	if (bench486_profile_frame_active)
+		bench486_framebuffer_start = Sys_FloatTime ();
+#endif
+
 	if (firstupdate && _vid_default_mode.value)
 	{
 		if(_vid_default_mode.value >= numvidmodes)
@@ -321,6 +328,12 @@ void    VID_Update (vrect_t *rects)
 	}
 
 	(*pcurrentmode->swapbuffers)(&vid, pcurrentmode, rects);
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_framebuffer_seconds += Sys_FloatTime () -
+				bench486_framebuffer_start;
+#endif
 
 	if (!nomodecheck)
 	{

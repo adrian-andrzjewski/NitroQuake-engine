@@ -56,6 +56,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #ifdef PROFILE486
+extern int bench486_profile_frame_active;
+extern unsigned long bench486_profile_frames;
+extern double bench486_frame_seconds;
+extern double bench486_render_seconds;
+extern double bench486_visibility_seconds;
+extern double bench486_world_seconds;
+extern double bench486_edge_scan_seconds;
+extern double bench486_surface_cache_seconds;
+extern double bench486_span_draw_seconds;
+extern double bench486_sound_seconds;
+extern double bench486_framebuffer_seconds;
 extern unsigned long bench486_alias_models;
 extern unsigned long bench486_alias_vertices;
 extern unsigned long bench486_surface_count;

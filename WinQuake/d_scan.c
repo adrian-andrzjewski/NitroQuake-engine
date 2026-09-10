@@ -128,7 +128,8 @@ void Turbulent8 (espan_t *pspan)
 #ifdef PROFILE486
 	double			bench486_turbulent_start;
 
-	bench486_turbulent_start = Sys_FloatTime ();
+	if (bench486_profile_frame_active)
+		bench486_turbulent_start = Sys_FloatTime ();
 #endif
 	
 	r_turb_turb = sintable + ((int)(cl.time*SPEED)&(CYCLE-1));
@@ -251,7 +252,8 @@ void Turbulent8 (espan_t *pspan)
 	} while ((pspan = pspan->pnext) != NULL);
 
 #ifdef PROFILE486
-	bench486_turbulent_seconds += Sys_FloatTime () - bench486_turbulent_start;
+	if (bench486_profile_frame_active)
+		bench486_turbulent_seconds += Sys_FloatTime () - bench486_turbulent_start;
 #endif
 }
 
