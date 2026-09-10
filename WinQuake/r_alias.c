@@ -472,6 +472,53 @@ R_AliasTransformFinalVert
 void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
 	trivertx_t *pverts, stvert_t *pstverts)
 {
+#ifdef ASM486_ALIAS_TRANSFORM_FINAL
+	R_AliasTransformFinalVert_asm486 (fv, av, pverts, pstverts);
+#else
+	int		temp;
+	float	lightcos, *plightnormal;
+
+	av->fv[0] = DotProduct(pverts->v, aliastransform[0]) +
+			aliastransform[0][3];
+	av->fv[1] = DotProduct(pverts->v, aliastransform[1]) +
+			aliastransform[1][3];
+	av->fv[2] = DotProduct(pverts->v, aliastransform[2]) +
+			aliastransform[2][3];
+
+	fv->v[2] = pstverts->s;
+	fv->v[3] = pstverts->t;
+
+	fv->flags = pstverts->onseam;
+
+// lighting
+	plightnormal = r_avertexnormals[pverts->lightnormalindex];
+	lightcos = DotProduct (plightnormal, r_plightvec);
+	temp = r_ambientlight;
+
+	if (lightcos < 0)
+	{
+		temp += (int)(r_shadelight * lightcos);
+
+	// clamp; because we limited the minimum ambient and shading light, we
+	// don't have to clamp low light, just bright
+		if (temp < 0)
+			temp = 0;
+	}
+
+	fv->v[4] = temp;
+#endif
+}
+
+#ifdef BENCH486
+/*
+===============
+R_AliasTransformFinalVert_C
+
+Reference version of the clipped alias vertex transform and lighting helper.
+*/
+void R_AliasTransformFinalVert_C (finalvert_t *fv, auxvert_t *av,
+	trivertx_t *pverts, stvert_t *pstverts)
+{
 	int		temp;
 	float	lightcos, *plightnormal;
 
@@ -504,6 +551,7 @@ void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
 
 	fv->v[4] = temp;
 }
+#endif
 
 
 #if	!id386

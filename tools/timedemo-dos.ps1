@@ -24,6 +24,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$AliasTransformFinalImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$LightMapNormalizeImplementation = 'asm',
@@ -91,6 +93,9 @@ if ($AliasProjectImplementation -eq 'c') {
 if ($AliasBBoxProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasbboxc'
 }
+if ($AliasTransformFinalImplementation -eq 'c') {
+    $profileSuffixParts += 'aliastransformc'
+}
 if ($TextureAnimationImplementation -eq 'c') {
     $profileSuffixParts += 'textureanimc'
 }
@@ -144,6 +149,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TurbulentImplementation', $TurbulentImplementation,
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-AliasBBoxProjectImplementation', $AliasBBoxProjectImplementation,
+        '-AliasTransformFinalImplementation', $AliasTransformFinalImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
@@ -441,6 +447,7 @@ $result = [ordered]@{
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
+    aliasTransformFinalImplementation = $AliasTransformFinalImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation

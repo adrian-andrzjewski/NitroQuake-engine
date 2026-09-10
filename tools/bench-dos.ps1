@@ -23,6 +23,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$AliasTransformFinalImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$LightMapNormalizeImplementation = 'asm',
@@ -33,6 +35,7 @@ param(
     [switch]$TurbulentOnly,
     [switch]$AliasProjectOnly,
     [switch]$AliasBBoxProjectOnly,
+    [switch]$AliasTransformFinalOnly,
     [switch]$TextureAnimationOnly,
     [switch]$LightMapNormalizeOnly,
     [switch]$BspPlaneDotOnly,
@@ -92,6 +95,9 @@ if ($AliasProjectImplementation -eq 'c') {
 if ($AliasBBoxProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasbboxc'
 }
+if ($AliasTransformFinalImplementation -eq 'c') {
+    $profileSuffixParts += 'aliastransformc'
+}
 if ($TextureAnimationImplementation -eq 'c') {
     $profileSuffixParts += 'textureanimc'
 }
@@ -141,6 +147,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TurbulentImplementation', $TurbulentImplementation,
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-AliasBBoxProjectImplementation', $AliasBBoxProjectImplementation,
+        '-AliasTransformFinalImplementation', $AliasTransformFinalImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
@@ -183,6 +190,9 @@ $benchCommand = if ($AliasProjectOnly) {
 }
 elseif ($AliasBBoxProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasbboxproject -benchexit'
+}
+elseif ($AliasTransformFinalOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliastransformfinal -benchexit'
 }
 elseif ($LightMapNormalizeOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapnormalize -benchexit'
@@ -290,6 +300,7 @@ $result = [ordered]@{
     turbulentImplementation = $TurbulentImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
+    aliasTransformFinalImplementation = $AliasTransformFinalImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
@@ -297,6 +308,7 @@ $result = [ordered]@{
     turbulentOnly = [bool]$TurbulentOnly
     aliasProjectOnly = [bool]$AliasProjectOnly
     aliasBBoxProjectOnly = [bool]$AliasBBoxProjectOnly
+    aliasTransformFinalOnly = [bool]$AliasTransformFinalOnly
     textureAnimationOnly = [bool]$TextureAnimationOnly
     lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly
     bspPlaneDotOnly = [bool]$BspPlaneDotOnly

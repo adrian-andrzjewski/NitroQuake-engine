@@ -190,6 +190,21 @@ vertex pointers, loop count, and clip masks in registers and uses one x87
 reciprocal for both projected coordinates.  This is a controlled integration:
 the C implementation remains available with `-AliasBBoxProjectImplementation c`.
 
+The clipped alias vertex transform and lighting helper is independently
+selectable with `-AliasTransformFinalImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -AliasTransformFinalImplementation c
+.\tools\build-dos.ps1 -Benchmark -AliasTransformFinalImplementation asm
+~~~
+
+`asm` is the measured target default and uses `out\dos`; `c` is the
+reference/control implementation and uses `out\dos-aliastransformc`.  The
+candidate replaces only `R_AliasTransformFinalVert` for clipped alias vertices.
+It expands the three packed vertex bytes once, keeps the matrix arithmetic in
+x87 registers, and performs the lighting dot product in the same helper.  The
+C path remains available for controlled comparison.
+
 ## Runtime smoke test
 
 Place legally obtained Quake data in the ignored directory:
@@ -419,26 +434,29 @@ The focused benchmark can select each implementation independently:
   -LightMapNormalizeImplementation asm `
   -BspPlaneDotImplementation asm `
   -BspClipImplementation asm `
+  -AliasTransformFinalImplementation asm `
   -DataRoot 'C:\path\to\Quake\id1'
 .\tools\bench-dos.ps1 -TextureAxisImplementation c `
   -SurfaceCacheImplementation c `
   -MipLevelImplementation c `
   -TurbulentImplementation asm `
   -AliasBBoxProjectImplementation c `
+  -AliasTransformFinalImplementation c `
   -DataRoot 'C:\path\to\Quake\id1'
 ~~~
 
 Individual C/ASM implementation switches can be omitted; the existing probes
 default to `c`; the turbulent selector defaults to the measured `stosb` path,
-and the alias projection, alias bounding-box projection, texture-animation,
-and lightmap-normalization selectors default to their measured `asm` paths;
+and the alias projection, alias bounding-box projection, alias-transform-final,
+texture-animation, and lightmap-normalization selectors default to their
+measured `asm` paths;
 the BSP plane-dot and BSP clip selectors default to their C paths.  Pass
 `-TurbulentImplementation asm` for the existing ASM control.  The runner
-records all eleven selections in `bench-result.json` and uses a matching output
+records all twelve selections in `bench-result.json` and uses a matching output
 directory suffix.  Use `-TurbulentOnly`, `-AliasProjectOnly`,
-`-AliasBBoxProjectOnly`, `-TextureAnimationOnly`, `-LightMapNormalizeOnly`,
-`-BspPlaneDotOnly`, or `-BspClipOnly` to run only the corresponding focused
-experiment instead of the longer general matrix.
+`-AliasBBoxProjectOnly`, `-AliasTransformFinalOnly`, `-TextureAnimationOnly`,
+`-LightMapNormalizeOnly`, `-BspPlaneDotOnly`, or `-BspClipOnly` to run only the
+corresponding focused experiment instead of the longer general matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -896,6 +914,51 @@ testing.
 The timedemo results are
 `out\dos-timedemo-20260910-202746\timedemo-result.json` and
 `out\dos-timedemo-20260910-203140\timedemo-result.json`.
+
+### Clipped alias vertex transform result
+
+This experiment isolated `R_AliasTransformFinalVert`, the C-only transform and
+lighting helper used for clipped alias-model vertices.  The C body remains
+intact as the reference implementation.  The ASM helper expands the three
+packed vertex coordinates once, keeps the three matrix dot products on the
+x87 stack, and combines the lighting dot product before returning the same
+fields.
+
+The focused benchmark used five alternating samples of 200,000 calls per
+light case.  The C and ASM helpers matched byte-for-byte, including untouched
+sentinel fields, and the run ended with `486 benchmark correctness PASS`:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| Ambient light | 0.627982 s | 0.502383 s | 20.000% |
+| Shaded light | 0.687788 s | 0.514343 s | 25.218% |
+| Clamped light | 0.693769 s | 0.520329 s | 25.000% |
+
+The focused reports are
+`out\dos-bench-20260910-210423\bench-result.json` and
+`out\dos-bench-20260910-211039\bench-result.json`.
+
+Matched three-run `demo1` timedemos used DOSBox-X 2026.08.31,
+`cputype=486`, fixed 33445 cycles, the baseline `-O2 -march=i486` build, and
+the same staged `id1` data.  Every run completed 969 frames with framebuffer
+checksum `4154140932`:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C reference helper | 69.062941 / 69.062989 / 69.062959 | 14.030676 |
+| ASM helper | 68.958781 / 68.958804 / 68.958785 | 14.051872 |
+
+The ASM helper is 104.174 ms faster per timedemo, or 0.1508%.  The gain is
+consistent across both three-run groups and comes from removing repeated byte
+loads and C-generated temporary traffic while using the same x87 arithmetic;
+the function call boundary is shared by both variants.  This is a measured
+end-to-end win, so the ASM path is now the default, while
+`-AliasTransformFinalImplementation c` remains available for regression and
+matched A/B runs.
+
+The timedemo results are
+`out\dos-timedemo-20260910-210457\timedemo-result.json` and
+`out\dos-timedemo-20260910-211109\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 

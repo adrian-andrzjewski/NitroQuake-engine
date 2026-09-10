@@ -50,6 +50,11 @@ typedef struct {
 	float	fv[3];		// viewspace x, y
 } auxvert_t;
 
+extern float aliastransform[3][4];
+extern vec3_t r_plightvec;
+extern int r_ambientlight;
+extern float r_shadelight;
+
 //===========================================================================
 
 extern cvar_t	r_draworder;
@@ -145,6 +150,8 @@ double R_RecursiveWorldNodePlaneDot_C (mplane_t *plane);
 int R_RecursiveWorldNodeClip_C (mnode_t *node, int clipflags);
 int R_AliasCheckBBoxProject_C (auxvert_t *viewaux, finalvert_t *viewpts,
 	int numv);
+void R_AliasTransformFinalVert_C (finalvert_t *fv, auxvert_t *av,
+	trivertx_t *pverts, stvert_t *pstverts);
 #endif
 #if id386
 texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
@@ -153,6 +160,8 @@ double R_RecursiveWorldNodePlaneDot_asm486 (mplane_t *plane);
 int R_RecursiveWorldNodeClip_asm486 (mnode_t *node, int clipflags);
 int R_AliasCheckBBoxProject_asm486 (auxvert_t *viewaux, finalvert_t *viewpts,
 	int numv);
+void R_AliasTransformFinalVert_asm486 (finalvert_t *fv, auxvert_t *av,
+	trivertx_t *pverts, stvert_t *pstverts);
 #endif
 
 #if	id386

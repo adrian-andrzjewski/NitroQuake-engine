@@ -1232,6 +1232,8 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_BSP_CLIP_ITERATIONS	200000
 #define BENCH486_ALIAS_BBOX_PROJECT_SAMPLES	5
 #define BENCH486_ALIAS_BBOX_PROJECT_ITERATIONS	200000
+#define BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES	5
+#define BENCH486_ALIAS_TRANSFORM_FINAL_ITERATIONS	200000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
@@ -1250,6 +1252,8 @@ typedef double (*bench486_bsp_plane_dot_fn_t) (mplane_t *plane);
 typedef int (*bench486_bsp_clip_fn_t) (mnode_t *node, int clipflags);
 typedef int (*bench486_alias_bbox_project_fn_t) (auxvert_t *viewaux,
 		finalvert_t *viewpts, int numv);
+typedef void (*bench486_alias_transform_final_fn_t) (finalvert_t *fv,
+		auxvert_t *av, trivertx_t *pverts, stvert_t *pstverts);
 
 static int bench486_turbulent_table[128];
 
@@ -2455,6 +2459,186 @@ static void Bench486AliasBBoxProjectCases (void)
 	Bench486AliasBBoxProjectCase ("all-left", 8, 0x0000, 2);
 }
 
+static double Bench486MeasureAliasTransformFinal (
+		bench486_alias_transform_final_fn_t function, finalvert_t *fv,
+		auxvert_t *av, trivertx_t *pverts, stvert_t *pstverts, int iterations,
+		unsigned *checksum)
+{
+	double start, elapsed;
+	unsigned result_sum;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (fv, av, pverts, pstverts);
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (fv, av, pverts, pstverts);
+	elapsed = Sys_FloatTime () - start;
+
+	result_sum = Bench486Checksum ((byte *)fv, sizeof(*fv));
+	result_sum = result_sum * 33 +
+			Bench486Checksum ((byte *)av, sizeof(*av));
+	*checksum = result_sum;
+	bench486_sink ^= result_sum;
+	return elapsed;
+}
+
+static void Bench486AliasTransformFinalCase (char *name, int lightmode)
+{
+	finalvert_t c_fv, asm_fv;
+	auxvert_t c_av, asm_av;
+	trivertx_t pverts;
+	stvert_t pstverts;
+	float saved_transform[3][4], saved_lightvec[3], saved_shadelight;
+	int saved_ambientlight;
+	double c_samples[BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES];
+	double asm_samples[BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int i, sample, failure;
+
+	for (i=0 ; i<3 ; i++)
+	{
+		saved_lightvec[i] = r_plightvec[i];
+		saved_transform[i][0] = aliastransform[i][0];
+		saved_transform[i][1] = aliastransform[i][1];
+		saved_transform[i][2] = aliastransform[i][2];
+		saved_transform[i][3] = aliastransform[i][3];
+	}
+	saved_shadelight = r_shadelight;
+	saved_ambientlight = r_ambientlight;
+
+	aliastransform[0][0] = 0.125;
+	aliastransform[0][1] = -0.25;
+	aliastransform[0][2] = 0.5;
+	aliastransform[0][3] = 1.0;
+	aliastransform[1][0] = -0.375;
+	aliastransform[1][1] = 0.625;
+	aliastransform[1][2] = 0.25;
+	aliastransform[1][3] = -2.0;
+	aliastransform[2][0] = 0.5;
+	aliastransform[2][1] = 0.25;
+	aliastransform[2][2] = -0.125;
+	aliastransform[2][3] = 3.0;
+	r_plightvec[0] = 0.0;
+	r_plightvec[1] = 0.0;
+	r_plightvec[2] = lightmode == 0 ? 1.0 : -1.0;
+	r_ambientlight = lightmode == 2 ? 32 : 96;
+	r_shadelight = lightmode == 2 ? 160.0 : 64.0;
+
+	pverts.v[0] = 12;
+	pverts.v[1] = 34;
+	pverts.v[2] = 56;
+	pverts.lightnormalindex = 5;
+	pstverts.onseam = ALIAS_ONSEAM;
+	pstverts.s = 1234;
+	pstverts.t = 5678;
+	Q_memset (&c_fv, 0xa5, sizeof(c_fv));
+	Q_memset (&asm_fv, 0xa5, sizeof(asm_fv));
+	Q_memset (&c_av, 0x5a, sizeof(c_av));
+	Q_memset (&asm_av, 0x5a, sizeof(asm_av));
+
+	R_AliasTransformFinalVert_C (&c_fv, &c_av, &pverts, &pstverts);
+	R_AliasTransformFinalVert_asm486 (&asm_fv, &asm_av, &pverts, &pstverts);
+	failure = Q_memcmp (&c_fv, &asm_fv, sizeof(c_fv)) != 0 ||
+			Q_memcmp (&c_av, &asm_av, sizeof(c_av)) != 0;
+	if (failure)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("alias-transform-final %s correctness FAIL\n", name);
+	}
+
+	if (!failure)
+	{
+		for (sample=0 ; sample<BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES ; sample++)
+		{
+			Q_memset (&c_fv, 0xa5, sizeof(c_fv));
+			Q_memset (&asm_fv, 0xa5, sizeof(asm_fv));
+			Q_memset (&c_av, 0x5a, sizeof(c_av));
+			Q_memset (&asm_av, 0x5a, sizeof(asm_av));
+			if ((sample & 1) == 0)
+			{
+				c_samples[sample] = Bench486MeasureAliasTransformFinal (
+						R_AliasTransformFinalVert_C, &c_fv, &c_av, &pverts,
+						&pstverts, BENCH486_ALIAS_TRANSFORM_FINAL_ITERATIONS,
+						&c_checksum);
+				asm_samples[sample] = Bench486MeasureAliasTransformFinal (
+						R_AliasTransformFinalVert_asm486, &asm_fv, &asm_av,
+						&pverts, &pstverts,
+						BENCH486_ALIAS_TRANSFORM_FINAL_ITERATIONS, &asm_checksum);
+			}
+			else
+			{
+				asm_samples[sample] = Bench486MeasureAliasTransformFinal (
+						R_AliasTransformFinalVert_asm486, &asm_fv, &asm_av,
+						&pverts, &pstverts,
+						BENCH486_ALIAS_TRANSFORM_FINAL_ITERATIONS, &asm_checksum);
+				c_samples[sample] = Bench486MeasureAliasTransformFinal (
+						R_AliasTransformFinalVert_C, &c_fv, &c_av, &pverts,
+						&pstverts, BENCH486_ALIAS_TRANSFORM_FINAL_ITERATIONS,
+						&c_checksum);
+			}
+
+			if (Q_memcmp (&c_fv, &asm_fv, sizeof(c_fv)) != 0 ||
+					Q_memcmp (&c_av, &asm_av, sizeof(c_av)) != 0 ||
+					c_checksum != asm_checksum)
+			{
+				bench486_memory_failures++;
+				Bench486Printf ("alias-transform-final %s checksum correctness FAIL\n",
+						name);
+				failure = 1;
+				break;
+			}
+		}
+	}
+
+	if (!failure)
+	{
+		Bench486SortSamples (c_samples,
+				BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES);
+		Bench486SortSamples (asm_samples,
+				BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES);
+		c_median = c_samples[BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES / 2];
+		asm_median = asm_samples[BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES / 2];
+		delta = c_median > 0.0 ?
+				(c_median - asm_median) / c_median * 100.0 : 0.0;
+		Bench486Printf ("alias-transform-final %s lightmode %d iterations %d "
+				"samples %d\n", name, lightmode,
+				BENCH486_ALIAS_TRANSFORM_FINAL_ITERATIONS,
+				BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES);
+		Bench486Printf ("  c median %.6f sec checksum %u samples",
+				c_median, c_checksum);
+		for (i=0 ; i<BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES ; i++)
+			Bench486Printf (" %.6f", c_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486 median %.6f sec checksum %u samples",
+				asm_median, asm_checksum);
+		for (i=0 ; i<BENCH486_ALIAS_TRANSFORM_FINAL_SAMPLES ; i++)
+			Bench486Printf (" %.6f", asm_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+	}
+
+	for (i=0 ; i<3 ; i++)
+	{
+		r_plightvec[i] = saved_lightvec[i];
+		aliastransform[i][0] = saved_transform[i][0];
+		aliastransform[i][1] = saved_transform[i][1];
+		aliastransform[i][2] = saved_transform[i][2];
+		aliastransform[i][3] = saved_transform[i][3];
+	}
+	r_shadelight = saved_shadelight;
+	r_ambientlight = saved_ambientlight;
+}
+
+static void Bench486AliasTransformFinalCases (void)
+{
+	Bench486AliasTransformFinalCase ("ambient", 0);
+	Bench486AliasTransformFinalCase ("shaded", 1);
+	Bench486AliasTransformFinalCase ("clamped", 2);
+}
+
 static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
 		void *entry, void *texinfo, void *entity, int frame, int iterations,
 		unsigned *hits)
@@ -2974,6 +3158,23 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchaliastransformfinal"))
+	{
+		Bench486Printf ("alias-transform-final experiment compares the C clipped vertex helper\n");
+		Bench486Printf ("with a register-held 486 x87 transform and lighting helper\n");
+		Bench486AliasTransformFinalCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchtextureanimation"))
 	{
 		Bench486Printf ("texture-animation experiment compares the C frame loop\n");
@@ -3107,6 +3308,9 @@ static void Bench486_f (void)
 	Bench486Printf ("alias-bbox-project experiment compares the C projection loop with\n");
 	Bench486Printf ("the register-held 486 x87 projection helper\n");
 	Bench486AliasBBoxProjectCases ();
+	Bench486Printf ("alias-transform-final experiment compares the C clipped vertex helper with\n");
+	Bench486Printf ("the register-held 486 x87 transform and lighting helper\n");
+	Bench486AliasTransformFinalCases ();
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();

@@ -5,6 +5,7 @@
 // switches select these routines only for a measured experiment.
 
 #include "asm_i386.h"
+#include "d_ifacea.h"
 
 	.data
 	.align 1
@@ -13,6 +14,11 @@ Ltexture_animation_broken:
 	.ascii	"R_TextureAnimation: broken cycle\0"
 Ltexture_animation_infinite:
 	.ascii	"R_TextureAnimation: infinite cycle\0"
+	.align 4
+Lalias_transform_coords:
+	.long	0, 0, 0
+Lalias_transform_temp:
+	.long	0
 
 	.text
 	.align 4
@@ -541,6 +547,104 @@ C(R_AliasCheckBBoxProject_asm486):
 	shll	$8,%ebx
 	movl	%ebx,%eax
 	orl	%edx,%eax
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+	ret
+
+	.align 4
+
+// void R_AliasTransformFinalVert_asm486(finalvert_t *fv, auxvert_t *av,
+//                                        trivertx_t *pverts,
+//                                        stvert_t *pstverts)
+// Transform one clipped alias vertex and calculate its lighting value.  The
+// input bytes are expanded once, then reused for all three x87 dot products.
+C(R_AliasTransformFinalVert_asm486):
+	.globl C(R_AliasTransformFinalVert_asm486)
+	pushl	%ebp
+	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
+	movl	20(%esp),%edi		// fv
+	movl	24(%esp),%ebp		// av
+	movl	28(%esp),%esi		// pverts
+	movl	32(%esp),%ebx		// pstverts
+
+	movzbl	0(%esi),%eax
+	movl	%eax,Lalias_transform_coords
+	movzbl	1(%esi),%eax
+	movl	%eax,Lalias_transform_coords+4
+	movzbl	2(%esi),%eax
+	movl	%eax,Lalias_transform_coords+8
+
+	fildl	Lalias_transform_coords
+	fmuls	C(aliastransform)+0
+	fildl	Lalias_transform_coords+4
+	fmuls	C(aliastransform)+4
+	faddp	%st(0),%st(1)
+	fildl	Lalias_transform_coords+8
+	fmuls	C(aliastransform)+8
+	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+12
+	fstps	0(%ebp)
+
+	fildl	Lalias_transform_coords
+	fmuls	C(aliastransform)+16
+	fildl	Lalias_transform_coords+4
+	fmuls	C(aliastransform)+20
+	faddp	%st(0),%st(1)
+	fildl	Lalias_transform_coords+8
+	fmuls	C(aliastransform)+24
+	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+28
+	fstps	4(%ebp)
+
+	fildl	Lalias_transform_coords
+	fmuls	C(aliastransform)+32
+	fildl	Lalias_transform_coords+4
+	fmuls	C(aliastransform)+36
+	faddp	%st(0),%st(1)
+	fildl	Lalias_transform_coords+8
+	fmuls	C(aliastransform)+40
+	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+44
+	fstps	8(%ebp)
+
+	movl	stv_s(%ebx),%eax
+	movl	%eax,fv_v+8(%edi)
+	movl	stv_t(%ebx),%eax
+	movl	%eax,fv_v+12(%edi)
+	movl	stv_onseam(%ebx),%eax
+	movl	%eax,fv_flags(%edi)
+
+	movzbl	tv_lightnormalindex(%esi),%eax
+	leal	(%eax,%eax,2),%eax
+	flds	C(r_avertexnormals)(,%eax,4)
+	fmuls	C(r_plightvec)
+	flds	C(r_avertexnormals)+4(,%eax,4)
+	fmuls	C(r_plightvec)+4
+	faddp	%st(0),%st(1)
+	flds	C(r_avertexnormals)+8(,%eax,4)
+	fmuls	C(r_plightvec)+8
+	faddp	%st(0),%st(1)
+	fsts	Lalias_transform_temp
+	movl	C(r_ambientlight),%eax
+	movb	Lalias_transform_temp+3,%dl
+	testb	$0x80,%dl
+	jnz	.Lalias_transform_shaded
+	fstp	%st(0)
+	jmp	.Lalias_transform_store_light
+
+.Lalias_transform_shaded:
+	fmuls	C(r_shadelight)
+	fistpl	Lalias_transform_temp
+	addl	Lalias_transform_temp,%eax
+	jns	.Lalias_transform_store_light
+	xorl	%eax,%eax
+
+.Lalias_transform_store_light:
+	movl	%eax,fv_v+16(%edi)
 	popl	%ebx
 	popl	%esi
 	popl	%edi
