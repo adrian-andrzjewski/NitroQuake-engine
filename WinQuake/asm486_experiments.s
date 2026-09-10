@@ -312,3 +312,46 @@ C(R_BuildLightMapNormalize_asm486):
 	popl	%esi
 	popl	%edi
 	ret
+
+	.align 4
+
+// double R_RecursiveWorldNodePlaneDot_asm486(mplane_t *plane)
+// Calculate the viewpoint/plane dot used to choose the front BSP child.
+// Axis-aligned planes avoid the three x87 multiplies; arbitrary planes keep
+// the same left-to-right multiply/add order as the C DotProduct macro.
+C(R_RecursiveWorldNodePlaneDot_asm486):
+	.globl C(R_RecursiveWorldNodePlaneDot_asm486)
+	movl	4(%esp),%edx		// plane
+	movzbl	16(%edx),%eax		// plane->type
+	testl	%eax,%eax
+	jz	.Lbsp_plane_dot_x
+	cmpl	$1,%eax
+	je	.Lbsp_plane_dot_y
+	cmpl	$2,%eax
+	je	.Lbsp_plane_dot_z
+
+	flds	C(modelorg)
+	fmuls	(%edx)
+	flds	C(modelorg)+4
+	fmuls	4(%edx)
+	faddp	%st,%st(1)
+	flds	C(modelorg)+8
+	fmuls	8(%edx)
+	faddp	%st,%st(1)
+	fsubs	12(%edx)
+	ret
+
+.Lbsp_plane_dot_x:
+	flds	C(modelorg)
+	fsubs	12(%edx)
+	ret
+
+.Lbsp_plane_dot_y:
+	flds	C(modelorg)+4
+	fsubs	12(%edx)
+	ret
+
+.Lbsp_plane_dot_z:
+	flds	C(modelorg)+8
+	fsubs	12(%edx)
+	ret

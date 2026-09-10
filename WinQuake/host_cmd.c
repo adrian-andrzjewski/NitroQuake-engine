@@ -1226,6 +1226,8 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_TEXTURE_ANIMATION_ITERATIONS	500000
 #define BENCH486_LIGHTMAP_NORMALIZE_SAMPLES	5
 #define BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS	25000
+#define BENCH486_BSP_PLANE_DOT_SAMPLES	5
+#define BENCH486_BSP_PLANE_DOT_ITERATIONS	500000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
@@ -1240,6 +1242,7 @@ typedef texture_t *(*bench486_texture_animation_fn_t) (texture_t *base,
 		int relative);
 typedef void (*bench486_lightmap_normalize_fn_t) (unsigned *lights,
 		int size);
+typedef double (*bench486_bsp_plane_dot_fn_t) (mplane_t *plane);
 
 static int bench486_turbulent_table[128];
 
@@ -1977,6 +1980,133 @@ static void Bench486LightMapNormalizeCases (void)
 	Bench486LightMapNormalizeCase ("mixed-324", 324, 2);
 }
 
+static double Bench486MeasureBspPlaneDot (bench486_bsp_plane_dot_fn_t function,
+		mplane_t *plane, int iterations, unsigned *checksum)
+{
+	double start, elapsed, result_sum;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (plane);
+
+	start = Sys_FloatTime ();
+	result_sum = 0;
+	for (i=0 ; i<iterations ; i++)
+		result_sum += function (plane);
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = (unsigned)(result_sum * 1000.0);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static void Bench486BspPlaneDotCase (char *name, int type, float nx,
+		float ny, float nz, float dist)
+{
+	mplane_t plane;
+	float saved_modelorg[3];
+	double c_samples[BENCH486_BSP_PLANE_DOT_SAMPLES];
+	double asm_samples[BENCH486_BSP_PLANE_DOT_SAMPLES];
+	double c_median, asm_median, delta;
+	double c_result, asm_result;
+	unsigned c_checksum, asm_checksum;
+	int i, sample, failure;
+
+	saved_modelorg[0] = modelorg[0];
+	saved_modelorg[1] = modelorg[1];
+	saved_modelorg[2] = modelorg[2];
+	modelorg[0] = 1.25;
+	modelorg[1] = -3.5;
+	modelorg[2] = 7.75;
+
+	Q_memset (&plane, 0, sizeof(plane));
+	plane.normal[0] = nx;
+	plane.normal[1] = ny;
+	plane.normal[2] = nz;
+	plane.dist = dist;
+	plane.type = type;
+
+	c_result = R_RecursiveWorldNodePlaneDot_C (&plane);
+	asm_result = R_RecursiveWorldNodePlaneDot_asm486 (&plane);
+	failure = c_result != asm_result;
+	if (failure)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("bsp-plane-dot %s correctness FAIL c %.9f asm %.9f\n",
+				name, c_result, asm_result);
+	}
+
+	if (!failure)
+	{
+		for (sample=0 ; sample<BENCH486_BSP_PLANE_DOT_SAMPLES; sample++)
+		{
+			if ((sample & 1) == 0)
+			{
+				c_samples[sample] = Bench486MeasureBspPlaneDot (
+						R_RecursiveWorldNodePlaneDot_C, &plane,
+						BENCH486_BSP_PLANE_DOT_ITERATIONS, &c_checksum);
+				asm_samples[sample] = Bench486MeasureBspPlaneDot (
+						R_RecursiveWorldNodePlaneDot_asm486, &plane,
+						BENCH486_BSP_PLANE_DOT_ITERATIONS, &asm_checksum);
+			}
+			else
+			{
+				asm_samples[sample] = Bench486MeasureBspPlaneDot (
+						R_RecursiveWorldNodePlaneDot_asm486, &plane,
+						BENCH486_BSP_PLANE_DOT_ITERATIONS, &asm_checksum);
+				c_samples[sample] = Bench486MeasureBspPlaneDot (
+						R_RecursiveWorldNodePlaneDot_C, &plane,
+						BENCH486_BSP_PLANE_DOT_ITERATIONS, &c_checksum);
+			}
+
+			if (c_checksum != asm_checksum)
+			{
+				bench486_memory_failures++;
+				Bench486Printf ("bsp-plane-dot %s checksum correctness FAIL\n",
+						name);
+				failure = 1;
+				break;
+			}
+		}
+	}
+
+	if (!failure)
+	{
+		Bench486SortSamples (c_samples, BENCH486_BSP_PLANE_DOT_SAMPLES);
+		Bench486SortSamples (asm_samples, BENCH486_BSP_PLANE_DOT_SAMPLES);
+		c_median = c_samples[BENCH486_BSP_PLANE_DOT_SAMPLES / 2];
+		asm_median = asm_samples[BENCH486_BSP_PLANE_DOT_SAMPLES / 2];
+		delta = c_median > 0.0 ?
+				(c_median - asm_median) / c_median * 100.0 : 0.0;
+		Bench486Printf ("bsp-plane-dot %s type %d iterations %d samples %d\n",
+				name, type, BENCH486_BSP_PLANE_DOT_ITERATIONS,
+				BENCH486_BSP_PLANE_DOT_SAMPLES);
+		Bench486Printf ("  c median %.6f sec checksum %u samples",
+				c_median, c_checksum);
+		for (i=0 ; i<BENCH486_BSP_PLANE_DOT_SAMPLES ; i++)
+			Bench486Printf (" %.6f", c_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486 median %.6f sec checksum %u samples",
+				asm_median, asm_checksum);
+		for (i=0 ; i<BENCH486_BSP_PLANE_DOT_SAMPLES ; i++)
+			Bench486Printf (" %.6f", asm_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+	}
+
+	modelorg[0] = saved_modelorg[0];
+	modelorg[1] = saved_modelorg[1];
+	modelorg[2] = saved_modelorg[2];
+}
+
+static void Bench486BspPlaneDotCases (void)
+{
+	Bench486BspPlaneDotCase ("axis-x", PLANE_X, 1.0, 0.0, 0.0, 0.5);
+	Bench486BspPlaneDotCase ("axis-y", PLANE_Y, 0.0, 1.0, 0.0, -2.0);
+	Bench486BspPlaneDotCase ("axis-z", PLANE_Z, 0.0, 0.0, 1.0, 3.0);
+	Bench486BspPlaneDotCase ("generic", 3, 0.25, -0.5, 1.5, 2.25);
+}
+
 static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
 		void *entry, void *texinfo, void *entity, int frame, int iterations,
 		unsigned *hits)
@@ -2513,6 +2643,23 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchbspplanedot"))
+	{
+		Bench486Printf ("bsp-plane-dot experiment compares the C switch\n");
+		Bench486Printf ("with a 486 x87 axis/generic plane-dot helper\n");
+		Bench486BspPlaneDotCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchturbulent"))
 	{
 		Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
@@ -2569,6 +2716,9 @@ static void Bench486_f (void)
 	Bench486Printf ("lightmap-normalize experiment compares the C loop with\n");
 	Bench486Printf ("the register-based 486 pointer/count loop\n");
 	Bench486LightMapNormalizeCases ();
+	Bench486Printf ("bsp-plane-dot experiment compares the C switch with\n");
+	Bench486Printf ("the 486 x87 axis/generic plane-dot helper\n");
+	Bench486BspPlaneDotCases ();
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();

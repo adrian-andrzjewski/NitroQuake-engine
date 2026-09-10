@@ -145,6 +145,20 @@ reference/control implementation and uses `out\dos-lightmapc`.  Only the
 final bound/invert/shift loop in `R_BuildLightMap` is replaced.  Lightmap
 setup, style accumulation, and dynamic-light work remain in C.
 
+The BSP plane-dot calculation is independently selectable with
+`-BspPlaneDotImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -BspPlaneDotImplementation c
+.\tools\build-dos.ps1 -Benchmark -BspPlaneDotImplementation asm
+~~~
+
+`c` remains the default and keeps the original inline switch in
+`R_RecursiveWorldNode`; `asm` writes to `out\dos-bspdotasm` and replaces only
+the axis/generic plane-dot calculation.  This is an opt-in learning
+experiment because the ASM version introduces a call boundary into the
+recursive world walk.
+
 ## Runtime smoke test
 
 Place legally obtained Quake data in the ignored directory:
@@ -372,6 +386,7 @@ The focused benchmark can select each implementation independently:
   -MipLevelImplementation asm `
   -TurbulentImplementation stosb `
   -LightMapNormalizeImplementation asm `
+  -BspPlaneDotImplementation asm `
   -DataRoot 'C:\path\to\Quake\id1'
 .\tools\bench-dos.ps1 -TextureAxisImplementation c `
   -SurfaceCacheImplementation c `
@@ -383,12 +398,14 @@ The focused benchmark can select each implementation independently:
 Individual C/ASM implementation switches can be omitted; the existing probes
 default to `c`; the turbulent selector defaults to the measured `stosb` path,
 and the alias projection, texture-animation, and lightmap-normalization
-selectors default to their measured `asm` paths.  Pass
+selectors default to their measured `asm` paths; the BSP plane-dot selector
+defaults to its C path.  Pass
 `-TurbulentImplementation asm` for the existing ASM control.  The runner
-records all eight selections in `bench-result.json` and uses a matching output
+records all nine selections in `bench-result.json` and uses a matching output
 directory suffix.  Use `-TurbulentOnly`, `-AliasProjectOnly`,
-`-TextureAnimationOnly`, or `-LightMapNormalizeOnly` to run only the
-corresponding focused experiment instead of the longer general matrix.
+`-TextureAnimationOnly`, `-LightMapNormalizeOnly`, or `-BspPlaneDotOnly` to run
+only the corresponding focused experiment instead of the longer general
+matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -720,6 +737,46 @@ so ASM is now the controlled default; `-LightMapNormalizeImplementation c`
 remains the explicit reference/control build.  The timedemo results are
 `out\dos-timedemo-20260910-180756\timedemo-result.json` and
 `out\dos-timedemo-20260910-181150\timedemo-result.json`.
+
+### BSP plane-dot result
+
+This experiment isolated the `R_RecursiveWorldNode` calculation that chooses
+the front child from an axis-aligned or generic plane.  The original C path
+remains inline in the production function; the ASM build calls a small helper
+that uses direct x87 loads/subtracts for X/Y/Z planes and the C multiply/add
+order for generic planes.
+
+The focused benchmark used five alternating samples of 500,000 calls per
+case.  All four cases produced identical C/ASM results and both runs ended
+with `486 benchmark correctness PASS`:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| Axis X | 0.284088 s | 0.224281 s | 21.052% |
+| Axis Y | 0.224282 s | 0.254188 s | -13.334% |
+| Axis Z | 0.254188 s | 0.284087 s | -11.763% |
+| Generic | 0.403701 s | 0.388750 s | 3.703% |
+
+The focused reports are `out\dos-bench-20260910-183819\bench-result.json`
+and `out\dos-bench-20260910-183844\bench-result.json`.
+
+Matched three-run `demo1` timedemos used DOSBox-X 2026.08.31, `cputype=486`,
+fixed 33445 cycles, the baseline `-O2 -march=i486` build, and the same staged
+`id1` data.  Every run completed 969 frames with framebuffer checksum
+`4154140932`:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C inline switch | 69.081304 / 69.081398 / 69.081343 | 14.026942 |
+| ASM helper call | 69.106675 / 69.106670 / 69.106686 | 14.021800 |
+
+The ASM helper is 25.3 ms slower per timedemo, or 0.0367%.  The isolated
+results do not overcome the call boundary and branch-layout cost in the real
+recursive walk, so C remains the default and `-BspPlaneDotImplementation asm`
+remains an opt-in 486 learning aid.
+
+The timedemo results are `out\dos-timedemo-20260910-183914\timedemo-result.json`
+and `out\dos-timedemo-20260910-184313\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 

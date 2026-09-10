@@ -546,6 +546,9 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 	// find which side of the node we are on
 		plane = node->plane;
 
+#ifdef ASM486_BSP_PLANE_DOT
+		dot = R_RecursiveWorldNodePlaneDot_asm486 (plane);
+#else
 		switch (plane->type)
 		{
 		case PLANE_X:
@@ -561,6 +564,7 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 			dot = DotProduct (modelorg, plane->normal) - plane->dist;
 			break;
 		}
+#endif
 	
 		if (dot >= 0)
 			side = 0;
@@ -656,6 +660,34 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 		R_RecursiveWorldNode (node->children[!side], clipflags);
 	}
 }
+
+#ifdef BENCH486
+
+/*
+===============
+R_RecursiveWorldNodePlaneDot_C
+
+Reference version of the small plane-side calculation used by the world BSP
+walk.  The production C path remains inline above unless the ASM experiment
+is selected.
+===============
+*/
+double R_RecursiveWorldNodePlaneDot_C (mplane_t *plane)
+{
+	switch (plane->type)
+	{
+	case PLANE_X:
+		return modelorg[0] - plane->dist;
+	case PLANE_Y:
+		return modelorg[1] - plane->dist;
+	case PLANE_Z:
+		return modelorg[2] - plane->dist;
+	default:
+		return DotProduct (modelorg, plane->normal) - plane->dist;
+	}
+}
+
+#endif
 
 
 

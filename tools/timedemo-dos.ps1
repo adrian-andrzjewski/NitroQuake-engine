@@ -25,6 +25,8 @@ param(
     [string]$TextureAnimationImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$LightMapNormalizeImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$BspPlaneDotImplementation = 'c',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -88,6 +90,9 @@ if ($TextureAnimationImplementation -eq 'c') {
 if ($LightMapNormalizeImplementation -eq 'c') {
     $profileSuffixParts += 'lightmapc'
 }
+if ($BspPlaneDotImplementation -eq 'asm') {
+    $profileSuffixParts += 'bspdotasm'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -130,6 +135,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
+        '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
         '-ToolRoot', $ToolRoot)
     if ($Instrumentation) {
         $buildArgs += '-Instrumentation'
@@ -424,6 +430,7 @@ $result = [ordered]@{
     aliasProjectImplementation = $AliasProjectImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
+    bspPlaneDotImplementation = $BspPlaneDotImplementation
     instrumentation = [bool]$Instrumentation
     frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot

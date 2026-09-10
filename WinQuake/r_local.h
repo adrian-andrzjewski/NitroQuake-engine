@@ -140,9 +140,13 @@ void R_DrawSurfaceBlock8 (void);
 texture_t *R_TextureAnimation (texture_t *base);
 texture_t *R_TextureAnimationFrame_C (texture_t *base, int relative);
 void R_BuildLightMapNormalize_C (unsigned *lights, int size);
+#ifdef BENCH486
+double R_RecursiveWorldNodePlaneDot_C (mplane_t *plane);
+#endif
 #if id386
 texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
 void R_BuildLightMapNormalize_asm486 (unsigned *lights, int size);
+double R_RecursiveWorldNodePlaneDot_asm486 (mplane_t *plane);
 #endif
 
 #if	id386
