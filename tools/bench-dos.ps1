@@ -18,7 +18,10 @@ param(
     [string]$MemoryImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasProjectImplementation = 'asm',
     [switch]$TurbulentOnly,
+    [switch]$AliasProjectOnly,
     [int]$TimeoutSeconds = 180
 )
 
@@ -68,6 +71,9 @@ if ($TurbulentImplementation -eq 'c') {
 elseif ($TurbulentImplementation -eq 'asm') {
     $profileSuffixParts += 'turbasm'
 }
+if ($AliasProjectImplementation -eq 'c') {
+    $profileSuffixParts += 'aliasc'
+}
 $profileSuffix = if ($profileSuffixParts.Count) {
     '-' + ($profileSuffixParts -join '-')
 }
@@ -103,6 +109,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-MipLevelImplementation', $MipLevelImplementation,
         '-MemoryImplementation', $MemoryImplementation,
         '-TurbulentImplementation', $TurbulentImplementation,
+        '-AliasProjectImplementation', $AliasProjectImplementation,
         '-ToolRoot', $ToolRoot)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
@@ -136,7 +143,10 @@ Copy-Item -LiteralPath $benchmarkExe -Destination (Join-Path $quakeRoot 'qbench.
 Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe')
 Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -Force
 
-$benchCommand = if ($TurbulentOnly) {
+$benchCommand = if ($AliasProjectOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
+}
+elseif ($TurbulentOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchturbulent -benchexit'
 }
 else {
@@ -228,7 +238,9 @@ $result = [ordered]@{
     mipLevelImplementation = $MipLevelImplementation
     memoryImplementation = $MemoryImplementation
     turbulentImplementation = $TurbulentImplementation
+    aliasProjectImplementation = $AliasProjectImplementation
     turbulentOnly = [bool]$TurbulentOnly
+    aliasProjectOnly = [bool]$AliasProjectOnly
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     report = $report

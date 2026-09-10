@@ -18,6 +18,8 @@ param(
     [string]$MemoryImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasProjectImplementation = 'asm',
     [string]$ToolRoot
 )
 
@@ -82,6 +84,9 @@ if ($TurbulentImplementation -eq 'c') {
 }
 elseif ($TurbulentImplementation -eq 'asm') {
     $profileSuffixParts += 'turbasm'
+}
+if ($AliasProjectImplementation -eq 'c') {
+    $profileSuffixParts += 'aliasc'
 }
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
@@ -201,6 +206,9 @@ try {
     if ($TurbulentImplementation -eq 'stosb') {
         $asmFlags += '-DASM486_TURBULENT_STOSB'
     }
+    if ($AliasProjectImplementation -eq 'asm') {
+        $cFlags += '-DASM486_ALIAS_PROJECT'
+    }
     $objects = @()
 
     foreach ($source in $allSources) {
@@ -254,6 +262,7 @@ try {
         surfaceCacheImplementation = $SurfaceCacheImplementation
         mipLevelImplementation = $MipLevelImplementation
         turbulentImplementation = $TurbulentImplementation
+        aliasProjectImplementation = $AliasProjectImplementation
         optimizationProfile = $OptimizationProfile
         optimizationLevel = $optimizationLevel
         textureAxisCacheEntries = $TextureAxisCacheEntries

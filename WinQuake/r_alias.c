@@ -42,7 +42,7 @@ float				r_shadelight;
 aliashdr_t			*paliashdr;
 finalvert_t			*pfinalverts;
 auxvert_t			*pauxverts;
-static float		ziscale;
+float			ziscale;
 static model_t		*pmodel;
 
 static vec3_t		alias_forward, alias_right, alias_up;
@@ -286,7 +286,7 @@ void R_AliasPreparePoints (void)
 			fv->flags |= ALIAS_Z_CLIP;
 		else
 		{
-			 R_AliasProjectFinalVert (fv, av);
+			 R_AliasProjectFinalVertDispatch (fv, av);
 
 			if (fv->v[0] < r_refdef.aliasvrect.x)
 				fv->flags |= ALIAS_LEFT_CLIP;

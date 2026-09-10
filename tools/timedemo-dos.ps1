@@ -19,6 +19,8 @@ param(
     [string]$MemoryImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasProjectImplementation = 'asm',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -73,6 +75,9 @@ if ($TurbulentImplementation -eq 'c') {
 elseif ($TurbulentImplementation -eq 'asm') {
     $profileSuffixParts += 'turbasm'
 }
+if ($AliasProjectImplementation -eq 'c') {
+    $profileSuffixParts += 'aliasc'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -112,6 +117,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-MipLevelImplementation', $MipLevelImplementation,
         '-MemoryImplementation', $MemoryImplementation,
         '-TurbulentImplementation', $TurbulentImplementation,
+        '-AliasProjectImplementation', $AliasProjectImplementation,
         '-ToolRoot', $ToolRoot)
     if ($Instrumentation) {
         $buildArgs += '-Instrumentation'
@@ -403,6 +409,7 @@ $result = [ordered]@{
     mipLevelImplementation = $MipLevelImplementation
     turbulentImplementation = $TurbulentImplementation
     memoryImplementation = $MemoryImplementation
+    aliasProjectImplementation = $AliasProjectImplementation
     instrumentation = [bool]$Instrumentation
     frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot

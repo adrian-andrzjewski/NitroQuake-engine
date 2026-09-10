@@ -229,5 +229,44 @@ Lsavelight:
 	fstp	%st(0)
 	jmp		Lp1
 
+// R_AliasProjectFinalVert with one x87 control-word transition per call.
+// The C compiler emits a save/set/restore sequence around each of the three
+// truncating fistp instructions.  Keep the arithmetic and conversion mode the
+// same, but hold the truncation mode while all three outputs are stored.
+.globl C(R_AliasProjectFinalVert_asm486)
+C(R_AliasProjectFinalVert_asm486):
+	pushl	%eax
+	fnstcw	2(%esp)
+	movw	2(%esp),%ax
+	orw	$0x0c00,%ax
+	movw	%ax,(%esp)
+	fldcw	(%esp)
+
+	movl	8(%esp),%eax
+	movl	12(%esp),%edx
+
+	fld1
+	fdivs	8(%edx)
+	flds	C(ziscale)
+	fmul	%st(1),%st
+	fistpl	fv_v+20(%eax)
+
+	flds	(%edx)
+	fmuls	C(aliasxscale)
+	fmul	%st(1),%st
+	fadds	C(aliasxcenter)
+	fistpl	fv_v+0(%eax)
+
+	flds	4(%edx)
+	fmuls	C(aliasyscale)
+	fmul	%st(1),%st
+	fadds	C(aliasycenter)
+	fistpl	fv_v+4(%eax)
+
+	fstp	%st(0)
+	fldcw	2(%esp)
+	popl	%eax
+	ret
+
 #endif	// id386
 

@@ -79,7 +79,7 @@ void R_Alias_clip_z (finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 		out->v[4] =	pfv1->v[4] + (pfv0->v[4] - pfv1->v[4]) * scale;
 	}
 
-	R_AliasProjectFinalVert (out, &avout);
+	R_AliasProjectFinalVertDispatch (out, &avout);
 
 	if (out->v[0] < r_refdef.aliasvrect.x)
 		out->flags |= ALIAS_LEFT_CLIP;

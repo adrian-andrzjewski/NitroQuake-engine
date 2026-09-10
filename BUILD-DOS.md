@@ -105,6 +105,19 @@ variants use separate ignored output directories (`out\dos-turbc`,
 `out\dos-turbasm`, and `out\dos`) and all keep the original portable C loop in
 the source.
 
+The alias-model projection helper is independently selectable with
+`-AliasProjectImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -AliasProjectImplementation c
+.\tools\build-dos.ps1 -Benchmark -AliasProjectImplementation asm
+~~~
+
+`asm` is the measured target default and writes to `out\dos`; `c` is the
+reference implementation and writes to `out\dos-aliasc`.  The ASM path keeps
+the original x87 arithmetic and truncating conversions, but holds the x87
+truncation mode across all three stores in `R_AliasProjectFinalVert`.
+
 ## Runtime smoke test
 
 Place legally obtained Quake data in the ignored directory:
@@ -339,12 +352,14 @@ The focused benchmark can select each implementation independently:
   -DataRoot 'C:\path\to\Quake\id1'
 ~~~
 
-Individual C/ASM implementation switches can be omitted; each defaults to
-`c`.  The turbulent selector defaults to the measured `stosb` path; pass
+Individual C/ASM implementation switches can be omitted; the existing probes
+default to `c`.  The turbulent selector defaults to the measured `stosb` path,
+and the
+alias projection selector defaults to the measured `asm` path; pass
 `-TurbulentImplementation asm` for the existing ASM control.  The runner
-records all five selections in `bench-result.json` and uses a matching output
-directory suffix.  Use `-TurbulentOnly` to run only the focused 4-, 8-, 16-,
-and 64-pixel turbulent-loop cases instead of the longer general matrix.
+records all six selections in `bench-result.json` and uses a matching output
+directory suffix.  Use `-TurbulentOnly` or `-AliasProjectOnly` to run only the
+corresponding focused experiment instead of the longer general matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -560,6 +575,43 @@ report is `out\dos-bench-20260910-161309\bench-result.json`.
 The matched timedemo results are
 `out\dos-timedemo-20260910-164048\timedemo-result.json` and
 `out\dos-timedemo-20260910-164524\timedemo-result.json`.
+
+### Alias-project projection result
+
+The alias projection experiment targets the clipped-model path that remains in
+C after the larger unclipped transform is already in assembly.  The C compiler
+emits three separate x87 control-word save/set/restore sequences around the
+truncating `fistp` stores.  The ASM version preserves the same divide,
+multiplication order, truncation mode, and output layout, but performs one
+control-word transition for all three stores.
+
+The focused benchmark used five alternating samples of 100,000 calls for three
+representative projected points.  All output structures and checksums matched:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| Far | 0.122609 s | 0.113638 s | 7.317% |
+| Near | 0.122608 s | 0.113638 s | 7.316% |
+| Viewmodel | 0.122609 s | 0.113638 s | 7.317% |
+
+The focused reports are `out\dos-bench-20260910-170809\bench-result.json` and
+`out\dos-bench-20260910-170826\bench-result.json`; both ended with
+`486 benchmark correctness PASS`.
+
+Matched three-run `demo1` timedemos completed all 969 frames with framebuffer
+checksum `4154140932` on every run:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C reference | 69.118988 / 69.118947 / 69.119012 | 14.019302 |
+| ASM projection | 69.106757 / 69.106747 / 69.106757 | 14.021783 |
+
+ASM is 12.231 ms faster per timedemo, or 0.017696%.  The focused gain is
+larger because it isolates the helper; the whole-engine result is the authority.
+The ASM implementation is now the target default, while
+`-AliasProjectImplementation c` remains the reversible reference/control.
+The matched timedemo results are `out\dos-timedemo-20260910-170850\timedemo-result.json`
+and `out\dos-timedemo-20260910-171246\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 

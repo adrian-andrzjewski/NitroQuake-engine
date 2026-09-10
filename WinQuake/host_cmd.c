@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef BENCH486
 #include "d_local.h"
+#include "r_local.h"
 #endif
 
 extern cvar_t	pausable;
@@ -1221,6 +1222,7 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_MIP_ITERATIONS	500000
 #define BENCH486_TURBULENT_SAMPLES	5
 #define BENCH486_TURBULENT_ITERATIONS	50000
+#define BENCH486_ALIAS_PROJECT_ITERATIONS	100000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
@@ -1230,6 +1232,7 @@ typedef void *(*bench486_surface_cache_fn_t) (void *cache,
 		int surface_dlightframe, int frame, void *texture, int *lightadj);
 typedef int (*bench486_mip_fn_t) (float scale);
 typedef void (*bench486_turbulent_fn_t) (void);
+typedef void (*bench486_alias_project_fn_t) (finalvert_t *fv, auxvert_t *av);
 
 static int bench486_turbulent_table[128];
 
@@ -1546,6 +1549,143 @@ static void Bench486TurbulentCases (void)
 	Bench486TurbulentCase (8);
 	Bench486TurbulentCase (16);
 	Bench486TurbulentCase (64);
+}
+
+static double Bench486MeasureAliasProject (bench486_alias_project_fn_t function,
+		finalvert_t *fv, auxvert_t *av, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	unsigned result_sum;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (fv, av);
+
+	start = Sys_FloatTime ();
+	result_sum = 0;
+	for (i=0 ; i<iterations ; i++)
+	{
+		function (fv, av);
+		result_sum += (unsigned)fv->v[0];
+		result_sum += (unsigned)fv->v[1];
+		result_sum += (unsigned)fv->v[5];
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = result_sum;
+	bench486_sink ^= result_sum;
+	return elapsed;
+}
+
+static void Bench486AliasProjectCase (char *name, float x, float y,
+		float z, float scale)
+{
+	finalvert_t *c_result, *asm_result;
+	auxvert_t av;
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int i, sample;
+
+	av.fv[0] = x;
+	av.fv[1] = y;
+	av.fv[2] = z;
+	ziscale = scale;
+	aliasxscale = 320.0;
+	aliasyscale = 240.0;
+	aliasxcenter = 160.0;
+	aliasycenter = 120.0;
+
+	c_result = (finalvert_t *)bench486_expected;
+	asm_result = (finalvert_t *)bench486_dest;
+	Q_memset (c_result, 0x5a, sizeof(*c_result));
+	Q_memset (asm_result, 0x5a, sizeof(*asm_result));
+	R_AliasProjectFinalVert (c_result, &av);
+	R_AliasProjectFinalVert_asm486 (asm_result, &av);
+	if (Q_memcmp (c_result, asm_result, sizeof(*c_result)) != 0)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("alias-project %s correctness FAIL c %d,%d,%d asm %d,%d,%d\n",
+				name, c_result->v[0], c_result->v[1], c_result->v[5],
+				asm_result->v[0], asm_result->v[1], asm_result->v[5]);
+		return;
+	}
+
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureAliasProject (
+					R_AliasProjectFinalVert, c_result, &av,
+					BENCH486_ALIAS_PROJECT_ITERATIONS, &c_checksum);
+			asm_samples[sample] = Bench486MeasureAliasProject (
+					R_AliasProjectFinalVert_asm486, asm_result, &av,
+					BENCH486_ALIAS_PROJECT_ITERATIONS, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureAliasProject (
+					R_AliasProjectFinalVert_asm486, asm_result, &av,
+					BENCH486_ALIAS_PROJECT_ITERATIONS, &asm_checksum);
+			c_samples[sample] = Bench486MeasureAliasProject (
+					R_AliasProjectFinalVert, c_result, &av,
+					BENCH486_ALIAS_PROJECT_ITERATIONS, &c_checksum);
+		}
+
+		if (Q_memcmp (c_result, asm_result, sizeof(*c_result)) != 0 ||
+				c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("alias-project %s checksum correctness FAIL\n", name);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("alias-project %s x %.3f y %.3f z %.3f iterations %d samples %d\n",
+			name, x, y, z, BENCH486_ALIAS_PROJECT_ITERATIONS,
+			BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec checksum %u samples",
+			c_median, c_checksum);
+	for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+		Bench486Printf (" %.6f", c_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486 median %.6f sec checksum %u samples",
+			asm_median, asm_checksum);
+	for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+		Bench486Printf (" %.6f", asm_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486AliasProjectCases (void)
+{
+	float saved_ziscale, saved_xscale, saved_yscale;
+	float saved_xcenter, saved_ycenter;
+
+	saved_ziscale = ziscale;
+	saved_xscale = aliasxscale;
+	saved_yscale = aliasyscale;
+	saved_xcenter = aliasxcenter;
+	saved_ycenter = aliasycenter;
+
+	Bench486AliasProjectCase ("far", 1.25, -0.75, 32.0,
+			(float)0x8000 * (float)0x10000);
+	Bench486AliasProjectCase ("near", -5.5, 3.25, 8.0,
+			(float)0x8000 * (float)0x10000);
+	Bench486AliasProjectCase ("viewmodel", 0.125, -0.25, 16.0,
+			(float)0x8000 * (float)0x10000 * 3.0);
+
+	ziscale = saved_ziscale;
+	aliasxscale = saved_xscale;
+	aliasyscale = saved_yscale;
+	aliasxcenter = saved_xcenter;
+	aliasycenter = saved_ycenter;
 }
 
 static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
@@ -2033,6 +2173,23 @@ static void Bench486_f (void)
 		Con_Printf ("bench486: could not create bench486.txt\n");
 
 	Bench486Printf ("486 benchmark begin\n");
+	if (COM_CheckParm ("-benchaliasproject"))
+	{
+		Bench486Printf ("alias-project experiment compares the C projection helper\n");
+		Bench486Printf ("with one x87 control-word transition per ASM call\n");
+		Bench486AliasProjectCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchturbulent"))
 	{
 		Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
