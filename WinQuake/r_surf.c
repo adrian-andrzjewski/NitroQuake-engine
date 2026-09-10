@@ -55,6 +55,31 @@ unsigned		blocklights[18*18];
 
 /*
 ===============
+R_BuildLightMapNormalize_C
+
+Reference implementation for the compact 486 normalization experiment.
+Keep the arithmetic and clamp in the same order as the original loop in
+R_BuildLightMap.
+===============
+*/
+void R_BuildLightMapNormalize_C (unsigned *lights, int size)
+{
+	int		i;
+	int		t;
+
+	for (i=0 ; i<size ; i++)
+	{
+		t = (255*256 - (int)lights[i]) >> (8 - VID_CBITS);
+
+		if (t < (1 << 6))
+			t = (1 << 6);
+
+		lights[i] = t;
+	}
+}
+
+/*
+===============
 R_AddDynamicLights
 ===============
 */
@@ -149,7 +174,6 @@ Combine and scale multiple lightmaps into the 8.8 format in blocklights
 void R_BuildLightMap (void)
 {
 	int			smax, tmax;
-	int			t;
 	int			i, size;
 	byte		*lightmap;
 	unsigned	scale;
@@ -191,15 +215,11 @@ void R_BuildLightMap (void)
 		R_AddDynamicLights ();
 
 // bound, invert, and shift
-	for (i=0 ; i<size ; i++)
-	{
-		t = (255*256 - (int)blocklights[i]) >> (8 - VID_CBITS);
-
-		if (t < (1 << 6))
-			t = (1 << 6);
-
-		blocklights[i] = t;
-	}
+#if defined(ASM486_LIGHTMAP_NORMALIZE)
+	R_BuildLightMapNormalize_asm486 (blocklights, size);
+#else
+	R_BuildLightMapNormalize_C (blocklights, size);
+#endif
 }
 
 

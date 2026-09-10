@@ -22,6 +22,8 @@ param(
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$LightMapNormalizeImplementation = 'asm',
     [string]$ToolRoot
 )
 
@@ -93,6 +95,9 @@ if ($AliasProjectImplementation -eq 'c') {
 if ($TextureAnimationImplementation -eq 'c') {
     $profileSuffixParts += 'textureanimc'
 }
+if ($LightMapNormalizeImplementation -eq 'c') {
+    $profileSuffixParts += 'lightmapc'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -140,12 +145,14 @@ $asmSources = @($allAsmSources | Where-Object {
 		$SurfaceCacheImplementation -eq 'asm' -or
 		$MipLevelImplementation -eq 'asm' -or
 		$TextureAnimationImplementation -eq 'asm' -or
+		$LightMapNormalizeImplementation -eq 'asm' -or
 		$_.Name -ne 'asm486_experiments.s'
 })
 $allSources = @($cSources + $asmSources)
 $expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm' -or
 	$TextureAxisImplementation -eq 'asm' -or $SurfaceCacheImplementation -eq 'asm' -or
-	$MipLevelImplementation -eq 'asm' -or $TextureAnimationImplementation -eq 'asm') { 21 } else { 20 }
+	$MipLevelImplementation -eq 'asm' -or $TextureAnimationImplementation -eq 'asm' -or
+	$LightMapNormalizeImplementation -eq 'asm') { 21 } else { 20 }
 if (($allCSources.Count -ne 83) -or ($cSources.Count -ne 82) -or
 	($allAsmSources.Count -ne 21) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {
     throw "Expected 83 retained C sources (82 standalone), 21 total assembly sources, and $expectedAssemblySourceCount active assembly sources, found $($allCSources.Count) C ($($cSources.Count) standalone), $($allAsmSources.Count) total assembly, and $($asmSources.Count) active assembly."
@@ -195,6 +202,9 @@ try {
     }
     if ($TextureAnimationImplementation -eq 'asm') {
         $cFlags += '-DASM486_TEXTURE_ANIMATION'
+    }
+    if ($LightMapNormalizeImplementation -eq 'asm') {
+        $cFlags += '-DASM486_LIGHTMAP_NORMALIZE'
     }
     if ($TurbulentImplementation -eq 'c') {
         $cFlags += '-DASM486_TURBULENT_C'
@@ -273,6 +283,7 @@ try {
         turbulentImplementation = $TurbulentImplementation
         aliasProjectImplementation = $AliasProjectImplementation
         textureAnimationImplementation = $TextureAnimationImplementation
+        lightMapNormalizeImplementation = $LightMapNormalizeImplementation
         optimizationProfile = $OptimizationProfile
         optimizationLevel = $optimizationLevel
         textureAxisCacheEntries = $TextureAxisCacheEntries

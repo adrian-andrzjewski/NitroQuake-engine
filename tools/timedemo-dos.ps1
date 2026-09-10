@@ -23,6 +23,8 @@ param(
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$LightMapNormalizeImplementation = 'asm',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -83,6 +85,9 @@ if ($AliasProjectImplementation -eq 'c') {
 if ($TextureAnimationImplementation -eq 'c') {
     $profileSuffixParts += 'textureanimc'
 }
+if ($LightMapNormalizeImplementation -eq 'c') {
+    $profileSuffixParts += 'lightmapc'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -124,6 +129,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TurbulentImplementation', $TurbulentImplementation,
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
+        '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-ToolRoot', $ToolRoot)
     if ($Instrumentation) {
         $buildArgs += '-Instrumentation'
@@ -417,6 +423,7 @@ $result = [ordered]@{
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
+    lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     instrumentation = [bool]$Instrumentation
     frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot

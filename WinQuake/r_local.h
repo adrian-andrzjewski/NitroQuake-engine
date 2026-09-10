@@ -139,8 +139,10 @@ void R_DrawSurfaceBlock16 (void);
 void R_DrawSurfaceBlock8 (void);
 texture_t *R_TextureAnimation (texture_t *base);
 texture_t *R_TextureAnimationFrame_C (texture_t *base, int relative);
+void R_BuildLightMapNormalize_C (unsigned *lights, int size);
 #if id386
 texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
+void R_BuildLightMapNormalize_asm486 (unsigned *lights, int size);
 #endif
 
 #if	id386

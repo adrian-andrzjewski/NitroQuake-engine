@@ -22,9 +22,12 @@ param(
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$LightMapNormalizeImplementation = 'asm',
     [switch]$TurbulentOnly,
     [switch]$AliasProjectOnly,
     [switch]$TextureAnimationOnly,
+    [switch]$LightMapNormalizeOnly,
     [int]$TimeoutSeconds = 180
 )
 
@@ -80,6 +83,9 @@ if ($AliasProjectImplementation -eq 'c') {
 if ($TextureAnimationImplementation -eq 'c') {
     $profileSuffixParts += 'textureanimc'
 }
+if ($LightMapNormalizeImplementation -eq 'c') {
+    $profileSuffixParts += 'lightmapc'
+}
 $profileSuffix = if ($profileSuffixParts.Count) {
     '-' + ($profileSuffixParts -join '-')
 }
@@ -117,6 +123,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TurbulentImplementation', $TurbulentImplementation,
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
+        '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-ToolRoot', $ToolRoot)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
@@ -152,6 +159,9 @@ Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -For
 
 $benchCommand = if ($AliasProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
+}
+elseif ($LightMapNormalizeOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapnormalize -benchexit'
 }
 elseif ($TextureAnimationOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchtextureanimation -benchexit'
@@ -250,9 +260,11 @@ $result = [ordered]@{
     turbulentImplementation = $TurbulentImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
+    lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     turbulentOnly = [bool]$TurbulentOnly
     aliasProjectOnly = [bool]$AliasProjectOnly
     textureAnimationOnly = [bool]$TextureAnimationOnly
+    lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     report = $report

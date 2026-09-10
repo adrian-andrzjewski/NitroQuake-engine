@@ -30,9 +30,8 @@ out\dos\quake.exe
 ~~~
 
 The default normal build uses all 83 C files and 21 preprocessed x86 assembly
-files in WinQuake, including the selected texture-animation experiment.  The
-explicit C control build omits the isolated `asm486_experiments.s` file and
-uses 20 assembly sources.  net_comx.c is
+files in WinQuake, including the selected texture-animation and lightmap
+normalization experiments.  net_comx.c is
 textually included by net_ser.c, so the build compiles 82 standalone C files
 and obtains the remaining C implementation through that include.  Object files
 and a generated build-manifest.json remain under out\dos, which is ignored by
@@ -132,6 +131,19 @@ reference/control implementation and uses `out\dos-textureanimc`.  Only the
 pointer/branch loop is replaced.  Alternate-animation selection, the
 no-animation fast path, relative-time calculation, and error handling remain
 in C.
+
+The lightmap normalization loop is independently selectable with
+`-LightMapNormalizeImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -LightMapNormalizeImplementation c
+.\tools\build-dos.ps1 -Benchmark -LightMapNormalizeImplementation asm
+~~~
+
+`asm` is the measured target default and uses `out\dos`; `c` is the
+reference/control implementation and uses `out\dos-lightmapc`.  Only the
+final bound/invert/shift loop in `R_BuildLightMap` is replaced.  Lightmap
+setup, style accumulation, and dynamic-light work remain in C.
 
 ## Runtime smoke test
 
@@ -359,6 +371,7 @@ The focused benchmark can select each implementation independently:
   -SurfaceCacheImplementation asm `
   -MipLevelImplementation asm `
   -TurbulentImplementation stosb `
+  -LightMapNormalizeImplementation asm `
   -DataRoot 'C:\path\to\Quake\id1'
 .\tools\bench-dos.ps1 -TextureAxisImplementation c `
   -SurfaceCacheImplementation c `
@@ -369,12 +382,13 @@ The focused benchmark can select each implementation independently:
 
 Individual C/ASM implementation switches can be omitted; the existing probes
 default to `c`; the turbulent selector defaults to the measured `stosb` path,
-and the alias projection and texture-animation selectors default to their
-measured `asm` paths.  Pass `-TurbulentImplementation asm` for the existing ASM
-control.  The runner records all seven selections in `bench-result.json` and
-uses a matching output directory suffix.  Use `-TurbulentOnly`,
-`-AliasProjectOnly`, or `-TextureAnimationOnly` to run only the corresponding
-focused experiment instead of the longer general matrix.
+and the alias projection, texture-animation, and lightmap-normalization
+selectors default to their measured `asm` paths.  Pass
+`-TurbulentImplementation asm` for the existing ASM control.  The runner
+records all eight selections in `bench-result.json` and uses a matching output
+directory suffix.  Use `-TurbulentOnly`, `-AliasProjectOnly`,
+`-TextureAnimationOnly`, or `-LightMapNormalizeOnly` to run only the
+corresponding focused experiment instead of the longer general matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -666,6 +680,46 @@ but repeatable on the pinned profile, so ASM is now the controlled default;
 `-TextureAnimationImplementation c` remains the explicit reference/control
 build.  The timedemo results are `out\dos-timedemo-20260910-173632\timedemo-result.json`
 and `out\dos-timedemo-20260910-174027\timedemo-result.json`.
+
+### Lightmap normalization result
+
+This experiment extracted only the final `R_BuildLightMap` loop that inverts,
+shifts, and clamps the accumulated light values.  The C reference preserves
+the original arithmetic and clamp order.  On the DJGPP 486 build, its loop
+stores the intermediate value before the clamp and stores again afterward;
+the hand-written ASM keeps the lightmap pointer and count in registers and
+stores only the final value once per element.
+
+The focused benchmark used five alternating samples of 25,000 normalizations
+per case.  It covered a normal 16-element lightmap, a fully clamped
+64-element lightmap, and a mixed 324-element maximum-size lightmap.  All
+checksums matched and both runs ended with `486 benchmark correctness PASS`:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| 16-element normal | 0.134575 s | 0.121861 s | 9.447% |
+| 64-element clamped | 0.493414 s | 0.444819 s | 9.849% |
+| 324-element mixed | 2.437136 s | 2.194174 s | 9.969% |
+
+The focused reports are `out\dos-bench-20260910-180627\bench-result.json`
+and `out\dos-bench-20260910-180708\bench-result.json`.
+
+Matched three-run `demo1` timedemos used DOSBox-X 2026.08.31, `cputype=486`,
+fixed 33445 cycles, the baseline `-O2 -march=i486` build, and the same staged
+`id1` data.  Every run completed 969 frames with framebuffer checksum
+`4154140932`:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C reference | 69.100305 / 69.100324 / 69.100226 | 14.023093 |
+| ASM normalization loop | 69.081314 / 69.081262 / 69.081366 | 14.026948 |
+
+ASM is 19.0 ms faster per timedemo, or 0.0275%.  The improvement is small but
+repeatable on the pinned profile and the exact framebuffer checksum matches,
+so ASM is now the controlled default; `-LightMapNormalizeImplementation c`
+remains the explicit reference/control build.  The timedemo results are
+`out\dos-timedemo-20260910-180756\timedemo-result.json` and
+`out\dos-timedemo-20260910-181150\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 

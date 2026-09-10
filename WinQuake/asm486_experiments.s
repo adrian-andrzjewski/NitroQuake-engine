@@ -278,3 +278,37 @@ C(R_TextureAnimationFrame_asm486):
 	addl	$4,%esp
 	xorl	%eax,%eax
 	ret
+
+	.align 4
+
+// void R_BuildLightMapNormalize_asm486(unsigned *lights, int size)
+// Invert and clamp a lightmap in place.  Keep the array pointer and count in
+// registers and perform one store per element; the C compiler emits an
+// additional pre-clamp store in the original inline loop on the 486 target.
+C(R_BuildLightMapNormalize_asm486):
+	.globl C(R_BuildLightMapNormalize_asm486)
+	pushl	%edi
+	pushl	%esi
+	movl	12(%esp),%edi		// lights
+	movl	16(%esp),%esi		// size
+	movl	$0xff00,%edx		// 255 << 8
+	testl	%esi,%esi
+	jle	.Llightmap_normalize_done
+
+.Llightmap_normalize_loop:
+	movl	%edx,%eax
+	subl	(%edi),%eax
+	sarl	$2,%eax			// (8 - VID_CBITS), with VID_CBITS == 6
+	cmpl	$64,%eax
+	jge	.Llightmap_normalize_store
+	movl	$64,%eax
+.Llightmap_normalize_store:
+	movl	%eax,(%edi)
+	addl	$4,%edi
+	decl	%esi
+	jnz	.Llightmap_normalize_loop
+
+.Llightmap_normalize_done:
+	popl	%esi
+	popl	%edi
+	ret

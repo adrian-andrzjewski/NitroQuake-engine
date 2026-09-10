@@ -1224,6 +1224,8 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_TURBULENT_ITERATIONS	50000
 #define BENCH486_ALIAS_PROJECT_ITERATIONS	100000
 #define BENCH486_TEXTURE_ANIMATION_ITERATIONS	500000
+#define BENCH486_LIGHTMAP_NORMALIZE_SAMPLES	5
+#define BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS	25000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
@@ -1236,6 +1238,8 @@ typedef void (*bench486_turbulent_fn_t) (void);
 typedef void (*bench486_alias_project_fn_t) (finalvert_t *fv, auxvert_t *av);
 typedef texture_t *(*bench486_texture_animation_fn_t) (texture_t *base,
 		int relative);
+typedef void (*bench486_lightmap_normalize_fn_t) (unsigned *lights,
+		int size);
 
 static int bench486_turbulent_table[128];
 
@@ -1827,6 +1831,152 @@ static void Bench486TextureAnimationCases (void)
 	Bench486TextureAnimationCase ("8frame-wrap", 8, 7, 0);
 }
 
+static void Bench486SetLightMapNormalizeInput (unsigned *lights, int size,
+		int pattern)
+{
+	int i;
+
+	for (i=0 ; i<size ; i++)
+	{
+		if (pattern == 0)
+			lights[i] = (unsigned)((i * 257 + 3) & 0xffff);
+		else if (pattern == 1)
+			lights[i] = 0xffff;
+		else
+		{
+			switch (i & 7)
+			{
+			case 0: lights[i] = 0; break;
+			case 1: lights[i] = 1; break;
+			case 2: lights[i] = 64; break;
+			case 3: lights[i] = 256; break;
+			case 4: lights[i] = 32768; break;
+			case 5: lights[i] = 64000; break;
+			case 6: lights[i] = 65280; break;
+			default: lights[i] = 65535; break;
+			}
+		}
+	}
+}
+
+static unsigned Bench486LightMapNormalizeChecksum (unsigned *lights, int size)
+{
+	unsigned checksum;
+	int i;
+
+	checksum = 0;
+	for (i=0 ; i<size ; i++)
+		checksum += lights[i];
+	return checksum;
+}
+
+static double Bench486MeasureLightMapNormalize (
+		bench486_lightmap_normalize_fn_t function, unsigned *initial,
+		unsigned *lights, int size, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+	{
+		Q_memcpy (lights, initial, size * sizeof(unsigned));
+		function (lights, size);
+	}
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (lights, size);
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = Bench486LightMapNormalizeChecksum (lights, size);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static void Bench486LightMapNormalizeCase (char *name, int size, int pattern)
+{
+	unsigned *initial, *c_result, *asm_result;
+	double c_samples[BENCH486_LIGHTMAP_NORMALIZE_SAMPLES];
+	double asm_samples[BENCH486_LIGHTMAP_NORMALIZE_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int i, sample;
+
+	initial = (unsigned *)(((long)bench486_source + 3) & ~3);
+	c_result = (unsigned *)(((long)bench486_expected + 3) & ~3);
+	asm_result = (unsigned *)(((long)bench486_dest + 3) & ~3);
+	Bench486SetLightMapNormalizeInput (initial, size, pattern);
+	Q_memcpy (c_result, initial, size * sizeof(unsigned));
+	Q_memcpy (asm_result, initial, size * sizeof(unsigned));
+	R_BuildLightMapNormalize_C (c_result, size);
+	R_BuildLightMapNormalize_asm486 (asm_result, size);
+	if (Q_memcmp (c_result, asm_result, size * sizeof(unsigned)) != 0)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("lightmap-normalize %s correctness FAIL\n", name);
+		return;
+	}
+
+	for (sample=0 ; sample<BENCH486_LIGHTMAP_NORMALIZE_SAMPLES; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureLightMapNormalize (
+					R_BuildLightMapNormalize_C, initial, c_result, size,
+					BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS, &c_checksum);
+			asm_samples[sample] = Bench486MeasureLightMapNormalize (
+					R_BuildLightMapNormalize_asm486, initial, asm_result, size,
+					BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureLightMapNormalize (
+					R_BuildLightMapNormalize_asm486, initial, asm_result, size,
+					BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS, &asm_checksum);
+			c_samples[sample] = Bench486MeasureLightMapNormalize (
+					R_BuildLightMapNormalize_C, initial, c_result, size,
+					BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS, &c_checksum);
+		}
+
+		if (Q_memcmp (c_result, asm_result, size * sizeof(unsigned)) != 0 ||
+				c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("lightmap-normalize %s checksum correctness FAIL\n",
+					name);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_LIGHTMAP_NORMALIZE_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_LIGHTMAP_NORMALIZE_SAMPLES);
+	c_median = c_samples[BENCH486_LIGHTMAP_NORMALIZE_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_LIGHTMAP_NORMALIZE_SAMPLES / 2];
+	delta = c_median > 0.0 ?
+			(c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("lightmap-normalize %s size %d pattern %d iterations %d samples %d\n",
+			name, size, pattern, BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS,
+			BENCH486_LIGHTMAP_NORMALIZE_SAMPLES);
+	Bench486Printf ("  c median %.6f sec checksum %u samples",
+			c_median, c_checksum);
+	for (i=0 ; i<BENCH486_LIGHTMAP_NORMALIZE_SAMPLES ; i++)
+		Bench486Printf (" %.6f", c_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486 median %.6f sec checksum %u samples",
+			asm_median, asm_checksum);
+	for (i=0 ; i<BENCH486_LIGHTMAP_NORMALIZE_SAMPLES ; i++)
+		Bench486Printf (" %.6f", asm_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486LightMapNormalizeCases (void)
+{
+	Bench486LightMapNormalizeCase ("small-normal", 16, 0);
+	Bench486LightMapNormalizeCase ("full-clamp", 64, 1);
+	Bench486LightMapNormalizeCase ("mixed-324", 324, 2);
+}
+
 static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
 		void *entry, void *texinfo, void *entity, int frame, int iterations,
 		unsigned *hits)
@@ -2346,6 +2496,23 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchlightmapnormalize"))
+	{
+		Bench486Printf ("lightmap-normalize experiment compares the C loop\n");
+		Bench486Printf ("with a register-based 486 pointer/count loop\n");
+		Bench486LightMapNormalizeCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchturbulent"))
 	{
 		Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
@@ -2399,6 +2566,9 @@ static void Bench486_f (void)
 	Bench486Printf ("texture-animation experiment compares the C frame loop with\n");
 	Bench486Printf ("the register-only 486 pointer/branch loop\n");
 	Bench486TextureAnimationCases ();
+	Bench486Printf ("lightmap-normalize experiment compares the C loop with\n");
+	Bench486Printf ("the register-based 486 pointer/count loop\n");
+	Bench486LightMapNormalizeCases ();
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();
