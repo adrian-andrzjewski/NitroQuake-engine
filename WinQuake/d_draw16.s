@@ -310,8 +310,8 @@ LClampReentry1:
 // calculate the texture starting address
 //
 	sarl	$16,%eax
-	movl	C(cachewidth),%edx
-	imull	%edx,%eax				// (tfrac >> 16) * cachewidth
+	// Keep cachewidth in the multiply instruction; this saves a register move.
+	imull	C(cachewidth),%eax				// (tfrac >> 16) * cachewidth
 	addl	%ebx,%esi
 	addl	%eax,%esi				// psource = pbase + (sfrac >> 16) +
 									//           ((tfrac >> 16) * cachewidth);
@@ -381,54 +381,95 @@ LClampReentry3:
 	movl	%ecx,%eax
 	movl	%ebp,%edx
 	sarl	$20,%eax			// tstep >>= 16;
-	jz		LZero
+	jnz		LNonZeroSetup
 	sarl	$20,%edx			// sstep >>= 16;
-	movl	C(cachewidth),%ebx
-	imull	%ebx,%eax
-	jmp		LSetUp1
-
-LZero:
-	sarl	$20,%edx			// sstep >>= 16;
-	movl	C(cachewidth),%ebx
-
-LSetUp1:
+	// The common zero-tstep case does not need cachewidth in a register:
+	// ebx is replaced by sfracf below, so add the row stride from memory.
+	// Keep the profile-only accounting in both setup arms so the release path
+	// does not pay for an extra branch just to share this diagnostic block.
 
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
-	jz		LProfileFullStatsDone
+	jz		LProfileZeroStatsDone
 	testl	%ecx,%ecx
-	jnz		LProfileFullNoTDeltaZero
+	jnz		LProfileZeroNoTDeltaZero
 	incl	C(bench486_texture_full_tdelta_zero)
-LProfileFullNoTDeltaZero:
+LProfileZeroNoTDeltaZero:
 	testl	$0xfffff,%ecx
-	jnz		LProfileFullNoTFracZero
+	jnz		LProfileZeroNoTFracZero
 	incl	C(bench486_texture_full_tfrac_zero)
-LProfileFullNoTFracZero:
+LProfileZeroNoTFracZero:
 	testl	%eax,%eax
-	jnz		LProfileFullNoTZero
+	jnz		LProfileZeroNoTZero
 	incl	C(bench486_texture_full_tzero)
-LProfileFullNoTZero:
+LProfileZeroNoTZero:
 	cmpl	$1,%edx
-	jne		LProfileFullNoSOne
+	jne		LProfileZeroNoSOne
 	incl	C(bench486_texture_full_sone)
-LProfileFullNoSOne:
+LProfileZeroNoSOne:
 	testl	$0xfffff,%ebp
-	jnz		LProfileFullNoSFracZero
+	jnz		LProfileZeroNoSFracZero
 	incl	C(bench486_texture_full_sfrac_zero)
-LProfileFullNoSFracZero:
+LProfileZeroNoSFracZero:
 	testl	$0xfffff,%ebp
-	jnz		LProfileFullStatsDone
+	jnz		LProfileZeroStatsDone
 	testl	$0xfffff,%ecx
-	jnz		LProfileFullStatsDone
+	jnz		LProfileZeroStatsDone
 	incl	C(bench486_texture_full_exact)
-LProfileFullStatsDone:
+LProfileZeroStatsDone:
+#endif
+
+	addl	%edx,%eax			// add in sstep
+						// (tstep >> 16) * cachewidth + (sstep >> 16);
+	movl	tfracf,%edx
+	movl	%eax,advancetable+4	// advance base in t
+	addl	C(cachewidth),%eax	// ((tstep >> 16) + 1) * cachewidth +
+						//  (sstep >> 16);
+	jmp		LSetUpCommon
+
+LNonZeroSetup:
+	sarl	$20,%edx			// sstep >>= 16;
+	movl	C(cachewidth),%ebx
+	imull	%ebx,%eax
+
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz		LProfileNonZeroStatsDone
+	testl	%ecx,%ecx
+	jnz		LProfileNonZeroNoTDeltaZero
+	incl	C(bench486_texture_full_tdelta_zero)
+LProfileNonZeroNoTDeltaZero:
+	testl	$0xfffff,%ecx
+	jnz		LProfileNonZeroNoTFracZero
+	incl	C(bench486_texture_full_tfrac_zero)
+LProfileNonZeroNoTFracZero:
+	testl	%eax,%eax
+	jnz		LProfileNonZeroNoTZero
+	incl	C(bench486_texture_full_tzero)
+LProfileNonZeroNoTZero:
+	cmpl	$1,%edx
+	jne		LProfileNonZeroNoSOne
+	incl	C(bench486_texture_full_sone)
+LProfileNonZeroNoSOne:
+	testl	$0xfffff,%ebp
+	jnz		LProfileNonZeroNoSFracZero
+	incl	C(bench486_texture_full_sfrac_zero)
+LProfileNonZeroNoSFracZero:
+	testl	$0xfffff,%ebp
+	jnz		LProfileNonZeroStatsDone
+	testl	$0xfffff,%ecx
+	jnz		LProfileNonZeroStatsDone
+	incl	C(bench486_texture_full_exact)
+LProfileNonZeroStatsDone:
 #endif
 	addl	%edx,%eax			// add in sstep
-								// (tstep >> 16) * cachewidth + (sstep >> 16);
+						// (tstep >> 16) * cachewidth + (sstep >> 16);
 	movl	tfracf,%edx
 	movl	%eax,advancetable+4	// advance base in t
 	addl	%ebx,%eax			// ((tstep >> 16) + 1) * cachewidth +
-								//  (sstep >> 16);
+						//  (sstep >> 16);
+
+LSetUpCommon:
 	shll	$12,%ebp			// left-justify sstep fractional part
 	movl	sfracf,%ebx
 	shll	$12,%ecx			// left-justify tstep fractional part

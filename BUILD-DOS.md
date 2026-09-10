@@ -84,11 +84,12 @@ The built-in `demo1.dem`, `demo2.dem`, and `demo3.dem` are in the supplied
 Quake data.  Replace `demo1` with either other name to repeat the test.  The
 result is printed in the Quake console as frames, seconds, and FPS.
 
-### Current baseline
+### Reference baseline
 
-The reported **14 FPS** (rounded) is reproducible on the pinned profile.  A
-three-run raw `demo1` measurement on 2026-09-09 produced 969 frames per run
-and a median of **13.995834 FPS** (`69.234885` seconds for the median run).
+The earlier reported **14 FPS** (rounded) is reproducible on the pinned
+profile.  A three-run raw `demo1` reference measurement on 2026-09-09
+produced 969 frames per run and a median of **13.995834 FPS** (`69.234885`
+seconds for the median run).
 The runs used `qbench.exe`, the default `baseline` optimization profile,
 DOSBox-X 2026.08.31, `cputype=486`, and fixed 33445 cycles.  The result is
 recorded under `out\dos-timedemo-*\timedemo-result.json` and is emulator
@@ -113,6 +114,22 @@ comparisons; the rich result is the authority for frame-time consistency.
 For an odd number of runs, the runner selects the middle sorted sample.  Older
 generated JSON records may contain the highest sample in `medianFps`; use the
 individual `results` entries when auditing those records.
+
+### Measured texture-span change
+
+After the profiling pass identified texture spans as the largest self-time
+consumer, the 16-pixel drawer received two narrow 486-targeted changes in
+`WinQuake\d_draw16.s`: the initial row address uses a memory-source multiply,
+and the common zero-row-step setup adds `cachewidth` directly from memory.
+Both preserve the original fixed-point arithmetic and leave the inner sampling
+loop unchanged.
+
+A matched three-run raw `demo1` comparison on 2026-09-10 measured a median of
+**14.010492 FPS** (`69.162451` seconds) after the change, versus the documented
+pre-change median of **13.995834 FPS** (`69.234885` seconds), or approximately
+**0.10% faster**.  All runs produced the same final framebuffer checksum,
+`4154140932`.  This is DOSBox-X 486 evidence; it is not a claim about every
+physical 486 or a native Windows build.
 
 ### Per-frame FPS statistics
 
@@ -334,8 +351,8 @@ That keeps the hot recursive paths lightweight while still explaining their
 cost.
 
 A matched 2026-09-10 diagnostic comparison measured the instrumented profile
-at `77.090513` seconds and the raw release timedemo at `69.235233` seconds, an
-estimated **11.35% profiling overhead**.  The profile run also used 520,782
+at `77.017236` seconds and the raw release timedemo at `69.162451` seconds, an
+estimated **11.36% profiling overhead**.  The profile run also used 520,782
 profile timer reads plus 1,939 frame-statistics timer reads, reached stack
 depth 8, and reported zero stack errors; two open scopes were intentionally
 discarded when timedemo exit occurred inside the final demo message.  This
@@ -346,20 +363,20 @@ The current self-time ranking from that profile is:
 
 | Rank | Node | Self seconds | % of profiled frame | Work |
 | ---: | --- | ---: | ---: | --- |
-| 1 | Texture spans | 19.782511 | 25.67% | 1,454,417 spans / 43,956,203 pixels |
-| 2 | Surface cache | 11.193304 | 14.53% | 55,300 normal surfaces |
-| 3 | Alias model | 9.966088 | 12.93% | 5,470 models / 417,090 vertices |
-| 4 | Z spans | 8.346825 | 10.83% | 58,051 surface calls |
-| 5 | World BSP | 8.312882 | 10.79% | 375,709 BSP node visits |
-| 6 | Edge scan self | 6.781056 | 8.80% | 147,288 scanlines |
+| 1 | Texture spans | 19.708498 | 25.60% | 1,454,414 spans / 43,956,202 pixels |
+| 2 | Surface cache | 11.194143 | 14.54% | 55,300 normal surfaces |
+| 3 | Alias model | 9.965974 | 12.95% | 5,470 models / 417,090 vertices |
+| 4 | Z spans | 8.346734 | 10.84% | 58,051 surface calls |
+| 5 | World BSP | 8.312930 | 10.80% | 375,709 BSP node visits |
+| 6 | Edge scan self | 6.780973 | 8.81% | 147,288 scanlines |
 
 These are measured diagnostic hotspots, not optimization instructions.  The
 next investigation should compare the texture-span, surface-cache, and alias
 model leaves separately, using the same timedemo and visual checks after each
 change.  A texture row-lookup experiment was reverted after its faster run
 failed the exact framebuffer check (`2955717646` versus the known-good
-`4154140932`); the current source keeps the original texture path and no
-texture or renderer behavior is changed by the profiling pass.
+`4154140932`).  The accepted texture-span change is limited to equivalent
+address-arithmetic forms and passed the same exact checksum check.
 
 ## Reprovisioning
 
