@@ -106,7 +106,7 @@ It stages a fresh DOS directory for every run, writes six-decimal timing data,
 and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
 fixed cycle count, video mode, optimization profile, and command-line options
 unchanged when comparing results.  The current default renderer pass completed
-all 969 frames at a 13.993993 FPS median (69.243995 seconds), about 0.55%
+all 969 frames at a 13.995823 FPS median (69.234944 seconds), about 0.57%
 above the baseline.  It is a narrow measured improvement and does not support
 a claim of a 5% end-to-end gain.
 
@@ -126,6 +126,18 @@ builds with `DEBUG` retain the height field and original layout.  The cache
 manager also skips redundant LRU unlink/relink work for a block already at
 the head and returns newly allocated blocks directly.  These are memory and
 allocator-path improvements; the matched timedemo change is within run noise.
+
+The particle record packs its palette index and type into one byte each while
+keeping the assembly-used offsets stable.  This shrinks each record from 44
+to 40 bytes and saves 8 KiB in the default 2048-particle pool.  The 486
+assembly drawer loads the palette byte directly instead of converting it
+through the FPU.  Particle expiry is handled in one pointer-to-link walk,
+and empty particle frames return before projection setup.  Brightfield
+particle initialization now uses an explicit one-shot flag and no longer
+evaluates an unused third-axis sine/cosine pair.
+The final matched release timedemo remained within normal run noise, so these
+particle changes are footprint and hot-path cleanups rather than a claimed
+end-to-end FPS gain.
 
 The renderer's per-frame texture-axis cache can be screened at 64, 128, or
 256 entries without editing source files.  Each value uses a separate ignored
@@ -214,9 +226,10 @@ Instrumentation changes timing, so its FPS is diagnostic only.  The profile
 reports repeated texture-axis transforms avoided by the per-frame cache;
 compare release-style `qbench.exe` runs for performance conclusions.  It also
 reports coarse phase timings.  A post-validation demo1 diagnostic run
-recorded 5,473 alias models, 58,105 surfaces, 46,925 cache hits, 11,180
-misses, 9.880174 seconds in alias-model work, 39.442585 seconds in surface
-drawing, and 1.997233 seconds in turbulent spans.  These counters identify
+recorded 5,473 alias models, 58,107 surfaces, 46,932 cache hits, 11,175
+misses, 9.878070 seconds in alias-model work, 39.383286 seconds in surface
+drawing, 1.941758 seconds in turbulent spans, and 135,542 particles in
+0.619560 seconds of particle work.  These counters identify
 where the 486 renderer spends time; they are not a visual-parity or release
 performance claim.
 

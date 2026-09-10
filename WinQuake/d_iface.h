@@ -40,13 +40,13 @@ typedef struct particle_s
 {
 // driver-usable fields
 	vec3_t		org;
-	float		color;
+	byte		color;		// 8-bit palette index
 // drivers never touch the following fields
+	byte		type;		// ptype_t values fit in one byte
 	struct particle_s	*next;
 	vec3_t		vel;
 	float		ramp;
 	float		die;
-	ptype_t		type;
 } particle_t;
 
 #define PARTICLE_Z_CLIP	8.0

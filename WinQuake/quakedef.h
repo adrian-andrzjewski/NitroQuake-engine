@@ -67,6 +67,8 @@ extern unsigned long bench486_axis_cache_misses;
 extern double bench486_alias_seconds;
 extern double bench486_surface_seconds;
 extern double bench486_turbulent_seconds;
+extern unsigned long bench486_particle_count;
+extern double bench486_particle_seconds;
 #endif
 
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!

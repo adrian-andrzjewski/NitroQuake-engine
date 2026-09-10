@@ -116,6 +116,7 @@ R_EntityParticles
 #define NUMVERTEXNORMALS	162
 extern	float	r_avertexnormals[NUMVERTEXNORMALS][3];
 vec3_t	avelocities[NUMVERTEXNORMALS];
+static qboolean avelocities_initialized;
 float	beamlength = 16;
 vec3_t	avelocity = {23, 7, 3};
 float	partstep = 0.01;
@@ -123,35 +124,35 @@ float	timescale = 0.01;
 
 void R_EntityParticles (entity_t *ent)
 {
-	int			count;
 	int			i;
 	particle_t	*p;
 	float		angle;
-	float		sr, sp, sy, cr, cp, cy;
+	float		sp, sy, cp, cy;
 	vec3_t		forward;
 	float		dist;
+	float		*avelocity_values;
+	float		time;
 	
 	dist = 64;
-	count = 50;
+	time = cl.time;
 
-if (!avelocities[0][0])
-{
-for (i=0 ; i<NUMVERTEXNORMALS*3 ; i++)
-avelocities[0][i] = (rand()&255) * 0.01;
-}
+	if (!avelocities_initialized)
+	{
+		avelocity_values = &avelocities[0][0];
+		for (i=0 ; i<NUMVERTEXNORMALS*3 ; i++)
+			avelocity_values[i] = (rand()&255) * 0.01;
+		avelocities_initialized = true;
+	}
 
 
 	for (i=0 ; i<NUMVERTEXNORMALS ; i++)
 	{
-		angle = cl.time * avelocities[i][0];
+		angle = time * avelocities[i][0];
 		sy = sin(angle);
 		cy = cos(angle);
-		angle = cl.time * avelocities[i][1];
+		angle = time * avelocities[i][1];
 		sp = sin(angle);
 		cp = cos(angle);
-		angle = cl.time * avelocities[i][2];
-		sr = sin(angle);
-		cr = cos(angle);
 	
 		forward[0] = cp*cy;
 		forward[1] = cp*sy;
@@ -164,7 +165,7 @@ avelocities[0][i] = (rand()&255) * 0.01;
 		p->next = active_particles;
 		active_particles = p;
 
-		p->die = cl.time + 0.01;
+		p->die = time + 0.01;
 		p->color = 0x6f;
 		p->type = pt_explode;
 		
@@ -648,54 +649,59 @@ extern	cvar_t	sv_gravity;
 
 void R_DrawParticles (void)
 {
-	particle_t		*p, *kill;
+	particle_t		*p;
+	particle_t		**link;
 	float			grav;
 	int				i;
 	float			time2, time3;
 	float			time1;
 	float			dvel;
 	float			frametime;
+	float			time;
+#ifdef PROFILE486
+	double		particle_start;
+#endif
 	
+#ifdef PROFILE486
+	particle_start = Sys_FloatTime ();
+#endif
 	D_StartParticles ();
+
+	if (!active_particles)
+	{
+		D_EndParticles ();
+#ifdef PROFILE486
+		bench486_particle_seconds += Sys_FloatTime () - particle_start;
+#endif
+		return;
+	}
+
+	time = cl.time;
 
 	VectorScale (vright, xscaleshrink, r_pright);
 	VectorScale (vup, yscaleshrink, r_pup);
 	VectorCopy (vpn, r_ppn);
-	frametime = cl.time - cl.oldtime;
+	frametime = time - cl.oldtime;
 	time3 = frametime * 15;
 	time2 = frametime * 10; // 15;
 	time1 = frametime * 5;
 	grav = frametime * sv_gravity.value * 0.05;
 	dvel = 4*frametime;
 	
-	for ( ;; ) 
+	link = &active_particles;
+	while ((p = *link) != NULL)
 	{
-		kill = active_particles;
-		if (kill && kill->die < cl.time)
+		if (p->die < time)
 		{
-			active_particles = kill->next;
-			kill->next = free_particles;
-			free_particles = kill;
+			*link = p->next;
+			p->next = free_particles;
+			free_particles = p;
 			continue;
 		}
-		break;
-	}
 
-	for (p=active_particles ; p ; p=p->next)
-	{
-		for ( ;; )
-		{
-			kill = p->next;
-			if (kill && kill->die < cl.time)
-			{
-				p->next = kill->next;
-				kill->next = free_particles;
-				free_particles = kill;
-				continue;
-			}
-			break;
-		}
-
+#ifdef PROFILE486
+		bench486_particle_count++;
+#endif
 		D_DrawParticle (p);
 		p->org[0] += p->vel[0]*frametime;
 		p->org[1] += p->vel[1]*frametime;
@@ -757,8 +763,12 @@ void R_DrawParticles (void)
 			p->vel[2] -= grav;
 			break;
 		}
+		link = &p->next;
 	}
 
 	D_EndParticles ();
+#ifdef PROFILE486
+	bench486_particle_seconds += Sys_FloatTime () - particle_start;
+#endif
 }
 

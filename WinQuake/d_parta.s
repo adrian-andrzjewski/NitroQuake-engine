@@ -167,9 +167,8 @@ C(D_DrawParticle):
 	cmpl	%ecx,%eax
 	jl		LPop1AndDone
 
-	flds	pt_color(%edi)	// color | 1/z * 0x8000
-// FIXME: use Terje's fast fp->int trick?
-	fistpl	DP_Color		// 1/z * 0x8000
+	// Keep the palette byte in %ch while the projection registers are reused.
+	movb	pt_color(%edi),%ch
 
 	movl	C(d_viewbuffer),%ebx
 
@@ -189,7 +188,7 @@ C(D_DrawParticle):
 // pix = izi >> d_pix_shift;
 
 	movl	izi,%eax
-	movl	C(d_pix_shift),%ecx
+	movb	C(d_pix_shift),%cl
 	shrl	%cl,%eax
 	movl	izi,%ebp
 
@@ -199,19 +198,18 @@ C(D_DrawParticle):
 //  	pix = d_pix_max;
 
 	movl	C(d_pix_min),%ebx
-	movl	C(d_pix_max),%ecx
+	// Keep %ch (the palette byte) intact; the max value is used once.
 	cmpl	%ebx,%eax
 	jnl		LTestPixMax
 	movl	%ebx,%eax
 	jmp		LTestDone
 
 LTestPixMax:
-	cmpl	%ecx,%eax
+	cmpl	C(d_pix_max),%eax
 	jng		LTestDone
-	movl	%ecx,%eax
+	movl	C(d_pix_max),%eax
 LTestDone:
 
-	movb	DP_Color,%ch
 
 	movl	C(d_y_aspect_shift),%ebx
 	testl	%ebx,%ebx
