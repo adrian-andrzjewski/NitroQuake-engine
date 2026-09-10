@@ -95,7 +95,7 @@ autolock=false
 
 [dosbox]
 machine=svga_s3
-memsize=32
+memsize=16
 
 [autoexec]
 mount c "$mountPath"
