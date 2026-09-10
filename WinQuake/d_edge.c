@@ -67,6 +67,7 @@ static void D_ProfileSpans (espan_t *span, qboolean texture)
 			bench486_texture_span_count++;
 			bench486_texture_span_pixels += count;
 			bench486_texture_span_segments += (count + 15) >> 4;
+			bench486_texture_final_lengths[((count - 1) & 15) + 1]++;
 
 			if (count <= 1)
 				bucket = 0;

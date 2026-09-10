@@ -13,7 +13,8 @@ param(
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
     [int]$Runs = 3,
-    [int]$TimeoutSeconds = 180
+    [int]$TimeoutSeconds = 180,
+    [switch]$NoFpsStats
 )
 
 Set-StrictMode -Version Latest
@@ -107,6 +108,7 @@ if (Test-Path -LiteralPath $stagingRoot) {
 }
 $quakeRoot = Join-Path $stagingRoot 'quake'
 $stagedData = Join-Path $quakeRoot 'id1'
+$fpsStatsOptions = if ($NoFpsStats) { '' } else { ' -fpsstats' }
 New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
 Copy-Item -LiteralPath $benchmarkExe -Destination (Join-Path $quakeRoot $executableName)
@@ -117,7 +119,7 @@ $batchPath = Join-Path $quakeRoot 'timedemo.bat'
 @"
 @echo off
 cd \quake
-$executableName -basedir \quake -timedemoexit -nosound -nojoy -nomouse -nocdaudio +timedemo $DemoName
+$executableName -basedir \quake -timedemoexit$fpsStatsOptions -nosound -nojoy -nomouse -nocdaudio +timedemo $DemoName
 exit
 "@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
@@ -166,6 +168,10 @@ for ($run = 1; $run -le $Runs; $run++) {
     if (Test-Path -LiteralPath $reportPath) {
         Remove-Item -LiteralPath $reportPath -Force
     }
+    $timedemoJsonPath = Join-Path $quakeRoot 'timedemo.jsn'
+    if (Test-Path -LiteralPath $timedemoJsonPath) {
+        Remove-Item -LiteralPath $timedemoJsonPath -Force
+    }
     $profileJsonPath = Join-Path $quakeRoot 'profile.jsn'
     if (Test-Path -LiteralPath $profileJsonPath) {
         Remove-Item -LiteralPath $profileJsonPath -Force
@@ -209,6 +215,11 @@ for ($run = 1; $run -le $Runs; $run++) {
         throw "Could not parse the timedemo report: $report"
     }
 
+    $fpsStatsData = $null
+    if (Test-Path -LiteralPath $timedemoJsonPath -PathType Leaf) {
+        $fpsStatsData = Get-Content -LiteralPath $timedemoJsonPath -Raw | ConvertFrom-Json
+    }
+
     $profileData = $null
     if ($Instrumentation) {
         if (-not (Test-Path -LiteralPath $profileJsonPath -PathType Leaf)) {
@@ -222,9 +233,24 @@ for ($run = 1; $run -le $Runs; $run++) {
         frames = [int]$match.Groups['frames'].Value
         seconds = [double]::Parse($match.Groups['seconds'].Value, $culture)
         fps = [double]::Parse($match.Groups['fps'].Value, $culture)
+        fpsStats = $fpsStatsData
         report = $report.Trim()
         profile = $profileData
     }
+}
+
+function Get-MedianNumber {
+    param([object[]]$Values)
+
+    $numbers = @($Values | ForEach-Object { [double]$_ } | Sort-Object)
+    if ($numbers.Count -eq 0) {
+        return $null
+    }
+    $middle = [int][math]::Floor($numbers.Count / 2)
+    if (($numbers.Count % 2) -eq 1) {
+        return $numbers[$middle]
+    }
+    return ($numbers[$middle - 1] + $numbers[$middle]) / 2.0
 }
 
 $fpsValues = @($results | ForEach-Object { [double]$_.fps } | Sort-Object)
@@ -236,10 +262,102 @@ else {
     $medianFps = ($fpsValues[$middle - 1] + $fpsValues[$middle]) / 2.0
 }
 
+$fpsStatsRuns = @($results | Where-Object { $null -ne $_.fpsStats })
+$fpsSummary = $null
+if ($fpsStatsRuns.Count -gt 0) {
+    $firstFpsStats = $fpsStatsRuns[0].fpsStats
+    $fpsSummary = [ordered]@{
+        runs = $fpsStatsRuns.Count
+        frames = [int]$firstFpsStats.benchmark.frames
+        measuredFrames = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.measured_frames
+        })
+        storedFrames = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.stored_frames
+        })
+        overflowFrames = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.overflow_frames
+        })
+        invalidFrames = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.invalid_frames
+        })
+        timerReads = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.timer_reads
+        })
+        durationSeconds = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.benchmark.duration_seconds
+        })
+        averageFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.benchmark.average_fps
+        })
+        minimumFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.minimum_fps
+        })
+        maximumFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.maximum_fps
+        })
+        medianFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.median_fps
+        })
+        low1PercentFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.low_1_percent_fps
+        })
+        low0_1PercentFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.low_0_1_percent_fps
+        })
+        high1PercentFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.high_1_percent_fps
+        })
+        standardDeviationFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.standard_deviation_fps
+        })
+        varianceFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.fps.variance_fps
+        })
+        p0_1Fps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.percentiles.p0_1
+        })
+        p1Fps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.percentiles.p1
+        })
+        p5Fps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.percentiles.p5
+        })
+        p95Fps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.percentiles.p95
+        })
+        p99Fps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.percentiles.p99
+        })
+        p99_9Fps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.percentiles.p99_9
+        })
+        dropThresholdFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.events.drop_threshold_fps
+        })
+        spikeThresholdFps = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.events.spike_threshold_fps
+        })
+        drops = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.events.drops
+        })
+        spikes = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.events.spikes
+        })
+        longestDropRun = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.events.longest_drop_run
+        })
+        longestSpikeRun = Get-MedianNumber @($fpsStatsRuns | ForEach-Object {
+            $_.fpsStats.events.longest_spike_run
+        })
+    }
+}
+
 $result = [ordered]@{
     demo = $DemoName
     runs = $Runs
     medianFps = $medianFps
+    fpsSummary = $fpsSummary
     dosboxVersion = $toolManifest.dosboxX.version
     profile = $profilePath
     profileSha256 = $profileHash
@@ -247,6 +365,7 @@ $result = [ordered]@{
     optimizationProfile = $OptimizationProfile
     textureAxisCacheEntries = $TextureAxisCacheEntries
     instrumentation = [bool]$Instrumentation
+    frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     results = $results
@@ -256,4 +375,12 @@ $result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $resultPath -Encod
 
 Write-Host ($results | ForEach-Object { $_.report })
 Write-Host ("Median FPS: {0:N1}" -f $medianFps)
+if ($null -ne $fpsSummary) {
+    Write-Host ("FPS stats (median across {0} run(s)): avg {1:0.000000} min {2:0.000000} max {3:0.000000} median {4:0.000000} low1 {5:0.000000} low0.1 {6:0.000000} high1 {7:0.000000} stddev {8:0.000000} drops {9} spikes {10}" -f
+        $fpsSummary.runs, $fpsSummary.averageFps, $fpsSummary.minimumFps,
+        $fpsSummary.maximumFps, $fpsSummary.medianFps,
+        $fpsSummary.low1PercentFps, $fpsSummary.low0_1PercentFps,
+        $fpsSummary.high1PercentFps, $fpsSummary.standardDeviationFps,
+        $fpsSummary.drops, $fpsSummary.spikes)
+}
 Write-Host "Timedemo result: $resultPath"

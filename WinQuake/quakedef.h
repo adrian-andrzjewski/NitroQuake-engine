@@ -114,6 +114,7 @@ extern unsigned long bench486_texture_span_pixels;
 extern unsigned long bench486_texture_span_segments;
 extern unsigned long bench486_texture_span_buckets[5];
 extern unsigned long bench486_texture_widths[17];
+extern unsigned long bench486_texture_final_lengths[17];
 extern unsigned long bench486_texture_full_tzero;
 extern unsigned long bench486_texture_full_tdelta_zero;
 extern unsigned long bench486_texture_full_tfrac_zero;
@@ -168,6 +169,18 @@ void Bench486ProfileWork (int node, unsigned long items,
 #define BENCH486_PROFILE_ENTER(node) ((void)0)
 #define BENCH486_PROFILE_LEAVE() ((void)0)
 #define BENCH486_PROFILE_WORK(node, items, bytes) ((void)0)
+#endif
+
+#ifdef BENCH486
+#define BENCH486_TIMEDEMO_MAX_FRAMES 8192
+
+void Bench486ResetTimedemoStats (void);
+void Bench486BeginTimedemoStats (void);
+void Bench486TimedemoFrameStart (void);
+void Bench486TimedemoFrameEnd (void);
+void Bench486FinishTimedemoStats (int timedemo_frames);
+void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
+		double timedemo_seconds);
 #endif
 
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!

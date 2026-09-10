@@ -53,6 +53,7 @@ unsigned long bench486_texture_span_pixels;
 unsigned long bench486_texture_span_segments;
 unsigned long bench486_texture_span_buckets[5];
 unsigned long bench486_texture_widths[17];
+unsigned long bench486_texture_final_lengths[17];
 unsigned long bench486_texture_full_tzero;
 unsigned long bench486_texture_full_tdelta_zero;
 unsigned long bench486_texture_full_tfrac_zero;
@@ -203,6 +204,347 @@ static void Bench486Printf (char *format, ...)
 	Con_Printf ("%s", text);
 	if (bench486_report_handle != -1)
 		Sys_FileWrite (bench486_report_handle, text, Q_strlen(text));
+}
+
+static void Bench486TimedemoReportText (int report_handle, char *text)
+{
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
+}
+
+/* Frame-rate events are intentionally broad enough to expose sustained
+ * stalls without treating normal PIT quantization as a failure. */
+#define BENCH486_TIMEDEMO_FPS_DROP_PERCENT 25
+
+typedef struct
+{
+	unsigned long measured_frames;
+	unsigned long stored_frames;
+	unsigned long overflow_frames;
+	unsigned long invalid_frames;
+	unsigned long timer_reads;
+	double average_fps;
+	double minimum_fps;
+	double maximum_fps;
+	double median_fps;
+	double low_1_percent_fps;
+	double low_0_1_percent_fps;
+	double high_1_percent_fps;
+	double p0_1_fps;
+	double p1_fps;
+	double p5_fps;
+	double p95_fps;
+	double p99_fps;
+	double p99_9_fps;
+	double mean_frame_fps;
+	double variance_fps;
+	double standard_deviation_fps;
+	double drop_threshold_fps;
+	double spike_threshold_fps;
+	unsigned long drop_frames;
+	unsigned long spike_frames;
+	unsigned long longest_drop_run;
+	unsigned long longest_spike_run;
+} bench486_timedemo_fps_stats_t;
+
+/* The built-in demos fit comfortably in this fixed buffer; longer runs are
+ * counted as overflow instead of allocating from the DOS heap. */
+static float bench486_timedemo_frame_seconds[
+		BENCH486_TIMEDEMO_MAX_FRAMES];
+static unsigned long bench486_timedemo_measured_frames;
+static unsigned long bench486_timedemo_stored_frames;
+static unsigned long bench486_timedemo_overflow_frames;
+static unsigned long bench486_timedemo_invalid_frames;
+static unsigned long bench486_timedemo_timer_reads;
+static qboolean bench486_timedemo_stats_enabled;
+static qboolean bench486_timedemo_stats_active;
+static qboolean bench486_timedemo_frame_started;
+static double bench486_timedemo_frame_start;
+
+static void Bench486TimedemoRecordFrame (double seconds)
+{
+	bench486_timedemo_measured_frames++;
+	if (seconds <= 0)
+	{
+		bench486_timedemo_invalid_frames++;
+		return;
+	}
+	if (bench486_timedemo_stored_frames >= BENCH486_TIMEDEMO_MAX_FRAMES)
+	{
+		bench486_timedemo_overflow_frames++;
+		return;
+	}
+	bench486_timedemo_frame_seconds[bench486_timedemo_stored_frames++] =
+			(float)seconds;
+}
+
+void Bench486ResetTimedemoStats (void)
+{
+	bench486_timedemo_measured_frames = 0;
+	bench486_timedemo_stored_frames = 0;
+	bench486_timedemo_overflow_frames = 0;
+	bench486_timedemo_invalid_frames = 0;
+	bench486_timedemo_timer_reads = 0;
+	bench486_timedemo_stats_enabled = true;
+	bench486_timedemo_stats_active = false;
+	bench486_timedemo_frame_started = false;
+	bench486_timedemo_frame_start = 0;
+}
+
+void Bench486BeginTimedemoStats (void)
+{
+	if (bench486_timedemo_stats_enabled)
+		bench486_timedemo_stats_active = true;
+}
+
+void Bench486TimedemoFrameStart (void)
+{
+	if (!bench486_timedemo_stats_enabled)
+		return;
+	bench486_timedemo_frame_start = Sys_FloatTime ();
+	bench486_timedemo_timer_reads++;
+	bench486_timedemo_frame_started = true;
+}
+
+void Bench486TimedemoFrameEnd (void)
+{
+	double now;
+
+	if (!bench486_timedemo_frame_started)
+		return;
+	bench486_timedemo_frame_started = false;
+	if (!bench486_timedemo_stats_active)
+		return;
+	now = Sys_FloatTime ();
+	bench486_timedemo_timer_reads++;
+	Bench486TimedemoRecordFrame (now - bench486_timedemo_frame_start);
+}
+
+void Bench486FinishTimedemoStats (int timedemo_frames)
+{
+	if (bench486_timedemo_stats_active &&
+			bench486_timedemo_frame_started &&
+			bench486_timedemo_measured_frames < (unsigned long)timedemo_frames)
+		Bench486TimedemoFrameEnd ();
+	else
+		bench486_timedemo_frame_started = false;
+	bench486_timedemo_stats_active = false;
+	bench486_timedemo_stats_enabled = false;
+}
+
+static double Bench486TimedemoRangeAverage (unsigned start,
+		unsigned count)
+{
+	unsigned i;
+	double total;
+
+	if (!count)
+		return 0;
+	total = 0;
+	for (i=0 ; i<count ; i++)
+		total += bench486_timedemo_frame_seconds[start + i];
+	return total / count;
+}
+
+static double Bench486TimedemoPercentile (unsigned count, unsigned numerator,
+		unsigned denominator)
+{
+	unsigned rank;
+
+	if (!count)
+		return 0;
+	rank = (count * numerator + denominator - 1) / denominator;
+	if (rank)
+		rank--;
+	if (rank >= count)
+		rank = count - 1;
+	return bench486_timedemo_frame_seconds[rank];
+}
+
+static void Bench486TimedemoComputeStats (int timedemo_frames,
+		double timedemo_seconds, bench486_timedemo_fps_stats_t *stats)
+{
+	unsigned i, j, count, low_count, low_tenth_count;
+	float value;
+	double fps, total, total_squared;
+	unsigned long current_drop_run, current_spike_run;
+
+	Q_memset (stats, 0, sizeof(*stats));
+	stats->measured_frames = bench486_timedemo_measured_frames;
+	stats->stored_frames = bench486_timedemo_stored_frames;
+	stats->overflow_frames = bench486_timedemo_overflow_frames;
+	stats->invalid_frames = bench486_timedemo_invalid_frames;
+	stats->timer_reads = bench486_timedemo_timer_reads;
+	stats->average_fps = timedemo_seconds > 0 ?
+			timedemo_frames / timedemo_seconds : 0;
+	count = (unsigned)bench486_timedemo_stored_frames;
+	if (!count)
+		return;
+
+	stats->drop_threshold_fps = stats->average_fps *
+			(100 - BENCH486_TIMEDEMO_FPS_DROP_PERCENT) / 100.0;
+	stats->spike_threshold_fps = stats->average_fps *
+			(100 + BENCH486_TIMEDEMO_FPS_DROP_PERCENT) / 100.0;
+	total = 0;
+	total_squared = 0;
+	current_drop_run = 0;
+	current_spike_run = 0;
+	for (i=0 ; i<count ; i++)
+	{
+		fps = bench486_timedemo_frame_seconds[i] > 0 ?
+				1.0 / bench486_timedemo_frame_seconds[i] : 0;
+		total += fps;
+		total_squared += fps * fps;
+		if (fps < stats->drop_threshold_fps)
+		{
+			stats->drop_frames++;
+			current_drop_run++;
+			if (current_drop_run > stats->longest_drop_run)
+				stats->longest_drop_run = current_drop_run;
+		}
+		else
+			current_drop_run = 0;
+		if (fps > stats->spike_threshold_fps)
+		{
+			stats->spike_frames++;
+			current_spike_run++;
+			if (current_spike_run > stats->longest_spike_run)
+				stats->longest_spike_run = current_spike_run;
+		}
+		else
+			current_spike_run = 0;
+		bench486_timedemo_frame_seconds[i] = (float)fps;
+	}
+	stats->mean_frame_fps = total / count;
+	stats->variance_fps = total_squared / count -
+			stats->mean_frame_fps * stats->mean_frame_fps;
+	if (stats->variance_fps < 0)
+		stats->variance_fps = 0;
+	stats->standard_deviation_fps = sqrt (stats->variance_fps);
+
+	for (i=1 ; i<count ; i++)
+	{
+		value = bench486_timedemo_frame_seconds[i];
+		j = i;
+		while (j > 0 && bench486_timedemo_frame_seconds[j - 1] > value)
+		{
+			bench486_timedemo_frame_seconds[j] =
+					bench486_timedemo_frame_seconds[j - 1];
+			j--;
+		}
+		bench486_timedemo_frame_seconds[j] = value;
+	}
+
+	stats->minimum_fps = bench486_timedemo_frame_seconds[0];
+	stats->maximum_fps = bench486_timedemo_frame_seconds[count - 1];
+	if (count & 1)
+		stats->median_fps = bench486_timedemo_frame_seconds[count / 2];
+	else
+		stats->median_fps = (bench486_timedemo_frame_seconds[count / 2 - 1] +
+				bench486_timedemo_frame_seconds[count / 2]) / 2.0;
+	low_count = (count + 99) / 100;
+	low_tenth_count = (count + 999) / 1000;
+	if (!low_count)
+		low_count = 1;
+	if (!low_tenth_count)
+		low_tenth_count = 1;
+	stats->low_1_percent_fps = Bench486TimedemoRangeAverage (0, low_count);
+	stats->low_0_1_percent_fps = Bench486TimedemoRangeAverage (0,
+			low_tenth_count);
+	stats->high_1_percent_fps = Bench486TimedemoRangeAverage (count - low_count,
+			low_count);
+	stats->p0_1_fps = Bench486TimedemoPercentile (count, 1, 1000);
+	stats->p1_fps = Bench486TimedemoPercentile (count, 1, 100);
+	stats->p5_fps = Bench486TimedemoPercentile (count, 5, 100);
+	stats->p95_fps = Bench486TimedemoPercentile (count, 95, 100);
+	stats->p99_fps = Bench486TimedemoPercentile (count, 99, 100);
+	stats->p99_9_fps = Bench486TimedemoPercentile (count, 999, 1000);
+}
+
+static void Bench486TimedemoStatsJsonPrintf (int file_handle,
+		char *format, ...)
+{
+	char text[512];
+	va_list argptr;
+
+	va_start (argptr, format);
+	vsprintf (text, format, argptr);
+	va_end (argptr);
+	Sys_FileWrite (file_handle, text, Q_strlen(text));
+}
+
+static void Bench486WriteTimedemoStatsJson (int timedemo_frames,
+		double timedemo_seconds, bench486_timedemo_fps_stats_t *stats)
+{
+	int file_handle;
+
+	file_handle = Sys_FileOpenWrite ("timedemo.jsn");
+	if (file_handle == -1)
+		return;
+	Bench486TimedemoStatsJsonPrintf (file_handle,
+			"{\n  \"schema\": 1,\n"
+			"  \"benchmark\": {\"frames\": %d, \"duration_seconds\": %.6f, \"average_fps\": %.6f},\n",
+			timedemo_frames, timedemo_seconds, stats->average_fps);
+	Bench486TimedemoStatsJsonPrintf (file_handle,
+			"  \"fps\": {\"measured_frames\": %lu, \"stored_frames\": %lu, \"overflow_frames\": %lu, \"invalid_frames\": %lu, \"timer_reads\": %lu, \"minimum_fps\": %.6f, \"maximum_fps\": %.6f, \"median_fps\": %.6f, \"low_1_percent_fps\": %.6f, \"low_0_1_percent_fps\": %.6f, \"high_1_percent_fps\": %.6f, \"mean_frame_fps\": %.6f, \"standard_deviation_fps\": %.6f, \"variance_fps\": %.6f},\n",
+			stats->measured_frames, stats->stored_frames,
+			stats->overflow_frames, stats->invalid_frames,
+			stats->timer_reads,
+			stats->minimum_fps, stats->maximum_fps, stats->median_fps,
+			stats->low_1_percent_fps, stats->low_0_1_percent_fps,
+			stats->high_1_percent_fps, stats->mean_frame_fps,
+			stats->standard_deviation_fps, stats->variance_fps);
+	Bench486TimedemoStatsJsonPrintf (file_handle,
+			"  \"percentiles\": {\"p0_1\": %.6f, \"p1\": %.6f, \"p5\": %.6f, \"p50\": %.6f, \"p95\": %.6f, \"p99\": %.6f, \"p99_9\": %.6f},\n",
+			stats->p0_1_fps, stats->p1_fps, stats->p5_fps,
+			stats->median_fps, stats->p95_fps, stats->p99_fps,
+			stats->p99_9_fps);
+	Bench486TimedemoStatsJsonPrintf (file_handle,
+			"  \"events\": {\"drop_threshold_fps\": %.6f, \"drops\": %lu, \"longest_drop_run\": %lu, \"spike_threshold_fps\": %.6f, \"spikes\": %lu, \"longest_spike_run\": %lu}\n}\n",
+			stats->drop_threshold_fps, stats->drop_frames,
+			stats->longest_drop_run, stats->spike_threshold_fps,
+			stats->spike_frames, stats->longest_spike_run);
+	Sys_FileClose (file_handle);
+}
+
+void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
+		double timedemo_seconds)
+{
+	char text[1024];
+	bench486_timedemo_fps_stats_t stats;
+
+	Bench486TimedemoComputeStats (timedemo_frames, timedemo_seconds, &stats);
+	sprintf (text,
+			"fps-summary frames %d measured %lu stored %lu overflow %lu "
+			"timer-reads %lu "
+			"duration %.6f average %.6f min %.6f max %.6f median %.6f "
+			"low1 %.6f low0.1 %.6f high1 %.6f mean-frame %.6f "
+			"stddev %.6f variance %.6f\n",
+			timedemo_frames, stats.measured_frames, stats.stored_frames,
+			stats.overflow_frames, stats.timer_reads, timedemo_seconds,
+			stats.average_fps,
+			stats.minimum_fps, stats.maximum_fps, stats.median_fps,
+			stats.low_1_percent_fps, stats.low_0_1_percent_fps,
+			stats.high_1_percent_fps, stats.mean_frame_fps,
+			stats.standard_deviation_fps, stats.variance_fps);
+	Bench486TimedemoReportText (report_handle, text);
+	sprintf (text,
+			"fps-percentiles p0.1 %.6f p1 %.6f p5 %.6f p50 %.6f "
+			"p95 %.6f p99 %.6f p99.9 %.6f\n",
+			stats.p0_1_fps, stats.p1_fps, stats.p5_fps, stats.median_fps,
+			stats.p95_fps, stats.p99_fps, stats.p99_9_fps);
+	Bench486TimedemoReportText (report_handle, text);
+	sprintf (text,
+			"fps-events drop-threshold %.6f drops %lu longest-drop %lu "
+			"spike-threshold %.6f spikes %lu longest-spike %lu invalid %lu\n",
+			stats.drop_threshold_fps, stats.drop_frames,
+			stats.longest_drop_run, stats.spike_threshold_fps,
+			stats.spike_frames, stats.longest_spike_run,
+			stats.invalid_frames);
+	Bench486TimedemoReportText (report_handle, text);
+	Bench486WriteTimedemoStatsJson (timedemo_frames, timedemo_seconds,
+			&stats);
 }
 
 #ifdef PROFILE486
@@ -563,7 +905,11 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
 			"    \"surfaces\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
 			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu,\n"
-			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu\n"
+			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu,\n"
+			"    \"texture_span_buckets\": [%lu, %lu, %lu, %lu, %lu],\n"
+			"    \"texture_widths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
+			"    \"texture_final_lengths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
+			"    \"texture_full\": {\"tzero\": %lu, \"tdelta_zero\": %lu, \"tfrac_zero\": %lu, \"sfrac_zero\": %lu, \"sone\": %lu, \"exact\": %lu, \"final_exact\": %lu}\n"
 			"  }\n}\n",
 			bench486_profile_frames, bench486_bsp_nodes,
 			bench486_bsp_solid_culls, bench486_bsp_visibility_culls,
@@ -580,7 +926,32 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_texture_span_segments, bench486_alias_models,
 			bench486_alias_vertices, bench486_particle_count,
 			bench486_present_rects, bench486_present_pixels,
-			bench486_sound_update_calls, bench486_sound_mix_calls);
+			bench486_sound_update_calls, bench486_sound_mix_calls,
+			bench486_texture_span_buckets[0], bench486_texture_span_buckets[1],
+			bench486_texture_span_buckets[2], bench486_texture_span_buckets[3],
+			bench486_texture_span_buckets[4],
+			bench486_texture_widths[0], bench486_texture_widths[1],
+			bench486_texture_widths[2], bench486_texture_widths[3],
+			bench486_texture_widths[4], bench486_texture_widths[5],
+			bench486_texture_widths[6], bench486_texture_widths[7],
+			bench486_texture_widths[8], bench486_texture_widths[9],
+			bench486_texture_widths[10], bench486_texture_widths[11],
+			bench486_texture_widths[12], bench486_texture_widths[13],
+			bench486_texture_widths[14], bench486_texture_widths[15],
+			bench486_texture_widths[16],
+			bench486_texture_final_lengths[0], bench486_texture_final_lengths[1],
+			bench486_texture_final_lengths[2], bench486_texture_final_lengths[3],
+			bench486_texture_final_lengths[4], bench486_texture_final_lengths[5],
+			bench486_texture_final_lengths[6], bench486_texture_final_lengths[7],
+			bench486_texture_final_lengths[8], bench486_texture_final_lengths[9],
+			bench486_texture_final_lengths[10], bench486_texture_final_lengths[11],
+			bench486_texture_final_lengths[12], bench486_texture_final_lengths[13],
+			bench486_texture_final_lengths[14], bench486_texture_final_lengths[15],
+			bench486_texture_final_lengths[16],
+			bench486_texture_full_tzero, bench486_texture_full_tdelta_zero,
+			bench486_texture_full_tfrac_zero, bench486_texture_full_sfrac_zero,
+			bench486_texture_full_sone, bench486_texture_full_exact,
+			bench486_texture_final_exact);
 	Sys_FileClose (file_handle);
 }
 
@@ -612,7 +983,10 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_span_buckets[3] = 0;
 	bench486_texture_span_buckets[4] = 0;
 	for (i=0 ; i<17 ; i++)
+	{
 		bench486_texture_widths[i] = 0;
+		bench486_texture_final_lengths[i] = 0;
+	}
 	bench486_texture_full_tzero = 0;
 	bench486_texture_full_tdelta_zero = 0;
 	bench486_texture_full_tfrac_zero = 0;
@@ -679,6 +1053,7 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			"texture-spans %lu texture-pixels %lu texture-segments %lu "
 			"span-buckets %lu,%lu,%lu,%lu,%lu "
 			"texture-widths %lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu "
+			"texture-final-lengths %lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu "
 			"full-tzero %lu full-tdelta-zero %lu full-tfrac-zero %lu "
 			"full-sfrac-zero %lu full-sone %lu full-exact %lu "
 			"final-exact %lu gradients %lu solid-spans %lu line-setups %lu "
@@ -716,6 +1091,23 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_texture_widths[14],
 			bench486_texture_widths[15],
 			bench486_texture_widths[16],
+			bench486_texture_final_lengths[0],
+			bench486_texture_final_lengths[1],
+			bench486_texture_final_lengths[2],
+			bench486_texture_final_lengths[3],
+			bench486_texture_final_lengths[4],
+			bench486_texture_final_lengths[5],
+			bench486_texture_final_lengths[6],
+			bench486_texture_final_lengths[7],
+			bench486_texture_final_lengths[8],
+			bench486_texture_final_lengths[9],
+			bench486_texture_final_lengths[10],
+			bench486_texture_final_lengths[11],
+			bench486_texture_final_lengths[12],
+			bench486_texture_final_lengths[13],
+			bench486_texture_final_lengths[14],
+			bench486_texture_final_lengths[15],
+			bench486_texture_final_lengths[16],
 			bench486_texture_full_tzero, bench486_texture_full_tdelta_zero,
 			bench486_texture_full_tfrac_zero,
 			bench486_texture_full_sfrac_zero,
@@ -775,6 +1167,19 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 	(void)timedemo_frames;
 	(void)timedemo_seconds;
 #endif
+}
+
+void Bench486WriteTimedemoFrameChecksum (int report_handle)
+{
+	char	text[64];
+	unsigned checksum;
+
+	checksum = vid.buffer ? Bench486Checksum ((byte *)vid.buffer,
+			(int)(vid.rowbytes * vid.height)) : 0;
+	sprintf (text, "framebuffer-checksum %u\n", checksum);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
 }
 
 static void Bench486MemoryCase (char *name, int count, int iterations,

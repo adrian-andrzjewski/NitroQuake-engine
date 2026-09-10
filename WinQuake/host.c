@@ -650,6 +650,10 @@ void _Host_Frame (float time)
 	if (!Host_FilterTime (time))
 		return;			// don't run too fast, or packets will flood out
 
+#ifdef BENCH486
+	Bench486TimedemoFrameStart ();
+#endif
+
 #ifdef PROFILE486
 	bench486_frame_start = Sys_FloatTime ();
 #endif
@@ -754,6 +758,10 @@ void _Host_Frame (float time)
 		bench486_frame_seconds += Sys_FloatTime () - bench486_frame_start;
 		bench486_profile_frames++;
 	}
+#endif
+
+#ifdef BENCH486
+	Bench486TimedemoFrameEnd ();
 #endif
 	
 	host_framecount++;

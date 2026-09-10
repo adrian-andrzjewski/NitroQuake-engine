@@ -26,12 +26,18 @@ void CL_FinishTimeDemo (void);
 #ifdef PROFILE486
 void Bench486ResetTimedemoCounters (void);
 #endif
+void Bench486ResetTimedemoStats (void);
+void Bench486BeginTimedemoStats (void);
 void Bench486BeginTimedemoProfile (void);
 #ifdef PROFILE486
 void Bench486ProfileDiscardOpenScopes (void);
 #endif
+void Bench486FinishTimedemoStats (int timedemo_frames);
+void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
+		double timedemo_seconds);
 void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 		float timedemo_seconds);
+void Bench486WriteTimedemoFrameChecksum (int report_handle);
 #endif
 
 /*
@@ -119,6 +125,9 @@ int CL_GetMessage (void)
 				if (host_framecount == cls.td_startframe + 1)
 				{
 					cls.td_starttime = realtime;
+	#ifdef BENCH486
+					Bench486BeginTimedemoStats ();
+	#endif
 #ifdef PROFILE486
 					Bench486BeginTimedemoProfile ();
 #endif
@@ -355,6 +364,11 @@ void CL_FinishTimeDemo (void)
 	time = realtime - cls.td_starttime;
 	if (!time)
 		time = 1;
+
+#ifdef BENCH486
+	Bench486FinishTimedemoStats (frames);
+#endif
+
 	Con_Printf ("%i frames %5.1f seconds %5.1f fps\n",
 			frames, time, frames/time);
 
@@ -367,10 +381,13 @@ void CL_FinishTimeDemo (void)
 		if (report_handle != -1)
 		{
 			Sys_FileWrite (report_handle, text, Q_strlen(text));
+			if (COM_CheckParm ("-fpsstats"))
+				Bench486WriteTimedemoStats (report_handle, frames, time);
 	#ifdef PROFILE486
 			Bench486ProfileDiscardOpenScopes ();
 	#endif
 			Bench486WriteTimedemoCounters (report_handle, frames, time);
+			Bench486WriteTimedemoFrameChecksum (report_handle);
 			Sys_FileClose (report_handle);
 		}
 		Sys_Quit ();
@@ -399,6 +416,10 @@ void CL_TimeDemo_f (void)
 	CL_PlayDemo_f ();
 
 #ifdef BENCH486
+	if (COM_CheckParm ("-timedemoexit") && vid.buffer)
+		Q_memset ((byte *)vid.buffer, 0, vid.rowbytes * vid.height);
+	if (COM_CheckParm ("-fpsstats"))
+		Bench486ResetTimedemoStats ();
 #ifdef PROFILE486
 	Bench486ResetTimedemoCounters ();
 #endif

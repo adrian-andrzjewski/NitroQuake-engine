@@ -86,14 +86,13 @@ result is printed in the Quake console as frames, seconds, and FPS.
 
 ### Current baseline
 
-The reported **13 FPS** is reproducible on the pinned profile.  A three-run
-`demo1` measurement on 2026-09-09 produced 969 frames per run and a median of
-**13.917 FPS** (`13.917069 FPS`, `69.626730` seconds for the median run).
-The runs used
-`qbench.exe`, the default `baseline` optimization profile, DOSBox-X 2026.08.31,
-`cputype=486`, and fixed 33445 cycles.  The result is recorded under
-`out\dos-timedemo-*\timedemo-result.json` and is emulator evidence, not a native
-Windows performance measurement.
+The reported **14 FPS** (rounded) is reproducible on the pinned profile.  A
+three-run raw `demo1` measurement on 2026-09-09 produced 969 frames per run
+and a median of **13.995834 FPS** (`69.234885` seconds for the median run).
+The runs used `qbench.exe`, the default `baseline` optimization profile,
+DOSBox-X 2026.08.31, `cputype=486`, and fixed 33445 cycles.  The result is
+recorded under `out\dos-timedemo-*\timedemo-result.json` and is emulator
+evidence, not a native Windows performance measurement.
 
 Use the repository runner for repeatable measurements instead of manually
 copying executables:
@@ -105,14 +104,53 @@ copying executables:
 It stages a fresh DOS directory for every run, writes six-decimal timing data,
 and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
 fixed cycle count, video mode, optimization profile, and command-line options
-unchanged when comparing results.  The current default renderer pass completed
-all 969 frames at a 13.995835 FPS median (69.234883 seconds), about 0.57%
-above the baseline.  It is a narrow measured improvement and does not support
-a claim of a 5% end-to-end gain.
+unchanged when comparing results.  By default it adds `-fpsstats`, preserving
+the original average-FPS line while also measuring every timedemo frame.
+Use `-NoFpsStats` for a raw comparison when measuring the cost of collecting
+the extra statistics.  The raw result is the authority for small engine-speed
+comparisons; the rich result is the authority for frame-time consistency.
 
 For an odd number of runs, the runner selects the middle sorted sample.  Older
 generated JSON records may contain the highest sample in `medianFps`; use the
 individual `results` entries when auditing those records.
+
+### Per-frame FPS statistics
+
+When `-fpsstats` is enabled, the timedemo records one wall-clock sample at the
+start and end of each measured frame.  The fixed 8192-sample buffer is suitable
+for the built-in demos and reports an overflow count instead of allocating from
+the DOS heap.  Sorting and statistical calculations happen after the timed
+interval, so they do not enter the FPS measurement.
+
+The first line remains the original average FPS result.  Additional lines in
+`timedemo.txt` include minimum and maximum single-frame FPS, median FPS, the
+arithmetic mean of the slowest 1% and 0.1% of frames, the arithmetic mean of
+the fastest 1%, selected percentiles, FPS standard deviation and variance, and
+the number of significant drops and spikes.  A drop is a frame below 75% of
+the run's average FPS; a spike is above 125%.  The longest consecutive run of
+each event is also reported.  `mean-frame` may be higher than the benchmark
+average because the benchmark average is frames divided by total duration,
+whereas `mean-frame` is the arithmetic mean of each frame's reciprocal time.
+
+Example:
+
+~~~text
+969 frames 69.248328 seconds 13.993117 fps
+fps-summary frames 969 measured 969 stored 969 overflow 0 timer-reads 1939 duration 69.248328 average 13.993118 min 6.222621 max 28.422380 median 15.235517 low1 6.717671 low0.1 6.222621 high1 27.658456 mean-frame 15.507868 stddev 4.755007 variance 22.610091
+fps-percentiles p0.1 6.222621 p1 7.068009 p5 8.212089 p50 15.235517 p95 23.622576 p99 26.565144 p99.9 28.422380
+fps-events drop-threshold 10.494838 drops 159 longest-drop 16 spike-threshold 17.491397 spikes 296 longest-spike 43 invalid 0
+~~~
+
+The same summary is written as DOS-safe `timedemo.jsn`.  The PowerShell
+runner embeds it under each run's `fpsStats` property and adds a
+multi-run `fpsSummary` containing median values for comparison.  The JSON
+also records the number of stored/overflowed samples and the frame-statistics
+timer-read count.
+
+A matched one-run overhead check on the pinned profile measured 69.248276
+seconds with frame statistics and 69.235233 seconds with `-NoFpsStats`, or
+approximately **0.019%** collection overhead.  Both runs completed all 969
+frames and produced framebuffer checksum `4154140932`.
 
 The default pass keeps the z-buffer base in a register across each z-span list
 and reuses a dead register for the second packed depth pair.  The turbulent
@@ -228,10 +266,13 @@ profile build writes two artifacts beside the executable in its DOS staging
 directory:
 
 - `timedemo.txt` contains the legacy flat counters plus a readable tree and a
-  ranked self-time list.
+  ranked self-time list.  With `-fpsstats`, it also contains the concise
+  per-frame FPS summary.
+- `timedemo.jsn` is an 8.3-safe JSON document containing the FPS summary,
+  percentiles, variation, event counts, and sample-storage diagnostics.
 - `profile.jsn` is an 8.3-safe JSON document containing node statistics,
   observed parent-to-child edges, benchmark metadata, and workload metrics.
-  The runner also embeds that document under each run in
+  The runner embeds both JSON documents under each run in
   `timedemo-result.json`.
 
 Render the machine-readable profile as a tree and ranked views with:
@@ -243,8 +284,9 @@ Render the machine-readable profile as a tree and ranked views with:
 ~~~
 
 `-BaselineResult` is optional; when supplied, the report estimates profiling
-overhead from the matched release timedemo.  `-BaselineSeconds <seconds>` can
-be used instead when the release result is stored elsewhere.
+overhead from the matched release timedemo.  It also reads a sibling
+`timedemo.jsn` and prints the per-frame FPS summary.  `-BaselineSeconds
+<seconds>` can be used instead when the release result is stored elsewhere.
 
 The profile is a fixed-stack instrumentation layer designed for repeated
 486-class runs.  Its observed execution graph is:
@@ -292,28 +334,32 @@ That keeps the hot recursive paths lightweight while still explaining their
 cost.
 
 A matched 2026-09-10 diagnostic comparison measured the instrumented profile
-at `76.949440` seconds and the release timedemo at `69.234885` seconds, an
-estimated **11.14% profiling overhead**.  The profile run also used 520,782
-timer reads, reached stack depth 8, and reported zero stack errors; two open
-scopes were intentionally discarded when timedemo exit occurred inside the
-final demo message.  This overhead is acceptable for diagnosis but the
-instrumented FPS must not be used as an optimization result.
+at `77.090513` seconds and the raw release timedemo at `69.235233` seconds, an
+estimated **11.35% profiling overhead**.  The profile run also used 520,782
+profile timer reads plus 1,939 frame-statistics timer reads, reached stack
+depth 8, and reported zero stack errors; two open scopes were intentionally
+discarded when timedemo exit occurred inside the final demo message.  This
+overhead is acceptable for diagnosis but the instrumented FPS must not be used
+as an optimization result.
 
 The current self-time ranking from that profile is:
 
 | Rank | Node | Self seconds | % of profiled frame | Work |
 | ---: | --- | ---: | ---: | --- |
-| 1 | Texture spans | 19.782278 | 25.72% | 1,454,414 spans / 43,956,201 pixels |
-| 2 | Surface cache | 11.194161 | 14.55% | 55,300 normal surfaces |
-| 3 | Alias model | 9.965951 | 12.96% | 5,470 models / 417,090 vertices |
-| 4 | Z spans | 8.346739 | 10.85% | 58,051 surface calls |
-| 5 | World BSP | 8.312927 | 10.81% | 375,709 BSP node visits |
-| 6 | Edge scan self | 6.781020 | 8.82% | 147,288 scanlines |
+| 1 | Texture spans | 19.782511 | 25.67% | 1,454,417 spans / 43,956,203 pixels |
+| 2 | Surface cache | 11.193304 | 14.53% | 55,300 normal surfaces |
+| 3 | Alias model | 9.966088 | 12.93% | 5,470 models / 417,090 vertices |
+| 4 | Z spans | 8.346825 | 10.83% | 58,051 surface calls |
+| 5 | World BSP | 8.312882 | 10.79% | 375,709 BSP node visits |
+| 6 | Edge scan self | 6.781056 | 8.80% | 147,288 scanlines |
 
 These are measured diagnostic hotspots, not optimization instructions.  The
 next investigation should compare the texture-span, surface-cache, and alias
 model leaves separately, using the same timedemo and visual checks after each
-change.  No texture or renderer behavior was changed by this profiling pass.
+change.  A texture row-lookup experiment was reverted after its faster run
+failed the exact framebuffer check (`2955717646` versus the known-good
+`4154140932`); the current source keeps the original texture path and no
+texture or renderer behavior is changed by the profiling pass.
 
 ## Reprovisioning
 

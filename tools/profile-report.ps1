@@ -19,6 +19,12 @@ if ([int]$profile.schema -ne 1) {
     throw "Unsupported profile schema '$($profile.schema)'."
 }
 
+$fpsStats = $null
+$fpsStatsPath = Join-Path (Split-Path -Parent $ProfileJson) 'timedemo.jsn'
+if (Test-Path -LiteralPath $fpsStatsPath -PathType Leaf) {
+    $fpsStats = Get-Content -LiteralPath $fpsStatsPath -Raw | ConvertFrom-Json
+}
+
 $nodes = @{}
 foreach ($node in @($profile.nodes)) {
     $nodes[[string]$node.id] = $node
@@ -91,6 +97,18 @@ Write-Host (("Profile timer reads: {0}; maximum stack depth: {1}; stack errors: 
     $profile.profiler.timer_reads, $profile.profiler.max_depth,
     $profile.profiler.stack_overflows, $profile.profiler.bad_leaves,
     $profile.profiler.discarded_scopes)
+if ($null -ne $fpsStats) {
+    Write-Host (("Frame FPS: average {0:0.000000}, min {1:0.000000}, max {2:0.000000}, " +
+        "median {3:0.000000}, 1% low {4:0.000000}, 0.1% low {5:0.000000}, " +
+        "1% high {6:0.000000}, stddev {7:0.000000}, drops {8}, spikes {9}") -f
+        $fpsStats.benchmark.average_fps, $fpsStats.fps.minimum_fps,
+        $fpsStats.fps.maximum_fps, $fpsStats.fps.median_fps,
+        $fpsStats.fps.low_1_percent_fps,
+        $fpsStats.fps.low_0_1_percent_fps,
+        $fpsStats.fps.high_1_percent_fps,
+        $fpsStats.fps.standard_deviation_fps,
+        $fpsStats.events.drops, $fpsStats.events.spikes)
+}
 Write-Host ''
 Write-Host 'Parent -> children performance tree (inclusive edge time; self node time):'
 Write-ProfileTree -ParentId $null -Depth 0 -Path @()
@@ -139,6 +157,30 @@ foreach ($metric in @(
         'present_rects', 'present_pixels', 'sound_updates', 'sound_mixes')) {
     $value = $profile.metrics.$metric
     Write-Host ("  {0,-24} {1}" -f $metric, $value)
+}
+
+if ($profile.metrics.PSObject.Properties.Name -contains 'texture_final_lengths') {
+    Write-Host ''
+    Write-Host 'Texture final-segment lengths (pixels -> final segment count):'
+    $finalLengths = @($profile.metrics.texture_final_lengths)
+    for ($length = 1; $length -le 16; $length++) {
+        if ([uint64]$finalLengths[$length] -eq 0) {
+            continue
+        }
+        Write-Host ("  {0,2} -> {1}" -f $length, $finalLengths[$length])
+    }
+}
+
+if ($profile.metrics.PSObject.Properties.Name -contains 'texture_widths') {
+    Write-Host ''
+    Write-Host 'Texture cache widths (bucket 0 = non-16-aligned; n = n*16):'
+    $textureWidths = @($profile.metrics.texture_widths)
+    for ($bucket = 0; $bucket -le 16; $bucket++) {
+        if ([uint64]$textureWidths[$bucket] -eq 0) {
+            continue
+        }
+        Write-Host ("  {0,2} -> {1}" -f $bucket, $textureWidths[$bucket])
+    }
 }
 
 $baselineSecondsValue = [double]$BaselineSeconds
