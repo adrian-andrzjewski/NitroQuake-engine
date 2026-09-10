@@ -355,3 +355,97 @@ C(R_RecursiveWorldNodePlaneDot_asm486):
 	flds	C(modelorg)+8
 	fsubs	12(%edx)
 	ret
+
+	.align 4
+
+// int R_RecursiveWorldNodeClip_asm486(mnode_t *node, int clipflags)
+// Evaluate the four frustum planes for one visible BSP node.  The C helper
+// returns -1 for a fully rejected node and otherwise returns the reduced
+// clip mask; use the same contract here so the caller keeps its recursion and
+// surface logic unchanged.
+C(R_RecursiveWorldNodeClip_asm486):
+	.globl C(R_RecursiveWorldNodeClip_asm486)
+	pushl	%ebp
+	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
+	movl	20(%esp),%edx		// node
+	movl	24(%esp),%ecx		// clipflags
+	testl	%ecx,%ecx
+	jz	.Lbsp_clip_done
+	xorl	%ebx,%ebx			// plane index
+	leal	C(pfrustum_indexes),%esi	// array of four index pointers
+	leal	C(view_clipplanes),%edi	// first clipplane
+
+.Lbsp_clip_plane:
+	btl	%ebx,%ecx
+	jnc	.Lbsp_clip_next
+	movl	(%esi),%eax			// pindex
+
+	// DotProduct(rejectpt, plane->normal) - plane->dist.
+	movl	0(%eax),%ebp
+	filds	8(%edx,%ebp,2)
+	fmuls	0(%edi)
+	movl	4(%eax),%ebp
+	filds	8(%edx,%ebp,2)
+	fmuls	4(%edi)
+	faddp	%st(0),%st(1)
+	movl	8(%eax),%ebp
+	filds	8(%edx,%ebp,2)
+	fmuls	8(%edi)
+	faddp	%st(0),%st(1)
+	fsubs	12(%edi)
+	ftst
+	fnstsw	%ax
+	testb	$4,%ah			// unordered (NaN): C <= is false
+	jnz	.Lbsp_clip_reject_done
+	testb	$0x41,%ah			// C0 or C3: d <= 0
+	jnz	.Lbsp_clip_reject
+.Lbsp_clip_reject_done:
+	fstp	%st(0)
+	movl	(%esi),%eax			// fnstsw %ax clobbered EAX
+
+	// DotProduct(acceptpt, plane->normal) - plane->dist.
+	movl	12(%eax),%ebp
+	filds	8(%edx,%ebp,2)
+	fmuls	0(%edi)
+	movl	16(%eax),%ebp
+	filds	8(%edx,%ebp,2)
+	fmuls	4(%edi)
+	faddp	%st(0),%st(1)
+	movl	20(%eax),%ebp
+	filds	8(%edx,%ebp,2)
+	fmuls	8(%edi)
+	faddp	%st(0),%st(1)
+	fsubs	12(%edi)
+	ftst
+	fnstsw	%ax
+	testb	$4,%ah			// unordered (NaN): C >= is false
+	jnz	.Lbsp_clip_accept_done
+	testb	$1,%ah			// C0: d < 0
+	jnz	.Lbsp_clip_accept_done
+	btrl	%ebx,%ecx			// node is entirely on screen
+.Lbsp_clip_accept_done:
+	fstp	%st(0)
+	jmp	.Lbsp_clip_next
+
+.Lbsp_clip_reject:
+	fstp	%st(0)
+	movl	$-1,%eax
+	jmp	.Lbsp_clip_return
+
+.Lbsp_clip_next:
+	incl	%ebx
+	addl	$4,%esi
+	addl	$24,%edi
+	cmpl	$4,%ebx
+	jl	.Lbsp_clip_plane
+
+.Lbsp_clip_done:
+	movl	%ecx,%eax
+.Lbsp_clip_return:
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+	ret

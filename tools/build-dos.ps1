@@ -26,6 +26,8 @@ param(
     [string]$LightMapNormalizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$BspClipImplementation = 'c',
     [string]$ToolRoot
 )
 
@@ -103,6 +105,9 @@ if ($LightMapNormalizeImplementation -eq 'c') {
 if ($BspPlaneDotImplementation -eq 'asm') {
     $profileSuffixParts += 'bspdotasm'
 }
+if ($BspClipImplementation -eq 'asm') {
+    $profileSuffixParts += 'bspclipasm'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -152,13 +157,15 @@ $asmSources = @($allAsmSources | Where-Object {
 		$TextureAnimationImplementation -eq 'asm' -or
 		$LightMapNormalizeImplementation -eq 'asm' -or
 		$BspPlaneDotImplementation -eq 'asm' -or
+		$BspClipImplementation -eq 'asm' -or
 		$_.Name -ne 'asm486_experiments.s'
 })
 $allSources = @($cSources + $asmSources)
 $expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm' -or
 	$TextureAxisImplementation -eq 'asm' -or $SurfaceCacheImplementation -eq 'asm' -or
 	$MipLevelImplementation -eq 'asm' -or $TextureAnimationImplementation -eq 'asm' -or
-	$LightMapNormalizeImplementation -eq 'asm' -or $BspPlaneDotImplementation -eq 'asm') { 21 } else { 20 }
+	$LightMapNormalizeImplementation -eq 'asm' -or $BspPlaneDotImplementation -eq 'asm' -or
+	$BspClipImplementation -eq 'asm') { 21 } else { 20 }
 if (($allCSources.Count -ne 83) -or ($cSources.Count -ne 82) -or
 	($allAsmSources.Count -ne 21) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {
     throw "Expected 83 retained C sources (82 standalone), 21 total assembly sources, and $expectedAssemblySourceCount active assembly sources, found $($allCSources.Count) C ($($cSources.Count) standalone), $($allAsmSources.Count) total assembly, and $($asmSources.Count) active assembly."
@@ -214,6 +221,9 @@ try {
     }
     if ($BspPlaneDotImplementation -eq 'asm') {
         $cFlags += '-DASM486_BSP_PLANE_DOT'
+    }
+    if ($BspClipImplementation -eq 'asm') {
+        $cFlags += '-DASM486_BSP_CLIP'
     }
     if ($TurbulentImplementation -eq 'c') {
         $cFlags += '-DASM486_TURBULENT_C'
@@ -294,6 +304,7 @@ try {
         textureAnimationImplementation = $TextureAnimationImplementation
         lightMapNormalizeImplementation = $LightMapNormalizeImplementation
         bspPlaneDotImplementation = $BspPlaneDotImplementation
+        bspClipImplementation = $BspClipImplementation
         optimizationProfile = $OptimizationProfile
         optimizationLevel = $optimizationLevel
         textureAxisCacheEntries = $TextureAxisCacheEntries

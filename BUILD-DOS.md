@@ -159,6 +159,21 @@ the axis/generic plane-dot calculation.  This is an opt-in learning
 experiment because the ASM version introduces a call boundary into the
 recursive world walk.
 
+The BSP frustum-clipping block is independently selectable with
+`-BspClipImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -BspClipImplementation c
+.\tools\build-dos.ps1 -Benchmark -BspClipImplementation asm
+~~~
+
+`c` remains the default and keeps the original inline four-plane clip loop in
+`R_RecursiveWorldNode`; `asm` writes to `out\dos-bspclipasm` and replaces only
+that loop with a hand-written x87 helper.  The reference C helper is retained
+under `BENCH486` for direct correctness and timing comparisons.  This is an
+opt-in learning experiment because its focused results are mixed and its
+integrated timedemo result is slower.
+
 ## Runtime smoke test
 
 Place legally obtained Quake data in the ignored directory:
@@ -387,6 +402,7 @@ The focused benchmark can select each implementation independently:
   -TurbulentImplementation stosb `
   -LightMapNormalizeImplementation asm `
   -BspPlaneDotImplementation asm `
+  -BspClipImplementation asm `
   -DataRoot 'C:\path\to\Quake\id1'
 .\tools\bench-dos.ps1 -TextureAxisImplementation c `
   -SurfaceCacheImplementation c `
@@ -398,14 +414,14 @@ The focused benchmark can select each implementation independently:
 Individual C/ASM implementation switches can be omitted; the existing probes
 default to `c`; the turbulent selector defaults to the measured `stosb` path,
 and the alias projection, texture-animation, and lightmap-normalization
-selectors default to their measured `asm` paths; the BSP plane-dot selector
-defaults to its C path.  Pass
+selectors default to their measured `asm` paths; the BSP plane-dot and BSP
+clip selectors default to their C paths.  Pass
 `-TurbulentImplementation asm` for the existing ASM control.  The runner
-records all nine selections in `bench-result.json` and uses a matching output
+records all ten selections in `bench-result.json` and uses a matching output
 directory suffix.  Use `-TurbulentOnly`, `-AliasProjectOnly`,
-`-TextureAnimationOnly`, `-LightMapNormalizeOnly`, or `-BspPlaneDotOnly` to run
-only the corresponding focused experiment instead of the longer general
-matrix.
+`-TextureAnimationOnly`, `-LightMapNormalizeOnly`, `-BspPlaneDotOnly`, or
+`-BspClipOnly` to run only the corresponding focused experiment instead of the
+longer general matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -777,6 +793,47 @@ remains an opt-in 486 learning aid.
 
 The timedemo results are `out\dos-timedemo-20260910-183914\timedemo-result.json`
 and `out\dos-timedemo-20260910-184313\timedemo-result.json`.
+
+### BSP frustum-clipping result
+
+This experiment isolated the four-plane frustum clip block in
+`R_RecursiveWorldNode`.  The original C loop remains intact as the production
+default; the ASM build calls a helper that uses register-held pointers and
+x87 dot products while preserving the C helper's reject/reduced-mask contract.
+
+The focused benchmark used five alternating samples of 200,000 calls per
+case.  All five cases produced identical C/ASM results and both runs ended
+with `486 benchmark correctness PASS`:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| No active planes | 0.352864 s | 0.155505 s | 55.931% |
+| All visible | 1.381551 s | 1.393505 s | -0.865% |
+| Partial clip | 1.285852 s | 1.345659 s | -4.651% |
+| Early reject | 0.352870 s | 0.316984 s | 10.170% |
+| Single plane | 0.586115 s | 0.610036 s | -4.081% |
+
+The focused reports are `out\dos-bench-20260910-194325\bench-result.json`
+and `out\dos-bench-20260910-194526\bench-result.json`.
+
+Matched three-run `demo1` timedemos used DOSBox-X 2026.08.31, `cputype=486`,
+fixed 33445 cycles, the baseline `-O2 -march=i486` build, and the same staged
+`id1` data.  Every run completed 969 frames with framebuffer checksum
+`4154140932`:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C inline clip loop | 69.081318 / 69.081351 / 69.081286 | 14.026947 |
+| ASM helper | 69.271228 / 69.271287 / 69.271216 | 13.988492 |
+
+The ASM helper is 189.9 ms slower per timedemo, or 0.2749%.  The fast reject
+cases do not dominate the real workload, while the visible and partial paths
+pay for the helper's x87 work and call boundary.  C therefore remains the
+default and `-BspClipImplementation asm` remains an opt-in 486 learning aid.
+
+The timedemo results are
+`out\dos-timedemo-20260910-194827\timedemo-result.json` and
+`out\dos-timedemo-20260910-195220\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 

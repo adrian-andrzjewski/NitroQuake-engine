@@ -453,6 +453,9 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 	msurface_t	*surf, **mark;
 	mleaf_t		*pleaf;
 	double		d, dot;
+#ifdef ASM486_BSP_CLIP
+	int			asm_clipflags;
+#endif
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
@@ -480,6 +483,12 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 //  twice as fast in ASM
 	if (clipflags)
 	{
+#ifdef ASM486_BSP_CLIP
+		asm_clipflags = R_RecursiveWorldNodeClip_asm486 (node, clipflags);
+		clipflags = asm_clipflags;
+		if (clipflags < 0)
+			return;
+#else
 		for (i=0 ; i<4 ; i++)
 		{
 			if (! (clipflags & (1<<i)) )
@@ -511,6 +520,7 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 			if (d >= 0)
 				clipflags &= ~(1<<i);	// node is entirely on screen
 		}
+#endif
 	}
 	
 // if a leaf node, draw stuff
@@ -685,6 +695,52 @@ double R_RecursiveWorldNodePlaneDot_C (mplane_t *plane)
 	default:
 		return DotProduct (modelorg, plane->normal) - plane->dist;
 	}
+}
+
+/*
+===============
+R_RecursiveWorldNodeClip_C
+
+Reference version of the visible-node frustum clip block.  A negative return
+means that the node is fully outside the view; otherwise the returned value
+is the reduced clip mask.
+===============
+*/
+int R_RecursiveWorldNodeClip_C (mnode_t *node, int clipflags)
+{
+	int			i, *pindex;
+	vec3_t		acceptpt, rejectpt;
+	double		d;
+
+	for (i=0 ; i<4 ; i++)
+	{
+		if (! (clipflags & (1<<i)) )
+			continue;
+
+		pindex = pfrustum_indexes[i];
+
+		rejectpt[0] = (float)node->minmaxs[pindex[0]];
+		rejectpt[1] = (float)node->minmaxs[pindex[1]];
+		rejectpt[2] = (float)node->minmaxs[pindex[2]];
+
+		d = DotProduct (rejectpt, view_clipplanes[i].normal);
+		d -= view_clipplanes[i].dist;
+
+		if (d <= 0)
+			return -1;
+
+		acceptpt[0] = (float)node->minmaxs[pindex[3+0]];
+		acceptpt[1] = (float)node->minmaxs[pindex[3+1]];
+		acceptpt[2] = (float)node->minmaxs[pindex[3+2]];
+
+		d = DotProduct (acceptpt, view_clipplanes[i].normal);
+		d -= view_clipplanes[i].dist;
+
+		if (d >= 0)
+			clipflags &= ~(1<<i);
+	}
+
+	return clipflags;
 }
 
 #endif

@@ -1228,6 +1228,8 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS	25000
 #define BENCH486_BSP_PLANE_DOT_SAMPLES	5
 #define BENCH486_BSP_PLANE_DOT_ITERATIONS	500000
+#define BENCH486_BSP_CLIP_SAMPLES	5
+#define BENCH486_BSP_CLIP_ITERATIONS	200000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
@@ -1243,6 +1245,7 @@ typedef texture_t *(*bench486_texture_animation_fn_t) (texture_t *base,
 typedef void (*bench486_lightmap_normalize_fn_t) (unsigned *lights,
 		int size);
 typedef double (*bench486_bsp_plane_dot_fn_t) (mplane_t *plane);
+typedef int (*bench486_bsp_clip_fn_t) (mnode_t *node, int clipflags);
 
 static int bench486_turbulent_table[128];
 
@@ -2107,6 +2110,164 @@ static void Bench486BspPlaneDotCases (void)
 	Bench486BspPlaneDotCase ("generic", 3, 0.25, -0.5, 1.5, 2.25);
 }
 
+static double Bench486MeasureBspClip (bench486_bsp_clip_fn_t function,
+		mnode_t *node, int clipflags, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	unsigned result_sum;
+	int i, result;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (node, clipflags);
+
+	start = Sys_FloatTime ();
+	result_sum = 0;
+	for (i=0 ; i<iterations ; i++)
+	{
+		result = function (node, clipflags);
+		result_sum = result_sum * 33 + (unsigned)(result + 1);
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = result_sum;
+	bench486_sink ^= result_sum;
+	return elapsed;
+}
+
+static void Bench486BspClipCase (char *name, int clipflags, int mode)
+{
+	mnode_t node;
+	clipplane_t saved_clipplanes[4];
+	int *saved_indexes[4];
+	int indexes[4][6];
+	double c_samples[BENCH486_BSP_CLIP_SAMPLES];
+	double asm_samples[BENCH486_BSP_CLIP_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int i, j, failure, c_result, asm_result;
+
+	for (i=0 ; i<4 ; i++)
+	{
+		saved_clipplanes[i] = view_clipplanes[i];
+		saved_indexes[i] = pfrustum_indexes[i];
+		pfrustum_indexes[i] = indexes[i];
+	}
+
+	Q_memset (&node, 0, sizeof(node));
+	node.minmaxs[0] = -10;
+	node.minmaxs[1] = -20;
+	node.minmaxs[2] = -30;
+	node.minmaxs[3] = 10;
+	node.minmaxs[4] = 20;
+	node.minmaxs[5] = 30;
+
+	/* Match R_SetUpFrustumIndexes for the signs used below. */
+	for (i=0 ; i<4 ; i++)
+	{
+		for (j=0 ; j<3 ; j++)
+		{
+			if (i == 1 && j == 0)
+			{
+				indexes[i][j] = j;
+				indexes[i][j+3] = j+3;
+			}
+			else
+			{
+				indexes[i][j] = j+3;
+				indexes[i][j+3] = j;
+			}
+		}
+		Q_memset (&view_clipplanes[i], 0, sizeof(view_clipplanes[i]));
+		view_clipplanes[i].normal[0] = i == 1 ? -1.0 : 1.0;
+		view_clipplanes[i].normal[1] = 0.5;
+		view_clipplanes[i].normal[2] = i == 3 ? -0.25 : 0.75;
+		view_clipplanes[i].dist = mode == 0 ? -100.0 :
+				(mode == 2 && i == 0 ? 100.0 : 0.0);
+	}
+	c_result = R_RecursiveWorldNodeClip_C (&node, clipflags);
+	asm_result = R_RecursiveWorldNodeClip_asm486 (&node, clipflags);
+	failure = c_result != asm_result;
+	if (failure)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("bsp-clip %s correctness FAIL c %d asm %d\n",
+				name, c_result, asm_result);
+	}
+
+	if (!failure)
+	{
+		for (i=0 ; i<BENCH486_BSP_CLIP_SAMPLES ; i++)
+		{
+			if ((i & 1) == 0)
+			{
+				c_samples[i] = Bench486MeasureBspClip (
+						R_RecursiveWorldNodeClip_C, &node, clipflags,
+						BENCH486_BSP_CLIP_ITERATIONS, &c_checksum);
+				asm_samples[i] = Bench486MeasureBspClip (
+						R_RecursiveWorldNodeClip_asm486, &node, clipflags,
+						BENCH486_BSP_CLIP_ITERATIONS, &asm_checksum);
+			}
+			else
+			{
+				asm_samples[i] = Bench486MeasureBspClip (
+						R_RecursiveWorldNodeClip_asm486, &node, clipflags,
+						BENCH486_BSP_CLIP_ITERATIONS, &asm_checksum);
+				c_samples[i] = Bench486MeasureBspClip (
+						R_RecursiveWorldNodeClip_C, &node, clipflags,
+						BENCH486_BSP_CLIP_ITERATIONS, &c_checksum);
+			}
+
+			if (c_checksum != asm_checksum)
+			{
+				bench486_memory_failures++;
+				Bench486Printf ("bsp-clip %s checksum correctness FAIL\n",
+						name);
+				failure = 1;
+				break;
+			}
+		}
+	}
+
+	if (!failure)
+	{
+		Bench486SortSamples (c_samples, BENCH486_BSP_CLIP_SAMPLES);
+		Bench486SortSamples (asm_samples, BENCH486_BSP_CLIP_SAMPLES);
+		c_median = c_samples[BENCH486_BSP_CLIP_SAMPLES / 2];
+		asm_median = asm_samples[BENCH486_BSP_CLIP_SAMPLES / 2];
+		delta = c_median > 0.0 ?
+				(c_median - asm_median) / c_median * 100.0 : 0.0;
+		Bench486Printf ("bsp-clip %s flags %d mode %d iterations %d samples %d result %d\n",
+				name, clipflags, mode, BENCH486_BSP_CLIP_ITERATIONS,
+				BENCH486_BSP_CLIP_SAMPLES, c_result);
+		Bench486Printf ("  c median %.6f sec checksum %u samples",
+				c_median, c_checksum);
+		for (i=0 ; i<BENCH486_BSP_CLIP_SAMPLES ; i++)
+			Bench486Printf (" %.6f", c_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486 median %.6f sec checksum %u samples",
+				asm_median, asm_checksum);
+		for (i=0 ; i<BENCH486_BSP_CLIP_SAMPLES ; i++)
+			Bench486Printf (" %.6f", asm_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+	}
+
+	for (i=0 ; i<4 ; i++)
+	{
+		view_clipplanes[i] = saved_clipplanes[i];
+		pfrustum_indexes[i] = saved_indexes[i];
+	}
+}
+
+static void Bench486BspClipCases (void)
+{
+	Bench486BspClipCase ("none", 0, 0);
+	Bench486BspClipCase ("all-visible", 15, 0);
+	Bench486BspClipCase ("partial", 15, 1);
+	Bench486BspClipCase ("early-reject", 15, 2);
+	Bench486BspClipCase ("single-plane", 1, 1);
+}
+
 static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
 		void *entry, void *texinfo, void *entity, int frame, int iterations,
 		unsigned *hits)
@@ -2660,6 +2821,23 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchbspclip"))
+	{
+		Bench486Printf ("bsp-clip experiment compares the C frustum loop\n");
+		Bench486Printf ("with a four-plane 486 x87 clipping helper\n");
+		Bench486BspClipCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchturbulent"))
 	{
 		Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
@@ -2719,6 +2897,9 @@ static void Bench486_f (void)
 	Bench486Printf ("bsp-plane-dot experiment compares the C switch with\n");
 	Bench486Printf ("the 486 x87 axis/generic plane-dot helper\n");
 	Bench486BspPlaneDotCases ();
+	Bench486Printf ("bsp-clip experiment compares the C frustum loop with\n");
+	Bench486Printf ("the four-plane 486 x87 clipping helper\n");
+	Bench486BspClipCases ();
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();

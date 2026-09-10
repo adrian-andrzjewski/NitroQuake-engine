@@ -26,11 +26,14 @@ param(
     [string]$LightMapNormalizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$BspClipImplementation = 'c',
     [switch]$TurbulentOnly,
     [switch]$AliasProjectOnly,
     [switch]$TextureAnimationOnly,
     [switch]$LightMapNormalizeOnly,
     [switch]$BspPlaneDotOnly,
+    [switch]$BspClipOnly,
     [int]$TimeoutSeconds = 180
 )
 
@@ -92,6 +95,9 @@ if ($LightMapNormalizeImplementation -eq 'c') {
 if ($BspPlaneDotImplementation -eq 'asm') {
     $profileSuffixParts += 'bspdotasm'
 }
+if ($BspClipImplementation -eq 'asm') {
+    $profileSuffixParts += 'bspclipasm'
+}
 $profileSuffix = if ($profileSuffixParts.Count) {
     '-' + ($profileSuffixParts -join '-')
 }
@@ -131,6 +137,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
+        '-BspClipImplementation', $BspClipImplementation,
         '-ToolRoot', $ToolRoot)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
@@ -169,6 +176,9 @@ $benchCommand = if ($AliasProjectOnly) {
 }
 elseif ($LightMapNormalizeOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapnormalize -benchexit'
+}
+elseif ($BspClipOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchbspclip -benchexit'
 }
 elseif ($BspPlaneDotOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchbspplanedot -benchexit'
@@ -272,11 +282,13 @@ $result = [ordered]@{
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
+    bspClipImplementation = $BspClipImplementation
     turbulentOnly = [bool]$TurbulentOnly
     aliasProjectOnly = [bool]$AliasProjectOnly
     textureAnimationOnly = [bool]$TextureAnimationOnly
     lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly
     bspPlaneDotOnly = [bool]$BspPlaneDotOnly
+    bspClipOnly = [bool]$BspClipOnly
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     report = $report
