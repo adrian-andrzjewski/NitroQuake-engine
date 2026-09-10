@@ -30,13 +30,80 @@ out\dos\quake.exe
 ~~~
 
 The normal build uses all 83 C files and 20 preprocessed x86 assembly files in
-WinQuake.  The isolated `-Benchmark` build adds the benchmark-only
+WinQuake.  The isolated `-Benchmark` build adds the experiment
 `asm486_experiments.s` file as its 21st assembly source.  net_comx.c is
 textually included by net_ser.c, so the build compiles 82 standalone C files
 and obtains the remaining C implementation through that include.  Object files
 and a generated build-manifest.json remain under out\dos, which is ignored by
 Git.  The linker output is checked with the DJGPP objdump and must report
 coff-go32.
+
+The memory-helper experiment can route the real `Q_memset` and `Q_memcpy`
+entry points through the hand-written 486 routines without changing the C
+reference bodies.  Select it at build time:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -MemoryImplementation c
+.\tools\build-dos.ps1 -Benchmark -MemoryImplementation asm
+~~~
+
+`c` is the default and writes to `out\dos`; `asm` writes to
+`out\dos-memasm`.  The ASM build includes `asm486_experiments.s` and defines
+`ASM486_RUNTIME_MEMOPS`; all other compiler flags and source inputs remain the
+same.  The switch is deliberately opt-in while the end-to-end gain is being
+evaluated.
+
+The texture-axis cache-key probe is independently selectable with
+`-TextureAxisImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -TextureAxisImplementation c
+.\tools\build-dos.ps1 -Benchmark -TextureAxisImplementation asm
+~~~
+
+`c` is the default and shares `out\dos`; `asm` writes to `out\dos-axisasm`.
+This switch changes only the three-key cache hit/miss probe in `D_GetTextureAxes`;
+hashing, cache misses, and axis-vector transforms remain in C.
+
+The surface-cache validity predicate is independently selectable with
+`-SurfaceCacheImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -SurfaceCacheImplementation c
+.\tools\build-dos.ps1 -Benchmark -SurfaceCacheImplementation asm
+~~~
+
+`c` is the default and shares `out\dos`; `asm` writes to
+`out\dos-surfaceasm`.  This switch changes only the fast cache-validity
+predicate in `D_CacheSurface`; texture animation, light-style loads, allocation,
+and surface generation remain in C.
+
+The mip-level threshold selector is independently selectable with
+`-MipLevelImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -MipLevelImplementation c
+.\tools\build-dos.ps1 -Benchmark -MipLevelImplementation asm
+~~~
+
+`c` is the default and shares `out\dos`; `asm` writes to `out\dos-mipasm`.
+The ASM version uses 486 x87 comparisons for the three thresholds and preserves
+the C implementation as the reference.
+
+The turbulent-span store loop is independently selectable with
+`-TurbulentImplementation c|asm|stosb`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -TurbulentImplementation c
+.\tools\build-dos.ps1 -Benchmark -TurbulentImplementation asm
+.\tools\build-dos.ps1 -Benchmark -TurbulentImplementation stosb
+~~~
+
+`stosb` is the measured target default, `asm` is the existing 486 assembly
+control path, and `c` selects a callable C reference implementation.  The
+variants use separate ignored output directories (`out\dos-turbc`,
+`out\dos-turbasm`, and `out\dos`) and all keep the original portable C loop in
+the source.
 
 ## Runtime smoke test
 
@@ -252,8 +319,32 @@ the complete working region before timing, prints five alternating samples per
 case, and writes `bench486.txt` in the Quake directory.  The matrix covers
 small and large lengths, dword boundaries, aligned buffers, independently
 unaligned buffers, and zero/negative counts.  The assembly experiment is
-benchmark-only; normal `quake.exe` builds do not include its source and the
-runtime still uses the original C helpers.
+used directly by the benchmark and is also available to normal `quake.exe`
+builds through the explicit `-MemoryImplementation asm` switch; the default
+normal build continues to use the original C helpers.
+
+The focused benchmark can select each implementation independently:
+
+~~~powershell
+.\tools\bench-dos.ps1 -MemoryImplementation asm `
+  -TextureAxisImplementation asm `
+  -SurfaceCacheImplementation asm `
+  -MipLevelImplementation asm `
+  -TurbulentImplementation stosb `
+  -DataRoot 'C:\path\to\Quake\id1'
+.\tools\bench-dos.ps1 -TextureAxisImplementation c `
+  -SurfaceCacheImplementation c `
+  -MipLevelImplementation c `
+  -TurbulentImplementation asm `
+  -DataRoot 'C:\path\to\Quake\id1'
+~~~
+
+Individual C/ASM implementation switches can be omitted; each defaults to
+`c`.  The turbulent selector defaults to the measured `stosb` path; pass
+`-TurbulentImplementation asm` for the existing ASM control.  The runner
+records all five selections in `bench-result.json` and uses a matching output
+directory suffix.  Use `-TurbulentOnly` to run only the focused 4-, 8-, 16-,
+and 64-pixel turbulent-loop cases instead of the longer general matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -286,9 +377,189 @@ comes from keeping alignment/count handling in one assembly routine and using
 `rep movsl`/`rep stosl` for dword-sized work; this is microbenchmark evidence,
 not proof that every Quake call site benefits.
 
-These functions remain out of the real execution path.  A later integration
-candidate must first identify call-site alignment and size distributions, then
-pass exact framebuffer checks and a matched multi-run `demo1` timedemo.
+The normal build keeps these functions out of the real execution path.  The
+following opt-in runtime variant uses the same routines only after identifying
+call-site alignment and size distributions, then checking exact framebuffer
+results with a matched multi-run `demo1` timedemo.
+
+The runtime switch above is the controlled integration candidate.  It keeps
+the original C implementations as the reference and changes only the helper
+dispatch in the `asm` build.  Do not use `bench-dos.ps1` with the ASM runtime
+variant for C-versus-ASM timing: in that build the public C entry points are
+intentionally routed to ASM.  Use the C benchmark build for the focused
+correctness/microbenchmark matrix, then use matched timedemos for the runtime
+comparison:
+
+~~~powershell
+.\tools\timedemo-dos.ps1 -MemoryImplementation c `
+  -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+.\tools\timedemo-dos.ps1 -MemoryImplementation asm `
+  -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+~~~
+
+The timedemo result records `memoryImplementation` and the build manifest
+records the same choice, so the two executables can be audited without relying
+on filenames alone.
+
+### Runtime memory-helper result
+
+The controlled runtime comparison used the same baseline `-O2 -march=i486`
+build, DOSBox-X 2026.08.31, `cputype=486`, fixed 33445 cycles, `demo1`, and
+the same staged `id1` data.  Three runs per variant produced 969 frames and
+the exact final framebuffer checksum `4154140932` on every run.
+
+| Variant | Timedemo seconds, three runs | Mean FPS | Median FPS |
+| --- | --- | ---: | ---: |
+| C reference | 69.174217 / 69.174208 / 69.174256 | 14.008107 | 14.008109 |
+| ASM runtime | 69.159824 / 69.159891 / 69.159892 | 14.011016 | 14.011011 |
+
+The ASM path is repeatably **0.0208% faster** in this DOSBox-X run, or about
+14.4 ms over the 69.17-second timedemo.  The gain is real but too small to
+justify changing the default build; `c` remains the shipped/reference
+selection and `asm` remains available for target-specific testing.  The
+profiled workload made 1,019 `memset` calls over 24,738 bytes and 35,945
+`memcpy` calls over 4,277,631 bytes.  98.4% of `memset` calls were destination
+aligned and 97.3% of `memcpy` calls had matching source/destination alignment.
+This explains why the microbenchmark wins do not become a large engine win:
+the helpers touch relatively little data compared with the renderer's major
+hotspots.
+
+The focused matrix was rerun against the current C reference and ASM routines
+with five alternating samples per case; it ended with
+`486 benchmark correctness PASS`.  The ASM path uses alignment-aware setup and
+`rep movsl`/`rep stosl`, with `rep movsb` for mismatched-copy alignment.  The
+full timedemo confirms functional equivalence, but the measured end-to-end
+advantage is diagnostic rather than a reason to make ASM the default.
+
+### Texture-axis cache probe result
+
+The next isolated experiment kept the `D_GetTextureAxes` hash, miss path, and
+vector transforms in C, and replaced only the three-key cache hit/miss condition
+with a hand-written 486 helper.  The C helper and ASM helper were checked against
+hit, each individual key mismatch, and a null entry before timing.
+
+The focused benchmark used five alternating samples of 500,000 calls per case:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| Cache hit | 0.358844 s | 0.358850 s | -0.002% |
+| Early `texinfo` miss | 0.269138 s | 0.269138 s | 0.000% |
+
+The run ended with `486 benchmark correctness PASS`.  A one-run full `demo1`
+timedemo using the ASM probe completed all 969 frames at 14.001678 FPS with the
+same framebuffer checksum `4154140932` as the C/reference runs.  Because the
+focused result shows no measurable advantage, the original C condition remains
+the default and the ASM probe remains an opt-in learning aid rather than an
+integration candidate.
+
+### Surface-cache predicate result
+
+The surface-cache experiment replaced only the cache-validity predicate in
+`D_CacheSurface`.  The ASM helper compares the cache pointer, dlight state,
+surface/frame invalidation key, texture pointer, and four light adjustments;
+allocation and `R_DrawSurface` remain untouched.  The original C predicate is
+still the default path.
+
+The focused benchmark used five alternating samples of 500,000 calls per case:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| Cache hit | 0.598076 s | 0.568170 s | 5.000% |
+| Texture miss | 0.388750 s | 0.373800 s | 3.846% |
+| Early dlight rejection | 0.299037 s | 0.284088 s | 4.999% |
+
+The matrix ended with `486 benchmark correctness PASS`.  Disassembly showed
+why the isolated helper wins: the standalone C probe reloads the light-adjustment
+pointer for its last comparison, while the ASM probe keeps it live.  That result
+does not describe the real C path, where GCC already inlines the predicate and
+allocates registers across the surrounding function.
+
+Matched three-run `demo1` timedemos therefore rejected integration:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C reference | 69.174276 / 69.174257 / 69.174263 | 14.008100 |
+| ASM predicate | 69.194989 / 69.194988 / 69.194975 | 14.003905 |
+
+All runs completed 969 frames with framebuffer checksum `4154140932`.  The ASM
+call boundary costs about 0.030% end-to-end, or 20.7 ms per timedemo, so C
+remains the default and the surface-cache ASM path remains an opt-in experiment.
+
+### Mip-level selector result
+
+The mip-level experiment replaced the compact `D_MipLevelForScale` function with
+a 486 x87 implementation.  The C and ASM selectors were checked at every
+threshold, between thresholds, below the final threshold, and with a raised
+`d_minmip` clamp.  Because the standalone benchmark command runs before a map
+view initializes `d_scalemip`, the harness temporarily installs the known
+baseline thresholds `1.0`, `0.4`, and `0.2`, then restores the renderer globals.
+
+The focused benchmark used five alternating samples of 500,000 calls per case:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| Level 0 | 0.284087 s | 0.299038 s | -5.263% |
+| Level 1 | 0.358844 s | 0.358850 s | -0.002% |
+| Level 2 | 0.418657 s | 0.418657 s | 0.000% |
+| Level 3 | 0.418657 s | 0.388750 s | 7.143% |
+| `d_minmip` clamp | 0.343894 s | 0.373801 s | -8.697% |
+
+The corrected matrix ended with `486 benchmark correctness PASS`.  Disassembly
+showed that keeping the scale on the x87 stack removes the initial ASM reload
+penalty, but the resulting branch paths still trade wins and losses by mip
+level.  The real C function already uses one x87 value across its comparisons.
+
+Matched three-run `demo1` timedemos rejected integration:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C reference | 69.174320 / 69.174332 / 69.174286 | 14.008088 |
+| ASM selector | 69.180708 / 69.180710 / 69.180694 | 14.006795 |
+
+All runs completed 969 frames with framebuffer checksum `4154140932`.  The ASM
+selector is about 0.0092% slower, or 6.4 ms per timedemo, so C remains the
+default and the x87 implementation remains a reversible learning experiment.
+The next candidate should be measured only after identifying a path where the
+compiler cannot already retain the relevant state across the full function.
+
+### Turbulent-span inner-loop result
+
+The active turbulent sampler is a compact, sequential 486 loop: the sine
+table, fixed-point coordinates, destination, and span count stay in registers;
+the texture address is derived with shifts and indexed loads.  The preserved C
+reference was benchmarked against the existing assembly at 4, 8, 16, and
+64-pixel spans using five alternating samples of 50,000 calls per case.  All
+four cases produced identical checksums and destination advancement.
+
+| Span length | C median | Existing ASM median | ASM versus C |
+| ---: | ---: | ---: | ---: |
+| 4 | 0.231757 s | 0.183910 s | 20.645% |
+| 8 | 0.435101 s | 0.327449 s | 24.742% |
+| 16 | 0.841793 s | 0.614521 s | 26.999% |
+| 64 | 3.281913 s | 2.336964 s | 28.793% |
+
+The focused report is `out\dos-bench-20260910-163948\bench-result.json`.
+This confirms the value of the existing hand-written loop, but it does not
+justify a new rewrite by itself because the target already runs that ASM path.
+
+The follow-up `stosb` variant removes the explicit destination increment and
+uses `STOSB` for the sequential store.  Its corresponding focused ASM medians
+were 0.183910, 0.327449, 0.614521, and 2.336965 seconds.  At the report
+precision that is 0.000% versus the existing ASM in every case; the 64-pixel
+case is fractionally slower in this isolated harness.  The matched end-to-end
+result nevertheless favored `stosb`: current ASM measured 69.178593 seconds
+versus 69.118956 seconds for `stosb` across three runs, or 0.086207% faster
+(0.086284% by median FPS).  All six runs completed 969 frames with framebuffer
+checksum `4154140932`.  This is
+consistent with the shorter sequential-store instruction sequence in the real
+renderer loop; the isolated harness is dominated by equal state-reset and
+function-call overhead.  `stosb` is now the target default, while
+`-TurbulentImplementation asm` remains the reversible control.  The variant
+report is `out\dos-bench-20260910-161309\bench-result.json`.
+
+The matched timedemo results are
+`out\dos-timedemo-20260910-164048\timedemo-result.json` and
+`out\dos-timedemo-20260910-164524\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 
@@ -319,7 +590,7 @@ and collect the hierarchical renderer profile through the timedemo runner:
 
 Instrumentation changes timing, so its FPS is diagnostic only.  The release
 `qbench.exe` timedemo remains the authority for performance comparisons.  The
-profile build writes two artifacts beside the executable in its DOS staging
+profile build writes three artifacts beside the executable in its DOS staging
 directory:
 
 - `timedemo.txt` contains the legacy flat counters plus a readable tree and a
@@ -328,7 +599,8 @@ directory:
 - `timedemo.jsn` is an 8.3-safe JSON document containing the FPS summary,
   percentiles, variation, event counts, and sample-storage diagnostics.
 - `profile.jsn` is an 8.3-safe JSON document containing node statistics,
-  observed parent-to-child edges, benchmark metadata, and workload metrics.
+  observed parent-to-child edges, benchmark metadata, workload metrics, and
+  `memory` call/byte/alignment counters.
   The runner embeds both JSON documents under each run in
   `timedemo-result.json`.
 

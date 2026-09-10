@@ -287,12 +287,17 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 //
 	cache = surface->cachespots[miplevel];
 
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	if (D_CacheSurfaceHit_asm486 (cache, surface->dlightframe,
+			r_framecount, r_drawsurf.texture, r_drawsurf.lightadj))
+#else
 	if (cache && !cache->dlight && surface->dlightframe != r_framecount
 			&& cache->texture == r_drawsurf.texture
 			&& cache->lightadj[0] == r_drawsurf.lightadj[0]
 			&& cache->lightadj[1] == r_drawsurf.lightadj[1]
 			&& cache->lightadj[2] == r_drawsurf.lightadj[2]
 			&& cache->lightadj[3] == r_drawsurf.lightadj[3] )
+#endif
 	{
 #ifdef PROFILE486
 		if (bench486_profile_frame_active)
@@ -354,5 +359,23 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 
 	return surface->cachespots[miplevel];
 }
+
+#ifdef BENCH486
+void *D_CacheSurfaceHit_C (void *cache_ptr, int surface_dlightframe,
+		int frame, void *texture, int *lightadj)
+{
+	surfcache_t *cache;
+
+	cache = (surfcache_t *)cache_ptr;
+	if (cache && !cache->dlight && surface_dlightframe != frame
+			&& cache->texture == (texture_t *)texture
+			&& cache->lightadj[0] == lightadj[0]
+			&& cache->lightadj[1] == lightadj[1]
+			&& cache->lightadj[2] == lightadj[2]
+			&& cache->lightadj[3] == lightadj[3])
+		return cache_ptr;
+	return NULL;
+}
+#endif
 
 

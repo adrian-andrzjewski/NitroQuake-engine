@@ -1,8 +1,8 @@
 // asm486_experiments.s
 //
-// Small, benchmark-only 486 implementations of the library memory helpers.
-// These deliberately remain separate from Q_memset/Q_memcpy so the original
-// C paths remain the runtime reference while the experiment is evaluated.
+// Small, isolated 486 experiment implementations.
+// The original C paths remain available as the runtime reference; build-time
+// switches select these routines only for a measured experiment.
 
 #include "asm_i386.h"
 
@@ -117,4 +117,114 @@ jnz	.Lmemcpy_bytes
 .Lmemcpy_done:
 	popl	%esi
 	popl	%edi
+	ret
+
+	.align 4
+
+// void *D_GetTextureAxesHit_asm486(void *entry, void *texinfo,
+//     void *entity, int frame)
+// Probe the three-key texture-axis cache record without touching the cached
+// axis vectors.  The caller performs the hash/index calculation and handles
+// the miss path in C.
+C(D_GetTextureAxesHit_asm486):
+	.globl C(D_GetTextureAxesHit_asm486)
+	movl	4(%esp),%eax		// entry
+	testl	%eax,%eax
+	jz	.Ltexaxis_miss
+	movl	8(%esp),%edx		// texinfo
+	cmpl	(%eax),%edx
+	jne	.Ltexaxis_miss
+	movl	12(%esp),%edx		// entity
+	cmpl	4(%eax),%edx
+	jne	.Ltexaxis_miss
+	movl	16(%esp),%edx		// frame
+	cmpl	8(%eax),%edx
+	jne	.Ltexaxis_miss
+	ret
+
+.Ltexaxis_miss:
+	xorl	%eax,%eax
+	ret
+
+	.align 4
+
+// void *D_CacheSurfaceHit_asm486(void *cache, int surface_dlightframe,
+//     int frame, void *texture, int *lightadj)
+// Check the non-DEBUG surfcache_t fast-path fields.  The caller keeps texture
+// animation, light-style loads, allocation, and surface generation in C.
+C(D_CacheSurfaceHit_asm486):
+	.globl C(D_CacheSurfaceHit_asm486)
+	movl	4(%esp),%eax		// cache
+	testl	%eax,%eax
+	jz	.Lsurface_cache_miss
+	cmpl	$0,24(%eax)		// cache->dlight
+	jne	.Lsurface_cache_miss
+	movl	8(%esp),%edx		// surface->dlightframe
+	cmpl	12(%esp),%edx		// r_framecount
+	je	.Lsurface_cache_miss
+	movl	16(%esp),%edx		// r_drawsurf.texture
+	cmpl	40(%eax),%edx		// cache->texture
+	jne	.Lsurface_cache_miss
+	movl	20(%esp),%edx		// r_drawsurf.lightadj
+	movl	(%edx),%ecx
+	cmpl	8(%eax),%ecx
+	jne	.Lsurface_cache_miss
+	movl	4(%edx),%ecx
+	cmpl	12(%eax),%ecx
+	jne	.Lsurface_cache_miss
+	movl	8(%edx),%ecx
+	cmpl	16(%eax),%ecx
+	jne	.Lsurface_cache_miss
+	movl	12(%edx),%ecx
+	cmpl	20(%eax),%ecx
+	jne	.Lsurface_cache_miss
+	ret
+
+.Lsurface_cache_miss:
+	xorl	%eax,%eax
+	ret
+
+	.align 4
+
+// int D_MipLevelForScale_asm486(float scale)
+// Use the 486 x87 compare flags for the three descending mip thresholds.
+// fcomps pops the temporary scale, leaving no value on the FP stack.
+C(D_MipLevelForScale_asm486):
+	.globl C(D_MipLevelForScale_asm486)
+	flds	4(%esp)
+	fcoms	C(d_scalemip)
+	fnstsw	%ax
+	testb	$1,%ah			// C0: scale < d_scalemip[0]
+	jnz	.Lmip_check_1
+	xorl	%eax,%eax
+	fstp	%st(0)
+	jmp	.Lmip_clamp
+
+.Lmip_check_1:
+	fcoms	C(d_scalemip)+4
+	fnstsw	%ax
+	testb	$1,%ah			// C0: scale < d_scalemip[1]
+	jnz	.Lmip_check_2
+	movl	$1,%eax
+	fstp	%st(0)
+	jmp	.Lmip_clamp
+
+.Lmip_check_2:
+	fcomps	C(d_scalemip)+8
+	fnstsw	%ax
+	testb	$1,%ah			// C0: scale < d_scalemip[2]
+	jnz	.Lmip_level_3
+	movl	$2,%eax
+	fstp	%st(0)
+	jmp	.Lmip_clamp
+
+.Lmip_level_3:
+	movl	$3,%eax
+
+.Lmip_clamp:
+	movl	C(d_minmip),%edx
+	cmpl	%edx,%eax
+	jge	.Lmip_return
+	movl	%edx,%eax
+.Lmip_return:
 	ret

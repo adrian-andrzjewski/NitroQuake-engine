@@ -8,6 +8,17 @@ param(
     [string]$OptimizationProfile = 'baseline',
     [ValidateSet(64, 128, 256)]
     [int]$TextureAxisCacheEntries = 256,
+    [ValidateSet('c', 'asm')]
+    [string]$TextureAxisImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceCacheImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MipLevelImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MemoryImplementation = 'c',
+    [ValidateSet('c', 'asm', 'stosb')]
+    [string]$TurbulentImplementation = 'stosb',
+    [switch]$TurbulentOnly,
     [int]$TimeoutSeconds = 180
 )
 
@@ -39,6 +50,24 @@ if ($OptimizationProfile -eq 'aggressive') {
 if ($TextureAxisCacheEntries -ne 256) {
     $profileSuffixParts += "cache$TextureAxisCacheEntries"
 }
+if ($MemoryImplementation -eq 'asm') {
+    $profileSuffixParts += 'memasm'
+}
+if ($TextureAxisImplementation -eq 'asm') {
+    $profileSuffixParts += 'axisasm'
+}
+if ($SurfaceCacheImplementation -eq 'asm') {
+    $profileSuffixParts += 'surfaceasm'
+}
+if ($MipLevelImplementation -eq 'asm') {
+    $profileSuffixParts += 'mipasm'
+}
+if ($TurbulentImplementation -eq 'c') {
+    $profileSuffixParts += 'turbc'
+}
+elseif ($TurbulentImplementation -eq 'asm') {
+    $profileSuffixParts += 'turbasm'
+}
 $profileSuffix = if ($profileSuffixParts.Count) {
     '-' + ($profileSuffixParts -join '-')
 }
@@ -68,7 +97,13 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     }
 
     $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile,
-        '-TextureAxisCacheEntries', $TextureAxisCacheEntries, '-ToolRoot', $ToolRoot)
+        '-TextureAxisCacheEntries', $TextureAxisCacheEntries,
+        '-TextureAxisImplementation', $TextureAxisImplementation,
+        '-SurfaceCacheImplementation', $SurfaceCacheImplementation,
+        '-MipLevelImplementation', $MipLevelImplementation,
+        '-MemoryImplementation', $MemoryImplementation,
+        '-TurbulentImplementation', $TurbulentImplementation,
+        '-ToolRoot', $ToolRoot)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
     }
@@ -101,13 +136,19 @@ Copy-Item -LiteralPath $benchmarkExe -Destination (Join-Path $quakeRoot 'qbench.
 Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe')
 Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -Force
 
+$benchCommand = if ($TurbulentOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchturbulent -benchexit'
+}
+else {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchexit'
+}
 $batchPath = Join-Path $quakeRoot 'bench.bat'
-@'
+@"
 @echo off
 cd \quake
-qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchexit
+$benchCommand
 exit
-'@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
+"@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
 $profileText = Get-Content -LiteralPath $profilePath -Raw
 $mountPath = $stagingRoot.Replace('"', '""')
@@ -182,6 +223,12 @@ $result = [ordered]@{
     executable = $benchmarkExe
     optimizationProfile = $OptimizationProfile
     textureAxisCacheEntries = $TextureAxisCacheEntries
+    textureAxisImplementation = $TextureAxisImplementation
+    surfaceCacheImplementation = $SurfaceCacheImplementation
+    mipLevelImplementation = $MipLevelImplementation
+    memoryImplementation = $MemoryImplementation
+    turbulentImplementation = $TurbulentImplementation
+    turbulentOnly = [bool]$TurbulentOnly
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     report = $report

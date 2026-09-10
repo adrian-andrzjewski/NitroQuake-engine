@@ -385,6 +385,8 @@ void CL_FinishTimeDemo (void)
 				Bench486WriteTimedemoStats (report_handle, frames, time);
 	#ifdef PROFILE486
 			Bench486ProfileDiscardOpenScopes ();
+			/* Keep report formatting out of workload-only counters. */
+			bench486_profile_frame_active = false;
 	#endif
 			Bench486WriteTimedemoCounters (report_handle, frames, time);
 			Bench486WriteTimedemoFrameChecksum (report_handle);

@@ -113,3 +113,12 @@ extern float	d_scalemip[3];
 
 extern void (*d_drawspans) (espan_t *pspan);
 
+#ifdef BENCH486
+extern unsigned char	*r_turb_pbase, *r_turb_pdest;
+extern fixed16_t		r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
+extern int			*r_turb_turb;
+extern int			r_turb_spancount;
+void D_DrawTurbulent8Span_C (void);
+void D_DrawTurbulent8Span_asm486 (void);
+#endif
+

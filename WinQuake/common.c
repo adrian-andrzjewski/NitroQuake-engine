@@ -175,6 +175,21 @@ void Q_memset (void *dest, int fill, int count)
 	byte		*d;
 	int		dwords;
 
+#ifdef PROFILE486
+	if (bench486_profile_frame_active && count > 0)
+	{
+		bench486_memset_calls++;
+		bench486_memset_bytes += (unsigned long)count;
+		if (!((long)dest & 3))
+			bench486_memset_aligned_calls++;
+	}
+#endif
+
+#ifdef ASM486_RUNTIME_MEMOPS
+	Q_memset_asm486 (dest, fill, count);
+	return;
+#endif
+
 	if (count <= 0)
 		return;
 
@@ -233,6 +248,21 @@ void Q_memcpy (void *dest, void *src, int count)
 {
 	byte		*d, *s;
 	int		dwords;
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active && count > 0)
+	{
+		bench486_memcpy_calls++;
+		bench486_memcpy_bytes += (unsigned long)count;
+		if (!(((long)dest ^ (long)src) & 3))
+			bench486_memcpy_same_alignment_calls++;
+	}
+#endif
+
+#ifdef ASM486_RUNTIME_MEMOPS
+	Q_memcpy_asm486 (dest, src, count);
+	return;
+#endif
 
 	if (count <= 0)
 		return;

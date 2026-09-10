@@ -44,6 +44,21 @@ static d_texaxis_cache_t	d_texaxis_cache[D_TEXAXIS_CACHE_SIZE];
 // entity and frame keys therefore invalidate entries when world or bmodel
 // orientation changes, while collisions only cause a harmless recompute.
 
+#ifdef BENCH486
+void *D_GetTextureAxesHit_C (void *entry_ptr, void *texinfo_ptr,
+		void *entity_ptr, int frame)
+{
+	d_texaxis_cache_t *entry;
+
+	entry = (d_texaxis_cache_t *)entry_ptr;
+	if (entry && entry->texinfo == (mtexinfo_t *)texinfo_ptr &&
+			entry->entity == (entity_t *)entity_ptr &&
+			entry->frame == frame)
+		return entry_ptr;
+	return NULL;
+}
+#endif
+
 float		scale_for_mip;
 int			screenwidth;
 int			ubasestep, errorterm, erroradjustup, erroradjustdown;
@@ -109,7 +124,12 @@ void D_DrawPoly (void)
 D_MipLevelForScale
 =============
 */
+#if !defined(ASM486_MIP_LEVEL) || defined(BENCH486)
+#ifdef BENCH486
+int D_MipLevelForScale_C (float scale)
+#elif !defined(ASM486_MIP_LEVEL)
 int D_MipLevelForScale (float scale)
+#endif
 {
 	int		lmiplevel;
 
@@ -127,6 +147,37 @@ int D_MipLevelForScale (float scale)
 
 	return lmiplevel;
 }
+#endif
+
+#ifdef BENCH486
+int D_MipLevelForScale (float scale)
+{
+#ifdef ASM486_MIP_LEVEL
+	return D_MipLevelForScale_asm486 (scale);
+#else
+	int		lmiplevel;
+
+	if (scale >= d_scalemip[0] )
+		lmiplevel = 0;
+	else if (scale >= d_scalemip[1] )
+		lmiplevel = 1;
+	else if (scale >= d_scalemip[2] )
+		lmiplevel = 2;
+	else
+		lmiplevel = 3;
+
+	if (lmiplevel < d_minmip)
+		lmiplevel = d_minmip;
+
+	return lmiplevel;
+#endif
+}
+#elif defined(ASM486_MIP_LEVEL)
+int D_MipLevelForScale (float scale)
+{
+	return D_MipLevelForScale_asm486 (scale);
+}
+#endif
 
 
 /*
@@ -197,8 +248,13 @@ static d_texaxis_cache_t *D_GetTextureAxes (mtexinfo_t *texinfo)
 			(D_TEXAXIS_CACHE_SIZE - 1);
 	entry = &d_texaxis_cache[index];
 
+#ifdef ASM486_TEXTURE_AXIS_CACHE
+	if (D_GetTextureAxesHit_asm486 (entry, texinfo, currententity,
+			r_framecount))
+#else
 	if (entry->texinfo == texinfo && entry->entity == currententity &&
 		entry->frame == r_framecount)
+#endif
 	{
 #ifdef PROFILE486
 		if (bench486_profile_frame_active)

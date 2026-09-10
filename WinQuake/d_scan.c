@@ -30,7 +30,19 @@ fixed16_t		r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
 int				*r_turb_turb;
 int				r_turb_spancount;
 
+#if id386
+void D_DrawTurbulent8Span_asm486 (void);
+#if defined(BENCH486) || defined(ASM486_TURBULENT_C)
+void D_DrawTurbulent8Span_C (void);
+#endif
+#ifdef ASM486_TURBULENT_C
+#define D_DrawTurbulent8Span D_DrawTurbulent8Span_C
+#else
+#define D_DrawTurbulent8Span D_DrawTurbulent8Span_asm486
+#endif
+#else
 void D_DrawTurbulent8Span (void);
+#endif
 
 
 /*
@@ -112,6 +124,34 @@ void D_DrawTurbulent8Span (void)
 }
 
 #endif	// !id386
+
+
+#if id386 && (defined(BENCH486) || defined(ASM486_TURBULENT_C))
+
+/*
+=============
+D_DrawTurbulent8Span_C
+=============
+
+The original portable inner loop is retained as a callable reference for the
+486 experiment.  The production C path is selected only by the explicit
+ASM486_TURBULENT_C build switch.
+*/
+void D_DrawTurbulent8Span_C (void)
+{
+	int		sturb, tturb;
+
+	do
+	{
+		sturb = ((r_turb_s + r_turb_turb[(r_turb_t>>16)&(CYCLE-1)])>>16)&63;
+		tturb = ((r_turb_t + r_turb_turb[(r_turb_s>>16)&(CYCLE-1)])>>16)&63;
+		*r_turb_pdest++ = *(r_turb_pbase + (tturb<<6) + sturb);
+		r_turb_s += r_turb_sstep;
+		r_turb_t += r_turb_tstep;
+	} while (--r_turb_spancount > 0);
+}
+
+#endif
 
 
 /*

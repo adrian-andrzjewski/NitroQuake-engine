@@ -123,10 +123,22 @@ float MSG_ReadAngle (void);
 
 void Q_memset (void *dest, int fill, int count);
 void Q_memcpy (void *dest, void *src, int count);
-/* Benchmark-only hand-written 486 alternatives.  The runtime continues to
- * use the C implementations above until an experiment proves a real win. */
+/* Hand-written 486 alternatives.  Build-time experiment switches select them;
+ * the original C implementations remain the reference/default paths. */
 void Q_memset_asm486 (void *dest, int fill, int count);
 void Q_memcpy_asm486 (void *dest, void *src, int count);
+void *D_GetTextureAxesHit_asm486 (void *entry, void *texinfo,
+		void *entity, int frame);
+void *D_CacheSurfaceHit_asm486 (void *cache, int surface_dlightframe,
+		int frame, void *texture, int *lightadj);
+int D_MipLevelForScale_asm486 (float scale);
+#ifdef BENCH486
+void *D_GetTextureAxesHit_C (void *entry, void *texinfo,
+		void *entity, int frame);
+void *D_CacheSurfaceHit_C (void *cache, int surface_dlightframe,
+		int frame, void *texture, int *lightadj);
+int D_MipLevelForScale_C (float scale);
+#endif
 int Q_memcmp (void *m1, void *m2, int count);
 void Q_strcpy (char *dest, char *src);
 void Q_strncpy (char *dest, char *src, int count);

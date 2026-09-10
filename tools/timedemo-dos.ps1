@@ -9,6 +9,16 @@ param(
     [string]$OptimizationProfile = 'baseline',
     [ValidateSet(64, 128, 256)]
     [int]$TextureAxisCacheEntries = 256,
+    [ValidateSet('c', 'asm')]
+    [string]$TextureAxisImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceCacheImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MipLevelImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MemoryImplementation = 'c',
+    [ValidateSet('c', 'asm', 'stosb')]
+    [string]$TurbulentImplementation = 'stosb',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -45,6 +55,24 @@ if ($OptimizationProfile -eq 'aggressive') {
 if ($TextureAxisCacheEntries -ne 256) {
     $profileSuffixParts += "cache$TextureAxisCacheEntries"
 }
+if ($MemoryImplementation -eq 'asm') {
+    $profileSuffixParts += 'memasm'
+}
+if ($TextureAxisImplementation -eq 'asm') {
+    $profileSuffixParts += 'axisasm'
+}
+if ($SurfaceCacheImplementation -eq 'asm') {
+    $profileSuffixParts += 'surfaceasm'
+}
+if ($MipLevelImplementation -eq 'asm') {
+    $profileSuffixParts += 'mipasm'
+}
+if ($TurbulentImplementation -eq 'c') {
+    $profileSuffixParts += 'turbc'
+}
+elseif ($TurbulentImplementation -eq 'asm') {
+    $profileSuffixParts += 'turbasm'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -78,7 +106,13 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     }
 
     $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile,
-        '-TextureAxisCacheEntries', $TextureAxisCacheEntries, '-ToolRoot', $ToolRoot)
+        '-TextureAxisCacheEntries', $TextureAxisCacheEntries,
+        '-TextureAxisImplementation', $TextureAxisImplementation,
+        '-SurfaceCacheImplementation', $SurfaceCacheImplementation,
+        '-MipLevelImplementation', $MipLevelImplementation,
+        '-MemoryImplementation', $MemoryImplementation,
+        '-TurbulentImplementation', $TurbulentImplementation,
+        '-ToolRoot', $ToolRoot)
     if ($Instrumentation) {
         $buildArgs += '-Instrumentation'
     }
@@ -364,6 +398,11 @@ $result = [ordered]@{
     executable = $benchmarkExe
     optimizationProfile = $OptimizationProfile
     textureAxisCacheEntries = $TextureAxisCacheEntries
+    textureAxisImplementation = $TextureAxisImplementation
+    surfaceCacheImplementation = $SurfaceCacheImplementation
+    mipLevelImplementation = $MipLevelImplementation
+    turbulentImplementation = $TurbulentImplementation
+    memoryImplementation = $MemoryImplementation
     instrumentation = [bool]$Instrumentation
     frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot

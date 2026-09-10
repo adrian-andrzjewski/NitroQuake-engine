@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+#ifdef BENCH486
+#include "d_local.h"
+#endif
+
 extern cvar_t	pausable;
 
 int	current_skill;
@@ -65,6 +69,12 @@ unsigned long bench486_texture_full_exact;
 unsigned long bench486_texture_final_exact;
 unsigned long bench486_gradient_calls;
 unsigned long bench486_solid_span_count;
+unsigned long bench486_memset_calls;
+unsigned long bench486_memset_bytes;
+unsigned long bench486_memset_aligned_calls;
+unsigned long bench486_memcpy_calls;
+unsigned long bench486_memcpy_bytes;
+unsigned long bench486_memcpy_same_alignment_calls;
 unsigned long bench486_line_setup_calls;
 unsigned long bench486_axis_cache_hits;
 unsigned long bench486_axis_cache_misses;
@@ -902,6 +912,12 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 	Bench486ProfileJsonPrintf (file_handle, "\n  ],\n");
 
 	Bench486ProfileJsonPrintf (file_handle,
+			"  \"memory\": {\"memset_calls\": %lu, \"memset_bytes\": %lu, \"memset_aligned_calls\": %lu, \"memcpy_calls\": %lu, \"memcpy_bytes\": %lu, \"memcpy_same_alignment_calls\": %lu},\n",
+			bench486_memset_calls, bench486_memset_bytes,
+			bench486_memset_aligned_calls, bench486_memcpy_calls,
+			bench486_memcpy_bytes, bench486_memcpy_same_alignment_calls);
+
+	Bench486ProfileJsonPrintf (file_handle,
 			"  \"metrics\": {\n"
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
@@ -998,6 +1014,12 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_final_exact = 0;
 	bench486_gradient_calls = 0;
 	bench486_solid_span_count = 0;
+	bench486_memset_calls = 0;
+	bench486_memset_bytes = 0;
+	bench486_memset_aligned_calls = 0;
+	bench486_memcpy_calls = 0;
+	bench486_memcpy_bytes = 0;
+	bench486_memcpy_same_alignment_calls = 0;
 	bench486_line_setup_calls = 0;
 	bench486_axis_cache_hits = 0;
 	bench486_axis_cache_misses = 0;
@@ -1121,6 +1143,15 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));
+	sprintf (text,
+			"memory memset-calls %lu memset-bytes %lu memset-aligned %lu "
+			"memcpy-calls %lu memcpy-bytes %lu memcpy-same-align %lu\n",
+			bench486_memset_calls, bench486_memset_bytes,
+			bench486_memset_aligned_calls, bench486_memcpy_calls,
+			bench486_memcpy_bytes, bench486_memcpy_same_alignment_calls);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
 
 	Bench486ProfileReportText (report_handle,
 				"profile-tree begin (edge inclusive / edge self seconds)\n");
@@ -1186,9 +1217,21 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 
 #define BENCH486_MEMORY_SAMPLES	5
 #define BENCH486_MEMORY_WARMUP	32
+#define BENCH486_SURFACE_CACHE_ITERATIONS	500000
+#define BENCH486_MIP_ITERATIONS	500000
+#define BENCH486_TURBULENT_SAMPLES	5
+#define BENCH486_TURBULENT_ITERATIONS	50000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
+typedef void *(*bench486_texture_axis_fn_t) (void *entry, void *texinfo,
+		void *entity, int frame);
+typedef void *(*bench486_surface_cache_fn_t) (void *cache,
+		int surface_dlightframe, int frame, void *texture, int *lightadj);
+typedef int (*bench486_mip_fn_t) (float scale);
+typedef void (*bench486_turbulent_fn_t) (void);
+
+static int bench486_turbulent_table[128];
 
 static void Bench486SortSamples (double *samples, int count)
 {
@@ -1363,6 +1406,572 @@ static void Bench486MemoryCase (char *name, int count, int iterations,
 			c_samples, asm_samples, c_checksum, asm_checksum);
 }
 
+static void Bench486SetTurbulentState (byte *dest, int count)
+{
+	r_turb_s = 11 << 16;
+	r_turb_t = 23 << 16;
+	r_turb_sstep = 0x00003111;
+	r_turb_tstep = 0x00005222;
+	r_turb_pbase = bench486_source;
+	r_turb_pdest = dest;
+	r_turb_turb = bench486_turbulent_table;
+	r_turb_spancount = count;
+}
+
+static double Bench486MeasureTurbulent (bench486_turbulent_fn_t function,
+		byte *dest, int count, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+	{
+		Bench486SetTurbulentState (dest, count);
+		function ();
+	}
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+	{
+		Bench486SetTurbulentState (dest, count);
+		function ();
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = Bench486Checksum (dest, count);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static void Bench486PrintTurbulentSamples (int count, double *c_samples,
+		double *asm_samples, unsigned c_checksum, unsigned asm_checksum)
+{
+	double c_median, asm_median, c_rate, asm_rate, delta;
+	int i;
+
+	Bench486SortSamples (c_samples, BENCH486_TURBULENT_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_TURBULENT_SAMPLES);
+	c_median = c_samples[BENCH486_TURBULENT_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_TURBULENT_SAMPLES / 2];
+	c_rate = c_median > 0.0 ?
+			(double)BENCH486_TURBULENT_ITERATIONS / c_median : 0.0;
+	asm_rate = asm_median > 0.0 ?
+			(double)BENCH486_TURBULENT_ITERATIONS / asm_median : 0.0;
+	delta = c_median > 0.0 ?
+			(c_median - asm_median) / c_median * 100.0 : 0.0;
+
+	Bench486Printf ("turbulent count %d pixels iterations %d samples %d\n",
+			count, BENCH486_TURBULENT_ITERATIONS,
+			BENCH486_TURBULENT_SAMPLES);
+	Bench486Printf ("  c median %.6f sec %.0f ops/sec checksum %u samples",
+			c_median, c_rate, c_checksum);
+	for (i=0 ; i<BENCH486_TURBULENT_SAMPLES ; i++)
+		Bench486Printf (" %.6f", c_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486 median %.6f sec %.0f ops/sec checksum %u samples",
+			asm_median, asm_rate, asm_checksum);
+	for (i=0 ; i<BENCH486_TURBULENT_SAMPLES ; i++)
+		Bench486Printf (" %.6f", asm_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486TurbulentCase (int count)
+{
+	double c_samples[BENCH486_TURBULENT_SAMPLES];
+	double asm_samples[BENCH486_TURBULENT_SAMPLES];
+	unsigned c_checksum, asm_checksum;
+	int i, sample, mismatch;
+
+	for (i=0 ; i<4096 ; i++)
+		bench486_source[i] = (byte)((i * 13 + 7) & 0xff);
+
+	Bench486SetTurbulentState (bench486_expected, count);
+	D_DrawTurbulent8Span_C ();
+	Bench486SetTurbulentState (bench486_dest, count);
+	D_DrawTurbulent8Span_asm486 ();
+	mismatch = -1;
+	for (i=0 ; i<count ; i++)
+	{
+		if (bench486_dest[i] != bench486_expected[i])
+		{
+			mismatch = i;
+			break;
+		}
+	}
+	if (mismatch >= 0 || r_turb_pdest != bench486_dest + count)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("turbulent count %d correctness FAIL byte %d c %u asm %u pdest %p expected %p\n",
+				count, mismatch, mismatch >= 0 ? bench486_expected[mismatch] : 0,
+				mismatch >= 0 ? bench486_dest[mismatch] : 0,
+				r_turb_pdest, bench486_dest + count);
+		return;
+	}
+
+	for (sample=0 ; sample<BENCH486_TURBULENT_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureTurbulent(
+					D_DrawTurbulent8Span_C, bench486_dest, count,
+					BENCH486_TURBULENT_ITERATIONS, &c_checksum);
+			asm_samples[sample] = Bench486MeasureTurbulent(
+					D_DrawTurbulent8Span_asm486, bench486_dest, count,
+					BENCH486_TURBULENT_ITERATIONS, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureTurbulent(
+					D_DrawTurbulent8Span_asm486, bench486_dest, count,
+					BENCH486_TURBULENT_ITERATIONS, &asm_checksum);
+			c_samples[sample] = Bench486MeasureTurbulent(
+					D_DrawTurbulent8Span_C, bench486_dest, count,
+					BENCH486_TURBULENT_ITERATIONS, &c_checksum);
+		}
+	}
+
+	Bench486PrintTurbulentSamples (count, c_samples, asm_samples,
+			c_checksum, asm_checksum);
+}
+
+static void Bench486TurbulentCases (void)
+{
+	int i;
+
+	for (i=0 ; i<128 ; i++)
+		bench486_turbulent_table[i] = (i * 19 + 5) & 127;
+
+	Bench486TurbulentCase (4);
+	Bench486TurbulentCase (8);
+	Bench486TurbulentCase (16);
+	Bench486TurbulentCase (64);
+}
+
+static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
+		void *entry, void *texinfo, void *entity, int frame, int iterations,
+		unsigned *hits)
+{
+	double start, elapsed;
+	int i;
+	unsigned hit_count;
+	void *result;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (entry, texinfo, entity, frame);
+
+	start = Sys_FloatTime ();
+	hit_count = 0;
+	for (i=0 ; i<iterations ; i++)
+	{
+		result = function (entry, texinfo, entity, frame);
+		if (result == entry)
+			hit_count++;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*hits = hit_count;
+	bench486_sink ^= hit_count;
+	return elapsed;
+}
+
+static void Bench486TextureAxisTimingCase (char *name, void *entry,
+		void *texinfo, void *entity, int frame, qboolean expected_hit)
+{
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_hits, asm_hits;
+	int sample;
+
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		/* Alternate order to expose first-run cache or emulator bias. */
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureTextureAxis(
+					D_GetTextureAxesHit_C, entry, texinfo, entity, frame,
+					500000, &c_hits);
+			asm_samples[sample] = Bench486MeasureTextureAxis(
+					D_GetTextureAxesHit_asm486, entry, texinfo, entity, frame,
+					500000, &asm_hits);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureTextureAxis(
+					D_GetTextureAxesHit_asm486, entry, texinfo, entity, frame,
+					500000, &asm_hits);
+			c_samples[sample] = Bench486MeasureTextureAxis(
+					D_GetTextureAxesHit_C, entry, texinfo, entity, frame,
+					500000, &c_hits);
+		}
+
+		if ((expected_hit && (c_hits != 500000 || asm_hits != 500000)) ||
+				(!expected_hit && (c_hits != 0 || asm_hits != 0)))
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("texture-axis %s correctness FAIL\n", name);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("texture-axis %s iterations 500000 samples %d\n",
+			name, BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			c_median, c_samples[0], c_samples[1], c_samples[2],
+			c_samples[3], c_samples[4]);
+	Bench486Printf ("  asm486 median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			asm_median, asm_samples[0], asm_samples[1], asm_samples[2],
+			asm_samples[3], asm_samples[4]);
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486TextureAxisCase (void)
+{
+	struct
+	{
+		void *texinfo;
+		void *entity;
+		int frame;
+	} entry;
+	mtexinfo_t texinfo, other_texinfo;
+	entity_t entity, other_entity;
+	void *expected;
+	void *c_result;
+	void *asm_result;
+
+	entry.texinfo = &texinfo;
+	entry.entity = &entity;
+	entry.frame = 37;
+	Q_memset (&texinfo, 0, sizeof(texinfo));
+	Q_memset (&other_texinfo, 0, sizeof(other_texinfo));
+	Q_memset (&entity, 0, sizeof(entity));
+	Q_memset (&other_entity, 0, sizeof(other_entity));
+
+	/* Exercise the common hit and each early-reject key. */
+	expected = &entry;
+	c_result = D_GetTextureAxesHit_C (&entry, &texinfo, &entity, 37);
+	asm_result = D_GetTextureAxesHit_asm486 (&entry, &texinfo, &entity, 37);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+
+	expected = NULL;
+	c_result = D_GetTextureAxesHit_C (&entry, &other_texinfo, &entity, 37);
+	asm_result = D_GetTextureAxesHit_asm486 (&entry, &other_texinfo, &entity, 37);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+	c_result = D_GetTextureAxesHit_C (&entry, &texinfo, &other_entity, 37);
+	asm_result = D_GetTextureAxesHit_asm486 (&entry, &texinfo, &other_entity, 37);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+	c_result = D_GetTextureAxesHit_C (&entry, &texinfo, &entity, 38);
+	asm_result = D_GetTextureAxesHit_asm486 (&entry, &texinfo, &entity, 38);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+	c_result = D_GetTextureAxesHit_C (NULL, &texinfo, &entity, 37);
+	asm_result = D_GetTextureAxesHit_asm486 (NULL, &texinfo, &entity, 37);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+
+	Bench486TextureAxisTimingCase ("hit", &entry, &texinfo, &entity, 37, true);
+	Bench486TextureAxisTimingCase ("miss-texinfo", &entry, &other_texinfo,
+			&entity, 37, false);
+}
+
+static double Bench486MeasureSurfaceCache (bench486_surface_cache_fn_t function,
+		void *cache, int surface_dlightframe, int frame, void *texture,
+		int *lightadj, int iterations, unsigned *hits)
+{
+	double start, elapsed;
+	int i;
+	unsigned hit_count;
+	void *result;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (cache, surface_dlightframe, frame, texture, lightadj);
+
+	start = Sys_FloatTime ();
+	hit_count = 0;
+	for (i=0 ; i<iterations ; i++)
+	{
+		result = function (cache, surface_dlightframe, frame, texture,
+				lightadj);
+		if (result == cache)
+			hit_count++;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*hits = hit_count;
+	bench486_sink ^= hit_count;
+	return elapsed;
+}
+
+static void Bench486SurfaceCacheTimingCase (char *name, void *cache,
+		int surface_dlightframe, int frame, void *texture, int *lightadj,
+		qboolean expected_hit)
+{
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_hits, asm_hits;
+	int sample;
+
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		/* Alternate order to expose first-run cache or emulator bias. */
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureSurfaceCache(
+					D_CacheSurfaceHit_C, cache, surface_dlightframe, frame,
+					texture, lightadj, BENCH486_SURFACE_CACHE_ITERATIONS,
+					&c_hits);
+			asm_samples[sample] = Bench486MeasureSurfaceCache(
+					D_CacheSurfaceHit_asm486, cache, surface_dlightframe, frame,
+					texture, lightadj, BENCH486_SURFACE_CACHE_ITERATIONS,
+					&asm_hits);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureSurfaceCache(
+					D_CacheSurfaceHit_asm486, cache, surface_dlightframe, frame,
+					texture, lightadj, BENCH486_SURFACE_CACHE_ITERATIONS,
+					&asm_hits);
+			c_samples[sample] = Bench486MeasureSurfaceCache(
+					D_CacheSurfaceHit_C, cache, surface_dlightframe, frame,
+					texture, lightadj, BENCH486_SURFACE_CACHE_ITERATIONS,
+					&c_hits);
+		}
+
+		if ((expected_hit && (c_hits != BENCH486_SURFACE_CACHE_ITERATIONS ||
+				asm_hits != BENCH486_SURFACE_CACHE_ITERATIONS)) ||
+				(!expected_hit && (c_hits != 0 || asm_hits != 0)))
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("surface-cache %s correctness FAIL\n", name);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("surface-cache %s iterations %d samples %d\n",
+			name, BENCH486_SURFACE_CACHE_ITERATIONS, BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			c_median, c_samples[0], c_samples[1], c_samples[2],
+			c_samples[3], c_samples[4]);
+	Bench486Printf ("  asm486 median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			asm_median, asm_samples[0], asm_samples[1], asm_samples[2],
+			asm_samples[3], asm_samples[4]);
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486SurfaceCacheCase (void)
+{
+	surfcache_t cache;
+	int lightadj[MAXLIGHTMAPS];
+	int other_lightadj[MAXLIGHTMAPS];
+	texture_t texture, other_texture;
+	void *expected;
+	void *c_result;
+	void *asm_result;
+	int i;
+
+	Q_memset (&cache, 0, sizeof(cache));
+	Q_memset (&texture, 0, sizeof(texture));
+	Q_memset (&other_texture, 0, sizeof(other_texture));
+	for (i=0 ; i<MAXLIGHTMAPS ; i++)
+	{
+		lightadj[i] = 100 + i;
+		other_lightadj[i] = lightadj[i];
+	}
+	cache.dlight = 0;
+	cache.texture = &texture;
+	for (i=0 ; i<MAXLIGHTMAPS ; i++)
+		cache.lightadj[i] = lightadj[i];
+
+	/* Exercise the common hit and every fast-path rejection condition. */
+	expected = &cache;
+	c_result = D_CacheSurfaceHit_C (&cache, 17, 23, &texture, lightadj);
+	asm_result = D_CacheSurfaceHit_asm486 (&cache, 17, 23, &texture,
+			lightadj);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+
+	expected = NULL;
+	c_result = D_CacheSurfaceHit_C (NULL, 17, 23, &texture, lightadj);
+	asm_result = D_CacheSurfaceHit_asm486 (NULL, 17, 23, &texture,
+			lightadj);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+
+	cache.dlight = 1;
+	c_result = D_CacheSurfaceHit_C (&cache, 17, 23, &texture, lightadj);
+	asm_result = D_CacheSurfaceHit_asm486 (&cache, 17, 23, &texture,
+			lightadj);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+	cache.dlight = 0;
+
+	c_result = D_CacheSurfaceHit_C (&cache, 23, 23, &texture, lightadj);
+	asm_result = D_CacheSurfaceHit_asm486 (&cache, 23, 23, &texture,
+			lightadj);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+
+	c_result = D_CacheSurfaceHit_C (&cache, 17, 23, &other_texture, lightadj);
+	asm_result = D_CacheSurfaceHit_asm486 (&cache, 17, 23, &other_texture,
+			lightadj);
+	if (c_result != expected || asm_result != expected)
+		bench486_memory_failures++;
+
+	for (i=0 ; i<MAXLIGHTMAPS ; i++)
+	{
+		other_lightadj[i] = lightadj[i] + 1;
+		c_result = D_CacheSurfaceHit_C (&cache, 17, 23, &texture,
+				other_lightadj);
+		asm_result = D_CacheSurfaceHit_asm486 (&cache, 17, 23, &texture,
+				other_lightadj);
+		if (c_result != expected || asm_result != expected)
+			bench486_memory_failures++;
+		other_lightadj[i] = lightadj[i];
+	}
+
+	Bench486SurfaceCacheTimingCase ("hit", &cache, 17, 23, &texture,
+			lightadj, true);
+	Bench486SurfaceCacheTimingCase ("miss-texture", &cache, 17, 23,
+			&other_texture, lightadj, false);
+	cache.dlight = 1;
+	Bench486SurfaceCacheTimingCase ("miss-cache-dlight", &cache, 17, 23,
+			&texture, lightadj, false);
+	cache.dlight = 0;
+}
+
+static double Bench486MeasureMip (bench486_mip_fn_t function, float scale,
+		int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+	unsigned result_sum;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (scale);
+
+	start = Sys_FloatTime ();
+	result_sum = 0;
+	for (i=0 ; i<iterations ; i++)
+		result_sum += (unsigned)function (scale);
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = result_sum;
+	bench486_sink ^= result_sum;
+	return elapsed;
+}
+
+static void Bench486MipCase (char *name, float scale)
+{
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned expected, c_checksum, asm_checksum;
+	int c_result, asm_result;
+	int sample;
+
+	expected = (unsigned)D_MipLevelForScale_C (scale);
+	c_result = D_MipLevelForScale_C (scale);
+	asm_result = D_MipLevelForScale_asm486 (scale);
+	if ((unsigned)c_result != expected || (unsigned)asm_result != expected)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("mip %s correctness FAIL scale %.6f expected %u c %d asm %d\n",
+				name, scale, expected, c_result, asm_result);
+		return;
+	}
+
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		/* Alternate order to expose first-run cache or emulator bias. */
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureMip (D_MipLevelForScale_C,
+					scale, BENCH486_MIP_ITERATIONS, &c_checksum);
+			asm_samples[sample] = Bench486MeasureMip(
+					D_MipLevelForScale_asm486, scale,
+					BENCH486_MIP_ITERATIONS, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureMip(
+					D_MipLevelForScale_asm486, scale,
+					BENCH486_MIP_ITERATIONS, &asm_checksum);
+			c_samples[sample] = Bench486MeasureMip (D_MipLevelForScale_C,
+					scale, BENCH486_MIP_ITERATIONS, &c_checksum);
+		}
+
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("mip %s checksum correctness FAIL\n", name);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("mip %s scale %.6f expected %u iterations %d samples %d\n",
+			name, scale, expected, BENCH486_MIP_ITERATIONS,
+			BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			c_median, c_samples[0], c_samples[1], c_samples[2],
+			c_samples[3], c_samples[4]);
+	Bench486Printf ("  asm486 median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			asm_median, asm_samples[0], asm_samples[1], asm_samples[2],
+			asm_samples[3], asm_samples[4]);
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486MipCases (void)
+{
+	float saved_scalemip[3];
+	int saved_minmip;
+	int i;
+
+	for (i=0 ; i<3 ; i++)
+		saved_scalemip[i] = d_scalemip[i];
+	saved_minmip = d_minmip;
+
+	/* bench486 runs before a map view initializes these renderer thresholds. */
+	d_scalemip[0] = 1.0;
+	d_scalemip[1] = 0.4;
+	d_scalemip[2] = 0.2;
+	d_minmip = 0;
+	Bench486MipCase ("above-mip0", d_scalemip[0] + 0.1);
+	Bench486MipCase ("at-mip0", d_scalemip[0]);
+	Bench486MipCase ("between-mip0-mip1",
+			(d_scalemip[0] + d_scalemip[1]) * 0.5);
+	Bench486MipCase ("at-mip1", d_scalemip[1]);
+	Bench486MipCase ("between-mip1-mip2",
+			(d_scalemip[1] + d_scalemip[2]) * 0.5);
+	Bench486MipCase ("at-mip2", d_scalemip[2]);
+	Bench486MipCase ("below-mip2", d_scalemip[2] - 0.1);
+	d_minmip = 2;
+	Bench486MipCase ("clamped-minmip", d_scalemip[0] - 0.1);
+
+	for (i=0 ; i<3 ; i++)
+		d_scalemip[i] = saved_scalemip[i];
+	d_minmip = saved_minmip;
+}
+
 static void Bench486LineCase (char *name, int iterations,
 		fixed8_t startu, fixed8_t startv, fixed8_t endu, fixed8_t endv)
 {
@@ -1424,6 +2033,23 @@ static void Bench486_f (void)
 		Con_Printf ("bench486: could not create bench486.txt\n");
 
 	Bench486Printf ("486 benchmark begin\n");
+	if (COM_CheckParm ("-benchturbulent"))
+	{
+		Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
+		Bench486Printf ("the current and optional STOSB 486 sequential-store loop\n");
+		Bench486TurbulentCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	Bench486Printf ("memory experiment compares existing C helpers with\n");
 	Bench486Printf ("separate forward-copy and byte-fill 486 assembly paths\n");
 	Bench486MemoryCase ("copy-1", 1, 250000, false, 0, 0);
@@ -1445,6 +2071,18 @@ static void Bench486_f (void)
 	Bench486MemoryCase ("set-255-unaligned", 255, 250000, true, 0, 1);
 	Bench486MemoryCase ("set-zero", 0, 250000, true, 0, 0);
 	Bench486MemoryCase ("set-negative", -1, 250000, true, 0, 0);
+	Bench486Printf ("texture-axis experiment compares the C cache-key probe with\n");
+	Bench486Printf ("the isolated 486 assembly fast-hit/miss probe\n");
+	Bench486TextureAxisCase ();
+	Bench486Printf ("surface-cache experiment compares the C cache-validity predicate\n");
+	Bench486Printf ("with the isolated 486 assembly fast-hit/miss predicate\n");
+	Bench486SurfaceCacheCase ();
+	Bench486Printf ("mip-level experiment compares the C threshold selector with\n");
+	Bench486Printf ("the isolated 486 x87 threshold selector\n");
+	Bench486MipCases ();
+	Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
+	Bench486Printf ("the current and optional STOSB 486 sequential-store loop\n");
+	Bench486TurbulentCases ();
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();

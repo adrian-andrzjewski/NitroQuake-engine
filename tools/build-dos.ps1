@@ -8,6 +8,16 @@ param(
     [string]$OptimizationProfile = 'baseline',
     [ValidateSet(64, 128, 256)]
     [int]$TextureAxisCacheEntries = 256,
+    [ValidateSet('c', 'asm')]
+    [string]$TextureAxisImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceCacheImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MipLevelImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MemoryImplementation = 'c',
+    [ValidateSet('c', 'asm', 'stosb')]
+    [string]$TurbulentImplementation = 'stosb',
     [string]$ToolRoot
 )
 
@@ -55,6 +65,24 @@ if ($OptimizationProfile -eq 'aggressive') {
 if ($TextureAxisCacheEntries -ne 256) {
     $profileSuffixParts += "cache$TextureAxisCacheEntries"
 }
+if ($MemoryImplementation -eq 'asm') {
+    $profileSuffixParts += 'memasm'
+}
+if ($TextureAxisImplementation -eq 'asm') {
+    $profileSuffixParts += 'axisasm'
+}
+if ($SurfaceCacheImplementation -eq 'asm') {
+    $profileSuffixParts += 'surfaceasm'
+}
+if ($MipLevelImplementation -eq 'asm') {
+    $profileSuffixParts += 'mipasm'
+}
+if ($TurbulentImplementation -eq 'c') {
+    $profileSuffixParts += 'turbc'
+}
+elseif ($TurbulentImplementation -eq 'asm') {
+    $profileSuffixParts += 'turbasm'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -97,10 +125,16 @@ $includedCSources = @('net_comx.c')
 $cSources = @($allCSources | Where-Object { $_.Name -notin $includedCSources })
 $allAsmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File | Sort-Object Name)
 $asmSources = @($allAsmSources | Where-Object {
-	$Benchmark -or $_.Name -ne 'asm486_experiments.s'
+	$Benchmark -or $MemoryImplementation -eq 'asm' -or
+		$TextureAxisImplementation -eq 'asm' -or
+		$SurfaceCacheImplementation -eq 'asm' -or
+		$MipLevelImplementation -eq 'asm' -or
+		$_.Name -ne 'asm486_experiments.s'
 })
 $allSources = @($cSources + $asmSources)
-$expectedAssemblySourceCount = if ($Benchmark) { 21 } else { 20 }
+$expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm' -or
+	$TextureAxisImplementation -eq 'asm' -or $SurfaceCacheImplementation -eq 'asm' -or
+	$MipLevelImplementation -eq 'asm') { 21 } else { 20 }
 if (($allCSources.Count -ne 83) -or ($cSources.Count -ne 82) -or
 	($allAsmSources.Count -ne 21) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {
     throw "Expected 83 retained C sources (82 standalone), 21 total assembly sources, and $expectedAssemblySourceCount active assembly sources, found $($allCSources.Count) C ($($cSources.Count) standalone), $($allAsmSources.Count) total assembly, and $($asmSources.Count) active assembly."
@@ -136,6 +170,21 @@ try {
     if ($Benchmark) {
         $cFlags += '-DBENCH486'
     }
+    if ($MemoryImplementation -eq 'asm') {
+        $cFlags += '-DASM486_RUNTIME_MEMOPS'
+    }
+    if ($TextureAxisImplementation -eq 'asm') {
+        $cFlags += '-DASM486_TEXTURE_AXIS_CACHE'
+    }
+    if ($SurfaceCacheImplementation -eq 'asm') {
+        $cFlags += '-DASM486_SURFACE_CACHE_CHECK'
+    }
+    if ($MipLevelImplementation -eq 'asm') {
+        $cFlags += '-DASM486_MIP_LEVEL'
+    }
+    if ($TurbulentImplementation -eq 'c') {
+        $cFlags += '-DASM486_TURBULENT_C'
+    }
     if ($Instrumentation) {
         $cFlags += '-DPROFILE486'
     }
@@ -148,6 +197,9 @@ try {
     )
     if ($Instrumentation) {
         $asmFlags += '-DPROFILE486'
+    }
+    if ($TurbulentImplementation -eq 'stosb') {
+        $asmFlags += '-DASM486_TURBULENT_STOSB'
     }
     $objects = @()
 
@@ -197,6 +249,11 @@ try {
         assemblySourceCount = $asmSources.Count
         benchmarkBuild = [bool]$Benchmark
         profileBuild = [bool]$Instrumentation
+        memoryImplementation = $MemoryImplementation
+        textureAxisImplementation = $TextureAxisImplementation
+        surfaceCacheImplementation = $SurfaceCacheImplementation
+        mipLevelImplementation = $MipLevelImplementation
+        turbulentImplementation = $TurbulentImplementation
         optimizationProfile = $OptimizationProfile
         optimizationLevel = $optimizationLevel
         textureAxisCacheEntries = $TextureAxisCacheEntries
