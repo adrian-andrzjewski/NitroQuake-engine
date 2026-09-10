@@ -4,6 +4,10 @@ This checkout builds the retained WinQuake MS-DOS/software-renderer source
 directly from Windows 10.  The compiler is a Windows-hosted DJGPP cross
 toolchain; DOSBox-X is used only to run the resulting DOS executable.
 
+The experimental status and next-agent continuation plan are maintained in
+`ASM486-HANDOFF.md`.  This document is the operational reference for building,
+running, benchmarking, and interpreting the results.
+
 The bootstrapper installs both tools in:
 
 ~~~text
@@ -30,8 +34,11 @@ out\dos\quake.exe
 ~~~
 
 The default normal build uses all 83 C files and 21 preprocessed x86 assembly
-files in WinQuake, including the selected texture-animation and lightmap
-normalization experiments.  net_comx.c is
+files in WinQuake.  Its `baseline` profile is `-O2 -march=i486` with the
+measured ASM paths enabled for alias projection, alias bounding-box projection,
+clipped alias transform/lighting, texture animation, and lightmap
+normalization; the turbulent loop uses the measured `stosb` variant.  The
+remaining experimental selectors stay on their C references.  net_comx.c is
 textually included by net_ser.c, so the build compiles 82 standalone C files
 and obtains the remaining C implementation through that include.  Object files
 and a generated build-manifest.json remain under out\dos, which is ignored by
@@ -226,6 +233,26 @@ code and a Quake exit marker.  The staged runtime uses the normal Quake layout:
 `quake.exe`, `cwsdpmi.exe`, and the `id1` directory are siblings under the
 mounted `quake` directory.  Use -DataRoot to point at another local data
 directory, or -SkipBuild when the executable is already available.
+The generated smoke configuration pins the same dynamic `486` core and fixed
+33445 cycles used by the timedemo profile.  It intentionally uses 16 MB; on
+this host, DOSBox-X opened its folder chooser with the otherwise-valid 32 MB
+setting.  The memory choice is a compatibility setting, not a performance
+claim.
+
+For interactive play, use the same mounted directory and omit the timedemo
+commands.  The following starts the current default build with sound, joystick,
+mouse, and CD audio disabled:
+
+~~~powershell
+$dosbox = Join-Path $env:LOCALAPPDATA '486quake\tools\dosbox-x-2026.08.31\dosbox-x.exe'
+$profile = (Resolve-Path '.\tools\dosbox-x-486-high.conf').Path
+$mount = (Resolve-Path '.\out\dos-smoke').Path.Replace('\', '/')
+& $dosbox -conf $profile `
+  -c ('mount c "' + $mount + '"') `
+  -c 'c:' `
+  -c 'cd \quake' `
+  -c 'quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio'
+~~~
 
 ## 486-class timedemo
 
@@ -253,10 +280,11 @@ The built-in `demo1.dem`, `demo2.dem`, and `demo3.dem` are in the supplied
 Quake data.  Replace `demo1` with either other name to repeat the test.  The
 result is printed in the Quake console as frames, seconds, and FPS.
 
-### Reference baseline
+### Historical pre-experiment reference
 
 The earlier reported **14 FPS** (rounded) is reproducible on the pinned
-profile.  A three-run raw `demo1` reference measurement on 2026-09-09
+profile.  A three-run raw `demo1` reference measurement on 2026-09-09, before
+the currently selected ASM paths were promoted,
 produced 969 frames per run and a median of **13.995834 FPS** (`69.234885`
 seconds for the median run).
 The runs used `qbench.exe`, the default `baseline` optimization profile,
@@ -283,6 +311,23 @@ comparisons; the rich result is the authority for frame-time consistency.
 For an odd number of runs, the runner selects the middle sorted sample.  Older
 generated JSON records may contain the highest sample in `medianFps`; use the
 individual `results` entries when auditing those records.
+
+### Current committed default baseline
+
+The current default (`baseline`, all measured default selectors, and the same
+486 profile) completed three `demo1` runs at
+`68.958781 / 68.958804 / 68.958785` seconds, with a median of **14.051872
+FPS**.  Every run completed 969 frames and produced framebuffer checksum
+`4154140932`.  Treat this as the current comparison baseline; the older
+13.995834 FPS value above is retained only to show progress from the original
+reference.
+
+A final validation rerun on 2026-09-10 measured
+`69.566415 / 68.958835 / 68.958777` seconds, with a median of **14.051862
+FPS**.  It also completed 969 frames with checksum `4154140932` on every run.
+The first run was a run-to-run outlier; the median remains consistent with the
+controlled baseline above.  Its report is
+`out\dos-timedemo-20260910-215301\timedemo-result.json`.
 
 ### Measured texture-span change
 
@@ -445,12 +490,11 @@ The focused benchmark can select each implementation independently:
   -DataRoot 'C:\path\to\Quake\id1'
 ~~~
 
-Individual C/ASM implementation switches can be omitted; the existing probes
-default to `c`; the turbulent selector defaults to the measured `stosb` path,
-and the alias projection, alias bounding-box projection, alias-transform-final,
-texture-animation, and lightmap-normalization selectors default to their
-measured `asm` paths;
-the BSP plane-dot and BSP clip selectors default to their C paths.  Pass
+Individual implementation switches can be omitted.  The defaults are C for
+memory helpers, texture-axis, surface-cache, mip-level selection, BSP plane
+dot, and BSP clipping; `stosb` for turbulent spans; and ASM for alias
+projection, alias bounding-box projection, clipped alias transform/lighting,
+texture animation, and lightmap normalization.  Pass
 `-TurbulentImplementation asm` for the existing ASM control.  The runner
 records all twelve selections in `bench-result.json` and uses a matching output
 directory suffix.  Use `-TurbulentOnly`, `-AliasProjectOnly`,
@@ -945,11 +989,11 @@ checksum `4154140932`:
 
 | Variant | Timedemo seconds, three runs | Median FPS |
 | --- | --- | ---: |
-| C reference helper | 69.062941 / 69.062989 / 69.062959 | 14.030676 |
+| C reference helper | 69.063022 / 69.062948 / 69.062989 | 14.030670 |
 | ASM helper | 68.958781 / 68.958804 / 68.958785 | 14.051872 |
 
-The ASM helper is 104.174 ms faster per timedemo, or 0.1508%.  The gain is
-consistent across both three-run groups and comes from removing repeated byte
+The ASM helper is 104.204 ms faster per timedemo, or 0.150883%.  The gain is
+consistent across the three runs and comes from removing repeated byte
 loads and C-generated temporary traffic while using the same x87 arithmetic;
 the function call boundary is shared by both variants.  This is a measured
 end-to-end win, so the ASM path is now the default, while
@@ -957,7 +1001,7 @@ end-to-end win, so the ASM path is now the default, while
 matched A/B runs.
 
 The timedemo results are
-`out\dos-timedemo-20260910-210457\timedemo-result.json` and
+`out\dos-timedemo-20260910-211835\timedemo-result.json` and
 `out\dos-timedemo-20260910-211109\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
@@ -975,9 +1019,10 @@ variant is available for comparison and is written beside the default build:
 On the same pinned `demo1` measurement, this profile reached a **14.122 FPS**
 median (14.121687 FPS; `68.617862` seconds for the median run) versus
 **13.917 FPS** for `baseline` (13.917069 FPS),
-about 1.5% faster.  It remains
-an opt-in comparison build; no visual-quality switch or newer CPU instruction
-set is enabled.
+about 1.5% faster.  This is an earlier comparison from before the latest
+default ASM selections were promoted, so rerun it before using it as a current
+compiler-profile result.  It remains an opt-in comparison build; no
+visual-quality switch or newer CPU instruction set is enabled.
 
 Use `-Instrumentation` with `-Benchmark` to build `out\dos-profile\qprof.exe`
 and collect the hierarchical renderer profile through the timedemo runner:
@@ -1061,7 +1106,8 @@ and vertices, particles, presented rectangles/pixels, and sound updates/mixes.
 That keeps the hot recursive paths lightweight while still explaining their
 cost.
 
-A matched 2026-09-10 diagnostic comparison measured the instrumented profile
+A matched 2026-09-10 diagnostic snapshot, collected before the clipped alias
+transform promotion, measured the instrumented profile
 at `77.017236` seconds and the raw release timedemo at `69.162451` seconds, an
 estimated **11.36% profiling overhead**.  The profile run also used 520,782
 profile timer reads plus 1,939 frame-statistics timer reads, reached stack
@@ -1104,7 +1150,11 @@ the selected tool root.
 ## Scope and limitations
 
 - No Quake data, DOSBox-X binaries, DJGPP binaries, or build output is tracked.
+  The ignored `out\` tree is disposable; historical report paths in this file
+  document prior evidence but may not exist after cleanup or on a fresh clone.
 - The historical q.bat, qa.bat, qb.bat, and qt.bat launchers are kept;
   the new smoke runner supplies a deterministic local staging layout instead.
 - A successful host build proves compilation and linking.  The DOSBox-X smoke
   test is required before claiming runtime functionality.
+- Timedemo checksum equality covers the recorded framebuffer only; it does not
+  establish full visual, audio, gameplay, or physical-486 parity.
