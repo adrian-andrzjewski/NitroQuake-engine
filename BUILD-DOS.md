@@ -29,9 +29,10 @@ The executable is written to:
 out\dos\quake.exe
 ~~~
 
-The normal build uses all 83 C files and 20 preprocessed x86 assembly files in
-WinQuake.  The isolated `-Benchmark` build adds the experiment
-`asm486_experiments.s` file as its 21st assembly source.  net_comx.c is
+The default normal build uses all 83 C files and 21 preprocessed x86 assembly
+files in WinQuake, including the selected texture-animation experiment.  The
+explicit C control build omits the isolated `asm486_experiments.s` file and
+uses 20 assembly sources.  net_comx.c is
 textually included by net_ser.c, so the build compiles 82 standalone C files
 and obtains the remaining C implementation through that include.  Object files
 and a generated build-manifest.json remain under out\dos, which is ignored by
@@ -117,6 +118,20 @@ The alias-model projection helper is independently selectable with
 reference implementation and writes to `out\dos-aliasc`.  The ASM path keeps
 the original x87 arithmetic and truncating conversions, but holds the x87
 truncation mode across all three stores in `R_AliasProjectFinalVert`.
+
+The animated-texture frame-selection loop is independently selectable with
+`-TextureAnimationImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -TextureAnimationImplementation c
+.\tools\build-dos.ps1 -Benchmark -TextureAnimationImplementation asm
+~~~
+
+`asm` is the measured target default and uses `out\dos`; `c` is the
+reference/control implementation and uses `out\dos-textureanimc`.  Only the
+pointer/branch loop is replaced.  Alternate-animation selection, the
+no-animation fast path, relative-time calculation, and error handling remain
+in C.
 
 ## Runtime smoke test
 
@@ -353,13 +368,13 @@ The focused benchmark can select each implementation independently:
 ~~~
 
 Individual C/ASM implementation switches can be omitted; the existing probes
-default to `c`.  The turbulent selector defaults to the measured `stosb` path,
-and the
-alias projection selector defaults to the measured `asm` path; pass
-`-TurbulentImplementation asm` for the existing ASM control.  The runner
-records all six selections in `bench-result.json` and uses a matching output
-directory suffix.  Use `-TurbulentOnly` or `-AliasProjectOnly` to run only the
-corresponding focused experiment instead of the longer general matrix.
+default to `c`; the turbulent selector defaults to the measured `stosb` path,
+and the alias projection and texture-animation selectors default to their
+measured `asm` paths.  Pass `-TurbulentImplementation asm` for the existing ASM
+control.  The runner records all seven selections in `bench-result.json` and
+uses a matching output directory suffix.  Use `-TurbulentOnly`,
+`-AliasProjectOnly`, or `-TextureAnimationOnly` to run only the corresponding
+focused experiment instead of the longer general matrix.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;
@@ -612,6 +627,45 @@ The ASM implementation is now the target default, while
 `-AliasProjectImplementation c` remains the reversible reference/control.
 The matched timedemo results are `out\dos-timedemo-20260910-170850\timedemo-result.json`
 and `out\dos-timedemo-20260910-171246\timedemo-result.json`.
+
+### Texture-animation frame-selection result
+
+This experiment kept alternate-animation selection, the no-animation fast
+path, relative-time calculation, and error handling in C.  It replaced only
+the loop that follows `anim_next` until `anim_min <= relative < anim_max`.
+The ASM loop keeps the current texture pointer, relative phase, and traversal
+count in registers and uses the 486's simple integer compare/branch path.
+
+The focused benchmark used five alternating samples of 500,000 calls per
+case.  Correctness checked every relative phase from every starting node in
+2-, 4-, and 8-frame synthetic cycles:
+
+| Case | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: |
+| 2-frame first | 0.373801 s | 0.254188 s | 31.999% |
+| 4-frame middle | 0.672833 s | 0.583126 s | 13.333% |
+| 8-frame tail | 1.420422 s | 1.405472 s | 1.052% |
+| 8-frame wrap | 0.493414 s | 0.388750 s | 21.212% |
+
+Both runs ended with `486 benchmark correctness PASS`.  The focused reports
+are `out\dos-bench-20260910-173504\bench-result.json` and
+`out\dos-bench-20260910-173545\bench-result.json`.
+
+Matched three-run `demo1` timedemos used DOSBox-X 2026.08.31, `cputype=486`,
+fixed 33445 cycles, the baseline `-O2 -march=i486` build, and the same staged
+`id1` data.  Every run completed 969 frames with framebuffer checksum
+`4154140932`:
+
+| Variant | Timedemo seconds, three runs | Median FPS |
+| --- | --- | ---: |
+| C reference | 69.106714 / 69.106726 / 69.106788 | 14.021790 |
+| ASM frame loop | 69.100226 / 69.100204 / 69.100272 | 14.023109 |
+
+ASM is 6.500 ms faster per timedemo, or 0.009406%.  The improvement is small
+but repeatable on the pinned profile, so ASM is now the controlled default;
+`-TextureAnimationImplementation c` remains the explicit reference/control
+build.  The timedemo results are `out\dos-timedemo-20260910-173632\timedemo-result.json`
+and `out\dos-timedemo-20260910-174027\timedemo-result.json`.
 
 ### Optimization profiles and instrumentation
 

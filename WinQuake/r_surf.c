@@ -205,6 +205,32 @@ void R_BuildLightMap (void)
 
 /*
 ===============
+R_TextureAnimationFrame_C
+
+Reference frame-selection loop.  Keep this separate so the compact ASM
+experiment can be compared without changing the animation setup or timing
+calculation around it.
+===============
+*/
+texture_t *R_TextureAnimationFrame_C (texture_t *base, int relative)
+{
+	int		count;
+
+	count = 0;	
+	while (base->anim_min > relative || base->anim_max <= relative)
+	{
+		base = base->anim_next;
+		if (!base)
+			Sys_Error ("R_TextureAnimation: broken cycle");
+		if (++count > 100)
+			Sys_Error ("R_TextureAnimation: infinite cycle");
+	}
+
+	return base;
+}
+
+/*
+===============
 R_TextureAnimation
 
 Returns the proper texture for a given time and base texture
@@ -213,7 +239,6 @@ Returns the proper texture for a given time and base texture
 texture_t *R_TextureAnimation (texture_t *base)
 {
 	int		reletive;
-	int		count;
 
 	if (currententity->frame)
 	{
@@ -226,17 +251,11 @@ texture_t *R_TextureAnimation (texture_t *base)
 
 	reletive = (int)(cl.time*10) % base->anim_total;
 
-	count = 0;	
-	while (base->anim_min > reletive || base->anim_max <= reletive)
-	{
-		base = base->anim_next;
-		if (!base)
-			Sys_Error ("R_TextureAnimation: broken cycle");
-		if (++count > 100)
-			Sys_Error ("R_TextureAnimation: infinite cycle");
-	}
-
-	return base;
+#if defined(ASM486_TEXTURE_ANIMATION) && id386
+	return R_TextureAnimationFrame_asm486 (base, reletive);
+#else
+	return R_TextureAnimationFrame_C (base, reletive);
+#endif
 }
 
 

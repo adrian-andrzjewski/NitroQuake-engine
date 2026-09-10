@@ -21,6 +21,8 @@ param(
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$TextureAnimationImplementation = 'asm',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -78,6 +80,9 @@ elseif ($TurbulentImplementation -eq 'asm') {
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
+if ($TextureAnimationImplementation -eq 'c') {
+    $profileSuffixParts += 'textureanimc'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -118,6 +123,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-MemoryImplementation', $MemoryImplementation,
         '-TurbulentImplementation', $TurbulentImplementation,
         '-AliasProjectImplementation', $AliasProjectImplementation,
+        '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-ToolRoot', $ToolRoot)
     if ($Instrumentation) {
         $buildArgs += '-Instrumentation'
@@ -410,6 +416,7 @@ $result = [ordered]@{
     turbulentImplementation = $TurbulentImplementation
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
+    textureAnimationImplementation = $TextureAnimationImplementation
     instrumentation = [bool]$Instrumentation
     frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot

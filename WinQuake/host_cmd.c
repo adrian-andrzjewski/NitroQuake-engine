@@ -1223,6 +1223,7 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_TURBULENT_SAMPLES	5
 #define BENCH486_TURBULENT_ITERATIONS	50000
 #define BENCH486_ALIAS_PROJECT_ITERATIONS	100000
+#define BENCH486_TEXTURE_ANIMATION_ITERATIONS	500000
 
 typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
 typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
@@ -1233,6 +1234,8 @@ typedef void *(*bench486_surface_cache_fn_t) (void *cache,
 typedef int (*bench486_mip_fn_t) (float scale);
 typedef void (*bench486_turbulent_fn_t) (void);
 typedef void (*bench486_alias_project_fn_t) (finalvert_t *fv, auxvert_t *av);
+typedef texture_t *(*bench486_texture_animation_fn_t) (texture_t *base,
+		int relative);
 
 static int bench486_turbulent_table[128];
 
@@ -1686,6 +1689,142 @@ static void Bench486AliasProjectCases (void)
 	aliasyscale = saved_yscale;
 	aliasxcenter = saved_xcenter;
 	aliasycenter = saved_ycenter;
+}
+
+static double Bench486MeasureTextureAnimation (
+		bench486_texture_animation_fn_t function, texture_t *base,
+		int relative, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	texture_t *result;
+	unsigned result_sum;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (base, relative);
+
+	start = Sys_FloatTime ();
+	result_sum = 0;
+	for (i=0 ; i<iterations ; i++)
+	{
+		result = function (base, relative);
+		result_sum += (unsigned)result->anim_min;
+		result_sum += (unsigned)result->anim_max;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = result_sum;
+	bench486_sink ^= result_sum;
+	return elapsed;
+}
+
+static void Bench486TextureAnimationCase (char *name, int frames,
+		int base_index, int relative)
+{
+	texture_t textures[8];
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	texture_t *c_result, *asm_result;
+	int i, sample, test_relative;
+
+	Q_memset (textures, 0, sizeof(textures));
+	for (i=0 ; i<frames ; i++)
+	{
+		textures[i].anim_total = frames * 2;
+		textures[i].anim_min = i * 2;
+		textures[i].anim_max = (i + 1) * 2;
+		textures[i].anim_next = &textures[(i + 1) % frames];
+	}
+
+	/* Check every frame interval from every possible starting node. */
+	for (i=0 ; i<frames ; i++)
+	{
+		for (test_relative=0 ; test_relative<frames*2 ; test_relative++)
+		{
+			c_result = R_TextureAnimationFrame_C (&textures[i],
+					test_relative);
+			asm_result = R_TextureAnimationFrame_asm486 (&textures[i],
+					test_relative);
+			if (c_result != asm_result)
+			{
+				bench486_memory_failures++;
+				Bench486Printf ("texture-animation %s correctness FAIL base %d relative %d\n",
+						name, i, test_relative);
+				return;
+			}
+		}
+	}
+
+	c_result = R_TextureAnimationFrame_C (&textures[base_index], relative);
+	asm_result = R_TextureAnimationFrame_asm486 (&textures[base_index], relative);
+	if (c_result != asm_result)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("texture-animation %s selected-frame correctness FAIL\n",
+				name);
+		return;
+	}
+
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureTextureAnimation (
+					R_TextureAnimationFrame_C, &textures[base_index], relative,
+					BENCH486_TEXTURE_ANIMATION_ITERATIONS, &c_checksum);
+			asm_samples[sample] = Bench486MeasureTextureAnimation (
+					R_TextureAnimationFrame_asm486, &textures[base_index], relative,
+					BENCH486_TEXTURE_ANIMATION_ITERATIONS, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureTextureAnimation (
+					R_TextureAnimationFrame_asm486, &textures[base_index], relative,
+					BENCH486_TEXTURE_ANIMATION_ITERATIONS, &asm_checksum);
+			c_samples[sample] = Bench486MeasureTextureAnimation (
+					R_TextureAnimationFrame_C, &textures[base_index], relative,
+					BENCH486_TEXTURE_ANIMATION_ITERATIONS, &c_checksum);
+		}
+
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("texture-animation %s checksum correctness FAIL\n",
+					name);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ?
+			(c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("texture-animation %s frames %d base %d relative %d iterations %d samples %d\n",
+			name, frames, base_index, relative,
+			BENCH486_TEXTURE_ANIMATION_ITERATIONS, BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec checksum %u samples",
+			c_median, c_checksum);
+	for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+		Bench486Printf (" %.6f", c_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486 median %.6f sec checksum %u samples",
+			asm_median, asm_checksum);
+	for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+		Bench486Printf (" %.6f", asm_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486TextureAnimationCases (void)
+{
+	Bench486TextureAnimationCase ("2frame-first", 2, 0, 0);
+	Bench486TextureAnimationCase ("4frame-middle", 4, 0, 4);
+	Bench486TextureAnimationCase ("8frame-tail", 8, 0, 14);
+	Bench486TextureAnimationCase ("8frame-wrap", 8, 7, 0);
 }
 
 static double Bench486MeasureTextureAxis (bench486_texture_axis_fn_t function,
@@ -2190,6 +2329,23 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchtextureanimation"))
+	{
+		Bench486Printf ("texture-animation experiment compares the C frame loop\n");
+		Bench486Printf ("with a register-only 486 pointer/branch loop\n");
+		Bench486TextureAnimationCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchturbulent"))
 	{
 		Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
@@ -2240,6 +2396,9 @@ static void Bench486_f (void)
 	Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
 	Bench486Printf ("the current and optional STOSB 486 sequential-store loop\n");
 	Bench486TurbulentCases ();
+	Bench486Printf ("texture-animation experiment compares the C frame loop with\n");
+	Bench486Printf ("the register-only 486 pointer/branch loop\n");
+	Bench486TextureAnimationCases ();
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();

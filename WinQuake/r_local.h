@@ -138,6 +138,10 @@ void R_SetSkyFrame (void);
 void R_DrawSurfaceBlock16 (void);
 void R_DrawSurfaceBlock8 (void);
 texture_t *R_TextureAnimation (texture_t *base);
+texture_t *R_TextureAnimationFrame_C (texture_t *base, int relative);
+#if id386
+texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
+#endif
 
 #if	id386
 

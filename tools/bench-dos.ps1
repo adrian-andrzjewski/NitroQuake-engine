@@ -20,8 +20,11 @@ param(
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$TextureAnimationImplementation = 'asm',
     [switch]$TurbulentOnly,
     [switch]$AliasProjectOnly,
+    [switch]$TextureAnimationOnly,
     [int]$TimeoutSeconds = 180
 )
 
@@ -74,6 +77,9 @@ elseif ($TurbulentImplementation -eq 'asm') {
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
+if ($TextureAnimationImplementation -eq 'c') {
+    $profileSuffixParts += 'textureanimc'
+}
 $profileSuffix = if ($profileSuffixParts.Count) {
     '-' + ($profileSuffixParts -join '-')
 }
@@ -110,6 +116,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-MemoryImplementation', $MemoryImplementation,
         '-TurbulentImplementation', $TurbulentImplementation,
         '-AliasProjectImplementation', $AliasProjectImplementation,
+        '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-ToolRoot', $ToolRoot)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
@@ -145,6 +152,9 @@ Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -For
 
 $benchCommand = if ($AliasProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
+}
+elseif ($TextureAnimationOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchtextureanimation -benchexit'
 }
 elseif ($TurbulentOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchturbulent -benchexit'
@@ -239,8 +249,10 @@ $result = [ordered]@{
     memoryImplementation = $MemoryImplementation
     turbulentImplementation = $TurbulentImplementation
     aliasProjectImplementation = $AliasProjectImplementation
+    textureAnimationImplementation = $TextureAnimationImplementation
     turbulentOnly = [bool]$TurbulentOnly
     aliasProjectOnly = [bool]$AliasProjectOnly
+    textureAnimationOnly = [bool]$TextureAnimationOnly
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     report = $report

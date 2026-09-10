@@ -6,6 +6,14 @@
 
 #include "asm_i386.h"
 
+	.data
+	.align 1
+
+Ltexture_animation_broken:
+	.ascii	"R_TextureAnimation: broken cycle\0"
+Ltexture_animation_infinite:
+	.ascii	"R_TextureAnimation: infinite cycle\0"
+
 	.text
 	.align 4
 
@@ -227,4 +235,46 @@ C(D_MipLevelForScale_asm486):
 	jge	.Lmip_return
 	movl	%edx,%eax
 .Lmip_return:
+	ret
+
+	.align 4
+
+// texture_t *R_TextureAnimationFrame_asm486(texture_t *base, int relative)
+// Select the frame whose [anim_min, anim_max) interval contains relative.
+// The caller handles alternate animations, the no-animation fast path, and
+// the relative-time calculation.  Keep the C loop as the reference path.
+C(R_TextureAnimationFrame_asm486):
+	.globl C(R_TextureAnimationFrame_asm486)
+	movl	4(%esp),%eax		// base
+	movl	8(%esp),%edx		// relative
+	xorl	%ecx,%ecx			// count
+
+.Ltexture_animation_check:
+	cmpl	%edx,28(%eax)		// base->anim_min > relative
+	jg	.Ltexture_animation_next
+	cmpl	%edx,32(%eax)		// base->anim_max <= relative
+	jle	.Ltexture_animation_next
+	ret
+
+.Ltexture_animation_next:
+	movl	36(%eax),%eax		// base->anim_next
+	testl	%eax,%eax
+	jz	.Ltexture_animation_broken
+	incl	%ecx
+	cmpl	$100,%ecx
+	jg	.Ltexture_animation_infinite
+	jmp	.Ltexture_animation_check
+
+.Ltexture_animation_broken:
+	pushl	$Ltexture_animation_broken
+	call	C(Sys_Error)
+	addl	$4,%esp
+	xorl	%eax,%eax
+	ret
+
+.Ltexture_animation_infinite:
+	pushl	$Ltexture_animation_infinite
+	call	C(Sys_Error)
+	addl	$4,%esp
+	xorl	%eax,%eax
 	ret
