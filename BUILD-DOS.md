@@ -29,12 +29,14 @@ The executable is written to:
 out\dos\quake.exe
 ~~~
 
-The build uses all 83 C files and 20 preprocessed x86 assembly files in
-WinQuake.  net_comx.c is textually included by net_ser.c, so the build
-compiles 82 standalone C files and obtains the remaining C implementation
-through that include.  Object files and a generated build-manifest.json remain
-under out\dos, which is ignored by Git.  The linker output is checked with
-the DJGPP objdump and must report coff-go32.
+The normal build uses all 83 C files and 20 preprocessed x86 assembly files in
+WinQuake.  The isolated `-Benchmark` build adds the benchmark-only
+`asm486_experiments.s` file as its 21st assembly source.  net_comx.c is
+textually included by net_ser.c, so the build compiles 82 standalone C files
+and obtains the remaining C implementation through that include.  Object files
+and a generated build-manifest.json remain under out\dos, which is ignored by
+Git.  The linker output is checked with the DJGPP objdump and must report
+coff-go32.
 
 ## Runtime smoke test
 
@@ -243,12 +245,50 @@ directory, then run it in DOSBox-X with the same 486 profile and this command:
 qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchexit
 ~~~
 
-The `bench486` command measures the 486-specific memory, rectangle-fill, and
-alias-edge setup paths.  It prints results to the console and writes
-`bench486.txt` in the Quake directory.  Compare runs using the same DOSBox-X
-version, profile, cycle count, executable mode, and data set.  The benchmark is
-diagnostic evidence for these routines; timedemo FPS remains the end-to-end
-renderer check.
+The `bench486` command compares the existing C `Q_memset`/`Q_memcpy`
+implementations with separate hand-written 486 assembly functions, then also
+measures the existing rectangle-fill and alias-edge setup paths.  It validates
+the complete working region before timing, prints five alternating samples per
+case, and writes `bench486.txt` in the Quake directory.  The matrix covers
+small and large lengths, dword boundaries, aligned buffers, independently
+unaligned buffers, and zero/negative counts.  The assembly experiment is
+benchmark-only; normal `quake.exe` builds do not include its source and the
+runtime still uses the original C helpers.
+
+Compare runs using the same DOSBox-X version, profile, cycle count, executable
+mode, and data set.  The benchmark is diagnostic evidence for these routines;
+timedemo FPS remains the end-to-end renderer check.
+
+### Memory helper experiment result
+
+A matched run on 2026-09-10 used DOSBox-X 2026.08.31, `cputype=486`, fixed
+33445 cycles, the baseline `-O2 -march=i486` build, and the staged `id1`
+payload.  All C and ASM checksums matched and the report ended with
+`486 benchmark correctness PASS`.
+
+The median results show that the assembly is promising but not yet an engine
+integration decision:
+
+| Case | ASM median versus C |
+| --- | ---: |
+| `memcpy`, aligned, 256 bytes | 12.273% faster |
+| `memcpy`, aligned, 1024 bytes | 4.569% faster |
+| `memcpy`, both pointers offset by one, 255 bytes | 8.198% faster |
+| `memcpy`, source offset one/destination offset two, 255 bytes | 64.400% faster |
+| `memset`, aligned, 256 bytes | 15.951% faster |
+| `memset`, aligned, 1024 bytes | 6.104% faster |
+| `memset`, destination offset by one, 255 bytes | 15.810% faster |
+
+The first implementation used a hand-written byte loop for the
+mismatched-alignment copy and was 94.743% slower.  Replacing that fallback
+with 486-compatible `rep movsb` removed the regression.  The remaining gain
+comes from keeping alignment/count handling in one assembly routine and using
+`rep movsl`/`rep stosl` for dword-sized work; this is microbenchmark evidence,
+not proof that every Quake call site benefits.
+
+These functions remain out of the real execution path.  A later integration
+candidate must first identify call-site alignment and size distributions, then
+pass exact framebuffer checks and a matched multi-run `demo1` timedemo.
 
 ### Optimization profiles and instrumentation
 

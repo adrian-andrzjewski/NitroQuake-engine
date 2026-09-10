@@ -170,6 +170,12 @@ $report = Get-Content -LiteralPath $reportPath -Raw
 if ($dosboxExit -ne 0) {
     throw "DOSBox-X benchmark failed with exit code $dosboxExit."
 }
+if ($report -match 'correctness FAIL') {
+    throw "486 microbenchmark correctness validation failed; inspect '$reportPath'."
+}
+if ($report -notmatch '486 benchmark correctness PASS') {
+    throw "486 microbenchmark did not report a correctness pass; inspect '$reportPath'."
+}
 
 $result = [ordered]@{
     dosboxExitCode = $dosboxExit

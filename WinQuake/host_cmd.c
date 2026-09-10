@@ -30,8 +30,10 @@ void Mod_Print (void);
 
 static byte bench486_source[4104];
 static byte bench486_dest[4104];
+static byte bench486_expected[4104];
 static volatile unsigned bench486_sink;
 static int bench486_report_handle;
+static int bench486_memory_failures;
 
 #ifdef PROFILE486
 int bench486_profile_frame_active;
@@ -1182,41 +1184,183 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));
 }
 
-static void Bench486MemoryCase (char *name, int count, int iterations,
-		qboolean set, qboolean unaligned)
+#define BENCH486_MEMORY_SAMPLES	5
+#define BENCH486_MEMORY_WARMUP	32
+
+typedef void (*bench486_memset_fn_t) (void *dest, int fill, int count);
+typedef void (*bench486_memcpy_fn_t) (void *dest, void *src, int count);
+
+static void Bench486SortSamples (double *samples, int count)
 {
-	byte		*source, *dest;
-	int		i;
-	double		start, elapsed, rate;
-	unsigned	checksum;
+	double value;
+	int i, j;
 
-	source = (byte *)(((long)bench486_source + 3) & ~3);
-	dest = (byte *)(((long)bench486_dest + 3) & ~3);
-	if (unaligned)
+	for (i=1 ; i<count ; i++)
 	{
-		source++;
-		dest++;
+		value = samples[i];
+		j = i;
+		while (j > 0 && samples[j-1] > value)
+		{
+			samples[j] = samples[j-1];
+			j--;
+		}
+		samples[j] = value;
 	}
+}
 
-	for (i=0 ; i<4096 ; i++)
-		source[i] = (byte)(i * 17 + 3);
-	Q_memset (dest, 0, count);
+static double Bench486MeasureMemset (bench486_memset_fn_t function,
+		byte *dest, int fill, int count, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	Q_memset (dest, 0xa5, 4096);
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (dest, fill, count);
 
 	start = Sys_FloatTime ();
 	for (i=0 ; i<iterations ; i++)
-	{
-		if (set)
-			Q_memset (dest, i, count);
-		else
-			Q_memcpy (dest, source, count);
-	}
+		function (dest, i, count);
 	elapsed = Sys_FloatTime () - start;
 
-	checksum = Bench486Checksum (dest, count);
-	bench486_sink ^= checksum;
-	rate = elapsed > 0.0 ? (double)iterations / elapsed : 0.0;
-	Bench486Printf ("%s %d bytes %d ops %.3f sec %.0f ops/sec checksum %u\n",
-			name, count, iterations, elapsed, rate, checksum);
+	*checksum = Bench486Checksum (dest, count > 0 ? count : 0);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static double Bench486MeasureMemcpy (bench486_memcpy_fn_t function,
+		byte *dest, byte *source, int count, int iterations,
+		unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	Q_memset (dest, 0xa5, 4096);
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (dest, source, count);
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (dest, source, count);
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = Bench486Checksum (dest, count > 0 ? count : 0);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static void Bench486PrintSamples (char *name, int count, int iterations,
+		qboolean set, int source_offset, int dest_offset, double *c_samples,
+		double *asm_samples, unsigned c_checksum, unsigned asm_checksum)
+{
+	double c_median, asm_median, c_rate, asm_rate, delta;
+	int i;
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	c_rate = c_median > 0.0 ? (double)iterations / c_median : 0.0;
+	asm_rate = asm_median > 0.0 ? (double)iterations / asm_median : 0.0;
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+
+	Bench486Printf ("memory %s %s src-off %d dest-off %d count %d iterations %d samples %d\n",
+			name, set ? "memset" : "memcpy", source_offset, dest_offset,
+			count, iterations, BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec %.0f ops/sec checksum %u samples",
+			c_median, c_rate, c_checksum);
+	for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+		Bench486Printf (" %.6f", c_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486 median %.6f sec %.0f ops/sec checksum %u samples",
+			asm_median, asm_rate, asm_checksum);
+	for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+		Bench486Printf (" %.6f", asm_samples[i]);
+	Bench486Printf ("\n");
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486MemoryCase (char *name, int count, int iterations,
+		qboolean set, int source_offset, int dest_offset)
+{
+	byte		*source, *dest, *expected;
+	int		i, sample;
+	double		c_samples[BENCH486_MEMORY_SAMPLES];
+	double		asm_samples[BENCH486_MEMORY_SAMPLES];
+	unsigned	c_checksum, asm_checksum;
+
+	source = (byte *)(((long)bench486_source + 3) & ~3);
+	dest = (byte *)(((long)bench486_dest + 3) & ~3);
+	expected = (byte *)(((long)bench486_expected + 3) & ~3);
+	source += source_offset;
+	dest += dest_offset;
+	expected += dest_offset;
+
+	for (i=0 ; i<4096 ; i++)
+		source[i] = (byte)(i * 17 + 3);
+
+	/* Compare the complete guarded working region before timing either path. */
+	Q_memset (expected, 0xa5, 4096);
+	Q_memset (dest, 0xa5, 4096);
+	if (set)
+	{
+		Q_memset (expected, 0x1234, count);
+		Q_memset_asm486 (dest, 0x1234, count);
+	}
+	else
+	{
+		Q_memcpy (expected, source, count);
+		Q_memcpy_asm486 (dest, source, count);
+	}
+	if (Q_memcmp (dest, expected, 4096) != 0)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("memory %s %s src-off %d dest-off %d count %d correctness FAIL\n",
+				name, set ? "memset" : "memcpy", source_offset, dest_offset, count);
+		return;
+	}
+
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		/* Alternate order to expose any first-run cache or emulator bias. */
+		if ((sample & 1) == 0)
+		{
+			if (set)
+			{
+				c_samples[sample] = Bench486MeasureMemset (Q_memset,
+						dest, sample, count, iterations, &c_checksum);
+				asm_samples[sample] = Bench486MeasureMemset (Q_memset_asm486,
+						dest, sample, count, iterations, &asm_checksum);
+			}
+			else
+			{
+				c_samples[sample] = Bench486MeasureMemcpy (Q_memcpy,
+						dest, source, count, iterations, &c_checksum);
+				asm_samples[sample] = Bench486MeasureMemcpy (Q_memcpy_asm486,
+						dest, source, count, iterations, &asm_checksum);
+			}
+		}
+		else
+		{
+			if (set)
+			{
+				asm_samples[sample] = Bench486MeasureMemset (Q_memset_asm486,
+						dest, sample, count, iterations, &asm_checksum);
+				c_samples[sample] = Bench486MeasureMemset (Q_memset,
+						dest, sample, count, iterations, &c_checksum);
+			}
+			else
+			{
+				asm_samples[sample] = Bench486MeasureMemcpy (Q_memcpy_asm486,
+						dest, source, count, iterations, &asm_checksum);
+				c_samples[sample] = Bench486MeasureMemcpy (Q_memcpy,
+						dest, source, count, iterations, &c_checksum);
+			}
+		}
+	}
+
+	Bench486PrintSamples (name, count, iterations, set, source_offset, dest_offset,
+			c_samples, asm_samples, c_checksum, asm_checksum);
 }
 
 static void Bench486LineCase (char *name, int iterations,
@@ -1280,13 +1424,32 @@ static void Bench486_f (void)
 		Con_Printf ("bench486: could not create bench486.txt\n");
 
 	Bench486Printf ("486 benchmark begin\n");
-	Bench486MemoryCase ("memcpy-aligned", 256, 250000, false, false);
-	Bench486MemoryCase ("memcpy-unaligned", 255, 250000, false, true);
-	Bench486MemoryCase ("memset-aligned", 256, 250000, true, false);
-	Bench486MemoryCase ("memset-unaligned", 255, 250000, true, true);
+	Bench486Printf ("memory experiment compares existing C helpers with\n");
+	Bench486Printf ("separate forward-copy and byte-fill 486 assembly paths\n");
+	Bench486MemoryCase ("copy-1", 1, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-3", 3, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-zero", 0, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-negative", -1, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-4", 4, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-255", 255, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-256", 256, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-1024", 1024, 100000, false, 0, 0);
+	Bench486MemoryCase ("copy-255-both-unaligned", 255, 250000, false, 1, 1);
+	Bench486MemoryCase ("copy-255-misaligned", 255, 250000, false, 1, 2);
+	Bench486MemoryCase ("set-1", 1, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-3", 3, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-4", 4, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-255", 255, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-256", 256, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-1024", 1024, 100000, true, 0, 0);
+	Bench486MemoryCase ("set-255-unaligned", 255, 250000, true, 0, 1);
+	Bench486MemoryCase ("set-zero", 0, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-negative", -1, 250000, true, 0, 0);
 	Bench486LineCase ("line-small", 500000, -5, 10, 8, 20);
 	Bench486LineCase ("line-large", 500000, 20, 10, 327, 700);
 	Bench486FillCase ();
+	Bench486Printf ("486 benchmark correctness %s\n",
+			bench486_memory_failures ? "FAIL" : "PASS");
 	Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
 
 	if (bench486_report_handle != -1)

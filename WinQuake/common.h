@@ -123,6 +123,10 @@ float MSG_ReadAngle (void);
 
 void Q_memset (void *dest, int fill, int count);
 void Q_memcpy (void *dest, void *src, int count);
+/* Benchmark-only hand-written 486 alternatives.  The runtime continues to
+ * use the C implementations above until an experiment proves a real win. */
+void Q_memset_asm486 (void *dest, int fill, int count);
+void Q_memcpy_asm486 (void *dest, void *src, int count);
 int Q_memcmp (void *m1, void *m2, int count);
 void Q_strcpy (char *dest, char *src);
 void Q_strncpy (char *dest, char *src, int count);

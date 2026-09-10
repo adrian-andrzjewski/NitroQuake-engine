@@ -95,10 +95,15 @@ New-Item -ItemType Directory -Path $objectRoot -Force | Out-Null
 $allCSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.c' -File | Sort-Object Name)
 $includedCSources = @('net_comx.c')
 $cSources = @($allCSources | Where-Object { $_.Name -notin $includedCSources })
-$asmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File | Sort-Object Name)
+$allAsmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File | Sort-Object Name)
+$asmSources = @($allAsmSources | Where-Object {
+	$Benchmark -or $_.Name -ne 'asm486_experiments.s'
+})
 $allSources = @($cSources + $asmSources)
-if (($allCSources.Count -ne 83) -or ($cSources.Count -ne 82) -or ($asmSources.Count -ne 20)) {
-    throw "Expected 83 retained C sources (82 standalone) and 20 assembly sources, found $($allCSources.Count) C ($($cSources.Count) standalone) and $($asmSources.Count) assembly."
+$expectedAssemblySourceCount = if ($Benchmark) { 21 } else { 20 }
+if (($allCSources.Count -ne 83) -or ($cSources.Count -ne 82) -or
+	($allAsmSources.Count -ne 21) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {
+    throw "Expected 83 retained C sources (82 standalone), 21 total assembly sources, and $expectedAssemblySourceCount active assembly sources, found $($allCSources.Count) C ($($cSources.Count) standalone), $($allAsmSources.Count) total assembly, and $($asmSources.Count) active assembly."
 }
 
 $objectNames = @($allSources | ForEach-Object { $_.BaseName + '.obj' })
