@@ -27,7 +27,11 @@ void CL_FinishTimeDemo (void);
 void Bench486ResetTimedemoCounters (void);
 #endif
 void Bench486BeginTimedemoProfile (void);
-void Bench486WriteTimedemoCounters (int report_handle);
+#ifdef PROFILE486
+void Bench486ProfileDiscardOpenScopes (void);
+#endif
+void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
+		float timedemo_seconds);
 #endif
 
 /*
@@ -363,7 +367,10 @@ void CL_FinishTimeDemo (void)
 		if (report_handle != -1)
 		{
 			Sys_FileWrite (report_handle, text, Q_strlen(text));
-			Bench486WriteTimedemoCounters (report_handle);
+	#ifdef PROFILE486
+			Bench486ProfileDiscardOpenScopes ();
+	#endif
+			Bench486WriteTimedemoCounters (report_handle, frames, time);
 			Sys_FileClose (report_handle);
 		}
 		Sys_Quit ();

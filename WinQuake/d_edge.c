@@ -49,6 +49,42 @@ int			screenwidth;
 int			ubasestep, errorterm, erroradjustup, erroradjustdown;
 int			vstartscan;
 
+#ifdef PROFILE486
+static void D_ProfileSpans (espan_t *span, qboolean texture)
+{
+	int		count;
+	int		bucket;
+
+	while (span)
+	{
+		count = span->count;
+		bench486_surface_span_count++;
+		bench486_surface_span_pixels += count;
+		bench486_surface_span_segments += (count + 15) >> 4;
+
+		if (texture)
+		{
+			bench486_texture_span_count++;
+			bench486_texture_span_pixels += count;
+			bench486_texture_span_segments += (count + 15) >> 4;
+
+			if (count <= 1)
+				bucket = 0;
+			else if (count <= 8)
+				bucket = 1;
+			else if (count <= 16)
+				bucket = 2;
+			else if (count <= 32)
+				bucket = 3;
+			else
+				bucket = 4;
+			bench486_texture_span_buckets[bucket]++;
+		}
+		span = span->pnext;
+	}
+}
+#endif
+
 // FIXME: should go away
 extern void			R_RotateBmodel (void);
 extern void			R_TransformFrustum (void);
@@ -196,6 +232,7 @@ void D_CalcGradients (msurface_t *pface)
 	vec3_t		p_temp1;
 	d_texaxis_cache_t *axes;
 	float		t;
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_GRADIENTS);
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
@@ -236,6 +273,7 @@ void D_CalcGradients (msurface_t *pface)
 //
 	bbextents = ((pface->extents[0] << 16) >> miplevel) - 1;
 	bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
+	BENCH486_PROFILE_LEAVE ();
 }
 
 
@@ -254,10 +292,19 @@ void D_DrawSurfaces (void)
 #ifdef PROFILE486
 	double			bench486_surface_start;
 	double			bench486_span_draw_start;
+	unsigned long	profile_surface_start;
+	unsigned long	profile_surface_pixels_start;
+	unsigned long	profile_texture_span_start;
+	unsigned long	profile_texture_pixel_start;
+	profile_surface_start = bench486_surface_count;
+	profile_surface_pixels_start = bench486_surface_span_pixels;
 
 	if (bench486_profile_frame_active)
+	{
 		bench486_surface_start = Sys_FloatTime ();
+	}
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SURFACES);
 
 	currententity = &cl_entities[0];
 	TransformVector (modelorg, transformed_modelorg);
@@ -273,15 +320,23 @@ void D_DrawSurfaces (void)
 
 #ifdef PROFILE486
 			if (bench486_profile_frame_active)
+			{
 				bench486_surface_count++;
+				bench486_surface_solid_count++;
+				D_ProfileSpans (s->spans, false);
+			}
 #endif
 
 			d_zistepu = s->d_zistepu;
 			d_zistepv = s->d_zistepv;
 			d_ziorigin = s->d_ziorigin;
 
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SOLID_SPANS);
 			D_DrawSolidSurface (s, (int)s->data & 0xFF);
+			BENCH486_PROFILE_LEAVE ();
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
 			D_DrawZSpans (s->spans);
+			BENCH486_PROFILE_LEAVE ();
 		}
 	}
 	else
@@ -293,7 +348,9 @@ void D_DrawSurfaces (void)
 
 #ifdef PROFILE486
 			if (bench486_profile_frame_active)
+			{
 				bench486_surface_count++;
+			}
 #endif
 
 			r_drawnpolycount++;
@@ -304,6 +361,13 @@ void D_DrawSurfaces (void)
 
 			if (s->flags & SURF_DRAWSKY)
 			{
+	#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+				{
+					bench486_surface_sky_count++;
+					D_ProfileSpans (s->spans, false);
+				}
+	#endif
 				if (!r_skymade)
 				{
 					R_MakeSky ();
@@ -313,28 +377,51 @@ void D_DrawSurfaces (void)
 				if (bench486_profile_frame_active)
 					bench486_span_draw_start = Sys_FloatTime ();
 #endif
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SKY_SPANS);
 				D_DrawSkyScans8 (s->spans);
+				BENCH486_PROFILE_LEAVE ();
+				BENCH486_PROFILE_WORK (BENCH486_PROFILE_SKY_SPANS, 1, 0);
 
 #ifdef PROFILE486
 				if (bench486_profile_frame_active)
 					bench486_span_draw_seconds += Sys_FloatTime () -
 							bench486_span_draw_start;
 #endif
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
 				D_DrawZSpans (s->spans);
+				BENCH486_PROFILE_LEAVE ();
 			}
 			else if (s->flags & SURF_DRAWBACKGROUND)
 			{
+	#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+				{
+					bench486_surface_background_count++;
+					D_ProfileSpans (s->spans, false);
+				}
+	#endif
 			// set up a gradient for the background surface that places it
 			// effectively at infinity distance from the viewpoint
 				d_zistepu = 0;
 				d_zistepv = 0;
 				d_ziorigin = -0.9;
 
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SOLID_SPANS);
 				D_DrawSolidSurface (s, (int)r_clearcolor.value & 0xFF);
+				BENCH486_PROFILE_LEAVE ();
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
 				D_DrawZSpans (s->spans);
+				BENCH486_PROFILE_LEAVE ();
 			}
 			else if (s->flags & SURF_DRAWTURB)
 			{
+	#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+				{
+					bench486_surface_turbulent_count++;
+					D_ProfileSpans (s->spans, false);
+				}
+	#endif
 				pface = s->data;
 				miplevel = 0;
 				cacheblock = (pixel_t *)
@@ -357,8 +444,13 @@ void D_DrawSurfaces (void)
 				}
 
 				D_CalcGradients (pface);
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_TURBULENT_SPANS);
 				Turbulent8 (s->spans);
+				BENCH486_PROFILE_LEAVE ();
+				BENCH486_PROFILE_WORK (BENCH486_PROFILE_TURBULENT_SPANS, 1, 0);
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
 				D_DrawZSpans (s->spans);
+				BENCH486_PROFILE_LEAVE ();
 
 				if (s->insubmodel)
 				{
@@ -379,6 +471,15 @@ void D_DrawSurfaces (void)
 			}
 			else
 			{
+	#ifdef PROFILE486
+				profile_texture_span_start = bench486_texture_span_count;
+				profile_texture_pixel_start = bench486_texture_span_pixels;
+				if (bench486_profile_frame_active)
+				{
+					bench486_surface_normal_count++;
+					D_ProfileSpans (s->spans, true);
+				}
+	#endif
 				if (s->insubmodel)
 				{
 				// FIXME: we don't want to do all this for every polygon!
@@ -406,17 +507,33 @@ void D_DrawSurfaces (void)
 
 #ifdef PROFILE486
 				if (bench486_profile_frame_active)
+				{
+					if (cachewidth >= 16 && cachewidth <= 256 &&
+							!(cachewidth & 15))
+						bench486_texture_widths[cachewidth >> 4]++;
+					else
+						bench486_texture_widths[0]++;
+				}
+#endif
+
+#ifdef PROFILE486
+				if (bench486_profile_frame_active)
 					bench486_span_draw_start = Sys_FloatTime ();
 #endif
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_TEXTURE_SPANS);
 				(*d_drawspans) (s->spans);
-
+				BENCH486_PROFILE_LEAVE ();
 #ifdef PROFILE486
 				if (bench486_profile_frame_active)
 					bench486_span_draw_seconds += Sys_FloatTime () -
 							bench486_span_draw_start;
+				BENCH486_PROFILE_WORK (BENCH486_PROFILE_TEXTURE_SPANS,
+						bench486_texture_span_count - profile_texture_span_start,
+						bench486_texture_span_pixels - profile_texture_pixel_start);
 #endif
-
+				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
 				D_DrawZSpans (s->spans);
+				BENCH486_PROFILE_LEAVE ();
 
 				if (s->insubmodel)
 				{
@@ -440,7 +557,13 @@ void D_DrawSurfaces (void)
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
+	{
 		bench486_surface_seconds += Sys_FloatTime () - bench486_surface_start;
+		BENCH486_PROFILE_WORK (BENCH486_PROFILE_SURFACES,
+				bench486_surface_count - profile_surface_start,
+				bench486_surface_span_pixels - profile_surface_pixels_start);
+	}
 #endif
+	BENCH486_PROFILE_LEAVE ();
 }
 

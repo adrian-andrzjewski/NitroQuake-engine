@@ -166,6 +166,10 @@ for ($run = 1; $run -le $Runs; $run++) {
     if (Test-Path -LiteralPath $reportPath) {
         Remove-Item -LiteralPath $reportPath -Force
     }
+    $profileJsonPath = Join-Path $quakeRoot 'profile.jsn'
+    if (Test-Path -LiteralPath $profileJsonPath) {
+        Remove-Item -LiteralPath $profileJsonPath -Force
+    }
 
     $processInfo = New-Object System.Diagnostics.ProcessStartInfo
     $processInfo.FileName = $dosbox
@@ -205,12 +209,21 @@ for ($run = 1; $run -le $Runs; $run++) {
         throw "Could not parse the timedemo report: $report"
     }
 
+    $profileData = $null
+    if ($Instrumentation) {
+        if (-not (Test-Path -LiteralPath $profileJsonPath -PathType Leaf)) {
+            throw "Instrumented Quake did not produce '$profileJsonPath'."
+        }
+        $profileData = Get-Content -LiteralPath $profileJsonPath -Raw | ConvertFrom-Json
+    }
+
     $results += [ordered]@{
         run = $run
         frames = [int]$match.Groups['frames'].Value
         seconds = [double]::Parse($match.Groups['seconds'].Value, $culture)
         fps = [double]::Parse($match.Groups['fps'].Value, $culture)
         report = $report.Trim()
+        profile = $profileData
     }
 }
 
@@ -239,7 +252,7 @@ $result = [ordered]@{
     results = $results
 }
 $resultPath = Join-Path $stagingRoot 'timedemo-result.json'
-$result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $resultPath -Encoding ASCII
+$result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $resultPath -Encoding ASCII
 
 Write-Host ($results | ForEach-Object { $_.report })
 Write-Host ("Median FPS: {0:N1}" -f $medianFps)

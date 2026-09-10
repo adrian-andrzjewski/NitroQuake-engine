@@ -708,6 +708,7 @@ void R_AliasDrawModel (alight_t *plighting)
 #ifdef PROFILE486
 	double			bench486_alias_start;
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_MODEL);
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
@@ -733,6 +734,8 @@ void R_AliasDrawModel (alight_t *plighting)
 	if (bench486_profile_frame_active)
 		bench486_alias_vertices += pmdl->numverts;
 #endif
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_ALIAS_MODEL, 1,
+			(unsigned long)pmdl->numverts);
 
 	R_AliasSetupSkin ();
 	R_AliasSetUpTransform (currententity->trivial_accept);
@@ -772,5 +775,6 @@ void R_AliasDrawModel (alight_t *plighting)
 	if (bench486_profile_frame_active)
 		bench486_alias_seconds += Sys_FloatTime () - bench486_alias_start;
 #endif
+	BENCH486_PROFILE_LEAVE ();
 }
 

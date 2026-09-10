@@ -668,10 +668,13 @@ void R_ScanEdges (void)
 	surf_t	*s;
 #ifdef PROFILE486
 	double	bench486_edge_scan_start;
+	unsigned long profile_scanline_start;
+	profile_scanline_start = bench486_scanlines;
 
 	if (bench486_profile_frame_active)
 		bench486_edge_scan_start = Sys_FloatTime ();
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_EDGE_SCAN);
 
 	basespan_p = (espan_t *)
 			((long)(basespans + CACHE_SIZE - 1) & ~(CACHE_SIZE - 1));
@@ -713,6 +716,10 @@ void R_ScanEdges (void)
 
 	for (iv=r_refdef.vrect.y ; iv<bottom ; iv++)
 	{
+	#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_scanlines++;
+	#endif
 		current_iv = iv;
 		fv = (float)iv;
 
@@ -721,6 +728,10 @@ void R_ScanEdges (void)
 
 		if (newedges[iv])
 		{
+	#ifdef PROFILE486
+			if (bench486_profile_frame_active)
+				bench486_edge_insert_calls++;
+	#endif
 			R_InsertNewEdges (newedges[iv], edge_head.next);
 		}
 
@@ -740,6 +751,10 @@ void R_ScanEdges (void)
 			}
 			else
 			{
+	#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+					bench486_span_flushes++;
+	#endif
 				D_DrawSurfaces ();
 			}
 
@@ -751,22 +766,44 @@ void R_ScanEdges (void)
 		}
 
 		if (removeedges[iv])
+		{
+	#ifdef PROFILE486
+			if (bench486_profile_frame_active)
+				bench486_edge_remove_calls++;
+	#endif
 			R_RemoveEdges (removeedges[iv]);
+		}
 
 		if (edge_head.next != &edge_tail)
+		{
+	#ifdef PROFILE486
+			if (bench486_profile_frame_active)
+				bench486_edge_step_calls++;
+	#endif
 			R_StepActiveU (edge_head.next);
+		}
 	}
 
 // do the last scan (no need to step or sort or remove on the last scan)
 
 	current_iv = iv;
 	fv = (float)iv;
+	#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_scanlines++;
+	#endif
 
 // mark that the head (background start) span is pre-included
 	surfaces[1].spanstate = 1;
 
 	if (newedges[iv])
+	{
+	#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_edge_insert_calls++;
+	#endif
 		R_InsertNewEdges (newedges[iv], edge_head.next);
+	}
 
 	(*pdrawfunc) ();
 
@@ -774,12 +811,21 @@ void R_ScanEdges (void)
 	if (r_drawculledpolys)
 		R_DrawCulledPolys ();
 	else
+	{
+	#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_span_flushes++;
+	#endif
 		D_DrawSurfaces ();
+	}
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
 		bench486_edge_scan_seconds += Sys_FloatTime () - bench486_edge_scan_start;
 #endif
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_EDGE_SCAN,
+			bench486_scanlines - profile_scanline_start, 0);
+	BENCH486_PROFILE_LEAVE ();
 }
 
 

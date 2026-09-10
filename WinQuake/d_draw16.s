@@ -30,6 +30,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #if	id386
 
+#ifdef PROFILE486
+	.extern C(bench486_profile_frame_active)
+	.extern C(bench486_texture_full_tzero)
+	.extern C(bench486_texture_full_tdelta_zero)
+	.extern C(bench486_texture_full_tfrac_zero)
+	.extern C(bench486_texture_full_sfrac_zero)
+	.extern C(bench486_texture_full_sone)
+	.extern C(bench486_texture_full_exact)
+	.extern C(bench486_texture_final_exact)
+#endif
+
 //----------------------------------------------------------------------
 // 8-bpp horizontal span drawing code for polygons, with no transparency and
 // 16-pixel subdivision.
@@ -382,6 +393,36 @@ LZero:
 
 LSetUp1:
 
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz		LProfileFullStatsDone
+	testl	%ecx,%ecx
+	jnz		LProfileFullNoTDeltaZero
+	incl	C(bench486_texture_full_tdelta_zero)
+LProfileFullNoTDeltaZero:
+	testl	$0xfffff,%ecx
+	jnz		LProfileFullNoTFracZero
+	incl	C(bench486_texture_full_tfrac_zero)
+LProfileFullNoTFracZero:
+	testl	%eax,%eax
+	jnz		LProfileFullNoTZero
+	incl	C(bench486_texture_full_tzero)
+LProfileFullNoTZero:
+	cmpl	$1,%edx
+	jne		LProfileFullNoSOne
+	incl	C(bench486_texture_full_sone)
+LProfileFullNoSOne:
+	testl	$0xfffff,%ebp
+	jnz		LProfileFullNoSFracZero
+	incl	C(bench486_texture_full_sfrac_zero)
+LProfileFullNoSFracZero:
+	testl	$0xfffff,%ebp
+	jnz		LProfileFullStatsDone
+	testl	$0xfffff,%ecx
+	jnz		LProfileFullStatsDone
+	incl	C(bench486_texture_full_exact)
+LProfileFullStatsDone:
+#endif
 	addl	%edx,%eax			// add in sstep
 								// (tstep >> 16) * cachewidth + (sstep >> 16);
 	movl	tfracf,%edx
@@ -620,6 +661,19 @@ LClampReentry5:
 							//  of the segment length
 	subl	s,%eax
 	subl	t,%ebx
+
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz		LProfileFinalStatsDone
+	testl	%ebx,%ebx
+	jnz		LProfileFinalStatsDone
+	leal	-1(%ecx),%edx
+	shll	$16,%edx
+	cmpl	%edx,%eax
+	jne		LProfileFinalStatsDone
+	incl	C(bench486_texture_final_exact)
+LProfileFinalStatsDone:
+#endif
 
 	addl	%eax,%eax		// convert to 15.17 format so multiply by 1.31
 	addl	%ebx,%ebx		//  reciprocal yields 16.48

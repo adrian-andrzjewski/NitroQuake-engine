@@ -653,8 +653,10 @@ void _Host_Frame (float time)
 #ifdef PROFILE486
 	bench486_frame_start = Sys_FloatTime ();
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_FRAME);
 		
 // get new key events
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_INPUT);
 	Sys_SendKeyEvents ();
 
 // allow mice or other external controllers to add commands
@@ -664,8 +666,10 @@ void _Host_Frame (float time)
 	Cbuf_Execute ();
 
 	NET_Poll();
+	BENCH486_PROFILE_LEAVE ();
 
 // if running the server locally, make intentions now
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_GAME);
 	if (sv.active)
 		CL_SendCmd ();
 	
@@ -699,17 +703,26 @@ void _Host_Frame (float time)
 	{
 		CL_ReadFromServer ();
 	}
+	BENCH486_PROFILE_LEAVE ();
 
 // update video
 	if (host_speeds.value)
 		time1 = Sys_FloatTime ();
 		
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SCREEN);
 	SCR_UpdateScreen ();
+	BENCH486_PROFILE_LEAVE ();
 
 	if (host_speeds.value)
 		time2 = Sys_FloatTime ();
 		
 // update audio
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_AUDIO);
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_sound_update_calls++;
+#endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SOUND_SPATIAL);
 	if (cls.signon == SIGNONS)
 	{
 		S_Update (r_origin, vpn, vright, vup);
@@ -717,8 +730,12 @@ void _Host_Frame (float time)
 	}
 	else
 		S_Update (vec3_origin, vec3_origin, vec3_origin, vec3_origin);
+	BENCH486_PROFILE_LEAVE ();
 	
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_CD_AUDIO);
 	CDAudio_Update();
+	BENCH486_PROFILE_LEAVE ();
+	BENCH486_PROFILE_LEAVE ();
 
 	if (host_speeds.value)
 	{
@@ -731,6 +748,7 @@ void _Host_Frame (float time)
 	}
 
 #ifdef PROFILE486
+	BENCH486_PROFILE_LEAVE ();
 	if (bench486_profile_frame_active)
 	{
 		bench486_frame_seconds += Sys_FloatTime () - bench486_frame_start;

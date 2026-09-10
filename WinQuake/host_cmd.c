@@ -48,16 +48,131 @@ double bench486_framebuffer_seconds;
 unsigned long bench486_alias_models;
 unsigned long bench486_alias_vertices;
 unsigned long bench486_surface_count;
+unsigned long bench486_texture_span_count;
+unsigned long bench486_texture_span_pixels;
+unsigned long bench486_texture_span_segments;
+unsigned long bench486_texture_span_buckets[5];
+unsigned long bench486_texture_widths[17];
+unsigned long bench486_texture_full_tzero;
+unsigned long bench486_texture_full_tdelta_zero;
+unsigned long bench486_texture_full_tfrac_zero;
+unsigned long bench486_texture_full_sfrac_zero;
+unsigned long bench486_texture_full_sone;
+unsigned long bench486_texture_full_exact;
+unsigned long bench486_texture_final_exact;
 unsigned long bench486_gradient_calls;
 unsigned long bench486_solid_span_count;
 unsigned long bench486_line_setup_calls;
 unsigned long bench486_axis_cache_hits;
 unsigned long bench486_axis_cache_misses;
+unsigned long bench486_bsp_nodes;
+unsigned long bench486_bsp_solid_culls;
+unsigned long bench486_bsp_visibility_culls;
+unsigned long bench486_bsp_leaf_nodes;
+unsigned long bench486_bsp_internal_nodes;
+unsigned long bench486_bsp_surface_tests;
+unsigned long bench486_scanlines;
+unsigned long bench486_edge_insert_calls;
+unsigned long bench486_edge_remove_calls;
+unsigned long bench486_edge_step_calls;
+unsigned long bench486_span_flushes;
+unsigned long bench486_surface_span_count;
+unsigned long bench486_surface_span_pixels;
+unsigned long bench486_surface_span_segments;
+unsigned long bench486_surface_sky_count;
+unsigned long bench486_surface_background_count;
+unsigned long bench486_surface_turbulent_count;
+unsigned long bench486_surface_normal_count;
+unsigned long bench486_surface_solid_count;
+unsigned long bench486_present_rects;
+unsigned long bench486_present_pixels;
+unsigned long bench486_sound_update_calls;
+unsigned long bench486_sound_mix_calls;
 double bench486_alias_seconds;
 double bench486_surface_seconds;
 double bench486_turbulent_seconds;
 unsigned long bench486_particle_count;
 double bench486_particle_seconds;
+
+#define BENCH486_PROFILE_MAX_DEPTH 24
+#define BENCH486_PROFILE_ROOT BENCH486_PROFILE_NODE_COUNT
+
+typedef struct
+{
+	unsigned long calls;
+	unsigned long work_items;
+	unsigned long work_bytes;
+	double inclusive_seconds;
+	double self_seconds;
+} bench486_profile_stat_t;
+
+typedef struct
+{
+	unsigned long calls;
+	double inclusive_seconds;
+	double self_seconds;
+} bench486_profile_edge_t;
+
+typedef struct
+{
+	int node;
+	int parent;
+	double start;
+	double child_seconds;
+} bench486_profile_stack_entry_t;
+
+static bench486_profile_stat_t bench486_profile_stats[
+		BENCH486_PROFILE_NODE_COUNT];
+static bench486_profile_edge_t bench486_profile_edges[
+		BENCH486_PROFILE_NODE_COUNT + 1][BENCH486_PROFILE_NODE_COUNT];
+static bench486_profile_stack_entry_t bench486_profile_stack[
+		BENCH486_PROFILE_MAX_DEPTH];
+static int bench486_profile_stack_depth;
+static int bench486_profile_suppressed_depth;
+static int bench486_profile_pending_leaves;
+static unsigned long bench486_profile_timer_reads;
+static unsigned long bench486_profile_stack_overflows;
+static unsigned long bench486_profile_bad_leaves;
+static unsigned long bench486_profile_max_depth;
+static unsigned long bench486_profile_discarded_scopes;
+
+static char *bench486_profile_node_names[BENCH486_PROFILE_NODE_COUNT] =
+{
+	"frame",
+	"input",
+	"game",
+	"screen",
+	"view",
+	"view-lights",
+	"renderer",
+	"setup",
+	"visibility",
+	"edge-drawing",
+	"world-bsp",
+	"edge-scan",
+	"surfaces",
+	"surface-cache",
+	"gradients",
+	"texture-spans",
+	"z-spans",
+	"sky-spans",
+	"turbulent-spans",
+	"solid-spans",
+	"brush-entities",
+	"entities",
+	"sprites",
+	"alias-model",
+	"viewmodel",
+	"particles",
+	"warp",
+	"overlay",
+	"palette",
+	"present",
+	"audio",
+	"sound-spatial",
+	"sound-mix",
+	"cd-audio"
+};
 #endif
 
 extern void D_PolysetSetUpForLineScan (fixed8_t startvertu,
@@ -91,8 +206,389 @@ static void Bench486Printf (char *format, ...)
 }
 
 #ifdef PROFILE486
+static void Bench486ProfileReset (void)
+{
+	Q_memset (bench486_profile_stats, 0, sizeof(bench486_profile_stats));
+	Q_memset (bench486_profile_edges, 0, sizeof(bench486_profile_edges));
+	Q_memset (bench486_profile_stack, 0, sizeof(bench486_profile_stack));
+	bench486_profile_stack_depth = 0;
+	bench486_profile_suppressed_depth = 0;
+	bench486_profile_pending_leaves = 0;
+	bench486_profile_timer_reads = 0;
+	bench486_profile_stack_overflows = 0;
+	bench486_profile_bad_leaves = 0;
+	bench486_profile_max_depth = 0;
+	bench486_profile_discarded_scopes = 0;
+}
+
+void Bench486ProfileEnter (int node)
+{
+	double now;
+	int parent;
+	bench486_profile_edge_t *edge;
+
+	if (!bench486_profile_frame_active)
+		return;
+
+	if (node < 0 || node >= BENCH486_PROFILE_NODE_COUNT)
+	{
+		bench486_profile_bad_leaves++;
+		return;
+	}
+
+	if (bench486_profile_suppressed_depth)
+	{
+		bench486_profile_suppressed_depth++;
+		return;
+	}
+
+	if (bench486_profile_stack_depth >= BENCH486_PROFILE_MAX_DEPTH)
+	{
+		bench486_profile_stack_overflows++;
+		bench486_profile_suppressed_depth = 1;
+		return;
+	}
+
+	now = Sys_FloatTime ();
+	bench486_profile_timer_reads++;
+	parent = bench486_profile_stack_depth ?
+			bench486_profile_stack[bench486_profile_stack_depth - 1].node :
+			BENCH486_PROFILE_ROOT;
+
+	bench486_profile_stack[bench486_profile_stack_depth].node = node;
+	bench486_profile_stack[bench486_profile_stack_depth].parent = parent;
+	bench486_profile_stack[bench486_profile_stack_depth].start = now;
+	bench486_profile_stack[bench486_profile_stack_depth].child_seconds = 0;
+	bench486_profile_stack_depth++;
+	if ((unsigned long)bench486_profile_stack_depth > bench486_profile_max_depth)
+		bench486_profile_max_depth = bench486_profile_stack_depth;
+
+	bench486_profile_stats[node].calls++;
+	edge = &bench486_profile_edges[parent][node];
+	edge->calls++;
+}
+
+void Bench486ProfileLeave (void)
+{
+	bench486_profile_stack_entry_t *entry;
+	bench486_profile_stat_t *stat;
+	bench486_profile_edge_t *edge;
+	double now;
+	double elapsed;
+	double self;
+
+	if (!bench486_profile_frame_active)
+		return;
+
+	if (bench486_profile_pending_leaves)
+	{
+		bench486_profile_pending_leaves--;
+		return;
+	}
+
+	if (bench486_profile_suppressed_depth)
+	{
+		bench486_profile_suppressed_depth--;
+		return;
+	}
+
+	if (!bench486_profile_stack_depth)
+	{
+		bench486_profile_bad_leaves++;
+		return;
+	}
+
+	now = Sys_FloatTime ();
+	bench486_profile_timer_reads++;
+	entry = &bench486_profile_stack[bench486_profile_stack_depth - 1];
+	elapsed = now - entry->start;
+	self = elapsed - entry->child_seconds;
+	if (self < 0)
+		self = 0;
+
+	stat = &bench486_profile_stats[entry->node];
+	stat->inclusive_seconds += elapsed;
+	stat->self_seconds += self;
+	edge = &bench486_profile_edges[entry->parent][entry->node];
+	edge->inclusive_seconds += elapsed;
+	edge->self_seconds += self;
+
+	bench486_profile_stack_depth--;
+	if (bench486_profile_stack_depth)
+		bench486_profile_stack[bench486_profile_stack_depth - 1].child_seconds +=
+				elapsed;
+}
+
+void Bench486ProfileWork (int node, unsigned long items,
+		unsigned long bytes)
+{
+	if (!bench486_profile_frame_active)
+		return;
+	if (node < 0 || node >= BENCH486_PROFILE_NODE_COUNT)
+		return;
+	bench486_profile_stats[node].work_items += items;
+	bench486_profile_stats[node].work_bytes += bytes;
+}
+
+void Bench486ProfileDiscardOpenScopes (void)
+{
+	bench486_profile_stack_entry_t *entry;
+
+	while (bench486_profile_stack_depth)
+	{
+		entry = &bench486_profile_stack[bench486_profile_stack_depth - 1];
+		if (bench486_profile_stats[entry->node].calls)
+			bench486_profile_stats[entry->node].calls--;
+		if (bench486_profile_edges[entry->parent][entry->node].calls)
+			bench486_profile_edges[entry->parent][entry->node].calls--;
+		bench486_profile_stack_depth--;
+		bench486_profile_discarded_scopes++;
+	}
+	bench486_profile_suppressed_depth = 0;
+	bench486_profile_pending_leaves = 0;
+}
+
+static void Bench486ProfileReportText (int report_handle, char *text)
+{
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
+}
+
+static void Bench486ProfileJsonPrintf (int file_handle, char *format, ...)
+{
+	char		text[2048];
+	va_list		argptr;
+
+	va_start (argptr, format);
+	vsprintf (text, format, argptr);
+	va_end (argptr);
+	Sys_FileWrite (file_handle, text, Q_strlen(text));
+}
+
+static double Bench486ProfileFrameSeconds (void)
+{
+	return bench486_profile_stats[BENCH486_PROFILE_FRAME].inclusive_seconds;
+}
+
+static void Bench486ProfileTree (int report_handle, int parent, int depth)
+{
+	int		order[BENCH486_PROFILE_NODE_COUNT];
+	int		count;
+	int		child;
+	int		i, j, swap;
+	char		text[256];
+	double		frame_seconds;
+	double		inclusive_percent;
+	double		self_percent;
+	bench486_profile_edge_t *edge;
+	bench486_profile_stat_t *stat;
+
+	if (depth >= BENCH486_PROFILE_MAX_DEPTH)
+		return;
+
+	count = 0;
+	for (child=0 ; child<BENCH486_PROFILE_NODE_COUNT ; child++)
+	{
+		if (!bench486_profile_edges[parent][child].calls)
+			continue;
+		order[count++] = child;
+	}
+
+	for (i=1 ; i<count ; i++)
+	{
+		swap = order[i];
+		j = i - 1;
+		while (j >= 0 &&
+				bench486_profile_edges[parent][order[j]].inclusive_seconds <
+				bench486_profile_edges[parent][swap].inclusive_seconds)
+		{
+			order[j+1] = order[j];
+			j--;
+		}
+		order[j+1] = swap;
+	}
+
+	frame_seconds = Bench486ProfileFrameSeconds ();
+	for (i=0 ; i<count ; i++)
+	{
+		child = order[i];
+		edge = &bench486_profile_edges[parent][child];
+		stat = &bench486_profile_stats[child];
+		if (frame_seconds > 0)
+		{
+			inclusive_percent = edge->inclusive_seconds * 100.0 /
+					frame_seconds;
+			self_percent = edge->self_seconds * 100.0 / frame_seconds;
+		}
+		else
+		{
+			inclusive_percent = 0;
+			self_percent = 0;
+		}
+		sprintf (text,
+				"%*s%s inc %.6f self %.6f inc%% %.2f self%% %.2f "
+				"calls %lu work %lu bytes %lu\n",
+				depth * 2, "", bench486_profile_node_names[child],
+				edge->inclusive_seconds, edge->self_seconds,
+				inclusive_percent, self_percent, edge->calls,
+				stat->work_items, stat->work_bytes);
+		Bench486ProfileReportText (report_handle, text);
+		Bench486ProfileTree (report_handle, child, depth + 1);
+	}
+}
+
+static void Bench486ProfileHotspots (int report_handle)
+{
+	int		order[BENCH486_PROFILE_NODE_COUNT];
+	int		count;
+	int		node;
+	int		i, j, swap;
+	char		text[256];
+	double		frame_seconds;
+	bench486_profile_stat_t *stat;
+
+	count = 0;
+	for (node=0 ; node<BENCH486_PROFILE_NODE_COUNT ; node++)
+	{
+		if (bench486_profile_stats[node].calls)
+			order[count++] = node;
+	}
+
+	for (i=1 ; i<count ; i++)
+	{
+		swap = order[i];
+		j = i - 1;
+		while (j >= 0 &&
+				bench486_profile_stats[order[j]].self_seconds <
+				bench486_profile_stats[swap].self_seconds)
+		{
+			order[j+1] = order[j];
+			j--;
+		}
+		order[j+1] = swap;
+	}
+
+	frame_seconds = Bench486ProfileFrameSeconds ();
+	for (i=0 ; i<count && i<12 ; i++)
+	{
+		node = order[i];
+		stat = &bench486_profile_stats[node];
+		sprintf (text,
+				"%2i %s self %.6f self%% %.2f inc %.6f calls %lu "
+				"work %lu bytes %lu\n",
+				i + 1, bench486_profile_node_names[node],
+				stat->self_seconds,
+				frame_seconds > 0 ? stat->self_seconds * 100.0 /
+						frame_seconds : 0,
+				stat->inclusive_seconds, stat->calls,
+				stat->work_items, stat->work_bytes);
+		Bench486ProfileReportText (report_handle, text);
+	}
+}
+
+static void Bench486WriteProfileJson (int timedemo_frames,
+		float timedemo_seconds)
+{
+	int		file_handle;
+	int		parent, child;
+	int		first;
+	double		fps;
+	bench486_profile_stat_t *stat;
+	bench486_profile_edge_t *edge;
+
+	file_handle = Sys_FileOpenWrite ("profile.jsn");
+	if (file_handle == -1)
+		return;
+
+	fps = timedemo_seconds > 0 ? timedemo_frames / timedemo_seconds : 0;
+	Bench486ProfileJsonPrintf (file_handle, "{\n");
+	Bench486ProfileJsonPrintf (file_handle,
+			"  \"schema\": 1,\n"
+			"  \"benchmark\": {\"demo_frames\": %d, \"demo_seconds\": %.6f, \"demo_fps\": %.6f},\n",
+			timedemo_frames, timedemo_seconds, fps);
+	Bench486ProfileJsonPrintf (file_handle,
+			"  \"profiler\": {\"timer\": \"Sys_FloatTime\", \"timer_reads\": %lu, \"stack_overflows\": %lu, \"bad_leaves\": %lu, \"max_depth\": %lu, \"discarded_scopes\": %lu},\n",
+			bench486_profile_timer_reads, bench486_profile_stack_overflows,
+			bench486_profile_bad_leaves, bench486_profile_max_depth,
+			bench486_profile_discarded_scopes);
+
+	Bench486ProfileJsonPrintf (file_handle, "  \"nodes\": [\n");
+	for (child=0 ; child<BENCH486_PROFILE_NODE_COUNT ; child++)
+	{
+		stat = &bench486_profile_stats[child];
+		Bench486ProfileJsonPrintf (file_handle,
+				"    {\"id\": \"%s\", \"calls\": %lu, \"inclusive_seconds\": %.6f, \"self_seconds\": %.6f, \"work_items\": %lu, \"work_bytes\": %lu}%s\n",
+				bench486_profile_node_names[child], stat->calls,
+				stat->inclusive_seconds, stat->self_seconds,
+				stat->work_items, stat->work_bytes,
+				child + 1 == BENCH486_PROFILE_NODE_COUNT ? "" : ",");
+	}
+	Bench486ProfileJsonPrintf (file_handle, "  ],\n");
+
+	Bench486ProfileJsonPrintf (file_handle, "  \"edges\": [\n");
+	first = true;
+	for (parent=0 ; parent<=BENCH486_PROFILE_ROOT ; parent++)
+	{
+		for (child=0 ; child<BENCH486_PROFILE_NODE_COUNT ; child++)
+		{
+			edge = &bench486_profile_edges[parent][child];
+			if (!edge->calls)
+				continue;
+			if (!first)
+				Bench486ProfileJsonPrintf (file_handle, ",\n");
+			first = false;
+			if (parent == BENCH486_PROFILE_ROOT)
+			{
+				Bench486ProfileJsonPrintf (file_handle,
+						"    {\"parent\": null, \"child\": \"%s\", \"calls\": %lu, \"inclusive_seconds\": %.6f, \"self_seconds\": %.6f}",
+						bench486_profile_node_names[child], edge->calls,
+						edge->inclusive_seconds, edge->self_seconds);
+			}
+			else
+			{
+				Bench486ProfileJsonPrintf (file_handle,
+						"    {\"parent\": \"%s\", \"child\": \"%s\", \"calls\": %lu, \"inclusive_seconds\": %.6f, \"self_seconds\": %.6f}",
+						bench486_profile_node_names[parent],
+						bench486_profile_node_names[child], edge->calls,
+						edge->inclusive_seconds, edge->self_seconds);
+			}
+		}
+	}
+	Bench486ProfileJsonPrintf (file_handle, "\n  ],\n");
+
+	Bench486ProfileJsonPrintf (file_handle,
+			"  \"metrics\": {\n"
+			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
+			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
+			"    \"surfaces\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
+			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu,\n"
+			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu\n"
+			"  }\n}\n",
+			bench486_profile_frames, bench486_bsp_nodes,
+			bench486_bsp_solid_culls, bench486_bsp_visibility_culls,
+			bench486_bsp_leaf_nodes, bench486_bsp_internal_nodes,
+			bench486_bsp_surface_tests, bench486_scanlines,
+			bench486_edge_insert_calls, bench486_edge_remove_calls,
+			bench486_edge_step_calls, bench486_span_flushes,
+			bench486_surface_count, bench486_surface_span_count,
+			bench486_surface_span_pixels, bench486_surface_span_segments,
+			bench486_surface_sky_count, bench486_surface_background_count,
+			bench486_surface_turbulent_count, bench486_surface_normal_count,
+			bench486_surface_solid_count,
+			bench486_texture_span_count, bench486_texture_span_pixels,
+			bench486_texture_span_segments, bench486_alias_models,
+			bench486_alias_vertices, bench486_particle_count,
+			bench486_present_rects, bench486_present_pixels,
+			bench486_sound_update_calls, bench486_sound_mix_calls);
+	Sys_FileClose (file_handle);
+}
+
 void Bench486ResetTimedemoCounters (void)
 {
+	int i;
+
+	Bench486ProfileReset ();
 	bench486_profile_frame_active = false;
 	bench486_profile_frames = 0;
 	bench486_frame_seconds = 0;
@@ -107,11 +603,51 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_alias_models = 0;
 	bench486_alias_vertices = 0;
 	bench486_surface_count = 0;
+	bench486_texture_span_count = 0;
+	bench486_texture_span_pixels = 0;
+	bench486_texture_span_segments = 0;
+	bench486_texture_span_buckets[0] = 0;
+	bench486_texture_span_buckets[1] = 0;
+	bench486_texture_span_buckets[2] = 0;
+	bench486_texture_span_buckets[3] = 0;
+	bench486_texture_span_buckets[4] = 0;
+	for (i=0 ; i<17 ; i++)
+		bench486_texture_widths[i] = 0;
+	bench486_texture_full_tzero = 0;
+	bench486_texture_full_tdelta_zero = 0;
+	bench486_texture_full_tfrac_zero = 0;
+	bench486_texture_full_sfrac_zero = 0;
+	bench486_texture_full_sone = 0;
+	bench486_texture_full_exact = 0;
+	bench486_texture_final_exact = 0;
 	bench486_gradient_calls = 0;
 	bench486_solid_span_count = 0;
 	bench486_line_setup_calls = 0;
 	bench486_axis_cache_hits = 0;
 	bench486_axis_cache_misses = 0;
+	bench486_bsp_nodes = 0;
+	bench486_bsp_solid_culls = 0;
+	bench486_bsp_visibility_culls = 0;
+	bench486_bsp_leaf_nodes = 0;
+	bench486_bsp_internal_nodes = 0;
+	bench486_bsp_surface_tests = 0;
+	bench486_scanlines = 0;
+	bench486_edge_insert_calls = 0;
+	bench486_edge_remove_calls = 0;
+	bench486_edge_step_calls = 0;
+	bench486_span_flushes = 0;
+	bench486_surface_span_count = 0;
+	bench486_surface_span_pixels = 0;
+	bench486_surface_span_segments = 0;
+	bench486_surface_sky_count = 0;
+	bench486_surface_background_count = 0;
+	bench486_surface_turbulent_count = 0;
+	bench486_surface_normal_count = 0;
+	bench486_surface_solid_count = 0;
+	bench486_present_rects = 0;
+	bench486_present_pixels = 0;
+	bench486_sound_update_calls = 0;
+	bench486_sound_mix_calls = 0;
 	bench486_alias_seconds = 0;
 	bench486_surface_seconds = 0;
 	bench486_turbulent_seconds = 0;
@@ -122,10 +658,13 @@ void Bench486ResetTimedemoCounters (void)
 void Bench486BeginTimedemoProfile (void)
 {
 	bench486_profile_frame_active = true;
+	Bench486ProfileEnter (BENCH486_PROFILE_FRAME);
+	bench486_profile_pending_leaves = 1;
 }
 #endif
 
-void Bench486WriteTimedemoCounters (int report_handle)
+void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
+		float timedemo_seconds)
 {
 #ifdef PROFILE486
 	char text[1024];
@@ -137,7 +676,12 @@ void Bench486WriteTimedemoCounters (int report_handle)
 			"alias-sec %.6f turbulent-sec %.6f particles %lu "
 			"particle-sec %.6f sound-sec %.6f framebuffer-sec %.6f "
 			"alias-models %lu alias-vertices %lu surfaces %lu "
-			"gradients %lu solid-spans %lu line-setups %lu "
+			"texture-spans %lu texture-pixels %lu texture-segments %lu "
+			"span-buckets %lu,%lu,%lu,%lu,%lu "
+			"texture-widths %lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu "
+			"full-tzero %lu full-tdelta-zero %lu full-tfrac-zero %lu "
+			"full-sfrac-zero %lu full-sone %lu full-exact %lu "
+			"final-exact %lu gradients %lu solid-spans %lu line-setups %lu "
 			"axis-hits %lu axis-misses %lu\n",
 			bench486_profile_frames, bench486_frame_seconds,
 			bench486_render_seconds, bench486_visibility_seconds,
@@ -148,14 +692,88 @@ void Bench486WriteTimedemoCounters (int report_handle)
 			bench486_particle_seconds, bench486_sound_seconds,
 			bench486_framebuffer_seconds,
 			bench486_alias_models, bench486_alias_vertices,
-			bench486_surface_count, bench486_gradient_calls,
+			bench486_surface_count, bench486_texture_span_count,
+			bench486_texture_span_pixels, bench486_texture_span_segments,
+			bench486_texture_span_buckets[0],
+			bench486_texture_span_buckets[1],
+			bench486_texture_span_buckets[2],
+			bench486_texture_span_buckets[3],
+			bench486_texture_span_buckets[4],
+			bench486_texture_widths[0],
+			bench486_texture_widths[1],
+			bench486_texture_widths[2],
+			bench486_texture_widths[3],
+			bench486_texture_widths[4],
+			bench486_texture_widths[5],
+			bench486_texture_widths[6],
+			bench486_texture_widths[7],
+			bench486_texture_widths[8],
+			bench486_texture_widths[9],
+			bench486_texture_widths[10],
+			bench486_texture_widths[11],
+			bench486_texture_widths[12],
+			bench486_texture_widths[13],
+			bench486_texture_widths[14],
+			bench486_texture_widths[15],
+			bench486_texture_widths[16],
+			bench486_texture_full_tzero, bench486_texture_full_tdelta_zero,
+			bench486_texture_full_tfrac_zero,
+			bench486_texture_full_sfrac_zero,
+			bench486_texture_full_sone,
+			bench486_texture_full_exact, bench486_texture_final_exact,
+			bench486_gradient_calls,
 			bench486_solid_span_count, bench486_line_setup_calls,
 			bench486_axis_cache_hits, bench486_axis_cache_misses);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));
+
+	Bench486ProfileReportText (report_handle,
+				"profile-tree begin (edge inclusive / edge self seconds)\n");
+	Bench486ProfileTree (report_handle, BENCH486_PROFILE_ROOT, 0);
+	Bench486ProfileReportText (report_handle, "profile-tree end\n");
+	Bench486ProfileReportText (report_handle, "profile-hotspots begin (self time)\n");
+	Bench486ProfileHotspots (report_handle);
+	Bench486ProfileReportText (report_handle, "profile-hotspots end\n");
+
+	sprintf (text,
+			"profile-work bsp-nodes %lu solid-culls %lu visibility-culls %lu "
+			"leaves %lu internal %lu surface-tests %lu scanlines %lu "
+			"edge-inserts %lu edge-removes %lu edge-steps %lu span-flushes %lu\n",
+			bench486_bsp_nodes, bench486_bsp_solid_culls,
+			bench486_bsp_visibility_culls, bench486_bsp_leaf_nodes,
+			bench486_bsp_internal_nodes, bench486_bsp_surface_tests,
+			bench486_scanlines, bench486_edge_insert_calls,
+			bench486_edge_remove_calls, bench486_edge_step_calls,
+			bench486_span_flushes);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-work surface-spans %lu surface-pixels %lu "
+			"surface-segments %lu sky %lu background %lu turbulent %lu "
+			"normal %lu solid %lu present-rects %lu present-pixels %lu "
+			"sound-updates %lu sound-mixes %lu\n",
+			bench486_surface_span_count, bench486_surface_span_pixels,
+			bench486_surface_span_segments, bench486_surface_sky_count,
+			bench486_surface_background_count,
+			bench486_surface_turbulent_count,
+			bench486_surface_normal_count, bench486_surface_solid_count,
+			bench486_present_rects,
+			bench486_present_pixels, bench486_sound_update_calls,
+			bench486_sound_mix_calls);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-overhead timer-reads %lu max-depth %lu "
+			"stack-overflows %lu bad-leaves %lu discarded-scopes %lu "
+			"json profile.jsn\n",
+			bench486_profile_timer_reads, bench486_profile_max_depth,
+			bench486_profile_stack_overflows, bench486_profile_bad_leaves,
+			bench486_profile_discarded_scopes);
+	Bench486ProfileReportText (report_handle, text);
+	Bench486WriteProfileJson (timedemo_frames, timedemo_seconds);
 #else
 	(void)report_handle;
+	(void)timedemo_frames;
+	(void)timedemo_seconds;
 #endif
 }
 

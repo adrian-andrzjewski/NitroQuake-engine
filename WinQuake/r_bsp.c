@@ -454,6 +454,21 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 	mleaf_t		*pleaf;
 	double		d, dot;
 
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+	{
+		bench486_bsp_nodes++;
+		if (node->contents == CONTENTS_SOLID)
+			bench486_bsp_solid_culls++;
+		else if (node->visframe != r_visframecount)
+			bench486_bsp_visibility_culls++;
+		else if (node->contents < 0)
+			bench486_bsp_leaf_nodes++;
+		else
+			bench486_bsp_internal_nodes++;
+	}
+#endif
+
 	if (node->contents == CONTENTS_SOLID)
 		return;		// solid
 
@@ -557,6 +572,10 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 
 	// draw stuff
 		c = node->numsurfaces;
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_bsp_surface_tests += c;
+#endif
 
 		if (c)
 		{
@@ -650,6 +669,11 @@ void R_RenderWorld (void)
 	int			i;
 	model_t		*clmodel;
 	btofpoly_t	btofpolys[MAX_BTOFPOLYS];
+#ifdef PROFILE486
+	unsigned long profile_bsp_start;
+	profile_bsp_start = bench486_bsp_nodes;
+#endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_WORLD_BSP);
 
 	pbtofpolys = btofpolys;
 
@@ -669,6 +693,9 @@ void R_RenderWorld (void)
 			R_RenderPoly (btofpolys[i].psurf, btofpolys[i].clipflags);
 		}
 	}
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_WORLD_BSP,
+			bench486_bsp_nodes - profile_bsp_start, 0);
+	BENCH486_PROFILE_LEAVE ();
 }
 
 

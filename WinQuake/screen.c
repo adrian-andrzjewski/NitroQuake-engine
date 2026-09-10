@@ -897,7 +897,9 @@ void SCR_UpdateScreen (void)
 	if (bench486_profile_frame_active)
 		bench486_render_start = Sys_FloatTime ();
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_VIEW);
 	V_RenderView ();
+	BENCH486_PROFILE_LEAVE ();
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
 		bench486_render_seconds += Sys_FloatTime () - bench486_render_start;
@@ -907,6 +909,7 @@ void SCR_UpdateScreen (void)
 
 	D_EnableBackBufferAccess ();	// of all overlay stuff if drawing directly
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_OVERLAY);
 	if (scr_drawdialog)
 	{
 		Sbar_Draw ();
@@ -950,8 +953,11 @@ void SCR_UpdateScreen (void)
 	{
 		D_UpdateRects (pconupdate);
 	}
+	BENCH486_PROFILE_LEAVE ();
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PALETTE);
 	V_UpdatePalette ();
+	BENCH486_PROFILE_LEAVE ();
 
 //
 // update one of three areas

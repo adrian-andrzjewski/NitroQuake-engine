@@ -56,6 +56,45 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #ifdef PROFILE486
+typedef enum
+{
+	BENCH486_PROFILE_FRAME = 0,
+	BENCH486_PROFILE_INPUT,
+	BENCH486_PROFILE_GAME,
+	BENCH486_PROFILE_SCREEN,
+	BENCH486_PROFILE_VIEW,
+	BENCH486_PROFILE_VIEW_LIGHTS,
+	BENCH486_PROFILE_RENDERER,
+	BENCH486_PROFILE_SETUP,
+	BENCH486_PROFILE_VISIBILITY,
+	BENCH486_PROFILE_EDGE_DRAWING,
+	BENCH486_PROFILE_WORLD_BSP,
+	BENCH486_PROFILE_EDGE_SCAN,
+	BENCH486_PROFILE_SURFACES,
+	BENCH486_PROFILE_SURFACE_CACHE,
+	BENCH486_PROFILE_GRADIENTS,
+	BENCH486_PROFILE_TEXTURE_SPANS,
+	BENCH486_PROFILE_Z_SPANS,
+	BENCH486_PROFILE_SKY_SPANS,
+	BENCH486_PROFILE_TURBULENT_SPANS,
+	BENCH486_PROFILE_SOLID_SPANS,
+	BENCH486_PROFILE_BRUSH_ENTITIES,
+	BENCH486_PROFILE_ENTITIES,
+	BENCH486_PROFILE_SPRITES,
+	BENCH486_PROFILE_ALIAS_MODEL,
+	BENCH486_PROFILE_VIEWMODEL,
+	BENCH486_PROFILE_PARTICLES,
+	BENCH486_PROFILE_WARP,
+	BENCH486_PROFILE_OVERLAY,
+	BENCH486_PROFILE_PALETTE,
+	BENCH486_PROFILE_PRESENT,
+	BENCH486_PROFILE_AUDIO,
+	BENCH486_PROFILE_SOUND_SPATIAL,
+	BENCH486_PROFILE_SOUND_MIX,
+	BENCH486_PROFILE_CD_AUDIO,
+	BENCH486_PROFILE_NODE_COUNT
+} bench486_profile_node_id_t;
+
 extern int bench486_profile_frame_active;
 extern unsigned long bench486_profile_frames;
 extern double bench486_frame_seconds;
@@ -70,16 +109,65 @@ extern double bench486_framebuffer_seconds;
 extern unsigned long bench486_alias_models;
 extern unsigned long bench486_alias_vertices;
 extern unsigned long bench486_surface_count;
+extern unsigned long bench486_texture_span_count;
+extern unsigned long bench486_texture_span_pixels;
+extern unsigned long bench486_texture_span_segments;
+extern unsigned long bench486_texture_span_buckets[5];
+extern unsigned long bench486_texture_widths[17];
+extern unsigned long bench486_texture_full_tzero;
+extern unsigned long bench486_texture_full_tdelta_zero;
+extern unsigned long bench486_texture_full_tfrac_zero;
+extern unsigned long bench486_texture_full_sfrac_zero;
+extern unsigned long bench486_texture_full_sone;
+extern unsigned long bench486_texture_full_exact;
+extern unsigned long bench486_texture_final_exact;
 extern unsigned long bench486_gradient_calls;
 extern unsigned long bench486_solid_span_count;
 extern unsigned long bench486_line_setup_calls;
 extern unsigned long bench486_axis_cache_hits;
 extern unsigned long bench486_axis_cache_misses;
+extern unsigned long bench486_bsp_nodes;
+extern unsigned long bench486_bsp_solid_culls;
+extern unsigned long bench486_bsp_visibility_culls;
+extern unsigned long bench486_bsp_leaf_nodes;
+extern unsigned long bench486_bsp_internal_nodes;
+extern unsigned long bench486_bsp_surface_tests;
+extern unsigned long bench486_scanlines;
+extern unsigned long bench486_edge_insert_calls;
+extern unsigned long bench486_edge_remove_calls;
+extern unsigned long bench486_edge_step_calls;
+extern unsigned long bench486_span_flushes;
+extern unsigned long bench486_surface_span_count;
+extern unsigned long bench486_surface_span_pixels;
+extern unsigned long bench486_surface_span_segments;
+extern unsigned long bench486_surface_sky_count;
+extern unsigned long bench486_surface_background_count;
+extern unsigned long bench486_surface_turbulent_count;
+extern unsigned long bench486_surface_normal_count;
+extern unsigned long bench486_surface_solid_count;
+extern unsigned long bench486_present_rects;
+extern unsigned long bench486_present_pixels;
+extern unsigned long bench486_sound_update_calls;
+extern unsigned long bench486_sound_mix_calls;
 extern double bench486_alias_seconds;
 extern double bench486_surface_seconds;
 extern double bench486_turbulent_seconds;
 extern unsigned long bench486_particle_count;
 extern double bench486_particle_seconds;
+
+void Bench486ProfileEnter (int node);
+void Bench486ProfileLeave (void);
+void Bench486ProfileWork (int node, unsigned long items,
+		unsigned long bytes);
+
+#define BENCH486_PROFILE_ENTER(node) Bench486ProfileEnter (node)
+#define BENCH486_PROFILE_LEAVE() Bench486ProfileLeave ()
+#define BENCH486_PROFILE_WORK(node, items, bytes) \
+	Bench486ProfileWork ((node), (items), (bytes))
+#else
+#define BENCH486_PROFILE_ENTER(node) ((void)0)
+#define BENCH486_PROFILE_LEAVE() ((void)0)
+#define BENCH486_PROFILE_WORK(node, items, bytes) ((void)0)
 #endif
 
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!

@@ -271,6 +271,7 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	if (bench486_profile_frame_active)
 		bench486_surface_cache_start = Sys_FloatTime ();
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SURFACE_CACHE);
 
 //
 // if the surface is animating or flashing, flush the cache
@@ -298,6 +299,7 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 			bench486_surface_cache_seconds += Sys_FloatTime () -
 					bench486_surface_cache_start;
 #endif
+		BENCH486_PROFILE_LEAVE ();
 		return cache;
 	}
 
@@ -348,6 +350,7 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 		bench486_surface_cache_seconds += Sys_FloatTime () -
 				bench486_surface_cache_start;
 #endif
+	BENCH486_PROFILE_LEAVE ();
 
 	return surface->cachespots[miplevel];
 }

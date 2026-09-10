@@ -549,7 +549,9 @@ void R_DrawEntitiesOnList (void)
 		case mod_sprite:
 			VectorCopy (currententity->origin, r_entorigin);
 			VectorSubtract (r_origin, r_entorigin, modelorg);
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SPRITES);
 			R_DrawSprite ();
+			BENCH486_PROFILE_LEAVE ();
 			break;
 
 		case mod_alias:
@@ -882,6 +884,7 @@ void R_EdgeDrawing (void)
 #ifdef PROFILE486
 	double	bench486_world_start;
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_EDGE_DRAWING);
 
 	if (auxedges)
 	{
@@ -934,7 +937,11 @@ void R_EdgeDrawing (void)
 		db_time1 = rw_time2;
 	}
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_BRUSH_ENTITIES);
 	R_DrawBEntitiesOnList ();
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_BRUSH_ENTITIES,
+			(unsigned long)cl_numvisedicts, 0);
+	BENCH486_PROFILE_LEAVE ();
 
 	if (r_dspeeds.value)
 	{
@@ -951,6 +958,7 @@ void R_EdgeDrawing (void)
 	
 	if (!(r_drawpolys | r_drawculledpolys))
 		R_ScanEdges ();
+	BENCH486_PROFILE_LEAVE ();
 }
 
 
@@ -966,22 +974,27 @@ void R_RenderView_ (void)
 	byte	warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 #ifdef PROFILE486
 	double	bench486_visibility_start;
+	unsigned long profile_particle_start;
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_RENDERER);
 
 	r_warpbuffer = warpbuffer;
 
 	if (r_timegraph.value || r_speeds.value || r_dspeeds.value)
 		r_time1 = Sys_FloatTime ();
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SETUP);
 	R_SetupFrame ();
+	BENCH486_PROFILE_LEAVE ();
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
 		bench486_visibility_start = Sys_FloatTime ();
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_VISIBILITY);
 
 #ifdef PASSAGES
-SetVisibilityByPassages ();
+	SetVisibilityByPassages ();
 #else
 	R_MarkLeaves ();	// done here so we know if we're in water
 #endif
@@ -990,6 +1003,7 @@ SetVisibilityByPassages ();
 	if (bench486_profile_frame_active)
 		bench486_visibility_seconds += Sys_FloatTime () - bench486_visibility_start;
 #endif
+	BENCH486_PROFILE_LEAVE ();
 
 // make FDIV fast. This reduces timing precision after we've been running for a
 // while, so we don't do it globally.  This also sets chop mode, and we do it
@@ -1022,7 +1036,11 @@ SetVisibilityByPassages ();
 		de_time1 = se_time2;
 	}
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ENTITIES);
 	R_DrawEntitiesOnList ();
+	BENCH486_PROFILE_LEAVE ();
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_ENTITIES,
+			(unsigned long)cl_numvisedicts, 0);
 
 	if (r_dspeeds.value)
 	{
@@ -1030,7 +1048,10 @@ SetVisibilityByPassages ();
 		dv_time1 = de_time2;
 	}
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_VIEWMODEL);
 	R_DrawViewModel ();
+	BENCH486_PROFILE_LEAVE ();
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_VIEWMODEL, 1, 0);
 
 	if (r_dspeeds.value)
 	{
@@ -1038,13 +1059,29 @@ SetVisibilityByPassages ();
 		dp_time1 = Sys_FloatTime ();
 	}
 
+	#ifdef PROFILE486
+	profile_particle_start = bench486_particle_count;
+	#endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PARTICLES);
 	R_DrawParticles ();
+	BENCH486_PROFILE_LEAVE ();
+	#ifdef PROFILE486
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_PARTICLES,
+			bench486_particle_count - profile_particle_start, 0);
+	#endif
 
 	if (r_dspeeds.value)
 		dp_time2 = Sys_FloatTime ();
 
 	if (r_dowarp)
+	{
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_WARP);
 		D_WarpScreen ();
+		BENCH486_PROFILE_LEAVE ();
+		BENCH486_PROFILE_WORK (BENCH486_PROFILE_WARP,
+				(unsigned long)r_refdef.vrect.width *
+				(unsigned long)r_refdef.vrect.height, 0);
+	}
 
 	V_SetContentsColor (r_viewleaf->contents);
 
@@ -1068,6 +1105,7 @@ SetVisibilityByPassages ();
 
 // back to high floating-point precision
 	Sys_HighFPPrecision ();
+	BENCH486_PROFILE_LEAVE ();
 }
 
 void R_RenderView (void)

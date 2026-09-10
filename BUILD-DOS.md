@@ -215,58 +215,105 @@ an opt-in comparison build; no visual-quality switch or newer CPU instruction
 set is enabled.
 
 Use `-Instrumentation` with `-Benchmark` to build `out\dos-profile\qprof.exe`
-and collect renderer call/cache counters through the timedemo runner:
+and collect the hierarchical renderer profile through the timedemo runner:
 
 ~~~powershell
 .\tools\timedemo-dos.ps1 -Instrumentation `
   -DataRoot 'C:\path\to\Quake\id1' -Runs 1
 ~~~
 
-Instrumentation changes timing, so its FPS is diagnostic only.  The profile
-reports repeated texture-axis transforms avoided by the per-frame cache;
-compare release-style `qbench.exe` runs for performance conclusions.  The
-profile also records whole-frame time and the major renderer, audio, and video
-stages.  A 2026-09-10 baseline profile run completed the same 969-frame
-`demo1` at 13.679173 FPS; the isolated instrumentation run recorded 70.822785
-seconds across 969 profiled frames.  The profile FPS is slower because timing
-probes add overhead, so the release timedemo result remains the authoritative
-969-frame baseline.
+Instrumentation changes timing, so its FPS is diagnostic only.  The release
+`qbench.exe` timedemo remains the authority for performance comparisons.  The
+profile build writes two artifacts beside the executable in its DOS staging
+directory:
 
-The profile timings below are inclusive.  `edge-scan-sec` includes
-`surface-sec`, while `surface-cache-sec` and `span-draw-sec` are components of
-surface drawing; percentages therefore must not be added together.  They are
-all percentages of the instrumented `frame-sec` total and are used only to
-rank work:
+- `timedemo.txt` contains the legacy flat counters plus a readable tree and a
+  ranked self-time list.
+- `profile.jsn` is an 8.3-safe JSON document containing node statistics,
+  observed parent-to-child edges, benchmark metadata, and workload metrics.
+  The runner also embeds that document under each run in
+  `timedemo-result.json`.
 
-| Profile stage | Seconds | % of frame time | Scope |
-| --- | ---: | ---: | --- |
-| Whole processed frame | 70.822785 | 100.00% | Simulation, screen, render, audio, and video |
-| 3D render | 68.968001 | 97.38% | Inclusive `V_RenderView` total |
-| Edge scan | 47.352695 | 66.86% | Span scheduling plus surface drawing |
-| Surface drawing | 40.633701 | 57.37% | Texture, z, turbulent, and cache use |
-| Texture-span drawing | 18.729525 | 26.45% | Direct sky/affine texture span routines |
-| Surface cache/lightmap | 10.838854 | 15.30% | Cache checks and surface lightmap generation |
-| Alias models | 9.897909 | 13.98% | Alias setup and rasterization |
-| World BSP/edge emission | 8.170393 | 11.54% | World traversal and edge emission |
-| Particles | 0.630367 | 0.89% | 135,634 live-particle draws |
-| Framebuffer copy | 0.421394 | 0.59% | Final VGA/DOS video transfer |
-| Visibility | 0.060456 | 0.09% | PVS/BSP visibility marking |
-| Sound mixer | 0.022343 | 0.03% | Disabled by the locked `-nosound` runner |
+Render the machine-readable profile as a tree and ranked views with:
 
-For a non-overlapping prioritization, subtracting surface drawing from edge
-scan leaves 6.718994 seconds (9.49%) of edge/span scheduling.  The top three
-independent consumers are therefore surface drawing, alias-model work, and
-world BSP/edge emission.  The first optimization target is the software
-surface rasterizer, with texture-span sampling as the first sub-area to
-measure again after any change.  No architecture change is justified by this
-profile alone.
+~~~powershell
+.\tools\profile-report.ps1 `
+  -ProfileJson '.\out\dos-timedemo-YYYYMMDD-HHMMSS\quake\profile.jsn' `
+  -BaselineResult '.\out\dos-timedemo-YYYYMMDD-HHMMSS\timedemo-result.json'
+~~~
 
-Supporting counters from this run were 5,470 alias models, 58,046 surfaces,
-46,873 texture-axis cache hits, 11,173 misses, and 135,634 particles.  Because
-the locked benchmark disables sound, the small sound number is call/guard
-overhead rather than an exercised mixer workload.  These counters identify
-where the 486 renderer spends time; they are not visual-parity or release
-performance claims.
+`-BaselineResult` is optional; when supplied, the report estimates profiling
+overhead from the matched release timedemo.  `-BaselineSeconds <seconds>` can
+be used instead when the release result is stored elsewhere.
+
+The profile is a fixed-stack instrumentation layer designed for repeated
+486-class runs.  Its observed execution graph is:
+
+~~~text
+frame
+|- input
+|- game
+|- screen
+|  |- view
+|     |- view-lights
+|     |- renderer
+|        |- setup / visibility
+|        |- edge-drawing
+|           |- world-bsp
+|           |- edge-scan
+|              |- surfaces
+|                 |- surface-cache / gradients
+|                 |- texture-spans / z-spans
+|                 |- turbulent-spans / sky-spans / solid-spans
+|           |- brush-entities
+|        |- entities -> sprites / alias-model
+|        |- viewmodel -> alias-model
+|        |- particles / warp
+|  |- overlay / palette / present
+|- audio -> sound-spatial / sound-mix / cd-audio
+~~~
+
+The JSON `edges` array is the authoritative parent-to-child relationship.  It
+is collected from the actual runtime stack, so `sound-mix` can correctly
+appear below an extra render update as well as below the normal audio phase.
+The tree reports edge-inclusive and edge-self time for each occurrence, while
+the node records aggregate totals across all parents.  Inclusive time answers
+"how expensive is this subsystem with its children"; self time answers "what
+remains in this node after measured children" and identifies expensive leaf
+operations.  Nested percentages must not be added together.
+
+The profiler times the stable frame, screen, view, renderer, edge, surface,
+cache, gradient, span, entity, particle, sound, and present boundaries.  It
+does not time every recursive BSP or scanline callback.  Instead it counts BSP
+nodes/leaves/culls/surface tests, scanlines, edge insert/remove/step calls,
+span flushes, surface classes, spans/pixels/16-pixel segments, alias models
+and vertices, particles, presented rectangles/pixels, and sound updates/mixes.
+That keeps the hot recursive paths lightweight while still explaining their
+cost.
+
+A matched 2026-09-10 diagnostic comparison measured the instrumented profile
+at `76.949440` seconds and the release timedemo at `69.234885` seconds, an
+estimated **11.14% profiling overhead**.  The profile run also used 520,782
+timer reads, reached stack depth 8, and reported zero stack errors; two open
+scopes were intentionally discarded when timedemo exit occurred inside the
+final demo message.  This overhead is acceptable for diagnosis but the
+instrumented FPS must not be used as an optimization result.
+
+The current self-time ranking from that profile is:
+
+| Rank | Node | Self seconds | % of profiled frame | Work |
+| ---: | --- | ---: | ---: | --- |
+| 1 | Texture spans | 19.782278 | 25.72% | 1,454,414 spans / 43,956,201 pixels |
+| 2 | Surface cache | 11.194161 | 14.55% | 55,300 normal surfaces |
+| 3 | Alias model | 9.965951 | 12.96% | 5,470 models / 417,090 vertices |
+| 4 | Z spans | 8.346739 | 10.85% | 58,051 surface calls |
+| 5 | World BSP | 8.312927 | 10.81% | 375,709 BSP node visits |
+| 6 | Edge scan self | 6.781020 | 8.82% | 147,288 scanlines |
+
+These are measured diagnostic hotspots, not optimization instructions.  The
+next investigation should compare the texture-span, surface-cache, and alias
+model leaves separately, using the same timedemo and visual checks after each
+change.  No texture or renderer behavior was changed by this profiling pass.
 
 ## Reprovisioning
 

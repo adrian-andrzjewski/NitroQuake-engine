@@ -141,6 +141,9 @@ try {
         '-x',
         'assembler-with-cpp'
     )
+    if ($Instrumentation) {
+        $asmFlags += '-DPROFILE486'
+    }
     $objects = @()
 
     foreach ($source in $allSources) {

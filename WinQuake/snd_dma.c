@@ -809,6 +809,11 @@ void S_Update_(void)
 	if (bench486_profile_frame_active)
 		bench486_sound_start = Sys_FloatTime ();
 #endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SOUND_MIX);
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_sound_mix_calls++;
+#endif
 	
 	if (!sound_started || (snd_blocked > 0))
 	{
@@ -816,6 +821,7 @@ void S_Update_(void)
 		if (bench486_profile_frame_active)
 			bench486_sound_seconds += Sys_FloatTime () - bench486_sound_start;
 #endif
+		BENCH486_PROFILE_LEAVE ();
 		return;
 	}
 
@@ -843,6 +849,7 @@ void S_Update_(void)
 	if (bench486_profile_frame_active)
 		bench486_sound_seconds += Sys_FloatTime () - bench486_sound_start;
 #endif
+	BENCH486_PROFILE_LEAVE ();
 }
 
 /*

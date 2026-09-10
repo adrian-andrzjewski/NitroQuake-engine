@@ -313,9 +313,25 @@ void    VID_Update (vrect_t *rects)
 {
 #ifdef PROFILE486
 	double		bench486_framebuffer_start;
+	vrect_t		*profile_rect;
+	unsigned long	profile_present_pixels;
+	unsigned long	profile_present_rects;
 
 	if (bench486_profile_frame_active)
 		bench486_framebuffer_start = Sys_FloatTime ();
+#endif
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PRESENT);
+
+#ifdef PROFILE486
+	profile_present_pixels = 0;
+	profile_present_rects = 0;
+	for (profile_rect = rects ; profile_rect ;
+			profile_rect = profile_rect->pnext)
+	{
+		profile_present_rects++;
+		profile_present_pixels += (unsigned long)profile_rect->width *
+				(unsigned long)profile_rect->height;
+	}
 #endif
 
 	if (firstupdate && _vid_default_mode.value)
@@ -357,6 +373,17 @@ void    VID_Update (vrect_t *rects)
 			}
 		}
 	}
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+	{
+		bench486_present_rects += profile_present_rects;
+		bench486_present_pixels += profile_present_pixels;
+	}
+#endif
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_PRESENT,
+			profile_present_rects, profile_present_pixels);
+	BENCH486_PROFILE_LEAVE ();
 }
 
 
