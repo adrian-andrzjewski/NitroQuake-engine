@@ -377,6 +377,7 @@ void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 	mvertex_t	bverts[MAX_BMODEL_VERTS];
 	bedge_t		bedges[MAX_BMODEL_EDGES], *pbedge;
 	medge_t		*pedge, *pedges;
+	int			*psurfedges;
 
 // FIXME: use bounding-box-based frustum clipping info?
 
@@ -409,10 +410,11 @@ void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 			{
 				pbedge = &bedges[numbedges];
 				numbedges += psurf->numedges;
+				psurfedges = pmodel->surfedges + psurf->firstedge;
 
 				for (j=0 ; j<psurf->numedges ; j++)
 				{
-				   lindex = pmodel->surfedges[psurf->firstedge+j];
+				   lindex = psurfedges[j];
 
 					if (lindex > 0)
 					{

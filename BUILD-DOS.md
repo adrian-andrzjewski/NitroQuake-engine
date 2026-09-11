@@ -352,13 +352,15 @@ polyset, sprites, and particles, `zspantable` Z addressing in
 sprites and particles, a 1800 KB surface cache, `Turbulent8`
 `viewspantable` dest rows, a static `D_CacheSurface` hit path, a
 `D_PolysetDrawFinalVerts` clip-rect hoist, and unused extra light-style
-skips on cache hits, and `D_RasterizeAliasPolySmooth` dest/Z row tables)
+skips on cache hits, `D_RasterizeAliasPolySmooth` dest/Z row tables,
+`R_RenderFace` surfedges hoist plus clip unroll, the clipped-bmodel
+surfedges hoist, and `R_DrawSurface` 8-bit setup)
 completed
 three `demo1` runs at
-`67.185888 / 67.185693 / 67.185736` seconds, median **14.422704 FPS** /
-**67.185736 s** (`out\dos-timedemo-20260911-161154\timedemo-result.json`).
-That is about 14.7 ms faster than the extra-style skip default
-(14.419549 FPS / 67.200437 s) with checksum `4154140932` on every run.
+`67.093796 / 67.093948 / 67.093880` seconds, median **14.442450 FPS** /
+**67.093880 s** (`out\dos-timedemo-20260911-174904\timedemo-result.json`).
+That is about 2.46 ms faster than the clipped-bmodel hoist
+(14.441920 FPS / 67.096341 s) with checksum `4154140932` on every run.
 The `Turbulent8` dest-row default was about 1.3 ms faster than the 1800 KB default (14.409100 FPS /
 67.249168 s).  1900 KB, 2000 KB, 2100 KB, and
 2400 KB were faster but checksum `2955717646` (same hash as the
@@ -1118,6 +1120,12 @@ Skipping unused extra light styles on cache hits reached **14.419549 FPS**
 (`67.200437` seconds median; `out\dos-timedemo-20260911-154031`).
 `D_RasterizeAliasPolySmooth` dest/Z row tables reached **14.422704 FPS**
 (`67.185736` seconds median; `out\dos-timedemo-20260911-161154`).
+`R_RenderFace` surfedges hoist plus clip unroll reached **14.441731 FPS**
+(`67.097222` seconds median; `out\dos-timedemo-20260911-173034`).
+Clipped-bmodel `surfedges` hoist reached **14.441920 FPS**
+(`67.096341` seconds median; `out\dos-timedemo-20260911-174206`).
+`R_DrawSurface` 8-bit setup reached **14.442450 FPS**
+(`67.093880` seconds median; `out\dos-timedemo-20260911-174904`).
 A 15-way last-segment divisor switch matched the checksum but was
 27.6 ms slower (`out\dos-timedemo-20260911-150819`).
 1900 KB, 2000 KB, 2100 KB, and 2400 KB all produced checksum
@@ -1133,6 +1141,14 @@ Stacking `acolormap` in `D_PolysetDrawFinalVerts` was 0.18 ms slower
 (`out\dos-timedemo-20260911-160304`).
 A last-used `D_CalcGradients` step-origin cache was 34.3 ms slower
 (`out\dos-timedemo-20260911-161755`).
+Unrolling `R_RenderBmodelFace` clip planes was noise
+(`out\dos-timedemo-20260911-173554`).
+Folding `R_DrawSurface` soffset wrap into the column POT test hitched
+(`out\dos-timedemo-20260911-175849`).
+Hoisting `currententity->model` in `R_RenderFace` was noise
+(`out\dos-timedemo-20260911-180409`).
+Skipping `R_AnimateLight` IDIV for `len==1` was 2.1 ms slower
+(`out\dos-timedemo-20260911-180922`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.

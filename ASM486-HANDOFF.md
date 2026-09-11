@@ -119,6 +119,13 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | FinalVerts clip hoist (`D_PolysetDrawFinalVerts`) | Hoist `vrectright`/`vrectbottom` out of the vertex loop | 67.218606 s / 14.415652 FPS, 10.9 ms faster | Kept |
 | Unused extra-style skip (`D_CacheSurface`) | Skip lightadj[1-3] compares when `styles[1]==255` | 67.200437 s / 14.419549 FPS, 18.2 ms faster | Kept |
 | Alias raster dest/Z tables (`D_RasterizeAliasPolySmooth`) | `viewspantable`/`zspantable` instead of `ystart` IMUL | 67.185736 s / 14.422704 FPS, 14.7 ms faster | Kept |
+| Face edge setup (`R_RenderFace`) | Hoist `surfedges + firstedge`; unroll 4 clip-plane links | 67.097222 s / 14.441731 FPS, 88.5 ms faster | Kept |
+| Bmodel clip unroll (`R_RenderBmodelFace`) | Same 4 clip-plane links as world faces | 67.097295 s / 14.441715 FPS, 0.07 ms, overlapping ranges | Reverted |
+| Bmodel surfedges hoist (`R_DrawSolidClippedSubmodelPolygons`) | `pmodel->surfedges + firstedge` like world faces | 67.096341 s / 14.441920 FPS, 0.88 ms faster | Kept |
+| Surface draw 8-bit setup (`R_DrawSurface`) | Skip `r_pixbytes` 16-bit path; reuse `r_stepback` for `r_sourcemax` | 67.093880 s / 14.442450 FPS, 2.46 ms faster | Kept |
+| Fused smax POT wrap (`R_DrawSurface`) | One POT test for soffset wrap and column loop | hitch min 1.91 FPS | Reverted |
+| Face model hoist (`R_RenderFace`) | Local `currententity->model` for edges/surfedges | 67.093926 s / 14.442440 FPS, 0.05 ms, run-1 outlier | Reverted |
+| AnimateLight length-1 skip (`R_AnimateLight`) | Skip `i % len` when `len==1` | 67.095987 s / 14.441996 FPS, 2.1 ms slower | Reverted |
 | Gradient step cache (`D_CalcGradients`) | Reuse s/t step-origin while texinfo/mip/modelorg match | 67.220030 s / 14.415346 FPS, 34.3 ms slower | Reverted |
 | Unclipped alias `movzbl` expand (`r_aliasa.s`) | Full-dword vertex expand like the clipped helper | 67.200278 s / 14.419583 FPS, 0.16 ms, overlapping ranges | Reverted |
 | Inlined fused frustum (`R_RecursiveWorldNode`) | Multiply `minmaxs` into the plane; no `rejectpt` stores | 67.200552 s / 14.419524 FPS, hitch min 1.87 FPS | Reverted |
@@ -252,11 +259,29 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   median **67.200437 s / 14.419549 FPS**, checksum `4154140932`.  About
   18.2 ms faster than the FinalVerts hoist.  Worst-frame min FPS is
   6.321254.  Every run was faster than every previous-default run.
-- Current default after alias raster dest/Z row tables
+- Previous default after alias raster dest/Z row tables
   (`out\dos-timedemo-20260911-161154`): `67.185888 / 67.185693 / 67.185736` s,
   median **67.185736 s / 14.422704 FPS**, checksum `4154140932`.  About
   14.7 ms faster than the extra-style skip.  Worst-frame min FPS rose
   from 6.321254 to 6.322259.  Every run was faster than every
+  previous-default run.
+- Previous default after `R_RenderFace` surfedges hoist and clip unroll
+  (`out\dos-timedemo-20260911-173034`): `67.097430 / 67.097210 / 67.097222` s,
+  median **67.097222 s / 14.441731 FPS**, checksum `4154140932`.  About
+  88.5 ms faster than the alias raster dest/Z default.  Worst-frame min
+  FPS rose from 6.322259 to 6.325209.  Every run was faster than every
+  previous-default run.
+- Previous default after the clipped-bmodel surfedges hoist
+  (`out\dos-timedemo-20260911-174206`): `67.096456 / 67.096339 / 67.096341` s,
+  median **67.096341 s / 14.441920 FPS**, checksum `4154140932`.  About
+  0.88 ms faster than the `R_RenderFace` default.  Worst-frame min FPS
+  rose from 6.325209 to 6.325275.  Every run was faster than every
+  previous-default run.
+- Current default after `R_DrawSurface` 8-bit setup
+  (`out\dos-timedemo-20260911-174904`): `67.093796 / 67.093948 / 67.093880` s,
+  median **67.093880 s / 14.442450 FPS**, checksum `4154140932`.  About
+  2.46 ms faster than the clipped-bmodel hoist.  Worst-frame min FPS
+  rose from 6.325275 to 6.325880.  Every run was faster than every
   previous-default run.
 
 ## Important decisions and assumptions
@@ -331,6 +356,29 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   vs 67.185736 s).  The texinfo/mip/modelorg compares cost more than
   the skipped step muls; do not retry a last-used `D_CalcGradients`
   step-origin cache.
+- AnimateLight length-1 skip (`out\dos-timedemo-20260911-180922`)
+  matched checksum `4154140932` but was 2.1 ms slower (67.095987 s
+  vs 67.093880 s).  The extra `len==1` branch cost more than the
+  skipped IDIV; do not retry length-1 or POT remainder in
+  `R_AnimateLight`.
+- Face model hoist (`R_RenderFace`,
+  `out\dos-timedemo-20260911-180409`) matched checksum `4154140932`
+  but the median was 0.05 ms slower (67.093926 s vs 67.093880 s)
+  with a 500 ms first-run outlier.  Do not retry hoisting
+  `currententity->model` in `R_RenderFace`; the surfedges pointer is
+  enough.
+- Fused smax POT wrap (`R_DrawSurface`,
+  `out\dos-timedemo-20260911-175426` and confirmation
+  `out\dos-timedemo-20260911-175849`) matched checksum `4154140932`
+  but hitched: first confirmation run min **1.91 FPS**, and the first
+  measurement run was 700 ms slower.  Do not retry folding the soffset
+  wrap into the column-loop POT test.
+- Bmodel clip unroll (`R_RenderBmodelFace`,
+  `out\dos-timedemo-20260911-173554`) matched checksum `4154140932` but
+  the median was 0.07 ms slower than the `R_RenderFace` default
+  (67.097295 s vs 67.097222 s) with fully overlapping run ranges.
+  Do not retry unrolling the bmodel clip-plane list; world-face
+  surfedges addressing was the real win.
 - Turbulent last-segment divisor switch
   (`out\dos-timedemo-20260911-150819`) matched checksum `4154140932`
   but was 27.6 ms slower (67.275508 s vs 67.247873 s).  GCC did emit
@@ -348,7 +396,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (14.422704 FPS median, checksum `4154140932`) before further edits.
+   (14.442450 FPS median, checksum `4154140932`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -372,8 +420,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    uses an integer distance.  Per-column wrap uses AND on power-of-two
    widths.  Direct mip drawers were 1.1 ms slower end-to-end; leave
    `(*pblockdrawer)()`.  Live `surf8.s` mip0 already uses `movl` dest
-   packs; `block8.h` is unused.  Next surface work is fewer remaining
-   rebuilds without changing lit output.
+   packs; `block8.h` is unused.  Rebuild setup now skips the 16-bit
+   `r_pixbytes` path and reuses `r_stepback` for `r_sourcemax`.
+   Do not retry folding the soffset wrap into the column-loop POT test.
+   Next surface work is fewer remaining rebuilds without changing lit
+   output.
 4. Alias leftover is now remaining per-vertex clip tests and polyset
    raster guts, not dest/Z row addressing.  `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
@@ -385,8 +436,13 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry fused `minmaxs` multiplies in `R_RecursiveWorldNode`.
    Do not retry stacking `acolormap` in `D_PolysetDrawFinalVerts`.
    Do not retry a last-used `D_CalcGradients` step-origin cache.
-   Z spans now use `zspantable`; edge scan is already assembly.  Do not
-   revive BSP plane-dot/clip helpers.  Face Z gradients are cached.
+   World faces now hoist `surfedges` and unroll the four clip-plane
+   links in `R_RenderFace`.  Clipped bmodels hoist the same `surfedges`
+   pointer.  Do not retry unrolling `R_RenderBmodelFace` clip planes.
+   Do not retry hoisting `currententity->model` in `R_RenderFace`.
+   Do not retry length-1 or POT remainder in `R_AnimateLight`.  Z spans now use `zspantable`; edge scan is already
+   assembly.  Do not revive BSP plane-dot/clip helpers.  Face Z
+   gradients are cached.
 
 ## Starting commands
 

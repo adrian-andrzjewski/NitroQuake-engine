@@ -435,9 +435,9 @@ R_RenderFace
 void R_RenderFace (msurface_t *fa, int clipflags)
 {
 	int			i, lindex;
-	unsigned	mask;
 	medge_t		*pedges, tedge;
 	clipplane_t	*pclip;
+	int			*psurfedges;
 
 // skip out if no more surfs
 	if ((surface_p) >= surf_max)
@@ -455,16 +455,27 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 
 	c_faceclip++;
 
-// set up clip planes
+// set up clip planes (same 3..0 / 0x08..0x01 order as the original loop)
 	pclip = NULL;
-
-	for (i=3, mask = 0x08 ; i>=0 ; i--, mask >>= 1)
+	if (clipflags & 8)
 	{
-		if (clipflags & mask)
-		{
-			view_clipplanes[i].next = pclip;
-			pclip = &view_clipplanes[i];
-		}
+		view_clipplanes[3].next = pclip;
+		pclip = &view_clipplanes[3];
+	}
+	if (clipflags & 4)
+	{
+		view_clipplanes[2].next = pclip;
+		pclip = &view_clipplanes[2];
+	}
+	if (clipflags & 2)
+	{
+		view_clipplanes[1].next = pclip;
+		pclip = &view_clipplanes[1];
+	}
+	if (clipflags & 1)
+	{
+		view_clipplanes[0].next = pclip;
+		pclip = &view_clipplanes[0];
 	}
 
 // push the edges through
@@ -473,11 +484,12 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	r_nearzionly = false;
 	makeleftedge = makerightedge = false;
 	pedges = currententity->model->edges;
+	psurfedges = currententity->model->surfedges + fa->firstedge;
 	r_lastvertvalid = false;
 
 	for (i=0 ; i<fa->numedges ; i++)
 	{
-		lindex = currententity->model->surfedges[fa->firstedge + i];
+		lindex = psurfedges[i];
 
 		if (lindex > 0)
 		{

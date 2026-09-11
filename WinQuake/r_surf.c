@@ -477,26 +477,17 @@ void R_DrawSurface (void)
 
 //==============================
 
-	if (r_pixbytes == 1)
-	{
-		pblockdrawer = surfmiptable[r_drawsurf.surfmip];
-	// TODO: only needs to be set when there is a display settings change
-		horzblockstep = blocksize;
-	}
-	else
-	{
-		pblockdrawer = R_DrawSurfaceBlock16;
-	// TODO: only needs to be set when there is a display settings change
-		horzblockstep = blocksize << 1;
-	}
+	// DOS 8-bit software path; R_DrawSurfaceBlock16 remains the 16-bit
+	// reference and is unused by qbench.
+	pblockdrawer = surfmiptable[r_drawsurf.surfmip];
+	horzblockstep = blocksize;
 
-	smax = mt->width >> r_drawsurf.surfmip;
+	smax = texwidth;
 	twidth = texwidth;
 	tmax = mt->height >> r_drawsurf.surfmip;
 	sourcetstep = texwidth;
 	r_stepback = tmax * twidth;
-
-	r_sourcemax = r_source + (tmax * smax);
+	r_sourcemax = r_source + r_stepback;
 
 	soffset = r_drawsurf.surf->texturemins[0];
 	basetoffset = r_drawsurf.surf->texturemins[1];
