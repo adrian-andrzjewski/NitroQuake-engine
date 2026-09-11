@@ -1478,6 +1478,9 @@ C(D_PolysetDrawFinalVerts):
 
 	pushl	%esi				// preserve register variables
 	pushl	%edi
+	movl	C(r_refdef)+rd_vrectright,%ebp
+	movl	C(r_refdef)+rd_vrectbottom,%eax
+	pushl	%eax				// clipbottom; vrectright stays in %ebp
 
 LFVLoop:
 
@@ -1489,12 +1492,10 @@ LFVLoop:
 //			(fv->v[1] < r_refdef.vrectbottom))
 //		{
 	movl	fv_v+0(%ebx),%eax
-	movl	C(r_refdef)+rd_vrectright,%edx
-	cmpl	%edx,%eax
+	cmpl	%ebp,%eax
 	jge		LNextVert
 	movl	fv_v+4(%ebx),%esi
-	movl	C(r_refdef)+rd_vrectbottom,%edx
-	cmpl	%edx,%esi
+	cmpl	(%esp),%esi
 	jge		LNextVert
 
 //			zbuf = zspantable[fv->v[1]] + fv->v[0];
@@ -1541,6 +1542,7 @@ LNextVert:
 	decl	%ecx
 	jnz		LFVLoop
 
+	popl	%eax				// drop clipbottom
 	popl	%edi
 	popl	%esi
 	popl	%ebx

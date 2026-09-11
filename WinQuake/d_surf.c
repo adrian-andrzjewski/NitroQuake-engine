@@ -267,6 +267,7 @@ D_CacheSurface
 surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 {
 	surfcache_t     *cache;
+	texture_t	*tex;
 #ifdef PROFILE486
 	double			bench486_surface_cache_start;
 
@@ -276,29 +277,35 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SURFACE_CACHE);
 
 //
-// if the surface is animating or flashing, flush the cache
+// if the surface is animating or flashing, flush the cache.
+// Static textures skip the R_TextureAnimation call; that function
+// remains the reference for alternate skins and animated frames.
 //
-	r_drawsurf.texture = R_TextureAnimation (surface->texinfo->texture);
-	r_drawsurf.lightadj[0] = d_lightstylevalue[surface->styles[0]];
-	r_drawsurf.lightadj[1] = d_lightstylevalue[surface->styles[1]];
-	r_drawsurf.lightadj[2] = d_lightstylevalue[surface->styles[2]];
-	r_drawsurf.lightadj[3] = d_lightstylevalue[surface->styles[3]];
-	
+	tex = surface->texinfo->texture;
+	if (tex->anim_total || (currententity->frame && tex->alternate_anims))
+		tex = R_TextureAnimation (surface->texinfo->texture);
+
 //
 // see if the cache holds apropriate data
 //
 	cache = surface->cachespots[miplevel];
 
 #ifdef ASM486_SURFACE_CACHE_CHECK
+	r_drawsurf.texture = tex;
+	r_drawsurf.lightadj[0] = d_lightstylevalue[surface->styles[0]];
+	r_drawsurf.lightadj[1] = d_lightstylevalue[surface->styles[1]];
+	r_drawsurf.lightadj[2] = d_lightstylevalue[surface->styles[2]];
+	r_drawsurf.lightadj[3] = d_lightstylevalue[surface->styles[3]];
 	if (D_CacheSurfaceHit_asm486 (cache, surface->dlightframe,
 			r_framecount, r_drawsurf.texture, r_drawsurf.lightadj))
 #else
 	if (cache && !cache->dlight && surface->dlightframe != r_framecount
-			&& cache->texture == r_drawsurf.texture
-			&& cache->lightadj[0] == r_drawsurf.lightadj[0]
-			&& cache->lightadj[1] == r_drawsurf.lightadj[1]
-			&& cache->lightadj[2] == r_drawsurf.lightadj[2]
-			&& cache->lightadj[3] == r_drawsurf.lightadj[3] )
+			&& cache->texture == tex
+			&& cache->lightadj[0] == d_lightstylevalue[surface->styles[0]]
+			&& (surface->styles[1] == 255
+			 || (cache->lightadj[1] == d_lightstylevalue[surface->styles[1]]
+			  && cache->lightadj[2] == d_lightstylevalue[surface->styles[2]]
+			  && cache->lightadj[3] == d_lightstylevalue[surface->styles[3]])))
 #endif
 	{
 #ifdef PROFILE486
@@ -309,6 +316,14 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 		BENCH486_PROFILE_LEAVE ();
 		return cache;
 	}
+
+#ifndef ASM486_SURFACE_CACHE_CHECK
+	r_drawsurf.texture = tex;
+	r_drawsurf.lightadj[0] = d_lightstylevalue[surface->styles[0]];
+	r_drawsurf.lightadj[1] = d_lightstylevalue[surface->styles[1]];
+	r_drawsurf.lightadj[2] = d_lightstylevalue[surface->styles[2]];
+	r_drawsurf.lightadj[3] = d_lightstylevalue[surface->styles[3]];
+#endif
 
 //
 // determine shape of surface

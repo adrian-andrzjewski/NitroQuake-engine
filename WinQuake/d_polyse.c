@@ -150,14 +150,18 @@ D_PolysetDrawFinalVerts
 void D_PolysetDrawFinalVerts (finalvert_t *fv, int numverts)
 {
 	int		i, z;
+	int		clipright, clipbottom;
 	short	*zbuf;
+
+	clipright = r_refdef.vrectright;
+	clipbottom = r_refdef.vrectbottom;
 
 	for (i=0 ; i<numverts ; i++, fv++)
 	{
 	// valid triangle coordinates for filling can include the bottom and
 	// right clip edges, due to the fill rule; these shouldn't be drawn
-		if ((fv->v[0] < r_refdef.vrectright) &&
-			(fv->v[1] < r_refdef.vrectbottom))
+		if ((fv->v[0] < clipright) &&
+			(fv->v[1] < clipbottom))
 		{
 			z = fv->v[5]>>16;
 			zbuf = zspantable[fv->v[1]] + fv->v[0];

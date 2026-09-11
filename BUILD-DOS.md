@@ -349,13 +349,18 @@ span rotations, fused lightmap writes, an integer dlight inner loop, a
 per-plane Z-gradient cache, power-of-two column wrap, `zspantable`
 Z-span addressing, `viewspantable` dest rows in texture spans,
 polyset, sprites, and particles, `zspantable` Z addressing in
-sprites and particles, a 1800 KB surface cache, and `Turbulent8`
-`viewspantable` dest rows) completed
+sprites and particles, a 1800 KB surface cache, `Turbulent8`
+`viewspantable` dest rows, a static `D_CacheSurface` hit path, a
+`D_PolysetDrawFinalVerts` clip-rect hoist, and unused extra light-style
+skips on cache hits)
+completed
 three `demo1` runs at
-`67.248071 / 67.247843 / 67.247873` seconds, median **14.409378 FPS** /
-**67.247873 s** (`out\dos-timedemo-20260911-143822\timedemo-result.json`).
-That is about 1.3 ms faster than the 1800 KB default (14.409100 FPS /
-67.249168 s) with checksum `4154140932` on every run.  1900 KB, 2000 KB, 2100 KB, and
+`67.200635 / 67.200347 / 67.200437` seconds, median **14.419549 FPS** /
+**67.200437 s** (`out\dos-timedemo-20260911-154031\timedemo-result.json`).
+That is about 18.2 ms faster than the FinalVerts hoist default
+(14.415652 FPS / 67.218606 s) with checksum `4154140932` on every run.
+The `Turbulent8` dest-row default was about 1.3 ms faster than the 1800 KB default (14.409100 FPS /
+67.249168 s).  1900 KB, 2000 KB, 2100 KB, and
 2400 KB were faster but checksum `2955717646` (same hash as the
 reverted texture-source row-lookup).  2x surface cache was **14.373452 FPS** / 67.415956 s
 (`out\dos-timedemo-20260911-133815`).  Sprite/particle `zspantable`
@@ -1105,12 +1110,20 @@ A 1800 KB surface cache reached **14.409100 FPS**
 (`67.249168` seconds median; `out\dos-timedemo-20260911-134300`).
 `Turbulent8` `viewspantable` dest rows reached **14.409378 FPS**
 (`67.247873` seconds median; `out\dos-timedemo-20260911-143822`).
+The static `D_CacheSurface` hit path reached **14.413306 FPS**
+(`67.229543` seconds median; `out\dos-timedemo-20260911-152128`).
+The `D_PolysetDrawFinalVerts` clip-rect hoist reached **14.415652 FPS**
+(`67.218606` seconds median; `out\dos-timedemo-20260911-152839`).
+Skipping unused extra light styles on cache hits reached **14.419549 FPS**
+(`67.200437` seconds median; `out\dos-timedemo-20260911-154031`).
 A 15-way last-segment divisor switch matched the checksum but was
 27.6 ms slower (`out\dos-timedemo-20260911-150819`).
 1900 KB, 2000 KB, 2100 KB, and 2400 KB all produced checksum
 `2955717646` and were reverted.  A branched POT skinwidth shift in
 `D_PolysetCalcGradients` matched the checksum but was 11.7 ms slower
 (`out\dos-timedemo-20260911-140630`).
+Hoisting `aliasvrect` locals in `R_AliasPreparePoints` matched the
+checksum but was 15.7 ms slower (`out\dos-timedemo-20260911-153350`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.
