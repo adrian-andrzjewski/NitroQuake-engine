@@ -191,15 +191,15 @@ LSpanLoop:
 
 //
 // point %edi to the first pixel in the span
+// Row addresses come from viewspantable (filled in D_SetupFrame) instead of
+// d_scantable plus d_viewbuffer.  C D_DrawSpans8 still multiplies screenwidth.
 //
-	movl	C(d_viewbuffer),%ecx
 	movl	espan_t_v(%ebx),%eax
 	movl	%ebx,pspantemp	// preserve spans pointer
 
 	movl	C(tadjust),%edx
 	movl	C(sadjust),%esi
-	movl	C(d_scantable)(,%eax,4),%edi	// v * screenwidth
-	addl	%ecx,%edi
+	movl	C(viewspantable)(,%eax,4),%edi	// row base
 	movl	espan_t_u(%ebx),%ecx
 	addl	%ecx,%edi				// pdest = &pdestspan[scans->u];
 	movl	espan_t_count(%ebx),%ecx

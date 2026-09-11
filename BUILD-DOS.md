@@ -346,12 +346,23 @@ The current default (same selectors, plus inlined power-of-two surface wrap,
 release-only skip of `D_CheckCacheGuard`, once-per-frame alias view
 matrix, the `Mod_LoadTexinfo` nested-loop UB fix, `-O3`, cached bmodel
 span rotations, fused lightmap writes, an integer dlight inner loop, a
-per-plane Z-gradient cache, and power-of-two column wrap) completed three
-`demo1` runs at
-`68.197434 / 68.197202 / 68.197221` seconds, median **14.208790 FPS** /
-**68.197221 s** (`out\dos-timedemo-20260911-054347\timedemo-result.json`).
-That is about 1.6 ms faster than the Z-gradient cache (14.208466 FPS /
-68.198777 s) with checksum `4154140932` on every run.  The Z-gradient
+per-plane Z-gradient cache, power-of-two column wrap, `zspantable`
+Z-span addressing, `viewspantable` dest rows in texture spans,
+polyset, sprites, and particles, and `zspantable` Z addressing in
+sprites and particles) completed
+three `demo1` runs at
+`67.986523 / 67.986326 / 67.986315` seconds, median **14.252866 FPS** /
+**67.986326 s** (`out\dos-timedemo-20260911-065037\timedemo-result.json`).
+That is about 4.7 ms faster than extra-`viewspantable`
+(14.251887 FPS / 67.990997 s) with checksum `4154140932` on every run.
+Extending `viewspantable` to polyset, sprites, and particles was
+**14.251887 FPS** / 67.990997 s (`out\dos-timedemo-20260911-064221`).
+Texture-span `viewspantable` dest addressing was **14.250078 FPS** /
+67.999624 s (`out\dos-timedemo-20260911-063418`).  Z-span `zspantable`
+addressing was **14.239663 FPS** / 68.049361 s
+(`out\dos-timedemo-20260911-062059`).  Power-of-two column
+wrap was **14.208790 FPS** / 68.197221 s
+(`out\dos-timedemo-20260911-054347`).  The Z-gradient
 cache was **14.208466 FPS** / 68.198777 s
 (`out\dos-timedemo-20260911-053759`).  The integer dlight
 inner loop was **14.206133 FPS** / 68.209972 s
@@ -1074,6 +1085,15 @@ The face Z-gradient cache reached **14.208466 FPS**
 (`68.198777` seconds median; `out\dos-timedemo-20260911-053759`).
 Power-of-two column wrap reached **14.208790 FPS**
 (`68.197221` seconds median; `out\dos-timedemo-20260911-054347`).
+`D_DrawZSpans` `zspantable` addressing reached **14.239663 FPS**
+(`68.049361` seconds median; `out\dos-timedemo-20260911-062059`).
+Texture-span `viewspantable` dest addressing reached **14.250078 FPS**
+(`67.999624` seconds median; `out\dos-timedemo-20260911-063418`).
+Extending `viewspantable` to polyset, sprites, and particles reached
+**14.251887 FPS** (`67.990997` seconds median;
+`out\dos-timedemo-20260911-064221`).
+Sprite/particle `zspantable` Z addressing reached **14.252866 FPS**
+(`67.986326` seconds median; `out\dos-timedemo-20260911-065037`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.

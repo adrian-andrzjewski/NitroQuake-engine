@@ -133,6 +133,11 @@ void D_SetupFrame (void)
 	else
 		screenwidth = vid.rowbytes;
 
+	// Bake d_viewbuffer + d_scantable[v] so span ASM can load one row
+	// pointer instead of adding the view base every span.
+	for (i=0 ; i<vid.height ; i++)
+		viewspantable[i] = d_viewbuffer + d_scantable[i];
+
 	d_roverwrapped = false;
 	d_initial_rover = sc_rover;
 

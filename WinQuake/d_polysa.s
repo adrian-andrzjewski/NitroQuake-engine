@@ -700,9 +700,7 @@ LDraw:
 	movl	0(%esp),%ecx
 
 //		d_viewbuffer[d_scantable[new[1]] + new[0]] = pix;
-	movl	C(d_scantable)(,%ebp,4),%eax
-	addl	%eax,%ecx
-	movl	C(d_viewbuffer),%eax
+	movl	C(viewspantable)(,%ebp,4),%eax
 	movb	%dl,(%eax,%ecx,1)
 
 //	}
@@ -1532,10 +1530,8 @@ LFVLoop:
 	movb	(%edx,%edi,1),%dl
 
 //				d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] = pix;
-	movl	C(d_scantable)(,%esi,4),%edi
-	movl	C(d_viewbuffer),%esi
-	addl	%eax,%edi
-	movb	%dl,(%esi,%edi)
+	movl	C(viewspantable)(,%esi,4),%edi
+	movb	%dl,(%edi,%eax)
 
 //			}
 //		}

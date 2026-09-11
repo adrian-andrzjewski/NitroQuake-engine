@@ -324,6 +324,7 @@ void D_DrawSpans8 (espan_t *pspan)
 
 	do
 	{
+		// C reference: ASM D_DrawSpans8/16 uses viewspantable[v] + u.
 		pdest = (unsigned char *)((byte *)d_viewbuffer +
 				(screenwidth * pspan->v) + pspan->u);
 

@@ -61,6 +61,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern	C(d_zrowbytes)
 	.extern	C(d_zwidth)
 	.extern C(d_scantable)
+	.extern C(viewspantable)
 	.extern C(r_lightptr)
 	.extern C(r_numvblocks)
 	.extern C(prowdestbase)

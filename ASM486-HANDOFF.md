@@ -34,6 +34,14 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
 - Face Z gradients: `R_SetSurfaceZGradients` reuses one plane's finished
   `d_zistep` values while `modelorg` is unchanged this frame.  The miss
   path is the original `TransformVector` / `1/z` arithmetic.
+- Z spans: `D_DrawZSpans` ASM uses `zspantable` row bases instead of
+  IMUL `d_zrowbytes`.  The C multiply path remains the reference.
+- Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
+  `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
+  `D_SetupFrame`).  Alias polyset, sprites, and particles use the same
+  table.  C `D_DrawSpans8` still multiplies `screenwidth`.
+- Sprite and particle Z: ASM uses `zspantable` instead of IMUL
+  `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
   mip width is a power of two; the compare/branch loop remains the
   non-POT reference.
@@ -86,6 +94,12 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |
 | Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |
 | POT column wrap (`R_DrawSurface`) | AND wrap on power-of-two mip widths; compare/branch remains the non-POT path | 68.197221 s / 14.208790 FPS, 1.6 ms faster | Kept |
+| Alias `AngleVectors` cache (`R_AliasSetUpTransform`) | 16-slot per-frame basis reuse; `AngleVectors` miss path | 68.212837 s / 14.205537 FPS, 15.6 ms slower | Reverted |
+| Direct mip0 drawer (`R_DrawSurface`) | Direct `R_DrawSurfaceBlock8_mip0` in the POT column loop | 68.198298 s / 14.208566 FPS, 1.1 ms slower | Reverted |
+| Z-span row table (`D_DrawZSpans`) | Use existing `zspantable` instead of IMUL `d_zrowbytes`; C multiply kept | 68.049361 s / 14.239663 FPS, 147.9 ms faster | Kept |
+| Texture-span row table (`D_DrawSpans16`) | `viewspantable` dest rows instead of `d_scantable` plus `d_viewbuffer`; C multiply kept | 67.999624 s / 14.250078 FPS, 49.7 ms faster | Kept |
+| Extra `viewspantable` dest sites | Same table in polyset, sprites, and particles | 67.990997 s / 14.251887 FPS, 8.6 ms faster | Kept |
+| Sprite/particle Z row table | `zspantable` instead of IMUL `d_zrowbytes` in `d_spr8.s` / `d_parta.s` | 67.986326 s / 14.252866 FPS, 4.7 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -149,11 +163,32 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   11.2 ms faster than the integer-dlight default; every run was faster than
   every previous-default run.  `out\dos-timedemo-20260911-050318` was a
   stale-`qbench` rerun and is not evidence for this change.
-- Current default after power-of-two column wrap in `R_DrawSurface`
+- Previous default after power-of-two column wrap in `R_DrawSurface`
   (`out\dos-timedemo-20260911-054347`): `68.197434 / 68.197202 / 68.197221` s,
   median **68.197221 s / 14.208790 FPS**, checksum `4154140932`.  About
   1.6 ms faster than the Z-gradient cache; every run was faster than every
   Z-cache run.
+- Previous default after `D_DrawZSpans` used `zspantable`
+  (`out\dos-timedemo-20260911-062059`): `68.049783 / 68.049361 / 68.049299` s,
+  median **68.049361 s / 14.239663 FPS**, checksum `4154140932`.  About
+  147.9 ms faster than the POT-wrap default.  Worst-frame FPS rose from
+  6.300360 to 6.311090.  C `D_DrawZSpans` still multiplies `d_zwidth`.
+- Previous default after texture-span `viewspantable` dest addressing
+  (`out\dos-timedemo-20260911-063418`): `67.999833 / 67.999624 / 67.999594` s,
+  median **67.999624 s / 14.250078 FPS**, checksum `4154140932`.  About
+  49.7 ms faster than the Z-span-table default.  Worst-frame FPS rose from
+  6.311090 to 6.316737.  C `D_DrawSpans8` still multiplies `screenwidth`.
+- Previous default after polyset/sprite/particle `viewspantable` dest
+  addressing (`out\dos-timedemo-20260911-064221`):
+  `67.991123 / 67.990960 / 67.990997` s, median
+  **67.990997 s / 14.251887 FPS**, checksum `4154140932`.  About 8.6 ms
+  faster than texture-span-only `viewspantable`.  Worst-frame FPS rose from
+  6.316737 to 6.318577.
+- Current default after sprite/particle `zspantable` Z addressing
+  (`out\dos-timedemo-20260911-065037`): `67.986523 / 67.986326 / 67.986315` s,
+  median **67.986326 s / 14.252866 FPS**, checksum `4154140932`.  About
+  4.7 ms faster than extra-`viewspantable`.  Worst-frame FPS rose from
+  6.318577 to 6.320384.
 
 ## Important decisions and assumptions
 
@@ -185,31 +220,40 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   `out\dos-bench-20260910-204331` exceeded its 300-second diagnostic bound
   before producing a result JSON.  It is not a passing benchmark and should
   not be used as evidence.
+- Alias `AngleVectors` caching (`out\dos-timedemo-20260911-055546`) matched
+  checksum `4154140932` but was 15.6 ms slower than the current default.
+  Hit rate did not cover the probe/copy cost; do not retry a per-frame
+  angle-basis cache.
+- Direct mip0 column calls (`out\dos-timedemo-20260911-060235`) matched
+  checksum `4154140932` but were 1.1 ms slower than the indirect
+  `(*pblockdrawer)()` POT loop.  Do not retry direct mip drawers.
 
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (14.208790 FPS median, checksum `4154140932`) before further edits.
+   (14.252866 FPS median, checksum `4154140932`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
-2. Texture spans remain ~25.7% self time.  The unrolled 16-pixel leaf in
-   `d_draw16.s` beat both dword coalescing (noise) and a compact stosb loop
-   (~2.8% slower).  Next span work should keep the unroll and look at
+2. Texture spans remain ~25.7% self time.  Dest rows now come from
+   `viewspantable` in the 16/8-pixel drawers, polyset, sprites, and
+   particles.  Keep the unrolled 16-pixel leaf; dword coalescing was
+   noise and a compact stosb loop was ~2.8% slower.  Next span work is
    remainder `EntryN_16` or a `tzero` integer-step specialization that still
    handles fractional t carry (1,026,030 full segments, but only 28 with zero
-   tfrac).
+   tfrac).  Do not revive texture-source row-lookup without checksum proof.
+   Sprite and particle Z now use `zspantable` as well.
 3. Surface-cache rebuilds are still ~14.5%.  Do not add another predicate
    helper.  No-dlight invert/clamp is fused into the lightmap write for
    1--4 styles, and `R_AddDynamicLights` now uses an integer distance.
-   Per-column wrap uses AND on power-of-two widths.  `surf8.s` / `block8.h`
-   word-store packing was noise; try aligned dword packing or fewer
-   lightmap rebuilds without changing lit output.  Direct mip drawers
-   instead of `(*pblockdrawer)()` per column are still open.
+   Per-column wrap uses AND on power-of-two widths.  Direct mip drawers
+   were 1.1 ms slower end-to-end; leave `(*pblockdrawer)()`.  `surf8.s` /
+   `block8.h` word-store packing was noise; try aligned dword packing or
+   fewer lightmap rebuilds without changing lit output.
 4. Alias leftover is now the per-vertex clip tests and polyset raster, not
-   the per-model view matrix.  Z spans already keep the z-buffer base in a
-   register and pack dwords; edge scan is already assembly.  Do not revive
-   BSP plane-dot/clip helpers.  Face Z gradients are cached.
+   the per-model view matrix.  Do not retry an `AngleVectors` cache.
+   Z spans now use `zspantable`; edge scan is already assembly.  Do not
+   revive BSP plane-dot/clip helpers.  Face Z gradients are cached.
 
 ## Starting commands
 

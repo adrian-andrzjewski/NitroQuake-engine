@@ -176,15 +176,15 @@ LSpanLoop:
 
 //
 // point %edi to the first pixel in the span
+// Row addresses come from viewspantable (filled in D_SetupFrame) instead of
+// d_scantable plus d_viewbuffer.  C D_DrawSpans8 still multiplies screenwidth.
 //
-	movl	C(d_viewbuffer),%ecx
 	movl	espan_t_v(%ebx),%eax
 	movl	%ebx,pspantemp	// preserve spans pointer
 
 	movl	C(tadjust),%edx
 	movl	C(sadjust),%esi
-	movl	C(d_scantable)(,%eax,4),%edi	// v * screenwidth
-	addl	%ecx,%edi
+	movl	C(viewspantable)(,%eax,4),%edi	// row base
 	movl	espan_t_u(%ebx),%ecx
 	addl	%ecx,%edi				// pdest = &pdestspan[scans->u];
 	movl	espan_t_count(%ebx),%ecx
@@ -763,6 +763,8 @@ LEndSpan:
 
 //----------------------------------------------------------------------
 // 8-bpp horizontal span z drawing codefor polygons, with no transparency.
+// Row addresses come from zspantable (filled in D_VidStart) instead of
+// IMUL d_zrowbytes.  The C D_DrawZSpans path remains the multiply reference.
 //
 // Assumes there is at least one span in pzspans, and that every span
 // contains at least one pixel
@@ -796,8 +798,6 @@ C(D_DrawZSpans):
 
 	flds	C(d_zistepu)
 	movl	C(d_zistepu),%eax
-	// Keep the z-buffer base in %ebp; it is invariant across this span list.
-	movl	C(d_pzbuffer),%ebp
 	movl	pzspans(%esp),%esi
 	testl	%eax,%eax
 	jz		LFNegSpan
@@ -812,22 +812,19 @@ LFSpanLoop:
 	fildl	espan_t_v(%esi)
 	fildl	espan_t_u(%esi)
 	movl	espan_t_v(%esi),%ecx
-	movl	%ebp,%edi
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
+	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
 	fxch	%st(1)
 	fadds	C(d_ziorigin)
-	imull	C(d_zrowbytes),%ecx
+	movl	espan_t_u(%esi),%edx
 	faddp	%st(0),%st(1)
 
 // clamp if z is nearer than 2 (1/z > 0.5)
 	fcoms	float_point5
-	addl	%ecx,%edi
-	movl	espan_t_u(%esi),%edx
-	addl	%edx,%edx				// word count
+	leal	(%edi,%edx,2),%edi
 	movl	espan_t_count(%esi),%ecx
-	addl	%edx,%edi				// pdest = &pdestspan[scans->u];
 	pushl	%esi		// preserve spans pointer
 	fnstsw	%ax
 	testb	$0x45,%ah
@@ -887,7 +884,7 @@ LFMiddleLoop:
 	orl		%esi,%eax
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
-	// %eax is free after the first store; %ebp remains the z-buffer base.
+	// %eax is free after the first store.
 	shrl	$16,%eax
 	movl	%edx,%esi
 	addl	%ebx,%edx
@@ -927,22 +924,19 @@ LFNegSpanLoop:
 	fildl	espan_t_v(%esi)
 	fildl	espan_t_u(%esi)
 	movl	espan_t_v(%esi),%ecx
-	movl	%ebp,%edi
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
+	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
 	fxch	%st(1)
 	fadds	C(d_ziorigin)
-	imull	C(d_zrowbytes),%ecx
+	movl	espan_t_u(%esi),%edx
 	faddp	%st(0),%st(1)
 
 // clamp if z is nearer than 2 (1/z > 0.5)
 	fcoms	float_point5
-	addl	%ecx,%edi
-	movl	espan_t_u(%esi),%edx
-	addl	%edx,%edx				// word count
+	leal	(%edi,%edx,2),%edi
 	movl	espan_t_count(%esi),%ecx
-	addl	%edx,%edi				// pdest = &pdestspan[scans->u];
 	pushl	%esi		// preserve spans pointer
 	fnstsw	%ax
 	testb	$0x45,%ah

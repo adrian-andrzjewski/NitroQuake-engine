@@ -198,22 +198,18 @@ LSpanLoop:
 	movl	sspan_t_v(%ebx),%eax
 	movl	%ebp,izi
 	movl	sspan_t_u(%ebx),%ebp
-	imull	C(d_zrowbytes)
-	shll	$1,%ebp					// a word per pixel
-	addl	C(d_pzbuffer),%eax
-	addl	%ebp,%eax
+	movl	C(zspantable)(,%eax,4),%eax
+	leal	(%eax,%ebp,2),%eax
 	movl	%eax,pz
 
 //
 // point %edi to the first pixel in the span
 //
-	movl	C(d_viewbuffer),%ebp
 	movl	sspan_t_v(%ebx),%eax
 	pushl	%ebx		// preserve spans pointer
 	movl	C(tadjust),%edx
 	movl	C(sadjust),%esi
-	movl	C(d_scantable)(,%eax,4),%edi	// v * screenwidth
-	addl	%ebp,%edi
+	movl	C(viewspantable)(,%eax,4),%edi	// row base
 	movl	sspan_t_u(%ebx),%ebp
 	addl	%ebp,%edi				// pdest = &pdestspan[scans->u];
 

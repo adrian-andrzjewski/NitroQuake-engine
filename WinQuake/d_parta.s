@@ -170,20 +170,13 @@ C(D_DrawParticle):
 	// Keep the palette byte in %ch while the projection registers are reused.
 	movb	pt_color(%edi),%ch
 
-	movl	C(d_viewbuffer),%ebx
-
-	addl	%eax,%ebx
-	movl	C(d_scantable)(,%edx,4),%edi		// point to the pixel
-
-	imull	C(d_zrowbytes),%edx		// point to the z pixel
-
-	leal	(%edx,%eax,2),%edx
-	movl	C(d_pzbuffer),%eax
+	movl	C(viewspantable)(,%edx,4),%edi	// point to the pixel row
+	movl	C(zspantable)(,%edx,4),%edx
 
 	fistpl	izi
 
-	addl	%ebx,%edi
-	addl	%eax,%edx
+	addl	%eax,%edi
+	leal	(%edx,%eax,2),%edx
 
 // pix = izi >> d_pix_shift;
 

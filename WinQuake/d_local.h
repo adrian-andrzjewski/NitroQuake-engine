@@ -107,6 +107,7 @@ extern int	d_y_aspect_shift, d_pix_min, d_pix_max, d_pix_shift;
 extern pixel_t	*d_viewbuffer;
 
 extern short	*zspantable[MAXHEIGHT];
+extern pixel_t	*viewspantable[MAXHEIGHT];
 
 extern int		d_minmip;
 extern float	d_scalemip[3];
