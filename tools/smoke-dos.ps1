@@ -4,7 +4,9 @@ param(
     [switch]$NoBootstrap,
     [string]$ToolRoot,
     [string]$DataRoot,
-    [int]$TimeoutSeconds = 45
+    [ValidateSet('baseline', 'aggressive')]
+    [string]$OptimizationProfile = 'aggressive',
+    [int]$TimeoutSeconds = 90
 )
 
 Set-StrictMode -Version Latest
@@ -25,7 +27,8 @@ if ([string]::IsNullOrWhiteSpace($DataRoot)) {
 $DataRoot = [IO.Path]::GetFullPath($DataRoot)
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-$djgppExe = Join-Path $repoRoot 'out\dos\quake.exe'
+$profileSuffix = if ($OptimizationProfile -eq 'baseline') { '-baseline' } else { '' }
+$djgppExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\quake.exe')
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
 $dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
 $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
@@ -45,7 +48,11 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     if ($SkipBuild) {
         throw "DOS executable not found at '$djgppExe'. Run build-dos.ps1 first or omit -SkipBuild."
     }
-    & $build -ToolRoot $ToolRoot
+    $buildArgs = @('-ToolRoot', $ToolRoot, '-OptimizationProfile', $OptimizationProfile)
+    if ($NoBootstrap) {
+        $buildArgs += '-NoBootstrap'
+    }
+    & $build @buildArgs
 }
 if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     throw "Required DOS executable is missing: '$djgppExe'."
@@ -73,42 +80,55 @@ New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
 Copy-Item -LiteralPath $djgppExe -Destination (Join-Path $quakeRoot 'quake.exe') -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
-Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -Force
+# Stage only PAK files. Steam id1 also contains configs, saves, and
+# autoexec lines that can prevent +quit from returning under the 486 cycle cap.
+$pakFiles = @(Get-ChildItem -LiteralPath $DataRoot -Filter 'pak*.pak' -File)
+if ($pakFiles.Count -eq 0) {
+    throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not included in Git."
+}
+foreach ($pak in $pakFiles) {
+    Copy-Item -LiteralPath $pak.FullName -Destination (Join-Path $stagedData $pak.Name) -Force
+}
+
+# quake.rc runs startdemos after stuffcmds in some layouts; a local autoexec
+# quits during Host_Init's first Cbuf_Execute so smoke never plays demo1.
+# -forcquit skips the Y/N quit menu, key-wait notify boxes, and the VGA sell
+# screen (which writes B800:0000 after VID_Shutdown).
+'quit' | Set-Content -LiteralPath (Join-Path $stagedData 'autoexec.cfg') -Encoding ASCII
 
 # Keep generated DOS filenames within the 8.3 limit used by DOSBox-X here.
 $batchPath = Join-Path $quakeRoot 'smoke.bat'
 @'
 @echo off
 cd \quake
-quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +toggleconsole +quit
+quake.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio -stdvid -forcquit +quit
 echo 0 > \quake\smoke.exi
 exit
 '@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
-$configPath = Join-Path $stagingRoot 'dosbox-x.conf'
+$profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
+if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
+    throw "486 DOSBox-X profile is missing: '$profilePath'."
+}
+$profileText = Get-Content -LiteralPath $profilePath -Raw
 $mountPath = $stagingRoot.Replace('"', '""')
-@"
-[sdl]
-fullscreen=false
-output=surface
-autolock=false
-
-[dosbox]
-machine=svga_s3
-memsize=16
-
-[cpu]
-core=dynamic
-cputype=486
-cycles=fixed 33445
-
+$autoexec = (@"
 [autoexec]
 mount c "$mountPath"
 c:
 cd \quake
 call smoke.bat
 exit
-"@ | Set-Content -LiteralPath $configPath -Encoding ASCII
+"@).TrimEnd() + [Environment]::NewLine
+$runtimeConfig = [regex]::Replace(
+    $profileText,
+    '(?ms)^\[autoexec\]\s*.*?(?=^\[devices\])',
+    [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $autoexec })
+if ($runtimeConfig -eq $profileText) {
+    throw "Could not replace the autoexec section in '$profilePath'."
+}
+$configPath = Join-Path $stagingRoot 'dosbox-x.conf'
+$runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
 
 function ConvertTo-ProcessArgument {
     param([Parameter(Mandatory = $true)][string]$Value)

@@ -103,9 +103,60 @@ static void D_ProfileSpans (espan_t *span, qboolean texture)
 
 // FIXME: should go away
 extern void			R_RotateBmodel (void);
+extern void			R_RotateBmodelCached (void);
 extern void			R_TransformFrustum (void);
 
 vec3_t		transformed_modelorg;
+
+/*
+==============
+D_RestoreWorldDrawingState
+
+Undo a per-polygon bmodel rotation so world surfaces use base view axes.
+==============
+*/
+static void D_RestoreWorldDrawingState (entity_t **rotated,
+	vec3_t world_transformed_modelorg)
+{
+	if (!*rotated)
+		return;
+
+	currententity = &cl_entities[0];
+	VectorCopy (world_transformed_modelorg, transformed_modelorg);
+	VectorCopy (base_vpn, vpn);
+	VectorCopy (base_vup, vup);
+	VectorCopy (base_vright, vright);
+	VectorCopy (base_modelorg, modelorg);
+	R_TransformFrustum ();
+	*rotated = NULL;
+}
+
+/*
+==============
+D_SetBmodelDrawingState
+
+Id's driver rotated every in-submodel polygon. Consecutive polygons from the
+same brush entity can keep the current axes; later revisits reuse the cached
+rotation matrix instead of rebuilding it with sin/cos.
+==============
+*/
+static void D_SetBmodelDrawingState (entity_t **rotated, surf_t *s,
+	vec3_t local_modelorg, vec3_t world_transformed_modelorg)
+{
+	if (*rotated == s->entity)
+		return;
+
+	D_RestoreWorldDrawingState (rotated, world_transformed_modelorg);
+
+	currententity = s->entity;	//FIXME: make this passed in to
+								// R_RotateBmodel ()
+	VectorSubtract (r_origin, currententity->origin, local_modelorg);
+	TransformVector (local_modelorg, transformed_modelorg);
+
+	R_RotateBmodelCached ();	// FIXME: don't mess with the frustum,
+								// make entity passed in
+	*rotated = s->entity;
+}
 
 /*
 ==============
@@ -346,6 +397,7 @@ void D_DrawSurfaces (void)
 	surfcache_t		*pcurrentcache;
 	vec3_t			world_transformed_modelorg;
 	vec3_t			local_modelorg;
+	entity_t		*span_bmodel;
 #ifdef PROFILE486
 	double			bench486_surface_start;
 	double			bench486_span_draw_start;
@@ -366,6 +418,7 @@ void D_DrawSurfaces (void)
 	currententity = &cl_entities[0];
 	TransformVector (modelorg, transformed_modelorg);
 	VectorCopy (transformed_modelorg, world_transformed_modelorg);
+	span_bmodel = NULL;
 
 // TODO: could preset a lot of this at mode set time
 	if (r_drawflat.value)
@@ -418,6 +471,8 @@ void D_DrawSurfaces (void)
 
 			if (s->flags & SURF_DRAWSKY)
 			{
+				D_RestoreWorldDrawingState (&span_bmodel,
+						world_transformed_modelorg);
 	#ifdef PROFILE486
 				if (bench486_profile_frame_active)
 				{
@@ -450,6 +505,8 @@ void D_DrawSurfaces (void)
 			}
 			else if (s->flags & SURF_DRAWBACKGROUND)
 			{
+				D_RestoreWorldDrawingState (&span_bmodel,
+						world_transformed_modelorg);
 	#ifdef PROFILE486
 				if (bench486_profile_frame_active)
 				{
@@ -487,18 +544,11 @@ void D_DrawSurfaces (void)
 				cachewidth = 64;
 
 				if (s->insubmodel)
-				{
-				// FIXME: we don't want to do all this for every polygon!
-				// TODO: store once at start of frame
-					currententity = s->entity;	//FIXME: make this passed in to
-												// R_RotateBmodel ()
-					VectorSubtract (r_origin, currententity->origin,
-							local_modelorg);
-					TransformVector (local_modelorg, transformed_modelorg);
-
-					R_RotateBmodel ();	// FIXME: don't mess with the frustum,
-										// make entity passed in
-				}
+					D_SetBmodelDrawingState (&span_bmodel, s, local_modelorg,
+							world_transformed_modelorg);
+				else
+					D_RestoreWorldDrawingState (&span_bmodel,
+							world_transformed_modelorg);
 
 				D_CalcGradients (pface);
 				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_TURBULENT_SPANS);
@@ -508,23 +558,6 @@ void D_DrawSurfaces (void)
 				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
 				D_DrawZSpans (s->spans);
 				BENCH486_PROFILE_LEAVE ();
-
-				if (s->insubmodel)
-				{
-				//
-				// restore the old drawing state
-				// FIXME: we don't want to do this every time!
-				// TODO: speed up
-				//
-					currententity = &cl_entities[0];
-					VectorCopy (world_transformed_modelorg,
-								transformed_modelorg);
-					VectorCopy (base_vpn, vpn);
-					VectorCopy (base_vup, vup);
-					VectorCopy (base_vright, vright);
-					VectorCopy (base_modelorg, modelorg);
-					R_TransformFrustum ();
-				}
 			}
 			else
 			{
@@ -538,17 +571,11 @@ void D_DrawSurfaces (void)
 				}
 	#endif
 				if (s->insubmodel)
-				{
-				// FIXME: we don't want to do all this for every polygon!
-				// TODO: store once at start of frame
-					currententity = s->entity;	//FIXME: make this passed in to
-												// R_RotateBmodel ()
-					VectorSubtract (r_origin, currententity->origin, local_modelorg);
-					TransformVector (local_modelorg, transformed_modelorg);
-
-					R_RotateBmodel ();	// FIXME: don't mess with the frustum,
-										// make entity passed in
-				}
+					D_SetBmodelDrawingState (&span_bmodel, s, local_modelorg,
+							world_transformed_modelorg);
+				else
+					D_RestoreWorldDrawingState (&span_bmodel,
+							world_transformed_modelorg);
 
 				pface = s->data;
 				miplevel = D_MipLevelForScale (s->nearzi * scale_for_mip
@@ -591,25 +618,10 @@ void D_DrawSurfaces (void)
 				BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
 				D_DrawZSpans (s->spans);
 				BENCH486_PROFILE_LEAVE ();
-
-				if (s->insubmodel)
-				{
-				//
-				// restore the old drawing state
-				// FIXME: we don't want to do this every time!
-				// TODO: speed up
-				//
-					currententity = &cl_entities[0];
-					VectorCopy (world_transformed_modelorg,
-								transformed_modelorg);
-					VectorCopy (base_vpn, vpn);
-					VectorCopy (base_vup, vup);
-					VectorCopy (base_vright, vright);
-					VectorCopy (base_modelorg, modelorg);
-					R_TransformFrustum ();
-				}
 			}
 		}
+
+		D_RestoreWorldDrawingState (&span_bmodel, world_transformed_modelorg);
 	}
 
 #ifdef PROFILE486

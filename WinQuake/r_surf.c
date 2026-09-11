@@ -194,21 +194,32 @@ void R_BuildLightMap (void)
 		return;
 	}
 
-// clear to ambient
-	for (i=0 ; i<size ; i++)
-		blocklights[i] = r_refdef.ambientlight<<8;
+// Fold ambient into the first lightmap so the common one-style case does not
+// write blocklights twice. Extra styles still add on top, same 8.8 scale.
+	scale = r_refdef.ambientlight<<8;
+	maps = 0;
+	if (lightmap && surf->styles[0] != 255)
+	{
+		unsigned	first;
 
-
-// add all the lightmaps
-	if (lightmap)
-		for (maps = 0 ; maps < MAXLIGHTMAPS && surf->styles[maps] != 255 ;
-			 maps++)
+		first = r_drawsurf.lightadj[0];
+		for (i=0 ; i<size ; i++)
+			blocklights[i] = scale + lightmap[i] * first;
+		lightmap += size;
+		maps = 1;
+		for ( ; maps < MAXLIGHTMAPS && surf->styles[maps] != 255 ; maps++)
 		{
-			scale = r_drawsurf.lightadj[maps];	// 8.8 fraction		
+			first = r_drawsurf.lightadj[maps];	// 8.8 fraction
 			for (i=0 ; i<size ; i++)
-				blocklights[i] += lightmap[i] * scale;
-			lightmap += size;	// skip to next lightmap
+				blocklights[i] += lightmap[i] * first;
+			lightmap += size;
 		}
+	}
+	else
+	{
+		for (i=0 ; i<size ; i++)
+			blocklights[i] = scale;
+	}
 
 // add all the dynamic lights
 	if (surf->dlightframe == r_framecount)
@@ -344,10 +355,23 @@ void R_DrawSurface (void)
 	soffset = r_drawsurf.surf->texturemins[0];
 	basetoffset = r_drawsurf.surf->texturemins[1];
 
-// << 16 components are to guarantee positive values for %
-	soffset = ((soffset >> r_drawsurf.surfmip) + (smax << 16)) % smax;
-	basetptr = &r_source[((((basetoffset >> r_drawsurf.surfmip) 
-		+ (tmax << 16)) % tmax) * twidth)];
+// << 16 components are to guarantee positive values for wrap.
+	// Quake textures are power-of-two; avoid IDIV on the 486 rebuild path.
+	soffset = (soffset >> r_drawsurf.surfmip) + (smax << 16);
+	if (smax && !(smax & (smax - 1)))
+		soffset &= (smax - 1);
+	else
+		soffset %= smax;
+	{
+		int		toffset;
+
+		toffset = (basetoffset >> r_drawsurf.surfmip) + (tmax << 16);
+		if (tmax && !(tmax & (tmax - 1)))
+			toffset &= (tmax - 1);
+		else
+			toffset %= tmax;
+		basetptr = &r_source[toffset * twidth];
+	}
 
 	pcolumndest = r_drawsurf.surfdat;
 

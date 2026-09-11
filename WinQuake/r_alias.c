@@ -46,6 +46,7 @@ float			ziscale;
 static model_t		*pmodel;
 
 static vec3_t		alias_forward, alias_right, alias_up;
+static float		alias_viewmatrix[3][4];
 
 static maliasskindesc_t	*pskindesc;
 
@@ -388,6 +389,23 @@ void R_AliasPreparePoints (void)
 
 /*
 ================
+R_AliasSetViewMatrix
+
+Filled once per frame after vpn/vright/vup are set.  Per-model transform
+setup only concatenates this cached view matrix.
+================
+*/
+void R_AliasSetViewMatrix (void)
+{
+	VectorCopy (vright, alias_viewmatrix[0]);
+	VectorCopy (vup, alias_viewmatrix[1]);
+	VectorInverse (alias_viewmatrix[1]);
+	VectorCopy (vpn, alias_viewmatrix[2]);
+}
+
+
+/*
+================
 R_AliasSetUpTransform
 ================
 */
@@ -396,7 +414,6 @@ void R_AliasSetUpTransform (int trivial_accept)
 	int				i;
 	float			rotationmatrix[3][4], t2matrix[3][4];
 	static float	tmatrix[3][4];
-	static float	viewmatrix[3][4];
 	vec3_t			angles;
 
 // TODO: should really be stored with the entity instead of being reconstructed
@@ -431,18 +448,7 @@ void R_AliasSetUpTransform (int trivial_accept)
 
 // FIXME: can do more efficiently than full concatenation
 	R_ConcatTransforms (t2matrix, tmatrix, rotationmatrix);
-
-// TODO: should be global, set when vright, etc., set
-	VectorCopy (vright, viewmatrix[0]);
-	VectorCopy (vup, viewmatrix[1]);
-	VectorInverse (viewmatrix[1]);
-	VectorCopy (vpn, viewmatrix[2]);
-
-//	viewmatrix[0][3] = 0;
-//	viewmatrix[1][3] = 0;
-//	viewmatrix[2][3] = 0;
-
-	R_ConcatTransforms (viewmatrix, rotationmatrix, aliastransform);
+	R_ConcatTransforms (alias_viewmatrix, rotationmatrix, aliastransform);
 
 // do the scaling up of x and y to screen coordinates as part of the transform
 // for the unclipped case (it would mess up clipping in the clipped case).

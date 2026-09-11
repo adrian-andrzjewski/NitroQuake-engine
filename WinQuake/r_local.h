@@ -207,6 +207,7 @@ extern void R_EdgeCodeStart (void);
 extern void R_EdgeCodeEnd (void);
 
 extern void R_RotateBmodel (void);
+extern void R_RotateBmodelCached (void);
 
 extern int	c_faceclip;
 extern int	r_polycount;
@@ -341,6 +342,7 @@ void R_PrintDSpeeds (void);
 void R_AnimateLight (void);
 int R_LightPoint (vec3_t p);
 void R_SetupFrame (void);
+void R_AliasSetViewMatrix (void);
 void R_cshift_f (void);
 void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1);
 void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip);

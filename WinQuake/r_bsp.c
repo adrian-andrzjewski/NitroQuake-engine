@@ -152,6 +152,48 @@ void R_RotateBmodel (void)
 
 /*
 ================
+R_RotateBmodelCached
+
+Same drawing state as R_RotateBmodel, but reuses this frame's entity
+rotation matrix so later polygons skip the 486 sin/cos rebuild.
+R_RotateBmodel remains the reference that always reconstructs the matrix.
+================
+*/
+#define BMODEL_ROTCACHE_SLOTS	8
+
+void R_RotateBmodelCached (void)
+{
+	unsigned				slot;
+	int						i, j;
+	static entity_t			*cache_ent[BMODEL_ROTCACHE_SLOTS];
+	static int				cache_frame[BMODEL_ROTCACHE_SLOTS];
+	static float			cache_rot[BMODEL_ROTCACHE_SLOTS][3][3];
+
+	slot = ((unsigned)currententity >> 5) & (BMODEL_ROTCACHE_SLOTS - 1);
+	if (cache_ent[slot] == currententity && cache_frame[slot] == r_framecount)
+	{
+		for (i = 0 ; i < 3 ; i++)
+			for (j = 0 ; j < 3 ; j++)
+				entity_rotation[i][j] = cache_rot[slot][i][j];
+		R_EntityRotate (modelorg);
+		R_EntityRotate (vpn);
+		R_EntityRotate (vright);
+		R_EntityRotate (vup);
+		R_TransformFrustum ();
+		return;
+	}
+
+	R_RotateBmodel ();
+	cache_ent[slot] = currententity;
+	cache_frame[slot] = r_framecount;
+	for (i = 0 ; i < 3 ; i++)
+		for (j = 0 ; j < 3 ; j++)
+			cache_rot[slot][i][j] = entity_rotation[i][j];
+}
+
+
+/*
+================
 R_RecursiveClipBPoly
 ================
 */

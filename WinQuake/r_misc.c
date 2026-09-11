@@ -430,6 +430,7 @@ r_refdef.viewangles[2]=    0;
 	VectorCopy (r_refdef.vieworg, r_origin);
 
 	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
+	R_AliasSetViewMatrix ();
 
 // current viewleaf
 	r_oldviewleaf = r_viewleaf;

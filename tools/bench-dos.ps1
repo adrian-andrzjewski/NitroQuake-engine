@@ -5,7 +5,7 @@ param(
     [string]$ToolRoot,
     [string]$DataRoot,
     [ValidateSet('baseline', 'aggressive')]
-    [string]$OptimizationProfile = 'baseline',
+    [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
     [int]$TextureAxisCacheEntries = 256,
     [ValidateSet('c', 'asm')]
@@ -18,6 +18,8 @@ param(
     [string]$MemoryImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
+    [ValidateSet('byte', 'dword', 'loop')]
+    [string]$TextureSpanStores = 'byte',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -65,8 +67,8 @@ if ($TimeoutSeconds -lt 10) {
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
 $profileSuffixParts = @()
-if ($OptimizationProfile -eq 'aggressive') {
-    $profileSuffixParts += 'aggressive'
+if ($OptimizationProfile -eq 'baseline') {
+    $profileSuffixParts += 'baseline'
 }
 if ($TextureAxisCacheEntries -ne 256) {
     $profileSuffixParts += "cache$TextureAxisCacheEntries"
@@ -88,6 +90,12 @@ if ($TurbulentImplementation -eq 'c') {
 }
 elseif ($TurbulentImplementation -eq 'asm') {
     $profileSuffixParts += 'turbasm'
+}
+if ($TextureSpanStores -eq 'dword') {
+    $profileSuffixParts += 'spandword'
+}
+elseif ($TextureSpanStores -eq 'loop') {
+    $profileSuffixParts += 'spanloop'
 }
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
@@ -145,6 +153,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-MipLevelImplementation', $MipLevelImplementation,
         '-MemoryImplementation', $MemoryImplementation,
         '-TurbulentImplementation', $TurbulentImplementation,
+        '-TextureSpanStores', $TextureSpanStores,
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-AliasBBoxProjectImplementation', $AliasBBoxProjectImplementation,
         '-AliasTransformFinalImplementation', $AliasTransformFinalImplementation,
@@ -298,6 +307,7 @@ $result = [ordered]@{
     mipLevelImplementation = $MipLevelImplementation
     memoryImplementation = $MemoryImplementation
     turbulentImplementation = $TurbulentImplementation
+    textureSpanStores = $TextureSpanStores
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
     aliasTransformFinalImplementation = $AliasTransformFinalImplementation

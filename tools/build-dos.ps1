@@ -5,7 +5,7 @@ param(
     [switch]$Instrumentation,
     [switch]$NoBootstrap,
     [ValidateSet('baseline', 'aggressive')]
-    [string]$OptimizationProfile = 'baseline',
+    [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
     [int]$TextureAxisCacheEntries = 256,
     [ValidateSet('c', 'asm')]
@@ -18,6 +18,8 @@ param(
     [string]$MemoryImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
+    [ValidateSet('byte', 'dword', 'loop')]
+    [string]$TextureSpanStores = 'byte',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -73,8 +75,8 @@ foreach ($requiredPath in @($compiler, $objdump)) {
 
 $sourceRoot = Join-Path $repoRoot 'WinQuake'
 $profileSuffixParts = @()
-if ($OptimizationProfile -eq 'aggressive') {
-    $profileSuffixParts += 'aggressive'
+if ($OptimizationProfile -eq 'baseline') {
+    $profileSuffixParts += 'baseline'
 }
 if ($TextureAxisCacheEntries -ne 256) {
     $profileSuffixParts += "cache$TextureAxisCacheEntries"
@@ -96,6 +98,12 @@ if ($TurbulentImplementation -eq 'c') {
 }
 elseif ($TurbulentImplementation -eq 'asm') {
     $profileSuffixParts += 'turbasm'
+}
+if ($TextureSpanStores -eq 'dword') {
+    $profileSuffixParts += 'spandword'
+}
+elseif ($TextureSpanStores -eq 'loop') {
+    $profileSuffixParts += 'spanloop'
 }
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
@@ -263,6 +271,12 @@ try {
     if ($TurbulentImplementation -eq 'stosb') {
         $asmFlags += '-DASM486_TURBULENT_STOSB'
     }
+    if ($TextureSpanStores -eq 'dword') {
+        $asmFlags += '-DASM486_SPAN16_DWORD_STORES'
+    }
+    elseif ($TextureSpanStores -eq 'loop') {
+        $asmFlags += '-DASM486_SPAN16_LOOP_STOSB'
+    }
     if ($AliasProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_PROJECT'
     }
@@ -319,6 +333,7 @@ try {
         surfaceCacheImplementation = $SurfaceCacheImplementation
         mipLevelImplementation = $MipLevelImplementation
         turbulentImplementation = $TurbulentImplementation
+        textureSpanStores = $TextureSpanStores
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation

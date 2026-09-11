@@ -482,6 +482,66 @@ LSetUpCommon:
 	addl	%ebp,%ebx			// advance sfrac fractional part by sstep frac
 	adcl	advancetable+4(,%ecx,4),%esi	// point to next source texel
 
+#ifdef ASM486_SPAN16_LOOP_STOSB
+	incl	%edi
+	movl	$7,jumptemp
+LSpan16LoopA:
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4(,%ecx,4),%esi
+	decl	jumptemp
+	stosb
+	jnz		LSpan16LoopA
+#elif defined(ASM486_SPAN16_DWORD_STORES)
+	// 486-class stores: pack four sequential dest pixels and movl them.
+	// Sampling/DDA stays identical; AH/AL packing is cheap on a 486 (no
+	// Pentium partial-register stall). Dest may be unaligned.
+	movb	(%edi),%al
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,(%edi)
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,4(%edi)
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+#else
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
 	movb	(%esi),%al
@@ -536,6 +596,7 @@ LSetUpCommon:
 	addl	%ebp,%ebx
 	movb	(%esi),%al
 	adcl	advancetable+4(,%ecx,4),%esi
+#endif
 
 
 //
@@ -583,6 +644,67 @@ LSetupNotLast2:
 LFDIVInFlight2:
 	movl	%ecx,counttemp
 
+#ifdef ASM486_SPAN16_LOOP_STOSB
+	movl	$8,jumptemp
+LSpan16LoopB:
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4(,%ecx,4),%esi
+	decl	jumptemp
+	stosb
+	jnz		LSpan16LoopB
+#elif defined(ASM486_SPAN16_DWORD_STORES)
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,8(%edi)
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,12(%edi)
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	shrl	$24,%eax
+#else
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
 	movb	%al,8(%edi)
@@ -631,8 +753,11 @@ LFDIVInFlight2:
 	addl	%ebp,%ebx
 	movb	(%esi),%al
 	adcl	advancetable+4(,%ecx,4),%esi
+#endif
 
+#ifndef ASM486_SPAN16_LOOP_STOSB
 	addl	$16,%edi
+#endif
 	movl	%edx,tfracf
 	movl	snext,%edx
 	movl	%ebx,sfracf

@@ -617,6 +617,12 @@ void Con_NotifyBox (char *text)
 {
 	double		t1, t2;
 
+	if (COM_CheckParm ("-forcquit"))
+	{
+		Con_Printf ("%s", text);
+		return;
+	}
+
 // during startup for sound / cd warnings
 	Con_Printf("\n\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
 

@@ -568,7 +568,12 @@ void Sys_Quit (void)
 	byte	*d;
 	char			ver[6];
 	int			i;
-	
+
+	if (COM_CheckParm ("-forcquit"))
+	{
+		Host_Shutdown();
+		exit(0);
+	}
 
 // load the sell screen before shuting everything down
 	if (registered.value)

@@ -34,11 +34,12 @@ out\dos\quake.exe
 ~~~
 
 The default normal build uses all 83 C files and 21 preprocessed x86 assembly
-files in WinQuake.  Its `baseline` profile is `-O2 -march=i486` with the
+files in WinQuake.  Its `aggressive` profile is `-O3 -march=i486` with the
 measured ASM paths enabled for alias projection, alias bounding-box projection,
 clipped alias transform/lighting, texture animation, and lightmap
 normalization; the turbulent loop uses the measured `stosb` variant.  The
-remaining experimental selectors stay on their C references.  net_comx.c is
+remaining experimental selectors stay on their C references.  `-O2` remains
+available as `-OptimizationProfile baseline` and writes to `out\dos-baseline`.  net_comx.c is
 textually included by net_ser.c, so the build compiles 82 standalone C files
 and obtains the remaining C implementation through that include.  Object files
 and a generated build-manifest.json remain under out\dos, which is ignored by
@@ -111,6 +112,21 @@ control path, and `c` selects a callable C reference implementation.  The
 variants use separate ignored output directories (`out\dos-turbc`,
 `out\dos-turbasm`, and `out\dos`) and all keep the original portable C loop in
 the source.
+
+The 16-pixel texture-span store loop is independently selectable with
+`-TextureSpanStores byte|dword|loop`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -TextureSpanStores byte
+.\tools\build-dos.ps1 -Benchmark -TextureSpanStores dword
+.\tools\build-dos.ps1 -Benchmark -TextureSpanStores loop
+~~~
+
+`byte` is the measured default (original unrolled stores).  `dword` packs four
+destination pixels per `movl` and matched checksum `4154140932` but stayed
+inside run noise.  `loop` uses `stosb` in 7+8 pixel loops, also matched the
+checksum, and was about 2.8% slower.  `dword` writes `out\dos-spandword` and
+`loop` writes `out\dos-spanloop`.
 
 The alias-model projection helper is independently selectable with
 `-AliasProjectImplementation c|asm`:
@@ -232,12 +248,17 @@ and exits through the Quake command line.  It verifies both the DOSBox-X exit
 code and a Quake exit marker.  The staged runtime uses the normal Quake layout:
 `quake.exe`, `cwsdpmi.exe`, and the `id1` directory are siblings under the
 mounted `quake` directory.  Use -DataRoot to point at another local data
-directory, or -SkipBuild when the executable is already available.
-The generated smoke configuration pins the same dynamic `486` core and fixed
-33445 cycles used by the timedemo profile.  It intentionally uses 16 MB; on
-this host, DOSBox-X opened its folder chooser with the otherwise-valid 32 MB
-setting.  The memory choice is a compatibility setting, not a performance
-claim.
+directory, `-OptimizationProfile baseline` to smoke the `-O2` build, or
+-SkipBuild when the executable is already available.
+The runner copies only `pak*.pak` (not Steam configs or autoexec files),
+writes a local `autoexec.cfg` containing `quit`, and launches with
+`-stdvid -forcquit +quit` so the attract demos and the Y/N quit menu cannot
+hold the 486 cycle cap.  `-forcquit` also skips `Con_NotifyBox` key waits and
+the VGA sell screen.  The generated smoke configuration is the pinned
+`dosbox-x-486-high.conf` profile with a replaced `[autoexec]` section
+(`cputype=486`, fixed 33445 cycles, 16 MB).  On this host, DOSBox-X opened
+its folder chooser with the otherwise-valid 32 MB setting.  The memory choice
+is a compatibility setting, not a performance claim.
 
 For interactive play, use the same mounted directory and omit the timedemo
 commands.  The following starts the current default build with sound, joystick,
@@ -314,20 +335,27 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current default (`baseline`, all measured default selectors, and the same
-486 profile) completed three `demo1` runs at
-`68.958781 / 68.958804 / 68.958785` seconds, with a median of **14.051872
-FPS**.  Every run completed 969 frames and produced framebuffer checksum
-`4154140932`.  Treat this as the current comparison baseline; the older
-13.995834 FPS value above is retained only to show progress from the original
-reference.
+A 2026-09-10 lock before this pass measured
+`68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
+969 frames, checksum `4154140932`
+(`out\dos-timedemo-20260910-221227\timedemo-result.json`).
 
-A final validation rerun on 2026-09-10 measured
-`69.566415 / 68.958835 / 68.958777` seconds, with a median of **14.051862
-FPS**.  It also completed 969 frames with checksum `4154140932` on every run.
-The first run was a run-to-run outlier; the median remains consistent with the
-controlled baseline above.  Its report is
-`out\dos-timedemo-20260910-215301\timedemo-result.json`.
+The current default (same selectors, plus inlined power-of-two surface wrap,
+release-only skip of `D_CheckCacheGuard`, once-per-frame alias view
+matrix, the `Mod_LoadTexinfo` nested-loop UB fix, `-O3`, cached bmodel
+span rotations, and a fused first-style lightmap pass) completed three
+`demo1` runs at
+`68.309988 / 68.309789 / 68.309838` seconds, median **14.185365 FPS** /
+**68.309838 s** (`out\dos-timedemo-20260910-234742\timedemo-result.json`).
+That is about 70 ms faster than the previous default (14.170874 FPS /
+68.379696 s) with checksum `4154140932` on every run.  Both `-O2` and
+`-O3` `quake.exe +quit` smokes now complete in about 12 seconds on the pinned
+profile after `-forcquit` / local `autoexec.cfg`.  The older
+14.170874 FPS / 68.379696 s figure is retained as the previous bmodel-cache
+default.  14.162237 FPS / 68.421397 s is the previous `-O3` default.
+The 14.054401 FPS / 68.946370 s figure is retained as the previous `-O2` default.
+The 14.051872 FPS / 68.958785 s figure is retained as the previous ASM-default
+`-O2` baseline.
 
 ### Measured texture-span change
 
@@ -1006,23 +1034,28 @@ The timedemo results are
 
 ### Optimization profiles and instrumentation
 
-The default build is the fidelity-preserving `baseline` profile (`-O2`,
-`-march=i486`, and no newer instruction-set requirement).  An isolated `-O3`
-variant is available for comparison and is written beside the default build:
+The default build is the measured `aggressive` profile (`-O3`,
+`-march=i486`, and no newer instruction-set requirement).  `-O2` remains
+available for A/B comparison and writes beside the default build:
 
 ~~~powershell
-.\tools\build-dos.ps1 -Benchmark -OptimizationProfile aggressive
-.\tools\timedemo-dos.ps1 -OptimizationProfile aggressive `
+.\tools\build-dos.ps1 -Benchmark -OptimizationProfile baseline
+.\tools\timedemo-dos.ps1 -OptimizationProfile baseline `
   -DataRoot 'C:\path\to\Quake\id1' -Runs 3
 ~~~
 
-On the same pinned `demo1` measurement, this profile reached a **14.122 FPS**
-median (14.121687 FPS; `68.617862` seconds for the median run) versus
-**13.917 FPS** for `baseline` (13.917069 FPS),
-about 1.5% faster.  This is an earlier comparison from before the latest
-default ASM selections were promoted, so rerun it before using it as a current
-compiler-profile result.  It remains an opt-in comparison build; no
-visual-quality switch or newer CPU instruction set is enabled.
+A matched 2026-09-10 `-O3` rerun after the `Mod_LoadTexinfo` UB fix reached
+**14.162237 FPS** (`68.421397` seconds median;
+`out\dos-timedemo-20260910-232607`) versus **14.054401 FPS** for `-O2`,
+about 0.76% faster, with checksum `4154140932` on every run.  `-O3`
+`quake.exe +quit` smoke passed, so `aggressive` is now the default.
+The subsequent bmodel span-rotation cache reached **14.170874 FPS**
+(`68.379696` seconds median; `out\dos-timedemo-20260910-233942`).
+Fusing ambient into the first lightmap style reached **14.185365 FPS**
+(`68.309838` seconds median; `out\dos-timedemo-20260910-234742`).
+`-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
+An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
+and is superseded.
 
 Use `-Instrumentation` with `-Benchmark` to build `out\dos-profile\qprof.exe`
 and collect the hierarchical renderer profile through the timedemo runner:
@@ -1127,13 +1160,15 @@ The current self-time ranking from that profile is:
 | 5 | World BSP | 8.312930 | 10.80% | 375,709 BSP node visits |
 | 6 | Edge scan self | 6.780973 | 8.81% | 147,288 scanlines |
 
-These are measured diagnostic hotspots, not optimization instructions.  The
-next investigation should compare the texture-span, surface-cache, and alias
-model leaves separately, using the same timedemo and visual checks after each
-change.  A texture row-lookup experiment was reverted after its faster run
-failed the exact framebuffer check (`2955717646` versus the known-good
-`4154140932`).  The accepted texture-span change is limited to equivalent
-address-arithmetic forms and passed the same exact checksum check.
+These are measured diagnostic hotspots, not optimization instructions.  A
+later confirmation profile (`out\dos-timedemo-20260910-222107`) ranked the
+same leaves: texture spans 25.67%, surface cache 14.55%, alias 12.83%,
+Z spans 10.87%, world BSP 10.83%, edge-scan self 8.83%.  Unrolled 16-pixel
+span stores remain the default after dword packing (noise) and a stosb loop
+(~2.8% slower).  Surface-cache work should stay inline; a combined wrap-guard
+plus alias view-matrix hoist won 12.4 ms.  A texture row-lookup experiment
+was reverted after its faster run failed the exact framebuffer check
+(`2955717646` versus the known-good `4154140932`).
 
 ## Reprovisioning
 
