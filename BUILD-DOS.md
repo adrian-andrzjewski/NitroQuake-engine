@@ -1124,6 +1124,11 @@ A 15-way last-segment divisor switch matched the checksum but was
 (`out\dos-timedemo-20260911-140630`).
 Hoisting `aliasvrect` locals in `R_AliasPreparePoints` matched the
 checksum but was 15.7 ms slower (`out\dos-timedemo-20260911-153350`).
+Unclipped alias `movzbl` expansion was noise
+(`out\dos-timedemo-20260911-155009`).  Fused frustum `minmaxs`
+multiplies hitched on run 3 (`out\dos-timedemo-20260911-155650`).
+Stacking `acolormap` in `D_PolysetDrawFinalVerts` was 0.18 ms slower
+(`out\dos-timedemo-20260911-160304`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.

@@ -115,6 +115,9 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Static surface-cache hit path (`D_CacheSurface`) | Skip `R_TextureAnimation` and `r_drawsurf` stores on static hits | 67.229543 s / 14.413306 FPS, 18.3 ms faster | Kept |
 | FinalVerts clip hoist (`D_PolysetDrawFinalVerts`) | Hoist `vrectright`/`vrectbottom` out of the vertex loop | 67.218606 s / 14.415652 FPS, 10.9 ms faster | Kept |
 | Unused extra-style skip (`D_CacheSurface`) | Skip lightadj[1-3] compares when `styles[1]==255` | 67.200437 s / 14.419549 FPS, 18.2 ms faster | Kept |
+| Unclipped alias `movzbl` expand (`r_aliasa.s`) | Full-dword vertex expand like the clipped helper | 67.200278 s / 14.419583 FPS, 0.16 ms, overlapping ranges | Reverted |
+| Inlined fused frustum (`R_RecursiveWorldNode`) | Multiply `minmaxs` into the plane; no `rejectpt` stores | 67.200552 s / 14.419524 FPS, hitch min 1.87 FPS | Reverted |
+| FinalVerts colormap hoist (`D_PolysetDrawFinalVerts`) | Stack-cache `acolormap` next to clip edges | 67.200621 s / 14.419510 FPS, 0.18 ms slower | Reverted |
 | Turbulent last-segment divisor switch | Constant `/1`..`/15` so GCC emits IMUL magic | 67.275508 s / 14.403459 FPS, 27.6 ms slower | Reverted |
 | Alias POT skinwidth shift (`D_PolysetCalcGradients`) | `shll %cl` when skinwidth is POT, IMUL fallback | 67.260820 s / 14.406604 FPS, 11.7 ms slower | Reverted |
 | PreparePoints clip hoist (`R_AliasPreparePoints`) | Locals for `aliasvrect` clip edges | 67.234277 s / 14.412292 FPS, 15.7 ms slower | Reverted |
@@ -299,6 +302,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   matched checksum `4154140932` but was 15.7 ms slower (67.234277 s
   vs 67.218606 s).  Extra locals around the transform/project calls
   spilled; do not retry hoisting `aliasvrect` in `R_AliasPreparePoints`.
+- Unclipped alias `movzbl` expand (`out\dos-timedemo-20260911-155009`)
+  matched checksum `4154140932` but the 0.16 ms median delta sat
+  inside the previous run spread; do not retry byte-store vs
+  `movzbl` expansion in `R_AliasTransformAndProjectFinalVerts`.
+- Inlined fused frustum (`out\dos-timedemo-20260911-155650`)
+  matched checksum `4154140932` but run 3 hitched to 1.87 FPS and
+  the median was 0.12 ms slower.  Do not retry fused `minmaxs`
+  multiplies in `R_RecursiveWorldNode`; the extra CALL helper already
+  lost, and this inlined form did not beat the original stores.
+- FinalVerts colormap hoist (`out\dos-timedemo-20260911-160304`)
+  matched checksum `4154140932` but was 0.18 ms slower (67.200621 s
+  vs 67.200437 s).  Do not retry stacking `acolormap` in
+  `D_PolysetDrawFinalVerts`; the clip-edge hoist is enough.
 - Turbulent last-segment divisor switch
   (`out\dos-timedemo-20260911-150819`) matched checksum `4154140932`
   but was 27.6 ms slower (67.275508 s vs 67.247873 s).  GCC did emit
@@ -347,6 +363,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry an `AngleVectors` cache.
    Do not retry a branched POT skinwidth shift in `D_PolysetCalcGradients`.
    Do not retry hoisting `aliasvrect` locals in `R_AliasPreparePoints`.
+   Do not retry `movzbl` expansion in `R_AliasTransformAndProjectFinalVerts`.
+   Do not retry fused `minmaxs` multiplies in `R_RecursiveWorldNode`.
+   Do not retry stacking `acolormap` in `D_PolysetDrawFinalVerts`.
    Z spans now use `zspantable`; edge scan is already assembly.  Do not
    revive BSP plane-dot/clip helpers.  Face Z gradients are cached.
 
