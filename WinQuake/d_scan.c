@@ -185,8 +185,9 @@ void Turbulent8 (espan_t *pspan)
 
 	do
 	{
-		r_turb_pdest = (unsigned char *)((byte *)d_viewbuffer +
-				(screenwidth * pspan->v) + pspan->u);
+		// Live dest rows use viewspantable (same table as texture spans).
+		// The multiply form is d_viewbuffer + screenwidth*v + u.
+		r_turb_pdest = viewspantable[pspan->v] + pspan->u;
 
 		count = pspan->count;
 

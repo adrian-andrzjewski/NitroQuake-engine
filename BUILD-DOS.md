@@ -348,14 +348,19 @@ matrix, the `Mod_LoadTexinfo` nested-loop UB fix, `-O3`, cached bmodel
 span rotations, fused lightmap writes, an integer dlight inner loop, a
 per-plane Z-gradient cache, power-of-two column wrap, `zspantable`
 Z-span addressing, `viewspantable` dest rows in texture spans,
-polyset, sprites, and particles, and `zspantable` Z addressing in
-sprites and particles) completed
+polyset, sprites, and particles, `zspantable` Z addressing in
+sprites and particles, a 1800 KB surface cache, and `Turbulent8`
+`viewspantable` dest rows) completed
 three `demo1` runs at
-`67.986523 / 67.986326 / 67.986315` seconds, median **14.252866 FPS** /
-**67.986326 s** (`out\dos-timedemo-20260911-065037\timedemo-result.json`).
-That is about 4.7 ms faster than extra-`viewspantable`
-(14.251887 FPS / 67.990997 s) with checksum `4154140932` on every run.
-Extending `viewspantable` to polyset, sprites, and particles was
+`67.248071 / 67.247843 / 67.247873` seconds, median **14.409378 FPS** /
+**67.247873 s** (`out\dos-timedemo-20260911-143822\timedemo-result.json`).
+That is about 1.3 ms faster than the 1800 KB default (14.409100 FPS /
+67.249168 s) with checksum `4154140932` on every run.  1900 KB, 2000 KB, 2100 KB, and
+2400 KB were faster but checksum `2955717646` (same hash as the
+reverted texture-source row-lookup).  2x surface cache was **14.373452 FPS** / 67.415956 s
+(`out\dos-timedemo-20260911-133815`).  Sprite/particle `zspantable`
+was **14.252866 FPS** / 67.986326 s
+(`out\dos-timedemo-20260911-065037`).  Extending `viewspantable` to polyset, sprites, and particles was
 **14.251887 FPS** / 67.990997 s (`out\dos-timedemo-20260911-064221`).
 Texture-span `viewspantable` dest addressing was **14.250078 FPS** /
 67.999624 s (`out\dos-timedemo-20260911-063418`).  Z-span `zspantable`
@@ -1094,6 +1099,18 @@ Extending `viewspantable` to polyset, sprites, and particles reached
 `out\dos-timedemo-20260911-064221`).
 Sprite/particle `zspantable` Z addressing reached **14.252866 FPS**
 (`67.986326` seconds median; `out\dos-timedemo-20260911-065037`).
+A 1200 KB surface cache reached **14.373452 FPS**
+(`67.415956` seconds median; `out\dos-timedemo-20260911-133815`).
+A 1800 KB surface cache reached **14.409100 FPS**
+(`67.249168` seconds median; `out\dos-timedemo-20260911-134300`).
+`Turbulent8` `viewspantable` dest rows reached **14.409378 FPS**
+(`67.247873` seconds median; `out\dos-timedemo-20260911-143822`).
+A 15-way last-segment divisor switch matched the checksum but was
+27.6 ms slower (`out\dos-timedemo-20260911-150819`).
+1900 KB, 2000 KB, 2100 KB, and 2400 KB all produced checksum
+`2955717646` and were reverted.  A branched POT skinwidth shift in
+`D_PolysetCalcGradients` matched the checksum but was 11.7 ms slower
+(`out\dos-timedemo-20260911-140630`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.
