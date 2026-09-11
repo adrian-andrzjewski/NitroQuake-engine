@@ -39,7 +39,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
-  `Turbulent8` dest rows use the same table.  C `D_DrawSpans8` still
+  `Turbulent8` dest rows use the same table.  Live
+  `D_RasterizeAliasPolySmooth` dest and Z rows also use
+  `viewspantable` / `zspantable`; the multiply form stays in a comment.
+  C `D_DrawSpans8` still
   multiplies `screenwidth`.  `D_PolysetDrawFinalVerts` hoists the
   viewmodel clip edges into registers/locals; C matches the live ASM.
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
@@ -115,6 +118,8 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Static surface-cache hit path (`D_CacheSurface`) | Skip `R_TextureAnimation` and `r_drawsurf` stores on static hits | 67.229543 s / 14.413306 FPS, 18.3 ms faster | Kept |
 | FinalVerts clip hoist (`D_PolysetDrawFinalVerts`) | Hoist `vrectright`/`vrectbottom` out of the vertex loop | 67.218606 s / 14.415652 FPS, 10.9 ms faster | Kept |
 | Unused extra-style skip (`D_CacheSurface`) | Skip lightadj[1-3] compares when `styles[1]==255` | 67.200437 s / 14.419549 FPS, 18.2 ms faster | Kept |
+| Alias raster dest/Z tables (`D_RasterizeAliasPolySmooth`) | `viewspantable`/`zspantable` instead of `ystart` IMUL | 67.185736 s / 14.422704 FPS, 14.7 ms faster | Kept |
+| Gradient step cache (`D_CalcGradients`) | Reuse s/t step-origin while texinfo/mip/modelorg match | 67.220030 s / 14.415346 FPS, 34.3 ms slower | Reverted |
 | Unclipped alias `movzbl` expand (`r_aliasa.s`) | Full-dword vertex expand like the clipped helper | 67.200278 s / 14.419583 FPS, 0.16 ms, overlapping ranges | Reverted |
 | Inlined fused frustum (`R_RecursiveWorldNode`) | Multiply `minmaxs` into the plane; no `rejectpt` stores | 67.200552 s / 14.419524 FPS, hitch min 1.87 FPS | Reverted |
 | FinalVerts colormap hoist (`D_PolysetDrawFinalVerts`) | Stack-cache `acolormap` next to clip edges | 67.200621 s / 14.419510 FPS, 0.18 ms slower | Reverted |
@@ -242,11 +247,17 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   10.9 ms faster than the static cache-hit default.  Worst-frame min
   FPS rose from 6.321120 to 6.321254.  Every run was faster than every
   previous-default run.
-- Current default after skipping unused extra light styles
+- Previous default after skipping unused extra light styles
   (`out\dos-timedemo-20260911-154031`): `67.200635 / 67.200347 / 67.200437` s,
   median **67.200437 s / 14.419549 FPS**, checksum `4154140932`.  About
   18.2 ms faster than the FinalVerts hoist.  Worst-frame min FPS is
   6.321254.  Every run was faster than every previous-default run.
+- Current default after alias raster dest/Z row tables
+  (`out\dos-timedemo-20260911-161154`): `67.185888 / 67.185693 / 67.185736` s,
+  median **67.185736 s / 14.422704 FPS**, checksum `4154140932`.  About
+  14.7 ms faster than the extra-style skip.  Worst-frame min FPS rose
+  from 6.321254 to 6.322259.  Every run was faster than every
+  previous-default run.
 
 ## Important decisions and assumptions
 
@@ -315,6 +326,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   matched checksum `4154140932` but was 0.18 ms slower (67.200621 s
   vs 67.200437 s).  Do not retry stacking `acolormap` in
   `D_PolysetDrawFinalVerts`; the clip-edge hoist is enough.
+- Gradient step cache (`out\dos-timedemo-20260911-161755`)
+  matched checksum `4154140932` but was 34.3 ms slower (67.220030 s
+  vs 67.185736 s).  The texinfo/mip/modelorg compares cost more than
+  the skipped step muls; do not retry a last-used `D_CalcGradients`
+  step-origin cache.
 - Turbulent last-segment divisor switch
   (`out\dos-timedemo-20260911-150819`) matched checksum `4154140932`
   but was 27.6 ms slower (67.275508 s vs 67.247873 s).  GCC did emit
@@ -332,13 +348,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (14.419549 FPS median, checksum `4154140932`) before further edits.
+   (14.422704 FPS median, checksum `4154140932`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
 2. Texture spans remain ~25.7% self time.  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
-   particles, and live `Turbulent8`.  Keep the unrolled 16-pixel leaf; dword coalescing was
+   particles, and live `Turbulent8`.  Live `D_RasterizeAliasPolySmooth`
+   dest and Z rows use the same tables.  Keep the unrolled 16-pixel leaf; dword coalescing was
    noise and a compact stosb loop was ~2.8% slower.  Remainder t-zero
    IMUL skip and a per-surface source-row table both matched the
    checksum but lost end-to-end; do not retry those.  Do not revive
@@ -357,15 +374,17 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `(*pblockdrawer)()`.  Live `surf8.s` mip0 already uses `movl` dest
    packs; `block8.h` is unused.  Next surface work is fewer remaining
    rebuilds without changing lit output.
-4. Alias leftover is now the per-vertex clip tests and polyset raster, not
-   the per-model view matrix.  `D_PolysetDrawFinalVerts` hoists the
-   viewmodel clip edges; C keeps the same locals as the live ASM.
+4. Alias leftover is now remaining per-vertex clip tests and polyset
+   raster guts, not dest/Z row addressing.  `D_PolysetDrawFinalVerts`
+   hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
+   `D_RasterizeAliasPolySmooth` uses `viewspantable`/`zspantable`.
    Do not retry an `AngleVectors` cache.
    Do not retry a branched POT skinwidth shift in `D_PolysetCalcGradients`.
    Do not retry hoisting `aliasvrect` locals in `R_AliasPreparePoints`.
    Do not retry `movzbl` expansion in `R_AliasTransformAndProjectFinalVerts`.
    Do not retry fused `minmaxs` multiplies in `R_RecursiveWorldNode`.
    Do not retry stacking `acolormap` in `D_PolysetDrawFinalVerts`.
+   Do not retry a last-used `D_CalcGradients` step-origin cache.
    Z spans now use `zspantable`; edge scan is already assembly.  Do not
    revive BSP plane-dot/clip helpers.  Face Z gradients are cached.
 

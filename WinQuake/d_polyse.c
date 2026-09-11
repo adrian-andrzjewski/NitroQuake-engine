@@ -798,9 +798,10 @@ void D_RasterizeAliasPolySmooth (void)
 	d_light = plefttop[4];
 	d_zi = plefttop[5];
 
-	d_pdest = (byte *)d_viewbuffer +
-			ystart * screenwidth + plefttop[0];
-	d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
+	d_pdest = viewspantable[ystart] + plefttop[0];
+	d_pz = zspantable[ystart] + plefttop[0];
+	// Multiply form: d_viewbuffer + ystart * screenwidth + plefttop[0]
+	// and d_pzbuffer + ystart * d_zwidth + plefttop[0].
 
 	if (initialleftheight == 1)
 	{
@@ -897,8 +898,8 @@ void D_RasterizeAliasPolySmooth (void)
 		d_light = plefttop[4];
 		d_zi = plefttop[5];
 
-		d_pdest = (byte *)d_viewbuffer + ystart * screenwidth + plefttop[0];
-		d_pz = d_pzbuffer + ystart * d_zwidth + plefttop[0];
+		d_pdest = viewspantable[ystart] + plefttop[0];
+		d_pz = zspantable[ystart] + plefttop[0];
 
 		if (height == 1)
 		{

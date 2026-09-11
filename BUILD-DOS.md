@@ -352,13 +352,13 @@ polyset, sprites, and particles, `zspantable` Z addressing in
 sprites and particles, a 1800 KB surface cache, `Turbulent8`
 `viewspantable` dest rows, a static `D_CacheSurface` hit path, a
 `D_PolysetDrawFinalVerts` clip-rect hoist, and unused extra light-style
-skips on cache hits)
+skips on cache hits, and `D_RasterizeAliasPolySmooth` dest/Z row tables)
 completed
 three `demo1` runs at
-`67.200635 / 67.200347 / 67.200437` seconds, median **14.419549 FPS** /
-**67.200437 s** (`out\dos-timedemo-20260911-154031\timedemo-result.json`).
-That is about 18.2 ms faster than the FinalVerts hoist default
-(14.415652 FPS / 67.218606 s) with checksum `4154140932` on every run.
+`67.185888 / 67.185693 / 67.185736` seconds, median **14.422704 FPS** /
+**67.185736 s** (`out\dos-timedemo-20260911-161154\timedemo-result.json`).
+That is about 14.7 ms faster than the extra-style skip default
+(14.419549 FPS / 67.200437 s) with checksum `4154140932` on every run.
 The `Turbulent8` dest-row default was about 1.3 ms faster than the 1800 KB default (14.409100 FPS /
 67.249168 s).  1900 KB, 2000 KB, 2100 KB, and
 2400 KB were faster but checksum `2955717646` (same hash as the
@@ -1116,6 +1116,8 @@ The `D_PolysetDrawFinalVerts` clip-rect hoist reached **14.415652 FPS**
 (`67.218606` seconds median; `out\dos-timedemo-20260911-152839`).
 Skipping unused extra light styles on cache hits reached **14.419549 FPS**
 (`67.200437` seconds median; `out\dos-timedemo-20260911-154031`).
+`D_RasterizeAliasPolySmooth` dest/Z row tables reached **14.422704 FPS**
+(`67.185736` seconds median; `out\dos-timedemo-20260911-161154`).
 A 15-way last-segment divisor switch matched the checksum but was
 27.6 ms slower (`out\dos-timedemo-20260911-150819`).
 1900 KB, 2000 KB, 2100 KB, and 2400 KB all produced checksum
@@ -1129,6 +1131,8 @@ Unclipped alias `movzbl` expansion was noise
 multiplies hitched on run 3 (`out\dos-timedemo-20260911-155650`).
 Stacking `acolormap` in `D_PolysetDrawFinalVerts` was 0.18 ms slower
 (`out\dos-timedemo-20260911-160304`).
+A last-used `D_CalcGradients` step-origin cache was 34.3 ms slower
+(`out\dos-timedemo-20260911-161755`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.
