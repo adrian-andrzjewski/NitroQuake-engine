@@ -321,9 +321,11 @@ copying executables:
 ~~~
 
 It stages a fresh DOS directory for every run, writes six-decimal timing data,
-and reports the median FPS.  Keep the demo name, DOSBox-X version, 486 profile,
-fixed cycle count, video mode, optimization profile, and command-line options
-unchanged when comparing results.  By default it adds `-fpsstats`, preserving
+and reports the median FPS.  The runner only compiles `qbench.exe` when that
+file is missing; after source changes run `.\tools\build-dos.ps1 -Benchmark`
+first, then `timedemo-dos.ps1 -SkipBuild`.  Keep the demo name, DOSBox-X
+version, 486 profile, fixed cycle count, video mode, optimization profile, and
+command-line options unchanged when comparing results.  By default it adds `-fpsstats`, preserving
 the original average-FPS line while also measuring every timedemo frame.
 Use `-NoFpsStats` for a raw comparison when measuring the cost of collecting
 the extra statistics.  The raw result is the authority for small engine-speed
@@ -343,19 +345,28 @@ A 2026-09-10 lock before this pass measured
 The current default (same selectors, plus inlined power-of-two surface wrap,
 release-only skip of `D_CheckCacheGuard`, once-per-frame alias view
 matrix, the `Mod_LoadTexinfo` nested-loop UB fix, `-O3`, cached bmodel
-span rotations, and a fused first-style lightmap pass) completed three
+span rotations, fused lightmap writes, an integer dlight inner loop, a
+per-plane Z-gradient cache, and power-of-two column wrap) completed three
 `demo1` runs at
-`68.309988 / 68.309789 / 68.309838` seconds, median **14.185365 FPS** /
-**68.309838 s** (`out\dos-timedemo-20260910-234742\timedemo-result.json`).
-That is about 70 ms faster than the previous default (14.170874 FPS /
-68.379696 s) with checksum `4154140932` on every run.  Both `-O2` and
+`68.197434 / 68.197202 / 68.197221` seconds, median **14.208790 FPS** /
+**68.197221 s** (`out\dos-timedemo-20260911-054347\timedemo-result.json`).
+That is about 1.6 ms faster than the Z-gradient cache (14.208466 FPS /
+68.198777 s) with checksum `4154140932` on every run.  The Z-gradient
+cache was **14.208466 FPS** / 68.198777 s
+(`out\dos-timedemo-20260911-053759`).  The integer dlight
+inner loop was **14.206133 FPS** / 68.209972 s
+(`out\dos-timedemo-20260911-052933`).  Extra-style fusion was **14.194657 FPS**
+/ 68.265121 s (`out\dos-timedemo-20260911-051834`).  One-style-only
+fusion was **14.194521 FPS** / 68.265779 s
+(`out\dos-timedemo-20260911-051131`).  Both `-O2` and
 `-O3` `quake.exe +quit` smokes now complete in about 12 seconds on the pinned
 profile after `-forcquit` / local `autoexec.cfg`.  The older
-14.170874 FPS / 68.379696 s figure is retained as the previous bmodel-cache
-default.  14.162237 FPS / 68.421397 s is the previous `-O3` default.
-The 14.054401 FPS / 68.946370 s figure is retained as the previous `-O2` default.
-The 14.051872 FPS / 68.958785 s figure is retained as the previous ASM-default
-`-O2` baseline.
+14.185365 FPS / 68.309838 s figure is retained as the previous fused
+first-style lightmap default.  14.170874 FPS / 68.379696 s is the previous
+bmodel-cache default.  14.162237 FPS / 68.421397 s is the previous `-O3`
+default.  The 14.054401 FPS / 68.946370 s figure is retained as the previous
+`-O2` default.  The 14.051872 FPS / 68.958785 s figure is retained as the
+previous ASM-default `-O2` baseline.
 
 ### Measured texture-span change
 
@@ -1053,6 +1064,16 @@ The subsequent bmodel span-rotation cache reached **14.170874 FPS**
 (`68.379696` seconds median; `out\dos-timedemo-20260910-233942`).
 Fusing ambient into the first lightmap style reached **14.185365 FPS**
 (`68.309838` seconds median; `out\dos-timedemo-20260910-234742`).
+Fusing invert/clamp into that one-style write reached **14.194521 FPS**
+(`68.265779` seconds median; `out\dos-timedemo-20260911-051131`).
+Extending that fusion to extra styles reached **14.194657 FPS**
+(`68.265121` seconds median; `out\dos-timedemo-20260911-051834`).
+The integer dlight inner loop reached **14.206133 FPS**
+(`68.209972` seconds median; `out\dos-timedemo-20260911-052933`).
+The face Z-gradient cache reached **14.208466 FPS**
+(`68.198777` seconds median; `out\dos-timedemo-20260911-053759`).
+Power-of-two column wrap reached **14.208790 FPS**
+(`68.197221` seconds median; `out\dos-timedemo-20260911-054347`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.

@@ -145,6 +145,7 @@ void R_DrawSurfaceBlock8 (void);
 texture_t *R_TextureAnimation (texture_t *base);
 texture_t *R_TextureAnimationFrame_C (texture_t *base, int relative);
 void R_BuildLightMapNormalize_C (unsigned *lights, int size);
+void R_AddDynamicLights_C (void);
 #ifdef BENCH486
 double R_RecursiveWorldNodePlaneDot_C (mplane_t *plane);
 int R_RecursiveWorldNodeClip_C (mnode_t *node, int clipflags);

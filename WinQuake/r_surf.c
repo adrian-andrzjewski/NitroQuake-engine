@@ -80,10 +80,13 @@ void R_BuildLightMapNormalize_C (unsigned *lights, int size)
 
 /*
 ===============
-R_AddDynamicLights
+R_AddDynamicLights_C
+
+Reference implementation. The original inner loop stores the approximate
+distance in a float (`dist`) and indexes `blocklights[t*smax + s]`.
 ===============
 */
-void R_AddDynamicLights (void)
+void R_AddDynamicLights_C (void)
 {
 	msurface_t *surf;
 	int			lnum;
@@ -166,6 +169,81 @@ void R_AddDynamicLights (void)
 
 /*
 ===============
+R_AddDynamicLights
+
+Same sampling as R_AddDynamicLights_C, but keep the per-texel distance in
+an integer and walk `blocklights` with a row pointer so the 486 inner loop
+does not store through a reused float or IMUL the lightmap index.
+===============
+*/
+void R_AddDynamicLights (void)
+{
+	msurface_t *surf;
+	int			lnum;
+	int			sd, td, idist;
+	float		planedist, rad, minlight;
+	vec3_t		impact, local;
+	int			s, t;
+	int			i;
+	int			smax, tmax;
+	unsigned	*bl;
+	mtexinfo_t	*tex;
+
+	surf = r_drawsurf.surf;
+	smax = (surf->extents[0]>>4)+1;
+	tmax = (surf->extents[1]>>4)+1;
+	tex = surf->texinfo;
+
+	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
+	{
+		if ( !(surf->dlightbits & (1<<lnum) ) )
+			continue;		// not lit by this light
+
+		rad = cl_dlights[lnum].radius;
+		planedist = DotProduct (cl_dlights[lnum].origin, surf->plane->normal) -
+				surf->plane->dist;
+		rad -= fabs(planedist);
+		minlight = cl_dlights[lnum].minlight;
+		if (rad < minlight)
+			continue;
+		minlight = rad - minlight;
+
+		for (i=0 ; i<3 ; i++)
+		{
+			impact[i] = cl_dlights[lnum].origin[i] -
+					surf->plane->normal[i]*planedist;
+		}
+
+		local[0] = DotProduct (impact, tex->vecs[0]) + tex->vecs[0][3];
+		local[1] = DotProduct (impact, tex->vecs[1]) + tex->vecs[1][3];
+
+		local[0] -= surf->texturemins[0];
+		local[1] -= surf->texturemins[1];
+
+		for (t = 0 ; t<tmax ; t++)
+		{
+			td = local[1] - t*16;
+			if (td < 0)
+				td = -td;
+			bl = blocklights + t * smax;
+			for (s=0 ; s<smax ; s++)
+			{
+				sd = local[0] - s*16;
+				if (sd < 0)
+					sd = -sd;
+				if (sd > td)
+					idist = sd + (td>>1);
+				else
+					idist = td + (sd>>1);
+				if (idist < minlight)
+					bl[s] += (unsigned)((rad - idist)*256);
+			}
+		}
+	}
+}
+
+/*
+===============
 R_BuildLightMap
 
 Combine and scale multiple lightmaps into the 8.8 format in blocklights
@@ -203,6 +281,74 @@ void R_BuildLightMap (void)
 		unsigned	first;
 
 		first = r_drawsurf.lightadj[0];
+		// No dlights: fold invert/clamp into the lightmap walk so
+		// blocklights is written once. Dlights still use the two-pass
+		// reference (accumulate, then R_BuildLightMapNormalize_*).
+		if (surf->dlightframe != r_framecount)
+		{
+			int			t;
+			unsigned	v;
+			unsigned	a1, a2, a3;
+			byte		*lm1, *lm2, *lm3;
+
+			if (surf->styles[1] == 255)
+			{
+				for (i=0 ; i<size ; i++)
+				{
+					t = (255*256 - (int)(scale + lightmap[i] * first)) >>
+							(8 - VID_CBITS);
+					if (t < (1 << 6))
+						t = (1 << 6);
+					blocklights[i] = t;
+				}
+				return;
+			}
+
+			lm1 = lightmap + size;
+			a1 = r_drawsurf.lightadj[1];
+			if (surf->styles[2] == 255)
+			{
+				for (i=0 ; i<size ; i++)
+				{
+					v = scale + lightmap[i] * first + lm1[i] * a1;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6))
+						t = (1 << 6);
+					blocklights[i] = t;
+				}
+				return;
+			}
+
+			lm2 = lm1 + size;
+			a2 = r_drawsurf.lightadj[2];
+			if (surf->styles[3] == 255)
+			{
+				for (i=0 ; i<size ; i++)
+				{
+					v = scale + lightmap[i] * first + lm1[i] * a1 +
+							lm2[i] * a2;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6))
+						t = (1 << 6);
+					blocklights[i] = t;
+				}
+				return;
+			}
+
+			lm3 = lm2 + size;
+			a3 = r_drawsurf.lightadj[3];
+			for (i=0 ; i<size ; i++)
+			{
+				v = scale + lightmap[i] * first + lm1[i] * a1 +
+						lm2[i] * a2 + lm3[i] * a3;
+				t = (255*256 - (int)v) >> (8 - VID_CBITS);
+				if (t < (1 << 6))
+					t = (1 << 6);
+				blocklights[i] = t;
+			}
+			return;
+		}
+
 		for (i=0 ; i<size ; i++)
 			blocklights[i] = scale + lightmap[i] * first;
 		lightmap += size;
@@ -375,21 +521,44 @@ void R_DrawSurface (void)
 
 	pcolumndest = r_drawsurf.surfdat;
 
-	for (u=0 ; u<r_numhblocks; u++)
+	if (smax && !(smax & (smax - 1)))
 	{
-		r_lightptr = blocklights + u;
+		int		soffsetmask;
 
-		prowdestbase = pcolumndest;
+		soffsetmask = smax - 1;
+		for (u=0 ; u<r_numhblocks; u++)
+		{
+			r_lightptr = blocklights + u;
 
-		pbasesource = basetptr + soffset;
+			prowdestbase = pcolumndest;
 
-		(*pblockdrawer)();
+			pbasesource = basetptr + soffset;
 
-		soffset = soffset + blocksize;
-		if (soffset >= smax)
-			soffset = 0;
+			(*pblockdrawer)();
 
-		pcolumndest += horzblockstep;
+			soffset = (soffset + blocksize) & soffsetmask;
+
+			pcolumndest += horzblockstep;
+		}
+	}
+	else
+	{
+		for (u=0 ; u<r_numhblocks; u++)
+		{
+			r_lightptr = blocklights + u;
+
+			prowdestbase = pcolumndest;
+
+			pbasesource = basetptr + soffset;
+
+			(*pblockdrawer)();
+
+			soffset = soffset + blocksize;
+			if (soffset >= smax)
+				soffset = 0;
+
+			pcolumndest += horzblockstep;
+		}
 	}
 }
 

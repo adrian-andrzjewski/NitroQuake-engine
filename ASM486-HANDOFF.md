@@ -31,8 +31,19 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   the rotated axes; later revisits reuse `R_RotateBmodelCached` instead of
   rebuilding the matrix with `sin`/`cos`.  `R_RotateBmodel` remains the
   reference.
+- Face Z gradients: `R_SetSurfaceZGradients` reuses one plane's finished
+  `d_zistep` values while `modelorg` is unchanged this frame.  The miss
+  path is the original `TransformVector` / `1/z` arithmetic.
+- `R_DrawSurface` wraps the per-column source offset with AND when the
+  mip width is a power of two; the compare/branch loop remains the
+  non-POT reference.
 - Surface cache: `R_BuildLightMap` folds ambient into the first lightmap
-  style so the common one-style case writes `blocklights` once.
+  style so the common one-style case writes `blocklights` once.  When there
+  are no dynamic lights, invert/clamp is fused into that write for one to
+  four styles; dlights still accumulate then call
+  `R_BuildLightMapNormalize_*`.  `R_AddDynamicLights` keeps the per-texel
+  distance in an integer and walks `blocklights` by row;
+  `R_AddDynamicLights_C` remains the float-`dist` reference.
 
 Every ASM candidate retains its C implementation.  `build-dos.ps1`,
 `bench-dos.ps1`, and `timedemo-dos.ps1` expose independent `c|asm` selectors
@@ -70,6 +81,11 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Aggressive `-O3` vs `-O2` | Checksum pass; `+quit` smoke pass | 68.421397 s / 14.162237 FPS | **Default**; `-O2` is `-OptimizationProfile baseline` |
 | Bmodel span rotation cache (`d_edge.c` / `R_RotateBmodelCached`) | Id per-polygon `sin`/`cos` FIXME | 68.379696 s / 14.170874 FPS, 41.7 ms faster | Kept |
 | Fused first-style lightmap (`R_BuildLightMap`) | Ambient+style0 in one write pass | 68.309838 s / 14.185365 FPS, 69.9 ms faster | Kept |
+| Fused one-style normalize (`R_BuildLightMap`) | Invert/clamp in the first write when there are no extra styles or dlights | 68.265779 s / 14.194521 FPS, 44.1 ms faster | Kept |
+| Fused extra-style normalize (`R_BuildLightMap`) | Same one-pass invert/clamp for 2--4 styles when there are no dlights | 68.265121 s / 14.194657 FPS, 0.66 ms faster | Kept |
+| Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |
+| Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |
+| POT column wrap (`R_DrawSurface`) | AND wrap on power-of-two mip widths; compare/branch remains the non-POT path | 68.197221 s / 14.208790 FPS, 1.6 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -108,10 +124,36 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   41.7 ms faster than the previous `-O3` default.  `R_RotateBmodel` still
   rebuilds the matrix; span drawing uses `R_RotateBmodelCached` plus
   consecutive-entity skip.
-- Current default after fusing ambient into the first lightmap style
+- Previous default after fusing ambient into the first lightmap style
   (`out\dos-timedemo-20260910-234742`): `68.309988 / 68.309789 / 68.309838` s,
   median **68.309838 s / 14.185365 FPS**, checksum `4154140932`.  About
   69.9 ms faster than the bmodel-cache default.
+- Previous default after fusing invert/clamp into the one-style write
+  (`out\dos-timedemo-20260911-051131`): `68.265960 / 68.265718 / 68.265779` s,
+  median **68.265779 s / 14.194521 FPS**, checksum `4154140932`.  About
+  44.1 ms faster than the fused first-style write.
+- Previous default after fusing invert/clamp for extra styles as well
+  (`out\dos-timedemo-20260911-051834`): `68.265281 / 68.265038 / 68.265121` s,
+  median **68.265121 s / 14.194657 FPS**, checksum `4154140932`.  About
+  0.66 ms faster than one-style-only fusion; every extra-style run was
+  faster than every one-style-only run.
+- Previous default after the integer dlight inner loop
+  (`out\dos-timedemo-20260911-052933`): `68.210077 / 68.209972 / 68.209845` s,
+  median **68.209972 s / 14.206133 FPS**, checksum `4154140932`.  About
+  55.1 ms faster than extra-style fusion.  Worst-frame FPS rose from
+  6.279967 to 6.299928; low-1% from 6.802995 to 6.837195.  Dlights still
+  feed the two-pass accumulate-then-normalize path.
+- Previous default after the face Z-gradient cache
+  (`out\dos-timedemo-20260911-053759`): `68.198978 / 68.198777 / 68.198746` s,
+  median **68.198777 s / 14.208466 FPS**, checksum `4154140932`.  About
+  11.2 ms faster than the integer-dlight default; every run was faster than
+  every previous-default run.  `out\dos-timedemo-20260911-050318` was a
+  stale-`qbench` rerun and is not evidence for this change.
+- Current default after power-of-two column wrap in `R_DrawSurface`
+  (`out\dos-timedemo-20260911-054347`): `68.197434 / 68.197202 / 68.197221` s,
+  median **68.197221 s / 14.208790 FPS**, checksum `4154140932`.  About
+  1.6 ms faster than the Z-gradient cache; every run was faster than every
+  Z-cache run.
 
 ## Important decisions and assumptions
 
@@ -147,7 +189,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (14.185365 FPS median, checksum `4154140932`) before further edits.
+   (14.208790 FPS median, checksum `4154140932`) before further edits.
+   `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
+   `build-dos.ps1 -Benchmark` first after source changes, then
+   `-SkipBuild` for the timedemo.
 2. Texture spans remain ~25.7% self time.  The unrolled 16-pixel leaf in
    `d_draw16.s` beat both dword coalescing (noise) and a compact stosb loop
    (~2.8% slower).  Next span work should keep the unroll and look at
@@ -155,14 +200,16 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    handles fractional t carry (1,026,030 full segments, but only 28 with zero
    tfrac).
 3. Surface-cache rebuilds are still ~14.5%.  Do not add another predicate
-   helper.  `surf8.s` / `block8.h` word-store packing was noise; try aligned
-   dword packing or fewer lightmap rebuilds without changing lit output.
-   Direct mip drawers instead of `(*pblockdrawer)()` per column are still
-   open.
+   helper.  No-dlight invert/clamp is fused into the lightmap write for
+   1--4 styles, and `R_AddDynamicLights` now uses an integer distance.
+   Per-column wrap uses AND on power-of-two widths.  `surf8.s` / `block8.h`
+   word-store packing was noise; try aligned dword packing or fewer
+   lightmap rebuilds without changing lit output.  Direct mip drawers
+   instead of `(*pblockdrawer)()` per column are still open.
 4. Alias leftover is now the per-vertex clip tests and polyset raster, not
    the per-model view matrix.  Z spans already keep the z-buffer base in a
    register and pack dwords; edge scan is already assembly.  Do not revive
-   BSP plane-dot/clip helpers.
+   BSP plane-dot/clip helpers.  Face Z gradients are cached.
 
 ## Starting commands
 

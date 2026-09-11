@@ -380,6 +380,55 @@ void R_EmitCachedEdge (void)
 
 /*
 ================
+R_SetSurfaceZGradients
+
+Id left TransformVector / 1/z as a per-face FIXME.  BSP nodes emit several
+faces on the same plane with a stable modelorg, so reuse the finished
+d_zistep values.  The miss path is the original arithmetic.
+================
+*/
+static void R_SetSurfaceZGradients (mplane_t *pplane)
+{
+	static int		cache_frame;
+	static mplane_t	*cache_plane;
+	static vec3_t	cache_modelorg;
+	static float	cache_zistepu;
+	static float	cache_zistepv;
+	static float	cache_ziorigin;
+	vec3_t	p_normal;
+	float	distinv;
+
+	if (cache_frame == r_framecount && cache_plane == pplane
+		&& cache_modelorg[0] == modelorg[0]
+		&& cache_modelorg[1] == modelorg[1]
+		&& cache_modelorg[2] == modelorg[2])
+	{
+		surface_p->d_zistepu = cache_zistepu;
+		surface_p->d_zistepv = cache_zistepv;
+		surface_p->d_ziorigin = cache_ziorigin;
+		return;
+	}
+
+	TransformVector (pplane->normal, p_normal);
+	distinv = 1.0 / (pplane->dist - DotProduct (modelorg, pplane->normal));
+
+	cache_zistepu = p_normal[0] * xscaleinv * distinv;
+	cache_zistepv = -p_normal[1] * yscaleinv * distinv;
+	cache_ziorigin = p_normal[2] * distinv -
+			xcenter * cache_zistepu -
+			ycenter * cache_zistepv;
+	cache_plane = pplane;
+	cache_frame = r_framecount;
+	VectorCopy (modelorg, cache_modelorg);
+
+	surface_p->d_zistepu = cache_zistepu;
+	surface_p->d_zistepv = cache_zistepv;
+	surface_p->d_ziorigin = cache_ziorigin;
+}
+
+
+/*
+================
 R_RenderFace
 ================
 */
@@ -387,9 +436,6 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 {
 	int			i, lindex;
 	unsigned	mask;
-	mplane_t	*pplane;
-	float		distinv;
-	vec3_t		p_normal;
 	medge_t		*pedges, tedge;
 	clipplane_t	*pclip;
 
@@ -559,17 +605,7 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	surface_p->key = r_currentkey++;
 	surface_p->spans = NULL;
 
-	pplane = fa->plane;
-// FIXME: cache this?
-	TransformVector (pplane->normal, p_normal);
-// FIXME: cache this?
-	distinv = 1.0 / (pplane->dist - DotProduct (modelorg, pplane->normal));
-
-	surface_p->d_zistepu = p_normal[0] * xscaleinv * distinv;
-	surface_p->d_zistepv = -p_normal[1] * yscaleinv * distinv;
-	surface_p->d_ziorigin = p_normal[2] * distinv -
-			xcenter * surface_p->d_zistepu -
-			ycenter * surface_p->d_zistepv;
+	R_SetSurfaceZGradients (fa->plane);
 
 //JDC	VectorCopy (r_worldmodelorg, surface_p->modelorg);
 	surface_p++;
@@ -585,9 +621,6 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 {
 	int			i;
 	unsigned	mask;
-	mplane_t	*pplane;
-	float		distinv;
-	vec3_t		p_normal;
 	medge_t		tedge;
 	clipplane_t	*pclip;
 
@@ -674,17 +707,7 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 	surface_p->key = r_currentbkey;
 	surface_p->spans = NULL;
 
-	pplane = psurf->plane;
-// FIXME: cache this?
-	TransformVector (pplane->normal, p_normal);
-// FIXME: cache this?
-	distinv = 1.0 / (pplane->dist - DotProduct (modelorg, pplane->normal));
-
-	surface_p->d_zistepu = p_normal[0] * xscaleinv * distinv;
-	surface_p->d_zistepv = -p_normal[1] * yscaleinv * distinv;
-	surface_p->d_ziorigin = p_normal[2] * distinv -
-			xcenter * surface_p->d_zistepu -
-			ycenter * surface_p->d_zistepv;
+	R_SetSurfaceZGradients (psurf->plane);
 
 //JDC	VectorCopy (r_worldmodelorg, surface_p->modelorg);
 	surface_p++;
