@@ -354,13 +354,14 @@ sprites and particles, a 1800 KB surface cache, `Turbulent8`
 `D_PolysetDrawFinalVerts` clip-rect hoist, and unused extra light-style
 skips on cache hits, `D_RasterizeAliasPolySmooth` dest/Z row tables,
 `R_RenderFace` surfedges hoist plus clip unroll, the clipped-bmodel
-surfedges hoist, and `R_DrawSurface` 8-bit setup)
+surfedges hoist, `R_DrawSurface` 8-bit setup, mipscale step tables, and skipping the
+unused `D_CacheSurface` `surfscale` FDIV)
 completed
 three `demo1` runs at
-`67.093796 / 67.093948 / 67.093880` seconds, median **14.442450 FPS** /
-**67.093880 s** (`out\dos-timedemo-20260911-174904\timedemo-result.json`).
-That is about 2.46 ms faster than the clipped-bmodel hoist
-(14.441920 FPS / 67.096341 s) with checksum `4154140932` on every run.
+`67.085825 / 67.085569 / 67.085585` seconds, median **14.444235 FPS** /
+**67.085585 s** (`out\dos-timedemo-20260911-191612\timedemo-result.json`).
+That is about 6.3 ms faster than the mipscale-table default
+(14.442880 FPS / 67.091882 s) with checksum `4154140932` on every run.
 The `Turbulent8` dest-row default was about 1.3 ms faster than the 1800 KB default (14.409100 FPS /
 67.249168 s).  1900 KB, 2000 KB, 2100 KB, and
 2400 KB were faster but checksum `2955717646` (same hash as the
@@ -1126,6 +1127,11 @@ Clipped-bmodel `surfedges` hoist reached **14.441920 FPS**
 (`67.096341` seconds median; `out\dos-timedemo-20260911-174206`).
 `R_DrawSurface` 8-bit setup reached **14.442450 FPS**
 (`67.093880` seconds median; `out\dos-timedemo-20260911-174904`).
+Mipscale step tables in `D_CalcGradients` reached **14.442880 FPS**
+(`67.091882` seconds median; `out\dos-timedemo-20260911-182120`).
+Skipping the unused `D_CacheSurface` `surfscale` FDIV reached
+**14.444235 FPS** (`67.085585` seconds median;
+`out\dos-timedemo-20260911-191612`).
 A 15-way last-segment divisor switch matched the checksum but was
 27.6 ms slower (`out\dos-timedemo-20260911-150819`).
 1900 KB, 2000 KB, 2100 KB, and 2400 KB all produced checksum
@@ -1149,6 +1155,22 @@ Hoisting `currententity->model` in `R_RenderFace` was noise
 (`out\dos-timedemo-20260911-180409`).
 Skipping `R_AnimateLight` IDIV for `len==1` was 2.1 ms slower
 (`out\dos-timedemo-20260911-180922`).
+Hoisting `r_pcurrentvertbase` in `R_RenderFace` was 32.0 ms slower
+(`out\dos-timedemo-20260911-182623`).
+Precomputing mip-scaled `transformed_modelorg` was 4.2 ms slower
+(`out\dos-timedemo-20260911-183436`).
+Skipping no-op bmodel Restore/Set CALLs in `D_DrawSurfaces` was
+1.4 ms slower (`out\dos-timedemo-20260911-184541`).
+A per-surface compare/direct `D_DrawSpans16` call was 9.3 ms slower
+(`out\dos-timedemo-20260911-185331`).
+Hoisting `r_drawpolys` out of `R_RecursiveWorldNode` surface loops
+hitched to 1.89 FPS (`out\dos-timedemo-20260911-185857`).
+`skintable` start addressing in `D_RasterizeAliasPolySmooth` was
+178.6 ms slower (`out\dos-timedemo-20260911-190512`).
+Skipping live `blocksize` in `R_DrawSurface` produced checksum
+`2281919689` (`out\dos-timedemo-20260911-192431`).
+Hoisting `r_drawsurf.surfmip` in `R_DrawSurface` was noise
+(`out\dos-timedemo-20260911-193158`).
 `-OptimizationProfile baseline` still builds `-O2` into `out\dos-baseline`.
 An older 14.122 vs 13.917 FPS comparison predates the current ASM defaults
 and is superseded.

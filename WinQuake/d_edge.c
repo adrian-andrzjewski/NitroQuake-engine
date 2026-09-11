@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int	miplevel;
 static float	d_mipscale_values[4] = {1.0, 0.5, 0.25, 0.125};
+static float	d_mip_xscale[4];
+static float	d_mip_yscale[4];
+static float	d_mip_t16[4];
 
 #ifndef D_TEXAXIS_CACHE_SIZE
 #define D_TEXAXIS_CACHE_SIZE	256
@@ -353,11 +356,11 @@ void D_CalcGradients (msurface_t *pface)
 
 	axes = D_GetTextureAxes (pface->texinfo);
 
-	t = xscaleinv * mipscale;
+	t = d_mip_xscale[miplevel];
 	d_sdivzstepu = axes->saxis[0] * t;
 	d_tdivzstepu = axes->taxis[0] * t;
 
-	t = yscaleinv * mipscale;
+	t = d_mip_yscale[miplevel];
 	d_sdivzstepv = -axes->saxis[1] * t;
 	d_tdivzstepv = -axes->taxis[1] * t;
 
@@ -368,7 +371,7 @@ void D_CalcGradients (msurface_t *pface)
 
 	VectorScale (transformed_modelorg, mipscale, p_temp1);
 
-	t = 0x10000*mipscale;
+	t = d_mip_t16[miplevel];
 	sadjust = ((fixed16_t)(DotProduct (p_temp1, axes->saxis) * 0x10000 + 0.5)) -
 			((pface->texturemins[0] << 16) >> miplevel)
 			+ pface->texinfo->vecs[0][3]*t;
@@ -419,6 +422,17 @@ void D_DrawSurfaces (void)
 	TransformVector (modelorg, transformed_modelorg);
 	VectorCopy (transformed_modelorg, world_transformed_modelorg);
 	span_bmodel = NULL;
+
+	{
+		int		mip;
+
+		for (mip = 0 ; mip < 4 ; mip++)
+		{
+			d_mip_xscale[mip] = xscaleinv * d_mipscale_values[mip];
+			d_mip_yscale[mip] = yscaleinv * d_mipscale_values[mip];
+			d_mip_t16[mip] = 0x10000 * d_mipscale_values[mip];
+		}
+	}
 
 // TODO: could preset a lot of this at mode set time
 	if (r_drawflat.value)

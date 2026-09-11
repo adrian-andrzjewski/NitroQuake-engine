@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 #include "r_local.h"
 
-float           surfscale;
 qboolean        r_cache_thrash;         // set if surface cache is thrashing
 
 int                                     sc_size;
@@ -328,7 +327,6 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 //
 // determine shape of surface
 //
-	surfscale = 1.0 / (1<<miplevel);
 	r_drawsurf.surfmip = miplevel;
 	r_drawsurf.surfwidth = surface->extents[0] >> miplevel;
 	r_drawsurf.rowbytes = r_drawsurf.surfwidth;
@@ -343,7 +341,6 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 						   r_drawsurf.surfwidth * r_drawsurf.surfheight);
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
-		cache->mipscale = surfscale;
 	}
 	
 	if (surface->dlightframe == r_framecount)

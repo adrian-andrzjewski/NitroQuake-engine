@@ -62,6 +62,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `R_BuildLightMapNormalize_*`.  `R_AddDynamicLights` keeps the per-texel
   distance in an integer and walks `blocklights` by row;
   `R_AddDynamicLights_C` remains the float-`dist` reference.
+  Rebuilds no longer compute unused `surfscale` or store
+  `cache->mipscale`; the header field remains for layout.
 
 Every ASM candidate retains its C implementation.  `build-dos.ps1`,
 `bench-dos.ps1`, and `timedemo-dos.ps1` expose independent `c|asm` selectors
@@ -123,6 +125,16 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Bmodel clip unroll (`R_RenderBmodelFace`) | Same 4 clip-plane links as world faces | 67.097295 s / 14.441715 FPS, 0.07 ms, overlapping ranges | Reverted |
 | Bmodel surfedges hoist (`R_DrawSolidClippedSubmodelPolygons`) | `pmodel->surfedges + firstedge` like world faces | 67.096341 s / 14.441920 FPS, 0.88 ms faster | Kept |
 | Surface draw 8-bit setup (`R_DrawSurface`) | Skip `r_pixbytes` 16-bit path; reuse `r_stepback` for `r_sourcemax` | 67.093880 s / 14.442450 FPS, 2.46 ms faster | Kept |
+| Mipscale step tables (`D_CalcGradients`) | Precompute `xscaleinv`/`yscaleinv`/`0x10000` × mip once per frame | 67.091882 s / 14.442880 FPS, 2.0 ms faster | Kept |
+| Unused surfscale FDIV (`D_CacheSurface`) | Skip `1.0/(1<<mip)` and unread `cache->mipscale` store | 67.085585 s / 14.444235 FPS, 6.3 ms faster | Kept |
+| Skip live `blocksize` (`R_DrawSurface`) | Stop storing 16-bit block globals; dest used local step only | checksum `2281919689` | Reverted |
+| `R_DrawSurface` surfmip hoist | Local `mip` for rebuild setup shifts | 67.085593 s / 14.444234 FPS, noise | Reverted |
+| Mip-scaled modelorg (`D_CalcGradients`) | Precompute `transformed_modelorg × mip` on world/bmodel switch | 67.096034 s / 14.441986 FPS, 4.2 ms slower | Reverted |
+| DrawSurfaces Restore/Set CALL skip | Skip no-op `D_RestoreWorldDrawingState` / same-entity `D_SetBmodelDrawingState` | 67.093276 s / 14.442580 FPS, 1.4 ms slower | Reverted |
+| Direct `D_DrawSpans16` | Compare `d_drawspans` and call 16-pixel drawer directly | 67.101141 s / 14.440887 FPS, 9.3 ms slower | Reverted |
+| World `r_drawpolys` hoist | Duplicate surface loops so span path skips poly dispatch | hitch min 1.89 FPS | Reverted |
+| Alias `skintable` start addr | Always `D_PolysetUpdateTables`; row lookup instead of `t*skinwidth` | 67.270496 s / 14.404533 FPS, 178.6 ms slower | Reverted |
+| Face vert-base hoist (`R_RenderFace`) | Local `r_pcurrentvertbase` for `R_ClipEdge` | 67.123877 s / 14.435996 FPS, 32.0 ms slower | Reverted |
 | Fused smax POT wrap (`R_DrawSurface`) | One POT test for soffset wrap and column loop | hitch min 1.91 FPS | Reverted |
 | Face model hoist (`R_RenderFace`) | Local `currententity->model` for edges/surfedges | 67.093926 s / 14.442440 FPS, 0.05 ms, run-1 outlier | Reverted |
 | AnimateLight length-1 skip (`R_AnimateLight`) | Skip `i % len` when `len==1` | 67.095987 s / 14.441996 FPS, 2.1 ms slower | Reverted |
@@ -277,11 +289,23 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   0.88 ms faster than the `R_RenderFace` default.  Worst-frame min FPS
   rose from 6.325209 to 6.325275.  Every run was faster than every
   previous-default run.
-- Current default after `R_DrawSurface` 8-bit setup
+- Previous default after `R_DrawSurface` 8-bit setup
   (`out\dos-timedemo-20260911-174904`): `67.093796 / 67.093948 / 67.093880` s,
   median **67.093880 s / 14.442450 FPS**, checksum `4154140932`.  About
   2.46 ms faster than the clipped-bmodel hoist.  Worst-frame min FPS
   rose from 6.325275 to 6.325880.  Every run was faster than every
+  previous-default run.
+- Previous default after mipscale step tables
+  (`out\dos-timedemo-20260911-182120`): `67.091435 / 67.091882 / 67.091930` s,
+  median **67.091882 s / 14.442880 FPS**, checksum `4154140932`.  About
+  2.0 ms faster than the 8-bit surface-setup default.  Worst-frame min
+  FPS rose from 6.325880 to 6.325980.  Every run was faster than every
+  previous-default run.
+- Current default after skipping the unused `surfscale` FDIV
+  (`out\dos-timedemo-20260911-191612`): `67.085825 / 67.085569 / 67.085585` s,
+  median **67.085585 s / 14.444235 FPS**, checksum `4154140932`.  About
+  6.3 ms faster than the mipscale-table default.  Worst-frame min FPS
+  rose from 6.325980 to 6.326751.  Every run was faster than every
   previous-default run.
 
 ## Important decisions and assumptions
@@ -356,6 +380,49 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   vs 67.185736 s).  The texinfo/mip/modelorg compares cost more than
   the skipped step muls; do not retry a last-used `D_CalcGradients`
   step-origin cache.
+- Mip-scaled modelorg (`D_CalcGradients`,
+  `out\dos-timedemo-20260911-183436`) matched checksum `4154140932`
+  but was 4.2 ms slower (67.096034 s vs 67.091882 s) with an 846 ms
+  first-run outlier.  Do not retry precomputing
+  `transformed_modelorg × mipscale`; the per-frame `xscaleinv` tables
+  are enough.
+- DrawSurfaces Restore/Set CALL skip
+  (`out\dos-timedemo-20260911-184541`) matched checksum `4154140932`
+  but was 1.4 ms slower (67.093276 s vs 67.091882 s).  Extra
+  per-surface `span_bmodel` tests cost more than the no-op CALL on
+  the 486; do not retry skipping `D_RestoreWorldDrawingState` /
+  `D_SetBmodelDrawingState` with caller-side ifs.
+- Direct `D_DrawSpans16` (`out\dos-timedemo-20260911-185331`)
+  matched checksum `4154140932` but was 9.3 ms slower (67.101141 s
+  vs 67.091882 s).  Do not retry a per-surface compare against
+  `d_drawspans` to turn the indirect CALL into a direct one.
+- World `r_drawpolys` hoist (`out\dos-timedemo-20260911-185857`)
+  matched checksum `4154140932` but run 1 hitched to **1.89 FPS**
+  (67.545301 s).  Runs 2/3 were ~3 ms faster and are not a promote.
+  Do not retry duplicating `R_RecursiveWorldNode` surface loops to
+  hoist `r_drawpolys`; growing that function hitches like fused
+  frustum.
+- Alias `skintable` start addressing
+  (`out\dos-timedemo-20260911-190512`) matched checksum `4154140932`
+  but was 178.6 ms slower (67.270496 s vs 67.091882 s).  Do not
+  retry `skintable` in `D_RasterizeAliasPolySmooth` or calling
+  `D_PolysetUpdateTables` on the clipped path; keep the
+  `t*skinwidth` start IMUL and the drawtype-only table fill.
+- Skip live `blocksize` (`R_DrawSurface`,
+  `out\dos-timedemo-20260911-192431`) was faster but checksum
+  `2281919689`.  The 8-bit column loop still advances `soffset` with
+  the `blocksize` global.  Do not skip storing `blocksize`; dest
+  `horzblockstep` is not enough.
+- `R_DrawSurface` surfmip hoist (`out\dos-timedemo-20260911-193158`)
+  matched checksum `4154140932` but the 0.008 ms median delta sat
+  inside the previous run spread (67.085593 s vs 67.085585 s).  Do
+  not retry a local `mip` for rebuild setup; `-O3` already CSEs
+  `r_drawsurf.surfmip`.
+- Face vert-base hoist (`R_RenderFace`,
+  `out\dos-timedemo-20260911-182623`) matched checksum `4154140932`
+  but was 32.0 ms slower (67.123877 s vs 67.091882 s).  The extra
+  local spilled the edge loop; do not retry hoisting
+  `r_pcurrentvertbase` in `R_RenderFace`.
 - AnimateLight length-1 skip (`out\dos-timedemo-20260911-180922`)
   matched checksum `4154140932` but was 2.1 ms slower (67.095987 s
   vs 67.093880 s).  The extra `len==1` branch cost more than the
@@ -396,11 +463,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (14.442450 FPS median, checksum `4154140932`) before further edits.
+   (14.444235 FPS median, checksum `4154140932`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
-2. Texture spans remain ~25.7% self time.  Dest rows now come from
+2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
+   diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
    particles, and live `Turbulent8`.  Live `D_RasterizeAliasPolySmooth`
    dest and Z rows use the same tables.  Keep the unrolled 16-pixel leaf; dword coalescing was
@@ -409,6 +477,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    checksum but lost end-to-end; do not retry those.  Do not revive
    the earlier checksum-failing texture-source row-lookup.  Do not
    retry a jump table around the turbulent last-segment divide.
+   Do not retry a per-surface `d_drawspans == D_DrawSpans16`
+   compare/direct CALL.  The start-address `cachewidth` IMUL sits in
+   the FDIV shadow; do not add per-span branches to skip it.
 3. Surface-cache rebuilds were ~14.5% at 600 KB.  The default cache is
    now 1800 KB; 1200 KB also matched the checksum.  1900 KB, 2000 KB,
    2100 KB, and 2400 KB all failed checksum `2955717646`.  Do not
@@ -420,11 +491,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    uses an integer distance.  Per-column wrap uses AND on power-of-two
    widths.  Direct mip drawers were 1.1 ms slower end-to-end; leave
    `(*pblockdrawer)()`.  Live `surf8.s` mip0 already uses `movl` dest
-   packs; `block8.h` is unused.  Rebuild setup now skips the 16-bit
-   `r_pixbytes` path and reuses `r_stepback` for `r_sourcemax`.
-   Do not retry folding the soffset wrap into the column-loop POT test.
-   Next surface work is fewer remaining rebuilds without changing lit
-   output.
+   packs; `block8.h` is unused.    Rebuild setup now skips the 16-bit
+  `r_pixbytes` path and reuses `r_stepback` for `r_sourcemax`.
+  Do not retry folding the soffset wrap into the column-loop POT test.
+  Rebuilds no longer compute unused `surfscale` / `cache->mipscale`.
+  Do not skip storing `blocksize`; the 8-bit column loop uses it for
+  `soffset`.  Do not retry a local `mip` for `R_DrawSurface` setup.
+  Next surface work is fewer remaining rebuilds without changing lit
+  output.
 4. Alias leftover is now remaining per-vertex clip tests and polyset
    raster guts, not dest/Z row addressing.  `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
@@ -436,11 +510,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry fused `minmaxs` multiplies in `R_RecursiveWorldNode`.
    Do not retry stacking `acolormap` in `D_PolysetDrawFinalVerts`.
    Do not retry a last-used `D_CalcGradients` step-origin cache.
+   Per-frame mipscale × `xscaleinv`/`yscaleinv`/`0x10000` tables are
+   the kept substitute.  Do not retry precomputing
+   `transformed_modelorg × mipscale` on world/bmodel switch.
    World faces now hoist `surfedges` and unroll the four clip-plane
    links in `R_RenderFace`.  Clipped bmodels hoist the same `surfedges`
    pointer.  Do not retry unrolling `R_RenderBmodelFace` clip planes.
    Do not retry hoisting `currententity->model` in `R_RenderFace`.
-   Do not retry length-1 or POT remainder in `R_AnimateLight`.  Z spans now use `zspantable`; edge scan is already
+   Do not retry hoisting `r_pcurrentvertbase` in `R_RenderFace`.
+   Do not retry length-1 or POT remainder in `R_AnimateLight`.
+   Do not retry skipping no-op bmodel Restore/Set CALLs with extra
+   per-surface ifs.  Do not retry duplicating world surface loops to
+   hoist `r_drawpolys`.  Do not retry `skintable` start addressing in
+   `D_RasterizeAliasPolySmooth`.  Z spans now use `zspantable`; edge scan is already
    assembly.  Do not revive BSP plane-dot/clip helpers.  Face Z
    gradients are cached.
 
