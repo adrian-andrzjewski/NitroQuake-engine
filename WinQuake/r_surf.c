@@ -181,7 +181,8 @@ void R_AddDynamicLights (void)
 	msurface_t *surf;
 	int			lnum;
 	int			sd, td, idist;
-	float		planedist, rad, minlight;
+	float		planedist, rad, fmin;
+	int			irad;
 	vec3_t		impact, local;
 	int			s, t;
 	int			i;
@@ -203,10 +204,10 @@ void R_AddDynamicLights (void)
 		planedist = DotProduct (cl_dlights[lnum].origin, surf->plane->normal) -
 				surf->plane->dist;
 		rad -= fabs(planedist);
-		minlight = cl_dlights[lnum].minlight;
-		if (rad < minlight)
+		if (rad < cl_dlights[lnum].minlight)
 			continue;
-		minlight = rad - minlight;
+		fmin = rad - cl_dlights[lnum].minlight;
+		irad = (int)(rad * 256);
 
 		for (i=0 ; i<3 ; i++)
 		{
@@ -235,8 +236,8 @@ void R_AddDynamicLights (void)
 					idist = sd + (td>>1);
 				else
 					idist = td + (sd>>1);
-				if (idist < minlight)
-					bl[s] += (unsigned)((rad - idist)*256);
+				if ((float)idist < fmin)
+					bl[s] += (unsigned)(irad - (idist << 8));
 			}
 		}
 	}
