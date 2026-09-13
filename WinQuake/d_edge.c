@@ -255,7 +255,7 @@ void D_DrawSolidSurface (surf_t *surf, int color)
 		if (bench486_profile_frame_active)
 			bench486_solid_span_count++;
 #endif
-		pdest = (byte *)d_viewbuffer + screenwidth*span->v;
+		pdest = viewspantable[span->v];
 		if (span->count >= 16)
 		{
 			Q_memset (pdest + span->u, color, span->count);
