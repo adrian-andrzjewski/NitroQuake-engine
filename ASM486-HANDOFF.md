@@ -67,8 +67,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `R_MarkLights` skips faces whose plane distance already fails the
   same `radius - fabs(planedist) < minlight` reject used by
   `R_AddDynamicLights`, and also skips faces whose projected impact
-  lies outside the lightmap rect expanded by `fmin`, so impossible
-  dlight marks no longer force surface-cache rebuilds.
+  is farther than `fmin` from the lightmap rect under the same integer
+  idist metric, so impossible dlight marks no longer force
+  surface-cache rebuilds.
 
 Every ASM candidate retains its C implementation.  `build-dos.ps1`,
 `bench-dos.ps1`, and `timedemo-dos.ps1` expose independent `c|asm` selectors
@@ -157,6 +158,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Aggressive `-funroll-loops` (`build-dos.ps1`) | Faster but wrong FB | 66.801015 s / 14.505767 FPS; checksum `2623602099` | Reverted |
 | MarkLights plane cull (`R_MarkLights`) | Same reject as `R_AddDynamicLights` | 66.776824 s / 14.511022 FPS, 185.8 ms faster | Kept |
 | MarkLights S/T extent cull (`R_MarkLights`) | AABB expand by `fmin` after plane reject | 64.253958 s / 15.080783 FPS, 2522.9 ms faster | Kept |
+| MarkLights idist cull (`R_MarkLights`) | Clamp-to-rect idist replaces AABB expand | 64.128594 s / 15.110264 FPS, 125.4 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -343,13 +345,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   every re-lock run.  Faces that cannot receive a dlight sample are no
   longer marked, so `D_CacheSurface` keeps hits instead of rebuilding with
   an empty dlight pass.
-- Current default after `R_MarkLights` S/T extent cull
+- Previous default after `R_MarkLights` S/T extent cull
   (`out\dos-timedemo-20260914-142303`): `64.253958 / 64.253841 / 65.839411` s,
   median **64.253958 s / 15.080783 FPS**, checksum `4154140932` on all three
   runs.  About 2522.9 ms faster than the plane-cull default; every run was
   faster than the plane-cull median.  Run 3 was slower than runs 1/2 but
   still clear of the prior median.  Projected impact outside the lightmap
   rect expanded by `fmin` is no longer marked.
+- Current default after `R_MarkLights` clamp-to-rect idist cull
+  (`out\dos-timedemo-20260914-143404`): `64.128632 / 64.128594 / 64.128523` s,
+  median **64.128594 s / 15.110264 FPS**, checksum `4154140932` on all three
+  runs.  About 125.4 ms faster than the AABB-expand default; every run was
+  faster than every AABB-expand run.  Uses the same integer idist metric as
+  `R_AddDynamicLights` against the clamped lightmap rect.
 
 ## Important decisions and assumptions
 
@@ -514,8 +522,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.080783 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260914-142303`) before further edits.
+   (15.110264 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260914-143404`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -549,11 +557,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   Rebuilds no longer compute unused `surfscale` / `cache->mipscale`.
   Do not skip storing `blocksize`; the 8-bit column loop uses it for
   `soffset`.  Do not retry a local `mip` for `R_DrawSurface` setup.
-  `R_MarkLights` now applies the `R_AddDynamicLights` plane reject and a
-  conservative S/T lightmap-rect AABB expand by `fmin` before marking.
-  Next surface work is still fewer remaining rebuilds without changing
-  lit output (tighter discrete-sample distance cull only if checksum-safe
-  and faster end-to-end than the AABB).
+  `R_MarkLights` now applies the `R_AddDynamicLights` plane reject and an
+  O(1) clamp-to-rect idist cull (replacing the earlier `fmin` AABB expand).
+  Do not retry a full per-sample MarkLights scan; phantom faces would pay
+  the nested loop.  Next surface work is still fewer remaining rebuilds
+  without changing lit output.
 4. Alias leftover is now remaining per-vertex clip tests and polyset
    raster guts, not dest/Z row addressing.  `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.

@@ -153,11 +153,11 @@ void R_MarkLights (dlight_t *light, int bit, mnode_t *node)
 	surf = cl.worldmodel->surfaces + node->firstsurface;
 	for (i=0 ; i<node->numsurfaces ; i++, surf++)
 	{
-		float		planedist, rad, fmin;
+		float		planedist, rad, fmin, cs, ct;
 		float		local0, local1;
 		vec3_t		impact;
 		mtexinfo_t	*tex;
-		int			j;
+		int			j, sd, td, idist, fmin_scaled;
 
 		// Same plane reject as R_AddDynamicLights: if no lightmap sample can
 		// receive this light, skip the mark so D_CacheSurface can keep a hit
@@ -168,9 +168,10 @@ void R_MarkLights (dlight_t *light, int bit, mnode_t *node)
 		if (rad < light->minlight)
 			continue;
 
-		// Conservative S/T AABB: same impact/local as R_AddDynamicLights,
-		// reject if outside the lightmap rect expanded by fmin.
+		// Same impact/local as R_AddDynamicLights, then O(1) idist to the
+		// lightmap rect (replaces the looser fmin-expanded AABB).
 		fmin = rad - light->minlight;
+		fmin_scaled = (int)ceil (fmin * 256);
 		for (j=0 ; j<3 ; j++)
 		{
 			impact[j] = light->origin[j] -
@@ -181,8 +182,27 @@ void R_MarkLights (dlight_t *light, int bit, mnode_t *node)
 				- surf->texturemins[0];
 		local1 = DotProduct (impact, tex->vecs[1]) + tex->vecs[1][3]
 				- surf->texturemins[1];
-		if (local0 < -fmin || local0 > surf->extents[0] + fmin
-		 || local1 < -fmin || local1 > surf->extents[1] + fmin)
+		cs = local0;
+		if (cs < 0)
+			cs = 0;
+		else if (cs > surf->extents[0])
+			cs = surf->extents[0];
+		ct = local1;
+		if (ct < 0)
+			ct = 0;
+		else if (ct > surf->extents[1])
+			ct = surf->extents[1];
+		sd = (int)(local0 - cs);
+		if (sd < 0)
+			sd = -sd;
+		td = (int)(local1 - ct);
+		if (td < 0)
+			td = -td;
+		if (sd > td)
+			idist = sd + (td >> 1);
+		else
+			idist = td + (sd >> 1);
+		if ((idist << 8) >= fmin_scaled)
 			continue;
 
 		if (surf->dlightframe != r_dlightframecount)

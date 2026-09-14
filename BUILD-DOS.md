@@ -337,12 +337,12 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after the `R_MarkLights` S/T extent cull is
-`64.253958 / 64.253841 / 65.839411` seconds, median **15.080783 FPS** /
-**64.253958 s**, checksum `4154140932`
-(`out\dos-timedemo-20260914-142303\timedemo-result.json`).  That is about
-2522.9 ms faster than the prior plane-cull default at **14.511022 FPS** /
-66.776824 s (`out\dos-timedemo-20260914-140045`).
+The current measured default after the `R_MarkLights` clamp-to-rect idist
+cull is `64.128632 / 64.128594 / 64.128523` seconds, median
+**15.110264 FPS** / **64.128594 s**, checksum `4154140932`
+(`out\dos-timedemo-20260914-143404\timedemo-result.json`).  That is about
+125.4 ms faster than the prior AABB-expand default at **15.080783 FPS** /
+64.253958 s (`out\dos-timedemo-20260914-142303`).
 
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
