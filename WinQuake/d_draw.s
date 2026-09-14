@@ -87,7 +87,7 @@ LClampHigh5:
 
 #define pspans	4+16
 
-	.align 4
+	.p2align 4,,15
 .globl C(D_DrawSpans8)
 C(D_DrawSpans8):
 	pushl	%ebp				// preserve caller's stack frame
@@ -245,7 +245,7 @@ LCleanup1:
 	fistpl	t				// 1/z | t/z | s/z
 	jmp		LFDIVInFlight1
 
-	.align	4
+	.p2align 4,,15
 LSetupNotLast1:
 // finish up the s and t calcs
 	fxch	%st(1)			// z*64k | 1/z | t/z | s/z
@@ -455,7 +455,7 @@ LSetUp1:
 							//  overlap
 	jmp		LFDIVInFlight2
 
-	.align	4
+	.p2align 4,,15
 LSetupNotLast2:
 	fadds	zi8stepu
 	fxch	%st(2)

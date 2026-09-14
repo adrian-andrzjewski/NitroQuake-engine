@@ -42,7 +42,7 @@ Ltemp:	.long	0
 #define	num		8+4				// because only partially pushed
 #define p		12+12			// because only partially pushed
 
-	.align 4
+	.p2align 4,,15
 .globl C(SV_HullPointContents)
 C(SV_HullPointContents):
 	pushl	%edi				// preserve register variables

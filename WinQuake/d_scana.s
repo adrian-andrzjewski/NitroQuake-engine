@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // turbulent texture mapping code
 //----------------------------------------------------------------------
 
-	.align 4
+	.p2align 4,,15
 .globl C(D_DrawTurbulent8Span_asm486)
 C(D_DrawTurbulent8Span_asm486):
 	pushl	%ebp				// preserve caller's stack frame pointer

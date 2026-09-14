@@ -14,14 +14,14 @@ Ltexture_animation_broken:
 	.ascii	"R_TextureAnimation: broken cycle\0"
 Ltexture_animation_infinite:
 	.ascii	"R_TextureAnimation: infinite cycle\0"
-	.align 4
+	.p2align 4,,15
 Lalias_transform_coords:
 	.long	0, 0, 0
 Lalias_transform_temp:
 	.long	0
 
 	.text
-	.align 4
+	.p2align 4,,15
 
 // void Q_memset_asm486(void *dest, int fill, int count)
 C(Q_memset_asm486):
@@ -74,7 +74,7 @@ C(Q_memset_asm486):
 	popl	%edi
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // void Q_memcpy_asm486(void *dest, void *src, int count)
 // Matches the existing Q_memcpy contract: forward copy, no overlap handling.
@@ -132,7 +132,7 @@ jnz	.Lmemcpy_bytes
 	popl	%edi
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // void *D_GetTextureAxesHit_asm486(void *entry, void *texinfo,
 //     void *entity, int frame)
@@ -159,7 +159,7 @@ C(D_GetTextureAxesHit_asm486):
 	xorl	%eax,%eax
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // void *D_CacheSurfaceHit_asm486(void *cache, int surface_dlightframe,
 //     int frame, void *texture, int *lightadj)
@@ -197,7 +197,7 @@ C(D_CacheSurfaceHit_asm486):
 	xorl	%eax,%eax
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // int D_MipLevelForScale_asm486(float scale)
 // Use the 486 x87 compare flags for the three descending mip thresholds.
@@ -242,7 +242,7 @@ C(D_MipLevelForScale_asm486):
 .Lmip_return:
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // texture_t *R_TextureAnimationFrame_asm486(texture_t *base, int relative)
 // Select the frame whose [anim_min, anim_max) interval contains relative.
@@ -284,7 +284,7 @@ C(R_TextureAnimationFrame_asm486):
 	xorl	%eax,%eax
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // void R_BuildLightMapNormalize_asm486(unsigned *lights, int size)
 // Invert and clamp a lightmap in place.  Keep the array pointer and count in
@@ -318,7 +318,7 @@ C(R_BuildLightMapNormalize_asm486):
 	popl	%edi
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // double R_RecursiveWorldNodePlaneDot_asm486(mplane_t *plane)
 // Calculate the viewpoint/plane dot used to choose the front BSP child.
@@ -361,7 +361,7 @@ C(R_RecursiveWorldNodePlaneDot_asm486):
 	fsubs	12(%edx)
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // int R_RecursiveWorldNodeClip_asm486(mnode_t *node, int clipflags)
 // Evaluate the four frustum planes for one visible BSP node.  The C helper
@@ -455,7 +455,7 @@ C(R_RecursiveWorldNodeClip_asm486):
 	popl	%ebp
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // int R_AliasCheckBBoxProject_asm486(auxvert_t *viewaux,
 //                                    finalvert_t *viewpts, int numv)
@@ -552,7 +552,7 @@ C(R_AliasCheckBBoxProject_asm486):
 	popl	%ebp
 	ret
 
-	.align 4
+	.p2align 4,,15
 
 // void R_AliasTransformFinalVert_asm486(finalvert_t *fv, auxvert_t *av,
 //                                        trivertx_t *pverts,

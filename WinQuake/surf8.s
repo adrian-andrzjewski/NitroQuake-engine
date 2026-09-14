@@ -34,7 +34,7 @@ sb_v:		.long	0
 
 	.text
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_Surf8Start)
 C(R_Surf8Start):
 
@@ -42,7 +42,7 @@ C(R_Surf8Start):
 // Surface block drawer for mip level 0
 //----------------------------------------------------------------------
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_DrawSurfaceBlock8_mip0)
 C(R_DrawSurfaceBlock8_mip0):
 	pushl	%ebp				// preserve caller's stack frame
@@ -268,7 +268,7 @@ LSkip_mip0:
 // Surface block drawer for mip level 1
 //----------------------------------------------------------------------
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_DrawSurfaceBlock8_mip1)
 C(R_DrawSurfaceBlock8_mip1):
 	pushl	%ebp				// preserve caller's stack frame
@@ -438,7 +438,7 @@ LSkip_mip1:
 // Surface block drawer for mip level 2
 //----------------------------------------------------------------------
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_DrawSurfaceBlock8_mip2)
 C(R_DrawSurfaceBlock8_mip2):
 	pushl	%ebp				// preserve caller's stack frame
@@ -578,7 +578,7 @@ LSkip_mip2:
 // Surface block drawer for mip level 3
 //----------------------------------------------------------------------
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_DrawSurfaceBlock8_mip3)
 C(R_DrawSurfaceBlock8_mip3):
 	pushl	%ebp				// preserve caller's stack frame
@@ -724,7 +724,7 @@ C(R_Surf8End):
 //----------------------------------------------------------------------
 	.data
 
-	.align 4
+	.p2align 4,,15
 LPatchTable8:
 	.long	LBPatch0-4
 	.long	LBPatch1-4
@@ -761,7 +761,7 @@ LPatchTable8:
 
 	.text
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_Surf8Patch)
 C(R_Surf8Patch):
 	pushl	%ebx

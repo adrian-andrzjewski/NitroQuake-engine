@@ -87,7 +87,7 @@ LAddedge2:
 	jnz		LDoNextEdge
 	jmp		LDone
 
-	.align 4
+	.p2align 4,,15
 LAddedge:
 	movl	et_next(%edx),%edx
 	movl	et_prev(%ecx),%ebx
@@ -250,7 +250,7 @@ LUDone:
 
 #define surf	4		// note this is loaded before any pushes
 
-	.align 4
+	.p2align 4,,15
 TrailingEdge:
 	movl	st_spanstate(%esi),%eax	// check for edge inversion
 	decl	%eax
@@ -414,7 +414,7 @@ Lsortloopnb:
 
 
 // handle a leading bmodel edge
-	.align	4
+	.p2align 4,,15
 Lbmodel_leading:
 
 // don't start a span if this is an inverted span, with the end edge preceding
@@ -633,7 +633,7 @@ LPatch4:
 // ---------------------------------------------------------------
 // 1/z sorting for bmodels in the same leaf
 // ---------------------------------------------------------------
-	.align	4
+	.p2align 4,,15
 Lxl_done:
 	incl	%edx
 	movl	%edx,st_spanstate(%edi)
@@ -641,7 +641,7 @@ Lxl_done:
 	jmp		Lgs_nextedge
 
 
-	.align	4
+	.p2align 4,,15
 Lzcheck_for_newtop:
 	movl	et_u(%ebx),%eax
 	subl	$0xFFFFF,%eax
@@ -731,7 +731,7 @@ C(R_EdgeCodeEnd):
 // Surface array address code patching routine
 //----------------------------------------------------------------------
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_SurfacePatch)
 C(R_SurfacePatch):
 

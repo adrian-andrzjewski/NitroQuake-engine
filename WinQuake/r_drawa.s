@@ -55,7 +55,7 @@ Lzi0:			.long		0
 #define pv1		8+12
 #define clip	12+12
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_ClipEdge)
 C(R_ClipEdge):
 	pushl	%esi				// preserve register variables

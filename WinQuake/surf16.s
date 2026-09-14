@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 k:			.long	0
 loopentry:	.long	0
 
-	.align	4
+	.p2align 4,,15
 blockjumptable16:
 	.long	LEnter2_16
 	.long	LEnter4_16
@@ -47,11 +47,11 @@ blockjumptable16:
 
 	.text
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_Surf16Start)
 C(R_Surf16Start):
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_DrawSurfaceBlock16)
 C(R_DrawSurfaceBlock16):
 	pushl	%ebp				// preserve caller's stack frame
@@ -85,7 +85,7 @@ Lp1_16:
 
 	jmp		*loopentry
 
-	.align	4
+	.p2align 4,,15
 
 #include "block16.h"
 
@@ -128,7 +128,7 @@ C(R_Surf16End):
 //----------------------------------------------------------------------
 	.data
 
-	.align 4
+	.p2align 4,,15
 LPatchTable16:
 	.long	LBPatch0-4
 	.long	LBPatch1-4
@@ -149,7 +149,7 @@ LPatchTable16:
 
 	.text
 
-	.align 4
+	.p2align 4,,15
 .globl C(R_Surf16Patch)
 C(R_Surf16Patch):
 	pushl	%ebx

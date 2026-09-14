@@ -43,7 +43,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define P	12+4
 
-	.align 4
+	.p2align 4,,15
 .globl C(D_DrawParticle)
 C(D_DrawParticle):
 	pushl	%ebp				// preserve caller's stack frame

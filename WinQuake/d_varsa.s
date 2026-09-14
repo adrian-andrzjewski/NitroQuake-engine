@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // FIXME: put all refresh variables into one contiguous block. Make into one
 // big structure, like cl or sv?
 
-	.align	4
+	.p2align 4,,15
 .globl	C(d_sdivzstepu)
 .globl	C(d_tdivzstepu)
 .globl	C(d_zistepu)

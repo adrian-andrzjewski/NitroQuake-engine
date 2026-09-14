@@ -8,7 +8,7 @@
 
 	.data
 
-	.align	4
+	.p2align 4,,15
 fpenv:
 	.long	0, 0, 0, 0, 0, 0, 0, 0
 
@@ -34,7 +34,7 @@ C(unmaskexceptions):
 
 	.data
 
-	.align	4
+	.p2align 4,,15
 .globl	ceil_cw, single_cw, full_cw, cw, pushed_cw
 ceil_cw:	.long	0
 single_cw:	.long	0
