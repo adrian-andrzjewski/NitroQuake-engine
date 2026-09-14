@@ -159,6 +159,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | MarkLights plane cull (`R_MarkLights`) | Same reject as `R_AddDynamicLights` | 66.776824 s / 14.511022 FPS, 185.8 ms faster | Kept |
 | MarkLights S/T extent cull (`R_MarkLights`) | AABB expand by `fmin` after plane reject | 64.253958 s / 15.080783 FPS, 2522.9 ms faster | Kept |
 | MarkLights idist cull (`R_MarkLights`) | Clamp-to-rect idist replaces AABB expand | 64.128594 s / 15.110264 FPS, 125.4 ms faster | Kept |
+| MarkLights 2x2 sample cull (`R_MarkLights`) | Exact 2x2 discrete idist vs continuous clamp | 64.241100 s / 15.083802 FPS, 112.5 ms slower | Reverted |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -518,6 +519,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   but every run produced framebuffer checksum `2623602099` instead of
   `4154140932`.  Do not retry global `-funroll-loops` under `-ffast-math`;
   targeted source unrolls that keep the checksum remain allowed.
+- MarkLights 2x2 sample cull (`out\dos-timedemo-20260914-161209`) matched
+  checksum `4154140932` but was 112.5 ms slower than the continuous
+  clamp-to-rect idist default (64.241100 s / 15.083802 FPS vs
+  64.128594 s / 15.110264 FPS).  Extra per-face sample work cost more than
+  the few additional culls; do not retry a 2x2 or fuller discrete sample
+  scan in `R_MarkLights`.
 
 ## Priority-ordered next steps
 
@@ -560,8 +567,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   `R_MarkLights` now applies the `R_AddDynamicLights` plane reject and an
   O(1) clamp-to-rect idist cull (replacing the earlier `fmin` AABB expand).
   Do not retry a full per-sample MarkLights scan; phantom faces would pay
-  the nested loop.  Next surface work is still fewer remaining rebuilds
-  without changing lit output.
+  the nested loop.  Do not retry a 2x2 discrete sample scan in
+  `R_MarkLights`; it matched the checksum but was 112.5 ms slower.
+  Next surface work is still fewer remaining rebuilds without changing
+  lit output (outside MarkLights sample scans).
 4. Alias leftover is now remaining per-vertex clip tests and polyset
    raster guts, not dest/Z row addressing.  `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
