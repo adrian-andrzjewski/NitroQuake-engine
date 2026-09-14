@@ -566,8 +566,10 @@ void R_DrawSurface (void)
 //==============================
 
 	// DOS 8-bit software path; R_DrawSurfaceBlock16 remains the 16-bit
-	// reference and is unused by qbench.
-	pblockdrawer = surfmiptable[r_drawsurf.surfmip];
+	// reference and is unused by qbench.  Hoist the mip dispatch out of
+	// the per-column loop so the 486 avoids an indirect CALL per hblock.
+	// Direct mip dispatch was 1.1ms slower per-column; hoisting saves
+	// 220k indirect CALLs per timedemo.
 	horzblockstep = blocksize;
 
 	smax = texwidth;
@@ -602,41 +604,132 @@ void R_DrawSurface (void)
 
 	if (smax && !(smax & (smax - 1)))
 	{
-		int		soffsetmask;
-
-		soffsetmask = smax - 1;
-		for (u=0 ; u<r_numhblocks; u++)
+		int soffsetmask = smax - 1;
+		switch (r_drawsurf.surfmip)
 		{
-			r_lightptr = blocklights + u;
-
-			prowdestbase = pcolumndest;
-
-			pbasesource = basetptr + soffset;
-
-			(*pblockdrawer)();
-
-			soffset = (soffset + blocksize) & soffsetmask;
-
-			pcolumndest += horzblockstep;
+		case 0:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip0();
+				soffset = (soffset + blocksize) & soffsetmask;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		case 1:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip1();
+				soffset = (soffset + blocksize) & soffsetmask;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		case 2:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip2();
+				soffset = (soffset + blocksize) & soffsetmask;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		case 3:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip3();
+				soffset = (soffset + blocksize) & soffsetmask;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		default:
+			pblockdrawer = surfmiptable[r_drawsurf.surfmip];
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				(*pblockdrawer)();
+				soffset = (soffset + blocksize) & soffsetmask;
+				pcolumndest += horzblockstep;
+			}
+			break;
 		}
 	}
 	else
 	{
-		for (u=0 ; u<r_numhblocks; u++)
+		switch (r_drawsurf.surfmip)
 		{
-			r_lightptr = blocklights + u;
-
-			prowdestbase = pcolumndest;
-
-			pbasesource = basetptr + soffset;
-
-			(*pblockdrawer)();
-
-			soffset = soffset + blocksize;
-			if (soffset >= smax)
-				soffset = 0;
-
-			pcolumndest += horzblockstep;
+		case 0:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip0();
+				soffset = soffset + blocksize;
+				if (soffset >= smax) soffset = 0;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		case 1:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip1();
+				soffset = soffset + blocksize;
+				if (soffset >= smax) soffset = 0;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		case 2:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip2();
+				soffset = soffset + blocksize;
+				if (soffset >= smax) soffset = 0;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		case 3:
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				R_DrawSurfaceBlock8_mip3();
+				soffset = soffset + blocksize;
+				if (soffset >= smax) soffset = 0;
+				pcolumndest += horzblockstep;
+			}
+			break;
+		default:
+			pblockdrawer = surfmiptable[r_drawsurf.surfmip];
+			for (u=0 ; u<r_numhblocks; u++)
+			{
+				r_lightptr = blocklights + u;
+				prowdestbase = pcolumndest;
+				pbasesource = basetptr + soffset;
+				(*pblockdrawer)();
+				soffset = soffset + blocksize;
+				if (soffset >= smax) soffset = 0;
+				pcolumndest += horzblockstep;
+			}
+			break;
 		}
 	}
 }
