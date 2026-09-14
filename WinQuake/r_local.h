@@ -332,6 +332,7 @@ extern vec3_t	r_emins, r_emaxs;
 extern mnode_t	*r_pefragtopnode;
 extern int		r_clipflags;
 extern int		r_dlightframecount;
+extern int		r_dlight_contributed;
 extern qboolean	r_fov_greater_than_90;
 
 void R_StoreEfrags (efrag_t **ppefrag);

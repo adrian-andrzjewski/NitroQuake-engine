@@ -337,8 +337,15 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after the `R_MarkLights` clamp-to-rect idist
-cull is `64.128632 / 64.128594 / 64.128523` seconds, median
+The current measured default after the sticky `cache->dlight` flag is
+`64.114027 / 64.113796 / 64.113828` seconds, median **15.113744 FPS** /
+**64.113828 s**, checksum `4154140932`
+(`out\dos-timedemo-20260914-163457\timedemo-result.json`).  That is about
+14.8 ms faster than the prior MarkLights idist-cull default at
+**15.110264 FPS** / 64.128594 s (`out\dos-timedemo-20260914-143404`).
+
+The prior MarkLights clamp-to-rect idist cull measured
+`64.128632 / 64.128594 / 64.128523` seconds, median
 **15.110264 FPS** / **64.128594 s**, checksum `4154140932`
 (`out\dos-timedemo-20260914-143404\timedemo-result.json`).  That is about
 125.4 ms faster than the prior AABB-expand default at **15.080783 FPS** /

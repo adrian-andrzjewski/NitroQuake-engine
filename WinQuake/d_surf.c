@@ -342,11 +342,6 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
 	}
-	
-	if (surface->dlightframe == r_framecount)
-		cache->dlight = 1;
-	else
-		cache->dlight = 0;
 
 	r_drawsurf.surfdat = (pixel_t *)cache->data;
 	
@@ -363,6 +358,13 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 
 	c_surf++;
 	R_DrawSurface ();
+
+	// Sticky dlight bit only if a sample was actually lit; phantom marks
+	// must not force a rebuild next frame when the cache already matches.
+	if (surface->dlightframe == r_framecount)
+		cache->dlight = r_dlight_contributed;
+	else
+		cache->dlight = 0;
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)

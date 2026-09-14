@@ -69,7 +69,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `R_AddDynamicLights`, and also skips faces whose projected impact
   is farther than `fmin` from the lightmap rect under the same integer
   idist metric, so impossible dlight marks no longer force
-  surface-cache rebuilds.
+  surface-cache rebuilds.  `cache->dlight` is set only when
+  `R_AddDynamicLights` actually increments a sample (`r_dlight_contributed`),
+  so zero-contribution marked rebuilds do not sticky-miss the next frame.
 
 Every ASM candidate retains its C implementation.  `build-dos.ps1`,
 `bench-dos.ps1`, and `timedemo-dos.ps1` expose independent `c|asm` selectors
@@ -161,6 +163,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | MarkLights idist cull (`R_MarkLights`) | Clamp-to-rect idist replaces AABB expand | 64.128594 s / 15.110264 FPS, 125.4 ms faster | Kept |
 | MarkLights 2x2 sample cull (`R_MarkLights`) | Exact 2x2 discrete idist vs continuous clamp | 64.241100 s / 15.083802 FPS, 112.5 ms slower | Reverted |
 | Dlight sample window (`R_AddDynamicLights`) | Clamp s/t loops to idist-feasible indices | run 2 checksum `696680082` | Reverted |
+| Sticky dlight cache flag (`D_CacheSurface`) | `cache->dlight` only if a sample was lit | 64.113828 s / 15.113744 FPS, 14.8 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -354,12 +357,18 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   faster than the plane-cull median.  Run 3 was slower than runs 1/2 but
   still clear of the prior median.  Projected impact outside the lightmap
   rect expanded by `fmin` is no longer marked.
-- Current default after `R_MarkLights` clamp-to-rect idist cull
+- Previous default after `R_MarkLights` clamp-to-rect idist cull
   (`out\dos-timedemo-20260914-143404`): `64.128632 / 64.128594 / 64.128523` s,
   median **64.128594 s / 15.110264 FPS**, checksum `4154140932` on all three
   runs.  About 125.4 ms faster than the AABB-expand default; every run was
   faster than every AABB-expand run.  Uses the same integer idist metric as
   `R_AddDynamicLights` against the clamped lightmap rect.
+- Current default after sticky `cache->dlight` flag
+  (`out\dos-timedemo-20260914-163457`): `64.114027 / 64.113796 / 64.113828` s,
+  median **64.113828 s / 15.113744 FPS**, checksum `4154140932` on all three
+  runs.  About 14.8 ms faster than the idist-cull default; every run was
+  faster than the idist-cull median.  `D_CacheSurface` sets `cache->dlight`
+  from `r_dlight_contributed` after `R_DrawSurface`.
 
 ## Important decisions and assumptions
 
@@ -535,8 +544,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.110264 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260914-143404`) before further edits.
+   (15.113744 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260914-163457`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -576,7 +585,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   the nested loop.  Do not retry a 2x2 discrete sample scan in
   `R_MarkLights`; it matched the checksum but was 112.5 ms slower.
   Do not retry an `R_AddDynamicLights` s/t sample-window clamp; it failed
-  checksum `696680082`.  Next surface work is still fewer remaining
+  checksum `696680082`.  `cache->dlight` now tracks real sample adds via
+  `r_dlight_contributed`.  Next surface work is still fewer remaining
   rebuilds without changing lit output (outside MarkLights sample scans
   and dlight loop windowing).
 4. Alias leftover is now remaining per-vertex clip tests and polyset

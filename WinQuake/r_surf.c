@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 drawsurf_t	r_drawsurf;
 
+int			r_dlight_contributed;
+
 int				lightleft, sourcesstep, blocksize, sourcetstep;
 int				lightdelta, lightdeltastep;
 int				lightright, lightleftstep, lightrightstep, blockdivshift;
@@ -238,7 +240,10 @@ void R_AddDynamicLights (void)
 				else
 					idist = td + (sd>>1);
 				if ((idist << 8) < fmin_scaled)
+				{
 					bl[s] += (unsigned)(irad - (idist << 8));
+					r_dlight_contributed = 1;
+				}
 			}
 		}
 	}
@@ -469,7 +474,10 @@ void R_BuildLightMap (void)
 
 // add all the dynamic lights
 	if (surf->dlightframe == r_framecount)
+	{
+		r_dlight_contributed = 0;
 		R_AddDynamicLights ();
+	}
 
 // bound, invert, and shift
 #if defined(ASM486_LIGHTMAP_NORMALIZE)
