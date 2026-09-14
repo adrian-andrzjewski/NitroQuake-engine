@@ -295,13 +295,29 @@ void R_BuildLightMap (void)
 
 			if (surf->styles[1] == 255)
 			{
-				for (i=0 ; i<size ; i++)
+				int j = 0;
+				for (; j+3 < size; j+=4)
 				{
-					t = (255*256 - (int)(scale + lightmap[i] * first)) >>
+					t = (255*256 - (int)(scale + lightmap[j] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j] = t;
+					t = (255*256 - (int)(scale + lightmap[j+1] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+1] = t;
+					t = (255*256 - (int)(scale + lightmap[j+2] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+2] = t;
+					t = (255*256 - (int)(scale + lightmap[j+3] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+3] = t;
+				}
+				for (; j < size; j++)
+				{
+					t = (255*256 - (int)(scale + lightmap[j] * first)) >>
 							(8 - VID_CBITS);
 					if (t < (1 << 6))
 						t = (1 << 6);
-					blocklights[i] = t;
+					blocklights[j] = t;
 				}
 				return;
 			}
@@ -310,13 +326,33 @@ void R_BuildLightMap (void)
 			a1 = r_drawsurf.lightadj[1];
 			if (surf->styles[2] == 255)
 			{
-				for (i=0 ; i<size ; i++)
+				int j = 0;
+				for (; j+3 < size; j+=4)
 				{
-					v = scale + lightmap[i] * first + lm1[i] * a1;
+					v = scale + lightmap[j] * first + lm1[j] * a1;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j] = t;
+					v = scale + lightmap[j+1] * first + lm1[j+1] * a1;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+1] = t;
+					v = scale + lightmap[j+2] * first + lm1[j+2] * a1;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+2] = t;
+					v = scale + lightmap[j+3] * first + lm1[j+3] * a1;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+3] = t;
+				}
+				for (; j < size; j++)
+				{
+					v = scale + lightmap[j] * first + lm1[j] * a1;
 					t = (255*256 - (int)v) >> (8 - VID_CBITS);
 					if (t < (1 << 6))
 						t = (1 << 6);
-					blocklights[i] = t;
+					blocklights[j] = t;
 				}
 				return;
 			}
@@ -325,28 +361,78 @@ void R_BuildLightMap (void)
 			a2 = r_drawsurf.lightadj[2];
 			if (surf->styles[3] == 255)
 			{
-				for (i=0 ; i<size ; i++)
+				int j = 0;
+				for (; j+3 < size; j+=4)
 				{
-					v = scale + lightmap[i] * first + lm1[i] * a1 +
-							lm2[i] * a2;
+					v = scale + lightmap[j] * first + lm1[j] * a1 +
+							lm2[j] * a2;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j] = t;
+					v = scale + lightmap[j+1] * first + lm1[j+1] * a1 +
+							lm2[j+1] * a2;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+1] = t;
+					v = scale + lightmap[j+2] * first + lm1[j+2] * a1 +
+							lm2[j+2] * a2;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+2] = t;
+					v = scale + lightmap[j+3] * first + lm1[j+3] * a1 +
+							lm2[j+3] * a2;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+3] = t;
+				}
+				for (; j < size; j++)
+				{
+					v = scale + lightmap[j] * first + lm1[j] * a1 +
+							lm2[j] * a2;
 					t = (255*256 - (int)v) >> (8 - VID_CBITS);
 					if (t < (1 << 6))
 						t = (1 << 6);
-					blocklights[i] = t;
+					blocklights[j] = t;
 				}
 				return;
 			}
 
 			lm3 = lm2 + size;
 			a3 = r_drawsurf.lightadj[3];
-			for (i=0 ; i<size ; i++)
 			{
-				v = scale + lightmap[i] * first + lm1[i] * a1 +
-						lm2[i] * a2 + lm3[i] * a3;
-				t = (255*256 - (int)v) >> (8 - VID_CBITS);
-				if (t < (1 << 6))
-					t = (1 << 6);
-				blocklights[i] = t;
+				int j = 0;
+				for (; j+3 < size; j+=4)
+				{
+					v = scale + lightmap[j] * first + lm1[j] * a1 +
+							lm2[j] * a2 + lm3[j] * a3;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j] = t;
+					v = scale + lightmap[j+1] * first + lm1[j+1] * a1 +
+							lm2[j+1] * a2 + lm3[j+1] * a3;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+1] = t;
+					v = scale + lightmap[j+2] * first + lm1[j+2] * a1 +
+							lm2[j+2] * a2 + lm3[j+2] * a3;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+2] = t;
+					v = scale + lightmap[j+3] * first + lm1[j+3] * a1 +
+							lm2[j+3] * a2 + lm3[j+3] * a3;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+3] = t;
+				}
+				for (; j < size; j++)
+				{
+					v = scale + lightmap[j] * first + lm1[j] * a1 +
+							lm2[j] * a2 + lm3[j] * a3;
+					t = (255*256 - (int)v) >> (8 - VID_CBITS);
+					if (t < (1 << 6))
+						t = (1 << 6);
+					blocklights[j] = t;
+				}
 			}
 			return;
 		}
