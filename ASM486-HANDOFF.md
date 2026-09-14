@@ -149,6 +149,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | 2000 KB surface cache | between 1800 and 2100 | checksum `2955717646` | Reverted |
 | 2100 KB surface cache | between 1800 and 2400 | checksum `2955717646`; run 1 hitch min 1.72 FPS | Reverted |
 | 4x surface cache (`SURFCACHE_SIZE_AT_320X200`) | 2400 KB | checksum `2955717646` | Reverted |
+| Aggressive `-funroll-loops` (`build-dos.ps1`) | Faster but wrong FB | 66.801015 s / 14.505767 FPS; checksum `2623602099` | Reverted |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -301,12 +302,34 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   2.0 ms faster than the 8-bit surface-setup default.  Worst-frame min
   FPS rose from 6.325880 to 6.325980.  Every run was faster than every
   previous-default run.
-- Current default after skipping the unused `surfscale` FDIV
+- Previous default after skipping the unused `surfscale` FDIV
   (`out\dos-timedemo-20260911-191612`): `67.085825 / 67.085569 / 67.085585` s,
   median **67.085585 s / 14.444235 FPS**, checksum `4154140932`.  About
   6.3 ms faster than the mipscale-table default.  Worst-frame min FPS
   rose from 6.325980 to 6.326751.  Every run was faster than every
   previous-default run.
+- Previous default through commit `f6ea9c6` (`out\dos-timedemo-20260914-121838`):
+  `66.962797 / 66.962567 / 66.962657` s, median
+  **66.962567 s / 14.470771 FPS**, checksum `4154140932` on all three runs.
+  About 123 ms (0.18%) faster than the pre-unroll default above.  Eight
+  further commits landed after this doc's 67.085585 s snapshot: solid-surface
+  `viewspantable` spans (`e869b7d`), integer dlight contribution and test
+  (`03bb815`, `06ab02b`), 4x fused lightmap loops (`41757fc`), hoisted
+  `R_DrawSurface` mip dispatch (`53a7d7f`), lightstyle counter + `rep` tails +
+  16B align (`41aa622`, `3cc85f5`), and `R_RenderFace` / `R_BuildLightMap`
+  unrolling (`33c0ebf`, `f6ea9c6`).
+  Matching instrumented diagnostic (`out\dos-timedemo-20260914-122314`,
+  12.950385 FPS) ranks self time as texture spans 26.24%, surface cache
+  13.56%, alias model 13.16%, Z spans 10.98%, world BSP 10.48%, edge-scan
+  self 9.07%, surfaces self 5.50%, turbulent 2.57%.  Of 3,513,435 full
+  16-pixel texture segments, 1,027,061 (29.2%) have a zero integer t-step;
+  `full-tdelta-zero` is only 28, so the fractional t accumulator still
+  carries.
+- Current default re-lock without `-funroll-loops`
+  (`out\dos-timedemo-20260914-134340`): `66.962837 / 66.962633 / 66.962597` s,
+  median **66.962633 s / 14.470758 FPS**, checksum `4154140932` on all three
+  runs.  Matches the `f6ea9c6` reference within run noise.  Treat this lock
+  as the reference for new work.
 
 ## Important decisions and assumptions
 
@@ -318,7 +341,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 - Keep `-O3 -march=i486` as the measured default, the same DOSBox-X
   version/profile/cycles, demo, data, and command-line options for A/B
   comparisons.  Use `-OptimizationProfile baseline` for `-O2`.  Do not
-  enable newer ISA requirements.
+  enable newer ISA requirements.  Do not add `-funroll-loops` to the
+  aggressive C flags; it failed the framebuffer checksum gate.
 - Exact framebuffer checksum is the automated parity gate.  It does not prove
   complete visual or gameplay parity outside the timedemo.
 - `R_AliasTransformFinalVert_asm486` uses static scratch labels in
@@ -459,11 +483,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   to 1.72 FPS.  1800 KB is the largest checksum-identical size
   measured.  Do not retry 1900 KB or larger without a new
   checksum-identical size.
+- Aggressive `-funroll-loops` in `tools\build-dos.ps1`
+  (`out\dos-timedemo-20260914-134806`) was about 161.6 ms faster than the
+  matched control (`out\dos-timedemo-20260914-134340`: median
+  66.962633 s / 14.470758 FPS) at median **66.801015 s / 14.505767 FPS**,
+  but every run produced framebuffer checksum `2623602099` instead of
+  `4154140932`.  Do not retry global `-funroll-loops` under `-ffast-math`;
+  targeted source unrolls that keep the checksum remain allowed.
 
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (14.444235 FPS median, checksum `4154140932`) before further edits.
+   (14.470758 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260914-134340`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
