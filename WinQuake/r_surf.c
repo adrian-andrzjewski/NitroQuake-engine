@@ -251,6 +251,80 @@ void R_AddDynamicLights (void)
 
 /*
 ===============
+R_DlightContributes
+
+Same discrete sample predicates as R_AddDynamicLights, but return as soon as
+any sample would add light.  Used by D_CacheSurface to skip phantom-mark
+rebuilds without changing lit output.
+===============
+*/
+int R_DlightContributes (msurface_t *surf)
+{
+	int			lnum;
+	int			sd, td, idist;
+	float		planedist, rad, fmin;
+	int			fmin_scaled;
+	vec3_t		impact, local;
+	int			s, t;
+	int			i;
+	int			smax, tmax;
+	mtexinfo_t	*tex;
+
+	smax = (surf->extents[0]>>4)+1;
+	tmax = (surf->extents[1]>>4)+1;
+	tex = surf->texinfo;
+
+	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
+	{
+		if ( !(surf->dlightbits & (1<<lnum) ) )
+			continue;
+
+		rad = cl_dlights[lnum].radius;
+		planedist = DotProduct (cl_dlights[lnum].origin, surf->plane->normal) -
+				surf->plane->dist;
+		rad -= fabs(planedist);
+		if (rad < cl_dlights[lnum].minlight)
+			continue;
+		fmin = rad - cl_dlights[lnum].minlight;
+		fmin_scaled = (int)ceil(fmin * 256);
+
+		for (i=0 ; i<3 ; i++)
+		{
+			impact[i] = cl_dlights[lnum].origin[i] -
+					surf->plane->normal[i]*planedist;
+		}
+
+		local[0] = DotProduct (impact, tex->vecs[0]) + tex->vecs[0][3];
+		local[1] = DotProduct (impact, tex->vecs[1]) + tex->vecs[1][3];
+
+		local[0] -= surf->texturemins[0];
+		local[1] -= surf->texturemins[1];
+
+		for (t = 0 ; t<tmax ; t++)
+		{
+			td = local[1] - t*16;
+			if (td < 0)
+				td = -td;
+			for (s=0 ; s<smax ; s++)
+			{
+				sd = local[0] - s*16;
+				if (sd < 0)
+					sd = -sd;
+				if (sd > td)
+					idist = sd + (td>>1);
+				else
+					idist = td + (sd>>1);
+				if ((idist << 8) < fmin_scaled)
+					return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/*
+===============
 R_BuildLightMap
 
 Combine and scale multiple lightmaps into the 8.8 format in blocklights

@@ -337,7 +337,14 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after growing alias `adivtab` 32→64 is
+The current measured default after the phantom-mark dlight probe is
+`64.092357 / 64.092171 / 64.092163` seconds, median **15.118851 FPS** /
+**64.092171 s**, checksum `4154140932`
+(`out\dos-timedemo-20260914-180707\timedemo-result.json`).  That is about
+11.9 ms faster than the prior adivtab-64 default at **15.116037 FPS** /
+64.104105 s (`out\dos-timedemo-20260914-164951`).
+
+The prior alias `adivtab` 32→64 measured
 `64.104105 / 64.103726 / 64.569991` seconds, median **15.116037 FPS** /
 **64.104105 s**, checksum `4154140932`
 (`out\dos-timedemo-20260914-164951\timedemo-result.json`).  That is about
@@ -361,7 +368,9 @@ sample cull matched the checksum but was 112.5 ms slower
 (`out\dos-timedemo-20260914-161209`) and was reverted.  An
 `R_AddDynamicLights` s/t sample-window clamp failed checksum
 `696680082` on run 2 (`out\dos-timedemo-20260914-162709`) and was
-reverted.
+reverted.  An `R_AliasClip` aliasvrect hoist plus skip-Z-reflag matched
+checksum `4154140932` but was 42.4 ms slower
+(`out\dos-timedemo-20260914-181813`) and was reverted.
 
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
