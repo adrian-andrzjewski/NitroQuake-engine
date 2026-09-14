@@ -487,99 +487,705 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	psurfedges = currententity->model->surfedges + fa->firstedge;
 	r_lastvertvalid = false;
 
-	for (i=0 ; i<fa->numedges ; i++)
+	/* 486: unroll common 3/4 edge faces (triangles/quads) to save loop overhead.
+	   Code size unconstrained (16MB target). */
+	if (fa->numedges == 3)
 	{
-		lindex = psurfedges[i];
-
+		/* edge 0 */
+		lindex = psurfedges[0];
 		if (lindex > 0)
 		{
 			r_pedge = &pedges[lindex];
-
-		// if the edge is cached, we can just reuse the edge
 			if (!insubmodel)
 			{
 				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
 				{
-					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) ==
-						r_framecount)
-					{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
 						r_lastvertvalid = false;
-						continue;
-					}
+					else
+						goto edge0_3_clip;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
 				}
 				else
 				{
-					if ((((unsigned long)edge_p - (unsigned long)r_edges) >
-						 r_pedge->cachededgeoffset) &&
-						(((edge_t *)((unsigned long)r_edges +
-						 r_pedge->cachededgeoffset))->owner == r_pedge))
-					{
-						R_EmitCachedEdge ();
-						r_lastvertvalid = false;
-						continue;
-					}
+				edge0_3_clip:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
 				}
 			}
-
-		// assume it's cacheable
-			cacheoffset = (byte *)edge_p - (byte *)r_edges;
-			r_leftclipped = r_rightclipped = false;
-			R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]],
-						&r_pcurrentvertbase[r_pedge->v[1]],
-						pclip);
-			r_pedge->cachededgeoffset = cacheoffset;
-
-			if (r_leftclipped)
-				makeleftedge = true;
-			if (r_rightclipped)
-				makerightedge = true;
-			r_lastvertvalid = true;
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
 		}
 		else
 		{
 			lindex = -lindex;
 			r_pedge = &pedges[lindex];
-		// if the edge is cached, we can just reuse the edge
 			if (!insubmodel)
 			{
 				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
 				{
-					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) ==
-						r_framecount)
-					{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
 						r_lastvertvalid = false;
-						continue;
-					}
+					else
+						goto edge0_3_clip_neg;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
 				}
 				else
 				{
-				// it's cached if the cached edge is valid and is owned
-				// by this medge_t
-					if ((((unsigned long)edge_p - (unsigned long)r_edges) >
-						 r_pedge->cachededgeoffset) &&
-						(((edge_t *)((unsigned long)r_edges +
-						 r_pedge->cachededgeoffset))->owner == r_pedge))
-					{
-						R_EmitCachedEdge ();
-						r_lastvertvalid = false;
-						continue;
-					}
+				edge0_3_clip_neg:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
 				}
 			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		/* edge 1 */
+		lindex = psurfedges[1];
+		if (lindex > 0)
+		{
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge1_3_clip;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge1_3_clip:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		else
+		{
+			lindex = -lindex;
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge1_3_clip_neg;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge1_3_clip_neg:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		/* edge 2 */
+		lindex = psurfedges[2];
+		if (lindex > 0)
+		{
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge2_3_clip;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge2_3_clip:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		else
+		{
+			lindex = -lindex;
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge2_3_clip_neg;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge2_3_clip_neg:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+	}
+	else if (fa->numedges == 4)
+	{
+		/* edge 0 */
+		lindex = psurfedges[0];
+		if (lindex > 0)
+		{
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge0_4_clip;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge0_4_clip:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		else
+		{
+			lindex = -lindex;
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge0_4_clip_neg;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge0_4_clip_neg:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		/* edge 1 */
+		lindex = psurfedges[1];
+		if (lindex > 0)
+		{
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge1_4_clip;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge1_4_clip:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		else
+		{
+			lindex = -lindex;
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge1_4_clip_neg;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge1_4_clip_neg:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		/* edge 2 */
+		lindex = psurfedges[2];
+		if (lindex > 0)
+		{
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge2_4_clip;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge2_4_clip:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		else
+		{
+			lindex = -lindex;
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge2_4_clip_neg;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge2_4_clip_neg:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		/* edge 3 */
+		lindex = psurfedges[3];
+		if (lindex > 0)
+		{
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge3_4_clip;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge3_4_clip:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]], &r_pcurrentvertbase[r_pedge->v[1]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+		else
+		{
+			lindex = -lindex;
+			r_pedge = &pedges[lindex];
+			if (!insubmodel)
+			{
+				if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+				{
+					if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) == r_framecount)
+						r_lastvertvalid = false;
+					else
+						goto edge3_4_clip_neg;
+				}
+				else if ((((unsigned long)edge_p - (unsigned long)r_edges) > r_pedge->cachededgeoffset) &&
+					 (((edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset))->owner == r_pedge))
+				{
+					R_EmitCachedEdge ();
+					r_lastvertvalid = false;
+				}
+				else
+				{
+				edge3_4_clip_neg:
+					cacheoffset = (byte *)edge_p - (byte *)r_edges;
+					r_leftclipped = r_rightclipped = false;
+					R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+					r_pedge->cachededgeoffset = cacheoffset;
+					if (r_leftclipped) makeleftedge = true;
+					if (r_rightclipped) makerightedge = true;
+					r_lastvertvalid = true;
+				}
+			}
+			else
+			{
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]], &r_pcurrentvertbase[r_pedge->v[0]], pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+				if (r_leftclipped) makeleftedge = true;
+				if (r_rightclipped) makerightedge = true;
+				r_lastvertvalid = true;
+			}
+		}
+	}
+	else
+	{
+		for (i=0 ; i<fa->numedges ; i++)
+		{
+			lindex = psurfedges[i];
 
-		// assume it's cacheable
-			cacheoffset = (byte *)edge_p - (byte *)r_edges;
-			r_leftclipped = r_rightclipped = false;
-			R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]],
-						&r_pcurrentvertbase[r_pedge->v[0]],
-						pclip);
-			r_pedge->cachededgeoffset = cacheoffset;
+			if (lindex > 0)
+			{
+				r_pedge = &pedges[lindex];
 
-			if (r_leftclipped)
-				makeleftedge = true;
-			if (r_rightclipped)
-				makerightedge = true;
-			r_lastvertvalid = true;
+			// if the edge is cached, we can just reuse the edge
+				if (!insubmodel)
+				{
+					if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+					{
+						if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) ==
+							r_framecount)
+						{
+							r_lastvertvalid = false;
+							continue;
+						}
+					}
+					else
+					{
+						if ((((unsigned long)edge_p - (unsigned long)r_edges) >
+							 r_pedge->cachededgeoffset) &&
+							(((edge_t *)((unsigned long)r_edges +
+							 r_pedge->cachededgeoffset))->owner == r_pedge))
+						{
+							R_EmitCachedEdge ();
+							r_lastvertvalid = false;
+							continue;
+						}
+					}
+				}
+
+			// assume it's cacheable
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[0]],
+							&r_pcurrentvertbase[r_pedge->v[1]],
+							pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+
+				if (r_leftclipped)
+					makeleftedge = true;
+				if (r_rightclipped)
+					makerightedge = true;
+				r_lastvertvalid = true;
+			}
+			else
+			{
+				lindex = -lindex;
+				r_pedge = &pedges[lindex];
+			// if the edge is cached, we can just reuse the edge
+				if (!insubmodel)
+				{
+					if (r_pedge->cachededgeoffset & FULLY_CLIPPED_CACHED)
+					{
+						if ((r_pedge->cachededgeoffset & FRAMECOUNT_MASK) ==
+							r_framecount)
+						{
+							r_lastvertvalid = false;
+							continue;
+						}
+					}
+					else
+					{
+					// it's cached if the cached edge is valid and is owned
+					// by this medge_t
+						if ((((unsigned long)edge_p - (unsigned long)r_edges) >
+							 r_pedge->cachededgeoffset) &&
+							(((edge_t *)((unsigned long)r_edges +
+							 r_pedge->cachededgeoffset))->owner == r_pedge))
+						{
+							R_EmitCachedEdge ();
+							r_lastvertvalid = false;
+							continue;
+						}
+					}
+				}
+
+			// assume it's cacheable
+				cacheoffset = (byte *)edge_p - (byte *)r_edges;
+				r_leftclipped = r_rightclipped = false;
+				R_ClipEdge (&r_pcurrentvertbase[r_pedge->v[1]],
+							&r_pcurrentvertbase[r_pedge->v[0]],
+							pclip);
+				r_pedge->cachededgeoffset = cacheoffset;
+
+				if (r_leftclipped)
+					makeleftedge = true;
+				if (r_rightclipped)
+					makerightedge = true;
+				r_lastvertvalid = true;
+			}
 		}
 	}
 
