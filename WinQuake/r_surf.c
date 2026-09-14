@@ -182,7 +182,7 @@ void R_AddDynamicLights (void)
 	int			lnum;
 	int			sd, td, idist;
 	float		planedist, rad, fmin;
-	int			irad;
+	int			irad, fmin_scaled;
 	vec3_t		impact, local;
 	int			s, t;
 	int			i;
@@ -208,6 +208,7 @@ void R_AddDynamicLights (void)
 			continue;
 		fmin = rad - cl_dlights[lnum].minlight;
 		irad = (int)(rad * 256);
+		fmin_scaled = (int)ceil(fmin * 256);
 
 		for (i=0 ; i<3 ; i++)
 		{
@@ -236,7 +237,7 @@ void R_AddDynamicLights (void)
 					idist = sd + (td>>1);
 				else
 					idist = td + (sd>>1);
-				if ((float)idist < fmin)
+				if ((idist << 8) < fmin_scaled)
 					bl[s] += (unsigned)(irad - (idist << 8));
 			}
 		}
