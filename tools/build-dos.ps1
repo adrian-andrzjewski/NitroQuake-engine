@@ -212,6 +212,12 @@ try {
         "-I$sourceRoot",
         $optimizationLevel,
         '-march=i486',
+        '-mtune=i486',
+        '-falign-loops=16',
+        '-falign-jumps=16',
+        '-falign-functions=16',
+        '-freorder-blocks',
+        '-freorder-functions',
         '-fomit-frame-pointer',
         '-fno-strict-aliasing',
         '-fcommon',
@@ -262,6 +268,10 @@ try {
         "-I$sourceRoot",
         $optimizationLevel,
         '-march=i486',
+        '-mtune=i486',
+        '-falign-loops=16',
+        '-falign-jumps=16',
+        '-falign-functions=16',
         '-x',
         'assembler-with-cpp'
     )
@@ -294,7 +304,7 @@ try {
     }
 
     Write-Host "Linking $executableName"
-    $linkFlags = @($optimizationLevel, '-march=i486', '-s') + $objects + @('-lm', '-o', $executable)
+    $linkFlags = @($optimizationLevel, '-march=i486', '-mtune=i486', '-s') + $objects + @('-lm', '-o', $executable)
     & $compiler @linkFlags
     if ($LASTEXITCODE -ne 0) {
         throw "DJGPP link failed with exit code $LASTEXITCODE."

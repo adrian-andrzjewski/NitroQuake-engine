@@ -168,6 +168,29 @@ static __inline__ void Q_SetDwords (byte *dest, unsigned long value,
 		: "cc", "memory");
 }
 
+static __inline__ void Q_SetBytes (byte *dest, unsigned long value,
+		int count)
+{
+	__asm__ __volatile__ (
+		"cld\n\t"
+		"rep\n\t"
+		"stosb"
+		: "+D" (dest), "+c" (count)
+		: "a" (value)
+		: "cc", "memory");
+}
+
+static __inline__ void Q_CopyBytes (byte *dest, byte *src, int count)
+{
+	__asm__ __volatile__ (
+		"cld\n\t"
+		"rep\n\t"
+		"movsb"
+		: "+D" (dest), "+S" (src), "+c" (count)
+		:
+		: "cc", "memory");
+}
+
 #endif
 
 void Q_memset (void *dest, int fill, int count)
@@ -240,8 +263,13 @@ void Q_memset (void *dest, int fill, int count)
 		count &= 3;
 	}
 
+ #if id386 && defined(__GNUC__)
+	if (count > 0)
+		Q_SetBytes (d, fill, count);
+ #else
 	while (count--)
 		*d++ = (byte)fill;
+ #endif
 }
 
 void Q_memcpy (void *dest, void *src, int count)
@@ -301,8 +329,13 @@ void Q_memcpy (void *dest, void *src, int count)
 	}
 #endif
 
+ #if id386 && defined(__GNUC__)
+	if (count > 0)
+		Q_CopyBytes (d, s, count);
+ #else
 	while (count--)
 		*d++ = *s++;
+ #endif
 }
 
 int Q_memcmp (void *m1, void *m2, int count)

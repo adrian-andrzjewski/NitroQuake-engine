@@ -33,23 +33,82 @@ R_AnimateLight
 void R_AnimateLight (void)
 {
 	int			i,j,k;
-	
+	int			len;
+	int			delta;
+	static int	r_light_last_i = 0;
+	static int	r_light_cur[MAX_LIGHTSTYLES];
+	static int	r_light_len[MAX_LIGHTSTYLES];
+	static qboolean r_light_inited = false;
+
 //
 // light animations
 // 'm' is normal light, 'a' is no light, 'z' is double bright
+// 486: avoid 64 IDIVs per frame.  Keep a per-style frame counter that
+// advances by delta = i - last_i without a divide.  The hot path
+// (delta==1) is one add + one compare; large jumps fall back to the
+// original modulus (rare — map load, hitch, or time wrap).
 	i = (int)(cl.time*10);
+	if (!r_light_inited)
+	{
+		for (j=0 ; j<MAX_LIGHTSTYLES ; j++)
+		{
+			r_light_len[j] = -1;
+			r_light_cur[j] = 0;
+		}
+		r_light_last_i = i;
+		r_light_inited = true;
+	}
+	delta = i - r_light_last_i;
+
 	for (j=0 ; j<MAX_LIGHTSTYLES ; j++)
 	{
-		if (!cl_lightstyle[j].length)
+		len = cl_lightstyle[j].length;
+		if (!len)
 		{
 			d_lightstylevalue[j] = 256;
+			r_light_len[j] = 0;
+			r_light_cur[j] = 0;
 			continue;
 		}
-		k = i % cl_lightstyle[j].length;
+
+		if (len != r_light_len[j])
+		{
+			k = i % len;
+			if (k < 0)
+				k += len;
+			r_light_cur[j] = k;
+			r_light_len[j] = len;
+		}
+		else if (delta != 0)
+		{
+			if (delta > 0 && delta < len)
+			{
+				k = r_light_cur[j] + delta;
+				if (k >= len)
+					k -= len;
+				r_light_cur[j] = k;
+			}
+			else if (delta < 0 && delta > -len)
+			{
+				k = r_light_cur[j] + delta;
+				if (k < 0)
+					k += len;
+				r_light_cur[j] = k;
+			}
+			else
+			{
+				k = i % len;
+				if (k < 0)
+					k += len;
+				r_light_cur[j] = k;
+			}
+		}
+		k = r_light_cur[j];
 		k = cl_lightstyle[j].map[k] - 'a';
 		k = k*22;
 		d_lightstylevalue[j] = k;
-	}	
+	}
+	r_light_last_i = i;
 }
 
 

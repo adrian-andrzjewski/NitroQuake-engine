@@ -65,11 +65,10 @@ C(Q_memset_asm486):
 .Lmemset_tail:
 	andl	$3,%edx
 	jz	.Lmemset_done
-.Lmemset_tail_loop:
-	movb	%al,(%edi)
-	incl	%edi
-	decl	%edx
-	jnz	.Lmemset_tail_loop
+	movl	%edx,%ecx
+	cld
+	rep
+	stosb
 
 .Lmemset_done:
 	popl	%edi
