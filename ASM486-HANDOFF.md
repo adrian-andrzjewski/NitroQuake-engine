@@ -174,6 +174,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Phantom-mark dlight probe (`D_CacheSurface`) | `R_DlightContributes` skip on marked clean cache | 64.092171 s / 15.118851 FPS, 11.9 ms faster | Kept |
 | Alias clip hoist + skip Z reflag (`R_AliasClip`) | Hoist vrect; Z writes final flags | 64.134559 s / 15.108859 FPS, 42.4 ms slower | Reverted |
 | Polyset span advancetable hoist (`D_PolysetDrawSpans8`) | Once-per-call `advancetable`/`tstep` | 64.003272 s / 15.139851 FPS, 88.9 ms faster | Kept |
+| Polyset sstep hoist (`D_PolysetDrawSpans8`) | BSS `sstep` for `a_sstepxfrac` in pixel loop | 64.012388 s / 15.137695 FPS, 9.1 ms slower | Reverted |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -457,6 +458,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   matched checksum `4154140932` but was 42.4 ms slower (64.134559 s
   vs 64.092171 s).  Extra locals / `clip != R_Alias_clip_z` branch in
   `R_AliasClip` cost more than the skipped retest; do not retry.
+- Polyset sstep hoist (`out\dos-timedemo-20260914-183707`)
+  matched checksum `4154140932` but was 9.1 ms slower (64.012388 s
+  vs 64.003272 s).  Routing `a_sstepxfrac` through BSS `sstep` in the
+  pixel loop did not beat the direct C global; keep `addl C(a_sstepxfrac)`.
 - Unclipped alias `movzbl` expand (`out\dos-timedemo-20260911-155009`)
   matched checksum `4154140932` but the 0.16 ms median delta sat
   inside the previous run spread; do not retry byte-store vs
@@ -625,7 +630,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   dlight loop windowing.
 4. Alias leftover is now narrower polyset raster guts after the
    once-per-call `advancetable`/`tstep` hoist in ASM `D_PolysetDrawSpans8`.
-   `D_PolysetDrawFinalVerts`
+   Keep direct `addl C(a_sstepxfrac)` in the pixel loop; do not retry
+   BSS `sstep` for that constant (`out\dos-timedemo-20260914-183707`;
+   matched checksum but ~9 ms slower).  `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
    `D_RasterizeAliasPolySmooth` uses `viewspantable`/`zspantable`.
    `D_PolysetSetUpForLineScan` uses a 64x64 `adivtab` (`[-31,32]`); do not

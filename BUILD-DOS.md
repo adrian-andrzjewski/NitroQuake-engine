@@ -377,7 +377,9 @@ sample cull matched the checksum but was 112.5 ms slower
 `696680082` on run 2 (`out\dos-timedemo-20260914-162709`) and was
 reverted.  An `R_AliasClip` aliasvrect hoist plus skip-Z-reflag matched
 checksum `4154140932` but was 42.4 ms slower
-(`out\dos-timedemo-20260914-181813`) and was reverted.
+(`out\dos-timedemo-20260914-181813`) and was reverted.  A polyset
+`a_sstepxfrac`→BSS `sstep` hoist matched the checksum but was 9.1 ms
+slower (`out\dos-timedemo-20260914-183707`) and was reverted.
 
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
