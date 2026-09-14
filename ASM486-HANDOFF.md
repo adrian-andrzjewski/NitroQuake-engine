@@ -47,7 +47,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   viewmodel clip edges into registers/locals; C matches the live ASM.
   `D_PolysetSetUpForLineScan` uses a 64x64 `adivtab` for `tm,tn` in
   `[-31,32]` (was 32x32 / `[-15,16]`); longer edges still use IDIV /
-  `FloorDivMod`.
+  `FloorDivMod`.  Live ASM `D_PolysetDrawSpans8` builds `advancetable` /
+  `tstep` once per call (same pattern as `lzistepx`).
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
   `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
@@ -172,6 +173,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Alias adivtab 32→64 (`D_PolysetSetUpForLineScan`) | Wider table hit, same FloorDivMod values | 64.104105 s / 15.116037 FPS, 9.7 ms faster | Kept |
 | Phantom-mark dlight probe (`D_CacheSurface`) | `R_DlightContributes` skip on marked clean cache | 64.092171 s / 15.118851 FPS, 11.9 ms faster | Kept |
 | Alias clip hoist + skip Z reflag (`R_AliasClip`) | Hoist vrect; Z writes final flags | 64.134559 s / 15.108859 FPS, 42.4 ms slower | Reverted |
+| Polyset span advancetable hoist (`D_PolysetDrawSpans8`) | Once-per-call `advancetable`/`tstep` | 64.003272 s / 15.139851 FPS, 88.9 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -383,12 +385,18 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 9.7 ms faster than the sticky-dlight default.  Run 3 was
   slower than the prior median; runs 1/2 were faster.  `D_PolysetSetUpForLineScan`
   tables `tm,tn` in `[-31,32]`.
-- Current default after phantom-mark dlight probe
+- Previous default after phantom-mark dlight probe
   (`out\dos-timedemo-20260914-180707`): `64.092357 / 64.092171 / 64.092163` s,
   median **64.092171 s / 15.118851 FPS**, checksum `4154140932` on all three
   runs.  About 11.9 ms faster than the adivtab-64 default; every run was
   faster than the prior median.  `D_CacheSurface` calls `R_DlightContributes`
   when a clean cache is marked this frame and skips the rebuild on a miss.
+- Current default after polyset span advancetable hoist
+  (`out\dos-timedemo-20260914-182901`): `64.003358 / 64.003148 / 64.003272` s,
+  median **64.003272 s / 15.139851 FPS**, checksum `4154140932` on all three
+  runs.  About 88.9 ms faster than the phantom-mark default; every run was
+  faster than the prior median.  ASM `D_PolysetDrawSpans8` builds
+  `advancetable`/`tstep` once per call.
 
 ## Important decisions and assumptions
 
@@ -568,8 +576,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.118851 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260914-180707`) before further edits.
+   (15.139851 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260914-182901`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -615,8 +623,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   continuous-vs-discrete MarkLights gap are largely exhausted; do not add
   another surface-cache predicate helper or revive MarkLights sample scans /
   dlight loop windowing.
-4. Alias leftover is now remaining polyset raster guts, not dest/Z row
-   addressing or clip-edge CSE in `R_AliasClip`.  `D_PolysetDrawFinalVerts`
+4. Alias leftover is now narrower polyset raster guts after the
+   once-per-call `advancetable`/`tstep` hoist in ASM `D_PolysetDrawSpans8`.
+   `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
    `D_RasterizeAliasPolySmooth` uses `viewspantable`/`zspantable`.
    `D_PolysetSetUpForLineScan` uses a 64x64 `adivtab` (`[-31,32]`); do not

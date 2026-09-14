@@ -337,7 +337,14 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after the phantom-mark dlight probe is
+The current measured default after the polyset span advancetable hoist is
+`64.003358 / 64.003148 / 64.003272` seconds, median **15.139851 FPS** /
+**64.003272 s**, checksum `4154140932`
+(`out\dos-timedemo-20260914-182901\timedemo-result.json`).  That is about
+88.9 ms faster than the prior phantom-mark default at **15.118851 FPS** /
+64.092171 s (`out\dos-timedemo-20260914-180707`).
+
+The prior phantom-mark dlight probe measured
 `64.092357 / 64.092171 / 64.092163` seconds, median **15.118851 FPS** /
 **64.092171 s**, checksum `4154140932`
 (`out\dos-timedemo-20260914-180707\timedemo-result.json`).  That is about

@@ -753,9 +753,22 @@ C(D_PolysetDrawSpans8):
 	pushl	%edi
 
 	rorl	$16,%ecx			// put high 16 bits of 1/z step in low word
-	movl	spanpackage_t_count(%esi),%edx
-
 	movl	%ecx,lzistepx
+
+// Triangle-constant skin steps: build once per call (same as lzistepx).
+	movl	C(a_ststepxwhole),%ecx
+	movl	C(r_affinetridesc)+atd_skinwidth,%edx
+
+	movl	%ecx,advancetable+4	// advance base in t
+	addl	%edx,%ecx
+
+	movl	%ecx,advancetable	// advance extra in t
+	movl	C(a_tstepxfrac),%ecx
+
+	movw	C(r_lstepx),%cx
+	movl	%ecx,tstep
+
+	movl	spanpackage_t_count(%esi),%edx
 
 LSpanLoop:
 
@@ -801,22 +814,7 @@ LRightEdgeStepped:
 	jl		LNextSpan
 	jz		LExactlyOneLong
 
-//
-// set up advancetable
-//
-	movl	C(a_ststepxwhole),%ecx
-	movl	C(r_affinetridesc)+atd_skinwidth,%edx
-
-	movl	%ecx,advancetable+4	// advance base in t
-	addl	%edx,%ecx
-
-	movl	%ecx,advancetable	// advance extra in t
-	movl	C(a_tstepxfrac),%ecx
-
-	movw	C(r_lstepx),%cx
 	movl	%eax,%edx			// count
-
-	movl	%ecx,tstep
 	addl	$7,%edx
 
 	shrl	$3,%edx				// count of full and partial loops
