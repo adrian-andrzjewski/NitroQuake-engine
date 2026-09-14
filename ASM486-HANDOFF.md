@@ -45,6 +45,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   C `D_DrawSpans8` still
   multiplies `screenwidth`.  `D_PolysetDrawFinalVerts` hoists the
   viewmodel clip edges into registers/locals; C matches the live ASM.
+  `D_PolysetSetUpForLineScan` uses a 64x64 `adivtab` for `tm,tn` in
+  `[-31,32]` (was 32x32 / `[-15,16]`); longer edges still use IDIV /
+  `FloorDivMod`.
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
   `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
@@ -164,6 +167,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | MarkLights 2x2 sample cull (`R_MarkLights`) | Exact 2x2 discrete idist vs continuous clamp | 64.241100 s / 15.083802 FPS, 112.5 ms slower | Reverted |
 | Dlight sample window (`R_AddDynamicLights`) | Clamp s/t loops to idist-feasible indices | run 2 checksum `696680082` | Reverted |
 | Sticky dlight cache flag (`D_CacheSurface`) | `cache->dlight` only if a sample was lit | 64.113828 s / 15.113744 FPS, 14.8 ms faster | Kept |
+| Alias adivtab 32→64 (`D_PolysetSetUpForLineScan`) | Wider table hit, same FloorDivMod values | 64.104105 s / 15.116037 FPS, 9.7 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -363,12 +367,18 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 125.4 ms faster than the AABB-expand default; every run was
   faster than every AABB-expand run.  Uses the same integer idist metric as
   `R_AddDynamicLights` against the clamped lightmap rect.
-- Current default after sticky `cache->dlight` flag
+- Previous default after sticky `cache->dlight` flag
   (`out\dos-timedemo-20260914-163457`): `64.114027 / 64.113796 / 64.113828` s,
   median **64.113828 s / 15.113744 FPS**, checksum `4154140932` on all three
   runs.  About 14.8 ms faster than the idist-cull default; every run was
   faster than the idist-cull median.  `D_CacheSurface` sets `cache->dlight`
   from `r_dlight_contributed` after `R_DrawSurface`.
+- Current default after alias `adivtab` 32→64
+  (`out\dos-timedemo-20260914-164951`): `64.104105 / 64.103726 / 64.569991` s,
+  median **64.104105 s / 15.116037 FPS**, checksum `4154140932` on all three
+  runs.  About 9.7 ms faster than the sticky-dlight default.  Run 3 was
+  slower than the prior median; runs 1/2 were faster.  `D_PolysetSetUpForLineScan`
+  tables `tm,tn` in `[-31,32]`.
 
 ## Important decisions and assumptions
 
@@ -544,8 +554,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.113744 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260914-163457`) before further edits.
+   (15.116037 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260914-164951`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -593,6 +603,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    raster guts, not dest/Z row addressing.  `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
    `D_RasterizeAliasPolySmooth` uses `viewspantable`/`zspantable`.
+   `D_PolysetSetUpForLineScan` uses a 64x64 `adivtab` (`[-31,32]`); do not
+   grow further without a timedemo win (D-cache cost).
    Do not retry an `AngleVectors` cache.
    Do not retry a branched POT skinwidth shift in `D_PolysetCalcGradients`.
    Do not retry hoisting `aliasvrect` locals in `R_AliasPreparePoints`.

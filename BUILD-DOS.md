@@ -337,7 +337,14 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after the sticky `cache->dlight` flag is
+The current measured default after growing alias `adivtab` 32→64 is
+`64.104105 / 64.103726 / 64.569991` seconds, median **15.116037 FPS** /
+**64.104105 s**, checksum `4154140932`
+(`out\dos-timedemo-20260914-164951\timedemo-result.json`).  That is about
+9.7 ms faster than the prior sticky-dlight default at **15.113744 FPS** /
+64.113828 s (`out\dos-timedemo-20260914-163457`).
+
+The prior sticky `cache->dlight` flag measured
 `64.114027 / 64.113796 / 64.113828` seconds, median **15.113744 FPS** /
 **64.113828 s**, checksum `4154140932`
 (`out\dos-timedemo-20260914-163457\timedemo-result.json`).  That is about

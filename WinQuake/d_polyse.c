@@ -98,7 +98,7 @@ typedef struct {
 	int		remainder;
 } adivtab_t;
 
-static adivtab_t	adivtab[32*32] = {
+static adivtab_t	adivtab[64*64] = {
 #include "adivtab.h"
 };
 
@@ -507,10 +507,10 @@ void D_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 	tm = endvertu - startvertu;
 	tn = endvertv - startvertv;
 
-	if (((tm <= 16) && (tm >= -15)) &&
-		((tn <= 16) && (tn >= -15)))
+	if (((tm <= 32) && (tm >= -31)) &&
+		((tn <= 32) && (tn >= -31)))
 	{
-		ptemp = &adivtab[((tm+15) << 5) + (tn+15)];
+		ptemp = &adivtab[((tm+31) << 6) + (tn+31)];
 		ubasestep = ptemp->quotient;
 		erroradjustup = ptemp->remainder;
 		erroradjustdown = tn;
