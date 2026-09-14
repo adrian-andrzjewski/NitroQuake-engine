@@ -64,6 +64,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `R_AddDynamicLights_C` remains the float-`dist` reference.
   Rebuilds no longer compute unused `surfscale` or store
   `cache->mipscale`; the header field remains for layout.
+  `R_MarkLights` skips faces whose plane distance already fails the
+  same `radius - fabs(planedist) < minlight` reject used by
+  `R_AddDynamicLights`, and also skips faces whose projected impact
+  lies outside the lightmap rect expanded by `fmin`, so impossible
+  dlight marks no longer force surface-cache rebuilds.
 
 Every ASM candidate retains its C implementation.  `build-dos.ps1`,
 `bench-dos.ps1`, and `timedemo-dos.ps1` expose independent `c|asm` selectors
@@ -150,6 +155,8 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | 2100 KB surface cache | between 1800 and 2400 | checksum `2955717646`; run 1 hitch min 1.72 FPS | Reverted |
 | 4x surface cache (`SURFCACHE_SIZE_AT_320X200`) | 2400 KB | checksum `2955717646` | Reverted |
 | Aggressive `-funroll-loops` (`build-dos.ps1`) | Faster but wrong FB | 66.801015 s / 14.505767 FPS; checksum `2623602099` | Reverted |
+| MarkLights plane cull (`R_MarkLights`) | Same reject as `R_AddDynamicLights` | 66.776824 s / 14.511022 FPS, 185.8 ms faster | Kept |
+| MarkLights S/T extent cull (`R_MarkLights`) | AABB expand by `fmin` after plane reject | 64.253958 s / 15.080783 FPS, 2522.9 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -325,11 +332,24 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   16-pixel texture segments, 1,027,061 (29.2%) have a zero integer t-step;
   `full-tdelta-zero` is only 28, so the fractional t accumulator still
   carries.
-- Current default re-lock without `-funroll-loops`
+- Previous default re-lock without `-funroll-loops`
   (`out\dos-timedemo-20260914-134340`): `66.962837 / 66.962633 / 66.962597` s,
   median **66.962633 s / 14.470758 FPS**, checksum `4154140932` on all three
-  runs.  Matches the `f6ea9c6` reference within run noise.  Treat this lock
-  as the reference for new work.
+  runs.  Matches the `f6ea9c6` reference within run noise.
+- Previous default after `R_MarkLights` plane cull
+  (`out\dos-timedemo-20260914-140045`): `66.776961 / 66.776735 / 66.776824` s,
+  median **66.776824 s / 14.511022 FPS**, checksum `4154140932` on all three
+  runs.  About 185.8 ms faster than the re-lock; every run was faster than
+  every re-lock run.  Faces that cannot receive a dlight sample are no
+  longer marked, so `D_CacheSurface` keeps hits instead of rebuilding with
+  an empty dlight pass.
+- Current default after `R_MarkLights` S/T extent cull
+  (`out\dos-timedemo-20260914-142303`): `64.253958 / 64.253841 / 65.839411` s,
+  median **64.253958 s / 15.080783 FPS**, checksum `4154140932` on all three
+  runs.  About 2522.9 ms faster than the plane-cull default; every run was
+  faster than the plane-cull median.  Run 3 was slower than runs 1/2 but
+  still clear of the prior median.  Projected impact outside the lightmap
+  rect expanded by `fmin` is no longer marked.
 
 ## Important decisions and assumptions
 
@@ -494,8 +514,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (14.470758 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260914-134340`) before further edits.
+   (15.080783 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260914-142303`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -529,8 +549,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   Rebuilds no longer compute unused `surfscale` / `cache->mipscale`.
   Do not skip storing `blocksize`; the 8-bit column loop uses it for
   `soffset`.  Do not retry a local `mip` for `R_DrawSurface` setup.
-  Next surface work is fewer remaining rebuilds without changing lit
-  output.
+  `R_MarkLights` now applies the `R_AddDynamicLights` plane reject and a
+  conservative S/T lightmap-rect AABB expand by `fmin` before marking.
+  Next surface work is still fewer remaining rebuilds without changing
+  lit output (tighter discrete-sample distance cull only if checksum-safe
+  and faster end-to-end than the AABB).
 4. Alias leftover is now remaining per-vertex clip tests and polyset
    raster guts, not dest/Z row addressing.  `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.

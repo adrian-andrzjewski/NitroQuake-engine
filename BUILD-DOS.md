@@ -337,12 +337,20 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
+The current measured default after the `R_MarkLights` S/T extent cull is
+`64.253958 / 64.253841 / 65.839411` seconds, median **15.080783 FPS** /
+**64.253958 s**, checksum `4154140932`
+(`out\dos-timedemo-20260914-142303\timedemo-result.json`).  That is about
+2522.9 ms faster than the prior plane-cull default at **14.511022 FPS** /
+66.776824 s (`out\dos-timedemo-20260914-140045`).
+
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
 969 frames, checksum `4154140932`
 (`out\dos-timedemo-20260910-221227\timedemo-result.json`).
 
-The current default (same selectors, plus inlined power-of-two surface wrap,
+An earlier checkpoint after skipping the unused `D_CacheSurface`
+`surfscale` FDIV (plus inlined power-of-two surface wrap,
 release-only skip of `D_CheckCacheGuard`, once-per-frame alias view
 matrix, the `Mod_LoadTexinfo` nested-loop UB fix, `-O3`, cached bmodel
 span rotations, fused lightmap writes, an integer dlight inner loop, a
@@ -354,8 +362,7 @@ sprites and particles, a 1800 KB surface cache, `Turbulent8`
 `D_PolysetDrawFinalVerts` clip-rect hoist, and unused extra light-style
 skips on cache hits, `D_RasterizeAliasPolySmooth` dest/Z row tables,
 `R_RenderFace` surfedges hoist plus clip unroll, the clipped-bmodel
-surfedges hoist, `R_DrawSurface` 8-bit setup, mipscale step tables, and skipping the
-unused `D_CacheSurface` `surfscale` FDIV)
+surfedges hoist, `R_DrawSurface` 8-bit setup, and mipscale step tables)
 completed
 three `demo1` runs at
 `67.085825 / 67.085569 / 67.085585` seconds, median **14.444235 FPS** /
