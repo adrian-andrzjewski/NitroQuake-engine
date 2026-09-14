@@ -296,7 +296,7 @@ void R_BuildLightMap (void)
 			if (surf->styles[1] == 255)
 			{
 				int j = 0;
-				for (; j+3 < size; j+=4)
+				for (; j+7 < size; j+=8)
 				{
 					t = (255*256 - (int)(scale + lightmap[j] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
@@ -310,6 +310,18 @@ void R_BuildLightMap (void)
 					t = (255*256 - (int)(scale + lightmap[j+3] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+3] = t;
+					t = (255*256 - (int)(scale + lightmap[j+4] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+4] = t;
+					t = (255*256 - (int)(scale + lightmap[j+5] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+5] = t;
+					t = (255*256 - (int)(scale + lightmap[j+6] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+6] = t;
+					t = (255*256 - (int)(scale + lightmap[j+7] * first)) >> (8 - VID_CBITS);
+					if (t < (1 << 6)) t = (1 << 6);
+					blocklights[j+7] = t;
 				}
 				for (; j < size; j++)
 				{
