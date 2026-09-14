@@ -344,7 +344,10 @@ cull is `64.128632 / 64.128594 / 64.128523` seconds, median
 125.4 ms faster than the prior AABB-expand default at **15.080783 FPS** /
 64.253958 s (`out\dos-timedemo-20260914-142303`).  A follow-up 2x2 discrete
 sample cull matched the checksum but was 112.5 ms slower
-(`out\dos-timedemo-20260914-161209`) and was reverted.
+(`out\dos-timedemo-20260914-161209`) and was reverted.  An
+`R_AddDynamicLights` s/t sample-window clamp failed checksum
+`696680082` on run 2 (`out\dos-timedemo-20260914-162709`) and was
+reverted.
 
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
