@@ -1022,10 +1022,10 @@ LExactlyOneLong:
 	movl	spanpackage_t_zi(%esi),%ebp
 
 	rorl	$16,%ebp	// put high 16 bits of 1/z in low word
-	movl	spanpackage_t_ptex(%esi),%ebx
-
 	cmpw	(%ecx),%bp
 	jl		LNextSpan
+	// ptex only needed when the pixel passes Z (same deferral as pdest/light).
+	movl	spanpackage_t_ptex(%esi),%ebx
 	movzbl	(%ebx),%eax
 	movl	spanpackage_t_pdest(%esi),%edi
 	movb	spanpackage_t_light+1(%esi),%ah
