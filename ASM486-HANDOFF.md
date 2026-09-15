@@ -61,6 +61,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   first three search probes (dead on `LAddedge` / `LAddedge2`); the
   fourth probe keeps the original `jg` fallthrough so long walks do
   not pay an extra `jmp`.
+  `R_StepActiveU` `LPushBackLoop` defers `et_prev` past the first
+  `et_u` early-out (dead on `LPushBackFound`); second probe unchanged.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -261,6 +263,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | RecursiveTriangle defer `|dy|` y-loads past `|dx|` (`D_PolysetRecursiveTriangle`) | Skip same-edge y loads on `|dx|` early-out; fix `LSplit3` rotate | 63.121804 s / 15.351272 FPS, 17.6 ms faster | Kept |
 | StepActiveU defer `et_prev`/`et_next` past aftertail (`R_StepActiveU`) | Match C: early-out before unlink loads on every scanline finish | 63.112658 s / 15.353497 FPS, 9.1 ms faster | Kept |
 | InsertNewEdges defer `et_next` past `et_u` (probes 1–3) (`R_InsertNewEdges`) | Skip next-edge load on taken early-out; keep probe-4 `jg` fallthrough | 63.105267 s / 15.355295 FPS, 7.4 ms faster | Kept |
+| StepActiveU defer `et_prev` past first `et_u` (`LPushBackLoop`) | Skip prev load on taken pushback early-out; probe 2 unchanged | 63.103178 s / 15.355803 FPS, 2.1 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -650,6 +653,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 7.4 ms faster than the StepActiveU-aftertail default; every
   run was faster than every prior-default run.  Taken `et_u` early-outs
   skip the next-edge load; probe 4 keeps `jg` fallthrough.
+- Current default after StepActiveU `LPushBackLoop` deferred `et_prev`
+  (`out\dos-timedemo-20260915-160134`): `63.103349 / 63.103178 / 63.103124` s,
+  median **63.103178 s / 15.355803 FPS**, checksum `4154140932` on all three
+  runs.  About 2.1 ms faster than the InsertNewEdges-`et_next` default;
+  every run was faster than every prior-default run.  First-probe
+  `LPushBackFound` skips the `et_prev` load.  (An earlier measurement
+  `out\dos-timedemo-20260915-155745` had a hitch min 1.88 FPS on run 2;
+  the clean re-run is the accepted evidence.)
 
 ## Important decisions and assumptions
 
@@ -948,8 +959,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.355295 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-154958`) before further edits.
+   (15.355803 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-160134`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -1004,6 +1015,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-154519`; noise); keep probes 1–3 only.
    Do not restore InsertNewEdges `et_next` before the first three
    `et_u` early-outs.
+   Do not restore StepActiveU `LPushBackLoop` `et_prev` before the first
+   `et_u` early-out.  Do not extend that deferral to probe 2 with
+   `jnl`+`jmp` (same trap as the four-probe InsertNewEdges form).
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

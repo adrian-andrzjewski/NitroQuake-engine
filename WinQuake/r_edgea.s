@@ -216,10 +216,11 @@ LPushBack:
 
 // find out where the edge goes in the edge list
 LPushBackLoop:
-	movl	et_prev(%edi),%ecx
+// Defer et_prev until after et_u early-out (dead on LPushBackFound).
 	movl	et_u(%edi),%ebx
 	cmpl	%ebx,%eax
 	jnl		LPushBackFound
+	movl	et_prev(%edi),%ecx
 
 	movl	et_prev(%ecx),%edi
 	movl	et_u(%ecx),%ebx
