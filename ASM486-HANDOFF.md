@@ -53,6 +53,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `tstep` once per call (same pattern as `lzistepx`).
   `D_RasterizeAliasPolySmooth` reuses left-edge s/t base products for the
   extra-step path (`d_countextrastep = ubasestep + 1`).
+  Live ASM `D_PolysetScanLeftEdge` keeps the package cursor in `%esi`,
+  live `d_pdest`/`d_pz` in `%edi`/`%ebp`, and spills light/zi/aspancount
+  on the stack (aspancount written back once on exit).
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
   `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
@@ -188,6 +191,12 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | ScanLeftEdge package cursor in `%esi` (`D_PolysetScanLeftEdge`) | Keep `d_pedgespanpackage` live; publish once on exit | 63.783005 s / 15.192135 FPS, 112.1 ms faster | Kept |
 | DrawSpans8 stack-live aspancount/errorterm (`D_PolysetDrawSpans8`) | Stack copies for outer right-edge loop | 63.819708 s / 15.183397 FPS, 36.7 ms slower | Reverted |
 | ScanLeftEdge pdest/pz cursors (`D_PolysetScanLeftEdge`) | `%edi`/`%ebp` live; light/zi on stack | 63.741911 s / 15.201929 FPS, 41.1 ms faster | Kept |
+| ScanLeftEdge aspancount stack (`D_PolysetScanLeftEdge`) | Spill `d_aspancount` beside light/zi; write back once | 63.726061 s / 15.205710 FPS, 15.7 ms faster | Kept |
+| Sky `viewspantable` dest (`D_DrawSkyScans8`) | Same table as texture spans | Noise vs aspancount default (~0.01 ms) | Reverted |
+| Span16 s/t integer CSE (`d_draw16.s`) | Keep clamped s/t in regs across sfrac/tfrac shifts | 63.784645 s / 15.191744 FPS, ~43 ms slower | Reverted |
+| Span16 early `pnext` preload (`d_draw16.s`) | Store next span in `pspantemp` during FDIV setup | Noise / slight loss vs aspancount default | Reverted |
+| ScanLeftEdge erroradjust stack (`D_PolysetScanLeftEdge`) | Spill `erroradjustup`/`down` beside aspancount | Hitch min 1.93 FPS; ~13 ms slower median | Reverted |
+| ScanLeftEdge errorterm stack (`D_PolysetScanLeftEdge`) | Spill `errorterm` beside aspancount | ~13 ms slower than aspancount-only | Reverted |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -431,12 +440,22 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   faster than the prior median.  ASM `D_PolysetScanLeftEdge` keeps
   `d_pedgespanpackage` in `%esi` for the whole scan and publishes once on
   both exit paths; `errorterm` / `d_aspancount` use `%eax`.
-- Current default after ScanLeftEdge pdest/pz cursors
+- Previous default after ScanLeftEdge pdest/pz cursors
   (`out\dos-timedemo-20260915-070155`): `63.741911 / 63.741666 / 63.742057` s,
   median **63.741911 s / 15.201929 FPS**, checksum `4154140932` on all three
   runs.  About 41.1 ms faster than the package-cursor default; every run was
   faster than the prior median.  `%edi`/`%ebp` hold live `d_pdest`/`d_pz`;
   light/zi sit on the stack for the scan.
+- Re-lock before this pass (`out\dos-timedemo-20260915-073048`):
+  `63.741869 / 63.741679 / 63.741717` s, median
+  **63.741717 s / 15.201975 FPS**, checksum `4154140932` on all three runs.
+  Matches the pdest/pz default within run noise.
+- Current default after ScanLeftEdge aspancount stack spill
+  (`out\dos-timedemo-20260915-080929`): `63.726312 / 63.726047 / 63.726061` s,
+  median **63.726061 s / 15.205710 FPS**, checksum `4154140932` on all three
+  runs.  About 15.7 ms faster than the re-lock; every run was faster than
+  every re-lock run.  `d_aspancount` lives at `0(%esp)` beside light/zi;
+  both exit paths write it back once.
 
 ## Important decisions and assumptions
 
@@ -524,6 +543,25 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   but was 36.7 ms slower (63.819708 s vs 63.783005 s).  Routing the
   outer right-edge mutables through stack slots cost more than the C
   globals; keep direct `C(d_aspancount)` / `C(errorterm)` traffic.
+  (ScanLeftEdge aspancount stack spill is a different site and was kept.)
+- ScanLeftEdge erroradjust stack (`out\dos-timedemo-20260915-075950`)
+  matched checksum `4154140932` but hitch min 1.93 FPS and ~13 ms slower
+  median than the aspancount-only default.  Do not retry spilling
+  `erroradjustup`/`down` beside the kept ScanLeftEdge stack locals.
+- ScanLeftEdge errorterm stack (`out\dos-timedemo-20260915-080441`)
+  matched checksum `4154140932` but was ~13 ms slower than aspancount-only.
+  Do not retry spilling `errorterm` beside aspancount in ScanLeftEdge.
+- Span16 s/t integer CSE (`out\dos-timedemo-20260915-074041`) matched
+  checksum `4154140932` but was ~43 ms slower.  Do not retry keeping
+  clamped s/t in registers across the sfrac/tfrac shifts in
+  `D_DrawSpans16`.
+- Span16 early `pnext` preload (`out\dos-timedemo-20260915-075512`)
+  matched checksum `4154140932` but was noise/slightly slower.  Do not
+  retry storing the next span in `pspantemp` during FDIV setup.
+- Sky `viewspantable` dest (`out\dos-timedemo-20260915-075043`) matched
+  checksum `4154140932` but was noise (~0.01 ms).  Do not retry
+  `D_DrawSkyScans8` row-table addressing for timedemo gain; multiply
+  form remains.
 - Unclipped alias `movzbl` expand (`out\dos-timedemo-20260911-155009`)
   matched checksum `4154140932` but the 0.16 ms median delta sat
   inside the previous run spread; do not retry byte-store vs
@@ -643,8 +681,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.201929 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-070155`) before further edits.
+   (15.205710 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-080929`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -661,6 +699,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry a per-surface `d_drawspans == D_DrawSpans16`
    compare/direct CALL.  The start-address `cachewidth` IMUL sits in
    the FDIV shadow; do not add per-span branches to skip it.
+   Do not retry `D_DrawSpans16` s/t integer CSE across the sfrac/tfrac
+   shifts (`out\dos-timedemo-20260915-074041`; ~43 ms slower) or early
+   `pnext` preload into `pspantemp` (`out\dos-timedemo-20260915-075512`;
+   noise).  Do not retry `D_DrawSkyScans8` `viewspantable` dest rows
+   (noise vs the aspancount default).
 3. Surface-cache rebuilds were ~14.5% at 600 KB.  The default cache is
    now 1800 KB; 1200 KB also matched the checksum.  1900 KB, 2000 KB,
    2100 KB, and 2400 KB all failed checksum `2955717646`.  Do not
@@ -734,12 +777,18 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `D_RasterizeAliasPolySmooth`.     Do not retry a `D_PolysetScanLeftEdge`
    skinwidth stack hoist (`out\dos-timedemo-20260915-061218`; ~10 ms
    slower).  `D_PolysetScanLeftEdge` keeps `d_pedgespanpackage` in `%esi`
-   and live `d_pdest`/`d_pz` in `%edi`/`%ebp` (light/zi on stack),
-   publishing the package pointer once on exit.  Z spans use `zspantable`
+   and live `d_pdest`/`d_pz` in `%edi`/`%ebp` (light/zi/aspancount on
+   stack), publishing the package pointer and writing back
+   `d_aspancount` once on exit.  Z spans use `zspantable`
    and keep the span list in `%ebp` (no per-span push/pop of the list
    pointer); keep the count `pushl`/`popl` for the odd pixel.  Do not
    retry tagging `%ebp` bit0 to drop that count stack traffic
-   (`out\dos-timedemo-20260915-060125`; ~65 ms slower).  Edge scan is
+   (`out\dos-timedemo-20260915-060125`; ~65 ms slower).  Do not retry
+   stack-hoisting `erroradjustup`/`down` or `errorterm` beside the
+   kept aspancount spill in `D_PolysetScanLeftEdge`.  Do not retry
+   `D_DrawSpans16` s/t integer CSE across the sfrac/tfrac shifts, early
+   `pnext` preload into `pspantemp`, or `D_DrawSkyScans8`
+   `viewspantable` dest rows (noise or slower).  Edge scan is
    already assembly.  Do not revive BSP plane-dot/clip helpers.  Face Z
    gradients are cached.
 

@@ -1290,11 +1290,14 @@ C(D_PolysetScanLeftEdge):
 	movl	C(d_pedgespanpackage),%esi
 	movl	C(d_tfrac),%edx
 
-// Spill light/zi so %edi/%ebp can hold running d_pdest/d_pz cursors.
+// Spill light/zi/aspancount so %edi/%ebp can hold running d_pdest/d_pz
+// cursors and aspancount avoids a per-row global RMW.
 	movl	C(d_light),%eax
-	pushl	%eax				// 4(%esp) after zi push
+	pushl	%eax				// 8(%esp) after zi/aspancount pushes
 	movl	C(d_zi),%eax
-	pushl	%eax				// 0(%esp) = zi, 4(%esp) = light
+	pushl	%eax				// 4(%esp) = zi
+	movl	C(d_aspancount),%eax
+	pushl	%eax				// 0(%esp) = aspancount
 	movl	C(d_pdest),%edi
 	movl	C(d_pz),%ebp
 
@@ -1305,7 +1308,7 @@ C(D_PolysetScanLeftEdge):
 // %esi: d_pedgespanpackage (live list cursor)
 // %edi: d_pdest (live)
 // %ebp: d_pz (live)
-// 0(%esp): d_zi, 4(%esp): d_light
+// 0(%esp): d_aspancount, 4(%esp): d_zi, 8(%esp): d_light
 
 //	do
 //	{
@@ -1323,11 +1326,11 @@ LScanLoop:
 	movl	%ebx,spanpackage_t_ptex(%esi)
 	movl	%edi,spanpackage_t_pdest(%esi)
 	movl	%ebp,spanpackage_t_pz(%esi)
-	movl	C(d_aspancount),%eax
-	movl	%eax,spanpackage_t_count(%esi)
-	movl	4(%esp),%eax
-	movl	%eax,spanpackage_t_light(%esi)
 	movl	(%esp),%eax
+	movl	%eax,spanpackage_t_count(%esi)
+	movl	8(%esp),%eax
+	movl	%eax,spanpackage_t_light(%esi)
+	movl	4(%esp),%eax
 	movl	%eax,spanpackage_t_zi(%esi)
 	movl	%ecx,spanpackage_t_sfrac(%esi)
 	movl	%edx,spanpackage_t_tfrac(%esi)
@@ -1360,9 +1363,8 @@ LScanLoop:
 //			d_sfrac &= 0xFFFF;
 //			d_tfrac += d_tfracextrastep;
 	addl	C(d_pzextrastep),%ebp
-	movl	C(d_aspancount),%eax
-	addl	C(d_countextrastep),%eax
-	movl	%eax,C(d_aspancount)
+	movl	C(d_countextrastep),%eax
+	addl	%eax,(%esp)
 	addl	C(d_sfracextrastep),%ecx
 	adcl	C(d_ptexextrastep),%ebx
 	addl	C(d_tfracextrastep),%edx
@@ -1382,17 +1384,19 @@ LSkip1:
 //			d_light += d_lightextrastep;
 //			d_zi += d_ziextrastep;
 	movl	C(d_lightextrastep),%eax
-	addl	%eax,4(%esp)
+	addl	%eax,8(%esp)
 	movl	C(d_ziextrastep),%eax
-	addl	%eax,(%esp)
+	addl	%eax,4(%esp)
 
 //		}
 	decl	%ecx
 	testl	$0xFFFF,%ecx
 	jnz		LScanLoop
 
+	movl	(%esp),%eax
+	movl	%eax,C(d_aspancount)
 	movl	%esi,C(d_pedgespanpackage)
-	addl	$8,%esp
+	addl	$12,%esp
 	popl	%ebx
 	popl	%edi
 	popl	%esi
@@ -1415,9 +1419,8 @@ LNoLeftEdgeTurnover:
 //			d_ptex += d_sfrac >> 16;
 //			d_sfrac &= 0xFFFF;
 	addl	C(d_pzbasestep),%ebp
-	movl	C(d_aspancount),%eax
-	addl	C(ubasestep),%eax
-	movl	%eax,C(d_aspancount)
+	movl	C(ubasestep),%eax
+	addl	%eax,(%esp)
 	addl	C(d_sfracbasestep),%ecx
 	adcl	C(d_ptexbasestep),%ebx
 
@@ -1439,9 +1442,9 @@ LSkip2:
 //			d_light += d_lightbasestep;
 //			d_zi += d_zibasestep;
 	movl	C(d_lightbasestep),%eax
-	addl	%eax,4(%esp)
+	addl	%eax,8(%esp)
 	movl	C(d_zibasestep),%eax
-	addl	%eax,(%esp)
+	addl	%eax,4(%esp)
 
 //		}
 //	} while (--height);
@@ -1449,8 +1452,10 @@ LSkip2:
 	testl	$0xFFFF,%ecx
 	jnz		LScanLoop
 
+	movl	(%esp),%eax
+	movl	%eax,C(d_aspancount)
 	movl	%esi,C(d_pedgespanpackage)
-	addl	$8,%esp
+	addl	$12,%esp
 	popl	%ebx
 	popl	%edi
 	popl	%esi
