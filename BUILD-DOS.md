@@ -337,7 +337,21 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after the Z-span `%ebp` list cursor is
+The current measured default after ScanLeftEdge pdest/pz cursors is
+`63.741911 / 63.741666 / 63.742057` seconds, median **15.201929 FPS** /
+**63.741911 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-070155\timedemo-result.json`).  That is about
+41.1 ms faster than the prior package-cursor default at **15.192135 FPS** /
+63.783005 s (`out\dos-timedemo-20260915-064521`).
+
+The prior ScanLeftEdge `%esi` package cursor measured
+`63.783098 / 63.783005 / 63.782908` seconds, median **15.192135 FPS** /
+**63.783005 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-064521\timedemo-result.json`).  That is about
+112.1 ms faster than the prior Z-span `%ebp` default at **15.165488 FPS** /
+63.895076 s (`out\dos-timedemo-20260915-055029`).
+
+The prior Z-span `%ebp` list cursor measured
 `63.895311 / 63.895076 / 63.895065` seconds, median **15.165488 FPS** /
 **63.895076 s**, checksum `4154140932`
 (`out\dos-timedemo-20260915-055029\timedemo-result.json`).  That is about
@@ -405,7 +419,10 @@ Z-span `%ebp` cursor bit0 to drop the count push/pop matched the
 checksum but was 64.6 ms slower (`out\dos-timedemo-20260915-060125`)
 and was reverted.  A `D_PolysetScanLeftEdge` skinwidth stack hoist
 matched the checksum but was 10.0 ms slower
-(`out\dos-timedemo-20260915-061218`) and was reverted.
+(`out\dos-timedemo-20260915-061218`) and was reverted.  Stack-live
+`d_aspancount`/`errorterm` in `D_PolysetDrawSpans8` matched the
+checksum but was 36.7 ms slower (`out\dos-timedemo-20260915-065310`)
+and was reverted.
 
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,

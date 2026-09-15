@@ -1289,16 +1289,23 @@ C(D_PolysetScanLeftEdge):
 	orl		%eax,%ecx
 	movl	C(d_pedgespanpackage),%esi
 	movl	C(d_tfrac),%edx
-	movl	C(d_light),%edi
-	movl	C(d_zi),%ebp
+
+// Spill light/zi so %edi/%ebp can hold running d_pdest/d_pz cursors.
+	movl	C(d_light),%eax
+	pushl	%eax				// 4(%esp) after zi push
+	movl	C(d_zi),%eax
+	pushl	%eax				// 0(%esp) = zi, 4(%esp) = light
+	movl	C(d_pdest),%edi
+	movl	C(d_pz),%ebp
 
 // %eax: scratch
 // %ebx: d_ptex
 // %ecx: d_sfrac in high word, count in low word
 // %edx: d_tfrac
-// %esi: d_pedgespanpackage, errorterm, scratch alternately
-// %edi: d_light
-// %ebp: d_zi
+// %esi: d_pedgespanpackage (live list cursor)
+// %edi: d_pdest (live)
+// %ebp: d_pz (live)
+// 0(%esp): d_zi, 4(%esp): d_light
 
 //	do
 //	{
@@ -1314,14 +1321,14 @@ LScanLoop:
 //		d_pedgespanpackage->sfrac = d_sfrac << 16;
 //		d_pedgespanpackage->tfrac = d_tfrac << 16;
 	movl	%ebx,spanpackage_t_ptex(%esi)
-	movl	C(d_pdest),%eax
-	movl	%eax,spanpackage_t_pdest(%esi)
-	movl	C(d_pz),%eax
-	movl	%eax,spanpackage_t_pz(%esi)
+	movl	%edi,spanpackage_t_pdest(%esi)
+	movl	%ebp,spanpackage_t_pz(%esi)
 	movl	C(d_aspancount),%eax
 	movl	%eax,spanpackage_t_count(%esi)
-	movl	%edi,spanpackage_t_light(%esi)
-	movl	%ebp,spanpackage_t_zi(%esi)
+	movl	4(%esp),%eax
+	movl	%eax,spanpackage_t_light(%esi)
+	movl	(%esp),%eax
+	movl	%eax,spanpackage_t_zi(%esi)
 	movl	%ecx,spanpackage_t_sfrac(%esi)
 	movl	%edx,spanpackage_t_tfrac(%esi)
 
@@ -1330,13 +1337,10 @@ LScanLoop:
 
 //		d_pedgespanpackage++;
 	addl	$(spanpackage_t_size),%esi
-	movl	C(erroradjustup),%eax
-	movl	%esi,C(d_pedgespanpackage)
 
 //		errorterm += erroradjustup;
-	movl	C(errorterm),%esi
-	addl	%eax,%esi
-	movl	C(d_pdest),%eax
+	movl	C(errorterm),%eax
+	addl	C(erroradjustup),%eax
 
 //		if (errorterm >= 0)
 //		{
@@ -1344,10 +1348,9 @@ LScanLoop:
 
 //			errorterm -= erroradjustdown;
 //			d_pdest += d_pdestextrastep;
-	subl	C(erroradjustdown),%esi
-	addl	C(d_pdestextrastep),%eax
-	movl	%esi,C(errorterm)
-	movl	%eax,C(d_pdest)
+	subl	C(erroradjustdown),%eax
+	movl	%eax,C(errorterm)
+	addl	C(d_pdestextrastep),%edi
 
 //			d_pz += d_pzextrastep;
 //			d_aspancount += d_countextrastep;
@@ -1356,16 +1359,13 @@ LScanLoop:
 //			d_ptex += d_sfrac >> 16;
 //			d_sfrac &= 0xFFFF;
 //			d_tfrac += d_tfracextrastep;
-	movl	C(d_pz),%eax
-	movl	C(d_aspancount),%esi
-	addl	C(d_pzextrastep),%eax
+	addl	C(d_pzextrastep),%ebp
+	movl	C(d_aspancount),%eax
+	addl	C(d_countextrastep),%eax
+	movl	%eax,C(d_aspancount)
 	addl	C(d_sfracextrastep),%ecx
 	adcl	C(d_ptexextrastep),%ebx
-	addl	C(d_countextrastep),%esi
-	movl	%eax,C(d_pz)
-	movl	C(d_tfracextrastep),%eax
-	movl	%esi,C(d_aspancount)
-	addl	%eax,%edx
+	addl	C(d_tfracextrastep),%edx
 
 //			if (d_tfrac & 0x10000)
 //			{
@@ -1381,15 +1381,18 @@ LSkip1:
 
 //			d_light += d_lightextrastep;
 //			d_zi += d_ziextrastep;
-	addl	C(d_lightextrastep),%edi
-	addl	C(d_ziextrastep),%ebp
+	movl	C(d_lightextrastep),%eax
+	addl	%eax,4(%esp)
+	movl	C(d_ziextrastep),%eax
+	addl	%eax,(%esp)
 
 //		}
-	movl	C(d_pedgespanpackage),%esi
 	decl	%ecx
 	testl	$0xFFFF,%ecx
 	jnz		LScanLoop
 
+	movl	%esi,C(d_pedgespanpackage)
+	addl	$8,%esp
 	popl	%ebx
 	popl	%edi
 	popl	%esi
@@ -1400,11 +1403,10 @@ LSkip1:
 //		{
 
 LNoLeftEdgeTurnover:
-	movl	%esi,C(errorterm)
+	movl	%eax,C(errorterm)
 
 //			d_pdest += d_pdestbasestep;
-	addl	C(d_pdestbasestep),%eax
-	movl	%eax,C(d_pdest)
+	addl	C(d_pdestbasestep),%edi
 
 //			d_pz += d_pzbasestep;
 //			d_aspancount += ubasestep;
@@ -1412,18 +1414,15 @@ LNoLeftEdgeTurnover:
 //			d_sfrac += d_sfracbasestep;
 //			d_ptex += d_sfrac >> 16;
 //			d_sfrac &= 0xFFFF;
-	movl	C(d_pz),%eax
-	movl	C(d_aspancount),%esi
-	addl	C(d_pzbasestep),%eax
+	addl	C(d_pzbasestep),%ebp
+	movl	C(d_aspancount),%eax
+	addl	C(ubasestep),%eax
+	movl	%eax,C(d_aspancount)
 	addl	C(d_sfracbasestep),%ecx
 	adcl	C(d_ptexbasestep),%ebx
-	addl	C(ubasestep),%esi
-	movl	%eax,C(d_pz)
-	movl	%esi,C(d_aspancount)
 
 //			d_tfrac += d_tfracbasestep;
-	movl	C(d_tfracbasestep),%esi
-	addl	%esi,%edx
+	addl	C(d_tfracbasestep),%edx
 
 //			if (d_tfrac & 0x10000)
 //			{
@@ -1439,16 +1438,19 @@ LSkip2:
 
 //			d_light += d_lightbasestep;
 //			d_zi += d_zibasestep;
-	addl	C(d_lightbasestep),%edi
-	addl	C(d_zibasestep),%ebp
+	movl	C(d_lightbasestep),%eax
+	addl	%eax,4(%esp)
+	movl	C(d_zibasestep),%eax
+	addl	%eax,(%esp)
 
 //		}
 //	} while (--height);
-	movl	C(d_pedgespanpackage),%esi
 	decl	%ecx
 	testl	$0xFFFF,%ecx
 	jnz		LScanLoop
 
+	movl	%esi,C(d_pedgespanpackage)
+	addl	$8,%esp
 	popl	%ebx
 	popl	%edi
 	popl	%esi
