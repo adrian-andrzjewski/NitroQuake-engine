@@ -514,11 +514,11 @@ C(D_PolysetRecursiveTriangle):
 //	d = lp2[1] - lp1[1];
 //	if (d < -1 || d > 1)
 //		goto split;
-	movl	0(%edi),%eax
 	incl	%ebp
-
 	cmpl	$2,%ebp
 	ja		LSplit
+	// lp3[0] only needed for the next edge check; LSplit overwrites %eax.
+	movl	0(%edi),%eax
 
 //	d = lp3[0] - lp2[0];
 //	if (d < -1 || d > 1)
@@ -538,11 +538,11 @@ C(D_PolysetRecursiveTriangle):
 //	d = lp3[1] - lp2[1];
 //	if (d < -1 || d > 1)
 //		goto split2;
-	movl	0(%ebx),%eax
 	incl	%ebp
-
 	cmpl	$2,%ebp
 	ja		LSplit2
+	// lp1[0] only needed for the next edge check; LSplit2 overwrites %eax.
+	movl	0(%ebx),%eax
 
 //	d = lp1[0] - lp3[0];
 //	if (d < -1 || d > 1)
