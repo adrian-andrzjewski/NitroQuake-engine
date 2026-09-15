@@ -46,8 +46,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   and loads `r_pedge` once after the horizontal early-out for
   `et_owner` (no preload into `%esi`).  `TrailingEdge` emit /
   `LNoEmit2` unlink with the already-loaded `st_next` in `%ecx` instead
-  of reloading into `%edx`, and skips the `r_bmodelactive` RMW when
-  `insubmodel` is 0.
+  of reloading into `%edx`, skips the `r_bmodelactive` update when
+  `insubmodel` is 0, and uses `decl`/`incl` memory forms for bmodel
+  enter/leave (matching C's `++`/`--`).
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -220,6 +221,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | TrailingEdge unlink via live `%ecx` (`TrailingEdge`) | Use preloaded `st_next` directly on emit/LNoEmit2; no reload or `movl %ecx,%edx` | 63.583628 s / 15.239772 FPS, 31.1 ms faster | Kept |
 | EmitEdge single `r_pedge` load (`R_EmitEdge`) | Drop preload into `%esi`; load once after horizontal early-out for `et_owner` | 63.573196 s / 15.242273 FPS, 10.4 ms faster | Kept |
 | TrailingEdge skip `r_bmodelactive` RMW (`TrailingEdge`) | Skip load/sub/store when `insubmodel==0` | 63.523798 s / 15.254125 FPS, 49.4 ms faster | Kept |
+| Bmodel `incl`/`decl` `r_bmodelactive` (`TrailingEdge` / `Lbmodel_leading`) | Memory inc/dec instead of load/add/store; world skip kept | 63.500960 s / 15.259612 FPS, 22.8 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -521,6 +523,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 49.4 ms faster than the EmitEdge-`r_pedge` default; every
   run was faster than every prior-default run.  World surfaces
   (`insubmodel==0`) skip the `r_bmodelactive` load/sub/store.
+- Current default after bmodel `incl`/`decl` of `r_bmodelactive`
+  (`out\dos-timedemo-20260915-111815`): `63.501194 / 63.500915 / 63.500960` s,
+  median **63.500960 s / 15.259612 FPS**, checksum `4154140932` on all three
+  runs.  About 22.8 ms faster than the world-skip default; every run was
+  faster than every prior-default run.  `Lbmodel_leading` uses
+  `incl C(r_bmodelactive)`; TrailingEdge bmodels use `decl`.
 
 ## Important decisions and assumptions
 
@@ -780,8 +788,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.254125 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-110651`) before further edits.
+   (15.259612 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-111815`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -801,6 +809,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-103436`; noise).
    Do not retry leading spanstate-before-insubmodel reorder
    (`out\dos-timedemo-20260915-110203`; noise).
+   Do not restore load/add/store for `r_bmodelactive` on the bmodel path.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -908,7 +917,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `viewspantable` dest rows (noise or slower).  Edge scan keeps the
    `Lgs_leading` `surfaces` CSE and TrailingEdge direct-`%ecx` unlink;
    `R_EmitEdge` loads `r_pedge` once after the horizontal early-out;
-   TrailingEdge skips `r_bmodelactive` RMW when `insubmodel==0`.
+   TrailingEdge skips `r_bmodelactive` when `insubmodel==0` and uses
+   `decl`/`incl` memory forms for bmodel enter/leave.
    Look for other dead reloads carefully before adding stack traffic.
    Do not revive BSP plane-dot/clip helpers.
    Face Z gradients are cached.

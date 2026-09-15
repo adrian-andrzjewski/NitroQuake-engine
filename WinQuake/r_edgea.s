@@ -260,12 +260,11 @@ TrailingEdge:
 	movl	st_insubmodel(%esi),%ecx
 	movl	0x12345678,%edx		// surfaces[1].st_next
 LPatch0:
-	// World surfaces have insubmodel==0; skip the r_bmodelactive RMW.
+	// World surfaces have insubmodel==0; skip the counter.  Bmodels match
+	// C's r_bmodelactive-- with a single decl instead of load/sub/store.
 	testl	%ecx,%ecx
 	jz		LSkipBmodelDec
-	movl	C(r_bmodelactive),%eax
-	subl	%ecx,%eax
-	movl	%eax,C(r_bmodelactive)
+	decl	C(r_bmodelactive)
 LSkipBmodelDec:
 	cmpl	%esi,%edx
 	jnz		LNoEmit				// surface isn't on top, just remove
@@ -425,11 +424,10 @@ Lbmodel_leading:
 	testl	%edx,%edx
 	jnz		Lxl_done
 
-	movl	C(r_bmodelactive),%ecx
 	incl	%edx
-	incl	%ecx
 	movl	%edx,st_spanstate(%edi)
-	movl	%ecx,C(r_bmodelactive)
+	// Match C's r_bmodelactive++ with a single incl (no load/store pair).
+	incl	C(r_bmodelactive)
 
 // if (surf->key < surf2->key)
 //		goto newtop;
