@@ -46,7 +46,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   and loads `r_pedge` once after the horizontal early-out for
   `et_owner` (no preload into `%esi`).  `TrailingEdge` emit /
   `LNoEmit2` unlink with the already-loaded `st_next` in `%ecx` instead
-  of reloading into `%edx`.
+  of reloading into `%edx`, and skips the `r_bmodelactive` RMW when
+  `insubmodel` is 0.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -218,6 +219,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | EmitEdge pretouch removal (`R_EmitEdge`) | Drop discarded next-edge `movl (%edx),%eax` on both sides | 63.614724 s / 15.232323 FPS, 8.5 ms faster | Kept |
 | TrailingEdge unlink via live `%ecx` (`TrailingEdge`) | Use preloaded `st_next` directly on emit/LNoEmit2; no reload or `movl %ecx,%edx` | 63.583628 s / 15.239772 FPS, 31.1 ms faster | Kept |
 | EmitEdge single `r_pedge` load (`R_EmitEdge`) | Drop preload into `%esi`; load once after horizontal early-out for `et_owner` | 63.573196 s / 15.242273 FPS, 10.4 ms faster | Kept |
+| TrailingEdge skip `r_bmodelactive` RMW (`TrailingEdge`) | Skip load/sub/store when `insubmodel==0` | 63.523798 s / 15.254125 FPS, 49.4 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -513,6 +515,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 10.4 ms faster than the TrailingEdge-unlink default; every
   run was faster than every prior-default run.  Horizontal edges skip
   `r_pedge` entirely; non-horizontal edges load it once for `et_owner`.
+- Current default after TrailingEdge skip of `r_bmodelactive` RMW
+  (`out\dos-timedemo-20260915-110651`): `63.523808 / 63.523798 / 63.523763` s,
+  median **63.523798 s / 15.254125 FPS**, checksum `4154140932` on all three
+  runs.  About 49.4 ms faster than the EmitEdge-`r_pedge` default; every
+  run was faster than every prior-default run.  World surfaces
+  (`insubmodel==0`) skip the `r_bmodelactive` load/sub/store.
 
 ## Important decisions and assumptions
 
@@ -537,6 +545,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- Leading spanstate-before-insubmodel reorder (`out\dos-timedemo-20260915-110203`)
+  matched checksum `4154140932` but was noise (~0.01 ms vs the EmitEdge
+  `r_pedge` default).  Testing inversion before loading `insubmodel` and
+  dropping the redundant `Lbmodel_leading` spanstate retest did not move
+  end-to-end time; do not retry.
 - Span16 FILD-overlapped v/u loads (`out\dos-timedemo-20260915-103436`)
   matched checksum `4154140932` but was noise/~0.14 ms slower than the
   EmitEdge-pretouch default (median 63.614868 s vs 63.614724 s).  Loading
@@ -767,8 +780,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.242273 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-104810`) before further edits.
+   (15.254125 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-110651`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -786,6 +799,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not restore the EmitEdge `r_pedge` preload into `%esi`.
    Do not retry Span16 FILD-overlapped v/u dest loads
    (`out\dos-timedemo-20260915-103436`; noise).
+   Do not retry leading spanstate-before-insubmodel reorder
+   (`out\dos-timedemo-20260915-110203`; noise).
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -892,7 +907,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `pnext` preload into `pspantemp`, or `D_DrawSkyScans8`
    `viewspantable` dest rows (noise or slower).  Edge scan keeps the
    `Lgs_leading` `surfaces` CSE and TrailingEdge direct-`%ecx` unlink;
-   `R_EmitEdge` loads `r_pedge` once after the horizontal early-out.
+   `R_EmitEdge` loads `r_pedge` once after the horizontal early-out;
+   TrailingEdge skips `r_bmodelactive` RMW when `insubmodel==0`.
    Look for other dead reloads carefully before adding stack traffic.
    Do not revive BSP plane-dot/clip helpers.
    Face Z gradients are cached.

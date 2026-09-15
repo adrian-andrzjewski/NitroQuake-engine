@@ -260,10 +260,14 @@ TrailingEdge:
 	movl	st_insubmodel(%esi),%ecx
 	movl	0x12345678,%edx		// surfaces[1].st_next
 LPatch0:
+	// World surfaces have insubmodel==0; skip the r_bmodelactive RMW.
+	testl	%ecx,%ecx
+	jz		LSkipBmodelDec
 	movl	C(r_bmodelactive),%eax
 	subl	%ecx,%eax
-	cmpl	%esi,%edx
 	movl	%eax,C(r_bmodelactive)
+LSkipBmodelDec:
+	cmpl	%esi,%edx
 	jnz		LNoEmit				// surface isn't on top, just remove
 
 // emit a span (current top going away)
