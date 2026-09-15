@@ -303,9 +303,6 @@ LSide1:
 //	edge = edge_p++;
 	movl	%edx,C(edge_p)
 
-// pretouch next edge
-	movl	(%edx),%eax
-
 //		v2 = ceilv0 - 1;
 //		v = r_ceilv1;
 	movl	%ecx,%eax
@@ -352,9 +349,6 @@ LSide0:
 
 //	edge = edge_p++;
 	movl	%edx,C(edge_p)
-
-// pretouch next edge
-	movl	(%edx),%eax
 
 //		v = ceilv0;
 //		v2 = r_ceilv1 - 1;

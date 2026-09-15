@@ -41,7 +41,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
 - Edge scan: `R_GenerateSpans` / `Lgs_leading` reuses the live
   `surfaces` pointer in `%eax` instead of reloading it before the leading
   surface add.  `Lnewtop_fpop2` no longer loads a dead `st_key` into
-  `%eax` before `Lnewtop` overwrites it.
+  `%eax` before `Lnewtop` overwrites it.  `R_EmitEdge` omits the
+  discarded next-edge pretouch loads on both leading and trailing sides.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -210,6 +211,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | TrailingEdge `st_next` CSE (`TrailingEdge`) | Reuse `%ecx` instead of reloading `st_next` | ~63.652240 s, ~0.03 ms (noise) | Reverted |
 | DrawSpans8 aspancount register CSE (`D_PolysetDrawSpans8`) | Keep original aspancount in `%ebp` for += | ~63.652379 s, ~0.11 ms slower | Reverted |
 | ScanLeftEdge pretouch removal (`D_PolysetScanLeftEdge`) | Drop discarded `movb` cache pretouch | 63.623244 s / 15.230283 FPS, 29.0 ms faster | Kept |
+| EmitEdge pretouch removal (`R_EmitEdge`) | Drop discarded next-edge `movl (%edx),%eax` on both sides | 63.614724 s / 15.232323 FPS, 8.5 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -487,6 +489,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 29.0 ms faster than the st_key default; every run was faster
   than the prior median.  The discarded `movb spanpackage_t_size(%esi),%al`
   pretouch is gone; the next package write after `addl` still warms the line.
+- Current default after EmitEdge pretouch removal
+  (`out\dos-timedemo-20260915-102159`): `63.615049 / 63.614724 / 63.614690` s,
+  median **63.614724 s / 15.232323 FPS**, checksum `4154140932` on all three
+  runs.  About 8.5 ms faster than the ScanLeftEdge-pretouch default; every
+  run was faster than the prior median.  Both leading/trailing
+  `movl (%edx),%eax` next-edge pretouches in `R_EmitEdge` are gone.
 
 ## Important decisions and assumptions
 
@@ -734,8 +742,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.230283 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-101018`) before further edits.
+   (15.232323 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-102159`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -749,6 +757,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-094223`; ~1.7 ms slower).
    Do not retry TrailingEdge `st_next` CSE or DrawSpans8 aspancount
    register CSE (noise / slight loss).
+   Do not restore ScanLeftEdge or EmitEdge discarded pretouch loads.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

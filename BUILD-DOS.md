@@ -355,9 +355,16 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after removing the ScanLeftEdge package
-pretouch is `63.623427 / 63.623209 / 63.623244` seconds, median
-**15.230283 FPS** / **63.623244 s**, checksum `4154140932`
+The current measured default after removing the EmitEdge next-edge
+pretouches is `63.615049 / 63.614724 / 63.614690` seconds, median
+**15.232323 FPS** / **63.614724 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-102159\timedemo-result.json`).  That is about
+8.5 ms faster than the prior ScanLeftEdge-pretouch default at
+**15.230283 FPS** / 63.623244 s (`out\dos-timedemo-20260915-101018`).
+
+The prior ScanLeftEdge pretouch removal measured
+`63.623427 / 63.623209 / 63.623244` seconds, median **15.230283 FPS** /
+**63.623244 s**, checksum `4154140932`
 (`out\dos-timedemo-20260915-101018\timedemo-result.json`).  That is about
 29.0 ms faster than the prior dead-`st_key` default at **15.223339 FPS** /
 63.652266 s (`out\dos-timedemo-20260915-094804`).
@@ -375,13 +382,6 @@ The prior edge-scan `surfaces` CSE measured
 (`out\dos-timedemo-20260915-092321\timedemo-result.json`).  That is about
 73.2 ms faster than the prior aspancount-spill default at **15.205710 FPS** /
 63.726061 s (`out\dos-timedemo-20260915-080929`).
-
-The prior ScanLeftEdge aspancount stack spill measured
-`63.726312 / 63.726047 / 63.726061` seconds, median **15.205710 FPS** /
-**63.726061 s**, checksum `4154140932`
-(`out\dos-timedemo-20260915-080929\timedemo-result.json`).  That is about
-15.7 ms faster than the prior pdest/pz default at **15.201929 FPS** /
-63.741911 s (`out\dos-timedemo-20260915-070155`).
 
 The prior ScanLeftEdge `%esi` package cursor measured
 `63.783098 / 63.783005 / 63.782908` seconds, median **15.192135 FPS** /
