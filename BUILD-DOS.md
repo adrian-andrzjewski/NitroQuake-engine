@@ -337,7 +337,16 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after the polyset span advancetable hoist is
+The current measured default after left-edge s/t step CSE is
+`63.984653 / 63.984268 / 63.984395` seconds, median **15.144318 FPS** /
+**63.984395 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-051520\timedemo-result.json`).  That is about
+18.9 ms faster than the prior advancetable default at **15.139851 FPS** /
+64.003272 s (`out\dos-timedemo-20260914-182901`).  An earlier CSE set
+(`out\dos-timedemo-20260915-051014`) matched the checksum with a run-2
+hitch; this rebenchmark confirms the keep without the hitch.
+
+The prior polyset span advancetable hoist measured
 `64.003358 / 64.003148 / 64.003272` seconds, median **15.139851 FPS** /
 **64.003272 s**, checksum `4154140932`
 (`out\dos-timedemo-20260914-182901\timedemo-result.json`).  That is about

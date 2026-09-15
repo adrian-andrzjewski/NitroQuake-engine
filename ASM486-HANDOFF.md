@@ -49,6 +49,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `[-31,32]` (was 32x32 / `[-15,16]`); longer edges still use IDIV /
   `FloorDivMod`.  Live ASM `D_PolysetDrawSpans8` builds `advancetable` /
   `tstep` once per call (same pattern as `lzistepx`).
+  `D_RasterizeAliasPolySmooth` reuses left-edge s/t base products for the
+  extra-step path (`d_countextrastep = ubasestep + 1`).
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
   `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
@@ -176,6 +178,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Polyset span advancetable hoist (`D_PolysetDrawSpans8`) | Once-per-call `advancetable`/`tstep` | 64.003272 s / 15.139851 FPS, 88.9 ms faster | Kept |
 | Polyset sstep hoist (`D_PolysetDrawSpans8`) | BSS `sstep` for `a_sstepxfrac` in pixel loop | 64.012388 s / 15.137695 FPS, 9.1 ms slower | Reverted |
 | Polyset Bresenham const hoist (`D_PolysetDrawSpans8`) | Local copies of erroradjust*/ubasestep/countextra | 64.039951 s / 15.131180 FPS, 36.7 ms slower | Reverted |
+| Left-edge s/t step CSE (`D_RasterizeAliasPolySmooth`) | Reuse base products for extra steps | 63.984395 s / 15.144318 FPS, 18.9 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -393,12 +396,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 11.9 ms faster than the adivtab-64 default; every run was
   faster than the prior median.  `D_CacheSurface` calls `R_DlightContributes`
   when a clean cache is marked this frame and skips the rebuild on a miss.
-- Current default after polyset span advancetable hoist
+- Previous default after polyset span advancetable hoist
   (`out\dos-timedemo-20260914-182901`): `64.003358 / 64.003148 / 64.003272` s,
   median **64.003272 s / 15.139851 FPS**, checksum `4154140932` on all three
   runs.  About 88.9 ms faster than the phantom-mark default; every run was
   faster than the prior median.  ASM `D_PolysetDrawSpans8` builds
   `advancetable`/`tstep` once per call.
+- Current default after left-edge s/t step CSE
+  (`out\dos-timedemo-20260915-051520`): `63.984653 / 63.984268 / 63.984395` s,
+  median **63.984395 s / 15.144318 FPS**, checksum `4154140932` on all three
+  runs.  About 18.9 ms faster than the advancetable default; every run was
+  faster than the prior median.  Confirms the earlier
+  `out\dos-timedemo-20260915-051014` keep (that set had a run-2 hitch).
+  `D_RasterizeAliasPolySmooth` reuses s/t base products for extra steps.
 
 ## Important decisions and assumptions
 
@@ -587,8 +597,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.139851 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260914-182901`) before further edits.
+   (15.144318 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-051520`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -635,7 +645,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   another surface-cache predicate helper or revive MarkLights sample scans /
   dlight loop windowing.
 4. Alias leftover is now narrower polyset raster guts after the
-   once-per-call `advancetable`/`tstep` hoist in ASM `D_PolysetDrawSpans8`.
+   once-per-call `advancetable`/`tstep` hoist and left-edge s/t step CSE
+   in `D_RasterizeAliasPolySmooth`.
    Keep direct `addl C(a_sstepxfrac)` in the pixel loop; do not retry
    BSS `sstep` for that constant (`out\dos-timedemo-20260914-183707`;
    matched checksum but ~9 ms slower).  Do not retry local copies of

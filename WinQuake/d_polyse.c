@@ -758,6 +758,7 @@ void D_RasterizeAliasPolySmooth (void)
 	int				initialleftheight, initialrightheight;
 	int				*plefttop, *prighttop, *pleftbottom, *prightbottom;
 	int				working_lstepx, originalcount;
+	int				skinwidth, sbase, tbase, sextra, textra;
 
 	plefttop = pedgetable->pleftedgevert0;
 	prighttop = pedgetable->prightedgevert0;
@@ -835,8 +836,6 @@ void D_RasterizeAliasPolySmooth (void)
 		d_pdestbasestep = screenwidth + ubasestep;
 		d_pdestextrastep = d_pdestbasestep + 1;
 
-	// TODO: can reuse partial expressions here
-
 	// for negative steps in x along left edge, bias toward overflow rather than
 	// underflow (sort of turning the floor () we did in the gradient calcs into
 	// ceil (), but plus a little bit)
@@ -845,29 +844,30 @@ void D_RasterizeAliasPolySmooth (void)
 		else
 			working_lstepx = r_lstepx;
 
+		skinwidth = r_affinetridesc.skinwidth;
 		d_countextrastep = ubasestep + 1;
-		d_ptexbasestep = ((r_sstepy + r_sstepx * ubasestep) >> 16) +
-				((r_tstepy + r_tstepx * ubasestep) >> 16) *
-				r_affinetridesc.skinwidth;
+		sbase = r_sstepy + r_sstepx * ubasestep;
+		tbase = r_tstepy + r_tstepx * ubasestep;
+		d_ptexbasestep = (sbase >> 16) + (tbase >> 16) * skinwidth;
 	#if	id386
-		d_sfracbasestep = (r_sstepy + r_sstepx * ubasestep) << 16;
-		d_tfracbasestep = (r_tstepy + r_tstepx * ubasestep) << 16;
+		d_sfracbasestep = sbase << 16;
+		d_tfracbasestep = tbase << 16;
 	#else
-		d_sfracbasestep = (r_sstepy + r_sstepx * ubasestep) & 0xFFFF;
-		d_tfracbasestep = (r_tstepy + r_tstepx * ubasestep) & 0xFFFF;
+		d_sfracbasestep = sbase & 0xFFFF;
+		d_tfracbasestep = tbase & 0xFFFF;
 	#endif
 		d_lightbasestep = r_lstepy + working_lstepx * ubasestep;
 		d_zibasestep = r_zistepy + r_zistepx * ubasestep;
 
-		d_ptexextrastep = ((r_sstepy + r_sstepx * d_countextrastep) >> 16) +
-				((r_tstepy + r_tstepx * d_countextrastep) >> 16) *
-				r_affinetridesc.skinwidth;
+		sextra = sbase + r_sstepx;
+		textra = tbase + r_tstepx;
+		d_ptexextrastep = (sextra >> 16) + (textra >> 16) * skinwidth;
 	#if	id386
-		d_sfracextrastep = (r_sstepy + r_sstepx*d_countextrastep) << 16;
-		d_tfracextrastep = (r_tstepy + r_tstepx*d_countextrastep) << 16;
+		d_sfracextrastep = sextra << 16;
+		d_tfracextrastep = textra << 16;
 	#else
-		d_sfracextrastep = (r_sstepy + r_sstepx*d_countextrastep) & 0xFFFF;
-		d_tfracextrastep = (r_tstepy + r_tstepx*d_countextrastep) & 0xFFFF;
+		d_sfracextrastep = sextra & 0xFFFF;
+		d_tfracextrastep = textra & 0xFFFF;
 	#endif
 		d_lightextrastep = d_lightbasestep + working_lstepx;
 		d_ziextrastep = d_zibasestep + r_zistepx;
@@ -938,29 +938,30 @@ void D_RasterizeAliasPolySmooth (void)
 			else
 				working_lstepx = r_lstepx;
 
+			skinwidth = r_affinetridesc.skinwidth;
 			d_countextrastep = ubasestep + 1;
-			d_ptexbasestep = ((r_sstepy + r_sstepx * ubasestep) >> 16) +
-					((r_tstepy + r_tstepx * ubasestep) >> 16) *
-					r_affinetridesc.skinwidth;
+			sbase = r_sstepy + r_sstepx * ubasestep;
+			tbase = r_tstepy + r_tstepx * ubasestep;
+			d_ptexbasestep = (sbase >> 16) + (tbase >> 16) * skinwidth;
 	#if	id386
-			d_sfracbasestep = (r_sstepy + r_sstepx * ubasestep) << 16;
-			d_tfracbasestep = (r_tstepy + r_tstepx * ubasestep) << 16;
+			d_sfracbasestep = sbase << 16;
+			d_tfracbasestep = tbase << 16;
 	#else
-			d_sfracbasestep = (r_sstepy + r_sstepx * ubasestep) & 0xFFFF;
-			d_tfracbasestep = (r_tstepy + r_tstepx * ubasestep) & 0xFFFF;
+			d_sfracbasestep = sbase & 0xFFFF;
+			d_tfracbasestep = tbase & 0xFFFF;
 	#endif
 			d_lightbasestep = r_lstepy + working_lstepx * ubasestep;
 			d_zibasestep = r_zistepy + r_zistepx * ubasestep;
 
-			d_ptexextrastep = ((r_sstepy + r_sstepx * d_countextrastep) >> 16) +
-					((r_tstepy + r_tstepx * d_countextrastep) >> 16) *
-					r_affinetridesc.skinwidth;
+			sextra = sbase + r_sstepx;
+			textra = tbase + r_tstepx;
+			d_ptexextrastep = (sextra >> 16) + (textra >> 16) * skinwidth;
 	#if	id386
-			d_sfracextrastep = ((r_sstepy+r_sstepx*d_countextrastep) & 0xFFFF)<<16;
-			d_tfracextrastep = ((r_tstepy+r_tstepx*d_countextrastep) & 0xFFFF)<<16;
+			d_sfracextrastep = (sextra & 0xFFFF) << 16;
+			d_tfracextrastep = (textra & 0xFFFF) << 16;
 	#else
-			d_sfracextrastep = (r_sstepy+r_sstepx*d_countextrastep) & 0xFFFF;
-			d_tfracextrastep = (r_tstepy+r_tstepx*d_countextrastep) & 0xFFFF;
+			d_sfracextrastep = sextra & 0xFFFF;
+			d_tfracextrastep = textra & 0xFFFF;
 	#endif
 			d_lightextrastep = d_lightbasestep + working_lstepx;
 			d_ziextrastep = d_zibasestep + r_zistepx;
