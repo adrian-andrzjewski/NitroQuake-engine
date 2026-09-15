@@ -43,10 +43,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   surface add.  `Lnewtop_fpop2` no longer loads a dead `st_key` into
   `%eax` before `Lnewtop` overwrites it.  `R_EmitEdge` omits the
   discarded next-edge pretouch loads on both leading and trailing sides,
-  and loads `r_pedge` once after the horizontal early-out for
-  `et_owner` (no preload into `%esi`).  `TrailingEdge` emit /
-  `LNoEmit2` unlink with the already-loaded `st_next` in `%ecx` instead
-  of reloading into `%edx`, skips the `r_bmodelactive` update when
+  loads `r_pedge` once after the horizontal early-out for `et_owner`
+  (no preload into `%esi`), and drops an unused `r_pedge` load on the
+  fully-clipped both-points-out path (cacheoffset only).  `TrailingEdge`
+  emit / `LNoEmit2` unlink with the already-loaded `st_next` in `%ecx`
+  instead of reloading into `%edx`, skips the `r_bmodelactive` update when
   `insubmodel` is 0, and uses `decl`/`incl` memory forms for bmodel
   enter/leave (matching C's `++`/`--`).
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
@@ -222,6 +223,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | EmitEdge single `r_pedge` load (`R_EmitEdge`) | Drop preload into `%esi`; load once after horizontal early-out for `et_owner` | 63.573196 s / 15.242273 FPS, 10.4 ms faster | Kept |
 | TrailingEdge skip `r_bmodelactive` RMW (`TrailingEdge`) | Skip load/sub/store when `insubmodel==0` | 63.523798 s / 15.254125 FPS, 49.4 ms faster | Kept |
 | Bmodel `incl`/`decl` `r_bmodelactive` (`TrailingEdge` / `Lbmodel_leading`) | Memory inc/dec instead of load/add/store; world skip kept | 63.500960 s / 15.259612 FPS, 22.8 ms faster | Kept |
+| EmitEdge drop unused clipped `r_pedge` load (`R_EmitEdge`) | Fully-clipped path wrote only `cacheoffset`; `%ecx` load was dead | 63.488089 s / 15.262705 FPS, 12.9 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -529,6 +531,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 22.8 ms faster than the world-skip default; every run was
   faster than every prior-default run.  `Lbmodel_leading` uses
   `incl C(r_bmodelactive)`; TrailingEdge bmodels use `decl`.
+- Current default after dropping unused clipped `r_pedge` load
+  (`out\dos-timedemo-20260915-113652`): `63.488166 / 63.488089 / 63.488004` s,
+  median **63.488089 s / 15.262705 FPS**, checksum `4154140932` on all three
+  runs.  About 12.9 ms faster than the bmodel-incl/decl default; every run
+  was faster than every prior-default run.  Fully-clipped edges only update
+  `cacheoffset`.
 
 ## Important decisions and assumptions
 
@@ -553,6 +561,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- EmitEdge `r_pedge`/`et_owner` into FDIV shadow (`out\dos-timedemo-20260915-112708`)
+  matched checksum `4154140932` but was noise (~0.03 ms vs the bmodel
+  incl/decl default).  Starting u-step FDIV before the owner store did not
+  help; keep owner store before the side branch.  Do not retry.
+- PolysetCalcGradients s/t step CSE (`out\dos-timedemo-20260915-113155`)
+  matched checksum `4154140932` but median tied the prior default
+  (63.500960 s).  Copying `r_sstepx`/`r_tstepx` before `shll` to avoid a
+  second pair of loads did not move end-to-end time; do not retry.
 - Leading spanstate-before-insubmodel reorder (`out\dos-timedemo-20260915-110203`)
   matched checksum `4154140932` but was noise (~0.01 ms vs the EmitEdge
   `r_pedge` default).  Testing inversion before loading `insubmodel` and
@@ -788,8 +804,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.259612 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-111815`) before further edits.
+   (15.262705 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-113652`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -810,6 +826,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry leading spanstate-before-insubmodel reorder
    (`out\dos-timedemo-20260915-110203`; noise).
    Do not restore load/add/store for `r_bmodelactive` on the bmodel path.
+   Do not retry EmitEdge owner-store into FDIV shadow
+   (`out\dos-timedemo-20260915-112708`; noise).
+   Do not retry PolysetCalcGradients s/t step CSE
+   (`out\dos-timedemo-20260915-113155`; tied).
+   Do not restore the unused clipped-path `r_pedge` load.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -916,7 +937,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `pnext` preload into `pspantemp`, or `D_DrawSkyScans8`
    `viewspantable` dest rows (noise or slower).  Edge scan keeps the
    `Lgs_leading` `surfaces` CSE and TrailingEdge direct-`%ecx` unlink;
-   `R_EmitEdge` loads `r_pedge` once after the horizontal early-out;
+   `R_EmitEdge` loads `r_pedge` once after the horizontal early-out and
+   omits the unused fully-clipped `r_pedge` load;
    TrailingEdge skips `r_bmodelactive` when `insubmodel==0` and uses
    `decl`/`incl` memory forms for bmodel enter/leave.
    Look for other dead reloads carefully before adding stack traffic.

@@ -498,11 +498,11 @@ Lp2:
 //				// we do cache fully clipped edges
 //					if (!leftclipped)
 	movl	C(r_leftclipped),%eax
-	movl	C(r_pedge),%ecx
 	testl	%eax,%eax
 	jnz		Ldone
 
 //						r_pedge->framecount = r_framecount;
+//					(cached via cacheoffset; r_pedge load was unused)
 	movl	C(r_framecount),%eax
 	andl	$(FRAMECOUNT_MASK),%eax
 	orl		$(FULLY_CLIPPED_CACHED),%eax
