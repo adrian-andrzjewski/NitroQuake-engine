@@ -372,7 +372,8 @@ Lgs_edgeloop:
 
 Lgs_leading:
 	shrl	$16-SURF_T_SHIFT,%edi
-	movl	C(surfaces),%eax
+	// %eax still holds surfaces: loaded at Lgs_edgeloop, and reloaded after
+	// TrailingEdge when both edges are present.  Skip a dead third load.
 	addl	%eax,%edi
 	movl	0x12345678,%esi		// surf2 = surfaces[1].next;
 LPatch2:
@@ -548,7 +549,7 @@ Lnewtop_fpop3:
 Lnewtop_fpop2:
 	fstp	%st(0)
 	fstp	%st(0)
-	movl	st_key(%edi),%eax		// reload the sorting key
+	// Former "reload sorting key" into %eax was dead: Lnewtop overwrites %eax.
 
 Lnewtop:
 	movl	et_u(%ebx),%eax

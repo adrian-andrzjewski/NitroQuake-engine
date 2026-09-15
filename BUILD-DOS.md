@@ -355,12 +355,33 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after ScanLeftEdge pdest/pz cursors is
-`63.741911 / 63.741666 / 63.742057` seconds, median **15.201929 FPS** /
-**63.741911 s**, checksum `4154140932`
-(`out\dos-timedemo-20260915-070155\timedemo-result.json`).  That is about
-41.1 ms faster than the prior package-cursor default at **15.192135 FPS** /
-63.783005 s (`out\dos-timedemo-20260915-064521`).
+The current measured default after removing the ScanLeftEdge package
+pretouch is `63.623427 / 63.623209 / 63.623244` seconds, median
+**15.230283 FPS** / **63.623244 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-101018\timedemo-result.json`).  That is about
+29.0 ms faster than the prior dead-`st_key` default at **15.223339 FPS** /
+63.652266 s (`out\dos-timedemo-20260915-094804`).
+
+The prior dead `st_key` reload removal measured
+`63.652309 / 63.652161 / 63.652266` seconds, median **15.223339 FPS** /
+**63.652266 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-094804\timedemo-result.json`).  That is about
+0.58 ms faster than the prior surfaces-CSE default at **15.223200 FPS** /
+63.652849 s (`out\dos-timedemo-20260915-092321`).
+
+The prior edge-scan `surfaces` CSE measured
+`63.652962 / 63.652822 / 63.652849` seconds, median **15.223200 FPS** /
+**63.652849 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-092321\timedemo-result.json`).  That is about
+73.2 ms faster than the prior aspancount-spill default at **15.205710 FPS** /
+63.726061 s (`out\dos-timedemo-20260915-080929`).
+
+The prior ScanLeftEdge aspancount stack spill measured
+`63.726312 / 63.726047 / 63.726061` seconds, median **15.205710 FPS** /
+**63.726061 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-080929\timedemo-result.json`).  That is about
+15.7 ms faster than the prior pdest/pz default at **15.201929 FPS** /
+63.741911 s (`out\dos-timedemo-20260915-070155`).
 
 The prior ScanLeftEdge `%esi` package cursor measured
 `63.783098 / 63.783005 / 63.782908` seconds, median **15.192135 FPS** /

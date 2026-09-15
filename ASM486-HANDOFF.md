@@ -38,6 +38,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   IMUL `d_zrowbytes`.  The span list cursor lives in `%ebp` so the pack
   loop can scratch `%esi` without push/pop per span.  The C multiply
   path remains the reference.
+- Edge scan: `R_GenerateSpans` / `Lgs_leading` reuses the live
+  `surfaces` pointer in `%eax` instead of reloading it before the leading
+  surface add.  `Lnewtop_fpop2` no longer loads a dead `st_key` into
+  `%eax` before `Lnewtop` overwrites it.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -55,7 +59,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   extra-step path (`d_countextrastep = ubasestep + 1`).
   Live ASM `D_PolysetScanLeftEdge` keeps the package cursor in `%esi`,
   live `d_pdest`/`d_pz` in `%edi`/`%ebp`, and spills light/zi/aspancount
-  on the stack (aspancount written back once on exit).
+  on the stack (aspancount written back once on exit).  The discarded
+  next-package cache pretouch `movb` is omitted; the first store after
+  advancing `%esi` still touches the line.
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
   `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
@@ -197,6 +203,13 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Span16 early `pnext` preload (`d_draw16.s`) | Store next span in `pspantemp` during FDIV setup | Noise / slight loss vs aspancount default | Reverted |
 | ScanLeftEdge erroradjust stack (`D_PolysetScanLeftEdge`) | Spill `erroradjustup`/`down` beside aspancount | Hitch min 1.93 FPS; ~13 ms slower median | Reverted |
 | ScanLeftEdge errorterm stack (`D_PolysetScanLeftEdge`) | Spill `errorterm` beside aspancount | ~13 ms slower than aspancount-only | Reverted |
+| Turbulent sstep/tstep/pbase stack hoist (`D_DrawTurbulent8Span_asm486`) | Snapshot three span-invariant globals once | 63.743347 s / 15.201586 FPS, ~17 ms slower | Reverted |
+| Edge-scan surfaces CSE (`R_GenerateSpans` / `Lgs_leading`) | Drop dead `movl C(surfaces),%eax` before leading add | 63.652849 s / 15.223200 FPS, 73.2 ms faster | Kept |
+| Edge-scan both-edges leading precompute (`R_GenerateSpans`) | Finish leading surf* before `TrailingEdge`; drop post-call reload | 63.654537 s / 15.222796 FPS, ~1.7 ms slower | Reverted |
+| Edge-scan dead `st_key` reload (`Lnewtop_fpop2`) | Remove load overwritten by `Lnewtop` | 63.652266 s / 15.223339 FPS, 0.58 ms faster | Kept |
+| TrailingEdge `st_next` CSE (`TrailingEdge`) | Reuse `%ecx` instead of reloading `st_next` | ~63.652240 s, ~0.03 ms (noise) | Reverted |
+| DrawSpans8 aspancount register CSE (`D_PolysetDrawSpans8`) | Keep original aspancount in `%ebp` for += | ~63.652379 s, ~0.11 ms slower | Reverted |
+| ScanLeftEdge pretouch removal (`D_PolysetScanLeftEdge`) | Drop discarded `movb` cache pretouch | 63.623244 s / 15.230283 FPS, 29.0 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -456,6 +469,24 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 15.7 ms faster than the re-lock; every run was faster than
   every re-lock run.  `d_aspancount` lives at `0(%esp)` beside light/zi;
   both exit paths write it back once.
+- Current default after edge-scan `surfaces` CSE
+  (`out\dos-timedemo-20260915-092321`): `63.652962 / 63.652822 / 63.652849` s,
+  median **63.652849 s / 15.223200 FPS**, checksum `4154140932` on all three
+  runs.  About 73.2 ms faster than the aspancount default; every run was
+  faster than the prior median.  `Lgs_leading` reuses `%eax` already loaded
+  with `surfaces` instead of reloading it.
+- Current default after edge-scan dead `st_key` reload removal
+  (`out\dos-timedemo-20260915-094804`): `63.652309 / 63.652161 / 63.652266` s,
+  median **63.652266 s / 15.223339 FPS**, checksum `4154140932` on all three
+  runs.  About 0.58 ms faster than the surfaces-CSE default; every run was
+  faster than the prior median.  `Lnewtop_fpop2` no longer loads `st_key`
+  into `%eax` before `Lnewtop` overwrites it.
+- Current default after ScanLeftEdge pretouch removal
+  (`out\dos-timedemo-20260915-101018`): `63.623427 / 63.623209 / 63.623244` s,
+  median **63.623244 s / 15.230283 FPS**, checksum `4154140932` on all three
+  runs.  About 29.0 ms faster than the st_key default; every run was faster
+  than the prior median.  The discarded `movb spanpackage_t_size(%esi),%al`
+  pretouch is gone; the next package write after `addl` still warms the line.
 
 ## Important decisions and assumptions
 
@@ -480,6 +511,22 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- DrawSpans8 aspancount register CSE (`out\dos-timedemo-20260915-100552`)
+  matched checksum `4154140932` but was noise/~0.11 ms slower than the
+  st_key default.  Do not retry keeping a second copy of `d_aspancount` in
+  `%ebp` for the right-edge `+=` update.
+- TrailingEdge `st_next` CSE (`out\dos-timedemo-20260915-095842`) matched
+  checksum `4154140932` but was noise (~0.03 ms).  Do not retry replacing
+  the second `st_next` load with `movl %ecx,%edx` on the emit/LNoEmit2 paths.
+- Edge-scan both-edges leading precompute (`out\dos-timedemo-20260915-094223`)
+  matched checksum `4154140932` but was ~1.7 ms slower than the surfaces-CSE
+  default (63.654537 s vs 63.652849 s).  Finishing `surf*` before
+  `TrailingEdge` avoided a reload but the leading-only join cost more;
+  do not retry.
+- Turbulent sstep/tstep/pbase stack hoist (`out\dos-timedemo-20260915-091357`)
+  matched checksum `4154140932` but was ~17 ms slower than the aspancount
+  default (63.743347 s vs 63.726061 s).  Absolute C-global loads beat
+  stack-relative copies for those three invariants; do not retry.
 - HDPMI32 as an alternate DPMI server (`DPMI-HDPMI32.md`,
   `out\dos-dpmi-compare-20260915-084120`): resident `HDPMI32 -r` is
   detected and Quake completes `demo1`, but every run failed checksum
@@ -687,8 +734,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.205710 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-080929`) before further edits.
+   (15.230283 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-101018`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -696,6 +743,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    with engine unchanged (`DPMI-HDPMI32.md`).  It runs and probes as vendor
    `HDPMI` 3.20, but every timedemo failed checksum `2955717646` vs
    known-good `4154140932`.  Keep CWSDPMI; do not promote HDPMI32.
+   Do not retry turbulent sstep/tstep/pbase stack hoisting
+   (`out\dos-timedemo-20260915-091357`; ~17 ms slower).
+   Do not retry both-edges leading precompute before `TrailingEdge`
+   (`out\dos-timedemo-20260915-094223`; ~1.7 ms slower).
+   Do not retry TrailingEdge `st_next` CSE or DrawSpans8 aspancount
+   register CSE (noise / slight loss).
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -789,7 +842,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    slower).  `D_PolysetScanLeftEdge` keeps `d_pedgespanpackage` in `%esi`
    and live `d_pdest`/`d_pz` in `%edi`/`%ebp` (light/zi/aspancount on
    stack), publishing the package pointer and writing back
-   `d_aspancount` once on exit.  Z spans use `zspantable`
+   `d_aspancount` once on exit.  Do not restore the discarded package
+   pretouch `movb`.  Z spans use `zspantable`
    and keep the span list in `%ebp` (no per-span push/pop of the list
    pointer); keep the count `pushl`/`popl` for the odd pixel.  Do not
    retry tagging `%ebp` bit0 to drop that count stack traffic
@@ -798,9 +852,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    kept aspancount spill in `D_PolysetScanLeftEdge`.  Do not retry
    `D_DrawSpans16` s/t integer CSE across the sfrac/tfrac shifts, early
    `pnext` preload into `pspantemp`, or `D_DrawSkyScans8`
-   `viewspantable` dest rows (noise or slower).  Edge scan is
-   already assembly.  Do not revive BSP plane-dot/clip helpers.  Face Z
-   gradients are cached.
+   `viewspantable` dest rows (noise or slower).  Edge scan keeps the
+   `Lgs_leading` `surfaces` CSE; look for other dead reloads carefully
+   before adding stack traffic.  Do not revive BSP plane-dot/clip helpers.
+   Face Z gradients are cached.
 
 ## Starting commands
 

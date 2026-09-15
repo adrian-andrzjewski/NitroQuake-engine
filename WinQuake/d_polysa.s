@@ -1335,9 +1335,6 @@ LScanLoop:
 	movl	%ecx,spanpackage_t_sfrac(%esi)
 	movl	%edx,spanpackage_t_tfrac(%esi)
 
-// pretouch the next cache line
-	movb	spanpackage_t_size(%esi),%al
-
 //		d_pedgespanpackage++;
 	addl	$(spanpackage_t_size),%esi
 
