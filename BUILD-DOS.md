@@ -331,6 +331,24 @@ Use `-NoFpsStats` for a raw comparison when measuring the cost of collecting
 the extra statistics.  The raw result is the authority for small engine-speed
 comparisons; the rich result is the authority for frame-time consistency.
 
+### Alternate DPMI host (HDPMI32 experiment)
+
+The default staging still copies `cwsdpmi.exe` beside the EXE.  For an isolated
+DPMI-server A/B without rebuilding Quake:
+
+~~~powershell
+.\tools\timedemo-dos.ps1 -SkipBuild -DpmiHost hdpmi32 -Runs 5 `
+  -DataRoot 'C:\path\to\Quake\id1'
+.\tools\compare-dpmi-dos.ps1 -SkipBuild -Runs 5 -DataRoot 'C:\path\to\Quake\id1'
+~~~
+
+`-DpmiHost hdpmi32` stages Japheth's `HDPMI32.EXE` from
+`tools\thirdparty\hdpmi\`, omits `cwsdpmi.exe`, runs `HDPMI32 -r`, and records
+a `DPMI.EXE` host probe.  A 2026-09-15 five-run matched comparison showed
+HDPMI32 completes timedemos but fails the known-good framebuffer checksum
+(`2955717646` vs `4154140932`) on every run, so **CWSDPMI remains the preferred
+host**.  Full write-up: `DPMI-HDPMI32.md`.
+
 For an odd number of runs, the runner selects the middle sorted sample.  Older
 generated JSON records may contain the highest sample in `medianFps`; use the
 individual `results` entries when auditing those records.

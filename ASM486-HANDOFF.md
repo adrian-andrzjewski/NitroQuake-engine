@@ -480,6 +480,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- HDPMI32 as an alternate DPMI server (`DPMI-HDPMI32.md`,
+  `out\dos-dpmi-compare-20260915-084120`): resident `HDPMI32 -r` is
+  detected and Quake completes `demo1`, but every run failed checksum
+  `2955717646` vs `4154140932`.  Median FPS looked ~0.05% higher while
+  measuring different pixels, and one of five HDPMI runs hitching widened
+  its FPS range to 0.325.  Keep CWSDPMI; do not promote HDPMI32.
 - A texture row-lookup experiment was reverted after a faster run produced
   checksum `2955717646` instead of `4154140932`.
 - The isolated surface-cache, mip, BSP-dot, and BSP-clip wins did not survive
@@ -686,6 +692,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
+   **DPMI note (2026-09-15):** HDPMI32 as a CWSDPMI alternative was tested
+   with engine unchanged (`DPMI-HDPMI32.md`).  It runs and probes as vendor
+   `HDPMI` 3.20, but every timedemo failed checksum `2955717646` vs
+   known-good `4154140932`.  Keep CWSDPMI; do not promote HDPMI32.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

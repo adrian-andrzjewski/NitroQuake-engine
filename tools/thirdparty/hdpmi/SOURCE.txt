@@ -1,0 +1,16 @@
+HDPMI32 (Japheth / HX DOS Extender runtime)
+
+Source package:
+  https://ibiblio.org/pub/micro/pc-stuff/freedos/files/util/system/hx-dos-extender/2.20/HXRT220.zip
+  Package: HXRT220.zip (HX DOS Extender runtime v2.20)
+
+Extracted for this experiment:
+  BIN/HDPMI32.EXE  -> HDPMI32.EXE
+  BIN/DPMI.EXE     -> DPMI.EXE (host identity probe)
+  DOC/HDPMI.TXT    -> HDPMI.TXT
+
+SHA-256 (HDPMI32.EXE):
+  F9C1A21A0673B9E771AC0BFE09AE11E90E264882AC067E27E94DEA2AACA66415
+
+License: HX runtime freeware (see HDPMI.TXT section 10).
+Not linked into Quake; used only as an external DPMI server beside qbench.exe.

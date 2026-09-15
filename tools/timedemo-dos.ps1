@@ -40,7 +40,20 @@ param(
     [ValidateRange(1, 9)]
     [int]$Runs = 3,
     [int]$TimeoutSeconds = 180,
-    [switch]$NoFpsStats
+    [switch]$NoFpsStats,
+    # External DPMI host only; does not change the Quake/DJGPP binary.
+    # cwsdpmi: stage CWSDPMI.EXE (DJGPP stub auto-loads it when no host is resident).
+    # hdpmi32: stage HDPMI32.EXE, omit CWSDPMI, install resident with -r before Quake.
+    [ValidateSet('cwsdpmi', 'hdpmi32')]
+    [string]$DpmiHost = 'cwsdpmi',
+    # Extra HDPMI32 flags after -r (e.g. '-m' to disable DPMI 1.0 memory APIs for DJGPP).
+    [string]$HdpmiExtraArgs = '',
+    # Optional DOS environment assignments before HDPMI32 (e.g. 'HDPMI=512').
+    [string]$HdpmiEnv = '',
+    # Extra Quake/qbench command-line tokens (e.g. '-mem 8' to pin heap size across DPMI hosts).
+    [string]$QuakeExtraArgs = '',
+    # When using hdpmi32, still run DPMI.EXE to record the resident host identity.
+    [switch]$SkipDpmiProbe
 )
 
 Set-StrictMode -Version Latest
@@ -186,7 +199,8 @@ if ($null -eq $pak0) {
     throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not included in Git."
 }
 
-$runName = 'dos-timedemo-' + (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
+$dpmiSuffix = if ($DpmiHost -eq 'cwsdpmi') { '' } else { '-hdpmi32' }
+$runName = 'dos-timedemo' + $dpmiSuffix + '-' + (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
 $stagingRoot = Join-Path (Join-Path $repoRoot 'out') $runName
 if (Test-Path -LiteralPath $stagingRoot) {
     throw "Timedemo staging path already exists; refusing to overwrite '$stagingRoot'."
@@ -196,15 +210,68 @@ $stagedData = Join-Path $quakeRoot 'id1'
 $fpsStatsOptions = if ($NoFpsStats) { '' } else { ' -fpsstats' }
 New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
+$cwsdpmiSource = Join-Path $repoRoot 'WinQuake\cwsdpmi.exe'
+$hdpmiDir = Join-Path $PSScriptRoot 'thirdparty\hdpmi'
+$hdpmiSource = Join-Path $hdpmiDir 'HDPMI32.EXE'
+$dpmiProbeSource = Join-Path $hdpmiDir 'DPMI.EXE'
+$dpmiHostPath = $null
+$dpmiHostSha256 = $null
+$hdpmiLoadLine = ''
+$dpmiProbeLines = @()
+
 Copy-Item -LiteralPath $benchmarkExe -Destination (Join-Path $quakeRoot $executableName)
-Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe')
 Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -Force
 
+if ($DpmiHost -eq 'cwsdpmi') {
+    if (-not (Test-Path -LiteralPath $cwsdpmiSource -PathType Leaf)) {
+        throw "CWSDPMI binary missing: '$cwsdpmiSource'."
+    }
+    Copy-Item -LiteralPath $cwsdpmiSource -Destination (Join-Path $quakeRoot 'cwsdpmi.exe')
+    $dpmiHostPath = $cwsdpmiSource
+}
+else {
+    if (-not (Test-Path -LiteralPath $hdpmiSource -PathType Leaf)) {
+        throw "HDPMI32 binary missing: '$hdpmiSource'. See tools\thirdparty\hdpmi\SOURCE.txt."
+    }
+    if (-not (Test-Path -LiteralPath $dpmiProbeSource -PathType Leaf)) {
+        throw "DPMI host probe missing: '$dpmiProbeSource'."
+    }
+    # Do not stage cwsdpmi.exe: the DJGPP GO32 stub auto-loads CWSDPMI.EXE by name
+    # when no DPMI host is already resident. Omitting it forces use of resident HDPMI32.
+    Copy-Item -LiteralPath $hdpmiSource -Destination (Join-Path $quakeRoot 'HDPMI32.EXE')
+    Copy-Item -LiteralPath $dpmiProbeSource -Destination (Join-Path $quakeRoot 'DPMI.EXE')
+    $dpmiHostPath = $hdpmiSource
+    $extra = if ([string]::IsNullOrWhiteSpace($HdpmiExtraArgs)) { '' } else { ' ' + $HdpmiExtraArgs.Trim() }
+    $hdpmiLoadLine = "HDPMI32 -r$extra"
+    if (-not $SkipDpmiProbe) {
+        $dpmiProbeLines = @(
+            'if exist \quake\dpmihost.txt del \quake\dpmihost.txt'
+            'DPMI.EXE > \quake\dpmihost.txt'
+        )
+    }
+    if (-not [string]::IsNullOrWhiteSpace($HdpmiEnv)) {
+        # Applied before HDPMI32 -r so the host sees the bits at install time.
+        $hdpmiLoadLine = ("set {0}`r`n{1}" -f $HdpmiEnv.Trim(), $hdpmiLoadLine)
+    }
+}
+
+$sha256Host = [Security.Cryptography.SHA256]::Create()
+try {
+    $dpmiHostSha256 = ([BitConverter]::ToString(
+            $sha256Host.ComputeHash([IO.File]::ReadAllBytes($dpmiHostPath)))).Replace('-', '')
+}
+finally {
+    $sha256Host.Dispose()
+}
+
 $batchPath = Join-Path $quakeRoot 'timedemo.bat'
+$probeBlock = if ($dpmiProbeLines.Count) { ($dpmiProbeLines -join "`r`n") + "`r`n" } else { '' }
+$loadBlock = if ($hdpmiLoadLine) { "$hdpmiLoadLine`r`n" } else { '' }
+$quakeExtras = if ([string]::IsNullOrWhiteSpace($QuakeExtraArgs)) { '' } else { ' ' + $QuakeExtraArgs.Trim() }
 @"
 @echo off
 cd \quake
-$executableName -basedir \quake -timedemoexit$fpsStatsOptions -nosound -nojoy -nomouse -nocdaudio +timedemo $DemoName
+$loadBlock$probeBlock$executableName -basedir \quake -timedemoexit$fpsStatsOptions -nosound -nojoy -nomouse -nocdaudio$quakeExtras +timedemo $DemoName
 exit
 "@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
@@ -438,6 +505,12 @@ if ($fpsStatsRuns.Count -gt 0) {
     }
 }
 
+$dpmiHostProbe = $null
+$dpmiHostProbePath = Join-Path $quakeRoot 'dpmihost.txt'
+if (Test-Path -LiteralPath $dpmiHostProbePath -PathType Leaf) {
+    $dpmiHostProbe = (Get-Content -LiteralPath $dpmiHostProbePath -Raw).Trim()
+}
+
 $result = [ordered]@{
     demo = $DemoName
     runs = $Runs
@@ -447,6 +520,13 @@ $result = [ordered]@{
     profile = $profilePath
     profileSha256 = $profileHash
     executable = $benchmarkExe
+    dpmiHost = $DpmiHost
+    dpmiHostPath = $dpmiHostPath
+    dpmiHostSha256 = $dpmiHostSha256
+    hdpmiExtraArgs = if ($DpmiHost -eq 'hdpmi32') { $HdpmiExtraArgs } else { $null }
+    hdpmiEnv = if ($DpmiHost -eq 'hdpmi32') { $HdpmiEnv } else { $null }
+    quakeExtraArgs = $QuakeExtraArgs
+    dpmiHostProbe = $dpmiHostProbe
     optimizationProfile = $OptimizationProfile
     textureAxisCacheEntries = $TextureAxisCacheEntries
     textureAxisImplementation = $TextureAxisImplementation
@@ -472,6 +552,11 @@ $resultPath = Join-Path $stagingRoot 'timedemo-result.json'
 $result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $resultPath -Encoding ASCII
 
 Write-Host ($results | ForEach-Object { $_.report })
+Write-Host ("DPMI host: {0} ({1})" -f $DpmiHost, $dpmiHostSha256)
+if ($null -ne $dpmiHostProbe -and $dpmiHostProbe.Length -gt 0) {
+    Write-Host "DPMI probe:"
+    Write-Host $dpmiHostProbe
+}
 Write-Host ("Median FPS: {0:N1}" -f $medianFps)
 if ($null -ne $fpsSummary) {
     Write-Host ("FPS stats (median across {0} run(s)): avg {1:0.000000} min {2:0.000000} max {3:0.000000} median {4:0.000000} low1 {5:0.000000} low0.1 {6:0.000000} high1 {7:0.000000} stddev {8:0.000000} drops {9} spikes {10}" -f
