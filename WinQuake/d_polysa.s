@@ -598,41 +598,32 @@ LSplit:
 //	new[2] = (lp1[2] + lp2[2]) >> 1;
 //	new[3] = (lp1[3] + lp2[3]) >> 1;
 //	new[5] = (lp1[5] + lp2[5]) >> 1;
+// Memory addl for s/t/zi midpoints (drop lp2 preloads into %edx).
+// x/y keep lp1 live in %ecx/%eax for the nodraw compares below.
 	movl	8(%ebx),%eax
-
-	movl	8(%esi),%edx
-	movl	12(%ebx),%ecx
-
-	addl	%edx,%eax
-	movl	12(%esi),%edx
-
+	addl	8(%esi),%eax
 	sarl	$1,%eax
-	addl	%edx,%ecx
-
 	movl	%eax,8(%esp)
-	movl	20(%ebx),%eax
 
+	movl	12(%ebx),%ecx
+	addl	12(%esi),%ecx
 	sarl	$1,%ecx
-	movl	20(%esi),%edx
-
 	movl	%ecx,12(%esp)
-	addl	%edx,%eax
+
+	movl	20(%ebx),%eax
+	addl	20(%esi),%eax
+	sarl	$1,%eax
+	movl	%eax,20(%esp)
 
 	movl	0(%ebx),%ecx
 	movl	0(%esi),%edx
-
-	sarl	$1,%eax
 	addl	%ecx,%edx
-
-	movl	%eax,20(%esp)
-	movl	4(%ebx),%eax
-
 	sarl	$1,%edx
-	movl	4(%esi),%ebp
-
 	movl	%edx,0(%esp)
-	addl	%eax,%ebp
 
+	movl	4(%ebx),%eax
+	movl	4(%esi),%ebp
+	addl	%eax,%ebp
 	sarl	$1,%ebp
 	movl	%ebp,4(%esp)
 

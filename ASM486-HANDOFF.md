@@ -82,6 +82,17 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `R_StepActiveU` `LPushBackLoop` defers `et_prev` past the first
   `et_u` early-out (dead on `LPushBackFound`); second probe unchanged.
   Pushback search uses memory `cmpl et_u(...)` (drop preload into `%ebx`).
+  Step probes use memory `addl et_u_step(...)` (drop preload into `%ebx`).
+  Leading `Lnewtop` compares `iu` to `st_last_u` via memory `cmpl` (load
+  `last_u` into `%edx` only when emitting), matching TrailingEdge.
+  `R_EmitEdge` compares `ceilv0` to `r_ceilv1` via memory `cmpl` and loads
+  `r_ceilv1` into `%ecx` only when the edge is non-horizontal (CF still
+  feeds the side `jc` after `leal`).
+  `D_PolysetRecursiveTriangle` midpoint s/t/zi uses memory `addl` of
+  `lp2` fields (drop `%edx` preloads); x/y still keep `lp1` live for
+  nodraw compares and `new[0]`/`new[1]` into LDraw.
+  `R_EmitEdge` u-clamp uses memory `cmpl` against vrect left/right
+  (load the clamp bound into `%edx` only on the taken clamp paths).
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -303,6 +314,11 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | StepActiveU `LPushBackLoop` memory `cmpl et_u` (`R_StepActiveU`) | Drop `%ebx` key preload on pushback walk probes | 62.783533 s / 15.433983 FPS, 3.7 ms faster | Kept |
 | TrailingEdge memory `cmpl st_last_u` (`TrailingEdge`) | Load `last_u` into `%edx` only on emit; dead on `LNoEmit2` | 62.782647 s / 15.434201 FPS, 0.9 ms faster | Kept |
 | ScanLeftEdge skip dead last-row Bresenham (`D_PolysetScanLeftEdge`) | `decl`/`jz` before step after last package; shared epilogue | 62.753905 s / 15.441270 FPS, 28.7 ms faster | Kept |
+| StepActiveU memory `addl et_u_step` (`R_StepActiveU`) | Drop `%ebx` u_step preload on all four step probes | 62.649598 s / 15.466979 FPS, 104.3 ms faster | Kept |
+| Leading `Lnewtop` memory `cmpl st_last_u` (`R_GenerateSpans`) | Load `last_u` into `%edx` only on emit; same as TrailingEdge | 62.623729 s / 15.473368 FPS, 25.9 ms faster | Kept |
+| EmitEdge defer `r_ceilv1` past horizontal EO (`R_EmitEdge`) | Memory `cmpl`; load `%ecx` only when emitting; CF kept for side | 62.621766 s / 15.473853 FPS, 2.0 ms faster | Kept |
+| RecursiveTriangle memory `addl` s/t/zi midpoints (`D_PolysetRecursiveTriangle`) | Drop lp2 preloads for new[2]/[3]/[5]; keep lp1 x/y live for nodraw | 62.605144 s / 15.477961 FPS, 16.6 ms faster | Kept |
+| EmitEdge memory `cmpl` u-clamp (`R_EmitEdge`) | Load vrect clamp bounds into `%edx` only when clamping | 62.588326 s / 15.482121 FPS, 16.8 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -767,6 +783,31 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   run was faster than every prior-default run.  (Earlier measurement
   `out\dos-timedemo-20260915-200144` had a 62.856 s middle-run outlier;
   the clean re-run is the accepted evidence.)
+- Current default after StepActiveU memory `addl et_u_step`
+  (`out\dos-timedemo-20260915-202546`): `62.651188 / 62.649598 / 62.649569` s,
+  median **62.649598 s / 15.466979 FPS**, checksum `4154140932` on all three
+  runs.  About 104.3 ms faster than the ScanLeftEdge default; every run
+  was faster than every prior-default run.
+- Current default after leading `Lnewtop` memory `cmpl st_last_u`
+  (`out\dos-timedemo-20260915-203108`): `62.623894 / 62.623729 / 62.623708` s,
+  median **62.623729 s / 15.473368 FPS**, checksum `4154140932` on all three
+  runs.  About 25.9 ms faster than the StepActiveU-`et_u_step` default; every
+  run was faster than every prior-default run.
+- Current default after EmitEdge defer `r_ceilv1` past horizontal EO
+  (`out\dos-timedemo-20260915-204522`): `62.621949 / 62.621766 / 62.621726` s,
+  median **62.621766 s / 15.473853 FPS**, checksum `4154140932` on all three
+  runs.  About 2.0 ms faster than the `Lnewtop`-`last_u` default; every run
+  was faster than every prior-default run.
+- Current default after RecursiveTriangle memory `addl` s/t/zi midpoints
+  (`out\dos-timedemo-20260915-205607`): `62.605330 / 62.605144 / 62.605103` s,
+  median **62.605144 s / 15.477961 FPS**, checksum `4154140932` on all three
+  runs.  About 16.6 ms faster than the EmitEdge-`r_ceilv1` default; every
+  run was faster than every prior-default run.
+- Current default after EmitEdge memory `cmpl` u-clamp
+  (`out\dos-timedemo-20260915-210614`): `62.588579 / 62.588326 / 62.588325` s,
+  median **62.588326 s / 15.482121 FPS**, checksum `4154140932` on all three
+  runs.  About 16.8 ms faster than the RecursiveTriangle-midpoint default;
+  every run was faster than every prior-default run.
 
 ## Important decisions and assumptions
 
@@ -791,6 +832,15 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- `Lgs_lastspan` memory `cmpl st_last_u`
+  (`out\dos-timedemo-20260915-204034`) matched checksum `4154140932` but
+  was ~4.3 ms slower than the `Lnewtop`-`last_u` default (median 62.628042 s).
+  Once-per-scanline right-edge emit; do not retry.
+- Aff8 DrawSpans8 skip last-span right-edge Bresenham
+  (`out\dos-timedemo-20260915-201944`) matched checksum `4154140932` but
+  was ~19.5 ms slower than the ScanLeftEdge default (median 62.773405 s).
+  Peeking the `-999999` sentinel before the step hurt the common path;
+  do not retry.
 - Particle NxN drop `%esi` push; use dead `%eax` for `d_zrowbytes`
   (`out\dos-timedemo-20260915-195244`) matched checksum `4154140932` but
   was noise (~0.3 ms vs the TrailingEdge-`last_u` default).  Do not retry.
@@ -1091,8 +1141,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.441270 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-200539`) before further edits.
+   (15.482121 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-210614`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -1185,6 +1235,18 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-195244`; noise).
    Do not restore ScanLeftEdge last-row Bresenham step after the final
    package (`decl`/`jz` before step is kept).
+   Do not retry Aff8 DrawSpans8 last-span right-edge Bresenham skip
+   (`out\dos-timedemo-20260915-201944`; ~19.5 ms slower).
+   Do not restore StepActiveU `movl et_u_step→%ebx` before `addl`.
+   Do not restore leading `Lnewtop` `st_last_u` preload before the
+   `LInsertAndExit` early-out.
+   Do not retry `Lgs_lastspan` memory `cmpl st_last_u`
+   (`out\dos-timedemo-20260915-204034`; ~4.3 ms slower).
+   Do not restore EmitEdge `movl r_ceilv1→%ecx` before the horizontal
+   `cmpl`/`jz`.
+   Do not restore RecursiveTriangle `movl lp2→%edx` before midpoint
+   `addl` for new[2]/new[3]/new[5].
+   Do not restore EmitEdge u-clamp `movl` of vrect bounds before `cmpl`.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

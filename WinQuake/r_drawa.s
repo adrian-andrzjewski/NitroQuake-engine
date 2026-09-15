@@ -268,9 +268,10 @@ LP2:
 //	if (ceilv0 == r_ceilv1)
 //		return;		// horizontal edge
 	movl	Lceilv0,%ebx
-	movl	C(r_ceilv1),%ecx
-	cmpl	%ecx,%ebx
+// Defer r_ceilv1 load past horizontal early-out (dead on LPop5AndDone).
+	cmpl	C(r_ceilv1),%ebx
 	jz		LPop5AndDone
+	movl	C(r_ceilv1),%ecx
 
 	// edge_p only when emitting (same deferral as r_pedge).  LEA keeps
 	// CF from cmpl for the side test; mov+add would clobber flags.
@@ -400,13 +401,17 @@ LSideDone:
 //	if (edge->u > r_refdef.vrectright_adj_shift20)
 //		edge->u = r_refdef.vrectright_adj_shift20;
 	movl	et_u(%edi),%eax
-	movl	C(r_refdef)+rd_vrect_x_adj_shift20,%edx
-	cmpl	%edx,%eax
-	jl		LP4
-	movl	C(r_refdef)+rd_vrectright_adj_shift20,%edx
-	cmpl	%edx,%eax
+// Memory cmpl clamp bounds (load into %edx only when clamping).
+	cmpl	C(r_refdef)+rd_vrect_x_adj_shift20,%eax
+	jl		LP4Left
+	cmpl	C(r_refdef)+rd_vrectright_adj_shift20,%eax
 	jng		LP5
-LP4:
+	movl	C(r_refdef)+rd_vrectright_adj_shift20,%edx
+	movl	%edx,et_u(%edi)
+	movl	%edx,%eax
+	jmp		LP5
+LP4Left:
+	movl	C(r_refdef)+rd_vrect_x_adj_shift20,%edx
 	movl	%edx,et_u(%edi)
 	movl	%edx,%eax
 LP5:

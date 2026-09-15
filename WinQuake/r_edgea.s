@@ -154,33 +154,30 @@ LNewEdge:
 LNextEdge:
 // Defer et_next past order early-out on probes 1–3 (dead on pushback /
 // aftertail).  Probe 4 keeps the preload so jnl LNextEdge needs no jmp.
+// Memory addl et_u_step (drop preload into %ebx).
 	movl	et_u(%edx),%eax
-	movl	et_u_step(%edx),%ebx
-	addl	%ebx,%eax
+	addl	et_u_step(%edx),%eax
 	movl	%eax,et_u(%edx)
 	cmpl	%edi,%eax
 	jl		LPushBack
 	movl	et_next(%edx),%esi
 
 	movl	et_u(%esi),%edi
-	movl	et_u_step(%esi),%ebx
-	addl	%ebx,%edi
+	addl	et_u_step(%esi),%edi
 	movl	%edi,et_u(%esi)
 	cmpl	%eax,%edi
 	jl		LPushBack2
 	movl	et_next(%esi),%edx
 
 	movl	et_u(%edx),%eax
-	movl	et_u_step(%edx),%ebx
-	addl	%ebx,%eax
+	addl	et_u_step(%edx),%eax
 	movl	%eax,et_u(%edx)
 	cmpl	%edi,%eax
 	jl		LPushBack
 	movl	et_next(%edx),%esi
 
 	movl	et_u(%esi),%edi
-	movl	et_u_step(%esi),%ebx
-	addl	%ebx,%edi
+	addl	et_u_step(%esi),%edi
 	movl	et_next(%esi),%edx
 	movl	%edi,et_u(%esi)
 	cmpl	%eax,%edi
@@ -545,12 +542,13 @@ Lnewtop_fpop2:
 
 Lnewtop:
 	movl	et_u(%ebx),%eax
-	movl	st_last_u(%esi),%edx
 	shrl	$20,%eax				// iu = integral pixel u
 	movl	%eax,st_last_u(%edi)	// surf->last_u = iu;
-	cmpl	%edx,%eax
+// Memory cmpl last_u (dead preload on LInsertAndExit); load into %edx only on emit.
+	cmpl	st_last_u(%esi),%eax
 	jle		LInsertAndExit			// iu <= surf->last_u, so nothing to emit
 
+	movl	st_last_u(%esi),%edx
 	subl	%edx,%eax
 	movl	%edx,espan_t_u(%ebp)		// span->u = surf->last_u;
 
