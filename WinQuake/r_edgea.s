@@ -198,13 +198,13 @@ LPushBack2:
 	movl	%ebx,%esi
 
 LPushBack:
-// push it back to keep it sorted
-	movl	et_prev(%edx),%ecx
-	movl	et_next(%edx),%ebx
-
 // done if the -1 in edge_aftertail triggered this
 	cmpl	$(C(edge_aftertail)),%edx
 	jz		LUDone
+
+// push it back to keep it sorted
+	movl	et_prev(%edx),%ecx
+	movl	et_next(%edx),%ebx
 
 // pull the edge out of the edge list
 	movl	et_prev(%ecx),%edi

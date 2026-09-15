@@ -54,6 +54,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   memory forms for bmodel enter/leave (matching C's `++`/`--`).  Leading
   non-inverted paths store `movl $1` into `spanstate` (was 0) instead of
   `incl`+store; inverted `Lxl_done` still uses `incl`.
+  `R_StepActiveU` `LPushBack` checks `edge_aftertail` before loading
+  `et_prev`/`et_next` (matches C; every scanline's finish early-out
+  skips two dead dword loads).
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -252,6 +255,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | RecursiveTriangle defer `lp2[0]` (`D_PolysetRecursiveTriangle`) | Load `lp2[0]` only on equal-`y` nodraw test; flags preserved | 63.141084 s / 15.346585 FPS, 2.2 ms faster | Kept |
 | RecursiveTriangle defer split-path prefetches (`D_PolysetRecursiveTriangle`) | Load next-edge `lp3[0]`/`lp1[0]` only after `|dy|` fails to split | 63.139434 s / 15.346986 FPS, 1.7 ms faster | Kept |
 | RecursiveTriangle defer `|dy|` y-loads past `|dx|` (`D_PolysetRecursiveTriangle`) | Skip same-edge y loads on `|dx|` early-out; fix `LSplit3` rotate | 63.121804 s / 15.351272 FPS, 17.6 ms faster | Kept |
+| StepActiveU defer `et_prev`/`et_next` past aftertail (`R_StepActiveU`) | Match C: early-out before unlink loads on every scanline finish | 63.112658 s / 15.353497 FPS, 9.1 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -629,6 +633,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 17.6 ms faster than the split-prefetch default; every run was
   faster than every prior-default run.  `|dx|` early-outs skip both y loads;
   `LSplit3` does `movl %ebx,%edx` locally.
+- Current default after StepActiveU deferred aftertail unlink loads
+  (`out\dos-timedemo-20260915-153501`): `63.113353 / 63.112658 / 63.112628` s,
+  median **63.112658 s / 15.353497 FPS**, checksum `4154140932` on all three
+  runs.  About 9.1 ms faster than the `|dx|` y-load default; every run was
+  faster than every prior-default run.  Scanline finish via `edge_aftertail`
+  no longer loads `et_prev`/`et_next`.
 
 ## Important decisions and assumptions
 
@@ -653,6 +663,17 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- InsertNewEdges unify `LAddedge2` into `LAddedge` (`out\dos-timedemo-20260915-152701`)
+  matched checksum `4154140932` but was ~4.2 ms slower than the `|dx|` y-load
+  default (median 63.125989 s).  Falling through with `movl %esi,%ecx` hurt;
+  do not retry.
+- Sprite `Spr8Entry2_8` drop dead texel preload (`out\dos-timedemo-20260915-152226`)
+  matched checksum `4154140932` but was noise (~0.1 ms).  `LLEntry2_8` already
+  reloads after Z; removing the entry stub `movb` did not move end-to-end time;
+  do not retry.
+- Aff8 hoist `pz`/`zi` before one-long vs multi (`out\dos-timedemo-20260915-151700`)
+  matched checksum `4154140932` but was noise (~0.1 ms).  Sharing loads across
+  the `cmpl $1` split (flags preserved by `movl`) did not help; do not retry.
 - Particle defer `pt_color` past Z (`out\dos-timedemo-20260915-135449`)
   matched checksum `4154140932` but was noise (~0.4 ms vs the Aff8-one-long
   default).  Per-leaf color loads for 1x1 after Z / NxN at entry did not
@@ -910,8 +931,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.351272 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-150014`) before further edits.
+   (15.353497 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-153501`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -954,6 +975,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not restore RecursiveTriangle `lp2[0]` load before the equal-`y` test.
    Do not restore RecursiveTriangle next-edge prefetches before `|dy|` split.
    Do not restore RecursiveTriangle y loads before `|dx|` early-out.
+   Do not retry Aff8 `pz`/`zi` hoist before one-long vs multi
+   (`out\dos-timedemo-20260915-151700`; noise).
+   Do not retry `Spr8Entry2_8` dead texel preload removal
+   (`out\dos-timedemo-20260915-152226`; noise).
+   Do not retry InsertNewEdges `LAddedge2` fallthrough unify
+   (`out\dos-timedemo-20260915-152701`; ~4.2 ms slower).
+   Do not restore StepActiveU `et_prev`/`et_next` loads before the
+   `edge_aftertail` early-out.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
