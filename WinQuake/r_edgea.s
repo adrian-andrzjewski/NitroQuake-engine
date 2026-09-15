@@ -393,9 +393,9 @@ LPatch2:
 
 // if (surf->key < surf2->key)
 //		goto newtop;
-	incl	%edx
+	// spanstate was 0; C's ++spanstate == 1 → store 1 (no incl/%edx).
+	movl	$1,st_spanstate(%edi)
 	movl	st_key(%edi),%eax
-	movl	%edx,st_spanstate(%edi)
 	movl	st_key(%esi),%ecx
 	cmpl	%ecx,%eax
 	jl		Lnewtop
@@ -424,8 +424,8 @@ Lbmodel_leading:
 	testl	%edx,%edx
 	jnz		Lxl_done
 
-	incl	%edx
-	movl	%edx,st_spanstate(%edi)
+	// spanstate was 0; store 1 instead of incl/%edx (Lxl_done still uses incl).
+	movl	$1,st_spanstate(%edi)
 	// Match C's r_bmodelactive++ with a single incl (no load/store pair).
 	incl	C(r_bmodelactive)
 
