@@ -1155,16 +1155,18 @@ Llooptop:
 	fxch	%st(1)			// i0v1-i1v1 | i2v1 | i0v0-i1v0 | i0v0-i2v0 | i0v1
 	fmulp	%st(0),%st(3)	// i2v1 | i0v0-i1v0 | i0v1-i1v1*i0v0-i2v0 | i0v1
 	fsubrp	%st(0),%st(3)	// i0v0-i1v0 | i0v1-i1v1*i0v0-i2v0 | i0v1-i2v1
-	movl	fv_v+16(%ecx),%eax
-	andl	$0xFF00,%eax
 	fmulp	%st(0),%st(2)	// i0v1-i1v1*i0v0-i2v0 | i0v0-i1v0*i0v1-i2v1
-	addl	C(acolormap),%eax
 	fsubp	%st(0),%st(1)	// (i0v1-i1v1)*(i0v0-i2v0)-(i0v0-i1v0)*(i0v1-i2v1)
-	movl	%eax,C(d_pcolormap)
 	fstps	Ltemp
 	movl	Ltemp,%eax
 	subl	$0x80000001,%eax
 	jc		Lskip
+
+	// Match C: set colormap only when the triangle will be drawn.
+	movl	fv_v+16(%ecx),%eax
+	andl	$0xFF00,%eax
+	addl	C(acolormap),%eax
+	movl	%eax,C(d_pcolormap)
 
 //		if (ptri[i].facesfront)
 //		{
