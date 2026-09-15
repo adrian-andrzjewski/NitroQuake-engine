@@ -67,13 +67,17 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `[-31,32]` (was 32x32 / `[-15,16]`); longer edges still use IDIV /
   `FloorDivMod`.  Live ASM `D_PolysetDrawSpans8` builds `advancetable` /
   `tstep` once per call (same pattern as `lzistepx`).
+  Aff8 pixel leaves use `movzbl` for the texel/`(light<<8)|texel`
+  colormap index instead of `xorl`+`movb`.
   `D_RasterizeAliasPolySmooth` reuses left-edge s/t base products for the
   extra-step path (`d_countextrastep = ubasestep + 1`).
   Live ASM `D_PolysetScanLeftEdge` keeps the package cursor in `%esi`,
   live `d_pdest`/`d_pz` in `%edi`/`%ebp`, and spills light/zi/aspancount
   on the stack (aspancount written back once on exit).  The discarded
   next-package cache pretouch `movb` is omitted; the first store after
-  advancing `%esi` still touches the line.
+  advancing `%esi` still touches the line.  `D_PolysetRecursiveTriangle`
+  pixel leaf reuses live `new[1]`/`new[0]` in `%ecx`/`%ebp` from the Z
+  setup (`movzbl` colormap index; no stack reloads).
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
   `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
@@ -231,6 +235,8 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | TrailingEdge memory `decl` spanstate (`TrailingEdge`) | `--surf->spanstate` via `decl mem`; drop inverted-path store | 63.355125 s / 15.294737 FPS, 133.0 ms faster | Kept |
 | Leading spanstate `movl $1` (`Lgs_leading` / `Lbmodel_leading`) | Known-zero fall-through stores 1; skip `incl`/%edx | 63.281476 s / 15.312538 FPS, 73.6 ms faster | Kept |
 | EmitEdge defer `edge_p` past horizontal early-out (`R_EmitEdge`) | Load `edge_p`+`leal` next only when emitting; CF preserved | 63.267301 s / 15.315969 FPS, 14.2 ms faster | Kept |
+| RecursiveTriangle live new[0]/new[1] (`D_PolysetRecursiveTriangle`) | Reuse Z-setup `%ecx`/`%ebp`; `movzbl` colormap; drop stack reloads | 63.265453 s / 15.316416 FPS, 1.8 ms faster | Kept |
+| Aff8 pixel `movzbl` colormap index (`D_PolysetDrawSpans8`) | Replace `xorl`+`movb` with `movzbl` in LDraw8–1 / one-long | 63.179599 s / 15.337229 FPS, 85.9 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -562,6 +568,17 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 14.2 ms faster than the leading-`movl $1` default; every run
   was faster than every prior-default run.  Horizontal edges skip
   `edge_p`/`leal`; CF from the ceil `cmpl` still feeds the side `jc`.
+- Current default after RecursiveTriangle live `new[0]`/`new[1]`
+  (`out\dos-timedemo-20260915-124237`): `63.265572 / 63.265453 / 63.265414` s,
+  median **63.265453 s / 15.316416 FPS**, checksum `4154140932` on all three
+  runs.  About 1.8 ms faster than the deferred-`edge_p` default; every run
+  was faster than every prior-default run.
+- Current default after Aff8 pixel `movzbl`
+  (`out\dos-timedemo-20260915-125058`): `63.179791 / 63.179533 / 63.179599` s,
+  median **63.179599 s / 15.337229 FPS**, checksum `4154140932` on all three
+  runs.  About 85.9 ms faster than the RecursiveTriangle default; every run
+  was faster than every prior-default run.  LDraw8–1 and `LExactlyOneLong`
+  use `movzbl` for the texel half of the colormap index.
 
 ## Important decisions and assumptions
 
@@ -586,6 +603,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- Leading defer `surfaces[1].next` past inverted early-out
+  (`out\dos-timedemo-20260915-123249`) matched checksum `4154140932` but was
+  noise/~tied vs the deferred-`edge_p` default (median 63.267303 s).
+  Splitting `LPatch2`/`LPatch2b` after the spanstate tests did not move
+  end-to-end time; do not retry.
 - TrailingEdge hoist `st_next` into `%ecx` for `LNoEmit`
   (`out\dos-timedemo-20260915-120218`) matched checksum `4154140932` but was
   noise (~0.08 ms vs the spanstate-decl default).  Preloading before the
@@ -834,8 +856,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.315969 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-122259`) before further edits.
+   (15.337229 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-125058`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -866,6 +888,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-120218`; noise).
    Do not restore leading `incl`+%edx store for known-zero spanstate.
    Do not restore EmitEdge `edge_p` load before the horizontal early-out.
+   Do not retry leading `surfaces[1].next` defer past inverted early-out
+   (`out\dos-timedemo-20260915-123249`; noise).
+   Do not restore RecursiveTriangle stack reloads of `new[0]`/`new[1]`.
+   Do not restore Aff8 `xorl`+`movb` colormap index formation.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -916,7 +942,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   dlight loop windowing.
 4. Alias leftover is now narrower polyset raster guts after the
    once-per-call `advancetable`/`tstep` hoist and left-edge s/t step CSE
-   in `D_RasterizeAliasPolySmooth`.
+   in `D_RasterizeAliasPolySmooth`.  RecursiveTriangle keeps live
+   `new[0]`/`new[1]` through the pixel leaf.  Aff8 leaves use `movzbl`
+   for the colormap index.
    Keep direct `addl C(a_sstepxfrac)` in the pixel loop; do not retry
    BSS `sstep` for that constant (`out\dos-timedemo-20260914-183707`;
    matched checksum but ~9 ms slower).  Do not retry local copies of

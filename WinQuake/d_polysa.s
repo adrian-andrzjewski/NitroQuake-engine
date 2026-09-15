@@ -688,20 +688,16 @@ LDraw:
 	movl	8(%esp),%edx
 
 	sarl	$16,%edx
-	subl	%ecx,%ecx
-
+	// %ecx/%ebp still hold new[1]/new[0] from the Z setup; skip stack
+	// reloads and the zeroing used only to build a byte colormap index.
 	movl	C(skintable)(,%eax,4),%eax
-	movl	4(%esp),%ebp
-
-	movb	(%eax,%edx,),%cl
-	movl	C(d_pcolormap),%edx
-
-	movb	(%edx,%ecx,),%dl
-	movl	0(%esp),%ecx
+	movzbl	(%eax,%edx),%edx
+	movl	C(d_pcolormap),%eax
+	movb	(%eax,%edx,),%dl
 
 //		d_viewbuffer[d_scantable[new[1]] + new[0]] = pix;
-	movl	C(viewspantable)(,%ebp,4),%eax
-	movb	%dl,(%eax,%ecx,1)
+	movl	C(viewspantable)(,%ecx,4),%eax
+	movb	%dl,(%eax,%ebp)
 
 //	}
 //
@@ -864,9 +860,8 @@ LDrawLoop:
 LDraw8:
 	cmpw	(%ecx),%bp
 	jl		Lp1
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch8:
@@ -882,9 +877,8 @@ Lp1:
 LDraw7:
 	cmpw	2(%ecx),%bp
 	jl		Lp2
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,2(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch7:
@@ -900,9 +894,8 @@ Lp2:
 LDraw6:
 	cmpw	4(%ecx),%bp
 	jl		Lp3
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,4(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch6:
@@ -918,9 +911,8 @@ Lp3:
 LDraw5:
 	cmpw	6(%ecx),%bp
 	jl		Lp4
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,6(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch5:
@@ -936,9 +928,8 @@ Lp4:
 LDraw4:
 	cmpw	8(%ecx),%bp
 	jl		Lp5
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,8(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch4:
@@ -954,9 +945,8 @@ Lp5:
 LDraw3:
 	cmpw	10(%ecx),%bp
 	jl		Lp6
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,10(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch3:
@@ -972,9 +962,8 @@ Lp6:
 LDraw2:
 	cmpw	12(%ecx),%bp
 	jl		Lp7
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,12(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch2:
@@ -990,9 +979,8 @@ Lp7:
 LDraw1:
 	cmpw	14(%ecx),%bp
 	jl		Lp8
-	xorl	%eax,%eax
+	movzbl	(%esi),%eax
 	movb	%dh,%ah
-	movb	(%esi),%al
 	movw	%bp,14(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch1:
@@ -1038,11 +1026,10 @@ LExactlyOneLong:
 
 	cmpw	(%ecx),%bp
 	jl		LNextSpan
-	xorl	%eax,%eax
+	movzbl	(%ebx),%eax
 	movl	spanpackage_t_pdest(%esi),%edi
 	movb	spanpackage_t_light+1(%esi),%ah
 	addl	$(spanpackage_t_size),%esi	// point to next span
-	movb	(%ebx),%al
 	movw	%bp,(%ecx)
 	movb	0x12345678(%eax),%al
 LPatch9:
