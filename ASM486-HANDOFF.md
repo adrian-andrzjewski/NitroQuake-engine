@@ -46,7 +46,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   loads `edge_p` and `r_pedge` only after the horizontal early-out
   (`leal` for `edge_p+et_size` so CF from the ceil compare feeds the side
   test; no preload into `%esi`), and drops an unused `r_pedge` load on the
-  fully-clipped both-points-out path (cacheoffset only).  `TrailingEdge`
+  fully-clipped both-points-out path (cacheoffset only).
+  `LPop5AndDone` loads `r_framecount` only when `cacheoffset != 0x7FFFFFFF`
+  (matches C; partially-clipped exits skip the dead dword).
+  `TrailingEdge`
   uses memory `decl` for `--surf->spanstate` (ZF test; inverted path
   needs no extra store), emit / `LNoEmit2` unlink with the already-loaded
   `st_next` in `%ecx` instead of reloading into `%edx`, skips the
@@ -54,9 +57,20 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   memory forms for bmodel enter/leave (matching C's `++`/`--`).  Leading
   non-inverted paths store `movl $1` into `spanstate` (was 0) instead of
   `incl`+store; inverted `Lxl_done` still uses `incl`.
+  Leading first key test uses memory `cmpl st_key(%esi),%eax` (drops
+  preload into `%ecx`; dead on `Lnewtop` / `Lzcheck_for_newtop`).
+  Sort walks `Lsortloopnb` / `Lsortloop` use the same memory `cmpl`
+  (drop per-probe key preload into `%ecx`).
   `R_StepActiveU` `LPushBack` checks `edge_aftertail` before loading
   `et_prev`/`et_next` (matches C; every scanline's finish early-out
   skips two dead dword loads).
+  `R_StepActiveU` step probes 1–3 defer `et_next` past the order
+  early-out; `LPushBack` / `LPushBack2` load continuation `et_next` only
+  after aftertail (matches C; drops the duplicate unlink load).
+  Probe 4 keeps its preload for `jnl LNextEdge`.
+  `R_RemoveEdges` finishes both unlink stores before testing
+  `nextremove` (matches C; drops `%ebx` push/pop and the odd-tail
+  `Lre_done` second-store path).
   `R_InsertNewEdges` defers `et_next` past the `et_u` early-out on the
   first three search probes (dead on `LAddedge` / `LAddedge2`); the
   fourth probe keeps the original `jg` fallthrough so long walks do
@@ -79,8 +93,12 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   Aff8 pixel leaves use `movzbl` for the texel/`(light<<8)|texel`
   colormap index instead of `xorl`+`movb`.
   Aff8 `LExactlyOneLong` loads `ptex` only after the Z test passes.
+  Aff8 multi `Lp8` skips the post-group s/t/z/ptex step when the last
+  group finishes (`decw`/`jz` before the dead advance).
   `D_PolysetDrawFinalVerts` uses `movzbl` for the skin texel (drops
-  `andl $0x00FF` before the light-shifted colormap add).
+  `andl $0x00FF` before the light-shifted colormap add) and forms
+  `(light<<8)|texel` via `movb` of `v[4]`'s high byte into `%dh` (Aff8-style;
+  drops dword light load/`andl $0xFF00`/`addl`).
   `D_DrawSubdiv` sets `d_pcolormap` only after the backface cull (matches
   C; skips the store on culled triangles).
   `D_RasterizeAliasPolySmooth` reuses left-edge s/t base products for the
@@ -92,7 +110,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   advancing `%esi` still touches the line.  `D_PolysetRecursiveTriangle`
   pixel leaf reuses live `new[1]`/`new[0]` in `%ecx`/`%ebp` from the Z
   setup (`movzbl` colormap index; no stack reloads).  Leading-edge nodraw
-  loads `lp2[0]` only on the equal-`y` path.  Near-edge `|dy|` split checks
+  loads `lp2[0]` only on the equal-`y` path (into `%eax` so live
+  `new[0]`/`new[1]` in `%edx`/`%ebp` survive into `LDraw`, skipping the
+  stack reloads at draw entry).  Near-edge `|dy|` split checks
   defer the next-edge `lp3[0]`/`lp1[0]` prefetches until after the
   `ja LSplit`/`LSplit2` early-outs.  Same-edge `|dx|` early-outs skip the
   y loads until `|dy|` is actually tested (`LSplit3` saves `lp1` locally).
@@ -264,6 +284,14 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | StepActiveU defer `et_prev`/`et_next` past aftertail (`R_StepActiveU`) | Match C: early-out before unlink loads on every scanline finish | 63.112658 s / 15.353497 FPS, 9.1 ms faster | Kept |
 | InsertNewEdges defer `et_next` past `et_u` (probes 1–3) (`R_InsertNewEdges`) | Skip next-edge load on taken early-out; keep probe-4 `jg` fallthrough | 63.105267 s / 15.355295 FPS, 7.4 ms faster | Kept |
 | StepActiveU defer `et_prev` past first `et_u` (`LPushBackLoop`) | Skip prev load on taken pushback early-out; probe 2 unchanged | 63.103178 s / 15.355803 FPS, 2.1 ms faster | Kept |
+| EmitEdge defer `r_framecount` past cacheoffset EO (`LPop5AndDone`) | Match C: load framecount only when tagging fully-clipped cache | 63.102686 s / 15.355923 FPS, 0.5 ms faster | Kept |
+| StepActiveU defer step-loop `et_next` past order EO (`R_StepActiveU`) | Probes 1–3; load continuation only after aftertail; drop dup unlink load | 63.091427 s / 15.358664 FPS, 11.3 ms faster | Kept |
+| RemoveEdges both-stores-then-advance (`R_RemoveEdges`) | Match C unlink; drop `%ebx` push/pop and odd-tail `Lre_done` store | 63.087263 s / 15.359677 FPS, 4.2 ms faster | Kept |
+| FinalVerts Aff8-style light<<8 colormap index (`D_PolysetDrawFinalVerts`) | `movb` high byte of `v[4]` into `%dh`; drop dword/`andl`/`addl` | 63.084374 s / 15.360381 FPS, 2.9 ms faster | Kept |
+| Leading memory `cmpl` first `st_key` (`Lgs_leading` / `Lbmodel_leading`) | Drop `surf2->key` preload; dead on newtop / 1/z-check | 63.012013 s / 15.378020 FPS, 72.4 ms faster | Kept |
+| RecursiveTriangle keep live new[0]/new[1] into LDraw (`D_PolysetRecursiveTriangle`) | Equal-y uses `%eax` for `lp2[0]`; skip stack reloads at draw entry | 63.006559 s / 15.379351 FPS, 5.5 ms faster | Kept |
+| Leading sort-loop memory `cmpl` `st_key` (`Lsortloopnb` / `Lsortloop`) | Drop per-probe key preload; same pattern as first-key keep | 62.953783 s / 15.392244 FPS, 52.8 ms faster | Kept |
+| Aff8 multi skip dead last-group stepper (`Lp8`) | `decw`/`jz` before s/t/z/ptex advance on final group | 62.830543 s / 15.422436 FPS, 123.2 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -661,6 +689,51 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   `LPushBackFound` skips the `et_prev` load.  (An earlier measurement
   `out\dos-timedemo-20260915-155745` had a hitch min 1.88 FPS on run 2;
   the clean re-run is the accepted evidence.)
+- Current default after EmitEdge deferred `r_framecount` on `LPop5AndDone`
+  (`out\dos-timedemo-20260915-163753`): `63.102870 / 63.102606 / 63.102686` s,
+  median **63.102686 s / 15.355923 FPS**, checksum `4154140932` on all three
+  runs.  About 0.5 ms faster than the `LPushBackLoop`-`et_prev` default;
+  every run was faster than every prior-default run.  Partially-clipped
+  exits (`cacheoffset == 0x7FFFFFFF`) skip the `r_framecount` load.
+- Current default after StepActiveU deferred step-loop `et_next`
+  (`out\dos-timedemo-20260915-165144`): `63.091567 / 63.091379 / 63.091427` s,
+  median **63.091427 s / 15.358664 FPS**, checksum `4154140932` on all three
+  runs.  About 11.3 ms faster than the `r_framecount`-defer default; every
+  run was faster than every prior-default run.  Aftertail / pushback no
+  longer pay a probe preload; unlink uses one `et_next` load.
+- Current default after RemoveEdges both-stores-then-advance
+  (`out\dos-timedemo-20260915-171204`): `63.087380 / 63.087263 / 63.087206` s,
+  median **63.087263 s / 15.359677 FPS**, checksum `4154140932` on all three
+  runs.  About 4.2 ms faster than the StepActiveU-`et_next` default; every
+  run was faster than every prior-default run.  Odd-length remove lists
+  no longer take a special path to finish `prev->next`.
+- Current default after FinalVerts Aff8-style light<<8 index
+  (`out\dos-timedemo-20260915-172059`): `63.084563 / 63.084374 / 63.084351` s,
+  median **63.084374 s / 15.360381 FPS**, checksum `4154140932` on all three
+  runs.  About 2.9 ms faster than the RemoveEdges default; every run was
+  faster than every prior-default run.
+- Current default after leading memory `cmpl` first `st_key`
+  (`out\dos-timedemo-20260915-173942`): `63.011902 / 63.012013 / 63.012104` s,
+  median **63.012013 s / 15.378020 FPS**, checksum `4154140932` on all three
+  runs.  About 72.4 ms faster than the FinalVerts-light<<8 default; every
+  run was faster than every prior-default run.  `Lnewtop` /
+  `Lzcheck_for_newtop` skip the `surf2->key` register preload.
+- Current default after RecursiveTriangle live new[] into LDraw
+  (`out\dos-timedemo-20260915-174638`): `63.006416 / 63.006581 / 63.006559` s,
+  median **63.006559 s / 15.379351 FPS**, checksum `4154140932` on all three
+  runs.  About 5.5 ms faster than the leading-`st_key`-`cmpl` default; every
+  run was faster than every prior-default run.  Unequal-`y` draws skip
+  stack reloads of `new[0]`/`new[1]`.
+- Current default after leading sort-loop memory `cmpl` `st_key`
+  (`out\dos-timedemo-20260915-180350`): `62.953648 / 62.953783 / 62.953854` s,
+  median **62.953783 s / 15.392244 FPS**, checksum `4154140932` on all three
+  runs.  About 52.8 ms faster than the live-new-into-LDraw default; every
+  run was faster than every prior-default run.
+- Current default after Aff8 multi skip dead last-group stepper
+  (`out\dos-timedemo-20260915-182515`): `62.830458 / 62.830543 / 62.830579` s,
+  median **62.830543 s / 15.422436 FPS**, checksum `4154140932` on all three
+  runs.  About 123.2 ms faster than the sort-loop-`st_key` default; every
+  run was faster than every prior-default run.
 
 ## Important decisions and assumptions
 
@@ -685,6 +758,20 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- EmitEdge defer `r_ceilv1` fistl past `r_nearzionly` (`out\dos-timedemo-20260915-181715`)
+  matched checksum `4154140932` but was ~20.4 ms slower than the sort-loop
+  `st_key` default (median 62.974149 s).  Extra `fxch` around deferred
+  `fistl` on the common emit path hurt more than skipping ceil on
+  nearzionly; do not retry.
+- Sprite `D_SpriteDrawSpans` v/u CSE across Z and dest setup
+  (`out\dos-timedemo-20260915-172816`) matched checksum `4154140932` but
+  was noise (~0.14 ms vs the FinalVerts-light<<8 default).  Keeping
+  `sspan_t_v`/`u` live did not move end-to-end time; do not retry.
+- Particle defer rect-edge loads past clip early-outs (`D_DrawParticle`)
+  (`out\dos-timedemo-20260915-170311`) matched checksum `4154140932` but
+  was noise (~0.4 ms vs the StepActiveU-`et_next` default).  Short-circuit
+  loads for `d_vrectright_particle` / `d_vrectx` did not move end-to-end
+  time; do not retry.
 - RecursiveTriangle keep `lp2[1]` live via `leal` for nodraw compare
   (`out\dos-timedemo-20260915-161932`) matched checksum `4154140932` but
   was noise/tied vs the `LPushBackLoop`-`et_prev` default (median
@@ -964,8 +1051,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.355803 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-160134`) before further edits.
+   (15.422436 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-182515`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -1023,6 +1110,31 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not restore StepActiveU `LPushBackLoop` `et_prev` before the first
    `et_u` early-out.  Do not extend that deferral to probe 2 with
    `jnl`+`jmp` (same trap as the four-probe InsertNewEdges form).
+   Do not retry RecursiveTriangle `lp2[1]` live-keep via `leal` for nodraw
+   (`out\dos-timedemo-20260915-161932`; noise).
+   Do not restore EmitEdge `r_framecount` load before the `cacheoffset`
+   `0x7FFFFFFF` early-out on `LPop5AndDone`.
+   Do not restore StepActiveU step-loop `et_next` before order early-outs
+   on probes 1–3.  Do not add a probe-4 `jl`+`jmp` form.
+   Do not retry particle rect-edge load defer past clip early-outs
+   (`out\dos-timedemo-20260915-170311`; noise).
+   Do not restore RemoveEdges `%ebx` push or the odd-tail `Lre_done`
+   second-store path.
+   Do not restore FinalVerts dword light load/`andl $0xFF00`/`addl` for
+   the colormap index.
+   Do not retry sprite `D_SpriteDrawSpans` v/u CSE across Z/dest setup
+   (`out\dos-timedemo-20260915-172816`; noise).
+   Do not restore leading first-key `movl st_key(%esi),%ecx` before
+   `cmpl` (`Lgs_leading` / `Lbmodel_leading`).
+   Do not restore RecursiveTriangle `LDraw` stack reloads of `new[0]`/
+   `new[1]` (keep live `%edx`/`%ebp` from midpoint; equal-y uses `%eax`
+   for `lp2[0]`).
+   Do not restore sort-loop `movl st_key(%esi),%ecx` before `cmpl`
+   (`Lsortloopnb` / `Lsortloop`).
+   Do not retry EmitEdge defer `r_ceilv1` past `r_nearzionly`
+   (`out\dos-timedemo-20260915-181715`; ~20 ms slower).
+   Do not restore Aff8 multi last-group stepper before `decw` exit
+   (`Lp8`).
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

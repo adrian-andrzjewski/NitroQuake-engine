@@ -644,50 +644,44 @@ LSplit:
 
 //	if ((lp2[1] == lp1[1]) && (lp2[0] < lp1[0]))
 //		goto nodraw;
+// Keep new[0]/new[1] live in %edx/%ebp into LDraw (unequal-y is common).
+// Equal-y must not clobber %edx with lp2[0].
 	jnz		LDraw
-	movl	0(%esi),%edx
-	cmpl	%ecx,%edx
+	movl	0(%esi),%eax
+	cmpl	%ecx,%eax
 	jl		LNoDraw
 
 LDraw:
 
-// z = new[5] >> 16;
-	movl	20(%esp),%edx
-	movl	4(%esp),%ecx
-
-	sarl	$16,%edx
-	movl	0(%esp),%ebp
-
-//	zbuf = zspantable[new[1]] + new[0];
-	movl	C(zspantable)(,%ecx,4),%eax
+// z = new[5] >> 16;  %edx=new[0], %ebp=new[1] already live
+	movl	20(%esp),%eax
+	sarl	$16,%eax
+	movl	C(zspantable)(,%ebp,4),%ecx
 
 //	if (z >= *zbuf)
 //	{
-	cmpw	(%eax,%ebp,2),%dx
+	cmpw	(%ecx,%edx,2),%ax
 	jnge	LNoDraw
 
 //		int		pix;
 //		
 //		*zbuf = z;
-	movw	%dx,(%eax,%ebp,2)
+	movw	%ax,(%ecx,%edx,2)
 
 //		pix = d_pcolormap[skintable[new[3]>>16][new[2]>>16]];
 	movl	12(%esp),%eax
-
 	sarl	$16,%eax
-	movl	8(%esp),%edx
-
-	sarl	$16,%edx
-	// %ecx/%ebp still hold new[1]/new[0] from the Z setup; skip stack
-	// reloads and the zeroing used only to build a byte colormap index.
+	movl	8(%esp),%ecx
+	sarl	$16,%ecx
+	// %ebp/%edx still hold new[1]/new[0]
 	movl	C(skintable)(,%eax,4),%eax
-	movzbl	(%eax,%edx),%edx
+	movzbl	(%eax,%ecx),%ecx
 	movl	C(d_pcolormap),%eax
-	movb	(%eax,%edx,),%dl
+	movb	(%eax,%ecx,),%cl
 
 //		d_viewbuffer[d_scantable[new[1]] + new[0]] = pix;
-	movl	C(viewspantable)(,%ecx,4),%eax
-	movb	%dl,(%eax,%ebp)
+	movl	C(viewspantable)(,%ebp,4),%eax
+	movb	%cl,(%eax,%edx)
 
 //	}
 //
@@ -976,19 +970,23 @@ LDraw1:
 LPatch1:
 	movb	%al,7(%edi)
 Lp8:
+// Last Aff8 group: step/advance is dead (regs discarded on exit).
+	decw	%bx
+	jz		LAff8LastGroup
+
 	addl	tstep,%edx
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
+// a_sstepxfrac low word is 0, so %bx (already decremented) is preserved.
 	addl	C(a_sstepxfrac),%ebx
 	adcl	advancetable+4(,%eax,4),%esi
 
 	addl	$8,%edi
 	addl	$16,%ecx
+	jmp		LDrawLoop
 
-	decw	%bx
-	jnz		LDrawLoop
-
+LAff8LastGroup:
 	popl	%esi				// restore spans pointer
 LNextSpan:
 	addl	$(spanpackage_t_size),%esi	// point to next span
@@ -1504,11 +1502,10 @@ LFVLoop:
 	movzbl	(%edi,%edx),%edx
 
 //				pix = ((byte *)acolormap)[pix + (fv->v[4] & 0xFF00)];
-	movl	fv_v+16(%ebx),%edi
-	andl	$0xFF00,%edi
-	addl	%edx,%edi
-	movl	C(acolormap),%edx
-	movb	(%edx,%edi,1),%dl
+// Aff8-style: (light<<8)|texel via high byte of v[4] into %dh.
+	movb	fv_v+16+1(%ebx),%dh
+	movl	C(acolormap),%edi
+	movb	(%edi,%edx,1),%dl
 
 //				d_viewbuffer[d_scantable[fv->v[1]] + fv->v[0]] = pix;
 	movl	C(viewspantable)(,%esi,4),%edi

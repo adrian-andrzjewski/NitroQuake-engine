@@ -111,37 +111,30 @@ LDone:
 
 //--------------------------------------------------------------------
 
-#define predge	4+4
-
 .globl C(R_RemoveEdges)
 C(R_RemoveEdges):
-	pushl	%ebx
-	movl	predge(%esp),%eax
+	movl	4(%esp),%eax
 
 Lre_loop:
+// Match C: both unlink stores, then advance.  Odd-length tails no longer
+// take a special Lre_done path just to finish prev->next.
 	movl	et_next(%eax),%ecx
-	movl	et_nextremove(%eax),%ebx
 	movl	et_prev(%eax),%edx
-	testl	%ebx,%ebx
+	movl	et_nextremove(%eax),%eax
 	movl	%edx,et_prev(%ecx)
-	jz		Lre_done
 	movl	%ecx,et_next(%edx)
-
-	movl	et_next(%ebx),%ecx
-	movl	et_prev(%ebx),%edx
-	movl	et_nextremove(%ebx),%eax
-	movl	%edx,et_prev(%ecx)
 	testl	%eax,%eax
+	jz		Lre_done
+
+	movl	et_next(%eax),%ecx
+	movl	et_prev(%eax),%edx
+	movl	et_nextremove(%eax),%eax
+	movl	%edx,et_prev(%ecx)
 	movl	%ecx,et_next(%edx)
+	testl	%eax,%eax
 	jnz		Lre_loop
 
-	popl	%ebx
-	ret
-
 Lre_done:
-	movl	%ecx,et_next(%edx)
-	popl	%ebx
-
 	ret
 
 //--------------------------------------------------------------------
@@ -162,29 +155,31 @@ LNewEdge:
 	movl	et_u(%esi),%edi
 
 LNextEdge:
+// Defer et_next past order early-out on probes 1–3 (dead on pushback /
+// aftertail).  Probe 4 keeps the preload so jnl LNextEdge needs no jmp.
 	movl	et_u(%edx),%eax
 	movl	et_u_step(%edx),%ebx
 	addl	%ebx,%eax
-	movl	et_next(%edx),%esi
 	movl	%eax,et_u(%edx)
 	cmpl	%edi,%eax
 	jl		LPushBack
+	movl	et_next(%edx),%esi
 
 	movl	et_u(%esi),%edi
 	movl	et_u_step(%esi),%ebx
 	addl	%ebx,%edi
-	movl	et_next(%esi),%edx
 	movl	%edi,et_u(%esi)
 	cmpl	%eax,%edi
 	jl		LPushBack2
+	movl	et_next(%esi),%edx
 
 	movl	et_u(%edx),%eax
 	movl	et_u_step(%edx),%ebx
 	addl	%ebx,%eax
-	movl	et_next(%edx),%esi
 	movl	%eax,et_u(%edx)
 	cmpl	%edi,%eax
 	jl		LPushBack
+	movl	et_next(%edx),%esi
 
 	movl	et_u(%esi),%edi
 	movl	et_u_step(%esi),%ebx
@@ -195,10 +190,10 @@ LNextEdge:
 	jnl		LNextEdge
 
 LPushBack2:
-	movl	%edx,%ebx
+// Edge to push is in %esi; u in %edi.  Load et_next only in LPushBack
+// after the aftertail early-out (matches C).
 	movl	%edi,%eax
 	movl	%esi,%edx
-	movl	%ebx,%esi
 
 LPushBack:
 // done if the -1 in edge_aftertail triggered this
@@ -206,13 +201,13 @@ LPushBack:
 	jz		LUDone
 
 // push it back to keep it sorted
+	movl	et_next(%edx),%esi
 	movl	et_prev(%edx),%ecx
-	movl	et_next(%edx),%ebx
 
 // pull the edge out of the edge list
 	movl	et_prev(%ecx),%edi
 	movl	%ecx,et_prev(%esi)
-	movl	%ebx,et_next(%ecx)
+	movl	%esi,et_next(%ecx)
 
 // find out where the edge goes in the edge list
 LPushBackLoop:
@@ -400,8 +395,7 @@ LPatch2:
 	// spanstate was 0; C's ++spanstate == 1 → store 1 (no incl/%edx).
 	movl	$1,st_spanstate(%edi)
 	movl	st_key(%edi),%eax
-	movl	st_key(%esi),%ecx
-	cmpl	%ecx,%eax
+	cmpl	st_key(%esi),%eax
 	jl		Lnewtop
 
 // main sorting loop to search through surface stack until insertion point
@@ -412,8 +406,7 @@ LPatch2:
 // } while (surf->key >= surf2->key);
 Lsortloopnb:
 	movl	st_next(%esi),%esi
-	movl	st_key(%esi),%ecx
-	cmpl	%ecx,%eax
+	cmpl	st_key(%esi),%eax
 	jge		Lsortloopnb
 
 	jmp		LInsertAndExit
@@ -436,8 +429,7 @@ Lbmodel_leading:
 // if (surf->key < surf2->key)
 //		goto newtop;
 	movl	st_key(%edi),%eax
-	movl	st_key(%esi),%ecx
-	cmpl	%ecx,%eax
+	cmpl	st_key(%esi),%eax
 	jl		Lnewtop
 
 // if ((surf->key == surf2->key) && surf->insubmodel)
@@ -452,8 +444,7 @@ Lbmodel_leading:
 // } while (surf->key > surf2->key);
 Lsortloop:
 	movl	st_next(%esi),%esi
-	movl	st_key(%esi),%ecx
-	cmpl	%ecx,%eax
+	cmpl	st_key(%esi),%eax
 	jg		Lsortloop
 
 	jne		LInsertAndExit

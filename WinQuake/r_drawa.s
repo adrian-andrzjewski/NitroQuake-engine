@@ -247,9 +247,9 @@ LP1:
 	jz		LP2
 LPop5AndDone:
 	movl	C(cacheoffset),%eax
-	movl	C(r_framecount),%edx
 	cmpl	$0x7FFFFFFF,%eax
 	jz		LDoPop
+	movl	C(r_framecount),%edx
 	andl	$(FRAMECOUNT_MASK),%edx
 	orl		$(FULLY_CLIPPED_CACHED),%edx
 	movl	%edx,C(cacheoffset)
