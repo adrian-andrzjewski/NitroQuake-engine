@@ -85,7 +85,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   setup (`movzbl` colormap index; no stack reloads).  Leading-edge nodraw
   loads `lp2[0]` only on the equal-`y` path.  Near-edge `|dy|` split checks
   defer the next-edge `lp3[0]`/`lp1[0]` prefetches until after the
-  `ja LSplit`/`LSplit2` early-outs.
+  `ja LSplit`/`LSplit2` early-outs.  Same-edge `|dx|` early-outs skip the
+  y loads until `|dy|` is actually tested (`LSplit3` saves `lp1` locally).
 - Sprite and particle Z: ASM uses `zspantable` instead of IMUL
   `d_zrowbytes`.  The C multiply paths remain the reference.
 - `R_DrawSurface` wraps the per-column source offset with AND when the
@@ -250,6 +251,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Aff8 one-long defer `ptex` past Z (`LExactlyOneLong`) | Skip skin load on occluded one-pixel Aff8 spans | 63.143310 s / 15.346044 FPS, 2.5 ms faster | Kept |
 | RecursiveTriangle defer `lp2[0]` (`D_PolysetRecursiveTriangle`) | Load `lp2[0]` only on equal-`y` nodraw test; flags preserved | 63.141084 s / 15.346585 FPS, 2.2 ms faster | Kept |
 | RecursiveTriangle defer split-path prefetches (`D_PolysetRecursiveTriangle`) | Load next-edge `lp3[0]`/`lp1[0]` only after `|dy|` fails to split | 63.139434 s / 15.346986 FPS, 1.7 ms faster | Kept |
+| RecursiveTriangle defer `|dy|` y-loads past `|dx|` (`D_PolysetRecursiveTriangle`) | Skip same-edge y loads on `|dx|` early-out; fix `LSplit3` rotate | 63.121804 s / 15.351272 FPS, 17.6 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -621,6 +623,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 1.7 ms faster than the `lp2[0]`-defer default; every run was
   faster than every prior-default run.  `LSplit`/`LSplit2` skip the next-edge
   `lp3[0]`/`lp1[0]` loads.
+- Current default after RecursiveTriangle deferred `|dy|` y-loads
+  (`out\dos-timedemo-20260915-150014`): `63.121965 / 63.121804 / 63.121646` s,
+  median **63.121804 s / 15.351272 FPS**, checksum `4154140932` on all three
+  runs.  About 17.6 ms faster than the split-prefetch default; every run was
+  faster than every prior-default run.  `|dx|` early-outs skip both y loads;
+  `LSplit3` does `movl %ebx,%edx` locally.
 
 ## Important decisions and assumptions
 
@@ -902,8 +910,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.346986 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-144910`) before further edits.
+   (15.351272 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-150014`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -945,6 +953,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-135449`; noise).
    Do not restore RecursiveTriangle `lp2[0]` load before the equal-`y` test.
    Do not restore RecursiveTriangle next-edge prefetches before `|dy|` split.
+   Do not restore RecursiveTriangle y loads before `|dx|` early-out.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -997,9 +1006,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    once-per-call `advancetable`/`tstep` hoist and left-edge s/t step CSE
    in `D_RasterizeAliasPolySmooth`.  RecursiveTriangle keeps live
    `new[0]`/`new[1]` through the pixel leaf, defers `lp2[0]` until
-   equal-`y`, and defers next-edge prefetches past `|dy|` split tests.
-   Aff8 leaves and FinalVerts use `movzbl` for the colormap index / skin
-   texel.  DrawSubdiv defers `d_pcolormap` until after the backface cull.
+   equal-`y`, defers next-edge prefetches past `|dy|` split tests, and
+   defers same-edge y loads past `|dx|` early-outs.  Aff8 leaves and
+   FinalVerts use `movzbl` for the colormap index / skin texel.
+   DrawSubdiv defers `d_pcolormap` until after the backface cull.
    Aff8 one-long defers `ptex` until after Z.
    Keep direct `addl C(a_sstepxfrac)` in the pixel loop; do not retry
    BSS `sstep` for that constant (`out\dos-timedemo-20260914-183707`;

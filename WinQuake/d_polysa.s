@@ -498,22 +498,19 @@ C(D_PolysetRecursiveTriangle):
 //	if (d < -1 || d > 1)
 //		goto split;
 	movl	0(%esi),%eax
-
 	movl	0(%ebx),%edx
-	movl	4(%esi),%ebp
-
 	subl	%edx,%eax
-	movl	4(%ebx),%ecx
-
-	subl	%ecx,%ebp
 	incl	%eax
-
 	cmpl	$2,%eax
 	ja		LSplit
 
 //	d = lp2[1] - lp1[1];
 //	if (d < -1 || d > 1)
 //		goto split;
+	// y only needed for |dy|; LSplit reloads from memory.
+	movl	4(%esi),%ebp
+	movl	4(%ebx),%ecx
+	subl	%ecx,%ebp
 	incl	%ebp
 	cmpl	$2,%ebp
 	ja		LSplit
@@ -524,20 +521,17 @@ C(D_PolysetRecursiveTriangle):
 //	if (d < -1 || d > 1)
 //		goto split2;
 	movl	0(%esi),%edx
-	movl	4(%edi),%ebp
-
 	subl	%edx,%eax
-	movl	4(%esi),%ecx
-
-	subl	%ecx,%ebp
 	incl	%eax
-
 	cmpl	$2,%eax
 	ja		LSplit2
 
 //	d = lp3[1] - lp2[1];
 //	if (d < -1 || d > 1)
 //		goto split2;
+	movl	4(%edi),%ebp
+	movl	4(%esi),%ecx
+	subl	%ecx,%ebp
 	incl	%ebp
 	cmpl	$2,%ebp
 	ja		LSplit2
@@ -548,17 +542,8 @@ C(D_PolysetRecursiveTriangle):
 //	if (d < -1 || d > 1)
 //		goto split3;
 	movl	0(%edi),%edx
-	movl	4(%ebx),%ebp
-
 	subl	%edx,%eax
-	movl	4(%edi),%ecx
-
-	subl	%ecx,%ebp
 	incl	%eax
-
-	incl	%ebp
-	movl	%ebx,%edx
-
 	cmpl	$2,%eax
 	ja		LSplit3
 
@@ -575,10 +560,16 @@ C(D_PolysetRecursiveTriangle):
 //
 //	return;			// entire tri is filled
 //
+	movl	4(%ebx),%ebp
+	movl	4(%edi),%ecx
+	subl	%ecx,%ebp
+	incl	%ebp
 	cmpl	$2,%ebp
 	jna		LDone
 
 LSplit3:
+	// Rotate lp1<-lp3, lp2<-lp1, lp3<-lp2 (%edx was lp3[0] on |dx| path).
+	movl	%ebx,%edx
 	movl	%edi,%ebx
 	movl	%esi,%edi
 	movl	%edx,%esi
