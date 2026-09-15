@@ -57,18 +57,21 @@ LDoNextEdge:
 	movl	%edx,%edi
 
 LContinueSearch:
+// Defer et_next until after et_u early-out on the first three probes
+// (dead on LAddedge / LAddedge2).  Keep the fourth probe's jg fallthrough
+// so long walks do not pay an extra unconditional jmp.
 	movl	et_u(%ecx),%ebx
-	movl	et_next(%ecx),%esi
 	cmpl	%ebx,%eax
 	jle		LAddedge
+	movl	et_next(%ecx),%esi
 	movl	et_u(%esi),%ebx
-	movl	et_next(%esi),%ecx
 	cmpl	%ebx,%eax
 	jle		LAddedge2
+	movl	et_next(%esi),%ecx
 	movl	et_u(%ecx),%ebx
-	movl	et_next(%ecx),%esi
 	cmpl	%ebx,%eax
 	jle		LAddedge
+	movl	et_next(%ecx),%esi
 	movl	et_u(%esi),%ebx
 	movl	et_next(%esi),%ecx
 	cmpl	%ebx,%eax

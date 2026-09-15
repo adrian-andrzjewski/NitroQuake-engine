@@ -57,6 +57,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `R_StepActiveU` `LPushBack` checks `edge_aftertail` before loading
   `et_prev`/`et_next` (matches C; every scanline's finish early-out
   skips two dead dword loads).
+  `R_InsertNewEdges` defers `et_next` past the `et_u` early-out on the
+  first three search probes (dead on `LAddedge` / `LAddedge2`); the
+  fourth probe keeps the original `jg` fallthrough so long walks do
+  not pay an extra `jmp`.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -256,6 +260,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | RecursiveTriangle defer split-path prefetches (`D_PolysetRecursiveTriangle`) | Load next-edge `lp3[0]`/`lp1[0]` only after `|dy|` fails to split | 63.139434 s / 15.346986 FPS, 1.7 ms faster | Kept |
 | RecursiveTriangle defer `|dy|` y-loads past `|dx|` (`D_PolysetRecursiveTriangle`) | Skip same-edge y loads on `|dx|` early-out; fix `LSplit3` rotate | 63.121804 s / 15.351272 FPS, 17.6 ms faster | Kept |
 | StepActiveU defer `et_prev`/`et_next` past aftertail (`R_StepActiveU`) | Match C: early-out before unlink loads on every scanline finish | 63.112658 s / 15.353497 FPS, 9.1 ms faster | Kept |
+| InsertNewEdges defer `et_next` past `et_u` (probes 1–3) (`R_InsertNewEdges`) | Skip next-edge load on taken early-out; keep probe-4 `jg` fallthrough | 63.105267 s / 15.355295 FPS, 7.4 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -639,6 +644,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 9.1 ms faster than the `|dx|` y-load default; every run was
   faster than every prior-default run.  Scanline finish via `edge_aftertail`
   no longer loads `et_prev`/`et_next`.
+- Current default after InsertNewEdges deferred `et_next` (probes 1–3)
+  (`out\dos-timedemo-20260915-154958`): `63.105419 / 63.105230 / 63.105267` s,
+  median **63.105267 s / 15.355295 FPS**, checksum `4154140932` on all three
+  runs.  About 7.4 ms faster than the StepActiveU-aftertail default; every
+  run was faster than every prior-default run.  Taken `et_u` early-outs
+  skip the next-edge load; probe 4 keeps `jg` fallthrough.
 
 ## Important decisions and assumptions
 
@@ -663,6 +674,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- InsertNewEdges defer `et_next` on all four probes with `jle`+`jmp`
+  (`out\dos-timedemo-20260915-154519`) matched checksum `4154140932` but
+  was noise (~0.4 ms vs the StepActiveU-aftertail default).  The extra
+  unconditional `jmp` on long walks cancelled the load savings; keep
+  probes 1–3 only with probe-4 `jg` fallthrough.  Do not retry the
+  four-probe+`jmp` form.
 - InsertNewEdges unify `LAddedge2` into `LAddedge` (`out\dos-timedemo-20260915-152701`)
   matched checksum `4154140932` but was ~4.2 ms slower than the `|dx|` y-load
   default (median 63.125989 s).  Falling through with `movl %esi,%ecx` hurt;
@@ -931,8 +948,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.353497 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-153501`) before further edits.
+   (15.355295 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-154958`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -983,6 +1000,10 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-152701`; ~4.2 ms slower).
    Do not restore StepActiveU `et_prev`/`et_next` loads before the
    `edge_aftertail` early-out.
+   Do not retry InsertNewEdges four-probe `et_next` defer with `jle`+`jmp`
+   (`out\dos-timedemo-20260915-154519`; noise); keep probes 1–3 only.
+   Do not restore InsertNewEdges `et_next` before the first three
+   `et_u` early-outs.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
