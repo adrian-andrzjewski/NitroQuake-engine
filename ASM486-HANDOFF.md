@@ -43,6 +43,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   surface add.  `Lnewtop_fpop2` no longer loads a dead `st_key` into
   `%eax` before `Lnewtop` overwrites it.  `R_EmitEdge` omits the
   discarded next-edge pretouch loads on both leading and trailing sides.
+  `TrailingEdge` emit / `LNoEmit2` unlink with the already-loaded
+  `st_next` in `%ecx` instead of reloading into `%edx`.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -212,6 +214,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | DrawSpans8 aspancount register CSE (`D_PolysetDrawSpans8`) | Keep original aspancount in `%ebp` for += | ~63.652379 s, ~0.11 ms slower | Reverted |
 | ScanLeftEdge pretouch removal (`D_PolysetScanLeftEdge`) | Drop discarded `movb` cache pretouch | 63.623244 s / 15.230283 FPS, 29.0 ms faster | Kept |
 | EmitEdge pretouch removal (`R_EmitEdge`) | Drop discarded next-edge `movl (%edx),%eax` on both sides | 63.614724 s / 15.232323 FPS, 8.5 ms faster | Kept |
+| TrailingEdge unlink via live `%ecx` (`TrailingEdge`) | Use preloaded `st_next` directly on emit/LNoEmit2; no reload or `movl %ecx,%edx` | 63.583628 s / 15.239772 FPS, 31.1 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -495,6 +498,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 8.5 ms faster than the ScanLeftEdge-pretouch default; every
   run was faster than the prior median.  Both leading/trailing
   `movl (%edx),%eax` next-edge pretouches in `R_EmitEdge` are gone.
+- Current default after TrailingEdge unlink via live `%ecx`
+  (`out\dos-timedemo-20260915-103948`): `63.583853 / 63.583607 / 63.583628` s,
+  median **63.583628 s / 15.239772 FPS**, checksum `4154140932` on all three
+  runs.  About 31.1 ms faster than the EmitEdge-pretouch default; every run
+  was faster than every prior-default run.  Emit and `LNoEmit2` unlink with
+  the already-loaded `st_next` in `%ecx` instead of reloading into `%edx`.
 
 ## Important decisions and assumptions
 
@@ -519,13 +528,20 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- Span16 FILD-overlapped v/u loads (`out\dos-timedemo-20260915-103436`)
+  matched checksum `4154140932` but was noise/~0.14 ms slower than the
+  EmitEdge-pretouch default (median 63.614868 s vs 63.614724 s).  Loading
+  `espan_t_v`/`espan_t_u` into `%eax`/`%ecx` under FILD and skipping the
+  FDIV-shadow reloads did not help under DOSBox-X's 486 model; do not retry
+  moving those dest-setup loads earlier in `D_DrawSpans16`.
 - DrawSpans8 aspancount register CSE (`out\dos-timedemo-20260915-100552`)
   matched checksum `4154140932` but was noise/~0.11 ms slower than the
   st_key default.  Do not retry keeping a second copy of `d_aspancount` in
   `%ebp` for the right-edge `+=` update.
-- TrailingEdge `st_next` CSE (`out\dos-timedemo-20260915-095842`) matched
-  checksum `4154140932` but was noise (~0.03 ms).  Do not retry replacing
-  the second `st_next` load with `movl %ecx,%edx` on the emit/LNoEmit2 paths.
+- TrailingEdge `st_next` CSE via `movl %ecx,%edx` (`out\dos-timedemo-20260915-095842`)
+  matched checksum `4154140932` but was noise (~0.03 ms).  Replaced by the
+  kept direct-`%ecx` unlink (`out\dos-timedemo-20260915-103948`); do not
+  retry the intermediate `movl %ecx,%edx` form.
 - Edge-scan both-edges leading precompute (`out\dos-timedemo-20260915-094223`)
   matched checksum `4154140932` but was ~1.7 ms slower than the surfaces-CSE
   default (63.654537 s vs 63.652849 s).  Finishing `surf*` before
@@ -742,8 +758,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.232323 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-102159`) before further edits.
+   (15.239772 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-103948`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -755,9 +771,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-091357`; ~17 ms slower).
    Do not retry both-edges leading precompute before `TrailingEdge`
    (`out\dos-timedemo-20260915-094223`; ~1.7 ms slower).
-   Do not retry TrailingEdge `st_next` CSE or DrawSpans8 aspancount
-   register CSE (noise / slight loss).
+   Do not retry TrailingEdge `movl %ecx,%edx` CSE (noise); the direct-`%ecx`
+   unlink is kept.  Do not retry DrawSpans8 aspancount register CSE.
    Do not restore ScanLeftEdge or EmitEdge discarded pretouch loads.
+   Do not retry Span16 FILD-overlapped v/u dest loads
+   (`out\dos-timedemo-20260915-103436`; noise).
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -775,7 +793,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    shifts (`out\dos-timedemo-20260915-074041`; ~43 ms slower) or early
    `pnext` preload into `pspantemp` (`out\dos-timedemo-20260915-075512`;
    noise).  Do not retry `D_DrawSkyScans8` `viewspantable` dest rows
-   (noise vs the aspancount default).
+   (noise vs the aspancount default).  Do not retry FILD-overlapped
+   v/u loads for dest setup.
 3. Surface-cache rebuilds were ~14.5% at 600 KB.  The default cache is
    now 1800 KB; 1200 KB also matched the checksum.  1900 KB, 2000 KB,
    2100 KB, and 2400 KB all failed checksum `2955717646`.  Do not
@@ -862,8 +881,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `D_DrawSpans16` s/t integer CSE across the sfrac/tfrac shifts, early
    `pnext` preload into `pspantemp`, or `D_DrawSkyScans8`
    `viewspantable` dest rows (noise or slower).  Edge scan keeps the
-   `Lgs_leading` `surfaces` CSE; look for other dead reloads carefully
-   before adding stack traffic.  Do not revive BSP plane-dot/clip helpers.
+   `Lgs_leading` `surfaces` CSE and TrailingEdge direct-`%ecx` unlink;
+   look for other dead reloads carefully before adding stack traffic.
+   Do not revive BSP plane-dot/clip helpers.
    Face Z gradients are cached.
 
 ## Starting commands

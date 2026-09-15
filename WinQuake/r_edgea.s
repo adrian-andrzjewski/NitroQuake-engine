@@ -286,20 +286,18 @@ LPatch0:
 	movl	%ebp,st_spans(%esi)			// surf->spans = span;
 	addl	$(espan_t_size),%ebp
 
-	movl	st_next(%esi),%edx		// remove the surface from the surface
-	movl	st_prev(%esi),%esi		// stack
-
-	movl	%edx,st_next(%esi)
-	movl	%esi,st_prev(%edx)
+	// %ecx still holds st_next from before the emit; unlink with it directly
+	// instead of reloading into %edx (tighter than movl %ecx,%edx CSE).
+	movl	st_prev(%esi),%esi
+	movl	%ecx,st_next(%esi)
+	movl	%esi,st_prev(%ecx)
 	ret
 
 LNoEmit2:
 	movl	%eax,st_last_u(%ecx)	// surf->next->last_u = iu;
-	movl	st_next(%esi),%edx		// remove the surface from the surface
-	movl	st_prev(%esi),%esi		// stack
-
-	movl	%edx,st_next(%esi)
-	movl	%esi,st_prev(%edx)
+	movl	st_prev(%esi),%esi		// remove; %ecx still holds st_next
+	movl	%ecx,st_next(%esi)
+	movl	%esi,st_prev(%ecx)
 	ret
 
 LNoEmit:
