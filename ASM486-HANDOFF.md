@@ -685,6 +685,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- RecursiveTriangle keep `lp2[1]` live via `leal` for nodraw compare
+  (`out\dos-timedemo-20260915-161932`) matched checksum `4154140932` but
+  was noise/tied vs the `LPushBackLoop`-`et_prev` default (median
+  63.103192 s; run 1 outlier 63.699628 s).  Avoiding the `4(%esi)` reload
+  did not move end-to-end time; do not retry.
 - InsertNewEdges defer `et_next` on all four probes with `jle`+`jmp`
   (`out\dos-timedemo-20260915-154519`) matched checksum `4154140932` but
   was noise (~0.4 ms vs the StepActiveU-aftertail default).  The extra
