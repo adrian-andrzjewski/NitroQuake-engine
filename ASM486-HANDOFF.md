@@ -35,7 +35,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `d_zistep` values while `modelorg` is unchanged this frame.  The miss
   path is the original `TransformVector` / `1/z` arithmetic.
 - Z spans: `D_DrawZSpans` ASM uses `zspantable` row bases instead of
-  IMUL `d_zrowbytes`.  The C multiply path remains the reference.
+  IMUL `d_zrowbytes`.  The span list cursor lives in `%ebp` so the pack
+  loop can scratch `%esi` without push/pop per span.  The C multiply
+  path remains the reference.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -179,6 +181,10 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Polyset sstep hoist (`D_PolysetDrawSpans8`) | BSS `sstep` for `a_sstepxfrac` in pixel loop | 64.012388 s / 15.137695 FPS, 9.1 ms slower | Reverted |
 | Polyset Bresenham const hoist (`D_PolysetDrawSpans8`) | Local copies of erroradjust*/ubasestep/countextra | 64.039951 s / 15.131180 FPS, 36.7 ms slower | Reverted |
 | Left-edge s/t step CSE (`D_RasterizeAliasPolySmooth`) | Reuse base products for extra steps | 63.984395 s / 15.144318 FPS, 18.9 ms faster | Kept |
+| Left-edge ptexextrastep via `a_ststepxwhole` | Carry-adjust + branch instead of skinwidth IMUL | 64.060863 s / 15.126241 FPS, 76.5 ms slower | Reverted |
+| Z-span list cursor in `%ebp` (`D_DrawZSpans`) | Drop per-span push/pop of span pointer | 63.895076 s / 15.165488 FPS, 89.3 ms faster | Kept |
+| Z-span odd-pixel tag in `%ebp` bit0 (`D_DrawZSpans`) | Drop count push/pop via pointer tag | 63.959669 s / 15.150173 FPS, 64.6 ms slower | Reverted |
+| ScanLeftEdge skinwidth stack hoist (`D_PolysetScanLeftEdge`) | Push skinwidth once; `addl (%esp)` on tfrac carry | 63.905049 s / 15.163121 FPS, 10.0 ms slower | Reverted |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -402,13 +408,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 88.9 ms faster than the phantom-mark default; every run was
   faster than the prior median.  ASM `D_PolysetDrawSpans8` builds
   `advancetable`/`tstep` once per call.
-- Current default after left-edge s/t step CSE
+- Previous default after left-edge s/t step CSE
   (`out\dos-timedemo-20260915-051520`): `63.984653 / 63.984268 / 63.984395` s,
   median **63.984395 s / 15.144318 FPS**, checksum `4154140932` on all three
   runs.  About 18.9 ms faster than the advancetable default; every run was
   faster than the prior median.  Confirms the earlier
   `out\dos-timedemo-20260915-051014` keep (that set had a run-2 hitch).
   `D_RasterizeAliasPolySmooth` reuses s/t base products for extra steps.
+- Current default after Z-span `%ebp` list cursor
+  (`out\dos-timedemo-20260915-055029`): `63.895311 / 63.895076 / 63.895065` s,
+  median **63.895076 s / 15.165488 FPS**, checksum `4154140932` on all three
+  runs.  About 89.3 ms faster than the left-edge CSE default; every run was
+  faster than the prior median.  ASM `D_DrawZSpans` keeps the span list in
+  `%ebp` and drops the per-span push/pop.
 
 ## Important decisions and assumptions
 
@@ -478,6 +490,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   vs 64.003272 s).  Local copies of `erroradjustup`/`down`, `ubasestep`,
   and `d_countextrastep` for the span prologue cost more than the C
   global loads; do not retry.
+- Left-edge `d_ptexextrastep` via `a_ststepxwhole`
+  (`out\dos-timedemo-20260915-053730`) matched checksum `4154140932`
+  but was 76.5 ms slower (64.060863 s vs 63.984395 s).  Carry adjust
+  plus ±1/`t_adj` branches cost more than `(textra>>16)*skinwidth`; keep
+  the direct IMUL form from the left-edge s/t CSE keep.
+- Z-span odd-pixel `%ebp` bit0 tag (`out\dos-timedemo-20260915-060125`)
+  matched checksum `4154140932` but was 64.6 ms slower (63.959669 s
+  vs 63.895076 s).  Tagging the span cursor to drop the count push/pop
+  cost more than the stack traffic; keep `pushl %ecx` / `popl %ecx`.
+- ScanLeftEdge skinwidth stack hoist (`out\dos-timedemo-20260915-061218`)
+  matched checksum `4154140932` but was 10.0 ms slower (63.905049 s
+  vs 63.895076 s).  Pushing `skinwidth` once and `addl (%esp)` on tfrac
+  carry did not beat the direct `r_affinetridesc` load; do not retry.
 - Unclipped alias `movzbl` expand (`out\dos-timedemo-20260911-155009`)
   matched checksum `4154140932` but the 0.16 ms median delta sat
   inside the previous run spread; do not retry byte-store vs
@@ -597,8 +622,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.144318 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-051520`) before further edits.
+   (15.165488 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-055029`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -653,6 +678,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    right-edge Bresenham constants (`erroradjustup`/`down`, `ubasestep`,
    `d_countextrastep`) in the span prologue
    (`out\dos-timedemo-20260914-184757`; ~37 ms slower).
+   Do not retry `d_ptexextrastep` via `a_ststepxwhole` with carry
+   adjust/branches (`out\dos-timedemo-20260915-053730`; ~76 ms slower);
+   keep `(sextra>>16)+(textra>>16)*skinwidth`.
    `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
    `D_RasterizeAliasPolySmooth` uses `viewspantable`/`zspantable`.
@@ -679,8 +707,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry skipping no-op bmodel Restore/Set CALLs with extra
    per-surface ifs.  Do not retry duplicating world surface loops to
    hoist `r_drawpolys`.  Do not retry `skintable` start addressing in
-   `D_RasterizeAliasPolySmooth`.  Z spans now use `zspantable`; edge scan is already
-   assembly.  Do not revive BSP plane-dot/clip helpers.  Face Z
+   `D_RasterizeAliasPolySmooth`.  Do not retry a `D_PolysetScanLeftEdge`
+   skinwidth stack hoist (`out\dos-timedemo-20260915-061218`; ~10 ms
+   slower).  Z spans use `zspantable` and keep the
+   span list in `%ebp` (no per-span push/pop of the list pointer); keep
+   the count `pushl`/`popl` for the odd pixel.  Do not retry tagging
+   `%ebp` bit0 to drop that count stack traffic
+   (`out\dos-timedemo-20260915-060125`; ~65 ms slower).  Edge scan is
+   already assembly.  Do not revive BSP plane-dot/clip helpers.  Face Z
    gradients are cached.
 
 ## Starting commands

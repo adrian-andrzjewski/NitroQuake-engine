@@ -798,7 +798,7 @@ C(D_DrawZSpans):
 
 	flds	C(d_zistepu)
 	movl	C(d_zistepu),%eax
-	movl	pzspans(%esp),%esi
+	movl	pzspans(%esp),%ebp
 	testl	%eax,%eax
 	jz		LFNegSpan
 
@@ -809,23 +809,22 @@ C(D_DrawZSpans):
 
 LFSpanLoop:
 // set up the initial 1/z value
-	fildl	espan_t_v(%esi)
-	fildl	espan_t_u(%esi)
-	movl	espan_t_v(%esi),%ecx
+	fildl	espan_t_v(%ebp)
+	fildl	espan_t_u(%ebp)
+	movl	espan_t_v(%ebp),%ecx
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
 	fxch	%st(1)
 	fadds	C(d_ziorigin)
-	movl	espan_t_u(%esi),%edx
+	movl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
 
 // clamp if z is nearer than 2 (1/z > 0.5)
 	fcoms	float_point5
 	leal	(%edi,%edx,2),%edi
-	movl	espan_t_count(%esi),%ecx
-	pushl	%esi		// preserve spans pointer
+	movl	espan_t_count(%ebp),%ecx
 	fnstsw	%ax
 	testb	$0x45,%ah
 	jz		LClamp
@@ -841,6 +840,7 @@ LFSpanLoop:
 // %ecx = count
 // %edx = izi
 // %edi = pdest
+// %ebp = current span (list cursor)
 
 LZDraw:
 
@@ -898,7 +898,6 @@ LFMiddleLoop:
 
 LFLast:
 	popl	%ecx			// retrieve count
-	popl	%esi			// retrieve span pointer
 
 // do the last, unaligned pixel, if there is one
 	andl	$1,%ecx			// is there an odd pixel left to do?
@@ -907,8 +906,8 @@ LFLast:
 	movw	%dx,(%edi)		// do the final pixel's z
 
 LFSpanDone:
-	movl	espan_t_pnext(%esi),%esi
-	testl	%esi,%esi
+	movl	espan_t_pnext(%ebp),%ebp
+	testl	%ebp,%ebp
 	jnz		LFSpanLoop
 
 	jmp		LFDone
@@ -921,23 +920,22 @@ LFNegSpan:
 
 LFNegSpanLoop:
 // set up the initial 1/z value
-	fildl	espan_t_v(%esi)
-	fildl	espan_t_u(%esi)
-	movl	espan_t_v(%esi),%ecx
+	fildl	espan_t_v(%ebp)
+	fildl	espan_t_u(%ebp)
+	movl	espan_t_v(%ebp),%ecx
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
 	fxch	%st(1)
 	fadds	C(d_ziorigin)
-	movl	espan_t_u(%esi),%edx
+	movl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
 
 // clamp if z is nearer than 2 (1/z > 0.5)
 	fcoms	float_point5
 	leal	(%edi,%edx,2),%edi
-	movl	espan_t_count(%esi),%ecx
-	pushl	%esi		// preserve spans pointer
+	movl	espan_t_count(%ebp),%ecx
 	fnstsw	%ax
 	testb	$0x45,%ah
 	jz		LClampNeg
@@ -953,6 +951,7 @@ LFNegSpanLoop:
 // %ecx = count
 // %edx = izi
 // %edi = pdest
+// %ebp = current span (list cursor)
 
 LZDrawNeg:
 
@@ -1009,7 +1008,6 @@ LFNegMiddleLoop:
 
 LFNegLast:
 	popl	%ecx			// retrieve count
-	popl	%esi			// retrieve span pointer
 
 // do the last, unaligned pixel, if there is one
 	andl	$1,%ecx			// is there an odd pixel left to do?
@@ -1018,8 +1016,8 @@ LFNegLast:
 	movw	%dx,(%edi)		// do the final pixel's z
 
 LFNegSpanDone:
-	movl	espan_t_pnext(%esi),%esi
-	testl	%esi,%esi
+	movl	espan_t_pnext(%ebp),%ebp
+	testl	%ebp,%ebp
 	jnz		LFNegSpanLoop
 
 LFDone:

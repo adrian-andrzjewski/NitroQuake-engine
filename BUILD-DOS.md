@@ -337,14 +337,21 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after left-edge s/t step CSE is
+The current measured default after the Z-span `%ebp` list cursor is
+`63.895311 / 63.895076 / 63.895065` seconds, median **15.165488 FPS** /
+**63.895076 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-055029\timedemo-result.json`).  That is about
+89.3 ms faster than the prior left-edge CSE default at **15.144318 FPS** /
+63.984395 s (`out\dos-timedemo-20260915-051520`).
+
+The prior left-edge s/t step CSE measured
 `63.984653 / 63.984268 / 63.984395` seconds, median **15.144318 FPS** /
 **63.984395 s**, checksum `4154140932`
 (`out\dos-timedemo-20260915-051520\timedemo-result.json`).  That is about
 18.9 ms faster than the prior advancetable default at **15.139851 FPS** /
 64.003272 s (`out\dos-timedemo-20260914-182901`).  An earlier CSE set
 (`out\dos-timedemo-20260915-051014`) matched the checksum with a run-2
-hitch; this rebenchmark confirms the keep without the hitch.
+hitch; the 051520 rebenchmark confirms the keep without the hitch.
 
 The prior polyset span advancetable hoist measured
 `64.003358 / 64.003148 / 64.003272` seconds, median **15.139851 FPS** /
@@ -391,7 +398,14 @@ checksum `4154140932` but was 42.4 ms slower
 slower (`out\dos-timedemo-20260914-183707`) and was reverted.  Local
 copies of polyset right-edge Bresenham constants matched the checksum
 but were 36.7 ms slower (`out\dos-timedemo-20260914-184757`) and were
-reverted.
+reverted.  A left-edge `d_ptexextrastep` rewrite via `a_ststepxwhole`
+matched the checksum but was 76.5 ms slower
+(`out\dos-timedemo-20260915-053730`) and was reverted.  Tagging the
+Z-span `%ebp` cursor bit0 to drop the count push/pop matched the
+checksum but was 64.6 ms slower (`out\dos-timedemo-20260915-060125`)
+and was reverted.  A `D_PolysetScanLeftEdge` skinwidth stack hoist
+matched the checksum but was 10.0 ms slower
+(`out\dos-timedemo-20260915-061218`) and was reverted.
 
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
