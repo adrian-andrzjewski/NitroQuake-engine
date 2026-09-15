@@ -271,11 +271,12 @@ LP2:
 	movl	C(edge_p),%edi
 	movl	C(r_ceilv1),%ecx
 	movl	%edi,%edx
-	movl	C(r_pedge),%esi
 	addl	$(et_size),%edx
 	cmpl	%ecx,%ebx
 	jz		LPop5AndDone
 
+	// Single r_pedge load after the horizontal early-out; the former
+	// preload into %esi plus a second load into %eax was redundant.
 	movl	C(r_pedge),%eax
 	movl	%eax,et_owner(%edi)
 

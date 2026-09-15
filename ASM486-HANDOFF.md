@@ -42,9 +42,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `surfaces` pointer in `%eax` instead of reloading it before the leading
   surface add.  `Lnewtop_fpop2` no longer loads a dead `st_key` into
   `%eax` before `Lnewtop` overwrites it.  `R_EmitEdge` omits the
-  discarded next-edge pretouch loads on both leading and trailing sides.
-  `TrailingEdge` emit / `LNoEmit2` unlink with the already-loaded
-  `st_next` in `%ecx` instead of reloading into `%edx`.
+  discarded next-edge pretouch loads on both leading and trailing sides,
+  and loads `r_pedge` once after the horizontal early-out for
+  `et_owner` (no preload into `%esi`).  `TrailingEdge` emit /
+  `LNoEmit2` unlink with the already-loaded `st_next` in `%ecx` instead
+  of reloading into `%edx`.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -215,6 +217,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | ScanLeftEdge pretouch removal (`D_PolysetScanLeftEdge`) | Drop discarded `movb` cache pretouch | 63.623244 s / 15.230283 FPS, 29.0 ms faster | Kept |
 | EmitEdge pretouch removal (`R_EmitEdge`) | Drop discarded next-edge `movl (%edx),%eax` on both sides | 63.614724 s / 15.232323 FPS, 8.5 ms faster | Kept |
 | TrailingEdge unlink via live `%ecx` (`TrailingEdge`) | Use preloaded `st_next` directly on emit/LNoEmit2; no reload or `movl %ecx,%edx` | 63.583628 s / 15.239772 FPS, 31.1 ms faster | Kept |
+| EmitEdge single `r_pedge` load (`R_EmitEdge`) | Drop preload into `%esi`; load once after horizontal early-out for `et_owner` | 63.573196 s / 15.242273 FPS, 10.4 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -504,6 +507,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 31.1 ms faster than the EmitEdge-pretouch default; every run
   was faster than every prior-default run.  Emit and `LNoEmit2` unlink with
   the already-loaded `st_next` in `%ecx` instead of reloading into `%edx`.
+- Current default after EmitEdge single `r_pedge` load
+  (`out\dos-timedemo-20260915-104810`): `63.573476 / 63.573196 / 63.573176` s,
+  median **63.573196 s / 15.242273 FPS**, checksum `4154140932` on all three
+  runs.  About 10.4 ms faster than the TrailingEdge-unlink default; every
+  run was faster than every prior-default run.  Horizontal edges skip
+  `r_pedge` entirely; non-horizontal edges load it once for `et_owner`.
 
 ## Important decisions and assumptions
 
@@ -758,8 +767,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.239772 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-103948`) before further edits.
+   (15.242273 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-104810`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -774,6 +783,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry TrailingEdge `movl %ecx,%edx` CSE (noise); the direct-`%ecx`
    unlink is kept.  Do not retry DrawSpans8 aspancount register CSE.
    Do not restore ScanLeftEdge or EmitEdge discarded pretouch loads.
+   Do not restore the EmitEdge `r_pedge` preload into `%esi`.
    Do not retry Span16 FILD-overlapped v/u dest loads
    (`out\dos-timedemo-20260915-103436`; noise).
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
@@ -882,7 +892,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `pnext` preload into `pspantemp`, or `D_DrawSkyScans8`
    `viewspantable` dest rows (noise or slower).  Edge scan keeps the
    `Lgs_leading` `surfaces` CSE and TrailingEdge direct-`%ecx` unlink;
-   look for other dead reloads carefully before adding stack traffic.
+   `R_EmitEdge` loads `r_pedge` once after the horizontal early-out.
+   Look for other dead reloads carefully before adding stack traffic.
    Do not revive BSP plane-dot/clip helpers.
    Face Z gradients are cached.
 
