@@ -1315,6 +1315,12 @@ LScanLoop:
 //		d_pedgespanpackage++;
 	addl	$(spanpackage_t_size),%esi
 
+// Last packaged row: Bresenham step is dead (caller re-inits or
+// right-edge SetUpForLineScan).  Same pattern as Aff8 last-group skip.
+	decl	%ecx
+	testl	$0xFFFF,%ecx
+	jz		LScanDone
+
 //		errorterm += erroradjustup;
 	movl	C(errorterm),%eax
 	addl	C(erroradjustup),%eax
@@ -1363,10 +1369,9 @@ LSkip1:
 	addl	%eax,4(%esp)
 
 //		}
-	decl	%ecx
-	testl	$0xFFFF,%ecx
-	jnz		LScanLoop
+	jmp		LScanLoop
 
+LScanDone:
 	movl	(%esp),%eax
 	movl	%eax,C(d_aspancount)
 	movl	%esi,C(d_pedgespanpackage)
@@ -1422,19 +1427,7 @@ LSkip2:
 
 //		}
 //	} while (--height);
-	decl	%ecx
-	testl	$0xFFFF,%ecx
-	jnz		LScanLoop
-
-	movl	(%esp),%eax
-	movl	%eax,C(d_aspancount)
-	movl	%esi,C(d_pedgespanpackage)
-	addl	$12,%esp
-	popl	%ebx
-	popl	%edi
-	popl	%esi
-	popl	%ebp
-	ret
+	jmp		LScanLoop
 
 
 //----------------------------------------------------------------------

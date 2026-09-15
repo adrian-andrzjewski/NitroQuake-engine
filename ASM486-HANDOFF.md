@@ -54,7 +54,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   needs no extra store), emit / `LNoEmit2` unlink with the already-loaded
   `st_next` in `%ecx` instead of reloading into `%edx`, skips the
   `r_bmodelactive` update when `insubmodel` is 0, and uses `decl`/`incl`
-  memory forms for bmodel enter/leave (matching C's `++`/`--`).  Leading
+  memory forms for bmodel enter/leave (matching C's `++`/`--`).
+  Emit compares `iu` to `st_last_u` via memory `cmpl` (load `last_u` into
+  `%edx` only when emitting).
+  Leading
   non-inverted paths store `movl $1` into `spanstate` (was 0) instead of
   `incl`+store; inverted `Lxl_done` still uses `incl`.
   Leading first key test uses memory `cmpl st_key(%esi),%eax` (drops
@@ -74,9 +77,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `R_InsertNewEdges` defers `et_next` past the `et_u` early-out on the
   first three search probes (dead on `LAddedge` / `LAddedge2`); the
   fourth probe keeps the original `jg` fallthrough so long walks do
-  not pay an extra `jmp`.
+  not pay an extra `jmp`.  Search probes use memory `cmpl et_u(...)`
+  (drop preload into `%ebx`).
   `R_StepActiveU` `LPushBackLoop` defers `et_prev` past the first
   `et_u` early-out (dead on `LPushBackFound`); second probe unchanged.
+  Pushback search uses memory `cmpl et_u(...)` (drop preload into `%ebx`).
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -107,7 +112,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   live `d_pdest`/`d_pz` in `%edi`/`%ebp`, and spills light/zi/aspancount
   on the stack (aspancount written back once on exit).  The discarded
   next-package cache pretouch `movb` is omitted; the first store after
-  advancing `%esi` still touches the line.  `D_PolysetRecursiveTriangle`
+  advancing `%esi` still touches the line.  After packaging the last
+  row, the Bresenham step is skipped (`decl`/`jz` before the step;
+  matches Aff8 last-group).  `D_PolysetRecursiveTriangle`
   pixel leaf reuses live `new[1]`/`new[0]` in `%ecx`/`%ebp` from the Z
   setup (`movzbl` colormap index; no stack reloads).  Leading-edge nodraw
   loads `lp2[0]` only on the equal-`y` path (into `%eax` so live
@@ -292,6 +299,10 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | RecursiveTriangle keep live new[0]/new[1] into LDraw (`D_PolysetRecursiveTriangle`) | Equal-y uses `%eax` for `lp2[0]`; skip stack reloads at draw entry | 63.006559 s / 15.379351 FPS, 5.5 ms faster | Kept |
 | Leading sort-loop memory `cmpl` `st_key` (`Lsortloopnb` / `Lsortloop`) | Drop per-probe key preload; same pattern as first-key keep | 62.953783 s / 15.392244 FPS, 52.8 ms faster | Kept |
 | Aff8 multi skip dead last-group stepper (`Lp8`) | `decw`/`jz` before s/t/z/ptex advance on final group | 62.830543 s / 15.422436 FPS, 123.2 ms faster | Kept |
+| InsertNewEdges memory `cmpl et_u` (`R_InsertNewEdges`) | Drop `%ebx` key preload per probe; keep probe-4 `jg` fallthrough | 62.787258 s / 15.433068 FPS, 43.3 ms faster | Kept |
+| StepActiveU `LPushBackLoop` memory `cmpl et_u` (`R_StepActiveU`) | Drop `%ebx` key preload on pushback walk probes | 62.783533 s / 15.433983 FPS, 3.7 ms faster | Kept |
+| TrailingEdge memory `cmpl st_last_u` (`TrailingEdge`) | Load `last_u` into `%edx` only on emit; dead on `LNoEmit2` | 62.782647 s / 15.434201 FPS, 0.9 ms faster | Kept |
+| ScanLeftEdge skip dead last-row Bresenham (`D_PolysetScanLeftEdge`) | `decl`/`jz` before step after last package; shared epilogue | 62.753905 s / 15.441270 FPS, 28.7 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -734,6 +745,28 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   median **62.830543 s / 15.422436 FPS**, checksum `4154140932` on all three
   runs.  About 123.2 ms faster than the sort-loop-`st_key` default; every
   run was faster than every prior-default run.
+- Current default after InsertNewEdges memory `cmpl et_u`
+  (`out\dos-timedemo-20260915-183750`): `62.787043 / 62.787258 / 62.787362` s,
+  median **62.787258 s / 15.433068 FPS**, checksum `4154140932` on all three
+  runs.  About 43.3 ms faster than the Aff8-last-group default; every run
+  was faster than every prior-default run.
+- Current default after `LPushBackLoop` memory `cmpl et_u`
+  (`out\dos-timedemo-20260915-184357`): `62.783709 / 62.783486 / 62.783533` s,
+  median **62.783533 s / 15.433983 FPS**, checksum `4154140932` on all three
+  runs.  About 3.7 ms faster than the InsertNewEdges-`et_u`-`cmpl` default;
+  every run was faster than every prior-default run.
+- Current default after TrailingEdge memory `cmpl st_last_u`
+  (`out\dos-timedemo-20260915-190100`): `62.782709 / 62.782647 / 62.782532` s,
+  median **62.782647 s / 15.434201 FPS**, checksum `4154140932` on all three
+  runs.  About 0.9 ms faster than the `LPushBackLoop`-`et_u`-`cmpl` default;
+  every run was faster than every prior-default run.
+- Current default after ScanLeftEdge skip dead last-row Bresenham
+  (`out\dos-timedemo-20260915-200539`): `62.810895 / 62.753822 / 62.753905` s,
+  median **62.753905 s / 15.441270 FPS**, checksum `4154140932` on all three
+  runs.  About 28.7 ms faster than the TrailingEdge-`last_u` default; every
+  run was faster than every prior-default run.  (Earlier measurement
+  `out\dos-timedemo-20260915-200144` had a 62.856 s middle-run outlier;
+  the clean re-run is the accepted evidence.)
 
 ## Important decisions and assumptions
 
@@ -758,6 +791,13 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Failed or inconclusive work
 
+- Particle NxN drop `%esi` push; use dead `%eax` for `d_zrowbytes`
+  (`out\dos-timedemo-20260915-195244`) matched checksum `4154140932` but
+  was noise (~0.3 ms vs the TrailingEdge-`last_u` default).  Do not retry.
+- Leading inverted `Lxl_done` memory `incl` spanstate
+  (`out\dos-timedemo-20260915-185246`) matched checksum `4154140932` but
+  was noise (~0.1 ms vs the `LPushBackLoop`-`et_u`-`cmpl` default).
+  Do not retry.
 - EmitEdge defer `r_ceilv1` fistl past `r_nearzionly` (`out\dos-timedemo-20260915-181715`)
   matched checksum `4154140932` but was ~20.4 ms slower than the sort-loop
   `st_key` default (median 62.974149 s).  Extra `fxch` around deferred
@@ -1051,8 +1091,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.422436 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-182515`) before further edits.
+   (15.441270 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-200539`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -1135,6 +1175,16 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-181715`; ~20 ms slower).
    Do not restore Aff8 multi last-group stepper before `decw` exit
    (`Lp8`).
+   Do not restore InsertNewEdges `movl et_u→%ebx` before `cmpl`.
+   Do not restore `LPushBackLoop` `movl et_u→%ebx` before `cmpl`.
+   Do not retry leading inverted `Lxl_done` memory `incl` spanstate
+   (`out\dos-timedemo-20260915-185246`; noise).
+   Do not restore TrailingEdge `st_last_u` preload before the `LNoEmit2`
+   early-out.
+   Do not retry particle NxN `%esi` push removal / `%eax` z-stride
+   (`out\dos-timedemo-20260915-195244`; noise).
+   Do not restore ScanLeftEdge last-row Bresenham step after the final
+   package (`decl`/`jz` before step is kept).
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

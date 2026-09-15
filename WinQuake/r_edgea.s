@@ -60,21 +60,18 @@ LContinueSearch:
 // Defer et_next until after et_u early-out on the first three probes
 // (dead on LAddedge / LAddedge2).  Keep the fourth probe's jg fallthrough
 // so long walks do not pay an extra unconditional jmp.
-	movl	et_u(%ecx),%ebx
-	cmpl	%ebx,%eax
+// Memory cmpl et_u (drop preload into %ebx); %ebx overwritten in LAddedge*.
+	cmpl	et_u(%ecx),%eax
 	jle		LAddedge
 	movl	et_next(%ecx),%esi
-	movl	et_u(%esi),%ebx
-	cmpl	%ebx,%eax
+	cmpl	et_u(%esi),%eax
 	jle		LAddedge2
 	movl	et_next(%esi),%ecx
-	movl	et_u(%ecx),%ebx
-	cmpl	%ebx,%eax
+	cmpl	et_u(%ecx),%eax
 	jle		LAddedge
 	movl	et_next(%ecx),%esi
-	movl	et_u(%esi),%ebx
 	movl	et_next(%esi),%ecx
-	cmpl	%ebx,%eax
+	cmpl	et_u(%esi),%eax
 	jg		LContinueSearch
 
 LAddedge2:
@@ -212,14 +209,13 @@ LPushBack:
 // find out where the edge goes in the edge list
 LPushBackLoop:
 // Defer et_prev until after et_u early-out (dead on LPushBackFound).
-	movl	et_u(%edi),%ebx
-	cmpl	%ebx,%eax
+// Memory cmpl et_u (drop preload into %ebx); %ebx overwritten in LPushBackFound.
+	cmpl	et_u(%edi),%eax
 	jnl		LPushBackFound
 	movl	et_prev(%edi),%ecx
 
 	movl	et_prev(%ecx),%edi
-	movl	et_u(%ecx),%ebx
-	cmpl	%ebx,%eax
+	cmpl	et_u(%ecx),%eax
 	jl		LPushBackLoop
 
 	movl	%ecx,%edi
@@ -272,11 +268,12 @@ LSkipBmodelDec:
 // emit a span (current top going away)
 	movl	et_u(%ebx),%eax
 	shrl	$20,%eax				// iu = integral pixel u
-	movl	st_last_u(%esi),%edx
 	movl	st_next(%esi),%ecx
-	cmpl	%edx,%eax
+// Memory cmpl last_u (dead preload on LNoEmit2); load into %edx only on emit.
+	cmpl	st_last_u(%esi),%eax
 	jle		LNoEmit2				// iu <= surf->last_u, so nothing to emit
 
+	movl	st_last_u(%esi),%edx
 	movl	%eax,st_last_u(%ecx)	// surf->next->last_u = iu;
 	subl	%edx,%eax
 	movl	%edx,espan_t_u(%ebp)		// span->u = surf->last_u;
