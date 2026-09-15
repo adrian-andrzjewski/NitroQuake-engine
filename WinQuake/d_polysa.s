@@ -653,9 +653,8 @@ LSplit:
 
 //	if ((lp2[1] == lp1[1]) && (lp2[0] < lp1[0]))
 //		goto nodraw;
-	movl	0(%esi),%edx
 	jnz		LDraw
-
+	movl	0(%esi),%edx
 	cmpl	%ecx,%edx
 	jl		LNoDraw
 
