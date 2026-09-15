@@ -46,10 +46,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   loads `r_pedge` once after the horizontal early-out for `et_owner`
   (no preload into `%esi`), and drops an unused `r_pedge` load on the
   fully-clipped both-points-out path (cacheoffset only).  `TrailingEdge`
-  emit / `LNoEmit2` unlink with the already-loaded `st_next` in `%ecx`
-  instead of reloading into `%edx`, skips the `r_bmodelactive` update when
-  `insubmodel` is 0, and uses `decl`/`incl` memory forms for bmodel
-  enter/leave (matching C's `++`/`--`).
+  uses memory `decl` for `--surf->spanstate` (ZF test; inverted path
+  needs no extra store), emit / `LNoEmit2` unlink with the already-loaded
+  `st_next` in `%ecx` instead of reloading into `%edx`, skips the
+  `r_bmodelactive` update when `insubmodel` is 0, and uses `decl`/`incl`
+  memory forms for bmodel enter/leave (matching C's `++`/`--`).
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -224,6 +225,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | TrailingEdge skip `r_bmodelactive` RMW (`TrailingEdge`) | Skip load/sub/store when `insubmodel==0` | 63.523798 s / 15.254125 FPS, 49.4 ms faster | Kept |
 | Bmodel `incl`/`decl` `r_bmodelactive` (`TrailingEdge` / `Lbmodel_leading`) | Memory inc/dec instead of load/add/store; world skip kept | 63.500960 s / 15.259612 FPS, 22.8 ms faster | Kept |
 | EmitEdge drop unused clipped `r_pedge` load (`R_EmitEdge`) | Fully-clipped path wrote only `cacheoffset`; `%ecx` load was dead | 63.488089 s / 15.262705 FPS, 12.9 ms faster | Kept |
+| TrailingEdge memory `decl` spanstate (`TrailingEdge`) | `--surf->spanstate` via `decl mem`; drop inverted-path store | 63.355125 s / 15.294737 FPS, 133.0 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -537,6 +539,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 12.9 ms faster than the bmodel-incl/decl default; every run
   was faster than every prior-default run.  Fully-clipped edges only update
   `cacheoffset`.
+- Current default after TrailingEdge memory `decl` of `spanstate`
+  (`out\dos-timedemo-20260915-115111`, rebench of `114708`):
+  `63.355242 / 63.355064 / 63.355125` s, median **63.355125 s / 15.294737 FPS**,
+  checksum `4154140932` on all three runs.  About 133.0 ms faster than the
+  clipped-`r_pedge` default; every run was faster than every prior-default
+  run.  First bench (`114708`) was `63.355247 / 63.355017 / 63.355112` s.
 
 ## Important decisions and assumptions
 
@@ -804,8 +812,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.262705 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-113652`) before further edits.
+   (15.294737 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-115111`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -831,6 +839,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry PolysetCalcGradients s/t step CSE
    (`out\dos-timedemo-20260915-113155`; tied).
    Do not restore the unused clipped-path `r_pedge` load.
+   Do not restore load/decl/store for TrailingEdge `spanstate`.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -939,8 +948,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `Lgs_leading` `surfaces` CSE and TrailingEdge direct-`%ecx` unlink;
    `R_EmitEdge` loads `r_pedge` once after the horizontal early-out and
    omits the unused fully-clipped `r_pedge` load;
-   TrailingEdge skips `r_bmodelactive` when `insubmodel==0` and uses
-   `decl`/`incl` memory forms for bmodel enter/leave.
+   TrailingEdge uses memory `decl` for `spanstate`, skips `r_bmodelactive`
+   when `insubmodel==0`, and uses `decl`/`incl` memory forms for bmodel
+   enter/leave.
    Look for other dead reloads carefully before adding stack traffic.
    Do not revive BSP plane-dot/clip helpers.
    Face Z gradients are cached.

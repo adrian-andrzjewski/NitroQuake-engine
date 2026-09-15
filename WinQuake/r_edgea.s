@@ -252,11 +252,12 @@ LUDone:
 
 	.p2align 4,,15
 TrailingEdge:
-	movl	st_spanstate(%esi),%eax	// check for edge inversion
-	decl	%eax
+	// Match C's --surf->spanstate == 0 with a single memory decl (ZF).
+	// Both exits need the decremented value stored; inverted path no longer
+	// needs a separate store.
+	decl	st_spanstate(%esi)
 	jnz		LInverted
 
-	movl	%eax,st_spanstate(%esi)
 	movl	st_insubmodel(%esi),%ecx
 	movl	0x12345678,%edx		// surfaces[1].st_next
 LPatch0:
@@ -312,7 +313,6 @@ LNoEmit:
 	ret
 
 LInverted:
-	movl	%eax,st_spanstate(%esi)
 	ret
 
 //--------------------------------------------------------------------
