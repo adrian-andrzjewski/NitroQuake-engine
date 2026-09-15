@@ -268,15 +268,14 @@ LP2:
 //	if (ceilv0 == r_ceilv1)
 //		return;		// horizontal edge
 	movl	Lceilv0,%ebx
-	movl	C(edge_p),%edi
 	movl	C(r_ceilv1),%ecx
-	movl	%edi,%edx
-	addl	$(et_size),%edx
 	cmpl	%ecx,%ebx
 	jz		LPop5AndDone
 
-	// Single r_pedge load after the horizontal early-out; the former
-	// preload into %esi plus a second load into %eax was redundant.
+	// edge_p only when emitting (same deferral as r_pedge).  LEA keeps
+	// CF from cmpl for the side test; mov+add would clobber flags.
+	movl	C(edge_p),%edi
+	leal	et_size(%edi),%edx
 	movl	C(r_pedge),%eax
 	movl	%eax,et_owner(%edi)
 

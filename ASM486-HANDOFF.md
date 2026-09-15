@@ -43,8 +43,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   surface add.  `Lnewtop_fpop2` no longer loads a dead `st_key` into
   `%eax` before `Lnewtop` overwrites it.  `R_EmitEdge` omits the
   discarded next-edge pretouch loads on both leading and trailing sides,
-  loads `r_pedge` once after the horizontal early-out for `et_owner`
-  (no preload into `%esi`), and drops an unused `r_pedge` load on the
+  loads `edge_p` and `r_pedge` only after the horizontal early-out
+  (`leal` for `edge_p+et_size` so CF from the ceil compare feeds the side
+  test; no preload into `%esi`), and drops an unused `r_pedge` load on the
   fully-clipped both-points-out path (cacheoffset only).  `TrailingEdge`
   uses memory `decl` for `--surf->spanstate` (ZF test; inverted path
   needs no extra store), emit / `LNoEmit2` unlink with the already-loaded
@@ -229,6 +230,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | EmitEdge drop unused clipped `r_pedge` load (`R_EmitEdge`) | Fully-clipped path wrote only `cacheoffset`; `%ecx` load was dead | 63.488089 s / 15.262705 FPS, 12.9 ms faster | Kept |
 | TrailingEdge memory `decl` spanstate (`TrailingEdge`) | `--surf->spanstate` via `decl mem`; drop inverted-path store | 63.355125 s / 15.294737 FPS, 133.0 ms faster | Kept |
 | Leading spanstate `movl $1` (`Lgs_leading` / `Lbmodel_leading`) | Known-zero fall-through stores 1; skip `incl`/%edx | 63.281476 s / 15.312538 FPS, 73.6 ms faster | Kept |
+| EmitEdge defer `edge_p` past horizontal early-out (`R_EmitEdge`) | Load `edge_p`+`leal` next only when emitting; CF preserved | 63.267301 s / 15.315969 FPS, 14.2 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -554,6 +556,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 73.6 ms faster than the TrailingEdge-spanstate-decl default;
   every run was faster than every prior-default run.  Non-inverted leading
   paths store immediate 1; `Lxl_done` keeps `incl`.
+- Current default after EmitEdge deferred `edge_p`
+  (`out\dos-timedemo-20260915-122259`): `63.267487 / 63.267234 / 63.267301` s,
+  median **63.267301 s / 15.315969 FPS**, checksum `4154140932` on all three
+  runs.  About 14.2 ms faster than the leading-`movl $1` default; every run
+  was faster than every prior-default run.  Horizontal edges skip
+  `edge_p`/`leal`; CF from the ceil `cmpl` still feeds the side `jc`.
 
 ## Important decisions and assumptions
 
@@ -826,8 +834,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.312538 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-120825`) before further edits.
+   (15.315969 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-122259`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -857,6 +865,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not retry TrailingEdge `st_next` hoist for `LNoEmit`
    (`out\dos-timedemo-20260915-120218`; noise).
    Do not restore leading `incl`+%edx store for known-zero spanstate.
+   Do not restore EmitEdge `edge_p` load before the horizontal early-out.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -963,8 +972,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    `pnext` preload into `pspantemp`, or `D_DrawSkyScans8`
    `viewspantable` dest rows (noise or slower).  Edge scan keeps the
    `Lgs_leading` `surfaces` CSE and TrailingEdge direct-`%ecx` unlink;
-   `R_EmitEdge` loads `r_pedge` once after the horizontal early-out and
-   omits the unused fully-clipped `r_pedge` load;
+   `R_EmitEdge` loads `edge_p`/`r_pedge` only after the horizontal early-out
+   (`leal` next pointer) and omits the unused fully-clipped `r_pedge` load;
    TrailingEdge uses memory `decl` for `spanstate`, skips `r_bmodelactive`
    when `insubmodel==0`, and uses `decl`/`incl` memory forms for bmodel
    enter/leave.  Leading non-inverted paths store `movl $1` for spanstate.
