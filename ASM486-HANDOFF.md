@@ -175,6 +175,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Alias clip hoist + skip Z reflag (`R_AliasClip`) | Hoist vrect; Z writes final flags | 64.134559 s / 15.108859 FPS, 42.4 ms slower | Reverted |
 | Polyset span advancetable hoist (`D_PolysetDrawSpans8`) | Once-per-call `advancetable`/`tstep` | 64.003272 s / 15.139851 FPS, 88.9 ms faster | Kept |
 | Polyset sstep hoist (`D_PolysetDrawSpans8`) | BSS `sstep` for `a_sstepxfrac` in pixel loop | 64.012388 s / 15.137695 FPS, 9.1 ms slower | Reverted |
+| Polyset Bresenham const hoist (`D_PolysetDrawSpans8`) | Local copies of erroradjust*/ubasestep/countextra | 64.039951 s / 15.131180 FPS, 36.7 ms slower | Reverted |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -462,6 +463,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   matched checksum `4154140932` but was 9.1 ms slower (64.012388 s
   vs 64.003272 s).  Routing `a_sstepxfrac` through BSS `sstep` in the
   pixel loop did not beat the direct C global; keep `addl C(a_sstepxfrac)`.
+- Polyset Bresenham const hoist (`out\dos-timedemo-20260914-184757`)
+  matched checksum `4154140932` but was 36.7 ms slower (64.039951 s
+  vs 64.003272 s).  Local copies of `erroradjustup`/`down`, `ubasestep`,
+  and `d_countextrastep` for the span prologue cost more than the C
+  global loads; do not retry.
 - Unclipped alias `movzbl` expand (`out\dos-timedemo-20260911-155009`)
   matched checksum `4154140932` but the 0.16 ms median delta sat
   inside the previous run spread; do not retry byte-store vs
@@ -632,7 +638,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    once-per-call `advancetable`/`tstep` hoist in ASM `D_PolysetDrawSpans8`.
    Keep direct `addl C(a_sstepxfrac)` in the pixel loop; do not retry
    BSS `sstep` for that constant (`out\dos-timedemo-20260914-183707`;
-   matched checksum but ~9 ms slower).  `D_PolysetDrawFinalVerts`
+   matched checksum but ~9 ms slower).  Do not retry local copies of
+   right-edge Bresenham constants (`erroradjustup`/`down`, `ubasestep`,
+   `d_countextrastep`) in the span prologue
+   (`out\dos-timedemo-20260914-184757`; ~37 ms slower).
+   `D_PolysetDrawFinalVerts`
    hoists the viewmodel clip edges; C keeps the same locals as the live ASM.
    `D_RasterizeAliasPolySmooth` uses `viewspantable`/`zspantable`.
    `D_PolysetSetUpForLineScan` uses a 64x64 `adivtab` (`[-31,32]`); do not

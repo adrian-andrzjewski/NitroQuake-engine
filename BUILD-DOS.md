@@ -379,7 +379,10 @@ reverted.  An `R_AliasClip` aliasvrect hoist plus skip-Z-reflag matched
 checksum `4154140932` but was 42.4 ms slower
 (`out\dos-timedemo-20260914-181813`) and was reverted.  A polyset
 `a_sstepxfrac`→BSS `sstep` hoist matched the checksum but was 9.1 ms
-slower (`out\dos-timedemo-20260914-183707`) and was reverted.
+slower (`out\dos-timedemo-20260914-183707`) and was reverted.  Local
+copies of polyset right-edge Bresenham constants matched the checksum
+but were 36.7 ms slower (`out\dos-timedemo-20260914-184757`) and were
+reverted.
 
 A 2026-09-10 lock before this pass measured
 `68.958977 / 68.958817 / 68.958799` seconds, median **14.051865 FPS**,
