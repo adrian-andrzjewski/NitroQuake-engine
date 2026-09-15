@@ -69,6 +69,8 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   `tstep` once per call (same pattern as `lzistepx`).
   Aff8 pixel leaves use `movzbl` for the texel/`(light<<8)|texel`
   colormap index instead of `xorl`+`movb`.
+  `D_PolysetDrawFinalVerts` uses `movzbl` for the skin texel (drops
+  `andl $0x00FF` before the light-shifted colormap add).
   `D_RasterizeAliasPolySmooth` reuses left-edge s/t base products for the
   extra-step path (`d_countextrastep = ubasestep + 1`).
   Live ASM `D_PolysetScanLeftEdge` keeps the package cursor in `%esi`,
@@ -237,6 +239,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | EmitEdge defer `edge_p` past horizontal early-out (`R_EmitEdge`) | Load `edge_p`+`leal` next only when emitting; CF preserved | 63.267301 s / 15.315969 FPS, 14.2 ms faster | Kept |
 | RecursiveTriangle live new[0]/new[1] (`D_PolysetRecursiveTriangle`) | Reuse Z-setup `%ecx`/`%ebp`; `movzbl` colormap; drop stack reloads | 63.265453 s / 15.316416 FPS, 1.8 ms faster | Kept |
 | Aff8 pixel `movzbl` colormap index (`D_PolysetDrawSpans8`) | Replace `xorl`+`movb` with `movzbl` in LDraw8–1 / one-long | 63.179599 s / 15.337229 FPS, 85.9 ms faster | Kept |
+| FinalVerts `movzbl` skin texel (`D_PolysetDrawFinalVerts`) | Drop `movb`+`andl $0x00FF`; zero-extend into colormap add | 63.178180 s / 15.337574 FPS, 1.4 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -579,6 +582,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   runs.  About 85.9 ms faster than the RecursiveTriangle default; every run
   was faster than every prior-default run.  LDraw8–1 and `LExactlyOneLong`
   use `movzbl` for the texel half of the colormap index.
+- Current default after FinalVerts `movzbl` skin texel
+  (`out\dos-timedemo-20260915-131025`): `63.178491 / 63.178164 / 63.178180` s,
+  median **63.178180 s / 15.337574 FPS**, checksum `4154140932` on all three
+  runs.  About 1.4 ms faster than the Aff8-`movzbl` default; every run was
+  faster than every prior-default run.
 
 ## Important decisions and assumptions
 
@@ -856,8 +864,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.337229 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-125058`) before further edits.
+   (15.337574 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-131025`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -892,6 +900,7 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    (`out\dos-timedemo-20260915-123249`; noise).
    Do not restore RecursiveTriangle stack reloads of `new[0]`/`new[1]`.
    Do not restore Aff8 `xorl`+`movb` colormap index formation.
+   Do not restore FinalVerts `movb`+`andl $0x00FF` skin texel load.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
@@ -943,8 +952,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 4. Alias leftover is now narrower polyset raster guts after the
    once-per-call `advancetable`/`tstep` hoist and left-edge s/t step CSE
    in `D_RasterizeAliasPolySmooth`.  RecursiveTriangle keeps live
-   `new[0]`/`new[1]` through the pixel leaf.  Aff8 leaves use `movzbl`
-   for the colormap index.
+   `new[0]`/`new[1]` through the pixel leaf.  Aff8 leaves and FinalVerts
+   use `movzbl` for the colormap index / skin texel.
    Keep direct `addl C(a_sstepxfrac)` in the pixel loop; do not retry
    BSS `sstep` for that constant (`out\dos-timedemo-20260914-183707`;
    matched checksum but ~9 ms slower).  Do not retry local copies of

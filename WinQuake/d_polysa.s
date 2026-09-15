@@ -1509,12 +1509,11 @@ LFVLoop:
 	movl	C(skintable)(,%edi,4),%edi
 	movl	fv_v+8(%ebx),%edx
 	shrl	$16,%edx
-	movb	(%edi,%edx),%dl
+	movzbl	(%edi,%edx),%edx
 
 //				pix = ((byte *)acolormap)[pix + (fv->v[4] & 0xFF00)];
 	movl	fv_v+16(%ebx),%edi
 	andl	$0xFF00,%edi
-	andl	$0x00FF,%edx
 	addl	%edx,%edi
 	movl	C(acolormap),%edx
 	movb	(%edx,%edi,1),%dl
