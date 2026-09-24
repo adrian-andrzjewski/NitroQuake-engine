@@ -398,18 +398,10 @@ LBPatch29:
 	movl	C(lightdelta),%ebp
 
 	movl	%eax,(%edi)
-	movl	C(sourcetstep),%eax
-
-	addl	%eax,%esi
-	movl	C(surfrowbytes),%eax
-
-	addl	%eax,%edi
-	movl	C(lightrightstep),%eax
-
-	addl	%eax,%edx
-	movl	C(lightdeltastep),%eax
-
-	addl	%eax,%ebp
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	addl	C(lightrightstep),%edx
+	addl	C(lightdeltastep),%ebp
 	movl	%edx,C(lightright)
 
 	jc		Lblockloop8_mip1
@@ -538,18 +530,10 @@ LBPatch21:
 	movl	C(lightdelta),%ebp
 
 	movl	%eax,(%edi)
-	movl	C(sourcetstep),%eax
-
-	addl	%eax,%esi
-	movl	C(surfrowbytes),%eax
-
-	addl	%eax,%edi
-	movl	C(lightrightstep),%eax
-
-	addl	%eax,%edx
-	movl	C(lightdeltastep),%eax
-
-	addl	%eax,%ebp
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	addl	C(lightrightstep),%edx
+	addl	C(lightdeltastep),%ebp
 	movl	%edx,C(lightright)
 
 	jc		Lblockloop8_mip2

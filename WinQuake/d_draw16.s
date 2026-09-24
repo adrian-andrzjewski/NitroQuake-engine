@@ -801,19 +801,16 @@ LLastSegment:
 	addl	snext,%eax
 	addl	tnext,%ebx
 
-	movl	C(bbextents),%ebp
-	movl	C(bbextentt),%edx
-
 	cmpl	$4096,%eax
 	jl		LClampLow4
-	cmpl	%ebp,%eax
+	cmpl	C(bbextents),%eax
 	ja		LClampHigh4
 LClampReentry4:
 	movl	%eax,snext
 
 	cmpl	$4096,%ebx
 	jl		LClampLow5
-	cmpl	%edx,%ebx
+	cmpl	C(bbextentt),%ebx
 	ja		LClampHigh5
 LClampReentry5:
 
