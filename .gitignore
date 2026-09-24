@@ -4,6 +4,7 @@
 
 # Local compiler/emulator cache if a user points the bootstrapper here.
 /tools/.cache/
+/tools/486quake.exe
 
 # Legacy/compiler intermediates.
 *.obj
