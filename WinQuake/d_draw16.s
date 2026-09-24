@@ -287,15 +287,13 @@ LFDIVInFlight1:
 
 	addl	s,%esi
 	addl	t,%edx
-	movl	C(bbextents),%ebx
-	movl	C(bbextentt),%ebp
-	cmpl	%ebx,%esi
+	cmpl	C(bbextents),%esi
 	ja		LClampHighOrLow0
 LClampReentry0:
 	movl	%esi,s
 	movl	pbase,%ebx
 	shll	$16,%esi
-	cmpl	%ebp,%edx
+	cmpl	C(bbextentt),%edx
 	movl	%esi,sfracf
 	ja		LClampHighOrLow1
 LClampReentry1:
@@ -354,18 +352,15 @@ LNotLastSegment:
 	addl	%eax,%ebp
 	addl	%edx,%ecx
 
-	movl	C(bbextents),%eax
-	movl	C(bbextentt),%edx
-
 	cmpl	$4096,%ebp
 	jl		LClampLow2
-	cmpl	%eax,%ebp
+	cmpl	C(bbextents),%ebp
 	ja		LClampHigh2
 LClampReentry2:
 
 	cmpl	$4096,%ecx
 	jl		LClampLow3
-	cmpl	%edx,%ecx
+	cmpl	C(bbextentt),%ecx
 	ja		LClampHigh3
 LClampReentry3:
 

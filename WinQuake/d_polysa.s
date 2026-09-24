@@ -728,10 +728,9 @@ C(D_PolysetDrawSpans8):
 
 // Triangle-constant skin steps: build once per call (same as lzistepx).
 	movl	C(a_ststepxwhole),%ecx
-	movl	C(r_affinetridesc)+atd_skinwidth,%edx
 
 	movl	%ecx,advancetable+4	// advance base in t
-	addl	%edx,%ecx
+	addl	C(r_affinetridesc)+atd_skinwidth,%ecx
 
 	movl	%ecx,advancetable	// advance extra in t
 	movl	C(a_tstepxfrac),%ecx
@@ -758,9 +757,8 @@ LSpanLoop:
 	movl	C(d_aspancount),%eax
 	subl	%edx,%eax
 
-	movl	C(erroradjustup),%edx
 	movl	C(errorterm),%ebx
-	addl	%edx,%ebx
+	addl	C(erroradjustup),%ebx
 	js		LNoTurnover
 
 	movl	C(erroradjustdown),%edx
