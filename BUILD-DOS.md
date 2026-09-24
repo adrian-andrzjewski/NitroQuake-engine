@@ -55,11 +55,12 @@ reference bodies.  Select it at build time:
 .\tools\build-dos.ps1 -Benchmark -MemoryImplementation asm
 ~~~
 
-`c` is the default and writes to `out\dos`; `asm` writes to
-`out\dos-memasm`.  The ASM build includes `asm486_experiments.s` and defines
-`ASM486_RUNTIME_MEMOPS`; all other compiler flags and source inputs remain the
-same.  The switch is deliberately opt-in while the end-to-end gain is being
-evaluated.
+`asm` is now the 486-oriented default and writes to `out\dos-memasm`; `c`
+remains the callable reference path and writes to `out\dos`. The ASM build
+includes `asm486_experiments.s` and defines `ASM486_RUNTIME_MEMOPS`; all other
+compiler flags and source inputs remain the same. Three current 486 timedemo
+runs measured 62.556866 / 62.556847 / 62.556874 seconds with ASM versus a C
+reference median near 62.568974 seconds, with checksum `4154140932` every run.
 
 The texture-axis cache-key probe is independently selectable with
 `-TextureAxisImplementation c|asm`:
@@ -122,11 +123,14 @@ The 16-pixel texture-span store loop is independently selectable with
 .\tools\build-dos.ps1 -Benchmark -TextureSpanStores loop
 ~~~
 
-`byte` is the measured default (original unrolled stores).  `dword` packs four
-destination pixels per `movl` and matched checksum `4154140932` but stayed
-inside run noise.  `loop` uses `stosb` in 7+8 pixel loops, also matched the
-checksum, and was about 2.8% slower.  `dword` writes `out\dos-spandword` and
-`loop` writes `out\dos-spanloop`.
+`byte` remains the production default (original unrolled stores).  `dword`
+packs four destination pixels per `movl` and matched checksum `4154140932`.
+The current-source 486 recheck produced 62.568941, 62.568978, and 62.568999
+seconds without FPS-stat collection, versus matching byte runs at 62.569014,
+62.568957, and 62.568953 seconds; the medians differ by about one microsecond,
+so the selector is not promoted.  `loop` uses `stosb` in 7+8 pixel loops, also matched the
+checksum, and was about 2.8% slower.  `dword` writes `out\dos-spandword`
+and `loop` writes `out\dos-spanloop`.
 
 The alias-model projection helper is independently selectable with
 `-AliasProjectImplementation c|asm`:
@@ -917,8 +921,9 @@ case, and writes `bench486.txt` in the Quake directory.  The matrix covers
 small and large lengths, dword boundaries, aligned buffers, independently
 unaligned buffers, and zero/negative counts.  The assembly experiment is
 used directly by the benchmark and is also available to normal `quake.exe`
-builds through the explicit `-MemoryImplementation asm` switch; the default
-normal build continues to use the original C helpers.
+builds through the explicit `-MemoryImplementation asm` switch; the 486-oriented
+default now uses the ASM helpers, while `-MemoryImplementation c` retains the
+original C helpers for reference comparisons.
 
 The focused benchmark can select each implementation independently:
 

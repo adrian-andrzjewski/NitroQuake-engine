@@ -6,6 +6,8 @@ param(
     [string]$DataRoot,
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
+    [ValidateSet('c', 'asm')]
+    [string]$MemoryImplementation = 'asm',
     [int]$TimeoutSeconds = 90
 )
 
@@ -27,7 +29,10 @@ if ([string]::IsNullOrWhiteSpace($DataRoot)) {
 $DataRoot = [IO.Path]::GetFullPath($DataRoot)
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-$profileSuffix = if ($OptimizationProfile -eq 'baseline') { '-baseline' } else { '' }
+$profileSuffixParts = @()
+if ($OptimizationProfile -eq 'baseline') { $profileSuffixParts += 'baseline' }
+if ($MemoryImplementation -eq 'asm') { $profileSuffixParts += 'memasm' }
+$profileSuffix = if ($profileSuffixParts.Count) { '-' + ($profileSuffixParts -join '-') } else { '' }
 $djgppExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\quake.exe')
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
 $dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
@@ -48,7 +53,8 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     if ($SkipBuild) {
         throw "DOS executable not found at '$djgppExe'. Run build-dos.ps1 first or omit -SkipBuild."
     }
-    $buildArgs = @('-ToolRoot', $ToolRoot, '-OptimizationProfile', $OptimizationProfile)
+    $buildArgs = @('-ToolRoot', $ToolRoot, '-OptimizationProfile', $OptimizationProfile,
+        '-MemoryImplementation', $MemoryImplementation)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
     }

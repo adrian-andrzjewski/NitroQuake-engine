@@ -16,7 +16,7 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$MipLevelImplementation = 'c',
     [ValidateSet('c', 'asm')]
-    [string]$MemoryImplementation = 'c',
+    [string]$MemoryImplementation = 'asm',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('byte', 'dword', 'loop')]

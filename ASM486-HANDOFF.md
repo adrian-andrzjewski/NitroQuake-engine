@@ -191,13 +191,15 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Lightmap normalization (`R_BuildLightMap`) | 9.447--9.969% faster | 0.0275% faster | ASM default |
 | Alias bbox projection (`R_AliasCheckBBox`) | 16.667--20.120% faster | 0.0264% faster | ASM default |
 | Clipped alias transform (`R_AliasTransformFinalVert`) | 20.000--25.218% faster | 0.150883% faster | ASM default |
-| Memory helpers (`Q_memset`/`Q_memcpy`) | About 4.6--64.4% faster by case | 0.0208% faster | C default; ASM opt-in |
+| Memory helpers (`Q_memset`/`Q_memcpy`) | About 4.6--64.4% faster by case | ~0.019% faster end-to-end on current 486 timedemo; checksum pass | **ASM default**; C reference |
 | Texture-axis predicate (`D_GetTextureAxes`) | 0.000% to -0.002% | Not promoted | C default |
 | Surface-cache predicate (`D_CacheSurface`) | 3.846--5.000% faster | 0.030% slower | C default |
 | Mip selector (`D_MipLevelForScale`) | Mixed: -8.697% to +7.143% | 0.0092% slower | C default |
 | BSP plane dot (`R_RecursiveWorldNode`) | Mixed: -13.334% to +21.052% | 0.0367% slower | C default |
 | BSP clipping (`R_RecursiveWorldNode`) | Mixed: -4.651% to +55.931% | 0.2749% slower | C default |
 | Span16 dword stores (`d_draw16.s`) | Checksum pass | Median 68.958760 s vs 68.958817 s (noise) | `byte` default; `dword` opt-in |
+| Span16 dword stores recheck (current source, 486 profile) | Three no-FPS-stat runs: 62.568941 / 62.568978 / 62.568999 s; checksum pass | Matching byte runs: 62.569014 / 62.568957 / 62.568953 s; medians differ by ~1 microsecond | `byte` remains default |
+| Aff8 Z-store scheduling probe (`d_polysa.s`) | Moved Z store ahead of skin load in all eight pixels | 62.568983 / 62.569006 / 62.569015 s; ~27 microseconds slower than matched byte baseline; checksum pass | Reverted |
 | Span16 loop+stosb (`d_draw16.s`) | Checksum pass | 70.980641 s / 13.651610 FPS, ~2.8% slower | `byte` default; `loop` opt-in |
 | Surface block `movw` (`block8.h`) | Checksum pass | Noise vs byte stores | Reverted |
 | Surface wrap + cache guard + alias view matrix | Inlined, no new helper | 68.946370 s / 14.054401 FPS, 12.4 ms faster | Kept |
