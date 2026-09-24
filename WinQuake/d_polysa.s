@@ -772,9 +772,8 @@ LSpanLoop:
 
 LNoTurnover:
 	movl	C(d_aspancount),%edi
-	movl	C(ubasestep),%edx
 	movl	%ebx,C(errorterm)
-	addl	%edx,%edi
+	addl	C(ubasestep),%edi
 	movl	%edi,C(d_aspancount)
 
 LRightEdgeStepped:
