@@ -313,14 +313,13 @@ LSide1:
 //		edge->surfs[0] = 0;
 //		edge->surfs[1] = surface_p - surfaces;
 	movl	C(surface_p),%eax
-	movl	C(surfaces),%esi
 	subl	%edx,%edx
-	subl	%esi,%eax
+// Memory subl surfaces (drop preload into %esi); %esi = 0 for leading sort.
+	subl	C(surfaces),%eax
 	shrl	$(SURF_T_SHIFT),%eax
 	movl	%edx,et_surfs(%edi)
 	movl	%eax,et_surfs+2(%edi)
-
-	subl	%esi,%esi
+	movl	%edx,%esi
 
 //		u = r_u1 + ((float)v - r_v1) * u_step;
 	movl	%ebx,Lv
@@ -358,9 +357,9 @@ LSide0:
 //		edge->surfs[0] = surface_p - surfaces;
 //		edge->surfs[1] = 0;
 	movl	C(surface_p),%eax
-	movl	C(surfaces),%esi
 	subl	%edx,%edx
-	subl	%esi,%eax
+// Memory subl surfaces (drop preload into %esi); %esi = 1 for trailing sort.
+	subl	C(surfaces),%eax
 	shrl	$(SURF_T_SHIFT),%eax
 	movl	%edx,et_surfs+2(%edi)
 	movl	%eax,et_surfs(%edi)

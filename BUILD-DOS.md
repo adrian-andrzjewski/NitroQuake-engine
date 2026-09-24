@@ -355,9 +355,272 @@ individual `results` entries when auditing those records.
 
 ### Current committed default baseline
 
-The current measured default after removing the EmitEdge next-edge
-pretouches is `63.615049 / 63.614724 / 63.614690` seconds, median
-**15.232323 FPS** / **63.614724 s**, checksum `4154140932`
+The current measured default after EmitEdge memory `subl C(surfaces)` on
+LSide1/LSide0 is `62.580216 / 62.580291 / 62.580319` seconds, median
+**15.484108 FPS** / **62.580291 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-211623\timedemo-result.json`).  That is about
+8.0 ms faster than the prior EmitEdge u-clamp memory `cmpl` default at
+**15.482121 FPS** / 62.588326 s (`out\dos-timedemo-20260915-210614`).
+
+The prior EmitEdge u-clamp memory `cmpl` measured
+`62.588579 / 62.588326 / 62.588325` seconds, median **15.482121 FPS** /
+**62.588326 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-210614\timedemo-result.json`).  That is about
+16.8 ms faster than the prior RecursiveTriangle-midpoint default at
+**15.477961 FPS** / 62.605144 s (`out\dos-timedemo-20260915-205607`).
+
+The prior RecursiveTriangle memory `addl` s/t/zi midpoints measured
+`62.605330 / 62.605144 / 62.605103` seconds, median **15.477961 FPS** /
+**62.605144 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-205607\timedemo-result.json`).  That is about
+16.6 ms faster than the prior EmitEdge-`r_ceilv1` default at
+**15.473853 FPS** / 62.621766 s (`out\dos-timedemo-20260915-204522`).
+
+The prior EmitEdge defer `r_ceilv1` past horizontal EO measured
+`62.621949 / 62.621766 / 62.621726` seconds, median **15.473853 FPS** /
+**62.621766 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-204522\timedemo-result.json`).  That is about
+2.0 ms faster than the prior leading `Lnewtop` memory `cmpl st_last_u`
+default at **15.473368 FPS** / 62.623729 s
+(`out\dos-timedemo-20260915-203108`).
+
+The prior leading `Lnewtop` memory `cmpl st_last_u` measured
+`62.623894 / 62.623729 / 62.623708` seconds, median **15.473368 FPS** /
+**62.623729 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-203108\timedemo-result.json`).  That is about
+25.9 ms faster than the prior StepActiveU-`et_u_step` default at
+**15.466979 FPS** / 62.649598 s (`out\dos-timedemo-20260915-202546`).
+
+The prior StepActiveU memory `addl et_u_step` measured
+`62.651188 / 62.649598 / 62.649569` seconds, median **15.466979 FPS** /
+**62.649598 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-202546\timedemo-result.json`).  That is about
+104.3 ms faster than the prior ScanLeftEdge last-row Bresenham-skip default
+at **15.441270 FPS** / 62.753905 s (`out\dos-timedemo-20260915-200539`).
+
+The prior ScanLeftEdge skip dead last-row Bresenham measured
+`62.810895 / 62.753822 / 62.753905` seconds, median **15.441270 FPS** /
+**62.753905 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-200539\timedemo-result.json`).  That is about
+28.7 ms faster than the prior TrailingEdge memory `cmpl st_last_u` default
+at **15.434201 FPS** / 62.782647 s (`out\dos-timedemo-20260915-190100`).
+
+The prior TrailingEdge memory `cmpl st_last_u` measured
+`62.782709 / 62.782647 / 62.782532` seconds, median **15.434201 FPS** /
+**62.782647 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-190100\timedemo-result.json`).  That is about
+0.9 ms faster than the prior `LPushBackLoop` memory `cmpl et_u` default at
+**15.433983 FPS** / 62.783533 s (`out\dos-timedemo-20260915-184357`).
+
+The prior `LPushBackLoop` memory `cmpl et_u` measured
+`62.783709 / 62.783486 / 62.783533` seconds, median **15.433983 FPS** /
+**62.783533 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-184357\timedemo-result.json`).  That is about
+3.7 ms faster than the prior InsertNewEdges memory `cmpl et_u` default at
+**15.433068 FPS** / 62.787258 s (`out\dos-timedemo-20260915-183750`).
+
+The prior InsertNewEdges memory `cmpl et_u` measured
+`62.787043 / 62.787258 / 62.787362` seconds, median **15.433068 FPS** /
+**62.787258 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-183750\timedemo-result.json`).  That is about
+43.3 ms faster than the prior Aff8 multi last-group-skip default at
+**15.422436 FPS** / 62.830543 s (`out\dos-timedemo-20260915-182515`).
+
+The prior Aff8 multi skip dead last-group stepper measured
+`62.830458 / 62.830543 / 62.830579` seconds, median **15.422436 FPS** /
+**62.830543 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-182515\timedemo-result.json`).  That is about
+123.2 ms faster than the prior leading sort-loop memory `cmpl st_key`
+default at **15.392244 FPS** / 62.953783 s
+(`out\dos-timedemo-20260915-180350`).
+
+The prior leading sort-loop memory `cmpl st_key` measured
+`62.953648 / 62.953783 / 62.953854` seconds, median **15.392244 FPS** /
+**62.953783 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-180350\timedemo-result.json`).  That is about
+52.8 ms faster than the prior RecursiveTriangle live-new-into-LDraw default
+at **15.379351 FPS** / 63.006559 s (`out\dos-timedemo-20260915-174638`).
+
+The prior RecursiveTriangle live `new[]` into LDraw measured
+`63.006416 / 63.006581 / 63.006559` seconds, median **15.379351 FPS** /
+**63.006559 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-174638\timedemo-result.json`).  That is about
+5.5 ms faster than the prior leading memory `cmpl` first-`st_key` default at
+**15.378020 FPS** / 63.012013 s (`out\dos-timedemo-20260915-173942`).
+
+The prior leading memory `cmpl` first `st_key` measured
+`63.011902 / 63.012013 / 63.012104` seconds, median **15.378020 FPS** /
+**63.012013 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-173942\timedemo-result.json`).  That is about
+72.4 ms faster than the prior FinalVerts light<<8 default at
+**15.360381 FPS** / 63.084374 s (`out\dos-timedemo-20260915-172059`).
+
+The prior FinalVerts Aff8-style light<<8 index measured
+`63.084563 / 63.084374 / 63.084351` seconds, median **15.360381 FPS** /
+**63.084374 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-172059\timedemo-result.json`).  That is about
+2.9 ms faster than the prior RemoveEdges both-stores-then-advance default at
+**15.359677 FPS** / 63.087263 s (`out\dos-timedemo-20260915-171204`).
+
+The prior RemoveEdges both-stores-then-advance measured
+`63.087380 / 63.087263 / 63.087206` seconds, median **15.359677 FPS** /
+**63.087263 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-171204\timedemo-result.json`).  That is about
+4.2 ms faster than the prior StepActiveU deferred step-loop `et_next`
+default at **15.358664 FPS** / 63.091427 s
+(`out\dos-timedemo-20260915-165144`).
+
+The prior StepActiveU deferred step-loop `et_next` measured
+`63.091567 / 63.091379 / 63.091427` seconds, median **15.358664 FPS** /
+**63.091427 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-165144\timedemo-result.json`).  That is about
+11.3 ms faster than the prior EmitEdge deferred `r_framecount` default at
+**15.355923 FPS** / 63.102686 s (`out\dos-timedemo-20260915-163753`).
+
+The prior EmitEdge defer `r_framecount` past cacheoffset EO measured
+`63.102870 / 63.102606 / 63.102686` seconds, median **15.355923 FPS** /
+**63.102686 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-163753\timedemo-result.json`).  That is about
+0.5 ms faster than the prior `LPushBackLoop` deferred `et_prev` default at
+**15.355803 FPS** / 63.103178 s (`out\dos-timedemo-20260915-160134`).
+
+The prior StepActiveU `LPushBackLoop` deferred `et_prev` measured
+`63.103349 / 63.103178 / 63.103124` seconds, median **15.355803 FPS** /
+**63.103178 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-160134\timedemo-result.json`).  That is about
+2.1 ms faster than the prior InsertNewEdges deferred `et_next` default at
+**15.355295 FPS** / 63.105267 s (`out\dos-timedemo-20260915-154958`).
+
+The prior InsertNewEdges defer `et_next` (probes 1–3) measured
+`63.105419 / 63.105230 / 63.105267` seconds, median **15.355295 FPS** /
+**63.105267 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-154958\timedemo-result.json`).  That is about
+7.4 ms faster than the prior StepActiveU aftertail deferred-unlink default
+at **15.353497 FPS** / 63.112658 s (`out\dos-timedemo-20260915-153501`).
+
+The prior StepActiveU defer `et_prev`/`et_next` past `edge_aftertail`
+measured `63.113353 / 63.112658 / 63.112628` seconds, median
+**15.353497 FPS** / **63.112658 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-153501\timedemo-result.json`).  That is about
+9.1 ms faster than the prior RecursiveTriangle deferred-`|dy|`-y-loads
+default at **15.351272 FPS** / 63.121804 s
+(`out\dos-timedemo-20260915-150014`).
+
+The prior RecursiveTriangle defer same-edge y loads past `|dx|` early-out
+measured `63.121965 / 63.121804 / 63.121646` seconds, median
+**15.351272 FPS** / **63.121804 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-150014\timedemo-result.json`).  That is about
+17.6 ms faster than the prior split-prefetch defer default at
+**15.346986 FPS** / 63.139434 s (`out\dos-timedemo-20260915-144910`).
+
+The prior RecursiveTriangle defer next-edge prefetches past `|dy|` split
+measured `63.139641 / 63.139434 / 63.139417` seconds, median
+**15.346986 FPS** / **63.139434 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-144910\timedemo-result.json`).  That is about
+1.7 ms faster than the prior `lp2[0]`-defer default at **15.346585 FPS** /
+63.141084 s (`out\dos-timedemo-20260915-140237`).
+
+The prior RecursiveTriangle defer `lp2[0]` until equal-`y` measured
+`63.141181 / 63.141050 / 63.141084` seconds, median **15.346585 FPS** /
+**63.141084 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-140237\timedemo-result.json`).  That is about
+2.2 ms faster than the prior Aff8-one-long deferred-`ptex` default at
+**15.346044 FPS** / 63.143310 s (`out\dos-timedemo-20260915-133615`).
+
+The prior Aff8 one-long defer `ptex` past Z measured
+`63.143406 / 63.143310 / 63.143203` seconds, median **15.346044 FPS** /
+**63.143310 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-133615\timedemo-result.json`).  That is about
+2.5 ms faster than the prior DrawSubdiv deferred-colormap default at
+**15.345430 FPS** / 63.145837 s (`out\dos-timedemo-20260915-132507`).
+
+The prior DrawSubdiv defer `d_pcolormap` past backface cull measured
+`63.146060 / 63.145728 / 63.145837` seconds, median **15.345430 FPS** /
+**63.145837 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-132507\timedemo-result.json`).  That is about
+32.3 ms faster than the prior FinalVerts `movzbl` skin-texel default at
+**15.337574 FPS** / 63.178180 s (`out\dos-timedemo-20260915-131025`).
+
+The prior FinalVerts `movzbl` skin texel measured
+`63.178491 / 63.178164 / 63.178180` seconds, median **15.337574 FPS** /
+**63.178180 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-131025\timedemo-result.json`).  That is about
+1.4 ms faster than the prior Aff8 pixel `movzbl` default at
+**15.337229 FPS** / 63.179599 s (`out\dos-timedemo-20260915-125058`).
+
+The prior Aff8 pixel `movzbl` colormap index measured
+`63.179791 / 63.179533 / 63.179599` seconds, median **15.337229 FPS** /
+**63.179599 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-125058\timedemo-result.json`).  That is about
+85.9 ms faster than the prior RecursiveTriangle live-`new[]` default at
+**15.316416 FPS** / 63.265453 s (`out\dos-timedemo-20260915-124237`).
+
+The prior RecursiveTriangle live `new[0]`/`new[1]` into LDraw measured
+`63.265572 / 63.265453 / 63.265414` seconds, median **15.316416 FPS** /
+**63.265453 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-124237\timedemo-result.json`).  That is about
+1.8 ms faster than the prior EmitEdge deferred-`edge_p` default at
+**15.315969 FPS** / 63.267301 s (`out\dos-timedemo-20260915-122259`).
+
+The prior EmitEdge defer `edge_p` past horizontal EO measured
+`63.267487 / 63.267234 / 63.267301` seconds, median **15.315969 FPS** /
+**63.267301 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-122259\timedemo-result.json`).  That is about
+14.2 ms faster than the prior leading spanstate `movl $1` default at
+**15.312538 FPS** / 63.281476 s (`out\dos-timedemo-20260915-120825`).
+
+The prior leading spanstate `movl $1` measured
+`63.281763 / 63.281476 / 63.281405` seconds, median **15.312538 FPS** /
+**63.281476 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-120825\timedemo-result.json`).  That is about
+73.6 ms faster than the prior TrailingEdge memory-`decl`-spanstate default
+at **15.294737 FPS** / 63.355125 s (`out\dos-timedemo-20260915-115111`).
+
+The prior TrailingEdge memory `decl` of `spanstate` measured
+`63.355242 / 63.355064 / 63.355125` seconds, median **15.294737 FPS** /
+**63.355125 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-115111\timedemo-result.json`).  That is about
+133.0 ms faster than the prior clipped-`r_pedge`-load-drop default at
+**15.262705 FPS** / 63.488089 s (`out\dos-timedemo-20260915-113652`).
+
+The prior drop unused clipped `r_pedge` load measured
+`63.488166 / 63.488089 / 63.488004` seconds, median **15.262705 FPS** /
+**63.488089 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-113652\timedemo-result.json`).  That is about
+12.9 ms faster than the prior bmodel `incl`/`decl` default at
+**15.259612 FPS** / 63.500960 s (`out\dos-timedemo-20260915-111815`).
+
+The prior bmodel `incl`/`decl` of `r_bmodelactive` measured
+`63.501194 / 63.500915 / 63.500960` seconds, median **15.259612 FPS** /
+**63.500960 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-111815\timedemo-result.json`).  That is about
+22.8 ms faster than the prior TrailingEdge world-skip default at
+**15.254125 FPS** / 63.523798 s (`out\dos-timedemo-20260915-110651`).
+
+The prior TrailingEdge skip of `r_bmodelactive` RMW measured
+`63.523808 / 63.523798 / 63.523763` seconds, median **15.254125 FPS** /
+**63.523798 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-110651\timedemo-result.json`).  That is about
+49.4 ms faster than the prior EmitEdge-`r_pedge` single-load default at
+**15.242273 FPS** / 63.573196 s (`out\dos-timedemo-20260915-104810`).
+
+The prior EmitEdge single `r_pedge` load measured
+`63.573476 / 63.573196 / 63.573176` seconds, median **15.242273 FPS** /
+**63.573196 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-104810\timedemo-result.json`).  That is about
+10.4 ms faster than the prior TrailingEdge-unlink default at
+**15.239772 FPS** / 63.583628 s (`out\dos-timedemo-20260915-103948`).
+
+The prior TrailingEdge unlink via live `%ecx` measured
+`63.583853 / 63.583607 / 63.583628` seconds, median **15.239772 FPS** /
+**63.583628 s**, checksum `4154140932`
+(`out\dos-timedemo-20260915-103948\timedemo-result.json`).  That is about
+31.1 ms faster than the prior EmitEdge-pretouch-removal default at
+**15.232323 FPS** / 63.614724 s (`out\dos-timedemo-20260915-102159`).
+
+The prior EmitEdge next-edge pretouch removal measured
+`63.615049 / 63.614724 / 63.614690` seconds, median **15.232323 FPS** /
+**63.614724 s**, checksum `4154140932`
 (`out\dos-timedemo-20260915-102159\timedemo-result.json`).  That is about
 8.5 ms faster than the prior ScanLeftEdge-pretouch default at
 **15.230283 FPS** / 63.623244 s (`out\dos-timedemo-20260915-101018`).

@@ -93,6 +93,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   nodraw compares and `new[0]`/`new[1]` into LDraw.
   `R_EmitEdge` u-clamp uses memory `cmpl` against vrect left/right
   (load the clamp bound into `%edx` only on the taken clamp paths).
+  EmitEdge `LSide1`/`LSide0` use memory `subl C(surfaces)` for the
+  `surface_p - surfaces` index instead of preloading `surfaces` into
+  `%esi`; `%esi` is then set with `movl %edx,%esi` (0) or
+  `movl $1,%esi` for the sort side.
 - Texture spans: `D_DrawSpans16` / `D_DrawSpans8` ASM load dest rows from
   `viewspantable` (`d_viewbuffer + d_scantable[v]`, filled in
   `D_SetupFrame`).  Alias polyset, sprites, particles, and live
@@ -319,6 +323,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | EmitEdge defer `r_ceilv1` past horizontal EO (`R_EmitEdge`) | Memory `cmpl`; load `%ecx` only when emitting; CF kept for side | 62.621766 s / 15.473853 FPS, 2.0 ms faster | Kept |
 | RecursiveTriangle memory `addl` s/t/zi midpoints (`D_PolysetRecursiveTriangle`) | Drop lp2 preloads for new[2]/[3]/[5]; keep lp1 x/y live for nodraw | 62.605144 s / 15.477961 FPS, 16.6 ms faster | Kept |
 | EmitEdge memory `cmpl` u-clamp (`R_EmitEdge`) | Load vrect clamp bounds into `%edx` only when clamping | 62.588326 s / 15.482121 FPS, 16.8 ms faster | Kept |
+| EmitEdge memory `subl surfaces` (`R_EmitEdge`) | Drop `surfaces` preload into `%esi`; set sort side from `%edx`/immediate | 62.580291 s / 15.484108 FPS, 8.0 ms faster | Kept |
 
 The last accepted clipped-transform comparison used three runs per variant:
 
@@ -803,11 +808,18 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   median **62.605144 s / 15.477961 FPS**, checksum `4154140932` on all three
   runs.  About 16.6 ms faster than the EmitEdge-`r_ceilv1` default; every
   run was faster than every prior-default run.
-- Current default after EmitEdge memory `cmpl` u-clamp
+- Previous default after EmitEdge memory `cmpl` u-clamp
   (`out\dos-timedemo-20260915-210614`): `62.588579 / 62.588326 / 62.588325` s,
   median **62.588326 s / 15.482121 FPS**, checksum `4154140932` on all three
   runs.  About 16.8 ms faster than the RecursiveTriangle-midpoint default;
   every run was faster than every prior-default run.
+- Current default after EmitEdge memory `subl surfaces`
+  (`out\dos-timedemo-20260915-211623`): `62.580216 / 62.580291 / 62.580319` s,
+  median **62.580291 s / 15.484108 FPS**, checksum `4154140932` on all three
+  runs.  About 8.0 ms faster than the u-clamp default; every run was faster
+  than every prior-default run.  `LSide1`/`LSide0` compute
+  `surface_p - surfaces` with memory `subl C(surfaces)` and set the sort
+  side register from zeroed `%edx` or immediate 1.
 
 ## Important decisions and assumptions
 
@@ -1141,8 +1153,8 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Priority-ordered next steps
 
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
-   (15.482121 FPS median, checksum `4154140932`,
-   `out\dos-timedemo-20260915-210614`) before further edits.
+   (15.484108 FPS median, checksum `4154140932`,
+   `out\dos-timedemo-20260915-211623`) before further edits.
    `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.
@@ -1247,6 +1259,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not restore RecursiveTriangle `movl lp2→%edx` before midpoint
    `addl` for new[2]/new[3]/new[5].
    Do not restore EmitEdge u-clamp `movl` of vrect bounds before `cmpl`.
+   Do not restore EmitEdge `movl C(surfaces),%esi` before the LSide1/LSide0
+   `surface_p - surfaces` sub; the memory form and explicit sort-side
+   `movl` are kept.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
