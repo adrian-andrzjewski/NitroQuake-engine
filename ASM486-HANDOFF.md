@@ -37,8 +37,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   the miss path remains the original `TransformVector` / `1/z` arithmetic.
 - Z spans: `D_DrawZSpans` ASM uses `zspantable` row bases instead of
   IMUL `d_zrowbytes`.  The span list cursor lives in `%ebp` so the pack
-  loop can scratch `%esi` without push/pop per span.  The C multiply
-  path remains the reference.
+  loop can scratch `%esi` without push/pop per span.  The first packed pair
+  in both positive- and negative-gradient loops uses 486 `shldl`/`rorl`
+  packing instead of a masked `%esi` high-word merge; the C multiply path
+  remains the reference.
 - Edge scan: `R_GenerateSpans` / `Lgs_leading` reuses the live
   `surfaces` pointer in `%eax` instead of reloading it before the leading
   surface add.  `Lnewtop_fpop2` no longer loads a dead `st_key` into
@@ -216,6 +218,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | BSP node visibility predicate order (`R_RecursiveWorldNode`) | Reject stale node `visframe` before checking `CONTENTS_SOLID` | 61.556783 s / 15.741564 FPS median across five runs; 3.1 ms faster, checksum pass | Kept |
 | Integer subdivided alias cull determinant (`D_PolysetDraw`) | Replace the six-load x87 determinant with the matching 32-bit integer expression used by the non-subdivided path | 61.496717 s / 15.756939 FPS median across three runs; 60.1 ms faster, checksum pass | Kept |
 | Integer determinant base restore (`D_PolysetDraw`) | Restore `%edi` from stable `r_affinetridesc.pfinalverts` instead of stack push/pop around the scratch determinant | 61.487373 s / 15.759333 FPS median across five runs; 9.3 ms faster, checksum pass | Kept |
+| Z-span first-pair packing (`D_DrawZSpans`) | Pack the first aligned depth pair with 486 `shldl`/`rorl` in both gradient signs; fixed-point stepping and later pair schedule unchanged | 60.901914 / 60.901634 / 60.901646 s; median 60.901646 s / 15.910900 FPS; framebuffer checksum `4154140932` on every run | Kept |
 | Fused extra-style normalize (`R_BuildLightMap`) | Same one-pass invert/clamp for 2--4 styles when there are no dlights | 68.265121 s / 14.194657 FPS, 0.66 ms faster | Kept |
 | Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |
 | Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |
@@ -1420,6 +1423,11 @@ restoring `%edi` from the stable `r_affinetridesc.pfinalverts` field instead of
 using a per-triangle stack pair was `61.487631`, `61.487324`, `61.487423`,
 `61.487373`, and `61.487350` seconds, again with framebuffer checksum
 `4154140932` on every run, for a median `61.487373 s / 15.759333 FPS`.
+The follow-up Z-span first-pair `shldl`/`rorl` packing in both gradient signs
+measured `60.901914`, `60.901634`, and `60.901646` seconds, with the same
+969-frame framebuffer checksum on every run, for a median
+`60.901646 s / 15.910900 FPS`.  The full correctness harness retained
+checksum `2378409472`, and the rebuilt normal binary passed the DOS smoke test.
 
 ## Starting commands
 

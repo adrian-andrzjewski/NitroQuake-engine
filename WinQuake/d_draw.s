@@ -876,14 +876,15 @@ LFMiddle:
 	andl	%ecx,%ecx
 	jz		LFLast
 
+// The first pair in the hot loop is packed with 486 SHLD/ROR instead of
+// using the scratch register for a masked high word; the word order is the
+// same and the following pair keeps the existing carry schedule.
 LFMiddleLoop:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	movl	%edx,%esi
-	addl	%ebx,%edx
-	andl	$0xFFFF0000,%esi
-	orl		%esi,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
 	// %eax is free after the first store.
@@ -989,14 +990,13 @@ LFNegMiddle:
 	andl	%ecx,%ecx
 	jz		LFNegLast
 
+// Mirror the 486 SHLD/ROR pair packing for the negative-gradient path.
 LFNegMiddleLoop:
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	movl	%edx,%esi
-	subl	%ebx,%edx
-	andl	$0xFFFF0000,%esi
-	orl		%esi,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
 	shrl	$16,%eax
