@@ -229,16 +229,19 @@ void R_AddDynamicLights (void)
 			td = local[1] - t*16;
 			if (td < 0)
 				td = -td;
+			sd = local[0];
 			bl = blocklights + t * smax;
 			for (s=0 ; s<smax ; s++)
 			{
-				sd = local[0] - s*16;
 				if (sd < 0)
-					sd = -sd;
-				if (sd > td)
-					idist = sd + (td>>1);
+					idist = -sd;
 				else
-					idist = td + (sd>>1);
+					idist = sd;
+				sd -= 16;
+				if (idist > td)
+					idist += (td>>1);
+				else
+					idist = td + (idist>>1);
 				if ((idist << 8) < fmin_scaled)
 				{
 					bl[s] += (unsigned)(irad - (idist << 8));
@@ -305,15 +308,18 @@ int R_DlightContributes (msurface_t *surf)
 			td = local[1] - t*16;
 			if (td < 0)
 				td = -td;
+			sd = local[0];
 			for (s=0 ; s<smax ; s++)
 			{
-				sd = local[0] - s*16;
 				if (sd < 0)
-					sd = -sd;
-				if (sd > td)
-					idist = sd + (td>>1);
+					idist = -sd;
 				else
-					idist = td + (sd>>1);
+					idist = sd;
+				sd -= 16;
+				if (idist > td)
+					idist += (td>>1);
+				else
+					idist = td + (idist>>1);
 				if ((idist << 8) < fmin_scaled)
 					return 1;
 			}
