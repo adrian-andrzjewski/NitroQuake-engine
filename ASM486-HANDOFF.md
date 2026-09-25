@@ -32,8 +32,9 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   rebuilding the matrix with `sin`/`cos`.  `R_RotateBmodel` remains the
   reference.
 - Face Z gradients: `R_SetSurfaceZGradients` reuses one plane's finished
-  `d_zistep` values while `modelorg` is unchanged this frame.  The miss
-  path is the original `TransformVector` / `1/z` arithmetic.
+  `d_zistep` values while the drawing `currententity` is unchanged this
+  frame.  The entity pointer replaces three `modelorg` float comparisons;
+  the miss path remains the original `TransformVector` / `1/z` arithmetic.
 - Z spans: `D_DrawZSpans` ASM uses `zspantable` row bases instead of
   IMUL `d_zrowbytes`.  The span list cursor lives in `%ebp` so the pack
   loop can scratch `%esi` without push/pop per span.  The C multiply
@@ -209,6 +210,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Fused one-style normalize (`R_BuildLightMap`) | Invert/clamp in the first write when there are no extra styles or dlights | 68.265779 s / 14.194521 FPS, 44.1 ms faster | Kept |
 | One-style lightmap inverse-base hoist (`R_BuildLightMap`) | Hoist `255*256 - ambient` out of the common no-dlight texel loop | 62.052978 s / 15.615689 FPS median vs 62.057653 s / 15.614513 FPS baseline; 0.0075% faster, checksum pass | Kept |
 | Dynamic-light S-axis accumulator (`R_AddDynamicLights`, `R_DlightContributes`) | Replace repeated `local[0] - s*16` calculation with an integer scanline accumulator; preserve sample order | 62.018356 s / 15.624406 FPS median; 34.6 ms faster than the prior default, checksum pass | Kept |
+| Z-gradient cache key (`R_SetSurfaceZGradients`) | Use the stable drawing entity pointer instead of three `modelorg` float comparisons | 61.989240 s / 15.631745 FPS median across five runs; checksum pass | Kept |
 | Fused extra-style normalize (`R_BuildLightMap`) | Same one-pass invert/clamp for 2--4 styles when there are no dlights | 68.265121 s / 14.194657 FPS, 0.66 ms faster | Kept |
 | Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |
 | Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |
@@ -1389,19 +1391,16 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 
 ## Current implementation result
 
-The current pass keeps the earlier one-style lightmap inverse-base hoist and
-adds an integer S-axis accumulator to the dynamic-light sample walks in
-`WinQuake/r_surf.c`.  The accumulator is used by both the live lightmap path
-and the cache-hit contribution predicate; it preserves the original sample
-order and distance formula.  The five-run candidate sample was
-`15.624368`, `15.624406`, `15.624418`, `15.624361`, and `15.624410` FPS
-(969 frames and framebuffer checksum `4154140932` each run), for a median
-`15.624406` FPS versus the previous-default median `15.615689` FPS.  The
-full `bench-dos.ps1` run reported `486 benchmark correctness PASS` with
-harness checksum `2378409472`, and the smoke test passed.  The instrumented
-candidate remains attribution-only: surface-cache self time was `6.830160 s`
-of `69.844148 s` inclusive frame time, while texture spans, alias models,
-Z spans, and world BSP remain the larger renderer costs.
+The current pass keeps the earlier dynamic-light S-axis accumulator in
+`WinQuake/r_surf.c` and changes `WinQuake/r_draw.c` so the face Z-gradient
+cache keys its stable hit path by `currententity` instead of rechecking three
+`modelorg` floats.  The gradient arithmetic and miss path are unchanged.  The
+five-run candidate sample was `61.989448`, `61.989156`, `61.989158`,
+`61.989355`, and `61.989240` seconds (969 frames and framebuffer checksum
+`4154140932` each run), for a median `61.989240 s / 15.631745 FPS` versus the
+previous-default five-run median `62.018356 s / 15.624406 FPS`.  The full
+`bench-dos.ps1` run reported `486 benchmark correctness PASS` with harness
+checksum `2378409472`, and the smoke test passed.
 
 ## Starting commands
 

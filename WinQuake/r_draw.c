@@ -391,7 +391,7 @@ static void R_SetSurfaceZGradients (mplane_t *pplane)
 {
 	static int		cache_frame;
 	static mplane_t	*cache_plane;
-	static vec3_t	cache_modelorg;
+	static entity_t	*cache_entity;
 	static float	cache_zistepu;
 	static float	cache_zistepv;
 	static float	cache_ziorigin;
@@ -399,9 +399,7 @@ static void R_SetSurfaceZGradients (mplane_t *pplane)
 	float	distinv;
 
 	if (cache_frame == r_framecount && cache_plane == pplane
-		&& cache_modelorg[0] == modelorg[0]
-		&& cache_modelorg[1] == modelorg[1]
-		&& cache_modelorg[2] == modelorg[2])
+		&& cache_entity == currententity)
 	{
 		surface_p->d_zistepu = cache_zistepu;
 		surface_p->d_zistepv = cache_zistepv;
@@ -418,8 +416,8 @@ static void R_SetSurfaceZGradients (mplane_t *pplane)
 			xcenter * cache_zistepu -
 			ycenter * cache_zistepv;
 	cache_plane = pplane;
+	cache_entity = currententity;
 	cache_frame = r_framecount;
-	VectorCopy (modelorg, cache_modelorg);
 
 	surface_p->d_zistepu = cache_zistepu;
 	surface_p->d_zistepv = cache_zistepv;
