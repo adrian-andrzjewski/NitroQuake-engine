@@ -806,6 +806,8 @@ C(D_DrawZSpans):
 	fistpl	izistep		// note: we are relying on FP exceptions being turned
 						// off here to avoid range problems
 	movl	izistep,%ebx	// remains loaded for all spans
+	testl	%ebx,%ebx
+	jz		LZeroStepSpanLoop
 
 LFSpanLoop:
 // set up the initial 1/z value
@@ -917,6 +919,8 @@ LFNegSpan:
 	fistpl	izistep		// note: we are relying on FP exceptions being turned
 						// off here to avoid range problems
 	movl	izistep,%ebx	// remains loaded for all spans
+	testl	%ebx,%ebx
+	jz		LZeroStepSpanLoop
 
 LFNegSpanLoop:
 // set up the initial 1/z value
@@ -1019,6 +1023,50 @@ LFNegSpanDone:
 	movl	espan_t_pnext(%ebp),%ebp
 	testl	%ebp,%ebp
 	jnz		LFNegSpanLoop
+
+// A zero fixed-point z step writes the same depth word for every pixel in
+// the span.  Keep the initial-Z and clamp arithmetic above, but avoid the
+// per-pixel add/subtract and packed-pair setup in the normal gradient loops.
+LZeroStepSpanLoop:
+	fildl	espan_t_v(%ebp)
+	fildl	espan_t_u(%ebp)
+	movl	espan_t_v(%ebp),%ecx
+	fmuls	C(d_zistepu)
+	fxch	%st(1)
+	movl	C(zspantable)(,%ecx,4),%edi
+	fmuls	C(d_zistepv)
+	fxch	%st(1)
+	fadds	C(d_ziorigin)
+	movl	espan_t_u(%ebp),%edx
+	faddp	%st(0),%st(1)
+
+	fcoms	float_point5
+	leal	(%edi,%edx,2),%edi
+	movl	espan_t_count(%ebp),%ecx
+	fnstsw	%ax
+	testb	$0x45,%ah
+	jz		LZeroStepClamp
+
+	fmuls	Float2ToThe31nd
+	fistpl	izi
+	movl	izi,%edx
+	jmp		LZeroStepStore
+
+LZeroStepClamp:
+	movl	$0x40000000,%edx
+	fstp	%st(0)
+
+LZeroStepStore:
+	movl	%edx,%eax
+	shrl	$16,%eax
+	rep
+	stosw
+
+	movl	espan_t_pnext(%ebp),%ebp
+	testl	%ebp,%ebp
+	jnz		LZeroStepSpanLoop
+
+	jmp		LFDone
 
 LFDone:
 	popl	%ebx				// restore register variables
