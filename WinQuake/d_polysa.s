@@ -1118,8 +1118,7 @@ Llooptop:
 //		d_pcolormap = &((byte *)acolormap)[index0->v[4] & 0xFF00];
 // The vertex coordinates are integer screen positions.  Use the same exact
 // integer determinant as D_DrawNonSubdiv instead of round-tripping it through
-// the x87; keep %edi live as the final-vertex base pointer.
-	pushl	%edi
+// the x87; restore the stable final-vertex base after using %edi as scratch.
 	movl	fv_v+4(%ecx),%eax
 	movl	fv_v+0(%ecx),%edi
 	subl	fv_v+4(%esi),%eax
@@ -1132,7 +1131,7 @@ Llooptop:
 	subl	fv_v+4(%edx),%eax
 	imull	%edi,%eax
 	subl	%eax,temp0
-	popl	%edi
+	movl	C(r_affinetridesc)+atd_pfinalverts,%edi
 	jns		Lskip
 
 	// Match C: set colormap only when the triangle will be drawn.
