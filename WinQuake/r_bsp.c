@@ -643,8 +643,8 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 			{
 				do
 				{
-					if ((surf->flags & SURF_PLANEBACK) &&
-						(surf->visframe == r_framecount))
+					if ((surf->visframe == r_framecount) &&
+						(surf->flags & SURF_PLANEBACK))
 					{
 						if (r_drawpolys)
 						{
@@ -676,8 +676,8 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 			{
 				do
 				{
-					if (!(surf->flags & SURF_PLANEBACK) &&
-						(surf->visframe == r_framecount))
+					if ((surf->visframe == r_framecount) &&
+						!(surf->flags & SURF_PLANEBACK))
 					{
 						if (r_drawpolys)
 						{
