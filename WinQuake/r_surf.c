@@ -368,6 +368,7 @@ void R_BuildLightMap (void)
 		if (surf->dlightframe != r_framecount)
 		{
 			int			t;
+			int			inverse_scale;
 			unsigned	v;
 			unsigned	a1, a2, a3;
 			byte		*lm1, *lm2, *lm3;
@@ -375,36 +376,38 @@ void R_BuildLightMap (void)
 			if (surf->styles[1] == 255)
 			{
 				int j = 0;
+				// Keep the ambient subtraction out of the unrolled texel loop.
+				inverse_scale = 255*256 - (int)scale;
 				for (; j+7 < size; j+=8)
 				{
-					t = (255*256 - (int)(scale + lightmap[j] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j] = t;
-					t = (255*256 - (int)(scale + lightmap[j+1] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j+1] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+1] = t;
-					t = (255*256 - (int)(scale + lightmap[j+2] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j+2] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+2] = t;
-					t = (255*256 - (int)(scale + lightmap[j+3] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j+3] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+3] = t;
-					t = (255*256 - (int)(scale + lightmap[j+4] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j+4] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+4] = t;
-					t = (255*256 - (int)(scale + lightmap[j+5] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j+5] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+5] = t;
-					t = (255*256 - (int)(scale + lightmap[j+6] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j+6] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+6] = t;
-					t = (255*256 - (int)(scale + lightmap[j+7] * first)) >> (8 - VID_CBITS);
+					t = (inverse_scale - (int)(lightmap[j+7] * first)) >> (8 - VID_CBITS);
 					if (t < (1 << 6)) t = (1 << 6);
 					blocklights[j+7] = t;
 				}
 				for (; j < size; j++)
 				{
-					t = (255*256 - (int)(scale + lightmap[j] * first)) >>
+					t = (inverse_scale - (int)(lightmap[j] * first)) >>
 							(8 - VID_CBITS);
 					if (t < (1 << 6))
 						t = (1 << 6);

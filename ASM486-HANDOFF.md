@@ -207,6 +207,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Bmodel span rotation cache (`d_edge.c` / `R_RotateBmodelCached`) | Id per-polygon `sin`/`cos` FIXME | 68.379696 s / 14.170874 FPS, 41.7 ms faster | Kept |
 | Fused first-style lightmap (`R_BuildLightMap`) | Ambient+style0 in one write pass | 68.309838 s / 14.185365 FPS, 69.9 ms faster | Kept |
 | Fused one-style normalize (`R_BuildLightMap`) | Invert/clamp in the first write when there are no extra styles or dlights | 68.265779 s / 14.194521 FPS, 44.1 ms faster | Kept |
+| One-style lightmap inverse-base hoist (`R_BuildLightMap`) | Hoist `255*256 - ambient` out of the common no-dlight texel loop | 62.052978 s / 15.615689 FPS median vs 62.057653 s / 15.614513 FPS baseline; 0.0075% faster, checksum pass | Kept |
 | Fused extra-style normalize (`R_BuildLightMap`) | Same one-pass invert/clamp for 2--4 styles when there are no dlights | 68.265121 s / 14.194657 FPS, 0.66 ms faster | Kept |
 | Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |
 | Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |
@@ -1384,6 +1385,18 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Look for other dead reloads carefully before adding stack traffic.
    Do not revive BSP plane-dot/clip helpers.
    Face Z gradients are cached.
+
+## Current implementation result
+
+The current pass hoists the inverse ambient base from the common one-style,
+no-dynamic-light `R_BuildLightMap` loop in `WinQuake/r_surf.c`.  The five-run
+candidate sample was `15.615648`, `15.615702`, `15.615647`, `15.615689`, and
+`15.615695` FPS (969 frames and framebuffer checksum `4154140932` each run),
+versus the fresh three-run baseline median `15.614513` FPS.  The full
+`bench-dos.ps1` run reported `486 benchmark correctness PASS`, and the smoke
+test passed.  The instrumented candidate profile remains attribution-only;
+texture spans, alias models, Z spans, world BSP, and surface cache are still
+the leading renderer costs.
 
 ## Starting commands
 
