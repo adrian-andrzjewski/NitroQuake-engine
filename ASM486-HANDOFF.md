@@ -214,6 +214,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | BSP visibility predicate order (`R_RecursiveWorldNode`) | Check `visframe` before the surface backface flag in both node surface loops | 61.976925 s / 15.634851 FPS median across five runs; 12.3 ms faster, checksum pass | Kept |
 | Zero-step Z-span stores (`D_DrawZSpans`) | When fixed-point `izistep` is zero, reuse the initial-Z result with `rep stosw` instead of per-pixel gradient updates | 61.559877 s / 15.740772 FPS median across five runs; checksum pass | Kept |
 | BSP node visibility predicate order (`R_RecursiveWorldNode`) | Reject stale node `visframe` before checking `CONTENTS_SOLID` | 61.556783 s / 15.741564 FPS median across five runs; 3.1 ms faster, checksum pass | Kept |
+| Integer subdivided alias cull determinant (`D_PolysetDraw`) | Replace the six-load x87 determinant with the matching 32-bit integer expression used by the non-subdivided path | 61.496717 s / 15.756939 FPS median across three runs; 60.1 ms faster, checksum pass | Kept |
 | Fused extra-style normalize (`R_BuildLightMap`) | Same one-pass invert/clamp for 2--4 styles when there are no dlights | 68.265121 s / 14.194657 FPS, 0.66 ms faster | Kept |
 | Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |
 | Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |
@@ -1407,7 +1408,13 @@ five-run node-order-plus-zero-step sample was `61.556987`, `61.556783`,
 checksum `4154140932` each run), for a median `61.556783 s / 15.741564 FPS`
 versus the committed zero-step baseline `61.559877 s / 15.740772 FPS`.  The full
 `bench-dos.ps1` run reported `486 benchmark correctness PASS` with harness
-checksum `2378409472`, and the smoke test passed.
+checksum `2378409472`, and the smoke test passed.  In `WinQuake/d_polysa.s`,
+the subdivided alias backface cull now uses the same 32-bit integer determinant
+as `D_DrawNonSubdiv`, avoiding the x87 round trip for integer screen
+coordinates.  The three-run candidate sample was `61.878873`, `61.496626`,
+and `61.496717` seconds (969 frames and framebuffer checksum `4154140932` on
+each run), for a median `61.496717 s / 15.756939 FPS`; the full correctness
+harness also retained checksum `2378409472`.
 
 ## Starting commands
 

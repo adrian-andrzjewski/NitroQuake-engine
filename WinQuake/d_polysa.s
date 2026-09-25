@@ -1116,27 +1116,24 @@ Llooptop:
 //		}
 //
 //		d_pcolormap = &((byte *)acolormap)[index0->v[4] & 0xFF00];
-	fildl	fv_v+4(%ecx)	// i0v1
-	fildl	fv_v+4(%esi)	// i1v1 | i0v1
-	fildl	fv_v+0(%ecx)	// i0v0 | i1v1 | i0v1
-	fildl	fv_v+0(%edx)	// i2v0 | i0v0 | i1v1 | i0v1
-	fxch	%st(2)			// i1v1 | i0v0 | i2v0 | i0v1
-	fsubr	%st(3),%st(0)	// i0v1-i1v1 | i0v0 | i2v0 | i0v1
-	fildl	fv_v+0(%esi)	// i1v0 | i0v1-i1v1 | i0v0 | i2v0 | i0v1
-	fxch	%st(2)			// i0v0 | i0v1-i1v1 | i1v0 | i2v0 | i0v1
-	fsub	%st(0),%st(3)	// i0v0 | i0v1-i1v1 | i1v0 | i0v0-i2v0 | i0v1
-	fildl	fv_v+4(%edx)	// i2v1 | i0v0 | i0v1-i1v1 | i1v0 | i0v0-i2v0| i0v1
-	fxch	%st(1)			// i0v0 | i2v1 | i0v1-i1v1 | i1v0 | i0v0-i2v0| i0v1
-	fsubp	%st(0),%st(3)	// i2v1 | i0v1-i1v1 | i0v0-i1v0 | i0v0-i2v0 | i0v1
-	fxch	%st(1)			// i0v1-i1v1 | i2v1 | i0v0-i1v0 | i0v0-i2v0 | i0v1
-	fmulp	%st(0),%st(3)	// i2v1 | i0v0-i1v0 | i0v1-i1v1*i0v0-i2v0 | i0v1
-	fsubrp	%st(0),%st(3)	// i0v0-i1v0 | i0v1-i1v1*i0v0-i2v0 | i0v1-i2v1
-	fmulp	%st(0),%st(2)	// i0v1-i1v1*i0v0-i2v0 | i0v0-i1v0*i0v1-i2v1
-	fsubp	%st(0),%st(1)	// (i0v1-i1v1)*(i0v0-i2v0)-(i0v0-i1v0)*(i0v1-i2v1)
-	fstps	Ltemp
-	movl	Ltemp,%eax
-	subl	$0x80000001,%eax
-	jc		Lskip
+// The vertex coordinates are integer screen positions.  Use the same exact
+// integer determinant as D_DrawNonSubdiv instead of round-tripping it through
+// the x87; keep %edi live as the final-vertex base pointer.
+	pushl	%edi
+	movl	fv_v+4(%ecx),%eax
+	movl	fv_v+0(%ecx),%edi
+	subl	fv_v+4(%esi),%eax
+	subl	fv_v+0(%edx),%edi
+	imull	%edi,%eax
+	movl	%eax,temp0
+	movl	fv_v+0(%ecx),%edi
+	movl	fv_v+4(%ecx),%eax
+	subl	fv_v+0(%esi),%edi
+	subl	fv_v+4(%edx),%eax
+	imull	%edi,%eax
+	subl	%eax,temp0
+	popl	%edi
+	jns		Lskip
 
 	// Match C: set colormap only when the triangle will be drawn.
 	movl	fv_v+16(%ecx),%eax
@@ -1695,4 +1692,3 @@ LNextTri:
 
 
 #endif	// id386
-
