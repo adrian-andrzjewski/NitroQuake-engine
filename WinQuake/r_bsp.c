@@ -516,11 +516,11 @@ void R_RecursiveWorldNode (mnode_t *node, int clipflags)
 	}
 #endif
 
-	if (node->contents == CONTENTS_SOLID)
-		return;		// solid
-
 	if (node->visframe != r_visframecount)
 		return;
+
+	if (node->contents == CONTENTS_SOLID)
+		return;		// solid
 
 // cull the clipping planes if not trivial accept
 // FIXME: the compiler is doing a lousy job of optimizing here; it could be

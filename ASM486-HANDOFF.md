@@ -213,6 +213,7 @@ The percentages below are DOSBox-X evidence, not a claim about all physical
 | Z-gradient cache key (`R_SetSurfaceZGradients`) | Use the stable drawing entity pointer instead of three `modelorg` float comparisons | 61.989240 s / 15.631745 FPS median across five runs; checksum pass | Kept |
 | BSP visibility predicate order (`R_RecursiveWorldNode`) | Check `visframe` before the surface backface flag in both node surface loops | 61.976925 s / 15.634851 FPS median across five runs; 12.3 ms faster, checksum pass | Kept |
 | Zero-step Z-span stores (`D_DrawZSpans`) | When fixed-point `izistep` is zero, reuse the initial-Z result with `rep stosw` instead of per-pixel gradient updates | 61.559877 s / 15.740772 FPS median across five runs; checksum pass | Kept |
+| BSP node visibility predicate order (`R_RecursiveWorldNode`) | Reject stale node `visframe` before checking `CONTENTS_SOLID` | 61.556783 s / 15.741564 FPS median across five runs; 3.1 ms faster, checksum pass | Kept |
 | Fused extra-style normalize (`R_BuildLightMap`) | Same one-pass invert/clamp for 2--4 styles when there are no dlights | 68.265121 s / 14.194657 FPS, 0.66 ms faster | Kept |
 | Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |
 | Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |
@@ -1394,16 +1395,17 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 ## Current implementation result
 
 The current pass keeps the dynamic-light S-axis accumulator, the
-`currententity`-keyed face Z-gradient cache, and changes both world-node
-surface loops in `WinQuake/r_bsp.c` to test `visframe` before the backface
-flag.  Predicate semantics and recursion are unchanged.  In
+`currententity`-keyed face Z-gradient cache, and changes `WinQuake/r_bsp.c`
+to test a node's `visframe` before `CONTENTS_SOLID`, while both world-node
+surface loops test `visframe` before the backface flag.  Predicate semantics
+and recursion are unchanged.  In
 `WinQuake/d_draw.s`, spans whose fixed-point `izistep` is zero now reuse the
 same initial-Z/clamp calculation and fill the 16-bit depth words with
 `rep stosw`; the normal positive/negative gradient paths are unchanged.  The
-five-run zero-step candidate sample was `61.560068`, `61.559856`, `61.559877`,
-`62.183622`, and `61.559841` seconds (969 frames and framebuffer checksum
-`4154140932` each run), for a median `61.559877 s / 15.740772 FPS` versus the
-committed BSP baseline `61.976925 s / 15.634851 FPS`.  The full
+five-run node-order-plus-zero-step sample was `61.556987`, `61.556783`,
+`61.556720`, `61.556934`, and `61.556789` seconds (969 frames and framebuffer
+checksum `4154140932` each run), for a median `61.556783 s / 15.741564 FPS`
+versus the committed zero-step baseline `61.559877 s / 15.740772 FPS`.  The full
 `bench-dos.ps1` run reported `486 benchmark correctness PASS` with harness
 checksum `2378409472`, and the smoke test passed.
 
