@@ -858,7 +858,7 @@ LZDraw:
 
 // do middle a pair of aligned dwords at a time
 LFMiddle:
-	pushl	%ecx
+	movl	%ecx,%esi
 	shrl	$1,%ecx				// count / 2
 	jz		LFLast				// no aligned dwords to do
 	shrl	$1,%ecx				// (count / 2) / 2
@@ -867,11 +867,10 @@ LFMiddle:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	movl	%edx,%esi
-	addl	%ebx,%edx
-	andl	$0xFFFF0000,%esi
-	orl		%esi,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
 	movl	%eax,(%edi)
+	addl	%ebx,%edx
 	addl	$4,%edi
 	andl	%ecx,%ecx
 	jz		LFLast
@@ -880,6 +879,10 @@ LFMiddle:
 // using the scratch register for a masked high word; the word order is the
 // same and the following pair keeps the existing carry schedule.
 LFMiddleLoop:
+	testl	$1,%ecx
+	jz		LFMiddleCheck
+
+LFMiddleSingle:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
@@ -887,23 +890,115 @@ LFMiddleLoop:
 	rorl	$16,%eax
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
-	// %eax is free after the first store.
+	// The second pair uses the previous pair's high word and the current
+	// sample.  SHLD/ROR replaces the scratch-register mask/OR sequence;
+	// advance the cursor after the store so the next iteration sees the same
+	// sample as the original schedule.
 	shrl	$16,%eax
-	movl	%edx,%esi
-	addl	%ebx,%edx
-	andl	$0xFFFF0000,%esi
-	orl		%esi,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
 	movl	%eax,4(%edi)
+	addl	%ebx,%edx
 	addl	$8,%edi
 
 	decl	%ecx
-	jnz		LFMiddleLoop
+	jz		LFLast
+
+LFMiddleCheck:
+	testl	$2,%ecx
+	jz		LFMiddleQuad
+
+LFMiddlePair:
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,(%edi)
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,4(%edi)
+	addl	%ebx,%edx
+
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,8(%edi)
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,12(%edi)
+	addl	%ebx,%edx
+	addl	$16,%edi
+
+	subl	$2,%ecx
+	jz		LFLast
+
+LFMiddleQuad:
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,(%edi)
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,4(%edi)
+	addl	%ebx,%edx
+
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,8(%edi)
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,12(%edi)
+	addl	%ebx,%edx
+
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,16(%edi)
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,20(%edi)
+	addl	%ebx,%edx
+
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,24(%edi)
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,28(%edi)
+	addl	%ebx,%edx
+	addl	$32,%edi
+
+	subl	$4,%ecx
+	jnz		LFMiddleQuad
 
 LFLast:
-	popl	%ecx			// retrieve count
-
 // do the last, unaligned pixel, if there is one
-	andl	$1,%ecx			// is there an odd pixel left to do?
+	testl	$1,%esi			// is there an odd pixel left to do?
 	jz		LFSpanDone		// no
 	shrl	$16,%edx
 	movw	%dx,(%edi)		// do the final pixel's z
@@ -914,7 +1009,6 @@ LFSpanDone:
 	jnz		LFSpanLoop
 
 	jmp		LFDone
-
 LFNegSpan:
 	fmuls	FloatMinus2ToThe31nd
 	fistpl	izistep		// note: we are relying on FP exceptions being turned
@@ -972,7 +1066,7 @@ LZDrawNeg:
 
 // do middle a pair of aligned dwords at a time
 LFNegMiddle:
-	pushl	%ecx
+	movl	%ecx,%esi
 	shrl	$1,%ecx				// count / 2
 	jz		LFNegLast			// no aligned dwords to do
 	shrl	$1,%ecx				// (count / 2) / 2
@@ -981,17 +1075,20 @@ LFNegMiddle:
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	movl	%edx,%esi
-	subl	%ebx,%edx
-	andl	$0xFFFF0000,%esi
-	orl		%esi,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
 	movl	%eax,(%edi)
+	subl	%ebx,%edx
 	addl	$4,%edi
 	andl	%ecx,%ecx
 	jz		LFNegLast
 
 // Mirror the 486 SHLD/ROR pair packing for the negative-gradient path.
 LFNegMiddleLoop:
+	testl	$1,%ecx
+	jz		LFNegMiddleUnrolled
+
+LFNegMiddleSingle:
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
@@ -1000,21 +1097,49 @@ LFNegMiddleLoop:
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	movl	%edx,%esi
-	subl	%ebx,%edx
-	andl	$0xFFFF0000,%esi
-	orl		%esi,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
 	movl	%eax,4(%edi)
+	subl	%ebx,%edx
 	addl	$8,%edi
 
 	decl	%ecx
-	jnz		LFNegMiddleLoop
+	jz		LFNegLast
+
+LFNegMiddleUnrolled:
+	movl	%edx,%eax
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,(%edi)
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,4(%edi)
+	subl	%ebx,%edx
+
+	movl	%edx,%eax
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,8(%edi)
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,12(%edi)
+	subl	%ebx,%edx
+	addl	$16,%edi
+
+	subl	$2,%ecx
+	jnz		LFNegMiddleUnrolled
 
 LFNegLast:
-	popl	%ecx			// retrieve count
-
 // do the last, unaligned pixel, if there is one
-	andl	$1,%ecx			// is there an odd pixel left to do?
+	testl	$1,%esi			// is there an odd pixel left to do?
 	jz		LFNegSpanDone	// no
 	shrl	$16,%edx
 	movw	%dx,(%edi)		// do the final pixel's z
