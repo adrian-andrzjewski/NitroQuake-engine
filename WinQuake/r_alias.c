@@ -44,6 +44,8 @@ finalvert_t			*pfinalverts;
 auxvert_t			*pauxverts;
 float			ziscale;
 static model_t		*pmodel;
+static entity_t		*alias_transform_entity;
+static int			alias_transform_mode;
 
 static vec3_t		alias_forward, alias_right, alias_up;
 static float		alias_viewmatrix[3][4];
@@ -98,6 +100,8 @@ qboolean R_AliasCheckBBox (void)
 	qboolean			zclipped, zfullyclipped;
 	unsigned			anyclip, allclip;
 	int					minz;
+
+	alias_transform_entity = NULL;
 	
 // expand, rotate, and translate points into worldspace
 
@@ -251,6 +255,14 @@ qboolean R_AliasCheckBBox (void)
 			currententity->trivial_accept |= 2;
 		}
 	}
+
+	// R_AliasDrawModel immediately follows this check for world entities.
+	// Keep the transform that the check already built, including the scaled
+	// form needed by the trivial-accept path.
+	if (currententity->trivial_accept)
+		R_AliasSetUpTransform (currententity->trivial_accept);
+	alias_transform_entity = currententity;
+	alias_transform_mode = currententity->trivial_accept;
 
 	return true;
 }
@@ -811,7 +823,7 @@ void R_AliasSetupFrame (void)
 R_AliasDrawModel
 ================
 */
-void R_AliasDrawModel (alight_t *plighting)
+void __attribute__((regparm(1))) R_AliasDrawModel (alight_t *plighting)
 {
 	finalvert_t		finalverts[MAXALIASVERTS +
 						((CACHE_SIZE - 1) / sizeof(finalvert_t)) + 1];
@@ -849,7 +861,10 @@ void R_AliasDrawModel (alight_t *plighting)
 			(unsigned long)pmdl->numverts);
 
 	R_AliasSetupSkin ();
-	R_AliasSetUpTransform (currententity->trivial_accept);
+	if (alias_transform_entity != currententity ||
+			alias_transform_mode != currententity->trivial_accept)
+		R_AliasSetUpTransform (currententity->trivial_accept);
+	alias_transform_entity = NULL;
 	R_AliasSetupLighting (plighting);
 	R_AliasSetupFrame ();
 

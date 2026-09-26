@@ -54,6 +54,10 @@ static void	(*surfmiptable[4])(void) = {
 
 
 unsigned		blocklights[18*18];
+static unsigned	lightmap_single_table[256];
+static unsigned	lightmap_single_first;
+static int		lightmap_single_inverse_scale;
+static qboolean	lightmap_single_table_valid;
 
 /*
 ===============
@@ -184,23 +188,26 @@ void R_AddDynamicLights (void)
 	int			lnum;
 	int			sd, td, idist;
 	float		planedist, rad, fmin;
-	int			irad, fmin_scaled;
+	int			irad, fmin_scaled, idist_limit;
 	vec3_t		impact, local;
 	int			s, t;
 	int			i;
 	int			smax, tmax;
+	unsigned	dlightbits;
 	unsigned	*bl;
 	mtexinfo_t	*tex;
+	int			contributed;
 
 	surf = r_drawsurf.surf;
 	smax = (surf->extents[0]>>4)+1;
 	tmax = (surf->extents[1]>>4)+1;
 	tex = surf->texinfo;
-
-	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
+	dlightbits = (unsigned)surf->dlightbits;
+	contributed = r_dlight_contributed;
+	while (dlightbits)
 	{
-		if ( !(surf->dlightbits & (1<<lnum) ) )
-			continue;		// not lit by this light
+		lnum = __builtin_ctz (dlightbits);
+		dlightbits &= dlightbits - 1;
 
 		rad = cl_dlights[lnum].radius;
 		planedist = DotProduct (cl_dlights[lnum].origin, surf->plane->normal) -
@@ -211,6 +218,7 @@ void R_AddDynamicLights (void)
 		fmin = rad - cl_dlights[lnum].minlight;
 		irad = (int)(rad * 256);
 		fmin_scaled = (int)ceil(fmin * 256);
+		idist_limit = (fmin_scaled + 255) >> 8;
 
 		for (i=0 ; i<3 ; i++)
 		{
@@ -231,7 +239,7 @@ void R_AddDynamicLights (void)
 				td = -td;
 			sd = local[0];
 			bl = blocklights + t * smax;
-			for (s=0 ; s<smax ; s++)
+			for (s=0 ; s+3<smax ; s+=4)
 			{
 				if (sd < 0)
 					idist = -sd;
@@ -242,14 +250,77 @@ void R_AddDynamicLights (void)
 					idist += (td>>1);
 				else
 					idist = td + (idist>>1);
-				if ((idist << 8) < fmin_scaled)
+				if (idist < idist_limit)
 				{
 					bl[s] += (unsigned)(irad - (idist << 8));
-					r_dlight_contributed = 1;
+					contributed = 1;
+				}
+
+				if (sd < 0)
+					idist = -sd;
+				else
+					idist = sd;
+				sd -= 16;
+				if (idist > td)
+					idist += (td>>1);
+				else
+					idist = td + (idist>>1);
+				if (idist < idist_limit)
+				{
+					bl[s+1] += (unsigned)(irad - (idist << 8));
+					contributed = 1;
+				}
+
+				if (sd < 0)
+					idist = -sd;
+				else
+					idist = sd;
+				sd -= 16;
+				if (idist > td)
+					idist += (td>>1);
+				else
+					idist = td + (idist>>1);
+				if (idist < idist_limit)
+				{
+					bl[s+2] += (unsigned)(irad - (idist << 8));
+					contributed = 1;
+				}
+
+				if (sd < 0)
+					idist = -sd;
+				else
+					idist = sd;
+				sd -= 16;
+				if (idist > td)
+					idist += (td>>1);
+				else
+					idist = td + (idist>>1);
+				if (idist < idist_limit)
+				{
+					bl[s+3] += (unsigned)(irad - (idist << 8));
+					contributed = 1;
+				}
+			}
+			for ( ; s<smax ; s++)
+			{
+				if (sd < 0)
+					idist = -sd;
+				else
+					idist = sd;
+				sd -= 16;
+				if (idist > td)
+					idist += (td>>1);
+				else
+					idist = td + (idist>>1);
+				if (idist < idist_limit)
+				{
+					bl[s] += (unsigned)(irad - (idist << 8));
+					contributed = 1;
 				}
 			}
 		}
 	}
+	r_dlight_contributed = contributed;
 }
 
 /*
@@ -271,16 +342,17 @@ int R_DlightContributes (msurface_t *surf)
 	int			s, t;
 	int			i;
 	int			smax, tmax;
+	unsigned	dlightbits;
 	mtexinfo_t	*tex;
 
 	smax = (surf->extents[0]>>4)+1;
 	tmax = (surf->extents[1]>>4)+1;
 	tex = surf->texinfo;
-
-	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
+	dlightbits = (unsigned)surf->dlightbits;
+	while (dlightbits)
 	{
-		if ( !(surf->dlightbits & (1<<lnum) ) )
-			continue;
+		lnum = __builtin_ctz (dlightbits);
+		dlightbits &= dlightbits - 1;
 
 		rad = cl_dlights[lnum].radius;
 		planedist = DotProduct (cl_dlights[lnum].origin, surf->plane->normal) -
@@ -303,27 +375,40 @@ int R_DlightContributes (msurface_t *surf)
 		local[0] -= surf->texturemins[0];
 		local[1] -= surf->texturemins[1];
 
-		for (t = 0 ; t<tmax ; t++)
+		// The weighted distance is monotonic in |sd| and |td|, so the
+		// minimum over the discrete lightmap is its nearest clamped sample.
+		s = (int)local[0];
+		if (s <= 0)
+			s = 0;
+		else
 		{
-			td = local[1] - t*16;
-			if (td < 0)
-				td = -td;
-			sd = local[0];
-			for (s=0 ; s<smax ; s++)
-			{
-				if (sd < 0)
-					idist = -sd;
-				else
-					idist = sd;
-				sd -= 16;
-				if (idist > td)
-					idist += (td>>1);
-				else
-					idist = td + (idist>>1);
-				if ((idist << 8) < fmin_scaled)
-					return 1;
-			}
+			s = (s + 8) >> 4;
+			if (s >= smax)
+				s = smax - 1;
 		}
+		sd = (int)local[0] - s*16;
+		if (sd < 0)
+			sd = -sd;
+
+		t = (int)local[1];
+		if (t <= 0)
+			t = 0;
+		else
+		{
+			t = (t + 8) >> 4;
+			if (t >= tmax)
+				t = tmax - 1;
+		}
+		td = (int)local[1] - t*16;
+		if (td < 0)
+			td = -td;
+
+		if (sd > td)
+			idist = sd + (td>>1);
+		else
+			idist = td + (sd>>1);
+		if ((idist << 8) < fmin_scaled)
+			return 1;
 	}
 
 	return 0;
@@ -381,43 +466,26 @@ void R_BuildLightMap (void)
 
 			if (surf->styles[1] == 255)
 			{
-				int j = 0;
-				// Keep the ambient subtraction out of the unrolled texel loop.
 				inverse_scale = 255*256 - (int)scale;
-				for (; j+7 < size; j+=8)
+				if (!lightmap_single_table_valid ||
+						lightmap_single_first != first ||
+						lightmap_single_inverse_scale != inverse_scale)
 				{
-					t = (inverse_scale - (int)(lightmap[j] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j] = t;
-					t = (inverse_scale - (int)(lightmap[j+1] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j+1] = t;
-					t = (inverse_scale - (int)(lightmap[j+2] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j+2] = t;
-					t = (inverse_scale - (int)(lightmap[j+3] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j+3] = t;
-					t = (inverse_scale - (int)(lightmap[j+4] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j+4] = t;
-					t = (inverse_scale - (int)(lightmap[j+5] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j+5] = t;
-					t = (inverse_scale - (int)(lightmap[j+6] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j+6] = t;
-					t = (inverse_scale - (int)(lightmap[j+7] * first)) >> (8 - VID_CBITS);
-					if (t < (1 << 6)) t = (1 << 6);
-					blocklights[j+7] = t;
+					for (i=0 ; i<256 ; i++)
+					{
+						t = (inverse_scale - (int)(i * first)) >>
+								(8 - VID_CBITS);
+						if (t < (1 << 6))
+							t = (1 << 6);
+						lightmap_single_table[i] = t;
+					}
+					lightmap_single_first = first;
+					lightmap_single_inverse_scale = inverse_scale;
+					lightmap_single_table_valid = true;
 				}
-				for (; j < size; j++)
+				for (i=0 ; i<size ; i++)
 				{
-					t = (inverse_scale - (int)(lightmap[j] * first)) >>
-							(8 - VID_CBITS);
-					if (t < (1 << 6))
-						t = (1 << 6);
-					blocklights[j] = t;
+					blocklights[i] = lightmap_single_table[lightmap[i]];
 				}
 				return;
 			}

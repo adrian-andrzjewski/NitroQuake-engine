@@ -300,19 +300,71 @@ C(R_BuildLightMapNormalize_asm486):
 	testl	%esi,%esi
 	jle	.Llightmap_normalize_done
 
-.Llightmap_normalize_loop:
+.Llightmap_normalize_loop4:
+	movl	%esi,%ecx
+	shrl	$2,%ecx
+	jz	.Llightmap_normalize_tail
+
+.Llightmap_normalize_unrolled:
 	movl	%edx,%eax
 	subl	(%edi),%eax
 	sarl	$2,%eax			// (8 - VID_CBITS), with VID_CBITS == 6
 	cmpl	$64,%eax
-	jge	.Llightmap_normalize_store
+	jge	.Llightmap_normalize_store0
 	movl	$64,%eax
-.Llightmap_normalize_store:
+.Llightmap_normalize_store0:
+	movl	%eax,(%edi)
+	addl	$4,%edi
+
+	movl	%edx,%eax
+	subl	(%edi),%eax
+	sarl	$2,%eax
+	cmpl	$64,%eax
+	jge	.Llightmap_normalize_store1
+	movl	$64,%eax
+.Llightmap_normalize_store1:
+	movl	%eax,(%edi)
+	addl	$4,%edi
+
+	movl	%edx,%eax
+	subl	(%edi),%eax
+	sarl	$2,%eax
+	cmpl	$64,%eax
+	jge	.Llightmap_normalize_store2
+	movl	$64,%eax
+.Llightmap_normalize_store2:
+	movl	%eax,(%edi)
+	addl	$4,%edi
+
+	movl	%edx,%eax
+	subl	(%edi),%eax
+	sarl	$2,%eax
+	cmpl	$64,%eax
+	jge	.Llightmap_normalize_store3
+	movl	$64,%eax
+.Llightmap_normalize_store3:
+	movl	%eax,(%edi)
+	addl	$4,%edi
+
+	decl	%ecx
+	jnz	.Llightmap_normalize_unrolled
+
+	andl	$3,%esi
+	jz	.Llightmap_normalize_done
+
+.Llightmap_normalize_tail:
+	movl	%edx,%eax
+	subl	(%edi),%eax
+	sarl	$2,%eax
+	cmpl	$64,%eax
+	jge	.Llightmap_normalize_tail_store
+	movl	$64,%eax
+.Llightmap_normalize_tail_store:
 	movl	%eax,(%edi)
 	addl	$4,%edi
 	decl	%esi
-	jnz	.Llightmap_normalize_loop
-
+	jnz	.Llightmap_normalize_tail
+	jmp	.Llightmap_normalize_done
 .Llightmap_normalize_done:
 	popl	%esi
 	popl	%edi

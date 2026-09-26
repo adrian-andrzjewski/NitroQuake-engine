@@ -305,11 +305,11 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 			&& cache->texture == tex
 			&& cache->lightadj[0] == d_lightstylevalue[surface->styles[0]]
 			&& (surface->styles[1] == 255
-			 || (cache->lightadj[1] == d_lightstylevalue[surface->styles[1]]
-			  && cache->lightadj[2] == d_lightstylevalue[surface->styles[2]]
-			  && cache->lightadj[3] == d_lightstylevalue[surface->styles[3]]))
+				 || (cache->lightadj[1] == d_lightstylevalue[surface->styles[1]]
+				  && cache->lightadj[2] == d_lightstylevalue[surface->styles[2]]
+				  && cache->lightadj[3] == d_lightstylevalue[surface->styles[3]]))
 			&& (surface->dlightframe != r_framecount
-			 || !R_DlightContributes (surface)))
+				 || !R_DlightContributes (surface)))
 #endif
 	{
 #ifdef PROFILE486

@@ -269,4 +269,3 @@ C(R_AliasProjectFinalVert_asm486):
 	ret
 
 #endif	// id386
-

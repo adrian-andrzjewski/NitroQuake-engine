@@ -489,7 +489,8 @@ void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 R_RecursiveWorldNode
 ================
 */
-void R_RecursiveWorldNode (mnode_t *node, int clipflags)
+void __attribute__((regparm(2))) R_RecursiveWorldNode
+	(mnode_t *node, int clipflags)
 {
 	int			i, c, side, *pindex;
 	vec3_t		acceptpt, rejectpt;

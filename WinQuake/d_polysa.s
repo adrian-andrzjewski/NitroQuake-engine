@@ -958,7 +958,7 @@ LDraw1:
 LPatch1:
 	movb	%al,7(%edi)
 Lp8:
-// Last Aff8 group: step/advance is dead (regs discarded on exit).
+// Finish the first half of a paired Aff8 group.
 	decw	%bx
 	jz		LAff8LastGroup
 
@@ -967,6 +967,150 @@ Lp8:
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
 // a_sstepxfrac low word is 0, so %bx (already decremented) is preserved.
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+	addl	$8,%edi
+	addl	$16,%ecx
+
+// The second half is duplicated so the common 16-pixel case does not need
+// to jump through LDrawLoop between the two eight-pixel groups.
+LDraw16:
+	cmpw	(%ecx),%bp
+	jl		Lq16p1
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch16:
+	movb	%al,(%edi)
+Lq16p1:
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+LDraw15:
+	cmpw	2(%ecx),%bp
+	jl		Lq16p2
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,2(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch15:
+	movb	%al,1(%edi)
+Lq16p2:
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+LDraw14:
+	cmpw	4(%ecx),%bp
+	jl		Lq16p3
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,4(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch14:
+	movb	%al,2(%edi)
+Lq16p3:
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+LDraw13:
+	cmpw	6(%ecx),%bp
+	jl		Lq16p4
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,6(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch13:
+	movb	%al,3(%edi)
+Lq16p4:
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+LDraw12:
+	cmpw	8(%ecx),%bp
+	jl		Lq16p5
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,8(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch12:
+	movb	%al,4(%edi)
+Lq16p5:
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+LDraw11:
+	cmpw	10(%ecx),%bp
+	jl		Lq16p6
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,10(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch11:
+	movb	%al,5(%edi)
+Lq16p6:
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+LDraw10:
+	cmpw	12(%ecx),%bp
+	jl		Lq16p7
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,12(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch10:
+	movb	%al,6(%edi)
+Lq16p7:
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+
+LDraw9:
+	cmpw	14(%ecx),%bp
+	jl		Lq16p8
+	movzbl	(%esi),%eax
+	movb	%dh,%ah
+	movw	%bp,14(%ecx)
+	movb	0x12345678(%eax),%al
+LPatch9b:
+	movb	%al,7(%edi)
+Lq16p8:
+	decw	%bx
+	jz		LAff8LastGroup
+
+	addl	tstep,%edx
+	sbbl	%eax,%eax
+	addl	lzistepx,%ebp
+	adcl	$0,%ebp
 	addl	C(a_sstepxfrac),%ebx
 	adcl	advancetable+4(,%eax,4),%esi
 
@@ -1031,6 +1175,14 @@ C(D_Aff8Patch):
 	movl	%eax,LPatch7-4
 	movl	%eax,LPatch8-4
 	movl	%eax,LPatch9-4
+	movl	%eax,LPatch10-4
+	movl	%eax,LPatch11-4
+	movl	%eax,LPatch12-4
+	movl	%eax,LPatch13-4
+	movl	%eax,LPatch14-4
+	movl	%eax,LPatch15-4
+	movl	%eax,LPatch16-4
+	movl	%eax,LPatch9b-4
 
 	ret
 

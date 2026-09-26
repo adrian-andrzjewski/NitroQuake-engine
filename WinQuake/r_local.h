@@ -184,7 +184,7 @@ void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel);
 
 void R_AddPolygonEdges (emitpoint_t *pverts, int numverts, int miplevel);
 surf_t *R_GetSurf (void);
-void R_AliasDrawModel (alight_t *plighting);
+void __attribute__((regparm(1))) R_AliasDrawModel (alight_t *plighting);
 void R_AliasProjectFinalVert (finalvert_t *fv, auxvert_t *av);
 #if id386
 void R_AliasProjectFinalVert_asm486 (finalvert_t *fv, auxvert_t *av);
