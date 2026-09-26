@@ -312,39 +312,36 @@ C(R_BuildLightMapNormalize_asm486):
 	cmpl	$64,%eax
 	jge	.Llightmap_normalize_store0
 	movl	$64,%eax
-.Llightmap_normalize_store0:
+	.Llightmap_normalize_store0:
 	movl	%eax,(%edi)
-	addl	$4,%edi
 
 	movl	%edx,%eax
-	subl	(%edi),%eax
+	subl	4(%edi),%eax
 	sarl	$2,%eax
 	cmpl	$64,%eax
 	jge	.Llightmap_normalize_store1
 	movl	$64,%eax
-.Llightmap_normalize_store1:
-	movl	%eax,(%edi)
-	addl	$4,%edi
+	.Llightmap_normalize_store1:
+	movl	%eax,4(%edi)
 
 	movl	%edx,%eax
-	subl	(%edi),%eax
+	subl	8(%edi),%eax
 	sarl	$2,%eax
 	cmpl	$64,%eax
 	jge	.Llightmap_normalize_store2
 	movl	$64,%eax
-.Llightmap_normalize_store2:
-	movl	%eax,(%edi)
-	addl	$4,%edi
+	.Llightmap_normalize_store2:
+	movl	%eax,8(%edi)
 
 	movl	%edx,%eax
-	subl	(%edi),%eax
+	subl	12(%edi),%eax
 	sarl	$2,%eax
 	cmpl	$64,%eax
 	jge	.Llightmap_normalize_store3
 	movl	$64,%eax
-.Llightmap_normalize_store3:
-	movl	%eax,(%edi)
-	addl	$4,%edi
+	.Llightmap_normalize_store3:
+	movl	%eax,12(%edi)
+	addl	$16,%edi
 
 	decl	%ecx
 	jnz	.Llightmap_normalize_unrolled
@@ -379,7 +376,7 @@ C(R_BuildLightMapNormalize_asm486):
 // Walk one dynamic-light sample rectangle using the same integer distance
 // rule as R_AddDynamicLights.  The floating-point projection remains in C;
 // this helper owns only the repeated sample-distance and accumulation loop.
-#define DLIGHT_SAMPLE_PIXEL \
+#define DLIGHT_SAMPLE_PIXEL_AT(offset) \
 	movl	%edx,%eax; \
 	subl	$16,%edx; \
 	testl	%eax,%eax; \
@@ -396,11 +393,11 @@ C(R_BuildLightMapNormalize_asm486):
 	sall	$8,%eax; \
 	negl	%eax; \
 	addl	60(%esp),%eax; \
-	addl	%eax,(%esi); \
+	addl	%eax,offset(%esi); \
 	incl	%edi; \
-4: 	addl	$4,%esi
+4:
 
-#define DLIGHT_SAMPLE_ALL \
+#define DLIGHT_SAMPLE_ALL_AT(offset) \
 	movl	%edx,%eax; \
 	subl	$16,%edx; \
 	testl	%eax,%eax; \
@@ -415,8 +412,7 @@ C(R_BuildLightMapNormalize_asm486):
 3:  	sall	$8,%eax; \
 	negl	%eax; \
 	addl	60(%esp),%eax; \
-	addl	%eax,(%esi); \
-	addl	$4,%esi
+	addl	%eax,offset(%esi)
 
 C(R_AddDynamicLightSamples_asm486):
 	.globl C(R_AddDynamicLightSamples_asm486)
@@ -432,7 +428,7 @@ C(R_AddDynamicLightSamples_asm486):
 	xorl	%edi,%edi			// contributed count
 	movl	44(%esp),%eax		// tmax
 	movl	%eax,12(%esp)
-	movl	48(%esp),%eax		// signed td for the current row
+	movl	52(%esp),%eax		// signed td for the current row
 	movl	%eax,0(%esp)
 	movl	$0,4(%esp)		// contributed
 	cmpl	$0,64(%esp)		// all sampled distances pass
@@ -450,6 +446,7 @@ C(R_AddDynamicLightSamples_asm486):
 	subl	%eax,%ecx
 	movl	%ecx,%ebp
 	sarl	$1,%ebp
+	movl	48(%esp),%edx		// reset signed sd for this row
 	movl	40(%esp),%eax		// smax / 4
 	shrl	$2,%eax
 	movl	%eax,8(%esp)
@@ -457,10 +454,11 @@ C(R_AddDynamicLightSamples_asm486):
 	jz	.Ldlight_tail_select
 
 .Ldlight_quad:
-	DLIGHT_SAMPLE_PIXEL
-	DLIGHT_SAMPLE_PIXEL
-	DLIGHT_SAMPLE_PIXEL
-	DLIGHT_SAMPLE_PIXEL
+	DLIGHT_SAMPLE_PIXEL_AT(0)
+	DLIGHT_SAMPLE_PIXEL_AT(4)
+	DLIGHT_SAMPLE_PIXEL_AT(8)
+	DLIGHT_SAMPLE_PIXEL_AT(12)
+	addl	$16,%esi
 	decl	8(%esp)
 	jnz	.Ldlight_quad
 
@@ -472,11 +470,14 @@ C(R_AddDynamicLightSamples_asm486):
 .Ldlight_tail_table:
 	.long .Ldlight_row_done, .Ldlight_tail1, .Ldlight_tail2, .Ldlight_tail3
 .Ldlight_tail3:
-	DLIGHT_SAMPLE_PIXEL
+	DLIGHT_SAMPLE_PIXEL_AT(0)
+	addl	$4,%esi
 .Ldlight_tail2:
-	DLIGHT_SAMPLE_PIXEL
+	DLIGHT_SAMPLE_PIXEL_AT(0)
+	addl	$4,%esi
 .Ldlight_tail1:
-	DLIGHT_SAMPLE_PIXEL
+	DLIGHT_SAMPLE_PIXEL_AT(0)
+	addl	$4,%esi
 	jmp	.Ldlight_row_done
 
 .Ldlight_all_row:
@@ -487,6 +488,7 @@ C(R_AddDynamicLightSamples_asm486):
 	subl	%eax,%ecx
 	movl	%ecx,%ebp
 	sarl	$1,%ebp
+	movl	48(%esp),%edx		// reset signed sd for this row
 	movl	40(%esp),%eax		// smax / 4
 	shrl	$2,%eax
 	movl	%eax,8(%esp)
@@ -494,10 +496,11 @@ C(R_AddDynamicLightSamples_asm486):
 	jz	.Ldlight_all_tail_select
 
 .Ldlight_all_quad:
-	DLIGHT_SAMPLE_ALL
-	DLIGHT_SAMPLE_ALL
-	DLIGHT_SAMPLE_ALL
-	DLIGHT_SAMPLE_ALL
+	DLIGHT_SAMPLE_ALL_AT(0)
+	DLIGHT_SAMPLE_ALL_AT(4)
+	DLIGHT_SAMPLE_ALL_AT(8)
+	DLIGHT_SAMPLE_ALL_AT(12)
+	addl	$16,%esi
 	decl	8(%esp)
 	jnz	.Ldlight_all_quad
 
@@ -509,11 +512,14 @@ C(R_AddDynamicLightSamples_asm486):
 .Ldlight_all_tail_table:
 	.long .Ldlight_row_done, .Ldlight_all_tail1, .Ldlight_all_tail2, .Ldlight_all_tail3
 .Ldlight_all_tail3:
-	DLIGHT_SAMPLE_ALL
+	DLIGHT_SAMPLE_ALL_AT(0)
+	addl	$4,%esi
 .Ldlight_all_tail2:
-	DLIGHT_SAMPLE_ALL
+	DLIGHT_SAMPLE_ALL_AT(0)
+	addl	$4,%esi
 .Ldlight_all_tail1:
-	DLIGHT_SAMPLE_ALL
+	DLIGHT_SAMPLE_ALL_AT(0)
+	addl	$4,%esi
 	jmp	.Ldlight_row_done
 
 .Ldlight_row_done:
