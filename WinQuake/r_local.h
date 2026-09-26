@@ -158,6 +158,9 @@ void R_AliasTransformFinalVert_C (finalvert_t *fv, auxvert_t *av,
 #if id386
 texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
 void R_BuildLightMapNormalize_asm486 (unsigned *lights, int size);
+int R_AddDynamicLightSamples_asm486 (unsigned *blocklights, int smax,
+	int tmax, int local0, int local1, int idist_limit, int irad,
+	int all_lit);
 double R_RecursiveWorldNodePlaneDot_asm486 (mplane_t *plane);
 int R_RecursiveWorldNodeClip_asm486 (mnode_t *node, int clipflags);
 int R_AliasCheckBBoxProject_asm486 (auxvert_t *viewaux, finalvert_t *viewpts,

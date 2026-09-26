@@ -372,6 +372,165 @@ C(R_BuildLightMapNormalize_asm486):
 
 	.p2align 4,,15
 
+// int R_AddDynamicLightSamples_asm486(unsigned *blocklights, int smax,
+//                                     int tmax, int local0, int local1,
+//                                     int idist_limit, int irad,
+//                                     int all_lit)
+// Walk one dynamic-light sample rectangle using the same integer distance
+// rule as R_AddDynamicLights.  The floating-point projection remains in C;
+// this helper owns only the repeated sample-distance and accumulation loop.
+#define DLIGHT_SAMPLE_PIXEL \
+	movl	%edx,%eax; \
+	subl	$16,%edx; \
+	testl	%eax,%eax; \
+	jge	1f; \
+	negl	%eax; \
+1: 	cmpl	%ecx,%eax; \
+	jg	2f; \
+	sarl	$1,%eax; \
+	addl	%ecx,%eax; \
+	jmp	3f; \
+2: 	addl	%ebp,%eax; \
+	3: 	cmpl	%ebx,%eax; \
+	jge	4f; \
+	sall	$8,%eax; \
+	negl	%eax; \
+	addl	60(%esp),%eax; \
+	addl	%eax,(%esi); \
+	incl	%edi; \
+4: 	addl	$4,%esi
+
+#define DLIGHT_SAMPLE_ALL \
+	movl	%edx,%eax; \
+	subl	$16,%edx; \
+	testl	%eax,%eax; \
+	jge	1f; \
+	negl	%eax; \
+1:  	cmpl	%ecx,%eax; \
+	jg	2f; \
+	sarl	$1,%eax; \
+	addl	%ecx,%eax; \
+	jmp	3f; \
+2:  	addl	%ebp,%eax; \
+3:  	sall	$8,%eax; \
+	negl	%eax; \
+	addl	60(%esp),%eax; \
+	addl	%eax,(%esi); \
+	addl	$4,%esi
+
+C(R_AddDynamicLightSamples_asm486):
+	.globl C(R_AddDynamicLightSamples_asm486)
+	pushl	%ebp
+	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
+	subl	$16,%esp
+
+	// Four saved registers plus the 16-byte local block precede the args.
+	movl	36(%esp),%esi		// blocklights
+	movl	56(%esp),%ebx		// idist_limit
+	xorl	%edi,%edi			// contributed count
+	movl	44(%esp),%eax		// tmax
+	movl	%eax,12(%esp)
+	movl	48(%esp),%eax		// signed td for the current row
+	movl	%eax,0(%esp)
+	movl	$0,4(%esp)		// contributed
+	cmpl	$0,64(%esp)		// all sampled distances pass
+	jz	.Ldlight_row
+	movl	$1,%edi
+	jmp	.Ldlight_all_row
+
+.Ldlight_row:
+	// ECX is the absolute row distance and EBP is td >> 1.  Keep the
+	// signed row distance in the local block for the next row.
+	movl	0(%esp),%eax
+	movl	%eax,%ecx
+	sarl	$31,%eax
+	xorl	%eax,%ecx
+	subl	%eax,%ecx
+	movl	%ecx,%ebp
+	sarl	$1,%ebp
+	movl	40(%esp),%eax		// smax / 4
+	shrl	$2,%eax
+	movl	%eax,8(%esp)
+	testl	%eax,%eax
+	jz	.Ldlight_tail_select
+
+.Ldlight_quad:
+	DLIGHT_SAMPLE_PIXEL
+	DLIGHT_SAMPLE_PIXEL
+	DLIGHT_SAMPLE_PIXEL
+	DLIGHT_SAMPLE_PIXEL
+	decl	8(%esp)
+	jnz	.Ldlight_quad
+
+.Ldlight_tail_select:
+	movl	40(%esp),%eax
+	andl	$3,%eax
+	jmp	.Ldlight_tail_table(,%eax,4)
+
+.Ldlight_tail_table:
+	.long .Ldlight_row_done, .Ldlight_tail1, .Ldlight_tail2, .Ldlight_tail3
+.Ldlight_tail3:
+	DLIGHT_SAMPLE_PIXEL
+.Ldlight_tail2:
+	DLIGHT_SAMPLE_PIXEL
+.Ldlight_tail1:
+	DLIGHT_SAMPLE_PIXEL
+	jmp	.Ldlight_row_done
+
+.Ldlight_all_row:
+	movl	0(%esp),%eax
+	movl	%eax,%ecx
+	sarl	$31,%eax
+	xorl	%eax,%ecx
+	subl	%eax,%ecx
+	movl	%ecx,%ebp
+	sarl	$1,%ebp
+	movl	40(%esp),%eax		// smax / 4
+	shrl	$2,%eax
+	movl	%eax,8(%esp)
+	testl	%eax,%eax
+	jz	.Ldlight_all_tail_select
+
+.Ldlight_all_quad:
+	DLIGHT_SAMPLE_ALL
+	DLIGHT_SAMPLE_ALL
+	DLIGHT_SAMPLE_ALL
+	DLIGHT_SAMPLE_ALL
+	decl	8(%esp)
+	jnz	.Ldlight_all_quad
+
+.Ldlight_all_tail_select:
+	movl	40(%esp),%eax
+	andl	$3,%eax
+	jmp	.Ldlight_all_tail_table(,%eax,4)
+
+.Ldlight_all_tail_table:
+	.long .Ldlight_row_done, .Ldlight_all_tail1, .Ldlight_all_tail2, .Ldlight_all_tail3
+.Ldlight_all_tail3:
+	DLIGHT_SAMPLE_ALL
+.Ldlight_all_tail2:
+	DLIGHT_SAMPLE_ALL
+.Ldlight_all_tail1:
+	DLIGHT_SAMPLE_ALL
+	jmp	.Ldlight_row_done
+
+.Ldlight_row_done:
+	subl	$16,0(%esp)
+	decl	12(%esp)
+	jnz	.Ldlight_row
+
+	movl	%edi,%eax
+	addl	$16,%esp
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+	ret
+
+	.p2align 4,,15
+
 // double R_RecursiveWorldNodePlaneDot_asm486(mplane_t *plane)
 // Calculate the viewpoint/plane dot used to choose the front BSP child.
 // Axis-aligned planes avoid the three x87 multiplies; arbitrary planes keep

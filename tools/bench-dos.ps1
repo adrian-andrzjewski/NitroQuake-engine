@@ -31,6 +31,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LightMapNormalizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
@@ -112,6 +114,9 @@ if ($TextureAnimationImplementation -eq 'c') {
 if ($LightMapNormalizeImplementation -eq 'c') {
     $profileSuffixParts += 'lightmapc'
 }
+if ($DynamicLightImplementation -eq 'asm') {
+    $profileSuffixParts += 'dlightasm'
+}
 if ($BspPlaneDotImplementation -eq 'asm') {
     $profileSuffixParts += 'bspdotasm'
 }
@@ -159,6 +164,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-AliasTransformFinalImplementation', $AliasTransformFinalImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
+        '-DynamicLightImplementation', $DynamicLightImplementation,
         '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
         '-BspClipImplementation', $BspClipImplementation,
         '-ToolRoot', $ToolRoot)
@@ -313,6 +319,7 @@ $result = [ordered]@{
     aliasTransformFinalImplementation = $AliasTransformFinalImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
+    dynamicLightImplementation = $DynamicLightImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
     turbulentOnly = [bool]$TurbulentOnly

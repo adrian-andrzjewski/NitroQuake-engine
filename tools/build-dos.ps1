@@ -31,6 +31,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LightMapNormalizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
@@ -120,6 +122,9 @@ if ($TextureAnimationImplementation -eq 'c') {
 if ($LightMapNormalizeImplementation -eq 'c') {
     $profileSuffixParts += 'lightmapc'
 }
+if ($DynamicLightImplementation -eq 'asm') {
+    $profileSuffixParts += 'dlightasm'
+}
 if ($BspPlaneDotImplementation -eq 'asm') {
     $profileSuffixParts += 'bspdotasm'
 }
@@ -171,10 +176,11 @@ $asmSources = @($allAsmSources | Where-Object {
 	$Benchmark -or $MemoryImplementation -eq 'asm' -or
 		$TextureAxisImplementation -eq 'asm' -or
 		$SurfaceCacheImplementation -eq 'asm' -or
-		$MipLevelImplementation -eq 'asm' -or
-		$TextureAnimationImplementation -eq 'asm' -or
-		$LightMapNormalizeImplementation -eq 'asm' -or
-		$BspPlaneDotImplementation -eq 'asm' -or
+	$MipLevelImplementation -eq 'asm' -or
+	$TextureAnimationImplementation -eq 'asm' -or
+	$LightMapNormalizeImplementation -eq 'asm' -or
+	$DynamicLightImplementation -eq 'asm' -or
+	$BspPlaneDotImplementation -eq 'asm' -or
 		$BspClipImplementation -eq 'asm' -or
 		$AliasBBoxProjectImplementation -eq 'asm' -or
 		$AliasTransformFinalImplementation -eq 'asm' -or
@@ -184,7 +190,9 @@ $allSources = @($cSources + $asmSources)
 $expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm' -or
 	$TextureAxisImplementation -eq 'asm' -or $SurfaceCacheImplementation -eq 'asm' -or
 	$MipLevelImplementation -eq 'asm' -or $TextureAnimationImplementation -eq 'asm' -or
-	$LightMapNormalizeImplementation -eq 'asm' -or $BspPlaneDotImplementation -eq 'asm' -or
+	$LightMapNormalizeImplementation -eq 'asm' -or
+	$DynamicLightImplementation -eq 'asm' -or
+	$BspPlaneDotImplementation -eq 'asm' -or
 	$BspClipImplementation -eq 'asm' -or $AliasBBoxProjectImplementation -eq 'asm' -or
 	$AliasTransformFinalImplementation -eq 'asm') { 21 } else { 20 }
 if (($allCSources.Count -ne 83) -or ($cSources.Count -ne 82) -or
@@ -246,6 +254,9 @@ try {
     }
     if ($LightMapNormalizeImplementation -eq 'asm') {
         $cFlags += '-DASM486_LIGHTMAP_NORMALIZE'
+    }
+    if ($DynamicLightImplementation -eq 'asm') {
+        $cFlags += '-DASM486_DYNAMIC_LIGHTS'
     }
     if ($BspPlaneDotImplementation -eq 'asm') {
         $cFlags += '-DASM486_BSP_PLANE_DOT'
@@ -350,6 +361,7 @@ try {
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation
         textureAnimationImplementation = $TextureAnimationImplementation
         lightMapNormalizeImplementation = $LightMapNormalizeImplementation
+        dynamicLightImplementation = $DynamicLightImplementation
         bspPlaneDotImplementation = $BspPlaneDotImplementation
         bspClipImplementation = $BspClipImplementation
         optimizationProfile = $OptimizationProfile

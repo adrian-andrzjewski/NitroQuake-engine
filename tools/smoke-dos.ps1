@@ -8,6 +8,8 @@ param(
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet('c', 'asm')]
     [string]$MemoryImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$DynamicLightImplementation = 'c',
     [int]$TimeoutSeconds = 90
 )
 
@@ -32,6 +34,7 @@ $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain
 $profileSuffixParts = @()
 if ($OptimizationProfile -eq 'baseline') { $profileSuffixParts += 'baseline' }
 if ($MemoryImplementation -eq 'asm') { $profileSuffixParts += 'memasm' }
+if ($DynamicLightImplementation -eq 'asm') { $profileSuffixParts += 'dlightasm' }
 $profileSuffix = if ($profileSuffixParts.Count) { '-' + ($profileSuffixParts -join '-') } else { '' }
 $djgppExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\quake.exe')
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
@@ -54,7 +57,8 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         throw "DOS executable not found at '$djgppExe'. Run build-dos.ps1 first or omit -SkipBuild."
     }
     $buildArgs = @('-ToolRoot', $ToolRoot, '-OptimizationProfile', $OptimizationProfile,
-        '-MemoryImplementation', $MemoryImplementation)
+        '-MemoryImplementation', $MemoryImplementation,
+        '-DynamicLightImplementation', $DynamicLightImplementation)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
     }
@@ -186,6 +190,7 @@ $result = [ordered]@{
     quakeExitCode = $quakeExit
     executable = $djgppExe
     dataRoot = $DataRoot
+    dynamicLightImplementation = $DynamicLightImplementation
     timeoutSeconds = $TimeoutSeconds
 }
 $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingRoot 'smoke-result.json') -Encoding ASCII

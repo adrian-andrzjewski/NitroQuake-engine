@@ -193,6 +193,7 @@ void R_AddDynamicLights (void)
 	int			s, t;
 	int			i;
 	int			smax, tmax;
+	int			all_lit;
 	unsigned	dlightbits;
 	unsigned	*bl;
 	mtexinfo_t	*tex;
@@ -232,6 +233,34 @@ void R_AddDynamicLights (void)
 		local[0] -= surf->texturemins[0];
 		local[1] -= surf->texturemins[1];
 
+		#ifdef ASM486_DYNAMIC_LIGHTS
+		sd = (int)local[0];
+		if (sd < 0)
+			sd = -sd;
+		t = (int)local[0] - (smax - 1)*16;
+		if (t < 0)
+			t = -t;
+		if (t > sd)
+			sd = t;
+
+		td = (int)local[1];
+		if (td < 0)
+			td = -td;
+		t = (int)local[1] - (tmax - 1)*16;
+		if (t < 0)
+			t = -t;
+		if (t > td)
+			td = t;
+
+		if (sd > td)
+			idist = sd + (td>>1);
+		else
+			idist = td + (sd>>1);
+		all_lit = (idist < idist_limit);
+		contributed |= R_AddDynamicLightSamples_asm486 (blocklights,
+				smax, tmax, (int)local[0], (int)local[1],
+				idist_limit, irad, all_lit);
+		#else
 		for (t = 0 ; t<tmax ; t++)
 		{
 			td = local[1] - t*16;
@@ -319,6 +348,7 @@ void R_AddDynamicLights (void)
 				}
 			}
 		}
+		#endif
 	}
 	r_dlight_contributed = contributed;
 }
