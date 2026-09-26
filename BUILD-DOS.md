@@ -353,6 +353,14 @@ hold the DOSBox-X profile, DPMI host, data directory, command line, and random
 seed constant. Keep an implementation only when its complete timedemo improves
 repeatably and preserves the current checksum.
 
+### Latest rejected experiments
+
+Do not remove the lightright stores from the mip0/mip1/mip2 surf8 drawers: they
+are consumed by the following loop iteration. A zero-punch-angle early-out in
+DropPunchAngle was also tested; it passed correctness and checksum gates but
+measured 16.283890 FPS versus the 16.283870 FPS baseline, which is noise. Both
+experiments were reverted.
+
 For a repeatable performance check, use the repository-owned
 `tools/dosbox-x-486-high.conf` profile.  It targets a high-end 486DX4/100
 class CPU (`cputype=486`, dynamic core, fixed 33445 cycles), an S3 SVGA

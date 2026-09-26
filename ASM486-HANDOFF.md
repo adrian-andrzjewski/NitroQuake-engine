@@ -26,6 +26,15 @@ and then rejected: C median 59.506742 seconds (16.283870 FPS) versus ASM median
 benchmark correctness PASS harness. Keep the C surface-cache predicate as the
 default; a focused helper win is insufficient when the complete timedemo loses.
 
+The next sequential pass also rejected two leads. The proposed surf8.s
+lightright-store removal was invalid: the stores at the end of the mip0, mip1,
+and mip2 blocks feed the next loop iteration through C(lightright), so they are
+live lighting state and must remain. A scoped zero-vector early-out before
+VectorNormalize in DropPunchAngle passed the correctness harness and retained
+969 frames/checksum 1047377823, but its three-run median was 16.283890 FPS
+versus the 16.283870 FPS baseline, an insignificant 0.000020 FPS difference.
+It was reverted as measurement noise. Do not promote either experiment.
+
 The nested repository is the Git boundary: `D:\Project\486quake\quake`.
 The current source uses the `aggressive` profile (`-O3 -march=i486`) and the
 repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
