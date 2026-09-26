@@ -425,6 +425,7 @@ void CL_TimeDemo_f (void)
 #ifdef PROFILE486
 	Bench486ResetTimedemoCounters ();
 #endif
+	srand (1);
 #endif
 	
 // cls.td_starttime will be grabbed at the second frame of the demo, so

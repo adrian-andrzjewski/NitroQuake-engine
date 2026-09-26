@@ -1,8 +1,26 @@
 # DOS VESA default validation — 2026-09-26
 
+## Current 486 benchmark reference
+
+The later PROFILE486 worktree seeds srand(1) at timedemo start so renderer
+comparisons use the same entity animation phases. Its current authoritative
+checksum is 1047377823; the historical 4154140932 checksum belongs to older
+unseeded runs and should not be used as the acceptance value for this worktree.
+
+The pinned raw VGA reference was three runs at 59.506758, 59.506742, and
+59.506707 seconds (16.283864, 16.283870, and 16.283879 FPS), 969 frames each,
+all with checksum 1047377823. The optional guarded ASM surface-cache variant
+was three runs at 59.512120, 59.512084, and 59.512013 seconds (median 16.282407
+FPS), also with the same checksum, so it was rejected as approximately 5.4 ms
+slower per timedemo. Both variants passed the full 486 correctness harness.
+
+These measurements are DOSBox-X emulator evidence, not a claim about every
+physical 486 motherboard or VGA/VESA implementation.
+
 Scope: automatic BIOS-discovered 320x200x8 VESA, single-page RAM presentation,
-and bounded recovery to VGA mode 13h. No retained renderer, RNG, benchmark,
-or assembly changes.
+and bounded recovery to VGA mode 13h. No retained renderer or assembly changes
+belong to this video validation; the current benchmark reference is documented
+below separately.
 The pre-existing `tools/build-dos.ps1` change from `-falign-jumps=8` to `16`
 was preserved byte for byte and is excluded from the video change.
 

@@ -338,6 +338,21 @@ $mount = (Resolve-Path '.\out\dos-smoke').Path.Replace('\', '/')
 
 ## 486-class timedemo
 
+### Current seeded A/B reference
+
+For current PROFILE486 work, WinQuake/cl_demo.c seeds srand(1) when a timedemo
+begins. This stabilizes random entity animation phases for performance
+comparisons. The resulting current-worktree framebuffer checksum is
+1047377823; the older 4154140932 value in historical experiment records is not
+interchangeable with this seeded reference.
+
+The current raw VGA reference is 969 frames in a median 59.506742 seconds
+(16.283870 FPS) across three runs, with checksum 1047377823 on every run.
+When comparing optional implementations, rebuild each selector separately and
+hold the DOSBox-X profile, DPMI host, data directory, command line, and random
+seed constant. Keep an implementation only when its complete timedemo improves
+repeatably and preserves the current checksum.
+
 For a repeatable performance check, use the repository-owned
 `tools/dosbox-x-486-high.conf` profile.  It targets a high-end 486DX4/100
 class CPU (`cputype=486`, dynamic core, fixed 33445 cycles), an S3 SVGA

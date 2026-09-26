@@ -225,7 +225,7 @@ try {
         '-march=i486',
         '-mtune=i486',
         '-falign-loops=8',
-        '-falign-jumps=8',
+        '-falign-jumps=16',
         '-falign-functions=8',
         '-freorder-blocks',
         '-freorder-functions',

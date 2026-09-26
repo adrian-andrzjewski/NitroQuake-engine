@@ -9,6 +9,23 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Current reproducibility note (2026-09-26)
+
+The benchmark worktree seeds srand(1) at the start of PROFILE486 timedemos and
+uses -falign-jumps=16 in the aggressive DOS build. These changes make the
+current profiling/timedemo workload deterministic enough for A/B comparison,
+but they change the framebuffer reference from older handoff runs. The current
+worktree authority is 969 frames with checksum 1047377823; older reports using
+4154140932 remain historical results and must not be mixed into current A/B
+comparisons.
+
+The optional ASM surface-cache predicate was rechecked with guarded dispatch
+and then rejected: C median 59.506742 seconds (16.283870 FPS) versus ASM median
+59.512084 seconds (16.282407 FPS) across three raw runs. All runs completed
+969 frames with checksum 1047377823, and both variants passed the full 486
+benchmark correctness PASS harness. Keep the C surface-cache predicate as the
+default; a focused helper win is insufficient when the complete timedemo loses.
+
 The nested repository is the Git boundary: `D:\Project\486quake\quake`.
 The current source uses the `aggressive` profile (`-O3 -march=i486`) and the
 repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
