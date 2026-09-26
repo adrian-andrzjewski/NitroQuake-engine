@@ -53,6 +53,7 @@ int		numvidmodes;
 vmode_t	*pvidmodes;
 
 static int	firstupdate = 1;
+static qboolean startup_mode_requested;
 
 extern regs_t regs;
 
@@ -183,8 +184,9 @@ VID_SetMode
 */
 int VID_SetMode (int modenum, unsigned char *palette)
 {
-	int		stat;
-	vmode_t	*pnewmode, *poldmode;
+	int		stat, requested = modenum, attempt;
+	vmode_t	*pnewmode;
+	qboolean was_disabled = scr_disabled_for_loading;
 
 	if ((modenum >= numvidmodes) || (modenum < 0))
 	{
@@ -210,56 +212,44 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	if (pnewmode == pcurrentmode)
 		return 1;	// already in the desired mode
 
-// initialize the new mode
-	poldmode = pcurrentmode;
-	pcurrentmode = pnewmode;
-
-	vid.width = pcurrentmode->width;
-	vid.height = pcurrentmode->height;
-	vid.aspect = pcurrentmode->aspect;
-	vid.rowbytes = pcurrentmode->rowbytes;
-
-	stat = (*pcurrentmode->setmode) (&vid, pcurrentmode);
-
-	if (stat < 1)
+// No recursive restoration: try the requested mode, then VGA exactly once.
+// Suppress screen updates while buffers/mappings are being replaced.
+	nomodecheck = true;
+	scr_disabled_for_loading = true;
+	for (attempt = 0; attempt < 2; attempt++)
 	{
-		if (stat == 0)
+		VID_ExtraReleaseMode ();
+		vid.direct = NULL;
+		pcurrentmode = VID_GetModePtr (modenum);
+		vid.width = pcurrentmode->width;
+		vid.height = pcurrentmode->height;
+		vid.aspect = pcurrentmode->aspect;
+		vid.rowbytes = pcurrentmode->rowbytes;
+		stat = (*pcurrentmode->setmode) (&vid, pcurrentmode);
+		if (stat > 0)
 		{
-		// real, hard failure that requires resetting the mode
-			if (!VID_SetMode (vid_modenum, palette))	// restore prior mode
-				Sys_Error ("VID_SetMode: Unable to set any mode, probably "
-						   "because there's not enough memory available");
-			Con_Printf ("Failed to set mode %d\n", modenum);
-			return 0;
+			(*pcurrentmode->setpalette) (&vid, pcurrentmode, palette);
+			if (VID_ExtraPaletteOK ()) break;
 		}
-		else if (stat == -1)
-		{
-		// not enough memory; just put things back the way they were
-			pcurrentmode = poldmode;
-			vid.width = pcurrentmode->width;
-			vid.height = pcurrentmode->height;
-			vid.aspect = pcurrentmode->aspect;
-			vid.rowbytes = pcurrentmode->rowbytes;
-			return 0;
-		}
-		else
-		{
-			Sys_Error ("VID_SetMode: invalid setmode return code %d");
-		}
+		Con_Printf ("Video: mode %d initialization failed; falling back to VGA mode 13h\n", modenum);
+		if (modenum == 0 || attempt == 1)
+			Sys_Error ("VID_SetMode: unable to initialize VGA mode 13h");
+		modenum = 0;
 	}
-
-	(*pcurrentmode->setpalette) (&vid, pcurrentmode, palette);
+	Q_memcpy (vid_current_palette, palette, 768);
 
 	vid_modenum = modenum;
 	Cvar_SetValue ("vid_mode", (float)vid_modenum);
-
-	nomodecheck = true;
-	Con_Printf ("%s\n", VID_ModeInfo (vid_modenum, NULL));
-	nomodecheck = false;
-
 	vid.recalc_refdef = 1;
 
-	return 1;
+	nomodecheck = true;
+	Con_Printf ("Video mode %d: %s\n", vid_modenum, VID_ModeInfo (vid_modenum, NULL));
+	if (modenum == 0)
+		Con_Printf ("Video: VGA BIOS 0x13 pitch 320, 1 page, RAM copy\n");
+	nomodecheck = false;
+	scr_disabled_for_loading = was_disabled;
+
+	return modenum == requested;
 }
 
 
@@ -273,6 +263,8 @@ void    VID_SetPalette (unsigned char *palette)
 	if (palette != vid_current_palette)
 		Q_memcpy(vid_current_palette, palette, 768);
 	(*pcurrentmode->setpalette)(&vid, pcurrentmode, vid_current_palette);
+	if (!VID_ExtraPaletteOK ())
+		VID_SetMode (0, vid_current_palette);
 }
 
 
@@ -299,6 +291,7 @@ void VID_Shutdown (void)
 	regs.h.ah = 0;
 	regs.h.al = 0x3;
 	dos_int86(0x10);
+	VID_ShutdownExtra ();
 
 	vid_testingmode = 0;
 }
@@ -334,13 +327,26 @@ void    VID_Update (vrect_t *rects)
 	}
 #endif
 
-	if (firstupdate && _vid_default_mode.value)
+	// Console printing can update the screen halfway through quake.rc.
+	// Wait until a complete host frame has executed the startup commands.
+	if (firstupdate && host_framecount > 0 && !nomodecheck)
 	{
-		if(_vid_default_mode.value >= numvidmodes)
-			Cvar_SetValue ("_vid_default_mode", 0);
-
 		firstupdate = 0;
-		Cvar_SetValue ("vid_mode", _vid_default_mode.value);
+		if (_vid_default_mode.value < 0 || _vid_default_mode.value >= numvidmodes)
+			Cvar_SetValue ("_vid_default_mode", 0);
+		if (COM_CheckParm("-stdvid"))
+			Cvar_SetValue ("vid_mode", 0);
+		else if (!startup_mode_requested && !COM_CheckParm("+vid_mode") && vid_mode.value == vid_modenum)
+		{
+			if (_vid_default_mode.value)
+				Cvar_SetValue ("vid_mode", _vid_default_mode.value);
+			else
+			{
+				Cvar_SetValue ("vid_mode", VID_ExtraDefaultMode());
+				if (!vid_mode.value)
+					Con_Printf ("Video: no usable VESA 320x200x8 mode; using VGA mode 13h\n");
+			}
+		}
 	}
 
 	(*pcurrentmode->swapbuffers)(&vid, pcurrentmode, rects);
@@ -365,6 +371,7 @@ void    VID_Update (vrect_t *rects)
 		{
 			if (vid_mode.value != vid_realmode)
 			{
+				if (firstupdate) startup_mode_requested = true;
 				VID_SetMode ((int)vid_mode.value, vid_current_palette);
 				Cvar_SetValue ("vid_mode", (float)vid_modenum);
 									// so if mode set fails, we don't keep on

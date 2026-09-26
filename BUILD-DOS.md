@@ -19,6 +19,37 @@ URLs and SHA-256 values are pinned in tools/dos-toolchain.json.
 
 ## Build
 
+### DOS video startup
+
+Mode index `0` remains VGA mode 13h. After the startup configuration has run,
+an unset/zero `_vid_default_mode` automatically selects a BIOS-reported VBE 2.0
+320x200 packed 8-bit mode. Linear framebuffer modes take priority over banked
+modes. Banked modes must fit completely in one readable/writable window.
+Saved nonzero defaults and explicit `+vid_mode N` choices take precedence over
+automatic selection. `-stdvid` forces VGA startup and skips VESA discovery;
+runtime `vid_mode N` changes and `vid_testmode` remain available.
+
+320x200 VESA renders into tightly packed RAM and copies dirty rectangles to
+one display page. Matching full-width pitches use a single transfer through
+the existing i486 assembly copier. Padded hardware pitches retain row copies.
+The default path has no retrace waits, display-start calls, or per-frame bank
+switches. `_vid_wait_override 1` requests the legacy vsync override; explicit
+`vid_wait 1` (vsync) and `vid_wait 2` (display enable) are honored where the VGA
+status register supports them. Tearing is possible with waits disabled.
+
+Discovery/allocation/mapping/BIOS initialization failures fall back to mode
+13h. A failed requested mode gets one VGA recovery attempt, with no recursive
+restoration or automatic retry. Backend, BIOS mode, pitch and failures are
+logged to the console (`-condebug` also writes `id1/qconsole.log`). Active
+linear mappings are released on mode changes and shutdown.
+
+Run `python tools/test-video-dos.py` with native GCC for the mocked BIOS,
+startup/recovery, direct-rectangle, padded-pitch and copy-boundary checks.
+See [VIDEO-DOS-VALIDATION.md](VIDEO-DOS-VALIDATION.md) for DOSBox validation and
+the distinction between framebuffer parity and displayed-output inspection.
+
+### Compiler invocation
+
 From the repository root in Windows PowerShell 5.1:
 
 ~~~powershell

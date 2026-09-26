@@ -288,6 +288,13 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 	VGA_highhunkmark = Hunk_HighMark ();
 
 	d_pzbuffer = Hunk_HighAllocName (VGA_buffersize, "video");
+	if (!d_pzbuffer)
+	{
+		vid_surfcache = NULL;
+		lvid->buffer = lvid->conbuffer = NULL;
+		VGA_pcurmode = NULL;
+		return false;
+	}
 
 	vid_surfcache = (byte *)d_pzbuffer
 		+ lvid->width * lvid->height * sizeof (*d_pzbuffer);
