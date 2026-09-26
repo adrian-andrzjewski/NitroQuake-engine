@@ -115,22 +115,24 @@ variants use separate ignored output directories (`out\dos-turbc`,
 the source.
 
 The 16-pixel texture-span store loop is independently selectable with
-`-TextureSpanStores byte|dword|loop`:
+`-TextureSpanStores word|byte|dword|loop`:
 
 ~~~powershell
+.\tools\build-dos.ps1 -Benchmark -TextureSpanStores word
 .\tools\build-dos.ps1 -Benchmark -TextureSpanStores byte
 .\tools\build-dos.ps1 -Benchmark -TextureSpanStores dword
 .\tools\build-dos.ps1 -Benchmark -TextureSpanStores loop
 ~~~
 
-`byte` remains the production default (original unrolled stores).  `dword`
-packs four destination pixels per `movl` and matched checksum `4154140932`.
-The current-source 486 recheck produced 62.568941, 62.568978, and 62.568999
-seconds without FPS-stat collection, versus matching byte runs at 62.569014,
-62.568957, and 62.568953 seconds; the medians differ by about one microsecond,
-so the selector is not promoted.  `loop` uses `stosb` in 7+8 pixel loops, also matched the
-checksum, and was about 2.8% slower.  `dword` writes `out\dos-spandword`
-and `loop` writes `out\dos-spanloop`.
+`word` is now the production default.  It preserves the original texture/DDA
+sampling order and packs adjacent destination pixels with 16-bit stores in the
+full 16-pixel path.  Three matched DOSBox-X timedemo runs measured
+59.497438, 59.497242, and 59.497252 seconds (median 59.497252), all with
+969 frames and framebuffer checksum `4154140932`.  The explicit `byte` control
+uses the original unrolled stores and writes `out\dos-spanbyte`; `dword` packs
+four destination pixels per `movl` and writes `out\dos-spandword`; `loop` uses
+`stosb` in 7+8 pixel loops and writes `out\dos-spanloop`.  All variants retain
+the exact checksum gate.
 
 The alias-model projection helper is independently selectable with
 `-AliasProjectImplementation c|asm`:

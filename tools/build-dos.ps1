@@ -18,8 +18,8 @@ param(
     [string]$MemoryImplementation = 'asm',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
-    [ValidateSet('byte', 'dword', 'loop')]
-    [string]$TextureSpanStores = 'byte',
+    [ValidateSet('byte', 'word', 'dword', 'loop')]
+    [string]$TextureSpanStores = 'word',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -101,7 +101,10 @@ if ($TurbulentImplementation -eq 'c') {
 elseif ($TurbulentImplementation -eq 'asm') {
     $profileSuffixParts += 'turbasm'
 }
-if ($TextureSpanStores -eq 'dword') {
+if ($TextureSpanStores -eq 'byte') {
+    $profileSuffixParts += 'spanbyte'
+}
+elseif ($TextureSpanStores -eq 'dword') {
     $profileSuffixParts += 'spandword'
 }
 elseif ($TextureSpanStores -eq 'loop') {
@@ -221,9 +224,9 @@ try {
         $optimizationLevel,
         '-march=i486',
         '-mtune=i486',
-        '-falign-loops=16',
-        '-falign-jumps=16',
-        '-falign-functions=16',
+        '-falign-loops=8',
+        '-falign-jumps=8',
+        '-falign-functions=8',
         '-freorder-blocks',
         '-freorder-functions',
         '-fomit-frame-pointer',
@@ -293,7 +296,10 @@ try {
     if ($TurbulentImplementation -eq 'stosb') {
         $asmFlags += '-DASM486_TURBULENT_STOSB'
     }
-    if ($TextureSpanStores -eq 'dword') {
+    if ($TextureSpanStores -eq 'word') {
+        $asmFlags += '-DASM486_SPAN16_WORD_STORES'
+    }
+    elseif ($TextureSpanStores -eq 'dword') {
         $asmFlags += '-DASM486_SPAN16_DWORD_STORES'
     }
     elseif ($TextureSpanStores -eq 'loop') {

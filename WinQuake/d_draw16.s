@@ -489,6 +489,59 @@ LSpan16LoopA:
 	decl	jumptemp
 	stosb
 	jnz		LSpan16LoopA
+#elif defined(ASM486_SPAN16_WORD_STORES)
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,1(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%ah
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,3(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%ah
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,5(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%ah
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,7(%edi)
+
 #elif defined(ASM486_SPAN16_DWORD_STORES)
 	// 486-class stores: pack four sequential dest pixels and movl them.
 	// Sampling/DDA stays identical; AH/AL packing is cheap on a 486 (no
@@ -650,6 +703,52 @@ LSpan16LoopB:
 	decl	jumptemp
 	stosb
 	jnz		LSpan16LoopB
+#elif defined(ASM486_SPAN16_WORD_STORES)
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%ah
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,9(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%ah
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,11(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	movb	(%esi),%ah
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,13(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
 #elif defined(ASM486_SPAN16_DWORD_STORES)
 	movb	(%esi),%al
 	addl	tstep,%edx

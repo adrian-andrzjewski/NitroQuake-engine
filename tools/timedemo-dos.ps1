@@ -19,8 +19,8 @@ param(
     [string]$MemoryImplementation = 'asm',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
-    [ValidateSet('byte', 'dword', 'loop')]
-    [string]$TextureSpanStores = 'byte',
+    [ValidateSet('byte', 'word', 'dword', 'loop')]
+    [string]$TextureSpanStores = 'word',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -104,7 +104,10 @@ if ($TurbulentImplementation -eq 'c') {
 elseif ($TurbulentImplementation -eq 'asm') {
     $profileSuffixParts += 'turbasm'
 }
-if ($TextureSpanStores -eq 'dword') {
+if ($TextureSpanStores -eq 'byte') {
+    $profileSuffixParts += 'spanbyte'
+}
+elseif ($TextureSpanStores -eq 'dword') {
     $profileSuffixParts += 'spandword'
 }
 elseif ($TextureSpanStores -eq 'loop') {

@@ -17,9 +17,12 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
 - ASM: alias projection, alias bounding-box projection, clipped alias
   transform/lighting, texture-animation selection, and lightmap normalization.
 - `stosb`: turbulent-span stores.
-- `byte`: 16-pixel texture-span stores (dword pack and stosb-loop remain
-  opt-in; both matched checksum `4154140932` but did not beat the unrolled
-  leaf).
+- `word`: 16-pixel texture-span stores are the production default.  The full
+  segment path packs adjacent destination pixels with `movw` while preserving
+  the original sampling/DDA order.  Three matched runs measured
+  `59.497438 / 59.497242 / 59.497252` seconds (median `59.497252`), with
+  checksum `4154140932` on every run.  `byte` remains the original unrolled
+  control path; dword packing and the stosb loop remain explicit alternatives.
 - C: memory helpers, texture-axis cache predicate, surface-cache predicate,
   mip-level selection, BSP plane-dot, and BSP frustum clipping.
 - Inlined 486 setup: power-of-two surface wrap in `R_DrawSurface`, release
