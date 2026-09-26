@@ -107,6 +107,7 @@ void    VID_Init (unsigned char *palette)
 
 	vid_modenum = vid_mode.value;
 
+	VID_ReportSystem ();
 	VID_SetMode (vid_modenum, palette);
 
 	vid_realmode = vid_modenum;

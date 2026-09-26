@@ -48,8 +48,8 @@ static int	win95;
 #define STDOUT	1
 
 #define	KEYBUF_SIZE	256
-static unsigned char	keybuf[KEYBUF_SIZE];
-static int				keybuf_head=0;
+static volatile unsigned char keybuf[KEYBUF_SIZE];
+static volatile int keybuf_head=0;
 static int				keybuf_tail=0;
 
 static quakeparms_t	quakeparms;
@@ -481,6 +481,101 @@ void Sys_Shutdown(void)
 
 #define SC_RSHIFT       0x36 
 #define SC_LSHIFT       0x2a 
+#ifndef BENCH486
+/* IRQ 9 owns the keyboard: BIOS/conio input cannot receive these keys.
+ * Require Enter and drain held keys through their breaks before gameplay. */
+static void Sys_PauseSystemReport (void)
+{
+	unsigned char down[256] = {0};
+	int k, code, extended = 0, pausebytes = 0, entered = 0, held = 0;
+	printf ("Press and release Enter to continue.\n");
+	fflush (stdout);
+	for (;;)
+	{
+		if (keybuf_head == keybuf_tail) continue;
+		k = keybuf[keybuf_tail];
+		keybuf_tail = (keybuf_tail + 1) & (KEYBUF_SIZE - 1);
+		if (pausebytes) { pausebytes--; continue; }
+		if (k == 0xe1) { pausebytes = 5; extended = 0; continue; }
+		if (k == 0xe0) { extended = 128; continue; }
+		code = (k & 127) + extended;
+		extended = 0;
+		if (k & 128)
+		{
+			if (down[code]) { down[code] = 0; held--; }
+		}
+		else
+		{
+			if (!down[code]) { down[code] = 1; held++; }
+			if ((code & 127) == 0x1c) entered = 1;
+		}
+		if (entered && !held && keybuf_head == keybuf_tail) break;
+	}
+}
+#endif
+
+void Sys_ReportSystem (const char *video, unsigned biosmode, unsigned pitch)
+{
+	static int reported;
+	__dpmi_version_ret version;
+	__dpmi_free_mem_info memory;
+	__dpmi_regs r;
+	unsigned long pagesize = 0, pages;
+	const char *cpu = "unknown";
+	int haveversion;
+	if (reported) return;
+	reported = 1;
+	memset (&version, 0xff, sizeof(version));
+	haveversion = (__dpmi_get_version (&version) == 0);
+	if (haveversion)
+	{
+		switch (version.cpu)
+		{
+		case 2: cpu = "80286"; break;
+		case 3: cpu = "80386"; break;
+		case 4: cpu = "80486"; break;
+		case 5: cpu = "Pentium class"; break;
+		case 6: cpu = "Pentium Pro class"; break;
+		}
+	}
+	printf ("\n--- DOS system summary ---\n");
+	printf ("CPU (DPMI): %s; FPU startup check: passed\n", cpu);
+	memset (&r, 0, sizeof(r));
+	r.x.ax = 0x3000;
+	if (__dpmi_int (0x21, &r) == 0 && !(r.x.flags & 1) && r.h.al)
+		printf ("DOS: %u.%02u", (unsigned)r.h.al, (unsigned)r.h.ah);
+	else
+		printf ("DOS: unknown");
+	if (haveversion && version.major != 255 && version.minor != 255)
+		printf ("; DPMI: %u.%02u\n", (unsigned)version.major, (unsigned)version.minor);
+	else
+		printf ("; DPMI: unknown\n");
+	/* 0500 uses all-ones for unsupported fields. Never substitute free or
+	 * virtual memory, or multiply page counts in 32-bit arithmetic. */
+	memset (&memory, 0xff, sizeof(memory));
+	if (__dpmi_get_free_memory_information (&memory) == 0 &&
+		(pages = memory.total_number_of_physical_pages) != 0xffffffffUL && pages &&
+		__dpmi_get_page_size (&pagesize) == 0 && pagesize &&
+		pagesize != 0xffffffffUL && !(pagesize & (pagesize - 1)))
+		printf ("Physical RAM (DPMI reported): %llu KiB\n",
+			(unsigned long long)pages * pagesize / 1024);
+	else
+		printf ("Physical RAM (DPMI reported): unknown\n");
+	printf ("Quake heap (allocated): %lu KiB\n", (unsigned long)quakeparms.memsize / 1024);
+	if (isDedicated)
+		printf ("Video: disabled (dedicated)\n");
+	else
+	{
+		printf ("Auto 320x200 candidate: %s\n", video);
+		if (pitch) printf ("  VESA BIOS mode: 0x%03x; pitch: %u bytes\n", biosmode, pitch);
+		printf ("Saved configuration and explicit mode commands apply later.\n");
+	}
+	fflush (stdout);
+#ifndef BENCH486
+	if (!isDedicated && COM_CheckParm ("-sysinfo-pause")) Sys_PauseSystemReport ();
+#endif
+}
+
 void Sys_SendKeyEvents (void)
 {
 	int k, next;
@@ -930,6 +1025,8 @@ int main (int c, char **v)
 
 	if (!isDedicated)
 		dos_registerintr(9, TrapKey);
+	else
+		Sys_ReportSystem (NULL, 0, 0);
 
 //Sys_InitStackCheck ();
 	

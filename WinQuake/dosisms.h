@@ -94,6 +94,8 @@ void	dos_usleep(int usecs);
 
 int dos_getheapsize(void);
 
+void Sys_ReportSystem (const char *video, unsigned biosmode, unsigned pitch);
+
 extern regs_t regs;
 
 #endif	// _DOSISMS_H_

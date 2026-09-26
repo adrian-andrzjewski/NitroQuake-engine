@@ -1,5 +1,29 @@
 # Building the MS-DOS WinQuake software renderer on Windows
 
+## Text-mode startup summary
+
+Immediately before the first graphics mode, DOS Quake prints a compact ASCII
+summary: DPMI-reported CPU class, successful FPU startup check, DOS/DPMI versions,
+DPMI-reported physical RAM, and the separately allocated Quake heap. Unsupported
+or failed diagnostic queries print `unknown` and do not stop startup. CPU reporting
+does not require CPUID. Memory is shown in KiB (1024 bytes).
+
+The video line describes the available automatic 320x200 candidate: VESA linear,
+VESA banked (including BIOS mode and pitch), or VGA fallback. Discovery is reused;
+saved configuration and explicit mode commands apply later, and a candidate can
+still fail during activation. `-stdvid` reports forced VGA with VESA discovery
+skipped.
+
+Startup continues without input or delay by default. Add `-sysinfo-pause` to read
+the text screen, then press and release Enter. The DOS interrupt input queue
+consumes the dismissal and held-key releases before gameplay. Dedicated startup
+prints the information once with video disabled. Dedicated and benchmark builds
+ignore the pause switch.
+
+Host-side focused checks: `python tools/test-sysinfo-dos.py` and
+`python tools/test-video-dos.py`. These do not replace emulator or physical-machine
+visual/input checks, or the existing benchmark acceptance gates.
+
 This checkout builds the retained WinQuake MS-DOS/software-renderer source
 directly from Windows 10.  The compiler is a Windows-hosted DJGPP cross
 toolchain; DOSBox-X is used only to run the resulting DOS executable.

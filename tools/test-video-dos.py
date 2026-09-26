@@ -65,6 +65,12 @@ int vid_surfcachesize;
 cvar_t vid_mode,vid_wait,vid_nopageflip,_vid_wait_override,_vid_default_mode;
 static int firstupdate=1,startup_mode_requested,host_framecount,vid_testingmode;
 static int force_std,explicit_mode;
+static unsigned report_mode,report_pitch;
+static char report_video[80];
+static void Sys_ReportSystem(const char *v,unsigned m,unsigned p) {
+ strcpy(report_video,v);report_mode=m;report_pitch=p;
+ assert(!modecalls && !vga_calls);
+}
 static double realtime,vid_testendtime;
 #define BENCH486_PROFILE_ENTER(x)
 #define BENCH486_PROFILE_WORK(x,y,z)
@@ -169,6 +175,14 @@ static void reset(void) {
 static void discover(void) { VID_InitExtra();vga.pnext=pvidmodes;pvidmodes=&vga;numvidmodes++; }
 int main(void) {
  vesa_info_t m; int w,h;
+ reset();discover();VID_ReportSystem();
+ assert(!strcmp(report_video,"VESA linear") && report_mode==0x100 && report_pitch==320);
+ reset();word(biosinfo,0x19);discover();VID_ReportSystem();
+ assert(!strcmp(report_video,"VESA banked") && report_pitch==320);
+ reset();no_vesa=1;discover();VID_ReportSystem();
+ assert(!strcmp(report_video,"VGA fallback") && !report_pitch);
+ reset();force_std=1;pvidmodes=&vga;numvidmodes=1;VID_ReportSystem();
+ assert(strstr(report_video,"forced VGA") && !allocations);
  reset(); assert(VESA_Decode(biosinfo,0x400000,&m));assert(m.pages==1 && m.linear);
  for(int off=24;off<=27;off++) { if(off==26)continue;byte save=biosinfo[off];biosinfo[off]=0;
   assert(!VESA_Decode(biosinfo,0x400000,&m));biosinfo[off]=save; }

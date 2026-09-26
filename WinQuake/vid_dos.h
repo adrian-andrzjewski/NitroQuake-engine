@@ -67,6 +67,7 @@ void VGA_Init (void);
 void VID_InitVESA (void);
 void VID_InitExtra (void);
 int VID_ExtraDefaultMode (void);
+void VID_ReportSystem (void);
 void VID_ExtraReleaseMode (void);
 void VID_ShutdownExtra (void);
 qboolean VID_ExtraPaletteOK (void);

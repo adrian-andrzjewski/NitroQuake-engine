@@ -191,6 +191,28 @@ int VID_ExtraDefaultMode (void)
 	return banked;
 }
 
+void VID_ReportSystem (void)
+{
+	vmode_t *mode;
+	vesa_info_t *info;
+	int candidate;
+	if (COM_CheckParm ("-stdvid"))
+	{
+		Sys_ReportSystem ("forced VGA; VESA discovery skipped", 0, 0);
+		return;
+	}
+	candidate = VID_ExtraDefaultMode ();
+	if (!candidate)
+	{
+		Sys_ReportSystem ("VGA fallback", 0, 0);
+		return;
+	}
+	for (mode = pvidmodes; candidate; candidate--) mode = mode->pnext;
+	info = mode->pextradata;
+	Sys_ReportSystem (info->linear ? "VESA linear" : "VESA banked",
+		info->mode, info->pitch);
+}
+
 static qboolean VID_ExtraStateFound (unsigned mask)
 {
 	int transition, i;
