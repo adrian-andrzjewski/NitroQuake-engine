@@ -1850,7 +1850,22 @@ discarded when timedemo exit occurred inside the final demo message.  This
 overhead is acceptable for diagnosis but the instrumented FPS must not be used
 as an optimization result.
 
+The current canonical seeded fixture was revalidated after adding the platform
+coverage. The release run completed 969 frames in 59.419751 seconds
+(16.307709 FPS) with framebuffer checksum 1047377823. The matched
+instrumented run completed the same 969 frames in 67.282890 seconds
+(14.401878 diagnostic FPS) with the same checksum. Its platform counters
+were zero for joystick and collision work because the canonical timedemo uses
+-nojoy; use an interactive PROFILE486 run with input enabled when measuring
+those paths.
+
 The current self-time ranking from that profile is:
+
+The platform line in timedemo.txt has this form:
+
+~~~text
+platform joystick-reads <count> joystick-poll-iterations <count> joystick-timeouts <count> move-calls <count> hull-check-calls <count>
+~~~text
 
 | Rank | Node | Self seconds | % of profiled frame | Work |
 | ---: | --- | ---: | ---: | --- |

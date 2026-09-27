@@ -21,6 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+#ifdef PROFILE486
+extern unsigned long bench486_move_calls;
+extern unsigned long bench486_hull_check_calls;
+#endif
+
 /*
 
 entities never clip against themselves, or their owner
@@ -589,6 +594,11 @@ qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec
 	int			side;
 	float		midf;
 
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_hull_check_calls++;
+#endif
+
 // check for empty
 	if (num < 0)
 	{
@@ -924,6 +934,11 @@ trace_t SV_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, e
 {
 	moveclip_t	clip;
 	int			i;
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_move_calls++;
+#endif
 
 	memset ( &clip, 0, sizeof ( moveclip_t ) );
 

@@ -110,6 +110,11 @@ unsigned long bench486_present_rects;
 unsigned long bench486_present_pixels;
 unsigned long bench486_sound_update_calls;
 unsigned long bench486_sound_mix_calls;
+unsigned long bench486_joystick_reads;
+unsigned long bench486_joystick_poll_iterations;
+unsigned long bench486_joystick_timeouts;
+unsigned long bench486_move_calls;
+unsigned long bench486_hull_check_calls;
 double bench486_alias_seconds;
 double bench486_surface_seconds;
 double bench486_turbulent_seconds;
@@ -951,6 +956,12 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_surface_cache_thrash_frames);
 
 	Bench486ProfileJsonPrintf (file_handle,
+			"  \"platform\": {\"joystick_reads\": %lu, \"joystick_poll_iterations\": %lu, \"joystick_timeouts\": %lu, \"move_calls\": %lu, \"hull_check_calls\": %lu},\n",
+			bench486_joystick_reads, bench486_joystick_poll_iterations,
+			bench486_joystick_timeouts, bench486_move_calls,
+			bench486_hull_check_calls);
+
+	Bench486ProfileJsonPrintf (file_handle,
 			"  \"metrics\": {\n"
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
@@ -1087,6 +1098,11 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_present_pixels = 0;
 	bench486_sound_update_calls = 0;
 	bench486_sound_mix_calls = 0;
+	bench486_joystick_reads = 0;
+	bench486_joystick_poll_iterations = 0;
+	bench486_joystick_timeouts = 0;
+	bench486_move_calls = 0;
+	bench486_hull_check_calls = 0;
 	bench486_alias_seconds = 0;
 	bench486_surface_seconds = 0;
 	bench486_turbulent_seconds = 0;
@@ -1190,6 +1206,15 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_memset_calls, bench486_memset_bytes,
 			bench486_memset_aligned_calls, bench486_memcpy_calls,
 			bench486_memcpy_bytes, bench486_memcpy_same_alignment_calls);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
+	sprintf (text,
+			"platform joystick-reads %lu joystick-poll-iterations %lu "
+			"joystick-timeouts %lu move-calls %lu hull-check-calls %lu\n",
+			bench486_joystick_reads, bench486_joystick_poll_iterations,
+			bench486_joystick_timeouts, bench486_move_calls,
+			bench486_hull_check_calls);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));

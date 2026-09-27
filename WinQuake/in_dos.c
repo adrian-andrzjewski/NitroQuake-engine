@@ -22,6 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "dosisms.h"
 
+#ifdef PROFILE486
+extern unsigned long bench486_joystick_reads;
+extern unsigned long bench486_joystick_poll_iterations;
+extern unsigned long bench486_joystick_timeouts;
+#endif
+
 #define AUX_FLAG_FREELOOK	0x00000001
 
 typedef struct
@@ -417,12 +423,21 @@ qboolean IN_ReadJoystick (void)
 
 	count = 0;
 
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_joystick_reads++;
+#endif
+
 	b = dos_inportb(0x201);
 	dos_outportb(0x201, b);
 
 // clear counters
 	while (++count < 10000)
 	{
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_joystick_poll_iterations++;
+#endif
 		b = dos_inportb(0x201);
 
 		joystickx += b&1;
@@ -432,6 +447,10 @@ qboolean IN_ReadJoystick (void)
 	}
 	
 	Con_Printf ("IN_ReadJoystick: no response\n");
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_joystick_timeouts++;
+#endif
 	joy_avail = false;
 	return false;
 }
