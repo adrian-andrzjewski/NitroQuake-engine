@@ -563,6 +563,7 @@ void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
 #ifdef PROFILE486
 static void Bench486ProfileReset (void)
 {
+	Zone_ResetProfileCounters ();
 	Q_memset (bench486_profile_stats, 0, sizeof(bench486_profile_stats));
 	Q_memset (bench486_profile_edges, 0, sizeof(bench486_profile_edges));
 	Q_memset (bench486_profile_stack, 0, sizeof(bench486_profile_stack));
@@ -917,6 +918,20 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_memset_calls, bench486_memset_bytes,
 			bench486_memset_aligned_calls, bench486_memcpy_calls,
 			bench486_memcpy_bytes, bench486_memcpy_same_alignment_calls);
+
+	Bench486ProfileJsonPrintf (file_handle,
+			"  \"allocator\": {\"zone_malloc_calls\": %lu, \"zone_malloc_bytes\": %lu, \"zone_check_calls\": %lu, \"zone_check_blocks\": %lu, \"zone_scan_iterations\": %lu, \"zone_splits\": %lu, \"zone_coalesces\": %lu, \"zone_failed_allocations\": %lu, \"hunk_low_calls\": %lu, \"hunk_low_bytes\": %lu, \"hunk_high_calls\": %lu, \"hunk_high_bytes\": %lu, \"cache_checks\": %lu, \"cache_hits\": %lu, \"cache_misses\": %lu, \"cache_lru_relinks\": %lu, \"cache_allocations\": %lu, \"cache_frees\": %lu, \"cache_evictions\": %lu, \"cache_tryalloc_scans\": %lu, \"cache_tryalloc_failures\": %lu, \"cache_moves\": %lu, \"cache_move_bytes\": %lu},\n",
+			bench486_zone_malloc_calls, bench486_zone_malloc_bytes,
+			bench486_zone_check_calls, bench486_zone_check_blocks,
+			bench486_zone_scan_iterations, bench486_zone_splits,
+			bench486_zone_coalesces, bench486_zone_failed_allocations,
+			bench486_hunk_low_calls, bench486_hunk_low_bytes,
+			bench486_hunk_high_calls, bench486_hunk_high_bytes,
+			bench486_cache_checks, bench486_cache_hits, bench486_cache_misses,
+			bench486_cache_lru_relinks, bench486_cache_allocations,
+			bench486_cache_frees, bench486_cache_evictions,
+			bench486_cache_tryalloc_scans, bench486_cache_tryalloc_failures,
+			bench486_cache_moves, bench486_cache_move_bytes);
 
 	Bench486ProfileJsonPrintf (file_handle,
 			"  \"metrics\": {\n"

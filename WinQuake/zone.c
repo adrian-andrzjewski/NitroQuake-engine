@@ -63,6 +63,59 @@ all big things are allocated on the hunk.
 
 memzone_t	*mainzone;
 
+#ifdef PROFILE486
+unsigned long bench486_zone_malloc_calls;
+unsigned long bench486_zone_malloc_bytes;
+unsigned long bench486_zone_check_calls;
+unsigned long bench486_zone_check_blocks;
+unsigned long bench486_zone_scan_iterations;
+unsigned long bench486_zone_splits;
+unsigned long bench486_zone_coalesces;
+unsigned long bench486_zone_failed_allocations;
+unsigned long bench486_hunk_low_calls;
+unsigned long bench486_hunk_low_bytes;
+unsigned long bench486_hunk_high_calls;
+unsigned long bench486_hunk_high_bytes;
+unsigned long bench486_cache_checks;
+unsigned long bench486_cache_hits;
+unsigned long bench486_cache_misses;
+unsigned long bench486_cache_lru_relinks;
+unsigned long bench486_cache_allocations;
+unsigned long bench486_cache_frees;
+unsigned long bench486_cache_evictions;
+unsigned long bench486_cache_tryalloc_scans;
+unsigned long bench486_cache_tryalloc_failures;
+unsigned long bench486_cache_moves;
+unsigned long bench486_cache_move_bytes;
+
+void Zone_ResetProfileCounters (void)
+{
+	bench486_zone_malloc_calls = 0;
+	bench486_zone_malloc_bytes = 0;
+	bench486_zone_check_calls = 0;
+	bench486_zone_check_blocks = 0;
+	bench486_zone_scan_iterations = 0;
+	bench486_zone_splits = 0;
+	bench486_zone_coalesces = 0;
+	bench486_zone_failed_allocations = 0;
+	bench486_hunk_low_calls = 0;
+	bench486_hunk_low_bytes = 0;
+	bench486_hunk_high_calls = 0;
+	bench486_hunk_high_bytes = 0;
+	bench486_cache_checks = 0;
+	bench486_cache_hits = 0;
+	bench486_cache_misses = 0;
+	bench486_cache_lru_relinks = 0;
+	bench486_cache_allocations = 0;
+	bench486_cache_frees = 0;
+	bench486_cache_evictions = 0;
+	bench486_cache_tryalloc_scans = 0;
+	bench486_cache_tryalloc_failures = 0;
+	bench486_cache_moves = 0;
+	bench486_cache_move_bytes = 0;
+}
+#endif
+
 void Z_ClearZone (memzone_t *zone, int size);
 
 
@@ -114,6 +167,9 @@ void Z_Free (void *ptr)
 	other = block->prev;
 	if (!other->tag)
 	{	// merge with previous free block
+#ifdef PROFILE486
+		bench486_zone_coalesces++;
+#endif
 		other->size += block->size;
 		other->next = block->next;
 		other->next->prev = other;
@@ -125,6 +181,9 @@ void Z_Free (void *ptr)
 	other = block->next;
 	if (!other->tag)
 	{	// merge the next free block onto the end
+#ifdef PROFILE486
+		bench486_zone_coalesces++;
+#endif
 		block->size += other->size;
 		block->next = other->next;
 		block->next->prev = block;
@@ -143,7 +202,13 @@ void *Z_Malloc (int size)
 {
 	void	*buf;
 	
-Z_CheckHeap ();	// DEBUG
+#ifdef PROFILE486
+	bench486_zone_malloc_calls++;
+	bench486_zone_malloc_bytes += size;
+#endif
+#ifdef PARANOID
+	Z_CheckHeap ();
+#endif
 	buf = Z_TagMalloc (size, 1);
 	if (!buf)
 		Sys_Error ("Z_Malloc: failed on allocation of %i bytes",size);
@@ -173,8 +238,16 @@ void *Z_TagMalloc (int size, int tag)
 	
 	do
 	{
+#ifdef PROFILE486
+		bench486_zone_scan_iterations++;
+#endif
 		if (rover == start)	// scaned all the way around the list
+		{
+#ifdef PROFILE486
+			bench486_zone_failed_allocations++;
+#endif
 			return NULL;
+		}
 		if (rover->tag)
 			base = rover = rover->next;
 		else
@@ -187,6 +260,9 @@ void *Z_TagMalloc (int size, int tag)
 	extra = base->size - size;
 	if (extra >  MINFRAGMENT)
 	{	// there will be a free fragment after the allocated block
+#ifdef PROFILE486
+		bench486_zone_splits++;
+#endif
 		new = (memblock_t *) ((byte *)base + size );
 		new->size = extra;
 		new->tag = 0;			// free block
@@ -248,10 +324,16 @@ void Z_CheckHeap (void)
 {
 	memblock_t	*block;
 	
+#ifdef PROFILE486
+	bench486_zone_check_calls++;
+#endif
 	for (block = mainzone->blocklist.next ; ; block = block->next)
 	{
 		if (block->next == &mainzone->blocklist)
 			break;			// all blocks have been hit	
+#ifdef PROFILE486
+		bench486_zone_check_blocks++;
+#endif
 		if ( (byte *)block + block->size != (byte *)block->next)
 			Sys_Error ("Z_CheckHeap: block size does not touch the next block\n");
 		if ( block->next->prev != block)
@@ -413,6 +495,10 @@ void *Hunk_AllocName (int size, char *name)
 		Sys_Error ("Hunk_Alloc: failed on %i bytes",size);
 	
 	h = (hunk_t *)(hunk_base + hunk_low_used);
+#ifdef PROFILE486
+	bench486_hunk_low_calls++;
+	bench486_hunk_low_bytes += size;
+#endif
 	hunk_low_used += size;
 
 	Cache_FreeLow (hunk_low_used);
@@ -505,6 +591,10 @@ void *Hunk_HighAllocName (int size, char *name)
 	}
 
 	hunk_high_used += size;
+#ifdef PROFILE486
+	bench486_hunk_high_calls++;
+	bench486_hunk_high_bytes += size;
+#endif
 	Cache_FreeHigh (hunk_high_used);
 
 	h = (hunk_t *)(hunk_base + hunk_size - hunk_high_used);
@@ -578,6 +668,10 @@ void Cache_Move ( cache_system_t *c)
 
 // we are clearing up space at the bottom, so only allocate it late
 	new = Cache_TryAlloc (c->size, true);
+#ifdef PROFILE486
+	bench486_cache_moves++;
+	bench486_cache_move_bytes += c->size - sizeof(cache_system_t);
+#endif
 	if (new)
 	{
 //		Con_Printf ("cache_move ok\n");
@@ -706,6 +800,9 @@ cache_system_t *Cache_TryAlloc (int size, qboolean nobottom)
 	
 	do
 	{
+#ifdef PROFILE486
+		bench486_cache_tryalloc_scans++;
+#endif
 		if (!nobottom || cs != cache_head.next)
 		{
 			if ( (byte *)cs - (byte *)new >= size)
@@ -746,6 +843,9 @@ cache_system_t *Cache_TryAlloc (int size, qboolean nobottom)
 		return new;
 	}
 	
+#ifdef PROFILE486
+	bench486_cache_tryalloc_failures++;
+#endif
 	return NULL;		// couldn't allocate
 }
 
@@ -829,6 +929,9 @@ void Cache_Free (cache_user_t *c)
 		Sys_Error ("Cache_Free: not allocated");
 
 	cs = ((cache_system_t *)c->data) - 1;
+#ifdef PROFILE486
+	bench486_cache_frees++;
+#endif
 
 	cs->prev->next = cs->next;
 	cs->next->prev = cs->prev;
@@ -850,17 +953,31 @@ void *Cache_Check (cache_user_t *c)
 {
 	cache_system_t	*cs;
 
+#ifdef PROFILE486
+	bench486_cache_checks++;
+#endif
 	if (!c->data)
+	{
+#ifdef PROFILE486
+		bench486_cache_misses++;
+#endif
 		return NULL;
+	}
 
 	cs = ((cache_system_t *)c->data) - 1;
 
 // move to head of LRU
 	if (cs != cache_head.lru_next)
 	{
+#ifdef PROFILE486
+		bench486_cache_lru_relinks++;
+#endif
 		Cache_UnlinkLRU (cs);
 		Cache_MakeLRU (cs);
 	}
+#ifdef PROFILE486
+	bench486_cache_hits++;
+#endif
 	
 	return c->data;
 }
@@ -889,6 +1006,9 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name)
 		cs = Cache_TryAlloc (size, false);
 		if (cs)
 		{
+#ifdef PROFILE486
+			bench486_cache_allocations++;
+#endif
 			strncpy (cs->name, name, sizeof(cs->name)-1);
 			c->data = (void *)(cs+1);
 			cs->user = c;
@@ -899,6 +1019,9 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name)
 		if (cache_head.lru_prev == &cache_head)
 			Sys_Error ("Cache_Alloc: out of memory");
 													// not enough memory at all
+#ifdef PROFILE486
+		bench486_cache_evictions++;
+#endif
 		Cache_Free ( cache_head.lru_prev->user );
 	} 
 	

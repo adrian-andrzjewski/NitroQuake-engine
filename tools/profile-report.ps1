@@ -159,6 +159,22 @@ foreach ($metric in @(
     Write-Host ("  {0,-24} {1}" -f $metric, $value)
 }
 
+if ($profile.PSObject.Properties.Name -contains 'allocator') {
+    Write-Host ''
+    Write-Host 'Allocator metrics:'
+    foreach ($metric in @(
+            'zone_malloc_calls', 'zone_malloc_bytes', 'zone_check_calls',
+            'zone_check_blocks', 'zone_scan_iterations', 'zone_splits',
+            'zone_coalesces', 'zone_failed_allocations', 'hunk_low_calls',
+            'hunk_low_bytes', 'hunk_high_calls', 'hunk_high_bytes',
+            'cache_checks', 'cache_hits', 'cache_misses', 'cache_lru_relinks',
+            'cache_allocations', 'cache_frees', 'cache_evictions',
+            'cache_tryalloc_scans', 'cache_tryalloc_failures',
+            'cache_moves', 'cache_move_bytes')) {
+        Write-Host ("  {0,-28} {1}" -f $metric, $profile.allocator.$metric)
+    }
+}
+
 if ($profile.metrics.PSObject.Properties.Name -contains 'texture_final_lengths') {
     Write-Host ''
     Write-Host 'Texture final-segment lengths (pixels -> final segment count):'
