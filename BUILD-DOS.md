@@ -435,6 +435,15 @@ out\dos-timedemo-20260927-175544 and out\dos-timedemo-20260927-180540.
 
 ### Surface-cache header locality experiment
 
+The alias-model rasterizer was reviewed against the current PROFILE486
+hotspot ranking before attempting another change. `D_PolysetDrawSpans8` already
+uses the 486-tuned eight-pixel loop, cached DDA state, optimized Z-buffer
+addressing, zero-extended skin indices, and the established colormap fast
+paths. The remaining work is register-pressure-sensitive and no additional
+change was accepted without a checksum-preserving, repeatable timedemo win.
+The current alias assembly remains the release control.
+
+
 An experimental header reorder placed dlight, texture, and lightadj at the
 front of surfcache_t so the validation fields would fit in two 486 cache lines.
 The C-path candidate completed 969 frames with checksum 1047377823 at
