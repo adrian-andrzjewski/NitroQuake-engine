@@ -63,6 +63,12 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   59.504490 / 59.504450 / 59.504481 seconds versus ASM at
   59.502617 / 59.502563 / 59.502535 seconds; all runs kept checksum
   1047377823.
+- ASM: the first alias transform composition now uses the specialized diagonal
+  matrix path by default via AliasMatrixCompositionImplementation=special.
+  AngleVectors and the second composition remain unchanged. Three matched
+  demo1 runs measured C at 59.502611 / 59.502548 / 59.502529 seconds versus
+  special at 59.455982 / 59.455677 / 59.455756 seconds; every run kept
+  checksum 1047377823 and the full correctness harness passed.
 - Inlined 486 setup: power-of-two surface wrap in `R_DrawSurface`, release
   builds skip `D_CheckCacheGuard`, and `R_AliasSetViewMatrix` fills the alias
   view matrix once per frame.

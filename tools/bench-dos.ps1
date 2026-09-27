@@ -26,6 +26,8 @@ param(
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
+    [ValidateSet('c', 'special')]
+    [string]$AliasMatrixCompositionImplementation = 'special',
     [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -117,6 +119,9 @@ if ($AliasBBoxProjectImplementation -eq 'c') {
 if ($AliasTransformFinalImplementation -eq 'c') {
     $profileSuffixParts += 'aliastransformc'
 }
+if ($AliasMatrixCompositionImplementation -eq 'special') {
+    $profileSuffixParts += 'aliasmatrixspecial'
+}
 if ($TextureAnimationImplementation -eq 'c') {
     $profileSuffixParts += 'textureanimc'
 }
@@ -177,6 +182,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-AliasBBoxProjectImplementation', $AliasBBoxProjectImplementation,
         '-AliasTransformFinalImplementation', $AliasTransformFinalImplementation,
+        '-AliasMatrixCompositionImplementation', $AliasMatrixCompositionImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-LightMapStylesImplementation', $LightMapStylesImplementation,
@@ -340,6 +346,7 @@ $result = [ordered]@{
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
     aliasTransformFinalImplementation = $AliasTransformFinalImplementation
+    aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     lightMapStylesImplementation = $LightMapStylesImplementation

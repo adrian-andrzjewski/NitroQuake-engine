@@ -459,7 +459,19 @@ void R_AliasSetUpTransform (int trivial_accept)
 	t2matrix[2][3] = -modelorg[2];
 
 // FIXME: can do more efficiently than full concatenation
+#if defined(ASM486_ALIAS_MATRIX_COMPOSE)
+	for (i=0 ; i<3 ; i++)
+	{
+		rotationmatrix[i][0] = t2matrix[i][0] * tmatrix[0][0];
+		rotationmatrix[i][1] = t2matrix[i][1] * tmatrix[1][1];
+		rotationmatrix[i][2] = t2matrix[i][2] * tmatrix[2][2];
+		rotationmatrix[i][3] = t2matrix[i][0] * tmatrix[0][3] +
+				t2matrix[i][1] * tmatrix[1][3] +
+				t2matrix[i][2] * tmatrix[2][3] + t2matrix[i][3];
+	}
+#else
 	R_ConcatTransforms (t2matrix, tmatrix, rotationmatrix);
+#endif
 	R_ConcatTransforms (alias_viewmatrix, rotationmatrix, aliastransform);
 
 // do the scaling up of x and y to screen coordinates as part of the transform

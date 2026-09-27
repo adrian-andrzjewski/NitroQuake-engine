@@ -372,6 +372,14 @@ ASM correctness harnesses passed. Three raw demo1 runs measured C at
 ASM at 59.502617, 59.502563, and 59.502535 seconds (median 16.285013 FPS),
 with checksum 1047377823 on every run.
 
+The first alias transform composition is selectable with
+AliasMatrixCompositionImplementation c|special and is now defaulted to the
+specialized diagonal path. It retains AngleVectors and the second generic
+composition. Three raw demo1 runs measured C at 59.502611, 59.502548, and
+59.502529 seconds (median 16.285017 FPS), versus special at 59.455982,
+59.455677, and 59.455756 seconds (median 16.297855 FPS), with checksum
+1047377823 on every run. The full correctness harness passed.
+
 ### Latest rejected experiments
 
 Do not remove the lightright stores from the mip0/mip1/mip2 surf8 drawers: they
