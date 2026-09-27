@@ -37,7 +37,7 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$FusedLightMapImplementation = 'asm',
     [ValidateSet('c', 'asm')]
-    [string]$DynamicLightImplementation = 'c',
+    [string]$DynamicLightImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]

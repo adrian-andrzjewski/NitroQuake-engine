@@ -75,6 +75,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   demo1 runs measured C at 59.502611 / 59.502548 / 59.502529 seconds versus
   special at 59.455982 / 59.455677 / 59.455756 seconds; every run kept
   checksum 1047377823 and the full correctness harness passed.
+- ASM: the existing dynamic-light sample loop is now the production default via
+  DynamicLightImplementation=asm. Matched demo1 runs measured C at
+  59.422461 / 59.422365 / 59.422373 seconds versus ASM at
+  59.410915 / 59.410949 / 59.410930 seconds; all runs kept checksum
+  1047377823 and the full ASM correctness harness passed.
 - VGA full-frame linear-copy fast path was tested and rejected. Direct VGA
   parity tests passed, and forced -stdvid timedemos kept checksum 1047377823,
   but the guarded candidate measured 16.302751 FPS versus the matched control

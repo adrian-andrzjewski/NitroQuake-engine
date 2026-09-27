@@ -380,6 +380,13 @@ composition. Three raw demo1 runs measured C at 59.502611, 59.502548, and
 59.455677, and 59.455756 seconds (median 16.297855 FPS), with checksum
 1047377823 on every run. The full correctness harness passed.
 
+The existing dynamic-light sample helper is selectable with
+DynamicLightImplementation c|asm and is now defaulted to ASM. Three raw demo1
+runs measured C at 59.422461, 59.422365, and 59.422373 seconds (median
+16.306982 FPS), versus ASM at 59.410915, 59.410949, and 59.410930 seconds
+(median 16.310130 FPS), with checksum 1047377823 on every run. The full ASM
+correctness harness passed.
+
 ### VGA full-frame copy experiment
 
 The guarded VGA_SwapBuffersCopy full-frame shortcut was tested in standard VGA
