@@ -57,6 +57,12 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   C at 59.512120 / 59.512084 / 59.512013 seconds versus ASM at
   59.503904 / 59.503792 / 59.503771 seconds, with checksum 1047377823 on
   every run. The full correctness harness passed for both variants.
+- ASM: fused no-dynamic-light 2/3/4-style lightmap accumulation is also now
+  the production default via FusedLightMapImplementation=asm. Focused boundary
+  cases and full correctness passed. Matched demo1 runs measured C at
+  59.504490 / 59.504450 / 59.504481 seconds versus ASM at
+  59.502617 / 59.502563 / 59.502535 seconds; all runs kept checksum
+  1047377823.
 - Inlined 486 setup: power-of-two surface wrap in `R_DrawSurface`, release
   builds skip `D_CheckCacheGuard`, and `R_AliasSetViewMatrix` fills the alias
   view matrix once per frame.

@@ -346,6 +346,101 @@ C(R_BuildLightMapStyles_asm486):
 
 	.p2align 4,,15
 
+// void R_BuildLightMapFusedNoDlights_asm486(unsigned *dest, byte *lightmap,
+//                                            int size, int maps,
+//                                            unsigned scale, int *lightadj)
+// Fused no-dlight accumulation plus inverse/shift/clamp for maps 2..4.
+#define FUSED_LOAD_BASE(adj) \
+	movzbl	(%esi,%ecx),%eax; \
+	mull	adj(%ebx); \
+	addl	%eax,%ebp
+#define FUSED_LOAD_PLANE(plane,adj) \
+	movl	plane(%esp),%edx; \
+	movzbl	(%edx,%ecx),%eax; \
+	mull	adj(%ebx); \
+	addl	%eax,%ebp
+#define FUSED_FINISH(clamp,loop) \
+	movl	$65280,%eax; \
+	subl	%ebp,%eax; \
+	sarl	$2,%eax; \
+	cmpl	$64,%eax; \
+	jge	clamp; \
+	movl	$64,%eax; \
+clamp:	\
+	movl	%eax,(%edi,%ecx,4); \
+	incl	%ecx; \
+	cmpl	40(%esp),%ecx; \
+	jb	loop
+
+C(R_BuildLightMapFusedNoDlights_asm486):
+	.globl C(R_BuildLightMapFusedNoDlights_asm486)
+	pushl	%ebp
+	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
+	subl	$12,%esp
+	movl	32(%esp),%edi		// dest
+	movl	36(%esp),%esi		// lightmap
+	movl	40(%esp),%edx		// size
+	movl	52(%esp),%ebx		// lightadj
+	leal	(%esi,%edx),%eax
+	movl	%eax,0(%esp)
+	addl	%edx,%eax
+	movl	%eax,4(%esp)
+	addl	%edx,%eax
+	movl	%eax,8(%esp)
+	movl	44(%esp),%eax		// maps
+	cmpl	$2,%eax
+	je	.Lfused_maps2
+	cmpl	$3,%eax
+	je	.Lfused_maps3
+	cmpl	$4,%eax
+	je	.Lfused_maps4
+	jmp	.Lfused_done
+
+.Lfused_maps2:
+	xorl	%ecx,%ecx
+.Lfused_loop2:
+	movl	48(%esp),%ebp
+	FUSED_LOAD_BASE(0)
+	FUSED_LOAD_PLANE(0,4)
+	FUSED_FINISH(.Lfused_clamp2,.Lfused_loop2)
+	jmp	.Lfused_done
+
+.Lfused_maps3:
+	xorl	%ecx,%ecx
+.Lfused_loop3:
+	movl	48(%esp),%ebp
+	FUSED_LOAD_BASE(0)
+	FUSED_LOAD_PLANE(0,4)
+	FUSED_LOAD_PLANE(4,8)
+	FUSED_FINISH(.Lfused_clamp3,.Lfused_loop3)
+	jmp	.Lfused_done
+
+.Lfused_maps4:
+	xorl	%ecx,%ecx
+.Lfused_loop4:
+	movl	48(%esp),%ebp
+	FUSED_LOAD_BASE(0)
+	FUSED_LOAD_PLANE(0,4)
+	FUSED_LOAD_PLANE(4,8)
+	FUSED_LOAD_PLANE(8,12)
+	FUSED_FINISH(.Lfused_clamp4,.Lfused_loop4)
+
+.Lfused_done:
+	addl	$12,%esp
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+	ret
+
+#undef FUSED_LOAD_BASE
+#undef FUSED_LOAD_PLANE
+#undef FUSED_FINISH
+
+	.p2align 4,,15
+
 // void R_BuildLightMapNormalize_asm486(unsigned *lights, int size)
 // Invert and clamp a lightmap in place.  Keep the array pointer and count in
 // registers and perform one store per element; the C compiler emits an

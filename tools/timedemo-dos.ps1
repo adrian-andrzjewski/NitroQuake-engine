@@ -34,6 +34,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LightMapStylesImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$FusedLightMapImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
@@ -133,6 +135,9 @@ if ($LightMapNormalizeImplementation -eq 'c') {
 if ($LightMapStylesImplementation -eq 'asm') {
     $profileSuffixParts += 'lightmapstylesasm'
 }
+if ($FusedLightMapImplementation -eq 'asm') {
+    $profileSuffixParts += 'fusedlightmapasm'
+}
 if ($DynamicLightImplementation -eq 'asm') {
     $profileSuffixParts += 'dlightasm'
 }
@@ -188,6 +193,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-LightMapStylesImplementation', $LightMapStylesImplementation,
+        '-FusedLightMapImplementation', $FusedLightMapImplementation,
         '-DynamicLightImplementation', $DynamicLightImplementation,
         '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
         '-BspClipImplementation', $BspClipImplementation,
@@ -556,6 +562,7 @@ $result = [ordered]@{
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     lightMapStylesImplementation = $LightMapStylesImplementation
+    fusedLightMapImplementation = $FusedLightMapImplementation
     dynamicLightImplementation = $DynamicLightImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation

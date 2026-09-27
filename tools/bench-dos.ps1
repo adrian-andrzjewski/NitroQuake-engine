@@ -33,6 +33,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LightMapStylesImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$FusedLightMapImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
@@ -45,6 +47,7 @@ param(
     [switch]$TextureAnimationOnly,
     [switch]$LightMapNormalizeOnly,
     [switch]$LightMapStylesOnly,
+    [switch]$FusedLightMapOnly,
     [switch]$BspPlaneDotOnly,
     [switch]$BspClipOnly,
     [int]$TimeoutSeconds = 180
@@ -123,6 +126,9 @@ if ($LightMapNormalizeImplementation -eq 'c') {
 if ($LightMapStylesImplementation -eq 'asm') {
     $profileSuffixParts += 'lightmapstylesasm'
 }
+if ($FusedLightMapImplementation -eq 'asm') {
+    $profileSuffixParts += 'fusedlightmapasm'
+}
 if ($DynamicLightImplementation -eq 'asm') {
     $profileSuffixParts += 'dlightasm'
 }
@@ -174,6 +180,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
         '-LightMapStylesImplementation', $LightMapStylesImplementation,
+        '-FusedLightMapImplementation', $FusedLightMapImplementation,
         '-DynamicLightImplementation', $DynamicLightImplementation,
         '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
         '-BspClipImplementation', $BspClipImplementation,
@@ -224,6 +231,9 @@ elseif ($LightMapNormalizeOnly) {
 }
 elseif ($LightMapStylesOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapstyles -benchexit'
+}
+elseif ($FusedLightMapOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfusedlightmap -benchexit'
 }
 elseif ($BspClipOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchbspclip -benchexit'
@@ -333,6 +343,7 @@ $result = [ordered]@{
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     lightMapStylesImplementation = $LightMapStylesImplementation
+    fusedLightMapImplementation = $FusedLightMapImplementation
     dynamicLightImplementation = $DynamicLightImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
@@ -343,6 +354,7 @@ $result = [ordered]@{
     textureAnimationOnly = [bool]$TextureAnimationOnly
     lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly
     lightMapStylesOnly = [bool]$LightMapStylesOnly
+    fusedLightMapOnly = [bool]$FusedLightMapOnly
     bspPlaneDotOnly = [bool]$BspPlaneDotOnly
     bspClipOnly = [bool]$BspClipOnly
     dataRoot = $DataRoot

@@ -136,6 +136,10 @@ void R_BuildLightMapStyles_asm486 (unsigned *dest, byte *lightmap,
 		int size, int maps, unsigned scale, int *lightadj);
 void R_BuildLightMapStyles_C (unsigned *dest, byte *lightmap,
 		int size, int maps, unsigned scale, int *lightadj);
+void R_BuildLightMapFusedNoDlights_asm486 (unsigned *dest, byte *lightmap,
+		int size, int maps, unsigned scale, int *lightadj);
+void R_BuildLightMapFusedNoDlights_C (unsigned *dest, byte *lightmap,
+		int size, int maps, unsigned scale, int *lightadj);
 #ifdef BENCH486
 void *D_GetTextureAxesHit_C (void *entry, void *texinfo,
 		void *entity, int frame);

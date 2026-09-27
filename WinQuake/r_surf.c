@@ -379,6 +379,28 @@ void R_BuildLightMapStyles_C (unsigned *dest, byte *lightmap, int size,
 	}
 }
 
+void R_BuildLightMapFusedNoDlights_C (unsigned *dest, byte *lightmap,
+		int size, int maps, unsigned scale, int *lightadj)
+{
+	int i, map, t;
+	unsigned v;
+	byte *plane;
+
+	for (i=0 ; i<size ; i++)
+	{
+		v = scale + lightmap[i] * lightadj[0];
+		for (map=1 ; map<maps ; map++)
+		{
+			plane = lightmap + map * size;
+			v += plane[i] * lightadj[map];
+		}
+		t = (255*256 - (int)v) >> (8 - VID_CBITS);
+		if (t < (1 << 6))
+			t = (1 << 6);
+		dest[i] = t;
+	}
+}
+
 /*
 ===============
 R_DlightContributes
@@ -545,6 +567,17 @@ void R_BuildLightMap (void)
 				}
 				return;
 			}
+
+			maps = surf->styles[2] == 255 ? 2 :
+					surf->styles[3] == 255 ? 3 : 4;
+#if defined(ASM486_FUSED_LIGHTMAP)
+			R_BuildLightMapFusedNoDlights_asm486 (blocklights, lightmap,
+					size, maps, scale, r_drawsurf.lightadj);
+#else
+			R_BuildLightMapFusedNoDlights_C (blocklights, lightmap,
+					size, maps, scale, r_drawsurf.lightadj);
+#endif
+			return;
 
 			lm1 = lightmap + size;
 			a1 = r_drawsurf.lightadj[1];

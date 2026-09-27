@@ -365,6 +365,13 @@ completed 969 frames with checksum 1047377823. The fused/clamped lightmap
 paths, dynamic-light accumulation, and final normalization remain independently
 implemented in C/ASM as before.
 
+The no-dynamic-light fused 2/3/4-style paths are selectable with
+FusedLightMapImplementation c|asm and are now also defaulted to ASM. Full C and
+ASM correctness harnesses passed. Three raw demo1 runs measured C at
+59.504490, 59.504450, and 59.504481 seconds (median 16.284496 FPS), versus
+ASM at 59.502617, 59.502563, and 59.502535 seconds (median 16.285013 FPS),
+with checksum 1047377823 on every run.
+
 ### Latest rejected experiments
 
 Do not remove the lightright stores from the mip0/mip1/mip2 surf8 drawers: they
