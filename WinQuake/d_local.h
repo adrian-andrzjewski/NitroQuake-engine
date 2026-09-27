@@ -66,6 +66,17 @@ extern qboolean		d_roverwrapped;
 extern surfcache_t	*sc_rover;
 extern surfcache_t	*d_initial_rover;
 
+#ifdef PROFILE486
+extern unsigned long bench486_surface_cache_hits;
+extern unsigned long bench486_surface_cache_rebuilds;
+extern unsigned long bench486_surface_cache_allocations;
+extern unsigned long bench486_surface_cache_wraps;
+extern unsigned long bench486_surface_cache_invalidated_blocks;
+extern unsigned long bench486_surface_cache_requested_bytes;
+extern unsigned long bench486_surface_cache_reclaimed_bytes;
+extern unsigned long bench486_surface_cache_thrash_frames;
+#endif
+
 extern float	d_sdivzstepu, d_tdivzstepu, d_zistepu;
 extern float	d_sdivzstepv, d_tdivzstepv, d_zistepv;
 extern float	d_sdivzorigin, d_tdivzorigin, d_ziorigin;

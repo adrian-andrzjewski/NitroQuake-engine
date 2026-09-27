@@ -187,6 +187,16 @@ if ($profile.metrics.PSObject.Properties.Name -contains 'texture_final_lengths')
     }
 }
 
+if ($profile.PSObject.Properties.Name -contains 'surface_cache') {
+    Write-Host ''
+    Write-Host 'Surface-cache metrics:'
+    foreach ($metric in @(
+            'hits', 'rebuilds', 'allocations', 'wraps', 'invalidated_blocks',
+            'requested_bytes', 'reclaimed_bytes', 'thrash_frames')) {
+        Write-Host ("  {0,-28} {1}" -f $metric, $profile.surface_cache.$metric)
+    }
+}
+
 if ($profile.metrics.PSObject.Properties.Name -contains 'texture_widths') {
     Write-Host ''
     Write-Host 'Texture cache widths (bucket 0 = non-16-aligned; n = n*16):'

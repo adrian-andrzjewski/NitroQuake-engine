@@ -136,6 +136,14 @@ surfcache_t     *D_SCAlloc (int width, int size)
 
 	if ((size <= 0) || (size > 0x10000))
 		Sys_Error ("D_SCAlloc: bad cache size %d\n", size);
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+	{
+		bench486_surface_cache_allocations++;
+		bench486_surface_cache_requested_bytes += size;
+	}
+#endif
 	
 	size = (int)&((surfcache_t *)0)->data[size];
 	size = (size + 3) & ~3;
@@ -150,6 +158,10 @@ surfcache_t     *D_SCAlloc (int width, int size)
 		if (sc_rover)
 		{
 			wrapped_this_time = true;
+#ifdef PROFILE486
+			if (bench486_profile_frame_active)
+				bench486_surface_cache_wraps++;
+#endif
 		}
 		sc_rover = sc_base;
 	}
@@ -157,7 +169,16 @@ surfcache_t     *D_SCAlloc (int width, int size)
 // colect and free surfcache_t blocks until the rover block is large enough
 	new = sc_rover;
 	if (sc_rover->owner)
+	{
 		*sc_rover->owner = NULL;
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+		{
+			bench486_surface_cache_invalidated_blocks++;
+			bench486_surface_cache_reclaimed_bytes += sc_rover->size;
+		}
+#endif
+	}
 	
 	while (new->size < size)
 	{
@@ -166,7 +187,16 @@ surfcache_t     *D_SCAlloc (int width, int size)
 		if (!sc_rover)
 			Sys_Error ("D_SCAlloc: hit the end of memory");
 		if (sc_rover->owner)
+		{
 			*sc_rover->owner = NULL;
+	#ifdef PROFILE486
+			if (bench486_profile_frame_active)
+			{
+				bench486_surface_cache_invalidated_blocks++;
+				bench486_surface_cache_reclaimed_bytes += sc_rover->size;
+			}
+	#endif
+		}
 			
 		new->size += sc_rover->size;
 		new->next = sc_rover->next;
@@ -197,7 +227,16 @@ surfcache_t     *D_SCAlloc (int width, int size)
 	if (d_roverwrapped)
 	{
 		if (wrapped_this_time || (sc_rover >= d_initial_rover))
-			r_cache_thrash = true;
+		{
+			if (!r_cache_thrash)
+			{
+				r_cache_thrash = true;
+#ifdef PROFILE486
+				if (bench486_profile_frame_active)
+					bench486_surface_cache_thrash_frames++;
+#endif
+			}
+		}
 	}
 	else if (wrapped_this_time)
 	{       
@@ -314,12 +353,21 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	{
 #ifdef PROFILE486
 		if (bench486_profile_frame_active)
+			bench486_surface_cache_hits++;
+#endif
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
 			bench486_surface_cache_seconds += Sys_FloatTime () -
 					bench486_surface_cache_start;
 #endif
 		BENCH486_PROFILE_LEAVE ();
 		return cache;
 	}
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_surface_cache_rebuilds++;
+#endif
 
 #ifndef ASM486_SURFACE_CACHE_CHECK
 	r_drawsurf.texture = tex;

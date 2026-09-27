@@ -55,6 +55,14 @@ double bench486_framebuffer_seconds;
 unsigned long bench486_alias_models;
 unsigned long bench486_alias_vertices;
 unsigned long bench486_surface_count;
+unsigned long bench486_surface_cache_hits;
+unsigned long bench486_surface_cache_rebuilds;
+unsigned long bench486_surface_cache_allocations;
+unsigned long bench486_surface_cache_wraps;
+unsigned long bench486_surface_cache_invalidated_blocks;
+unsigned long bench486_surface_cache_requested_bytes;
+unsigned long bench486_surface_cache_reclaimed_bytes;
+unsigned long bench486_surface_cache_thrash_frames;
 unsigned long bench486_texture_span_count;
 unsigned long bench486_texture_span_pixels;
 unsigned long bench486_texture_span_segments;
@@ -934,6 +942,15 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_cache_moves, bench486_cache_move_bytes);
 
 	Bench486ProfileJsonPrintf (file_handle,
+			"  \"surface_cache\": {\"hits\": %lu, \"rebuilds\": %lu, \"allocations\": %lu, \"wraps\": %lu, \"invalidated_blocks\": %lu, \"requested_bytes\": %lu, \"reclaimed_bytes\": %lu, \"thrash_frames\": %lu},\n",
+			bench486_surface_cache_hits, bench486_surface_cache_rebuilds,
+			bench486_surface_cache_allocations, bench486_surface_cache_wraps,
+			bench486_surface_cache_invalidated_blocks,
+			bench486_surface_cache_requested_bytes,
+			bench486_surface_cache_reclaimed_bytes,
+			bench486_surface_cache_thrash_frames);
+
+	Bench486ProfileJsonPrintf (file_handle,
 			"  \"metrics\": {\n"
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
@@ -1008,6 +1025,14 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_alias_models = 0;
 	bench486_alias_vertices = 0;
 	bench486_surface_count = 0;
+	bench486_surface_cache_hits = 0;
+	bench486_surface_cache_rebuilds = 0;
+	bench486_surface_cache_allocations = 0;
+	bench486_surface_cache_wraps = 0;
+	bench486_surface_cache_invalidated_blocks = 0;
+	bench486_surface_cache_requested_bytes = 0;
+	bench486_surface_cache_reclaimed_bytes = 0;
+	bench486_surface_cache_thrash_frames = 0;
 	bench486_texture_span_count = 0;
 	bench486_texture_span_pixels = 0;
 	bench486_texture_span_segments = 0;
@@ -1209,6 +1234,17 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_profile_timer_reads, bench486_profile_max_depth,
 			bench486_profile_stack_overflows, bench486_profile_bad_leaves,
 			bench486_profile_discarded_scopes);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-surface-cache hits %lu rebuilds %lu allocations %lu "
+			"wraps %lu invalidated-blocks %lu requested-bytes %lu "
+			"reclaimed-bytes %lu thrash-frames %lu\n",
+			bench486_surface_cache_hits, bench486_surface_cache_rebuilds,
+			bench486_surface_cache_allocations, bench486_surface_cache_wraps,
+			bench486_surface_cache_invalidated_blocks,
+			bench486_surface_cache_requested_bytes,
+			bench486_surface_cache_reclaimed_bytes,
+			bench486_surface_cache_thrash_frames);
 	Bench486ProfileReportText (report_handle, text);
 	Bench486WriteProfileJson (timedemo_frames, timedemo_seconds);
 #else
