@@ -433,6 +433,17 @@ out\dos-timedemo-20260927-180148, out\dos-timedemo-20260927-180310,
 and out\dos-timedemo-20260927-180423; profile artifacts are in
 out\dos-timedemo-20260927-175544 and out\dos-timedemo-20260927-180540.
 
+### Surface-cache header locality experiment
+
+An experimental header reorder placed dlight, texture, and lightadj at the
+front of surfcache_t so the validation fields would fit in two 486 cache lines.
+The C-path candidate completed 969 frames with checksum 1047377823 at
+16.307884, 16.181754, and 16.307892 FPS (median 16.307884 FPS), statistically
+tied with the control. The reordered ASM predicate also preserved the checksum,
+but its PROFILE486 surface-cache self time was 6.812257 seconds versus
+6.743781 seconds for the C candidate. The layout change was rejected and
+reverted; the existing structure offsets and ASM ABI remain the control.
+
 ### Lazy viewspantable rebuild
 
 D_SetupFrame now caches the active view buffer pointer and effective row stride
