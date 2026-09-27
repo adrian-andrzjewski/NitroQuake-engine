@@ -1683,6 +1683,18 @@ Power-of-two column wrap reached **14.208790 FPS**
 (`68.197221` seconds median; `out\dos-timedemo-20260911-054347`).
 `D_DrawZSpans` `zspantable` addressing reached **14.239663 FPS**
 (`68.049361` seconds median; `out\dos-timedemo-20260911-062059`).
+
+### Rejected negative-gradient Z-span unroll
+
+A 486-specific experiment mirrored the positive-gradient eight-pixel
+`SHLD`/`ROR` packing schedule in the negative-gradient `D_DrawZSpans` loop.
+All three optimized and control timedemos completed 969 frames and retained
+the canonical seeded framebuffer checksum `1047377823`. The optimized runs
+measured `59.419754`, `59.419747`, and `59.419764` seconds; the four-pixel
+control measured `59.419770`, `59.419740`, and `59.419744` seconds.
+The optimized median was marginally slower, so the experiment was reverted and
+the existing four-pixel negative-gradient path remains the release default.
+
 Texture-span `viewspantable` dest addressing reached **14.250078 FPS**
 (`67.999624` seconds median; `out\dos-timedemo-20260911-063418`).
 Extending `viewspantable` to polyset, sprites, and particles reached
