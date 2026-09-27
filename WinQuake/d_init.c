@@ -34,6 +34,8 @@ int				d_minmip;
 float			d_scalemip[NUM_MIPS-1];
 
 static float	basemip[NUM_MIPS-1] = {1.0, 0.5*0.8, 0.25*0.8};
+static pixel_t	*viewspantable_base;
+static int		viewspantable_stride = -1;
 
 extern int			d_aflatcolor;
 
@@ -134,9 +136,16 @@ void D_SetupFrame (void)
 		screenwidth = vid.rowbytes;
 
 	// Bake d_viewbuffer + d_scantable[v] so span ASM can load one row
-	// pointer instead of adding the view base every span.
-	for (i=0 ; i<vid.height ; i++)
-		viewspantable[i] = d_viewbuffer + d_scantable[i];
+	// pointer instead of adding the view base every span.  The table only
+	// changes when the active buffer or its row stride changes.
+	if (viewspantable_base != d_viewbuffer ||
+			viewspantable_stride != screenwidth)
+	{
+		for (i=0 ; i<vid.height ; i++)
+			viewspantable[i] = d_viewbuffer + d_scantable[i];
+		viewspantable_base = d_viewbuffer;
+		viewspantable_stride = screenwidth;
+	}
 
 	d_roverwrapped = false;
 	d_initial_rover = sc_rover;

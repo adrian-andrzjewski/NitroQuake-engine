@@ -51,14 +51,14 @@ regs_t regs;
 static byte memory[0x500000], ram[0x200000], biosinfo[256];
 static int allocations, frees, maps, unmaps, bankcalls, startcalls, modecalls;
 static int fail_alloc, fail_map, fail_mode, fail_bank, fail_palette, fail_ram;
-static int copycalls, copywidth, copyheight, vga_calls, palette_calls, probes;
+static int copycalls, copywidth, copyheight, planar_calls, vga_calls, palette_calls, probes;
 static int many_modes, banked_bios, no_vesa, lastbank;
 static unsigned alloc_cursor;
 static byte cmap[9000];
 byte *host_colormap = cmap;
 vmode_t *pvidmodes,*pcurrentmode,*VGA_pcurmode;
 int numvidmodes,vid_modenum,vid_realmode;
-int VGA_width,VGA_height,VGA_rowbytes,VGA_bufferrowbytes;
+int VGA_width,VGA_height,VGA_rowbytes,VGA_bufferrowbytes,VGA_planar;
 byte *VGA_pagebase;
 void *vid_surfcache;
 int vid_surfcachesize;
@@ -140,6 +140,7 @@ void VGA_UpdateLinearScreen(void*s,void*d,int w,int h,int sp,int dp) {
  assert(w>0 && h>0 && !(w&3)); copycalls++;copywidth=w;copyheight=h;
  for(int y=0;y<h;y++) memcpy((byte*)d+y*dp,(byte*)s+y*sp,w);
 }
+void VGA_UpdatePlanarScreen(void*p) { (void)p; planar_calls++; }
 static vmode_t vga;
 static int fake_vga(viddef_t *v,vmode_t*m) {
  (void)m;vga_calls++;v->buffer=v->conbuffer=ram;v->direct=memory+0xa0000;
@@ -161,7 +162,7 @@ static void reset(void) {
  vga.swapbuffers=fake_swap;
  allocations=frees=maps=unmaps=bankcalls=startcalls=modecalls=0;
  fail_alloc=fail_map=fail_mode=fail_bank=fail_palette=fail_ram=0;
- copycalls=vga_calls=palette_calls=probes=many_modes=banked_bios=no_vesa=0;
+  copycalls=planar_calls=vga_calls=palette_calls=probes=many_modes=banked_bios=no_vesa=0;
  alloc_cursor=0x1000; pvidmodes=NULL;pcurrentmode=NULL;numvidmodes=0;
  vid_mode.value=vid_wait.value=_vid_wait_override.value=0;
  vid_modenum=vid_realmode=0;scr_disabled_for_loading=nomodecheck=0;
@@ -271,7 +272,27 @@ int main(void) {
   r.x=0;r.width=321;VID_ExtraSwapBuffers(&vid,pcurrentmode,&r);assert(copycalls==old);
   assert(!bankcalls && !startcalls && !probes);
  }
- VID_ShutdownExtra();puts("PASS: VBE rejection, overflow discovery, allocation/mapping/mode/bank/palette recovery, copy boundaries and padded pitch");
+  // Direct standard-VGA linear presentation coverage.
+  reset();memset(ram,0,64000);for(int i=0;i<64000;i++)ram[i]=(byte)(i*11+5);
+  memset(memory+0xa0000,0xcd,64000);vid.buffer=ram;vid.width=320;vid.height=200;
+  vid.rowbytes=320;vid.numpages=1;VGA_pagebase=memory+0xa0000;
+  VGA_rowbytes=320;VGA_planar=0;copycalls=0;planar_calls=0;
+  vrect_t full={0,0,320,200,NULL};VGA_SwapBuffersCopy(&vid,NULL,&full);
+  assert(copycalls==1 && copywidth==320 && copyheight==200);
+  assert(!memcmp(VGA_pagebase,ram,64000));
+  memset(VGA_pagebase,0xcd,64000);copycalls=0;
+  vrect_t partial={8,4,16,2,NULL};VGA_SwapBuffersCopy(&vid,NULL,&partial);
+  assert(copycalls==1 && copywidth==16 && copyheight==2);
+  vrect_t second={24,8,16,2,NULL};partial.pnext=&second;copycalls=0;
+  VGA_SwapBuffersCopy(&vid,NULL,&partial);assert(copycalls==2);
+  partial.pnext=NULL;vid.rowbytes=328;copycalls=0;
+  VGA_SwapBuffersCopy(&vid,NULL,&full);assert(copycalls==1 && copywidth==320);
+  vid.rowbytes=320;vid.numpages=2;copycalls=0;
+  VGA_SwapBuffersCopy(&vid,NULL,&full);assert(copycalls==1);
+  VGA_planar=1;copycalls=0;planar_calls=0;
+  VGA_SwapBuffersCopy(&vid,NULL,&full);assert(!copycalls && planar_calls==1);
+
+  VID_ShutdownExtra();puts("PASS: VBE rejection, VGA full-frame/fallback/planar copies, overflow discovery, allocation/mapping/mode/bank/palette recovery, copy boundaries and padded pitch");
  return 0;
 }
 '''
@@ -281,6 +302,7 @@ ext = re.sub(r'^#include (?!"vid_vesa.h").*$', '', ext, flags=re.M)
 dos = (ROOT / "WinQuake/vid_dos.c").read_text()
 vga = (ROOT / "WinQuake/vid_vga.c").read_text()
 source = (prefix + function(vga, "VGA_BeginDirectRect") + function(vga, "VGA_EndDirectRect")
+          + function(vga, "VGA_SwapBuffersCopy")
           + ext + function(dos, "VID_SetMode") + function(dos, "VID_SetPalette")
           + function(dos, "VID_Update") + tests)
 with tempfile.TemporaryDirectory(prefix="quake-video-") as tmp:

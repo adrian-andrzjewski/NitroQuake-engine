@@ -380,7 +380,26 @@ composition. Three raw demo1 runs measured C at 59.502611, 59.502548, and
 59.455677, and 59.455756 seconds (median 16.297855 FPS), with checksum
 1047377823 on every run. The full correctness harness passed.
 
-### Latest rejected experiments
+### VGA full-frame copy experiment
+
+The guarded VGA_SwapBuffersCopy full-frame shortcut was tested in standard VGA
+mode using -stdvid. Direct VGA, planar, partial, chained, padded, and sentinel
+tests passed, and all forced-VGA runs retained 969 frames/checksum 1047377823.
+The candidate was rejected because its median was 16.302751 FPS versus 16.303103
+FPS for the matched no-shortcut control. The shortcut was reverted; the direct
+VGA coverage remains in tools/test-video-dos.py.
+
+### Latest validation notes
+
+### Lazy viewspantable rebuild
+
+D_SetupFrame now caches the active view buffer pointer and effective row stride
+and skips rebuilding viewspantable when neither changes. Mode changes and warp
+entry/exit naturally invalidate the cache through those inputs. Full benchmark
+correctness and video tests passed. Three raw demo1 runs measured 59.422468,
+59.422417, and 59.422374 seconds (median 16.306977 FPS), versus the clean
+16.297855 FPS baseline; every run completed 969 frames with checksum
+1047377823.
 
 Do not remove the lightright stores from the mip0/mip1/mip2 surf8 drawers: they
 are consumed by the following loop iteration. A zero-punch-angle early-out in

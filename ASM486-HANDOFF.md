@@ -11,6 +11,12 @@ and run details remain in `BUILD-DOS.md`.
 
 ### Current reproducibility note (2026-09-26)
 
+ASM/setup: D_SetupFrame now lazily rebuilds viewspantable only when the active
+view buffer or effective row stride changes. Full correctness and video tests
+pass. Three raw demo1 runs measured 59.422468 / 59.422417 / 59.422374
+seconds (median 16.306977 FPS), checksum 1047377823 on every run, versus the
+16.297855 FPS clean baseline.
+
 The benchmark worktree seeds srand(1) at the start of PROFILE486 timedemos and
 uses -falign-jumps=16 in the aggressive DOS build. These changes make the
 current profiling/timedemo workload deterministic enough for A/B comparison,
@@ -69,6 +75,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   demo1 runs measured C at 59.502611 / 59.502548 / 59.502529 seconds versus
   special at 59.455982 / 59.455677 / 59.455756 seconds; every run kept
   checksum 1047377823 and the full correctness harness passed.
+- VGA full-frame linear-copy fast path was tested and rejected. Direct VGA
+  parity tests passed, and forced -stdvid timedemos kept checksum 1047377823,
+  but the guarded candidate measured 16.302751 FPS versus the matched control
+  at 16.303103 FPS. The candidate was reverted; retain the expanded VGA
+  coverage, but do not promote the copy shortcut.
 - Inlined 486 setup: power-of-two surface wrap in `R_DrawSurface`, release
   builds skip `D_CheckCacheGuard`, and `R_AliasSetViewMatrix` fills the alias
   view matrix once per frame.
