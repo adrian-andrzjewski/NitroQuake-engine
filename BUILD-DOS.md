@@ -985,6 +985,16 @@ manager also skips redundant LRU unlink/relink work for a block already at
 the head and returns newly allocated blocks directly.  These are memory and
 allocator-path improvements; the matched timedemo change is within run noise.
 
+Sprite model loading no longer clears each sprite frame a second time after
+Hunk_AllocName returns it.  Hunk_AllocName already zeroes the complete,
+16-byte-rounded allocation; Mod_LoadSpriteFrame then assigns its metadata and
+fully writes the pixel tail through either the 8-bit copy or 16-bit conversion
+path.  The allocation size and model layout are unchanged.  The cleanup passed
+the 486 correctness harness and three seeded demo1 timedemos: 969 frames and
+checksum 1047377823 on every run, with times 59.408076, 59.408052, and
+59.408186 seconds.  This is a load-time memory-traffic cleanup rather than
+an observed frame-rate gain.
+
 The particle record packs its palette index and type into one byte each while
 keeping the assembly-used offsets stable.  This shrinks each record from 44
 to 40 bytes and saves 8 KiB in the default 2048-particle pool.  The 486
