@@ -51,6 +51,12 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
   control path; dword packing and the stosb loop remain explicit alternatives.
 - C: memory helpers, texture-axis cache predicate, surface-cache predicate,
   mip-level selection, BSP plane-dot, and BSP frustum clipping.
+- ASM: generic lightmap style accumulation is now the production default via
+  LightMapStylesImplementation=asm. The C reference remains selectable.
+  The focused maps-1..4 cases all matched, and matched demo1 runs measured
+  C at 59.512120 / 59.512084 / 59.512013 seconds versus ASM at
+  59.503904 / 59.503792 / 59.503771 seconds, with checksum 1047377823 on
+  every run. The full correctness harness passed for both variants.
 - Inlined 486 setup: power-of-two surface wrap in `R_DrawSurface`, release
   builds skip `D_CheckCacheGuard`, and `R_AliasSetViewMatrix` fills the alias
   view matrix once per frame.

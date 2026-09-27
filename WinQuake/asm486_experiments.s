@@ -286,6 +286,66 @@ C(R_TextureAnimationFrame_asm486):
 
 	.p2align 4,,15
 
+// void R_BuildLightMapStyles_asm486(unsigned *dest, byte *lightmap,
+//                                    int size, int maps, unsigned scale,
+//                                    unsigned *lightadj)
+// Combine contiguous 8-bit lightmap planes in the same order as the C
+// reference.  The first plane includes ambient scale; later planes add.
+C(R_BuildLightMapStyles_asm486):
+	.globl C(R_BuildLightMapStyles_asm486)
+	pushl	%ebp
+	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
+	movl	20(%esp),%edi		// dest
+	movl	24(%esp),%esi		// lightmap
+	movl	32(%esp),%ebp		// maps
+	movl	40(%esp),%ebx		// lightadj
+	cmpl	$0,28(%esp)
+	jle	.Llightmap_styles_done
+	testl	%ebp,%ebp
+	jle	.Llightmap_styles_done
+
+	xorl	%ecx,%ecx			// pixel index
+.Llightmap_styles_first:
+	movzbl	(%esi,%ecx),%eax
+	mull	(%ebx)
+	addl	36(%esp),%eax		// scale
+	movl	%eax,(%edi,%ecx,4)
+	incl	%ecx
+	cmpl	28(%esp),%ecx
+	jb	.Llightmap_styles_first
+
+	decl	%ebp
+	jz	.Llightmap_styles_done
+	addl	28(%esp),%esi			// next lightmap plane
+	addl	$4,%ebx			// next style adjustment
+
+.Llightmap_styles_extra:
+	xorl	%ecx,%ecx
+.Llightmap_styles_extra_loop:
+	movzbl	(%esi,%ecx),%eax
+	mull	(%ebx)
+	addl	%eax,(%edi,%ecx,4)
+	incl	%ecx
+	cmpl	28(%esp),%ecx
+	jb	.Llightmap_styles_extra_loop
+
+	decl	%ebp
+	jz	.Llightmap_styles_done
+	addl	28(%esp),%esi
+	addl	$4,%ebx
+	jmp	.Llightmap_styles_extra
+
+.Llightmap_styles_done:
+	popl	%ebx
+	popl	%esi
+	popl	%edi
+	popl	%ebp
+	ret
+
+	.p2align 4,,15
+
 // void R_BuildLightMapNormalize_asm486(unsigned *lights, int size)
 // Invert and clamp a lightmap in place.  Keep the array pointer and count in
 // registers and perform one store per element; the C compiler emits an

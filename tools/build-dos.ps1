@@ -31,6 +31,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LightMapNormalizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$LightMapStylesImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
@@ -125,6 +127,9 @@ if ($TextureAnimationImplementation -eq 'c') {
 if ($LightMapNormalizeImplementation -eq 'c') {
     $profileSuffixParts += 'lightmapc'
 }
+if ($LightMapStylesImplementation -eq 'asm') {
+    $profileSuffixParts += 'lightmapstylesasm'
+}
 if ($DynamicLightImplementation -eq 'asm') {
     $profileSuffixParts += 'dlightasm'
 }
@@ -182,6 +187,7 @@ $asmSources = @($allAsmSources | Where-Object {
 	$MipLevelImplementation -eq 'asm' -or
 	$TextureAnimationImplementation -eq 'asm' -or
 	$LightMapNormalizeImplementation -eq 'asm' -or
+	$LightMapStylesImplementation -eq 'asm' -or
 	$DynamicLightImplementation -eq 'asm' -or
 	$BspPlaneDotImplementation -eq 'asm' -or
 		$BspClipImplementation -eq 'asm' -or
@@ -194,6 +200,7 @@ $expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm
 	$TextureAxisImplementation -eq 'asm' -or $SurfaceCacheImplementation -eq 'asm' -or
 	$MipLevelImplementation -eq 'asm' -or $TextureAnimationImplementation -eq 'asm' -or
 	$LightMapNormalizeImplementation -eq 'asm' -or
+	$LightMapStylesImplementation -eq 'asm' -or
 	$DynamicLightImplementation -eq 'asm' -or
 	$BspPlaneDotImplementation -eq 'asm' -or
 	$BspClipImplementation -eq 'asm' -or $AliasBBoxProjectImplementation -eq 'asm' -or
@@ -257,6 +264,9 @@ try {
     }
     if ($LightMapNormalizeImplementation -eq 'asm') {
         $cFlags += '-DASM486_LIGHTMAP_NORMALIZE'
+    }
+    if ($LightMapStylesImplementation -eq 'asm') {
+        $cFlags += '-DASM486_LIGHTMAP_STYLES'
     }
     if ($DynamicLightImplementation -eq 'asm') {
         $cFlags += '-DASM486_DYNAMIC_LIGHTS'
@@ -367,6 +377,7 @@ try {
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation
         textureAnimationImplementation = $TextureAnimationImplementation
         lightMapNormalizeImplementation = $LightMapNormalizeImplementation
+        lightMapStylesImplementation = $LightMapStylesImplementation
         dynamicLightImplementation = $DynamicLightImplementation
         bspPlaneDotImplementation = $BspPlaneDotImplementation
         bspClipImplementation = $BspClipImplementation

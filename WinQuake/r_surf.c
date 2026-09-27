@@ -355,6 +355,32 @@ void R_AddDynamicLights (void)
 
 /*
 ===============
+R_BuildLightMapStyles_C
+
+Reference for the generic raw style-combination loop.  Keep the style planes
+and accumulation order identical to the original R_BuildLightMap fallback.
+===============
+*/
+void R_BuildLightMapStyles_C (unsigned *dest, byte *lightmap, int size,
+		int maps, unsigned scale, int *lightadj)
+{
+	int		i, map;
+	byte	*plane;
+
+	plane = lightmap;
+	for (i=0 ; i<size ; i++)
+		dest[i] = scale + plane[i] * lightadj[0];
+
+	for (map=1 ; map<maps ; map++)
+	{
+		plane += size;
+		for (i=0 ; i<size ; i++)
+			dest[i] += plane[i] * lightadj[map];
+	}
+}
+
+/*
+===============
 R_DlightContributes
 
 Same discrete sample predicates as R_AddDynamicLights, but return as soon as
@@ -635,17 +661,16 @@ void R_BuildLightMap (void)
 			return;
 		}
 
-		for (i=0 ; i<size ; i++)
-			blocklights[i] = scale + lightmap[i] * first;
-		lightmap += size;
 		maps = 1;
 		for ( ; maps < MAXLIGHTMAPS && surf->styles[maps] != 255 ; maps++)
-		{
-			first = r_drawsurf.lightadj[maps];	// 8.8 fraction
-			for (i=0 ; i<size ; i++)
-				blocklights[i] += lightmap[i] * first;
-			lightmap += size;
-		}
+			;
+#if defined(ASM486_LIGHTMAP_STYLES)
+		R_BuildLightMapStyles_asm486 (blocklights, lightmap,
+				size, maps, scale, r_drawsurf.lightadj);
+#else
+		R_BuildLightMapStyles_C (blocklights, lightmap,
+				size, maps, scale, r_drawsurf.lightadj);
+#endif
 	}
 	else
 	{

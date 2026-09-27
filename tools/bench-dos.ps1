@@ -31,6 +31,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LightMapNormalizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$LightMapStylesImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
@@ -42,6 +44,7 @@ param(
     [switch]$AliasTransformFinalOnly,
     [switch]$TextureAnimationOnly,
     [switch]$LightMapNormalizeOnly,
+    [switch]$LightMapStylesOnly,
     [switch]$BspPlaneDotOnly,
     [switch]$BspClipOnly,
     [int]$TimeoutSeconds = 180
@@ -117,6 +120,9 @@ if ($TextureAnimationImplementation -eq 'c') {
 if ($LightMapNormalizeImplementation -eq 'c') {
     $profileSuffixParts += 'lightmapc'
 }
+if ($LightMapStylesImplementation -eq 'asm') {
+    $profileSuffixParts += 'lightmapstylesasm'
+}
 if ($DynamicLightImplementation -eq 'asm') {
     $profileSuffixParts += 'dlightasm'
 }
@@ -167,6 +173,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-AliasTransformFinalImplementation', $AliasTransformFinalImplementation,
         '-TextureAnimationImplementation', $TextureAnimationImplementation,
         '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
+        '-LightMapStylesImplementation', $LightMapStylesImplementation,
         '-DynamicLightImplementation', $DynamicLightImplementation,
         '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
         '-BspClipImplementation', $BspClipImplementation,
@@ -214,6 +221,9 @@ elseif ($AliasTransformFinalOnly) {
 }
 elseif ($LightMapNormalizeOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapnormalize -benchexit'
+}
+elseif ($LightMapStylesOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapstyles -benchexit'
 }
 elseif ($BspClipOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchbspclip -benchexit'
@@ -322,6 +332,7 @@ $result = [ordered]@{
     aliasTransformFinalImplementation = $AliasTransformFinalImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
+    lightMapStylesImplementation = $LightMapStylesImplementation
     dynamicLightImplementation = $DynamicLightImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
@@ -331,6 +342,7 @@ $result = [ordered]@{
     aliasTransformFinalOnly = [bool]$AliasTransformFinalOnly
     textureAnimationOnly = [bool]$TextureAnimationOnly
     lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly
+    lightMapStylesOnly = [bool]$LightMapStylesOnly
     bspPlaneDotOnly = [bool]$BspPlaneDotOnly
     bspClipOnly = [bool]$BspClipOnly
     dataRoot = $DataRoot

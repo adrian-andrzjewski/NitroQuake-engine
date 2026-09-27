@@ -353,6 +353,18 @@ hold the DOSBox-X profile, DPMI host, data directory, command line, and random
 seed constant. Keep an implementation only when its complete timedemo improves
 repeatably and preserves the current checksum.
 
+### Lightmap style accumulation
+
+The generic raw style-combination loop in R_BuildLightMap is selectable with
+LightMapStylesImplementation c|asm. The i486 ASM path is now the default after
+matching all focused maps-1..4, size, and alignment cases and passing the full
+correctness harness. Three raw demo1 runs measured 59.503904, 59.503792, and
+59.503771 seconds (median 16.284676 FPS), versus the matched C runs at
+59.507049, 59.506949, and 59.507049 seconds (median 16.283812 FPS). Every run
+completed 969 frames with checksum 1047377823. The fused/clamped lightmap
+paths, dynamic-light accumulation, and final normalization remain independently
+implemented in C/ASM as before.
+
 ### Latest rejected experiments
 
 Do not remove the lightright stores from the mip0/mip1/mip2 surf8 drawers: they

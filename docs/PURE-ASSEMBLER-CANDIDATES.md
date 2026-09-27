@@ -22,6 +22,10 @@ Recommended order:
 
 ## Candidate areas
 
+The lightmap-combination candidate is now implemented as the selectable
+R_BuildLightMapStyles_asm486 helper and has been promoted after checksum-
+preserving focused and end-to-end timedemo validation.
+
 | Area | Location | Feasibility | Recommended boundary |
 |---|---|---:|---|
 | Lightmap combination | `WinQuake/r_surf.c:R_BuildLightMap` | High | Keep surface bounds and light-style selection in C. Move the per-texel style-combination loop to assembler. |

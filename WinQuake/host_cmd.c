@@ -1226,6 +1226,8 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 #define BENCH486_TEXTURE_ANIMATION_ITERATIONS	500000
 #define BENCH486_LIGHTMAP_NORMALIZE_SAMPLES	5
 #define BENCH486_LIGHTMAP_NORMALIZE_ITERATIONS	25000
+#define BENCH486_LIGHTMAP_STYLES_SAMPLES	5
+#define BENCH486_LIGHTMAP_STYLES_ITERATIONS	5000
 #define BENCH486_BSP_PLANE_DOT_SAMPLES	5
 #define BENCH486_BSP_PLANE_DOT_ITERATIONS	500000
 #define BENCH486_BSP_CLIP_SAMPLES	5
@@ -1248,6 +1250,8 @@ typedef texture_t *(*bench486_texture_animation_fn_t) (texture_t *base,
 		int relative);
 typedef void (*bench486_lightmap_normalize_fn_t) (unsigned *lights,
 		int size);
+typedef void (*bench486_lightmap_styles_fn_t) (unsigned *dest, byte *lightmap,
+		int size, int maps, unsigned scale, int *lightadj);
 typedef double (*bench486_bsp_plane_dot_fn_t) (mplane_t *plane);
 typedef int (*bench486_bsp_clip_fn_t) (mnode_t *node, int clipflags);
 typedef int (*bench486_alias_bbox_project_fn_t) (auxvert_t *viewaux,
@@ -1989,6 +1993,143 @@ static void Bench486LightMapNormalizeCases (void)
 	Bench486LightMapNormalizeCase ("small-normal", 16, 0);
 	Bench486LightMapNormalizeCase ("full-clamp", 64, 1);
 	Bench486LightMapNormalizeCase ("mixed-324", 324, 2);
+}
+
+static void Bench486SetLightMapStylesInput (byte *lightmap, int size,
+		int maps, int pattern)
+{
+	int i, map;
+
+	for (map=0 ; map<maps ; map++)
+		for (i=0 ; i<size ; i++)
+			lightmap[map*size+i] = (byte)((i*17 + map*31 + pattern*7) & 255);
+}
+
+static unsigned Bench486LightMapStylesChecksum (unsigned *dest, int size)
+{
+	unsigned checksum;
+	int i;
+
+	checksum = 0;
+	for (i=0 ; i<size ; i++)
+		checksum += dest[i];
+	return checksum;
+}
+
+static double Bench486MeasureLightMapStyles (
+		bench486_lightmap_styles_fn_t function, unsigned *dest, byte *lightmap,
+		int size, int maps, unsigned scale, unsigned *lightadj,
+		int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (dest, lightmap, size, maps, scale, lightadj);
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (dest, lightmap, size, maps, scale, lightadj);
+	elapsed = Sys_FloatTime () - start;
+	*checksum = Bench486LightMapStylesChecksum (dest, size);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static void Bench486LightMapStylesCase (char *name, int size, int maps,
+		int pattern, int unaligned)
+{
+	byte *lightmap;
+	unsigned *c_result, *asm_result;
+	int lightadj[4];
+	double c_samples[BENCH486_LIGHTMAP_STYLES_SAMPLES];
+	double asm_samples[BENCH486_LIGHTMAP_STYLES_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int i, sample, mismatch;
+
+	lightmap = bench486_source + unaligned;
+	c_result = (unsigned *)(bench486_expected + unaligned);
+	asm_result = (unsigned *)(bench486_dest + unaligned);
+	Bench486SetLightMapStylesInput (lightmap, size, maps, pattern);
+	for (i=0 ; i<4 ; i++)
+		lightadj[i] = 64 + i*73 + pattern*11;
+	R_BuildLightMapStyles_C (c_result, lightmap, size, maps,
+			pattern*257, lightadj);
+	R_BuildLightMapStyles_asm486 (asm_result, lightmap, size, maps,
+			pattern*257, lightadj);
+	mismatch = -1;
+	for (i=0 ; i<size ; i++)
+		if (c_result[i] != asm_result[i])
+		{
+			mismatch = i;
+			break;
+		}
+	if (mismatch >= 0)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("lightmap-styles %s correctness FAIL index %d c %u asm %u",
+				name, mismatch, c_result[mismatch], asm_result[mismatch]);
+		return;
+	}
+
+	for (sample=0 ; sample<BENCH486_LIGHTMAP_STYLES_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureLightMapStyles(
+					R_BuildLightMapStyles_C, c_result, lightmap, size, maps,
+					pattern*257, lightadj, BENCH486_LIGHTMAP_STYLES_ITERATIONS,
+					&c_checksum);
+			asm_samples[sample] = Bench486MeasureLightMapStyles(
+					R_BuildLightMapStyles_asm486, asm_result, lightmap, size, maps,
+					pattern*257, lightadj, BENCH486_LIGHTMAP_STYLES_ITERATIONS,
+					&asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureLightMapStyles(
+					R_BuildLightMapStyles_asm486, asm_result, lightmap, size, maps,
+					pattern*257, lightadj, BENCH486_LIGHTMAP_STYLES_ITERATIONS,
+					&asm_checksum);
+			c_samples[sample] = Bench486MeasureLightMapStyles(
+					R_BuildLightMapStyles_C, c_result, lightmap, size, maps,
+					pattern*257, lightadj, BENCH486_LIGHTMAP_STYLES_ITERATIONS,
+					&c_checksum);
+		}
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("lightmap-styles %s checksum correctness FAIL", name);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_LIGHTMAP_STYLES_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_LIGHTMAP_STYLES_SAMPLES);
+	c_median = c_samples[BENCH486_LIGHTMAP_STYLES_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_LIGHTMAP_STYLES_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("lightmap-styles %s size %d maps %d unaligned %d samples %d",
+			name, size, maps, unaligned, BENCH486_LIGHTMAP_STYLES_SAMPLES);
+	Bench486Printf ("  c median %.6f sec checksum %u", c_median, c_checksum);
+	Bench486Printf ("  asm486 median %.6f sec checksum %u",
+			asm_median, asm_checksum);
+	Bench486Printf ("  asm486-vs-c median %.3f percent", delta);
+}
+
+static void Bench486LightMapStylesCases (void)
+{
+	static int sizes[] = { 1, 2, 3, 15, 16, 17, 63, 64, 65, 324 };
+	int i, maps;
+	char name[32];
+
+	for (maps=1 ; maps<=4 ; maps++)
+		for (i=0 ; i<10 ; i++)
+		{
+			sprintf (name, "styles-%d-%d", maps, sizes[i]);
+			Bench486LightMapStylesCase (name, sizes[i], maps,
+					(i + maps) & 3, i & 1);
+		}
 }
 
 static double Bench486MeasureBspPlaneDot (bench486_bsp_plane_dot_fn_t function,
@@ -3209,6 +3350,23 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchlightmapstyles"))
+	{
+		Bench486Printf ("lightmap-styles experiment compares the generic C accumulation loop");
+		Bench486Printf ("with the selectable i486 contiguous-plane helper");
+		Bench486LightMapStylesCases ();
+		Bench486Printf ("486 benchmark correctness %s",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchbspplanedot"))
 	{
 		Bench486Printf ("bsp-plane-dot experiment compares the C switch\n");
@@ -3299,6 +3457,9 @@ static void Bench486_f (void)
 	Bench486Printf ("lightmap-normalize experiment compares the C loop with\n");
 	Bench486Printf ("the register-based 486 pointer/count loop\n");
 	Bench486LightMapNormalizeCases ();
+	Bench486Printf ("lightmap-styles experiment compares the generic C accumulation loop with");
+	Bench486Printf ("the selectable i486 contiguous-plane helper");
+	Bench486LightMapStylesCases ();
 	Bench486Printf ("bsp-plane-dot experiment compares the C switch with\n");
 	Bench486Printf ("the 486 x87 axis/generic plane-dot helper\n");
 	Bench486BspPlaneDotCases ();
