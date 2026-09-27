@@ -398,6 +398,41 @@ VGA coverage remains in tools/test-video-dos.py.
 
 ### Latest validation notes
 
+### Surface-cache capacity and churn
+
+The timedemo was repeated with the supplied data root
+out\video-qa\banked\quake\id1, the standard DOSBox-X 486 profile, and
+CWSDPMI. The release control completed all 969 frames with checksum
+1047377823; three samples measured 59.874099, 59.419778, and 59.419753
+seconds (16.183960, 16.307701, and 16.307708 FPS). The first sample is a
+startup outlier; the matched median is 59.419778 seconds / 16.307701 FPS.
+
+The current 1800 KiB surface-cache default was compared with explicit
+-surfcachesize 2048 and -surfcachesize 1024 runs:
+
+| Surface cache | Seconds | FPS | Frames | Checksum |
+| ---: | ---: | ---: | ---: | ---: |
+| 1800 KiB control (median) | 59.419778 | 16.307701 | 969 | 1047377823 |
+| 2048 KiB | 59.382324 | 16.317987 | 969 | 1047377823 |
+| 1024 KiB | 59.707460 | 16.229128 | 969 | 1047377823 |
+
+The 2048 KiB result is within the control spread and does not establish a
+repeatable end-to-end improvement. The 1024 KiB result is slower and increases
+surface-cache churn. In a PROFILE486 control run, the surface-cache path took
+6.812082 seconds (10.03% of profiled frame time), with 46,391 hits, 8,894
+rebuilds, 2,837 allocations, 4 wraps, and 0 thrash frames. The instrumented
+1024 KiB run took 7.106158 seconds in the surface-cache path, with 45,760 hits,
+9,530 rebuilds, 3,498 allocations, 8 wraps, and 0 thrash frames.
+
+Retain the 1800 KiB default. The data supports avoiding a smaller cache, but
+does not justify spending additional memory or changing the allocator policy.
+The next performance targets remain texture spans, alias-model rendering,
+world BSP traversal, and Z-span drawing. The release results are recorded in
+out\dos-timedemo-20260927-175918, out\dos-timedemo-20260927-180035,
+out\dos-timedemo-20260927-180148, out\dos-timedemo-20260927-180310,
+and out\dos-timedemo-20260927-180423; profile artifacts are in
+out\dos-timedemo-20260927-175544 and out\dos-timedemo-20260927-180540.
+
 ### Lazy viewspantable rebuild
 
 D_SetupFrame now caches the active view buffer pointer and effective row stride
