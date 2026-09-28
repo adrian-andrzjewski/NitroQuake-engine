@@ -11,21 +11,46 @@ and run details remain in `BUILD-DOS.md`.
 
 ### Current parity-gated closure (2026-09-28)
 
-The current release/default path remains the control implementation.  The
-latest BSP experiment is available through the opt-in
-`BspFrameCountImplementation=local` selector, but it is not promoted: the
-candidate preserved the correctness checksum (`2378409472`), clean startup,
-and the release framebuffer checksum (`1047377823`), yet its independent
-three-run median was 59.435670 seconds versus 59.408194 seconds for control
-(0.046250% slower).  This is below the required 0.05% improvement gate and is
-therefore retained only for reproducible A/B testing.
+The release defaults now use the mip-0 four-row and mip-1 eight-row
+surface-block loops (`SurfaceBlockMip0Rows=unroll4`,
+`SurfaceBlockMip1Rows=unroll8`). The mip-1 loop was promoted after a five-run
+mip-0-only control median of 59.374140 seconds and a three-run combined median
+of 59.344208 seconds, a 0.0504% improvement. The earlier mip-0 promotion
+measured a 0.0573% gain against its control. Every timedemo completed 969
+frames with framebuffer checksum `1047377823`; the candidate also passed DOS
+smoke and full `bench486` correctness (`2378409472`). Both control paths remain
+selectable for matched A/B comparisons.
 
-The release gate remains 969 frames with checksum `1047377823`; profiling
-duration is attribution evidence, not release timing.  No visual-quality,
-resolution, presentation, scene, or timing changes are part of this pass.  The
-next eligible hotspot is the surface-cache rebuild path.
+The latest PROFILE486 run at the promoted defaults is
+`out\dos-timedemo-20260928-194016\timedemo-result.json`. Its 67.788754-second
+duration is attribution evidence, not release timing. Self-time ranking is
+texture spans 27.89%, alias models 13.28%, world BSP 11.41%, surface cache
+10.72%, Z spans 9.30%, and edge scanning 8.94%. The release gate remains 969
+frames with checksum `1047377823`. Previously tested texture-span addressing,
+load-order, and tail-store alternatives remain rejected or below threshold;
+choose the next experiment from a specific measured path and retain its
+control. No visual-quality, resolution, presentation, scene, or timing changes
+are part of this pass.
 
-### Fresh control and PROFILE486 baseline (2026-09-28)
+The BSP frame-count experiment remains unpromoted. Its `local` selector
+preserved correctness, smoke, and release framebuffer parity, but its
+three-run median was 59.435670 seconds versus 59.408194 seconds for its
+control, so it did not clear the 0.05% improvement gate.
+
+The mip-0 eight-row extension also remains opt-in. Five fresh alternating
+runs, with both executables rebuilt from the same source, measured 59.344242
+seconds median for the four-row control and 59.338650 seconds for unroll8, a
+0.0094% gain below the gate. All ten runs completed 969 frames with checksum
+`1047377823`; smoke and full correctness passed. Keep
+`SurfaceBlockMip0Rows=unroll4` as the release value.
+
+The mip-0 sixteen-row extension also remains opt-in. Five fresh alternating
+runs measured 59.344220 seconds median for the four-row control and 59.335845
+seconds for unroll16, a 0.0141% gain below the gate. All ten runs completed
+969 frames with checksum `1047377823`; smoke and full correctness passed. Keep
+`SurfaceBlockMip0Rows=unroll4` as the release value.
+
+### Pre-surface-block-loop control and PROFILE486 baseline (2026-09-28)
 
 The exact-parity pass was re-established from the current source before the
 new experiment.  The aggressive DJGPP i486 control build used the pinned

@@ -25,20 +25,25 @@ Profile SHA-256:
 
 | Version | Executable | Runs | Time | FPS | Frames | Checksum | Evidence |
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
-| Current project build | `out\dos-memasm-zneg4-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.408082 s** median | **16.310912** | 969 each | `1047377823` each | Machine-readable timedemo report |
+| Current project build | `out\dos-memasm-zneg4-surf0rows4-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.344208 s** median | **16.328468** | 969 each | `1047377823` each | Machine-readable timedemo report |
 | 486quake optimization project | `tools\486quake.exe` | 1 | ~68.2 s | ~14.2 | 969 | Not emitted | On-screen timedemo result |
 | Original Quake | `tools\QUAKE.EXE` | 1 | ~72.4 s | ~13.4 | 969 | Not emitted | On-screen timedemo result |
 
-The three current-build samples were 59.408207 s, 59.408001 s, and 59.408082
-s, with the same framebuffer checksum on every run.
+The three current-build samples were 59.344208 s, 59.344257 s, and 59.344203
+s, with the same framebuffer checksum on every run. This build uses the
+promoted `SurfaceBlockMip0Rows=unroll4` and
+`SurfaceBlockMip1Rows=unroll8` defaults. The mip-1 change was measured against
+the mip-0-only default and cleared the 0.05% promotion gate; see
+`docs/PURE-ASSEMBLER-CANDIDATES.md` for the matched samples and correctness
+evidence.
 
 ## Relative result
 
 Using the rounded on-screen values for the two supplied executables:
 
-- Current project build is approximately **21.9% faster** than the original.
+- Current project build is approximately **22.0% faster** than the original.
 - `486quake.exe` is approximately **6.2% faster** than the original.
-- Current project build is approximately **14.8% faster** than `486quake.exe`.
+- Current project build is approximately **14.9% faster** than `486quake.exe`.
 
 These percentages are comparative DOSBox-X results. They are not a claim about
 timing on physical 486 hardware.
@@ -47,7 +52,7 @@ timing on physical 486 hardware.
 
 | File | Size | SHA-256 |
 | --- | ---: | --- |
-| `out\dos-memasm-zneg4-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 788,992 bytes | `089EAAE83DE91889B628AE9F996F8791EF6DF2FDF335941B16098A25F1EF13B0` |
+| `out\dos-memasm-zneg4-surf0rows4-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 791,040 bytes | `6CAA9DF25898C08F02A2B89027F7F37B8FAA99AC36B4320243C8A70DD2853313` |
 | `tools\486quake.exe` | 834,560 bytes | `CF461CFA0FEA989AA1E2E834B6D5482B7C64F3279BD7BE56C52F92752FFF429E` |
 | `tools\QUAKE.EXE` | 409,600 bytes | `E0A1936400CA56E94D44D585097BD9E490035FCFB6E7D806D7E879F423928642` |
 

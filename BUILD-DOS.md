@@ -34,19 +34,30 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
-The production/default renderer remains on the exact-parity control paths.  The
-latest world-BSP frame-count cache candidate is selectable with
-`-BspFrameCountImplementation local`, but is intentionally not promoted: it
-passed the correctness and smoke gates, and every release run kept 969 frames
-with framebuffer checksum `1047377823`, while the candidate median was
-59.435670 seconds versus 59.408194 seconds for control (0.046250% slower).
-The required promotion threshold is a 0.05% improvement, so `control` remains
-the release default and `local` remains an opt-in A/B experiment.
+The current performance defaults use the mip-0 four-row and mip-1 eight-row
+surface-block loops. The combined build completed three timedemo runs at
+59.344208 seconds median (16.328468 FPS), each with 969 frames and framebuffer
+checksum `1047377823`. The mip-1 change measured 0.0504% faster than the
+five-run mip-0-only control and passed DOS smoke plus the full `bench486`
+correctness suite (`2378409472`). Both loop controls remain selectable with
+`-SurfaceBlockMip0Rows control` and `-SurfaceBlockMip1Rows control`.
 
-The benchmark correctness checksum is `2378409472`; PROFILE486 timing is used
-only for hotspot attribution.  This pass changes no visual quality,
-resolution, presentation, scene, or timing behavior.  The next documented
-hotspot is the surface-cache rebuild path.
+The latest PROFILE486 run is
+`out\dos-timedemo-20260928-194016\timedemo-result.json`; its 67.788754-second
+duration is used only for hotspot attribution. Self-time ranking: texture
+spans 27.89%, alias models 13.28%, world BSP 11.41%, surface cache 10.72%, Z
+spans 9.30%, and edge scanning 8.94%. The world-BSP `local` frame-count
+candidate remains unpromoted because its median was 0.046250% slower than
+control. This pass changes no visual quality, resolution, presentation, scene,
+or timing behavior.
+
+Mip-0 `unroll8` and `unroll16` remain opt-in selectors for A/B runs. Five fresh
+alternating runs using same-source rebuilds measured 59.344242 seconds for
+`unroll4` and 59.338650 seconds for `unroll8` (0.0094%), then 59.344220 seconds
+for `unroll4` and 59.335845 seconds for `unroll16` (0.0141%). Both gains are
+below the 0.05% promotion gate. Keep `unroll4` as the default; build manifests
+and runtime reports record the selected value. See
+`docs/PURE-ASSEMBLER-CANDIDATES.md` for the full parity and timing evidence.
 
 The bootstrapper installs both tools in:
 
