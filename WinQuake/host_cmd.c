@@ -76,6 +76,8 @@ unsigned long bench486_texture_full_sfrac_zero;
 unsigned long bench486_texture_full_sone;
 unsigned long bench486_texture_full_exact;
 unsigned long bench486_texture_final_exact;
+unsigned long bench486_texture_full_row_eligible;
+unsigned long bench486_texture_full_row_fast;
 unsigned long bench486_gradient_calls;
 unsigned long bench486_solid_span_count;
 unsigned long bench486_memset_calls;
@@ -971,7 +973,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"texture_span_buckets\": [%lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_widths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_final_lengths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
-			"    \"texture_full\": {\"tzero\": %lu, \"tdelta_zero\": %lu, \"tfrac_zero\": %lu, \"sfrac_zero\": %lu, \"sone\": %lu, \"exact\": %lu, \"final_exact\": %lu}\n"
+			"    \"texture_full\": {\"tzero\": %lu, \"tdelta_zero\": %lu, \"tfrac_zero\": %lu, \"sfrac_zero\": %lu, \"sone\": %lu, \"exact\": %lu, \"final_exact\": %lu, \"row_eligible\": %lu, \"row_fast\": %lu}\n"
 			"  }\n}\n",
 			bench486_profile_frames, bench486_bsp_nodes,
 			bench486_bsp_solid_culls, bench486_bsp_visibility_culls,
@@ -1013,7 +1015,8 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_texture_full_tzero, bench486_texture_full_tdelta_zero,
 			bench486_texture_full_tfrac_zero, bench486_texture_full_sfrac_zero,
 			bench486_texture_full_sone, bench486_texture_full_exact,
-			bench486_texture_final_exact);
+			bench486_texture_final_exact, bench486_texture_full_row_eligible,
+			bench486_texture_full_row_fast);
 	Sys_FileClose (file_handle);
 }
 
@@ -1064,6 +1067,8 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_full_sone = 0;
 	bench486_texture_full_exact = 0;
 	bench486_texture_final_exact = 0;
+	bench486_texture_full_row_eligible = 0;
+	bench486_texture_full_row_fast = 0;
 	bench486_gradient_calls = 0;
 	bench486_solid_span_count = 0;
 	bench486_memset_calls = 0;
@@ -1137,7 +1142,8 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			"texture-final-lengths %lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu,%lu "
 			"full-tzero %lu full-tdelta-zero %lu full-tfrac-zero %lu "
 			"full-sfrac-zero %lu full-sone %lu full-exact %lu "
-			"final-exact %lu gradients %lu solid-spans %lu line-setups %lu "
+			"final-exact %lu full-row-eligible %lu full-row-fast %lu "
+			"gradients %lu solid-spans %lu line-setups %lu "
 			"axis-hits %lu axis-misses %lu\n",
 			bench486_profile_frames, bench486_frame_seconds,
 			bench486_render_seconds, bench486_visibility_seconds,
@@ -1194,7 +1200,8 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_texture_full_sfrac_zero,
 			bench486_texture_full_sone,
 			bench486_texture_full_exact, bench486_texture_final_exact,
-			bench486_gradient_calls,
+			bench486_texture_full_row_eligible,
+			bench486_texture_full_row_fast, bench486_gradient_calls,
 			bench486_solid_span_count, bench486_line_setup_calls,
 			bench486_axis_cache_hits, bench486_axis_cache_misses);
 	Con_Printf ("%s", text);

@@ -208,6 +208,51 @@ four destination pixels per `movl` and writes `out\dos-spandword`; `loop` uses
 `stosb` in 7+8 pixel loops and writes `out\dos-spanloop`.  All variants retain
 the exact checksum gate.
 
+### Texture-span row-cross experiment (2026-09-28)
+
+The full 16-pixel `D_DrawSpans16` path has a separate selector,
+`-TextureSpanRowPath control|norowcross`.  `control` is the release default.
+The opt-in `norowcross` build defines `ASM486_SPAN16_NO_ROW_CROSS` and uses an
+S-only address advance when the clamped segment endpoints have a non-negative
+T gradient and remain in the same texture row.  Negative gradients and possible
+row crossings fall back to the original two-axis DDA.  `D_DrawSpans8` is not
+part of this experiment.
+
+The reproducible commands, using the aggressive i486 profile and the pinned
+DOSBox-X profile, are:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanRowPath control
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanRowPath norowcross
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanRowPath control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanRowPath norowcross -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanRowPath control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanRowPath norowcross -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+~~~
+
+Both builds passed the existing correctness harness (`486 benchmark correctness
+PASS`, end checksum `2378409472`).  Three alternating release timedemo pairs
+all completed 969 frames with framebuffer checksum `1047377823`:
+
+| path | samples (seconds) | median | median FPS |
+| --- | --- | ---: | ---: |
+| control | 59.408221 / 59.408218 / 59.408243 | 59.408221 | 16.310874 |
+| norowcross | 59.753011 / 59.753108 / 60.217335 | 59.753108 | 16.216730 |
+
+The candidate was `0.344887` seconds, or `0.580537%`, slower than control.
+Because the median delta exceeded the `0.05%` repeat threshold, the five-sample
+escalation was not required.  The candidate is rejected for promotion but remains
+available as an opt-in experiment; `control` remains the build, benchmark, and
+timedemo default.  `textureSpanRowPath` is recorded in the build manifest,
+`bench-result.json`, and `timedemo-result.json`; `norowcross` uses an ignored
+`out\...-spannorow` directory.
+
+The PROFILE486 runs (`out\dos-timedemo-20260928-070210` and
+`out\dos-timedemo-20260928-070331`) recorded `row_eligible=0,
+row_fast=0` for control and `row_eligible=209338, row_fast=209338` for the
+candidate.  These counters confirm candidate exercise only; the instrumented
+duration is attribution evidence, not a release timing claim.
+
 The alias-model projection helper is independently selectable with
 `-AliasProjectImplementation c|asm`:
 

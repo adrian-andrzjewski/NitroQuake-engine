@@ -122,6 +122,8 @@ extern unsigned long bench486_texture_full_sfrac_zero;
 extern unsigned long bench486_texture_full_sone;
 extern unsigned long bench486_texture_full_exact;
 extern unsigned long bench486_texture_final_exact;
+extern unsigned long bench486_texture_full_row_eligible;
+extern unsigned long bench486_texture_full_row_fast;
 extern unsigned long bench486_gradient_calls;
 extern unsigned long bench486_solid_span_count;
 extern unsigned long bench486_memset_calls;

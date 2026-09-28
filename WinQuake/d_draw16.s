@@ -39,6 +39,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern C(bench486_texture_full_sone)
 	.extern C(bench486_texture_full_exact)
 	.extern C(bench486_texture_final_exact)
+	.extern C(bench486_texture_full_row_eligible)
+	.extern C(bench486_texture_full_row_fast)
 #endif
 
 //----------------------------------------------------------------------
@@ -364,6 +366,51 @@ LClampReentry2:
 	ja		LClampHigh3
 LClampReentry3:
 
+#ifdef ASM486_SPAN16_NO_ROW_CROSS
+	// A non-negative segment whose clamped endpoints share a texture row
+	// cannot take a row carry during its sixteen samples.  Keep every other
+	// segment on the original two-axis DDA below.
+	movl	%ecx,%eax
+	cmpl	t,%eax
+	jl		LSpan16RowCrossFallback
+	sarl	$16,%eax
+	movl	t,%edx
+	sarl	$16,%edx
+	cmpl	%edx,%eax
+	jne		LSpan16RowCrossFallback
+
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz		LSpan16RowStatsDone
+	incl	C(bench486_texture_full_row_eligible)
+LSpan16RowStatsDone:
+#endif
+	movl	%ebp,snext
+	movl	%ecx,tnext
+	subl	s,%ebp
+	movl	%ebp,%eax
+	sarl	$20,%eax
+	movl	%eax,advancetable+4	// no t-row component in this path
+	movl	tnext,%edx
+	shll	$16,%edx			// final tfrac for the next segment
+	shll	$12,%ebp			// sstep fractional component
+	movl	sfracf,%ebx
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi	// advance to the first loop sample on S only
+
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz		LSpan16RowFastStatsDone
+	incl	C(bench486_texture_full_row_fast)
+LSpan16RowFastStatsDone:
+#endif
+	jmp		LSpan16NoRowCrossStores
+LSpan16RowCrossFallback:
+#endif
+
+#ifdef ASM486_SPAN16_NO_ROW_CROSS
+	movl	$0,jumptemp			// use the control B half
+#endif
 	movl	%ebp,snext
 	movl	%ecx,tnext
 
@@ -476,6 +523,131 @@ LSetUpCommon:
 	sbbl	%ecx,%ecx			// turn tstep carry into -1 (0 if none)
 	addl	%ebp,%ebx			// advance sfrac fractional part by sstep frac
 	adcl	advancetable+4(,%ecx,4),%esi	// point to next source texel
+
+#ifdef ASM486_SPAN16_NO_ROW_CROSS
+	jmp		LSpan16ControlStoresA
+#endif
+
+#ifdef ASM486_SPAN16_NO_ROW_CROSS
+// Same store schedules as the control path, but the texture address only
+// advances from the S accumulator.  The row test above proves that no T
+// carry can affect any of these sixteen samples.
+LSpan16NoRowCrossStores:
+#ifdef ASM486_SPAN16_LOOP_STOSB
+	incl	%edi
+	movl	$7,jumptemp
+LSpan16NoRowCrossLoopA:
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	decl	jumptemp
+	stosb
+	jnz		LSpan16NoRowCrossLoopA
+#elif defined(ASM486_SPAN16_WORD_STORES)
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movw	%ax,1(%edi)
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movw	%ax,3(%edi)
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movw	%ax,5(%edi)
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movw	%ax,7(%edi)
+
+#elif defined(ASM486_SPAN16_DWORD_STORES)
+	movb	(%edi),%al
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,(%edi)
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,4(%edi)
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+
+#else
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	movb	%al,1(%edi)
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	movb	%al,2(%edi)
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	movb	%al,3(%edi)
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	movb	%al,4(%edi)
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	movb	%al,5(%edi)
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	movb	%al,6(%edi)
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	movb	%al,7(%edi)
+	adcl	advancetable+4,%esi
+#endif
+	movl	$1,jumptemp			// mark this segment for the B half
+	jmp		LSpan16AfterStoresA
+
+LSpan16ControlStoresA:
+#endif
 
 #ifdef ASM486_SPAN16_LOOP_STOSB
 	incl	%edi
@@ -646,6 +818,8 @@ LSpan16LoopA:
 	adcl	advancetable+4(,%ecx,4),%esi
 #endif
 
+LSpan16AfterStoresA:
+
 
 //
 // start FDIV for end of next segment in flight, so it can overlap
@@ -692,6 +866,122 @@ LSetupNotLast2:
 LFDIVInFlight2:
 	movl	%ecx,counttemp
 
+#ifdef ASM486_SPAN16_NO_ROW_CROSS
+	cmpl	$1,jumptemp
+	jne		LSpan16ControlStoresB
+LSpan16NoRowCrossStoresB:
+#ifdef ASM486_SPAN16_LOOP_STOSB
+	movl	$8,jumptemp
+LSpan16NoRowCrossLoopB:
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	decl	jumptemp
+	stosb
+	jnz		LSpan16NoRowCrossLoopB
+#elif defined(ASM486_SPAN16_WORD_STORES)
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movw	%ax,9(%edi)
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movw	%ax,11(%edi)
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movw	%ax,13(%edi)
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+
+#elif defined(ASM486_SPAN16_DWORD_STORES)
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,8(%edi)
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	rorl	$16,%eax
+	movb	(%esi),%al
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	movb	(%esi),%ah
+	rorl	$16,%eax
+	movl	%eax,12(%edi)
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	shrl	$24,%eax
+
+#else
+	movb	%al,8(%edi)
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4,%esi
+
+	movb	%al,9(%edi)
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4,%esi
+
+	movb	%al,10(%edi)
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4,%esi
+
+	movb	%al,11(%edi)
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4,%esi
+
+	movb	%al,12(%edi)
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4,%esi
+
+	movb	%al,13(%edi)
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4,%esi
+
+	movb	%al,14(%edi)
+	addl	%ebp,%ebx
+	movb	(%esi),%al
+	adcl	advancetable+4,%esi
+#endif
+	jmp		LSpan16AfterStoresB
+
+LSpan16ControlStoresB:
+#endif
 #ifdef ASM486_SPAN16_LOOP_STOSB
 	movl	$8,jumptemp
 LSpan16LoopB:
@@ -848,6 +1138,8 @@ LSpan16LoopB:
 	movb	(%esi),%al
 	adcl	advancetable+4(,%ecx,4),%esi
 #endif
+
+LSpan16AfterStoresB:
 
 #ifndef ASM486_SPAN16_LOOP_STOSB
 	addl	$16,%edi

@@ -21,6 +21,8 @@ param(
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('byte', 'word', 'dword', 'loop')]
     [string]$TextureSpanStores = 'word',
+    [ValidateSet('control', 'norowcross')]
+    [string]$TextureSpanRowPath = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('c', 'asm')]
@@ -121,6 +123,9 @@ elseif ($TextureSpanStores -eq 'dword') {
 elseif ($TextureSpanStores -eq 'loop') {
     $profileSuffixParts += 'spanloop'
 }
+if ($TextureSpanRowPath -eq 'norowcross') {
+    $profileSuffixParts += 'spannorow'
+}
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
 }
@@ -200,6 +205,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-MemoryImplementation', $MemoryImplementation,
         '-TurbulentImplementation', $TurbulentImplementation,
         '-TextureSpanStores', $TextureSpanStores,
+        '-TextureSpanRowPath', $TextureSpanRowPath,
         '-ZSpanNegativeUnroll', $ZSpanNegativeUnroll,
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-AliasBBoxProjectImplementation', $AliasBBoxProjectImplementation,
@@ -570,6 +576,7 @@ $result = [ordered]@{
     mipLevelImplementation = $MipLevelImplementation
     turbulentImplementation = $TurbulentImplementation
     textureSpanStores = $TextureSpanStores
+    textureSpanRowPath = $TextureSpanRowPath
     zSpanNegativeUnroll = $ZSpanNegativeUnroll
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation

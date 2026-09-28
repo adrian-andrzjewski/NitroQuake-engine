@@ -43,6 +43,47 @@ puts texture spans first at 28.11% of instrumented self time, making them the
 next optimization target; the instrumented duration is attribution evidence,
 not a release timing claim.
 
+### Texture-span row-cross experiment (2026-09-28)
+
+`D_DrawSpans16` now has an opt-in `-TextureSpanRowPath norowcross` selector,
+implemented by `ASM486_SPAN16_NO_ROW_CROSS`; `control` remains the default.
+For full 16-pixel segments, the candidate uses an S-only texture-address loop
+only when the clamped T endpoint is non-negative relative to the start and both
+endpoints are in the same texture row.  Negative gradients and row crossings
+use the unchanged control DDA.  The 8-bit span path is outside this slice.
+
+The matched aggressive i486 builds were made with:
+
+```powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanRowPath control
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanRowPath norowcross
+```
+
+Both `bench-dos.ps1 -SkipBuild` runs passed `486 benchmark correctness PASS`
+with end checksum `2378409472`.  Three alternating release timedemo pairs were
+run with `tools\dosbox-x-486-high.conf`, CWSDPMI, the seeded `demo1` workload,
+and the same `id1` data.  Every run completed 969 frames with framebuffer
+checksum `1047377823`:
+
+```text
+control:    59.408221 / 59.408218 / 59.408243 s, median 59.408221 s, 16.310874 FPS
+norowcross: 59.753011 / 59.753108 / 60.217335 s, median 59.753108 s, 16.216730 FPS
+```
+
+`norowcross` is `0.344887` seconds (`0.580537%`) slower than control.  The
+median delta is above the `0.05%` escalation threshold, so no five-sample repeat
+was required.  The candidate is rejected for promotion and retained as an
+explicit opt-in experiment; `control` stays the release default.  Build,
+benchmark, and timedemo JSON metadata record `textureSpanRowPath`, and the
+candidate output is isolated under the ignored `...-spannorow` directory.
+
+PROFILE486 evidence is in `out\dos-timedemo-20260928-070210` (control) and
+`out\dos-timedemo-20260928-070331` (candidate).  The new profile counters are
+`row_eligible=0,row_fast=0` for control and
+`row_eligible=209338,row_fast=209338` for the candidate.  This proves the
+candidate path was exercised, but the instrumented timing remains attribution
+evidence rather than a release performance claim.
+
 The next sequential pass also rejected two leads. The proposed surf8.s
 lightright-store removal was invalid: the stores at the end of the mip0, mip1,
 and mip2 blocks feed the next loop iteration through C(lightright), so they are
