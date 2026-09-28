@@ -12,3 +12,32 @@
 *.map
 *.err
 *.log
+
+# Python test/tool caches and coverage output.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local IDE metadata.
+.vs/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Editor, operating-system, and crash-report files.
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+*.dmp
+*.stackdump
+.DS_Store
+Thumbs.db
+Desktop.ini
