@@ -253,6 +253,44 @@ row_fast=0` for control and `row_eligible=209338, row_fast=209338` for the
 candidate.  These counters confirm candidate exercise only; the instrumented
 duration is attribution evidence, not a release timing claim.
 
+### Texture-span tail-store experiment (2026-09-28)
+
+The variable-length final segment of `D_DrawSpans16` has a separate selector,
+`-TextureSpanTailStores control|word`.  `control` is the release default.  The
+opt-in `word` build defines `ASM486_SPAN16_TAIL_WORD_STORES` and packs adjacent
+pre-final texels with `movw`, while preserving the original fixed-point DDA
+order and leaving the final sample unadvanced.  Full 16-pixel segments and
+`D_DrawSpans8` are unchanged.
+
+The reproducible commands, using the aggressive i486 profile and the pinned
+DOSBox-X profile, are:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanTailStores control
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanTailStores word
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanTailStores control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanTailStores word -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanTailStores control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanTailStores word -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+~~~
+
+Both builds passed the existing correctness harness (`486 benchmark correctness
+PASS`, end checksum `2378409472`).  Three alternating release timedemo pairs
+all completed 969 frames with framebuffer checksum `1047377823`:
+
+| path | samples (seconds) | median | median FPS |
+| --- | --- | ---: | ---: |
+| control | 59.408215 / 59.868491 / 59.408242 | 59.408242 | 16.310868 |
+| word | 60.135289 / 60.135318 / 60.135324 | 60.135318 | 16.113659 |
+
+The candidate was `0.727076` seconds, or `1.223864%`, slower than control.
+Because the median delta exceeded the `0.05%` repeat threshold, the five-sample
+escalation was not required.  The candidate is rejected for promotion but remains
+available as an opt-in experiment; `control` remains the build, benchmark, and
+timedemo default.  `textureSpanTailStores` is recorded in the build manifest,
+`bench-result.json`, and `timedemo-result.json`; `word` uses an ignored
+`out\...-spantailword` directory.
+
 The alias-model projection helper is independently selectable with
 `-AliasProjectImplementation c|asm`:
 

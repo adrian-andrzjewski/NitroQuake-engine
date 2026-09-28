@@ -20,6 +20,8 @@ param(
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('byte', 'word', 'dword', 'loop')]
     [string]$TextureSpanStores = 'word',
+    [ValidateSet('control', 'word')]
+    [string]$TextureSpanTailStores = 'control',
     [ValidateSet('control', 'norowcross')]
     [string]$TextureSpanRowPath = 'control',
     [ValidateSet('control', 'unroll8')]
@@ -119,6 +121,9 @@ elseif ($TextureSpanStores -eq 'dword') {
 }
 elseif ($TextureSpanStores -eq 'loop') {
     $profileSuffixParts += 'spanloop'
+}
+if ($TextureSpanTailStores -eq 'word') {
+    $profileSuffixParts += 'spantailword'
 }
 if ($TextureSpanRowPath -eq 'norowcross') {
     $profileSuffixParts += 'spannorow'
@@ -349,6 +354,9 @@ try {
     if ($TextureSpanRowPath -eq 'norowcross') {
         $asmFlags += '-DASM486_SPAN16_NO_ROW_CROSS'
     }
+    if ($TextureSpanTailStores -eq 'word') {
+        $asmFlags += '-DASM486_SPAN16_TAIL_WORD_STORES'
+    }
     if ($ZSpanNegativeUnroll -eq 'unroll8') {
         $asmFlags += '-DASM486_ZSPAN_NEG_UNROLL8'
     }
@@ -409,6 +417,7 @@ try {
         mipLevelImplementation = $MipLevelImplementation
         turbulentImplementation = $TurbulentImplementation
         textureSpanStores = $TextureSpanStores
+        textureSpanTailStores = $TextureSpanTailStores
         textureSpanRowPath = $TextureSpanRowPath
         zSpanNegativeUnroll = $ZSpanNegativeUnroll
         aliasProjectImplementation = $AliasProjectImplementation

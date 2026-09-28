@@ -1173,6 +1173,12 @@ LLastSegment:
 	testl	%ecx,%ecx
 	jz		LNoSteps		// just draw the last pixel and we're done
 
+#ifdef ASM486_SPAN16_TAIL_WORD_STORES
+	// Preserve the number of samples after the first; LSetEntryvec uses ECX
+	// as its texture-address carry scratch register.
+	movl	%ecx,counttemp
+#endif
+
 // pick up after the FDIV that was left in flight previously
 
 
@@ -1265,14 +1271,68 @@ LSetEntryvec:
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
+#ifdef ASM486_SPAN16_TAIL_WORD_STORES
+	jmp		LSpan16TailWordStores
+#else
 	jmp		*jumptemp			// jump to the number-of-pixels handler
+#endif
 
 //----------------------------------------
+
+#ifdef ASM486_SPAN16_TAIL_WORD_STORES
+// The first texel of a final segment was stored before LSetEntryvec.  Pack
+// adjacent remaining texels into 16-bit stores while retaining the original
+// per-sample DDA order.  Leave the last texel unadvanced, matching the
+// existing entry-vector handlers.
+LSpan16TailWordStores:
+	movl	counttemp,%eax
+	decl	%eax				// samples before the final sample
+	movl	%eax,%ecx
+	andl	$1,%ecx
+	movl	%ecx,counttemp		// odd pre-final sample flag
+	shrl	$1,%eax
+	movl	%eax,jumptemp		// number of pre-final word pairs
+	leal	1(%edi),%edi			// destination for sample two
+	testl	%eax,%eax
+	jz		LSpan16TailWordOdd
+
+LSpan16TailWordPairLoop:
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,(%edi)
+	addl	$2,%edi
+	decl	jumptemp
+	jnz		LSpan16TailWordPairLoop
+
+LSpan16TailWordOdd:
+	cmpl	$0,counttemp
+	jz		LSpan16TailWordFinal
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movb	%al,(%edi)
+	incl	%edi
+
+LSpan16TailWordFinal:
+	movb	(%esi),%al
+	movb	%al,(%edi)
+	jmp		LEndSpan
+#endif
 
 LNoSteps:
 	movb	(%esi),%al		// load first texel in segment
 	subl	$15,%edi			// adjust for hardwired offset
-	jmp		LEndSpan
+	jmp		LEndSpanStore
 
 
 LOnlyOneStep:
@@ -1553,6 +1613,9 @@ LEntry3_16:
 	movb	(%esi),%al
 LEntry2_16:
 
+LEndSpanStore:
+	movb	%al,15(%edi)
+
 LEndSpan:
 
 //
@@ -1565,7 +1628,6 @@ LEndSpan:
 	movl	pspantemp,%ebx				// restore spans pointer
 	movl	espan_t_pnext(%ebx),%ebx	// point to next span
 	testl	%ebx,%ebx			// any more spans?
-	movb	%al,15(%edi)
 	jnz		LSpanLoop			// more spans
 
 	popl	%ebx				// restore register variables

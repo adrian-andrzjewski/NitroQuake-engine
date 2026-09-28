@@ -84,6 +84,32 @@ PROFILE486 evidence is in `out\dos-timedemo-20260928-070210` (control) and
 candidate path was exercised, but the instrumented timing remains attribution
 evidence rather than a release performance claim.
 
+### Texture-span tail-store experiment (2026-09-28)
+
+The variable-length final segment of `D_DrawSpans16` has an opt-in
+`-TextureSpanTailStores control|word` selector.  The `word` candidate defines
+`ASM486_SPAN16_TAIL_WORD_STORES`, packs adjacent pre-final samples with `movw`,
+and preserves the existing fixed-point DDA order and final-sample behavior.
+Full 16-pixel segments and `D_DrawSpans8` are unchanged; `control` remains the
+default.
+
+Both matched aggressive i486 builds passed `486 benchmark correctness PASS` with
+end checksum `2378409472`.  Three alternating release timedemo pairs used the
+pinned DOSBox-X 486 profile, CWSDPMI, seeded `demo1`, and the same `id1` data.
+Every run completed 969 frames with framebuffer checksum `1047377823`:
+
+```text
+control: 59.408215 / 59.868491 / 59.408242 s, median 59.408242 s, 16.310868 FPS
+word:    60.135289 / 60.135318 / 60.135324 s, median 60.135318 s, 16.113659 FPS
+```
+
+`word` is `0.727076` seconds (`1.223864%`) slower than control.  The median
+delta is above the `0.05%` escalation threshold, so no five-sample repeat was
+required.  The candidate is rejected for promotion but retained as an explicit
+opt-in experiment; `control` stays the release default.  Build, benchmark, and
+timedemo JSON metadata record `textureSpanTailStores`, and the candidate output
+is isolated under the ignored `...-spantailword` directory.
+
 The next sequential pass also rejected two leads. The proposed surf8.s
 lightright-store removal was invalid: the stores at the end of the mip0, mip1,
 and mip2 blocks feed the next loop iteration through C(lightright), so they are
