@@ -192,8 +192,27 @@ if ($profile.PSObject.Properties.Name -contains 'surface_cache') {
     Write-Host 'Surface-cache metrics:'
     foreach ($metric in @(
             'hits', 'rebuilds', 'allocations', 'wraps', 'invalidated_blocks',
-            'requested_bytes', 'reclaimed_bytes', 'thrash_frames')) {
+            'requested_bytes', 'reclaimed_bytes', 'thrash_frames',
+            'dlight_probes', 'dlight_contributing_probes', 'draw_calls',
+            'hit_seconds', 'miss_check_seconds', 'rebuild_seconds',
+            'dlight_probe_seconds', 'draw_seconds', 'alloc_seconds',
+            'lightmap_seconds', 'block_seconds')) {
         Write-Host ("  {0,-28} {1}" -f $metric, $profile.surface_cache.$metric)
+    }
+    if ($profile.surface_cache.PSObject.Properties.Name -contains 'mip_calls') {
+        Write-Host '  surface block draws by mip:'
+        for ($mip = 0; $mip -lt 4; $mip++) {
+            Write-Host ("    mip {0}: calls {1}, blocks {2}, seconds {3}" -f
+                $mip, $profile.surface_cache.mip_calls[$mip],
+                $profile.surface_cache.mip_blocks[$mip],
+                $profile.surface_cache.mip_seconds[$mip])
+        }
+    }
+    if ($profile.surface_cache.PSObject.Properties.Name -contains 'flat_blocks') {
+        Write-Host ("  flat blocks: {0}; horizontal-flat: {1}; vertical-flat: {2}" -f
+            $profile.surface_cache.flat_blocks,
+            $profile.surface_cache.horizontal_flat_blocks,
+            $profile.surface_cache.vertical_flat_blocks)
     }
 }
 

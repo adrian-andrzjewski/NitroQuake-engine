@@ -32,6 +32,10 @@ param(
     [string]$AliasSpanAddressing = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
+    [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
+    [string]$SurfaceBlockMip0Rows = 'unroll4',
+    [ValidateSet('control', 'unroll8')]
+    [string]$SurfaceBlockMip1Rows = 'unroll8',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -164,6 +168,18 @@ if ($ZSpanNegativeUnroll -eq 'unroll8') {
 }
 else {
     $profileSuffixParts += 'zneg4'
+}
+if ($SurfaceBlockMip0Rows -eq 'unroll4') {
+    $profileSuffixParts += 'surf0rows4'
+}
+elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
+    $profileSuffixParts += 'surf0rows8'
+}
+elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
+    $profileSuffixParts += 'surf0rows16'
+}
+if ($SurfaceBlockMip1Rows -eq 'unroll8') {
+    $profileSuffixParts += 'surf1rows8'
 }
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
@@ -412,6 +428,18 @@ try {
     if ($ZSpanNegativeUnroll -eq 'unroll8') {
         $asmFlags += '-DASM486_ZSPAN_NEG_UNROLL8'
     }
+    if ($SurfaceBlockMip0Rows -eq 'unroll4') {
+        $asmFlags += '-DASM486_SURF8_MIP0_ROWS4'
+    }
+    elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
+        $asmFlags += '-DASM486_SURF8_MIP0_ROWS8'
+    }
+    elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
+        $asmFlags += '-DASM486_SURF8_MIP0_ROWS16'
+    }
+    if ($SurfaceBlockMip1Rows -eq 'unroll8') {
+        $asmFlags += '-DASM486_SURF8_MIP1_ROWS8'
+    }
     if ($AliasProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_PROJECT'
     }
@@ -475,6 +503,8 @@ try {
         textureSpanAddressing = $TextureSpanAddressing
         aliasSpanAddressing = $AliasSpanAddressing
         zSpanNegativeUnroll = $ZSpanNegativeUnroll
+        surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+        surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation

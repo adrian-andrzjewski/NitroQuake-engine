@@ -49,6 +49,20 @@ double bench486_visibility_seconds;
 double bench486_world_seconds;
 double bench486_edge_scan_seconds;
 double bench486_surface_cache_seconds;
+double bench486_surface_cache_hit_seconds;
+double bench486_surface_cache_miss_check_seconds;
+double bench486_surface_cache_rebuild_seconds;
+double bench486_surface_cache_dlight_probe_seconds;
+double bench486_surface_cache_draw_seconds;
+double bench486_surface_cache_alloc_seconds;
+double bench486_surface_cache_lightmap_seconds;
+double bench486_surface_cache_block_seconds;
+double bench486_surface_cache_mip_seconds[4];
+unsigned long bench486_surface_cache_mip_calls[4];
+unsigned long bench486_surface_cache_mip_blocks[4];
+unsigned long bench486_surface_cache_flat_blocks;
+unsigned long bench486_surface_cache_horizontal_flat_blocks;
+unsigned long bench486_surface_cache_vertical_flat_blocks;
 double bench486_span_draw_seconds;
 double bench486_sound_seconds;
 double bench486_framebuffer_seconds;
@@ -57,6 +71,9 @@ unsigned long bench486_alias_vertices;
 unsigned long bench486_surface_count;
 unsigned long bench486_surface_cache_hits;
 unsigned long bench486_surface_cache_rebuilds;
+unsigned long bench486_surface_cache_dlight_probes;
+unsigned long bench486_surface_cache_dlight_contributing_probes;
+unsigned long bench486_surface_cache_draw_calls;
 unsigned long bench486_surface_cache_allocations;
 unsigned long bench486_surface_cache_wraps;
 unsigned long bench486_surface_cache_invalidated_blocks;
@@ -949,13 +966,49 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_cache_moves, bench486_cache_move_bytes);
 
 	Bench486ProfileJsonPrintf (file_handle,
-			"  \"surface_cache\": {\"hits\": %lu, \"rebuilds\": %lu, \"allocations\": %lu, \"wraps\": %lu, \"invalidated_blocks\": %lu, \"requested_bytes\": %lu, \"reclaimed_bytes\": %lu, \"thrash_frames\": %lu},\n",
+			"  \"surface_cache\": {\"hits\": %lu, \"rebuilds\": %lu, \"allocations\": %lu, \"wraps\": %lu, \"invalidated_blocks\": %lu, \"requested_bytes\": %lu, \"reclaimed_bytes\": %lu, \"thrash_frames\": %lu, ",
 			bench486_surface_cache_hits, bench486_surface_cache_rebuilds,
 			bench486_surface_cache_allocations, bench486_surface_cache_wraps,
 			bench486_surface_cache_invalidated_blocks,
 			bench486_surface_cache_requested_bytes,
 			bench486_surface_cache_reclaimed_bytes,
 			bench486_surface_cache_thrash_frames);
+	Bench486ProfileJsonPrintf (file_handle,
+			"\"dlight_probes\": %lu, \"dlight_contributing_probes\": %lu, \"draw_calls\": %lu, ",
+			bench486_surface_cache_dlight_probes,
+			bench486_surface_cache_dlight_contributing_probes,
+			bench486_surface_cache_draw_calls);
+	Bench486ProfileJsonPrintf (file_handle,
+			"\"hit_seconds\": %.6f, \"miss_check_seconds\": %.6f, \"rebuild_seconds\": %.6f, \"dlight_probe_seconds\": %.6f, \"draw_seconds\": %.6f, \"alloc_seconds\": %.6f, \"lightmap_seconds\": %.6f, \"block_seconds\": %.6f, ",
+			bench486_surface_cache_hit_seconds,
+			bench486_surface_cache_miss_check_seconds,
+			bench486_surface_cache_rebuild_seconds,
+			bench486_surface_cache_dlight_probe_seconds,
+			bench486_surface_cache_draw_seconds,
+			bench486_surface_cache_alloc_seconds,
+			bench486_surface_cache_lightmap_seconds,
+			bench486_surface_cache_block_seconds);
+	Bench486ProfileJsonPrintf (file_handle,
+			"\"mip_calls\": [%lu, %lu, %lu, %lu], \"mip_blocks\": [%lu, %lu, %lu, %lu], ",
+			bench486_surface_cache_mip_calls[0],
+			bench486_surface_cache_mip_calls[1],
+			bench486_surface_cache_mip_calls[2],
+			bench486_surface_cache_mip_calls[3],
+			bench486_surface_cache_mip_blocks[0],
+			bench486_surface_cache_mip_blocks[1],
+			bench486_surface_cache_mip_blocks[2],
+			bench486_surface_cache_mip_blocks[3]);
+	Bench486ProfileJsonPrintf (file_handle,
+			"\"mip_seconds\": [%.6f, %.6f, %.6f, %.6f], ",
+			bench486_surface_cache_mip_seconds[0],
+			bench486_surface_cache_mip_seconds[1],
+			bench486_surface_cache_mip_seconds[2],
+			bench486_surface_cache_mip_seconds[3]);
+	Bench486ProfileJsonPrintf (file_handle,
+			"\"flat_blocks\": %lu, \"horizontal_flat_blocks\": %lu, \"vertical_flat_blocks\": %lu},\n",
+			bench486_surface_cache_flat_blocks,
+			bench486_surface_cache_horizontal_flat_blocks,
+			bench486_surface_cache_vertical_flat_blocks);
 
 	Bench486ProfileJsonPrintf (file_handle,
 			"  \"platform\": {\"joystick_reads\": %lu, \"joystick_poll_iterations\": %lu, \"joystick_timeouts\": %lu, \"move_calls\": %lu, \"hull_check_calls\": %lu},\n",
@@ -1033,6 +1086,14 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_world_seconds = 0;
 	bench486_edge_scan_seconds = 0;
 	bench486_surface_cache_seconds = 0;
+	bench486_surface_cache_hit_seconds = 0;
+	bench486_surface_cache_miss_check_seconds = 0;
+	bench486_surface_cache_rebuild_seconds = 0;
+	bench486_surface_cache_dlight_probe_seconds = 0;
+	bench486_surface_cache_draw_seconds = 0;
+	bench486_surface_cache_alloc_seconds = 0;
+	bench486_surface_cache_lightmap_seconds = 0;
+	bench486_surface_cache_block_seconds = 0;
 	bench486_span_draw_seconds = 0;
 	bench486_sound_seconds = 0;
 	bench486_framebuffer_seconds = 0;
@@ -1041,6 +1102,12 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_surface_count = 0;
 	bench486_surface_cache_hits = 0;
 	bench486_surface_cache_rebuilds = 0;
+	bench486_surface_cache_dlight_probes = 0;
+	bench486_surface_cache_dlight_contributing_probes = 0;
+	bench486_surface_cache_draw_calls = 0;
+	bench486_surface_cache_flat_blocks = 0;
+	bench486_surface_cache_horizontal_flat_blocks = 0;
+	bench486_surface_cache_vertical_flat_blocks = 0;
 	bench486_surface_cache_allocations = 0;
 	bench486_surface_cache_wraps = 0;
 	bench486_surface_cache_invalidated_blocks = 0;
@@ -1059,6 +1126,12 @@ void Bench486ResetTimedemoCounters (void)
 	{
 		bench486_texture_widths[i] = 0;
 		bench486_texture_final_lengths[i] = 0;
+	}
+	for (i=0 ; i<4 ; i++)
+	{
+		bench486_surface_cache_mip_calls[i] = 0;
+		bench486_surface_cache_mip_blocks[i] = 0;
+		bench486_surface_cache_mip_seconds[i] = 0;
 	}
 	bench486_texture_full_tzero = 0;
 	bench486_texture_full_tdelta_zero = 0;

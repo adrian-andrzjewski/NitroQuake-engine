@@ -798,9 +798,30 @@ void R_DrawSurface (void)
 	unsigned char	*pcolumndest;
 	void			(*pblockdrawer)(void);
 	texture_t		*mt;
+#ifdef PROFILE486
+	double			bench486_surface_stage_start;
+	double			bench486_surface_stage_elapsed;
+	int				bench486_surface_profile_active;
+	int				bench486_light_v;
+	unsigned		*bench486_light_top;
+	unsigned		*bench486_light_bottom;
+	unsigned		bench486_light_tl, bench486_light_tr;
+	unsigned		bench486_light_bl, bench486_light_br;
+
+	bench486_surface_profile_active = bench486_profile_frame_active;
+	if (bench486_surface_profile_active)
+		bench486_surface_stage_start = Sys_FloatTime ();
+#endif
 
 // calculate the lightings
 	R_BuildLightMap ();
+#ifdef PROFILE486
+	if (bench486_surface_profile_active)
+	{
+		bench486_surface_cache_lightmap_seconds += Sys_FloatTime () -
+				bench486_surface_stage_start;
+	}
+#endif
 	
 	surfrowbytes = r_drawsurf.rowbytes;
 
@@ -821,6 +842,35 @@ void R_DrawSurface (void)
 
 	r_numhblocks = r_drawsurf.surfwidth >> blockdivshift;
 	r_numvblocks = r_drawsurf.surfheight >> blockdivshift;
+#ifdef PROFILE486
+	if (bench486_surface_profile_active)
+	{
+		for (bench486_light_v=0 ; bench486_light_v<r_numvblocks ;
+				bench486_light_v++)
+		{
+			bench486_light_top = blocklights +
+					bench486_light_v * r_lightwidth;
+			bench486_light_bottom = bench486_light_top + r_lightwidth;
+			for (u=0 ; u<r_numhblocks ; u++)
+			{
+				bench486_light_tl = bench486_light_top[u];
+				bench486_light_tr = bench486_light_top[u+1];
+				bench486_light_bl = bench486_light_bottom[u];
+				bench486_light_br = bench486_light_bottom[u+1];
+				if (bench486_light_tl == bench486_light_tr &&
+						bench486_light_bl == bench486_light_br)
+					bench486_surface_cache_horizontal_flat_blocks++;
+				if (bench486_light_tl == bench486_light_bl &&
+						bench486_light_tr == bench486_light_br)
+					bench486_surface_cache_vertical_flat_blocks++;
+				if (bench486_light_tl == bench486_light_tr &&
+						bench486_light_tl == bench486_light_bl &&
+						bench486_light_tl == bench486_light_br)
+					bench486_surface_cache_flat_blocks++;
+			}
+		}
+	}
+#endif
 
 //==============================
 
@@ -860,6 +910,10 @@ void R_DrawSurface (void)
 	}
 
 	pcolumndest = r_drawsurf.surfdat;
+#ifdef PROFILE486
+	if (bench486_surface_profile_active)
+		bench486_surface_stage_start = Sys_FloatTime ();
+#endif
 
 	if (smax && !(smax & (smax - 1)))
 	{
@@ -991,6 +1045,23 @@ void R_DrawSurface (void)
 			break;
 		}
 	}
+#ifdef PROFILE486
+	if (bench486_surface_profile_active)
+	{
+		bench486_surface_stage_elapsed = Sys_FloatTime () -
+				bench486_surface_stage_start;
+		bench486_surface_cache_block_seconds +=
+				bench486_surface_stage_elapsed;
+		if (r_drawsurf.surfmip >= 0 && r_drawsurf.surfmip < 4)
+		{
+			bench486_surface_cache_mip_calls[r_drawsurf.surfmip]++;
+			bench486_surface_cache_mip_blocks[r_drawsurf.surfmip] +=
+					r_numhblocks * r_numvblocks;
+			bench486_surface_cache_mip_seconds[r_drawsurf.surfmip] +=
+					bench486_surface_stage_elapsed;
+		}
+	}
+#endif
 }
 
 

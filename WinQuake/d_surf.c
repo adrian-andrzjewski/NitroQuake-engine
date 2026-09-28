@@ -23,6 +23,30 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 #include "r_local.h"
 
+#if defined(PROFILE486) && !defined(ASM486_SURFACE_CACHE_CHECK)
+static int D_CacheSurfaceProbeDlight (msurface_t *surface)
+{
+	double start;
+	double end;
+	int contributes;
+
+	if (!bench486_profile_frame_active)
+		return R_DlightContributes (surface);
+
+	start = Sys_FloatTime ();
+	contributes = R_DlightContributes (surface);
+	end = Sys_FloatTime ();
+	bench486_surface_cache_dlight_probes++;
+	if (contributes)
+		bench486_surface_cache_dlight_contributing_probes++;
+	bench486_surface_cache_dlight_probe_seconds += end - start;
+	return contributes;
+}
+#define D_CACHE_SURFACE_PROBE_DLIGHT(surface) D_CacheSurfaceProbeDlight (surface)
+#elif !defined(ASM486_SURFACE_CACHE_CHECK)
+#define D_CACHE_SURFACE_PROBE_DLIGHT(surface) R_DlightContributes (surface)
+#endif
+
 qboolean        r_cache_thrash;         // set if surface cache is thrashing
 
 int                                     sc_size;
@@ -308,8 +332,15 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	texture_t	*tex;
 #ifdef PROFILE486
 	double			bench486_surface_cache_start;
+	double			bench486_surface_cache_rebuild_start;
+	double			bench486_surface_cache_now;
+	double			bench486_surface_cache_elapsed;
+	double			bench486_surface_cache_alloc_start;
+	double			bench486_surface_cache_draw_start;
+	int				bench486_surface_cache_profile_active;
 
-	if (bench486_profile_frame_active)
+	bench486_surface_cache_profile_active = bench486_profile_frame_active;
+	if (bench486_surface_cache_profile_active)
 		bench486_surface_cache_start = Sys_FloatTime ();
 #endif
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SURFACE_CACHE);
@@ -348,25 +379,36 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 				  && cache->lightadj[2] == d_lightstylevalue[surface->styles[2]]
 				  && cache->lightadj[3] == d_lightstylevalue[surface->styles[3]]))
 			&& (surface->dlightframe != r_framecount
-				 || !R_DlightContributes (surface)))
+				 || !D_CACHE_SURFACE_PROBE_DLIGHT (surface)))
 #endif
 	{
 #ifdef PROFILE486
-		if (bench486_profile_frame_active)
-			bench486_surface_cache_hits++;
-#endif
-#ifdef PROFILE486
-		if (bench486_profile_frame_active)
-			bench486_surface_cache_seconds += Sys_FloatTime () -
+		if (bench486_surface_cache_profile_active)
+		{
+			bench486_surface_cache_now = Sys_FloatTime ();
+			bench486_surface_cache_elapsed = bench486_surface_cache_now -
 					bench486_surface_cache_start;
+			bench486_surface_cache_hits++;
+			bench486_surface_cache_hit_seconds +=
+					bench486_surface_cache_elapsed;
+			bench486_surface_cache_seconds +=
+					bench486_surface_cache_elapsed;
+		}
 #endif
 		BENCH486_PROFILE_LEAVE ();
 		return cache;
 	}
 
 #ifdef PROFILE486
-	if (bench486_profile_frame_active)
+	if (bench486_surface_cache_profile_active)
+	{
+		bench486_surface_cache_now = Sys_FloatTime ();
+		bench486_surface_cache_miss_check_seconds +=
+				bench486_surface_cache_now - bench486_surface_cache_start;
+		bench486_surface_cache_rebuild_start =
+				bench486_surface_cache_now;
 		bench486_surface_cache_rebuilds++;
+	}
 #endif
 
 #ifndef ASM486_SURFACE_CACHE_CHECK
@@ -390,8 +432,17 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 //
 	if (!cache)     // if a texture just animated, don't reallocate it
 	{
+#ifdef PROFILE486
+		if (bench486_surface_cache_profile_active)
+			bench486_surface_cache_alloc_start = Sys_FloatTime ();
+#endif
 		cache = D_SCAlloc (r_drawsurf.surfwidth,
 						   r_drawsurf.surfwidth * r_drawsurf.surfheight);
+#ifdef PROFILE486
+		if (bench486_surface_cache_profile_active)
+			bench486_surface_cache_alloc_seconds += Sys_FloatTime () -
+					bench486_surface_cache_alloc_start;
+#endif
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
 	}
@@ -410,7 +461,19 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	r_drawsurf.surf = surface;
 
 	c_surf++;
+#ifdef PROFILE486
+	if (bench486_surface_cache_profile_active)
+		bench486_surface_cache_draw_start = Sys_FloatTime ();
+#endif
 	R_DrawSurface ();
+#ifdef PROFILE486
+	if (bench486_surface_cache_profile_active)
+	{
+		bench486_surface_cache_draw_calls++;
+		bench486_surface_cache_draw_seconds += Sys_FloatTime () -
+				bench486_surface_cache_draw_start;
+	}
+#endif
 
 	// Sticky dlight bit only if a sample was actually lit; phantom marks
 	// must not force a rebuild next frame when the cache already matches.
@@ -420,9 +483,16 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 		cache->dlight = 0;
 
 #ifdef PROFILE486
-	if (bench486_profile_frame_active)
-		bench486_surface_cache_seconds += Sys_FloatTime () -
+	if (bench486_surface_cache_profile_active)
+	{
+		bench486_surface_cache_now = Sys_FloatTime ();
+		bench486_surface_cache_elapsed = bench486_surface_cache_now -
 				bench486_surface_cache_start;
+		bench486_surface_cache_seconds += bench486_surface_cache_elapsed;
+		bench486_surface_cache_rebuild_seconds +=
+				bench486_surface_cache_now -
+				bench486_surface_cache_rebuild_start;
+	}
 #endif
 	BENCH486_PROFILE_LEAVE ();
 

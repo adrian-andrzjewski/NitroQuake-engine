@@ -18,6 +18,10 @@ param(
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
+    [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
+    [string]$SurfaceBlockMip0Rows = 'unroll4',
+    [ValidateSet('control', 'unroll8')]
+    [string]$SurfaceBlockMip1Rows = 'unroll8',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
     [int]$TimeoutSeconds = 90
@@ -48,6 +52,10 @@ if ($TextureSpanLoadOrder -eq 'loadfirst') { $profileSuffixParts += 'spanloadfir
 if ($TextureSpanAddressing -eq 'branch') { $profileSuffixParts += 'spanaddrbranch' }
 if ($AliasSpanAddressing -eq 'branch') { $profileSuffixParts += 'aliasspanaddrbranch' }
 $profileSuffixParts += 'zneg4'
+if ($SurfaceBlockMip0Rows -eq 'unroll4') { $profileSuffixParts += 'surf0rows4' }
+elseif ($SurfaceBlockMip0Rows -eq 'unroll8') { $profileSuffixParts += 'surf0rows8' }
+elseif ($SurfaceBlockMip0Rows -eq 'unroll16') { $profileSuffixParts += 'surf0rows16' }
+if ($SurfaceBlockMip1Rows -eq 'unroll8') { $profileSuffixParts += 'surf1rows8' }
 if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
 $profileSuffixParts += 'lightmapstylesasm'
@@ -84,6 +92,8 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         TextureSpanLoadOrder = $TextureSpanLoadOrder
         TextureSpanAddressing = $TextureSpanAddressing
         AliasSpanAddressing = $AliasSpanAddressing
+        SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+        SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         BspFrameCountImplementation = $BspFrameCountImplementation
     }
     if ($NoBootstrap) {

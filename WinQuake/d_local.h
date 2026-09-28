@@ -69,6 +69,9 @@ extern surfcache_t	*d_initial_rover;
 #ifdef PROFILE486
 extern unsigned long bench486_surface_cache_hits;
 extern unsigned long bench486_surface_cache_rebuilds;
+extern unsigned long bench486_surface_cache_dlight_probes;
+extern unsigned long bench486_surface_cache_dlight_contributing_probes;
+extern unsigned long bench486_surface_cache_draw_calls;
 extern unsigned long bench486_surface_cache_allocations;
 extern unsigned long bench486_surface_cache_wraps;
 extern unsigned long bench486_surface_cache_invalidated_blocks;
@@ -133,4 +136,3 @@ extern int			r_turb_spancount;
 void D_DrawTurbulent8Span_C (void);
 void D_DrawTurbulent8Span_asm486 (void);
 #endif
-
