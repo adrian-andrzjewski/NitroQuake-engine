@@ -508,7 +508,69 @@ out\dos-timedemo-20260928-140755\timedemo-result.json and reports
 
 The PROFILE486 ranking that motivated this pass remains texture spans at
 28.11%, alias models at 13.38%, and world BSP at 11.49%; world BSP
-traversal is the next hotspot after this rejected candidate.
+traversal was the hotspot tested by the following frame-count cache pass.
+
+### World-BSP frame-count cache experiment (2026-09-28)
+
+The world BSP walk has an opt-in `-BspFrameCountImplementation control|local`
+selector.  `local` snapshots the immutable per-frame `r_framecount` once
+after node visibility/frustum culling and reuses it for leaf surface marking
+and both node-surface visibility loops.  The control path retains the
+original global reads and remains the production default.  Traversal order,
+surface order, comparisons, and rendering operations are unchanged.
+
+The reproducible commands are:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -BspFrameCountImplementation control
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -BspFrameCountImplementation local
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+~~~
+
+Both variants used DJGPP GCC 12.2.0, target i586-pc-msdosdjgpp,
+-O3 -march=i486, 83 retained C sources, 21 assembly sources, the pinned
+DOSBox-X 486 profile, CWSDPMI, and the same legal Steam id1 data root.  Final
+executable hashes are:
+
+| artifact | control | local candidate |
+| --- | --- | --- |
+| qbench.exe | D8CC026621C603512028138E546BEBF806F540CA74918AE344D16FF0DD843D46 | BBD6BC2468382872730AA8978552C4C1931EE12D1BAD11BBCA9996571F086FD6 |
+| quake.exe | 866EBCE2072AA6F7E954A79A802E3199D6CAABCFC5C0E995246B226AF1FBBDEF | 2CB2B5F1DF06B3F28BB9490BE8FDFA2069CBBAB0713828AD747D3FCA0213D121 |
+
+Correctness passed for both variants with end checksum 2378409472:
+control evidence is out\dos-bench-20260928-163429\bench-result.json, and
+candidate evidence is out\dos-bench-20260928-162612\bench-result.json.
+The candidate smoke evidence is out\dos-smoke-bspframecache-result.json with
+DOSBox-X and Quake exit codes 0; the final control smoke evidence is
+out\dos-smoke\smoke-result.json, also with both exit codes 0.
+
+The alternating release timedemos all completed 969 frames with framebuffer
+checksum 1047377823:
+
+| path | samples (seconds) | median | median FPS | spread |
+| --- | --- | ---: | ---: | ---: |
+| control | 59.408213 / 59.408180 / 59.408194 | 59.408194 | 16.310881 | 0.000033 |
+| local | 59.435670 / 59.435661 / 59.435771 | 59.435670 | 16.303341 | 0.000110 |
+
+The candidate is 0.027476 seconds slower than control, or 0.046250%, and
+does not clear the required 0.05% promotion threshold.  It is rejected for
+promotion but retained as an explicit opt-in experiment; control remains the
+production default.  Release evidence is in
+out\dos-timedemo-20260928-164250, out\dos-timedemo-20260928-164441,
+out\dos-timedemo-20260928-164556, out\dos-timedemo-20260928-164708,
+out\dos-timedemo-20260928-164832, and out\dos-timedemo-20260928-164945.
+The final rebuilt control closure is
+out\dos-timedemo-20260928-165256\timedemo-result.json and reports
+59.408217 seconds with checksum 1047377823.
+
+The PROFILE486 ranking remains texture spans at 28.11%, alias models at
+13.38%, world BSP at 11.49%, and surface cache at 10.03%; the surface-cache
+rebuild path is the next hotspot to investigate.  The profile duration is
+diagnostic attribution, not release timing.
 
 ### Texture-span tail-store experiment (2026-09-28)
 
@@ -616,6 +678,20 @@ that loop with a hand-written x87 helper.  The reference C helper is retained
 under `BENCH486` for direct correctness and timing comparisons.  This is an
 opt-in learning experiment because its focused results are mixed and its
 integrated timedemo result is slower.
+
+The world-BSP frame-count reads are independently selectable with
+`-BspFrameCountImplementation control|local`:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -BspFrameCountImplementation control
+.\tools\build-dos.ps1 -Benchmark -BspFrameCountImplementation local
+~~~
+
+`control` is the production default and retains the original `r_framecount`
+loads.  `local` writes to the `bspframecache` output suffix and snapshots the
+stable frame counter once after node culling for the leaf-mark and
+surface-visibility tests.  It is an opt-in exact-parity experiment; the
+candidate was slower in the full release timedemo.
 
 The alias bounding-box projection loop is independently selectable with
 `-AliasBBoxProjectImplementation c|asm`:

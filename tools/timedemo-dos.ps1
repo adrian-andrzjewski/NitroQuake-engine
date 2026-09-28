@@ -57,6 +57,8 @@ param(
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
+    [ValidateSet('control', 'local')]
+    [string]$BspFrameCountImplementation = 'control',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -202,6 +204,9 @@ if ($BspPlaneDotImplementation -eq 'asm') {
 if ($BspClipImplementation -eq 'asm') {
     $profileSuffixParts += 'bspclipasm'
 }
+if ($BspFrameCountImplementation -eq 'local') {
+    $profileSuffixParts += 'bspframecache'
+}
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
 }
@@ -262,6 +267,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         DynamicLightImplementation = $DynamicLightImplementation
         BspPlaneDotImplementation = $BspPlaneDotImplementation
         BspClipImplementation = $BspClipImplementation
+        BspFrameCountImplementation = $BspFrameCountImplementation
         ToolRoot = $ToolRoot
     }
     if ($Instrumentation) {
@@ -640,6 +646,7 @@ $result = [ordered]@{
     dynamicLightImplementation = $DynamicLightImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
+    bspFrameCountImplementation = $BspFrameCountImplementation
     instrumentation = [bool]$Instrumentation
     frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot

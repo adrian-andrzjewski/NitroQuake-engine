@@ -489,6 +489,12 @@ void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 R_RecursiveWorldNode
 ================
 */
+#ifdef ASM486_BSP_FRAME_COUNT
+#define R_BSP_FRAMECOUNT framecount
+#else
+#define R_BSP_FRAMECOUNT r_framecount
+#endif
+
 void __attribute__((regparm(2))) R_RecursiveWorldNode
 	(mnode_t *node, int clipflags)
 {
@@ -498,6 +504,9 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 	msurface_t	*surf, **mark;
 	mleaf_t		*pleaf;
 	double		d, dot;
+#ifdef ASM486_BSP_FRAME_COUNT
+	int			framecount;
+#endif
 #ifdef ASM486_BSP_CLIP
 	int			asm_clipflags;
 #endif
@@ -568,6 +577,10 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 #endif
 	}
 	
+#ifdef ASM486_BSP_FRAME_COUNT
+	framecount = r_framecount;
+#endif
+
 // if a leaf node, draw stuff
 	if (node->contents < 0)
 	{
@@ -580,7 +593,7 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 		{
 			do
 			{
-				(*mark)->visframe = r_framecount;
+				(*mark)->visframe = R_BSP_FRAMECOUNT;
 				mark++;
 			} while (--c);
 		}
@@ -644,7 +657,7 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 			{
 				do
 				{
-					if ((surf->visframe == r_framecount) &&
+					if ((surf->visframe == R_BSP_FRAMECOUNT) &&
 						(surf->flags & SURF_PLANEBACK))
 					{
 						if (r_drawpolys)
@@ -677,7 +690,7 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 			{
 				do
 				{
-					if ((surf->visframe == r_framecount) &&
+					if ((surf->visframe == R_BSP_FRAMECOUNT) &&
 						!(surf->flags & SURF_PLANEBACK))
 					{
 						if (r_drawpolys)
@@ -715,6 +728,8 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 		R_RecursiveWorldNode (node->children[!side], clipflags);
 	}
 }
+
+#undef R_BSP_FRAMECOUNT
 
 #ifdef BENCH486
 

@@ -56,6 +56,8 @@ param(
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
+    [ValidateSet('control', 'local')]
+    [string]$BspFrameCountImplementation = 'control',
     [switch]$TurbulentOnly,
     [switch]$AliasProjectOnly,
     [switch]$AliasBBoxProjectOnly,
@@ -193,6 +195,9 @@ if ($BspPlaneDotImplementation -eq 'asm') {
 if ($BspClipImplementation -eq 'asm') {
     $profileSuffixParts += 'bspclipasm'
 }
+if ($BspFrameCountImplementation -eq 'local') {
+    $profileSuffixParts += 'bspframecache'
+}
 $profileSuffix = if ($profileSuffixParts.Count) {
     '-' + ($profileSuffixParts -join '-')
 }
@@ -249,6 +254,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         DynamicLightImplementation = $DynamicLightImplementation
         BspPlaneDotImplementation = $BspPlaneDotImplementation
         BspClipImplementation = $BspClipImplementation
+        BspFrameCountImplementation = $BspFrameCountImplementation
         ToolRoot = $ToolRoot
     }
     if ($NoBootstrap) {
@@ -421,6 +427,7 @@ $result = [ordered]@{
     dynamicLightImplementation = $DynamicLightImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
+    bspFrameCountImplementation = $BspFrameCountImplementation
     turbulentOnly = [bool]$TurbulentOnly
     aliasProjectOnly = [bool]$AliasProjectOnly
     aliasBBoxProjectOnly = [bool]$AliasBBoxProjectOnly

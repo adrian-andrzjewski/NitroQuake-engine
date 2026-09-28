@@ -56,6 +56,8 @@ param(
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
+    [ValidateSet('control', 'local')]
+    [string]$BspFrameCountImplementation = 'control',
     [string]$ToolRoot
 )
 
@@ -198,6 +200,9 @@ if ($BspPlaneDotImplementation -eq 'asm') {
 }
 if ($BspClipImplementation -eq 'asm') {
     $profileSuffixParts += 'bspclipasm'
+}
+if ($BspFrameCountImplementation -eq 'local') {
+    $profileSuffixParts += 'bspframecache'
 }
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
@@ -342,6 +347,9 @@ try {
     if ($BspClipImplementation -eq 'asm') {
         $cFlags += '-DASM486_BSP_CLIP'
     }
+    if ($BspFrameCountImplementation -eq 'local') {
+        $cFlags += '-DASM486_BSP_FRAME_COUNT'
+    }
     if ($AliasBBoxProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_BBOX_PROJECT'
     }
@@ -479,6 +487,7 @@ try {
         dynamicLightImplementation = $DynamicLightImplementation
         bspPlaneDotImplementation = $BspPlaneDotImplementation
         bspClipImplementation = $BspClipImplementation
+        bspFrameCountImplementation = $BspFrameCountImplementation
         optimizationProfile = $OptimizationProfile
         optimizationLevel = $optimizationLevel
         textureAxisCacheEntries = $TextureAxisCacheEntries

@@ -18,6 +18,8 @@ param(
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
+    [ValidateSet('control', 'local')]
+    [string]$BspFrameCountImplementation = 'control',
     [int]$TimeoutSeconds = 90
 )
 
@@ -51,6 +53,7 @@ $profileSuffixParts += 'aliasmatrixspecial'
 $profileSuffixParts += 'lightmapstylesasm'
 $profileSuffixParts += 'fusedlightmapasm'
 if ($DynamicLightImplementation -eq 'asm') { $profileSuffixParts += 'dlightasm' }
+if ($BspFrameCountImplementation -eq 'local') { $profileSuffixParts += 'bspframecache' }
 $profileSuffix = if ($profileSuffixParts.Count) { '-' + ($profileSuffixParts -join '-') } else { '' }
 $djgppExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\quake.exe')
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
@@ -81,6 +84,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         TextureSpanLoadOrder = $TextureSpanLoadOrder
         TextureSpanAddressing = $TextureSpanAddressing
         AliasSpanAddressing = $AliasSpanAddressing
+        BspFrameCountImplementation = $BspFrameCountImplementation
     }
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
@@ -218,6 +222,7 @@ $result = [ordered]@{
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
     aliasSpanAddressing = $AliasSpanAddressing
+    bspFrameCountImplementation = $BspFrameCountImplementation
     timeoutSeconds = $TimeoutSeconds
 }
 $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingRoot 'smoke-result.json') -Encoding ASCII
