@@ -1085,6 +1085,7 @@ LFNegMiddle:
 
 // Mirror the 486 SHLD/ROR pair packing for the negative-gradient path.
 LFNegMiddleLoop:
+#ifdef ASM486_ZSPAN_NEG_UNROLL8
 	testl	$1,%ecx
 	jz		LFNegMiddleUnrolled
 
@@ -1136,6 +1137,28 @@ LFNegMiddleUnrolled:
 
 	subl	$2,%ecx
 	jnz		LFNegMiddleUnrolled
+
+#else
+LFNegMiddleControl:
+	movl	%edx,%eax
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,(%edi)
+	subl	%ebx,%edx
+
+	movl	%edx,%eax
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	movl	%eax,4(%edi)
+	subl	%ebx,%edx
+	addl	$8,%edi
+	decl	%ecx
+	jnz		LFNegMiddleControl
+#endif
 
 LFNegLast:
 // do the last, unaligned pixel, if there is one

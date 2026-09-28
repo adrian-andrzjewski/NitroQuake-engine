@@ -32,6 +32,17 @@ and then rejected: C median 59.506742 seconds (16.283870 FPS) versus ASM median
 benchmark correctness PASS harness. Keep the C surface-cache predicate as the
 default; a focused helper win is insufficient when the complete timedemo loses.
 
+The negative-gradient Z-span eight-pixel packing schedule was rechecked with
+the current seeded workload. It is available only through the explicit
+`-ZSpanNegativeUnroll unroll8` build/timedemo option; `control` remains the
+production default. Three matched runs completed 969 frames with checksum
+1047377823: control measured 59.408069 seconds median and `unroll8` measured
+59.408076 seconds. The candidate is rejected as a marginal regression, but the
+selector remains for reproducible A/B work. The accompanying PROFILE486 run
+puts texture spans first at 28.11% of instrumented self time, making them the
+next optimization target; the instrumented duration is attribution evidence,
+not a release timing claim.
+
 The next sequential pass also rejected two leads. The proposed surf8.s
 lightright-store removal was invalid: the stores at the end of the mip0, mip1,
 and mip2 blocks feed the next loop iteration through C(lightright), so they are
