@@ -84,6 +84,57 @@ PROFILE486 evidence is in `out\dos-timedemo-20260928-070210` (control) and
 candidate path was exercised, but the instrumented timing remains attribution
 evidence rather than a release performance claim.
 
+### Texture-span load-order experiment (2026-09-28)
+
+The full 16-pixel texture-span word-store loop now has an opt-in
+`-TextureSpanLoadOrder control|loadfirst` selector. `loadfirst` starts each
+current texel load before the independent fixed-point S/T accumulator updates;
+the carry-producing updates, sample order, and packed destination stores are
+unchanged. It requires `-TextureSpanStores word`; `control` remains the
+production default.
+
+The candidate passed the existing correctness harness with end checksum
+`2378409472`. Initial three-run timedemos under the pinned DOSBox-X 486
+profile completed 969 frames with framebuffer checksum `1047377823` on every
+run:
+
+```text
+control:    59.408224 / 59.408166 / 59.408042 s, median 59.408166 s
+loadfirst:  59.408243 / 59.408113 / 59.408102 s, median 59.408113 s
+```
+
+Three additional alternating control/candidate pairs were:
+
+```text
+control:    59.408221 / 59.408177 / 59.408211 s, median 59.408211 s
+loadfirst:  59.408215 / 59.408193 / 59.408237 s, median 59.408215 s
+```
+
+The alternating median difference is `0.000004` seconds, inside the observed
+run spread. This is a noise-level result, so `loadfirst` remains an explicit
+opt-in experiment and `control` remains the release default.
+
+The matched benchmark executables were built with the pinned
+`i586-pc-msdosdjgpp-gcc 12.2.0` aggressive profile (`-O3 -march=i486`), 83 C
+sources, and 21 assembly sources. The control `qbench.exe` SHA-256 is
+`8D2623E045ED5DB4133D47B35B69335F8995422A815A8347158F27ACE123958F`; the
+`loadfirst` candidate is
+`9A5DFCDDFD35235C9BA72FDE1CEDC8429E70B59D5FB1E25B2CA0DE0C883C6D05`.
+The candidate profile executable SHA-256 is
+`EFBF1ECB4684C2D97AAFA89FA06B1AF8E7F65F0D4ACC415467FE0EDF00602428`.
+The instrumented candidate run (`out\dos-timedemo-20260928-093436`) took
+67.271309 seconds for 969 frames and ranked texture spans 28.11%, alias models
+13.38%, world BSP 11.49%, surface cache 10.03%, Z spans 9.37%, and edge
+scanning 9.00% by self-time. Input, game, audio, and present accounted for
+0.03%, 0.88%, 0.03%, and 0.64%, respectively. These timings are profiling
+attribution, not a release claim.
+
+Final closure validation after the control rebuild passed as well:
+`out\dos-bench-20260928-094143\bench-result.json` records DOSBox-X exit code
+`0`, `486 benchmark correctness PASS`, and end checksum `2378409472`; the
+candidate `out\dos-smoke\smoke-result.json` records DOSBox-X and Quake exit
+codes both `0`.
+
 ### Texture-span tail-store experiment (2026-09-28)
 
 The variable-length final segment of `D_DrawSpans16` has an opt-in

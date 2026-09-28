@@ -253,6 +253,69 @@ row_fast=0` for control and `row_eligible=209338, row_fast=209338` for the
 candidate.  These counters confirm candidate exercise only; the instrumented
 duration is attribution evidence, not a release timing claim.
 
+### Texture-span load-order experiment (2026-09-28)
+
+The full 16-pixel texture-span word-store loop has an opt-in
+`-TextureSpanLoadOrder control|loadfirst` selector. `loadfirst` starts each
+current texel load before the independent fixed-point S/T accumulator updates;
+the carry-producing updates, sample order, and packed destination stores are
+unchanged. The selector requires `-TextureSpanStores word` and `control`
+remains the production default.
+
+The reproducible build, correctness, and timedemo commands are:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -TextureSpanLoadOrder control
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -TextureSpanLoadOrder loadfirst
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanLoadOrder control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanLoadOrder loadfirst -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanLoadOrder control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanLoadOrder loadfirst -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+~~~
+
+Both benchmark builds used the pinned `i586-pc-msdosdjgpp-gcc 12.2.0`
+aggressive profile (`-O3 -march=i486`), 83 C sources, and 21 assembly sources.
+The control `qbench.exe` is 788,992 bytes with SHA-256
+`8D2623E045ED5DB4133D47B35B69335F8995422A815A8347158F27ACE123958F`; the
+`loadfirst` `qbench.exe` is 788,992 bytes with SHA-256
+`9A5DFCDDFD35235C9BA72FDE1CEDC8429E70B59D5FB1E25B2CA0DE0C883C6D05`.
+The instrumented candidate `qprof.exe` is 807,424 bytes with SHA-256
+`EFBF1ECB4684C2D97AAFA89FA06B1AF8E7F65F0D4ACC415467FE0EDF00602428`.
+The build manifests record `TextureSpanLoadOrder`, and the source commit field
+is `12e8ed60aa8f8f27ef9d02a9b9ae834fae5885be`; the selector change itself is
+the working-tree patch under test.
+
+The candidate passed the correctness harness with end checksum `2378409472`.
+Its initial three timedemo samples were `59.408243 / 59.408113 /
+59.408102` seconds; control was `59.408224 / 59.408166 / 59.408042` seconds.
+All runs completed 969 frames with framebuffer checksum `1047377823`. Three
+additional alternating control/candidate pairs measured control
+`59.408221 / 59.408177 / 59.408211` seconds and candidate
+`59.408215 / 59.408193 / 59.408237` seconds. The alternating medians differ
+by only `0.000004` seconds, well inside the observed run spread, so this is a
+noise-level result: retain `loadfirst` as an opt-in experiment and keep
+`control` as the production default.
+
+The instrumented candidate run is recorded at
+`out\dos-timedemo-20260928-093436`: 969 frames in 67.271309 seconds. Its
+self-time ranking was texture spans 18.900375 seconds (28.11%, 55,285 calls,
+1,454,230 spans, 43,955,768 texture pixels), alias models 8.999437 seconds
+(13.38%), world BSP 7.729404 seconds (11.49%), surface cache 6.743491 seconds
+(10.03%), Z spans 6.300226 seconds (9.37%), and edge scanning 6.054654 seconds
+(9.00%). The full-loop counters were `tzero=1027405`, `tdelta_zero=28`,
+`tfrac_zero=28`, `sfrac_zero=2`, and `sone=194228`; row-path eligibility and
+fast counts remained zero. The non-renderer self-time samples were input
+0.016864 seconds (0.03%), game 0.593430 seconds (0.88%), audio 0.021976
+seconds (0.03%), and present 0.429796 seconds (0.64%). The instrumented
+duration is attribution evidence, not a release timing claim.
+
+Final closure validation after the control rebuild is recorded in
+`out\dos-bench-20260928-094143\bench-result.json`: DOSBox-X exit code `0`,
+`486 benchmark correctness PASS`, and end checksum `2378409472`. The final
+candidate smoke result is `out\dos-smoke\smoke-result.json`, with DOSBox-X and
+Quake exit codes both `0`. These checks confirm the retained opt-in candidate
+after the documented timedemo comparison.
+
 ### Texture-span tail-store experiment (2026-09-28)
 
 The variable-length final segment of `D_DrawSpans16` has a separate selector,
