@@ -26,6 +26,8 @@ param(
     [string]$TextureSpanRowPath = 'control',
     [ValidateSet('control', 'loadfirst')]
     [string]$TextureSpanLoadOrder = 'control',
+    [ValidateSet('control', 'branch')]
+    [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('c', 'asm')]
@@ -87,6 +89,15 @@ if ($TimeoutSeconds -lt 10) {
 if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
     throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
 }
+if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanStores -ne 'word') {
+    throw 'The branch texture-span address path requires -TextureSpanStores word.'
+}
+if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanLoadOrder -ne 'control') {
+    throw 'The branch texture-span address path requires -TextureSpanLoadOrder control.'
+}
+if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanRowPath -ne 'control') {
+    throw 'The branch texture-span address path requires -TextureSpanRowPath control.'
+}
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
 $profileSuffixParts = @()
@@ -131,6 +142,9 @@ if ($TextureSpanRowPath -eq 'norowcross') {
 }
 if ($TextureSpanLoadOrder -eq 'loadfirst') {
     $profileSuffixParts += 'spanloadfirst'
+}
+if ($TextureSpanAddressing -eq 'branch') {
+    $profileSuffixParts += 'spanaddrbranch'
 }
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
@@ -215,6 +229,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         TextureSpanTailStores = $TextureSpanTailStores
         TextureSpanRowPath = $TextureSpanRowPath
         TextureSpanLoadOrder = $TextureSpanLoadOrder
+        TextureSpanAddressing = $TextureSpanAddressing
         ZSpanNegativeUnroll = $ZSpanNegativeUnroll
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
@@ -385,6 +400,7 @@ $result = [ordered]@{
     textureSpanTailStores = $TextureSpanTailStores
     textureSpanRowPath = $TextureSpanRowPath
     textureSpanLoadOrder = $TextureSpanLoadOrder
+    textureSpanAddressing = $TextureSpanAddressing
     zSpanNegativeUnroll = $ZSpanNegativeUnroll
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation

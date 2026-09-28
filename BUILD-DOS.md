@@ -200,9 +200,10 @@ span work is the next optimization target.
 
 `word` is now the production default.  It preserves the original texture/DDA
 sampling order and packs adjacent destination pixels with 16-bit stores in the
-full 16-pixel path.  Three matched DOSBox-X timedemo runs measured
-59.497438, 59.497242, and 59.497252 seconds (median 59.497252), all with
-969 frames and framebuffer checksum `4154140932`.  The explicit `byte` control
+full 16-pixel path.  The current seeded control recheck measured
+59.408238, 59.408105, and 59.408106 seconds (median 59.408106), all with
+969 frames and framebuffer checksum `1047377823`.  The earlier 59.497xxx /
+4154140932 result is retained only as historical evidence.  The explicit `byte` control
 uses the original unrolled stores and writes `out\dos-spanbyte`; `dword` packs
 four destination pixels per `movl` and writes `out\dos-spandword`; `loop` uses
 `stosb` in 7+8 pixel loops and writes `out\dos-spanloop`.  All variants retain
@@ -252,6 +253,60 @@ The PROFILE486 runs (`out\dos-timedemo-20260928-070210` and
 row_fast=0` for control and `row_eligible=209338, row_fast=209338` for the
 candidate.  These counters confirm candidate exercise only; the instrumented
 duration is attribution evidence, not a release timing claim.
+
+### Texture-span address-update experiment (2026-09-28)
+
+The full 16-pixel word-store path has a separate opt-in selector,
+`-TextureSpanAddressing control|branch`.  `branch` defines
+`ASM486_SPAN16_BRANCH_ADDRESS` and replaces the indexed two-entry texture
+address advance with direct base/extra adds selected by the T carry.  It keeps
+the S carry, sampling order, and packed stores unchanged in the candidate
+source, and requires `-TextureSpanStores word`,
+`-TextureSpanLoadOrder control`, and `-TextureSpanRowPath control`.
+`control` remains the production default.
+
+Reproducible commands are:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanStores word -TextureSpanAddressing control
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanStores word -TextureSpanAddressing branch
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanStores word -TextureSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -NoBootstrap -TextureSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanStores word -TextureSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+~~~
+
+The fresh control `qbench.exe` SHA-256 is
+`0A9E78074153380228072A257D979E968887C7AD2311EC2DCCAAA162DC2C9EE1`.
+The branch candidate `qbench.exe` SHA-256 is
+`8D44EA9AC5E3002B05E7E0C25B8697166AA8BF6D7DD4FE85A080A4173334694E`.
+The candidate benchmark result is
+`out\dos-bench-20260928-124646\bench-result.json`, and the smoke result
+reports clean DOSBox-X and Quake exits.  The benchmark passed
+`486 benchmark correctness PASS` with end checksum `2378409472`, but all
+three release timedemo runs in
+`out\dos-timedemo-20260928-125539\timedemo-result.json` produced 969 frames
+with checksum `2110466403`, not the required `1047377823`:
+
+| path | samples (seconds) | median | median FPS |
+| --- | --- | ---: | ---: |
+| control | 59.408238 / 59.408105 / 59.408106 | 59.408106 | 16.310905 |
+| branch | 60.664292 / 60.664491 / 60.664483 | 60.664483 | 15.973103 |
+
+The candidate is `1.256377` seconds (`2.114824%`) slower and fails exact
+release parity, so it is rejected and retained only as an opt-in diagnostic.
+The control path remains the default.  The current PROFILE486 ranking still
+puts texture spans first at 28.11%; the next hotspot to investigate is alias
+model rasterization at 13.38%, followed by world BSP at 11.49%.
+
+After the experiment, the default selectors were rebuilt and rechecked.  The
+final control `qbench.exe` SHA-256 is
+`90AF568DE3DC9B8862EF7BB40D2477FB74A75E406CFD70E0A8E044A1064CFA11`; the
+normal `quake.exe` SHA-256 is
+`C4FD4C4DB5D303479CF02368DFF3100CD96811EB6B1AA9AF8AEAC1C5EE1A254B`.
+The post-change control timedemo in
+`out\dos-timedemo-20260928-130729\timedemo-result.json` completed 969 frames
+in 59.408233 seconds with checksum `1047377823`, and the final control smoke
+result reports DOSBox-X and Quake exit codes `0`.
 
 ### Texture-span load-order experiment (2026-09-28)
 
@@ -584,8 +639,8 @@ comparisons. The resulting current-worktree framebuffer checksum is
 1047377823; the older 4154140932 value in historical experiment records is not
 interchangeable with this seeded reference.
 
-The current raw VGA reference is 969 frames in a median 59.506742 seconds
-(16.283870 FPS) across three runs, with checksum 1047377823 on every run.
+The current raw VGA reference is 969 frames in a median 59.408106 seconds
+(16.310905 FPS) across three runs, with checksum 1047377823 on every run.
 When comparing optional implementations, rebuild each selector separately and
 hold the DOSBox-X profile, DPMI host, data directory, command line, and random
 seed constant. Keep an implementation only when its complete timedemo improves

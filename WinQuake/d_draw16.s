@@ -661,7 +661,7 @@ LSpan16LoopA:
 	decl	jumptemp
 	stosb
 	jnz		LSpan16LoopA
-#elif defined(ASM486_SPAN16_WORD_STORES)
+#elif defined(ASM486_SPAN16_WORD_STORES) && !defined(ASM486_SPAN16_BRANCH_ADDRESS)
 #ifdef ASM486_SPAN16_LOAD_FIRST
 	// Start each independent texel load before the fixed-point updates.
 	movb	(%esi),%al
@@ -714,6 +714,118 @@ LSpan16LoopA:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,7(%edi)
+#elif defined(ASM486_SPAN16_BRANCH_ADDRESS)
+	// Opt-in address-update experiment: replace the indexed two-entry
+	// advance table with direct base/extra adds selected by the T carry.
+	// The S carry is produced after the selection test, so ADC keeps the
+	// original fixed-point order and source cursor semantics.
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA1Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA1Done
+LSpan16BranchA1Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA1Done:
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%ah
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA2Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA2Done
+LSpan16BranchA2Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA2Done:
+	movw	%ax,1(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA3Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA3Done
+LSpan16BranchA3Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA3Done:
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%ah
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA4Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA4Done
+LSpan16BranchA4Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA4Done:
+	movw	%ax,3(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA5Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA5Done
+LSpan16BranchA5Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA5Done:
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%ah
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA6Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA6Done
+LSpan16BranchA6Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA6Done:
+	movw	%ax,5(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA7Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA7Done
+LSpan16BranchA7Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA7Done:
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%ah
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchA8Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchA8Done
+LSpan16BranchA8Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchA8Done:
 	movw	%ax,7(%edi)
 #else
 	addl	tstep,%edx
@@ -1048,7 +1160,7 @@ LSpan16LoopB:
 	decl	jumptemp
 	stosb
 	jnz		LSpan16LoopB
-#elif defined(ASM486_SPAN16_WORD_STORES)
+#elif defined(ASM486_SPAN16_WORD_STORES) && !defined(ASM486_SPAN16_BRANCH_ADDRESS)
 #ifdef ASM486_SPAN16_LOAD_FIRST
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -1140,6 +1252,100 @@ LSpan16LoopB:
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 #endif
+
+#elif defined(ASM486_SPAN16_BRANCH_ADDRESS)
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchB1Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchB1Done
+LSpan16BranchB1Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchB1Done:
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchB2Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchB2Done
+LSpan16BranchB2Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchB2Done:
+	movw	%ax,9(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchB3Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchB3Done
+LSpan16BranchB3Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchB3Done:
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%ah
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchB4Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchB4Done
+LSpan16BranchB4Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchB4Done:
+	movw	%ax,11(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchB5Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchB5Done
+LSpan16BranchB5Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchB5Done:
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%ah
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchB6Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchB6Done
+LSpan16BranchB6Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchB6Done:
+	movw	%ax,13(%edi)
+
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	movb	(%esi),%al
+	testl	%ecx,%ecx
+	jnz		LSpan16BranchB7Carry
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16BranchB7Done
+LSpan16BranchB7Carry:
+	addl	%ebp,%ebx
+	adcl	advancetable,%esi
+LSpan16BranchB7Done:
 
 #elif defined(ASM486_SPAN16_DWORD_STORES)
 	movb	(%esi),%al

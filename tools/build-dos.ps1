@@ -26,6 +26,8 @@ param(
     [string]$TextureSpanRowPath = 'control',
     [ValidateSet('control', 'loadfirst')]
     [string]$TextureSpanLoadOrder = 'control',
+    [ValidateSet('control', 'branch')]
+    [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('c', 'asm')]
@@ -63,6 +65,15 @@ if ($Instrumentation -and -not $Benchmark) {
 }
 if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
     throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
+}
+if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanStores -ne 'word') {
+    throw 'The branch texture-span address path requires -TextureSpanStores word.'
+}
+if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanLoadOrder -ne 'control') {
+    throw 'The branch texture-span address path requires -TextureSpanLoadOrder control.'
+}
+if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanRowPath -ne 'control') {
+    throw 'The branch texture-span address path requires -TextureSpanRowPath control.'
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -137,6 +148,9 @@ if ($TextureSpanRowPath -eq 'norowcross') {
 }
 if ($TextureSpanLoadOrder -eq 'loadfirst') {
     $profileSuffixParts += 'spanloadfirst'
+}
+if ($TextureSpanAddressing -eq 'branch') {
+    $profileSuffixParts += 'spanaddrbranch'
 }
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
@@ -376,6 +390,9 @@ try {
     if ($TextureSpanLoadOrder -eq 'loadfirst') {
         $asmFlags += '-DASM486_SPAN16_LOAD_FIRST'
     }
+    if ($TextureSpanAddressing -eq 'branch') {
+        $asmFlags += '-DASM486_SPAN16_BRANCH_ADDRESS'
+    }
     if ($ZSpanNegativeUnroll -eq 'unroll8') {
         $asmFlags += '-DASM486_ZSPAN_NEG_UNROLL8'
     }
@@ -439,6 +456,7 @@ try {
         textureSpanTailStores = $TextureSpanTailStores
         textureSpanRowPath = $TextureSpanRowPath
         textureSpanLoadOrder = $TextureSpanLoadOrder
+        textureSpanAddressing = $TextureSpanAddressing
         zSpanNegativeUnroll = $ZSpanNegativeUnroll
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation

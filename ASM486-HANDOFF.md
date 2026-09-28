@@ -9,6 +9,91 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Fresh control and PROFILE486 baseline (2026-09-28)
+
+The exact-parity pass was re-established from the current source before the
+new experiment.  The aggressive DJGPP i486 control build used the pinned
+`tools\dosbox-x-486-high.conf` profile, CWSDPMI, the Steam `id1` data root,
+and the current default selectors (`TextureSpanAddressing=control`).  The
+benchmark executable is
+`out\dos-memasm-zneg4-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe`
+with SHA-256
+`0A9E78074153380228072A257D979E968887C7AD2311EC2DCCAAA162DC2C9EE1`.
+
+The fresh gate artifacts are:
+
+```text
+correctness: out\dos-bench-20260928-122205\bench-result.json
+smoke:       out\dos-smoke\smoke-result.json
+timedemo:    out\dos-timedemo-20260928-123125\timedemo-result.json
+PROFILE486:  out\dos-timedemo-20260928-123502\timedemo-result.json
+```
+
+Correctness reported `486 benchmark correctness PASS` with end checksum
+`2378409472`; smoke exited cleanly with DOSBox-X and Quake exit codes `0`.
+The three release timedemo runs all completed 969 frames with framebuffer
+checksum `1047377823`:
+
+```text
+59.408238 / 59.408105 / 59.408106 seconds
+median 59.408106 seconds, 16.310905 FPS
+```
+
+The fresh PROFILE486 run took 67.271354 seconds for attribution only.  Its
+self-time ranking was texture spans 28.11%, alias models 13.38%, world BSP
+11.49%, surface cache 10.03%, Z spans 9.37%, and edge scanning 9.00%.
+Texture spans remain the largest renderer hotspot; the next eligible hotspot
+after the rejected address experiment is alias-model rasterization.
+
+After leaving the candidate opt-in, the default selectors were rebuilt again.
+The final control `qbench.exe` SHA-256 is
+`90AF568DE3DC9B8862EF7BB40D2477FB74A75E406CFD70E0A8E044A1064CFA11`; the
+normal `quake.exe` SHA-256 is
+`C4FD4C4DB5D303479CF02368DFF3100CD96811EB6B1AA9AF8AEAC1C5EE1A254B`.
+The post-change control timedemo
+`out\dos-timedemo-20260928-130729\timedemo-result.json` again completed 969
+frames in 59.408233 seconds at 16.310870 FPS with checksum `1047377823`.
+The final control smoke result in `out\dos-smoke\smoke-result.json` reports
+DOSBox-X and Quake exit codes both `0`.
+
+### Texture-span address-update experiment (2026-09-28)
+
+The full 16-pixel word-store texture loop has an opt-in
+`-TextureSpanAddressing control|branch` selector.  `branch` replaces the
+indexed two-entry `advancetable` lookup with direct base/extra address adds
+selected by the T carry, while retaining the S carry and the original sample
+and store sequence.  It is restricted to `TextureSpanStores=word`,
+`TextureSpanLoadOrder=control`, and `TextureSpanRowPath=control`.
+`control` remains the production default.
+
+The candidate build was isolated under
+`out\dos-memasm-spanaddrbranch-zneg4-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm`.
+Its benchmark `qbench.exe` SHA-256 is
+`8D44EA9AC5E3002B05E7E0C25B8697166AA8BF6D7DD4FE85A080A4173334694E`; the
+normal smoke executable SHA-256 is
+`B14F6732726AB59DF860D4AC97D81C9314FC1481705872B95E1310750BB96FA2`.
+The selector and build metadata are recorded in the result JSON files.
+
+The candidate correctness result
+`out\dos-bench-20260928-124646\bench-result.json` reported
+`486 benchmark correctness PASS` and end checksum `2378409472`.  The
+candidate smoke result was also a clean DOSBox-X/Quake exit.  However, the
+release timedemo result
+`out\dos-timedemo-20260928-125539\timedemo-result.json` exposed a parity
+failure: all three 969-frame runs produced framebuffer checksum `2110466403`
+instead of the required `1047377823`.
+
+```text
+branch: 60.664292 / 60.664491 / 60.664483 seconds
+median 60.664483 seconds, 15.973103 FPS
+```
+
+The candidate was `1.256377` seconds (`2.114824%`) slower than the fresh
+control median and failed the release checksum gate, so it is rejected for
+promotion.  It remains an explicit opt-in only to reproduce the rejection;
+the default control path is unchanged.  The next pass should move to the
+alias-model rasterizer hotspot, then world BSP if no exact-parity win appears.
+
 ### Current reproducibility note (2026-09-26)
 
 ASM/setup: D_SetupFrame now lazily rebuilds viewspantable only when the active
@@ -237,9 +322,11 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
 - `word`: 16-pixel texture-span stores are the production default.  The full
   segment path packs adjacent destination pixels with `movw` while preserving
   the original sampling/DDA order.  Three matched runs measured
-  `59.497438 / 59.497242 / 59.497252` seconds (median `59.497252`), with
-  checksum `4154140932` on every run.  `byte` remains the original unrolled
+  `59.408238 / 59.408105 / 59.408106` seconds (median `59.408106`), with
+  checksum `1047377823` on every run.  `byte` remains the original unrolled
   control path; dword packing and the stosb loop remain explicit alternatives.
+  The earlier `59.497xxx` / `4154140932` measurements are historical and are
+  not comparable with the current seeded workload.
 - C: memory helpers, texture-axis cache predicate, surface-cache predicate,
   mip-level selection, BSP plane-dot, and BSP frustum clipping.
 - ASM: generic lightmap style accumulation is now the production default via
@@ -427,11 +514,16 @@ not source and must not be committed.
 
 ## Completed experiments and decisions
 
-All focused runs used alternating C/ASM samples and ended with
-`486 benchmark correctness PASS`; accepted paths also passed matched `demo1`
-timedemos with 969 frames and framebuffer checksum `4154140932` on every run.
-The percentages below are DOSBox-X evidence, not a claim about all physical
-486 variants.
+This ledger contains historical measurements from multiple benchmark
+generations.  Entries using framebuffer checksum `4154140932` predate the
+current `srand(1)` seeded workload; the current release authority is 969
+frames with checksum `1047377823`, as recorded in the fresh control section
+above.  Do not compare timings across those checksum generations.
+
+The entries below preserve their original alternating C/ASM evidence and
+checksums; newer exact-parity results are recorded in the current sections
+above.  The percentages below are DOSBox-X evidence, not a claim about all
+physical 486 variants.
 
 | Experiment | Focused result | Timedemo result | Decision |
 | --- | --- | --- | --- |
