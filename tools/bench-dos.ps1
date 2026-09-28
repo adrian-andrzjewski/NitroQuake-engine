@@ -28,6 +28,8 @@ param(
     [string]$TextureSpanLoadOrder = 'control',
     [ValidateSet('control', 'branch')]
     [string]$TextureSpanAddressing = 'control',
+    [ValidateSet('control', 'branch')]
+    [string]$AliasSpanAddressing = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('c', 'asm')]
@@ -146,6 +148,9 @@ if ($TextureSpanLoadOrder -eq 'loadfirst') {
 if ($TextureSpanAddressing -eq 'branch') {
     $profileSuffixParts += 'spanaddrbranch'
 }
+if ($AliasSpanAddressing -eq 'branch') {
+    $profileSuffixParts += 'aliasspanaddrbranch'
+}
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
 }
@@ -230,6 +235,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         TextureSpanRowPath = $TextureSpanRowPath
         TextureSpanLoadOrder = $TextureSpanLoadOrder
         TextureSpanAddressing = $TextureSpanAddressing
+        AliasSpanAddressing = $AliasSpanAddressing
         ZSpanNegativeUnroll = $ZSpanNegativeUnroll
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
@@ -401,6 +407,7 @@ $result = [ordered]@{
     textureSpanRowPath = $TextureSpanRowPath
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
+    aliasSpanAddressing = $AliasSpanAddressing
     zSpanNegativeUnroll = $ZSpanNegativeUnroll
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation

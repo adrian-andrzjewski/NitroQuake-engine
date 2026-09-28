@@ -16,6 +16,8 @@ param(
     [string]$TextureSpanLoadOrder = 'control',
     [ValidateSet('control', 'branch')]
     [string]$TextureSpanAddressing = 'control',
+    [ValidateSet('control', 'branch')]
+    [string]$AliasSpanAddressing = 'control',
     [int]$TimeoutSeconds = 90
 )
 
@@ -42,6 +44,7 @@ if ($OptimizationProfile -eq 'baseline') { $profileSuffixParts += 'baseline' }
 if ($MemoryImplementation -eq 'asm') { $profileSuffixParts += 'memasm' }
 if ($TextureSpanLoadOrder -eq 'loadfirst') { $profileSuffixParts += 'spanloadfirst' }
 if ($TextureSpanAddressing -eq 'branch') { $profileSuffixParts += 'spanaddrbranch' }
+if ($AliasSpanAddressing -eq 'branch') { $profileSuffixParts += 'aliasspanaddrbranch' }
 $profileSuffixParts += 'zneg4'
 if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
@@ -77,6 +80,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         DynamicLightImplementation = $DynamicLightImplementation
         TextureSpanLoadOrder = $TextureSpanLoadOrder
         TextureSpanAddressing = $TextureSpanAddressing
+        AliasSpanAddressing = $AliasSpanAddressing
     }
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
@@ -213,6 +217,7 @@ $result = [ordered]@{
     aliasPrepareImplementation = $AliasPrepareImplementation
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
+    aliasSpanAddressing = $AliasSpanAddressing
     timeoutSeconds = $TimeoutSeconds
 }
 $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingRoot 'smoke-result.json') -Encoding ASCII

@@ -54,6 +54,28 @@ lzistepx:		.long	0
 
 	.text
 
+#ifdef ASM486_ALIAS_SPAN_BRANCH_ADDRESS
+// Opt-in alias-span address-update experiment.  Test the T-carry mask before
+// the S update so the ADC below still consumes the S carry.  The control
+// expansion is the original indexed two-entry advance-table operation.
+.macro ALIAS_SPAN_ADVANCE
+	testl	%eax,%eax
+	jz	.LAliasSpanNoCarry\@
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable,%esi
+	jmp	.LAliasSpanDone\@
+.LAliasSpanNoCarry\@:
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4,%esi
+.LAliasSpanDone\@:
+.endm
+#else
+.macro ALIAS_SPAN_ADVANCE
+	addl	C(a_sstepxfrac),%ebx
+	adcl	advancetable+4(,%eax,4),%esi
+.endm
+#endif
+
 	.extern C(D_PolysetSetEdgeTable)
 	.extern C(D_RasterizeAliasPolySmooth)
 
@@ -843,8 +865,7 @@ Lp1:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw7:
 	cmpw	2(%ecx),%bp
@@ -860,8 +881,7 @@ Lp2:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw6:
 	cmpw	4(%ecx),%bp
@@ -877,8 +897,7 @@ Lp3:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw5:
 	cmpw	6(%ecx),%bp
@@ -894,8 +913,7 @@ Lp4:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw4:
 	cmpw	8(%ecx),%bp
@@ -911,8 +929,7 @@ Lp5:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw3:
 	cmpw	10(%ecx),%bp
@@ -928,8 +945,7 @@ Lp6:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw2:
 	cmpw	12(%ecx),%bp
@@ -945,8 +961,7 @@ Lp7:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw1:
 	cmpw	14(%ecx),%bp
@@ -967,8 +982,7 @@ Lp8:
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
 // a_sstepxfrac low word is 0, so %bx (already decremented) is preserved.
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 	addl	$8,%edi
 	addl	$16,%ecx
@@ -989,8 +1003,7 @@ Lq16p1:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw15:
 	cmpw	2(%ecx),%bp
@@ -1006,8 +1019,7 @@ Lq16p2:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw14:
 	cmpw	4(%ecx),%bp
@@ -1023,8 +1035,7 @@ Lq16p3:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw13:
 	cmpw	6(%ecx),%bp
@@ -1040,8 +1051,7 @@ Lq16p4:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw12:
 	cmpw	8(%ecx),%bp
@@ -1057,8 +1067,7 @@ Lq16p5:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw11:
 	cmpw	10(%ecx),%bp
@@ -1074,8 +1083,7 @@ Lq16p6:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw10:
 	cmpw	12(%ecx),%bp
@@ -1091,8 +1099,7 @@ Lq16p7:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 LDraw9:
 	cmpw	14(%ecx),%bp
@@ -1111,8 +1118,7 @@ Lq16p8:
 	sbbl	%eax,%eax
 	addl	lzistepx,%ebp
 	adcl	$0,%ebp
-	addl	C(a_sstepxfrac),%ebx
-	adcl	advancetable+4(,%eax,4),%esi
+	ALIAS_SPAN_ADVANCE
 
 	addl	$8,%edi
 	addl	$16,%ecx

@@ -56,6 +56,55 @@ frames in 59.408233 seconds at 16.310870 FPS with checksum `1047377823`.
 The final control smoke result in `out\dos-smoke\smoke-result.json` reports
 DOSBox-X and Quake exit codes both `0`.
 
+### Alias-span address-update experiment (2026-09-28)
+
+The next alias-rasterizer experiment adds an opt-in
+-AliasSpanAddressing control|branch selector.  branch defines
+ASM486_ALIAS_SPAN_BRANCH_ADDRESS in D_PolysetAff8Start, replacing the
+indexed two-entry advancetable lookup with direct base/extra address updates
+selected by the T-carry mask.  The candidate tests that mask before the
+S-carry-producing update, then uses a fixed ADC displacement; sample order,
+depth tests, light/colormap lookup, destination writes, span tails, and the
+control path remain unchanged.  control is still the production default.
+
+Both variants used the aggressive DJGPP GCC 12.2.0 i486 profile
+(-O3 -march=i486), 83 retained C sources, 21 assembly sources, the pinned
+DOSBox-X 486 profile, CWSDPMI, and the legal Steam id1 data root.  The
+isolated executable hashes are:
+
+| artifact | control | branch candidate |
+| --- | --- | --- |
+| qbench.exe | F93123A52971DDD57C4B070DBC9E88C4DE2AD36B270C4203B0A141AE4749E749 | C2430CC7A4DB3D7983B5F35E8B5081925D5C44E0FC29FF777D45693CC64898A8 |
+| quake.exe | C7989BEEBA18D22DCB1D1D467124F2B5E04A8D06DE6DF96BD083B8F21E6D5FD1 | 0CBE9F2B4F01EDF05BDDD80F7CD670A9F3C258589033009DB626EA2BFBAE0F8D |
+
+The correctness results are
+out\dos-bench-20260928-134700\bench-result.json for control and
+out\dos-bench-20260928-133843\bench-result.json for the candidate.  Both
+reported DOSBox-X exit 0, 486 benchmark correctness PASS, and end checksum
+2378409472.  The candidate smoke evidence is
+out\dos-smoke-aliasspanaddrbranch-result.json with clean DOSBox-X/Quake
+exits; the final default-control smoke result is
+out\dos-smoke\smoke-result.json.
+
+The independent alternating release samples were:
+
+| variant | samples (seconds) | median | median FPS | spread |
+| --- | --- | ---: | ---: | ---: |
+| control | 59.408173 / 59.408253 / 59.408238 | 59.408238 | 16.310869 | 0.000080 |
+| branch | 60.056674 / 59.593444 / 59.593426 | 59.593444 | 16.260178 | 0.463248 |
+
+Every run completed 969 frames with framebuffer checksum 1047377823.  The
+branch median is 0.185206 seconds (0.311751%) slower than control, so it
+fails the required 0.05% promotion threshold and remains opt-in only.  No
+visual-quality, resolution, presentation, scene, or timing changes were made.
+The final default-control closure timedemo is
+out\dos-timedemo-20260928-140755\timedemo-result.json: 969 frames,
+59.408222 seconds, and checksum 1047377823.
+
+The current PROFILE486 attribution remains texture spans at 28.11%, alias
+models at 13.38%, and world BSP at 11.49%; after rejecting this alias-span
+address path, world BSP traversal is the next hotspot to investigate.
+
 ### Texture-span address-update experiment (2026-09-28)
 
 The full 16-pixel word-store texture loop has an opt-in

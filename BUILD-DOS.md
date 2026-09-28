@@ -444,6 +444,72 @@ the default. Release evidence is in
 `out\dos-timedemo-20260928-110347` (local). The profile ranking and counters
 are diagnostic attribution, not release timing.
 
+### Alias-span address-update experiment (2026-09-28)
+
+The alias-model affine span loop has an opt-in
+-AliasSpanAddressing control|branch selector.  branch defines
+ASM486_ALIAS_SPAN_BRANCH_ADDRESS and replaces the indexed two-entry
+advancetable address update with direct base/extra adds selected by the
+T-carry mask.  It tests the mask before updating the S accumulator so the
+following ADC still consumes the S carry.  The candidate preserves the
+existing sampling, depth-test, lighting, colormap, destination-store, tail,
+and span sequencing.  control remains the default and the selector is
+recorded in build manifests, benchmark results, smoke results, and timedemo
+results.
+
+The reproducible commands are:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasSpanAddressing control
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasSpanAddressing branch
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing branch -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasSpanAddressing control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+~~~
+
+Both builds used DJGPP GCC 12.2.0, target i586-pc-msdosdjgpp,
+-O3 -march=i486, 83 retained C sources, and 21 assembly sources.  The
+control and candidate hashes are:
+
+| artifact | control | branch candidate |
+| --- | --- | --- |
+| qbench.exe | F93123A52971DDD57C4B070DBC9E88C4DE2AD36B270C4203B0A141AE4749E749 | C2430CC7A4DB3D7983B5F35E8B5081925D5C44E0FC29FF777D45693CC64898A8 |
+| quake.exe | C7989BEEBA18D22DCB1D1D467124F2B5E04A8D06DE6DF96BD083B8F21E6D5FD1 | 0CBE9F2B4F01EDF05BDDD80F7CD670A9F3C258589033009DB626EA2BFBAE0F8D |
+
+Correctness passed for both variants with end checksum 2378409472:
+control evidence is out\dos-bench-20260928-134700\bench-result.json, and
+candidate evidence is out\dos-bench-20260928-133843\bench-result.json.
+The candidate smoke evidence is
+out\dos-smoke-aliasspanaddrbranch-result.json with DOSBox-X and Quake exit
+codes 0; the final control smoke evidence is out\dos-smoke\smoke-result.json.
+
+The alternating release timedemos all completed 969 frames with framebuffer
+checksum 1047377823:
+
+| path | samples (seconds) | median | median FPS | spread |
+| --- | --- | ---: | ---: | ---: |
+| control | 59.408173 / 59.408253 / 59.408238 | 59.408238 | 16.310869 | 0.000080 |
+| branch | 60.056674 / 59.593444 / 59.593426 | 59.593444 | 16.260178 | 0.463248 |
+
+The candidate is 0.185206 seconds (0.311751%) slower than control and
+does not clear the required 0.05% promotion threshold.  It is rejected for
+promotion but retained as an explicit opt-in experiment; control remains
+the production default.  Release evidence is in
+out\dos-timedemo-20260928-135812,
+out\dos-timedemo-20260928-135924,
+out\dos-timedemo-20260928-140039,
+out\dos-timedemo-20260928-140209,
+out\dos-timedemo-20260928-140329, and
+out\dos-timedemo-20260928-140445.  The final rebuilt control closure is
+out\dos-timedemo-20260928-140755\timedemo-result.json and reports
+59.408222 seconds with checksum 1047377823.
+
+The PROFILE486 ranking that motivated this pass remains texture spans at
+28.11%, alias models at 13.38%, and world BSP at 11.49%; world BSP
+traversal is the next hotspot after this rejected candidate.
+
 ### Texture-span tail-store experiment (2026-09-28)
 
 The variable-length final segment of `D_DrawSpans16` has a separate selector,

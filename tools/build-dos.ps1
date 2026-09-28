@@ -28,6 +28,8 @@ param(
     [string]$TextureSpanLoadOrder = 'control',
     [ValidateSet('control', 'branch')]
     [string]$TextureSpanAddressing = 'control',
+    [ValidateSet('control', 'branch')]
+    [string]$AliasSpanAddressing = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('c', 'asm')]
@@ -151,6 +153,9 @@ if ($TextureSpanLoadOrder -eq 'loadfirst') {
 }
 if ($TextureSpanAddressing -eq 'branch') {
     $profileSuffixParts += 'spanaddrbranch'
+}
+if ($AliasSpanAddressing -eq 'branch') {
+    $profileSuffixParts += 'aliasspanaddrbranch'
 }
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
@@ -393,6 +398,9 @@ try {
     if ($TextureSpanAddressing -eq 'branch') {
         $asmFlags += '-DASM486_SPAN16_BRANCH_ADDRESS'
     }
+    if ($AliasSpanAddressing -eq 'branch') {
+        $asmFlags += '-DASM486_ALIAS_SPAN_BRANCH_ADDRESS'
+    }
     if ($ZSpanNegativeUnroll -eq 'unroll8') {
         $asmFlags += '-DASM486_ZSPAN_NEG_UNROLL8'
     }
@@ -457,6 +465,7 @@ try {
         textureSpanRowPath = $TextureSpanRowPath
         textureSpanLoadOrder = $TextureSpanLoadOrder
         textureSpanAddressing = $TextureSpanAddressing
+        aliasSpanAddressing = $AliasSpanAddressing
         zSpanNegativeUnroll = $ZSpanNegativeUnroll
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
