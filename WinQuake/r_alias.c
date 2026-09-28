@@ -343,12 +343,45 @@ void R_AliasPreparePoints (void)
 	auxvert_t	*av;
 	mtriangle_t	*ptri;
 	finalvert_t	*pfv[3];
+#ifdef ASM486_ALIAS_PREPARE_LOCAL
+	trivertx_t	*pverts;
+#endif
 
 	pstverts = (stvert_t *)((byte *)paliashdr + paliashdr->stverts);
 	r_anumverts = pmdl->numverts;
  	fv = pfinalverts;
 	av = pauxverts;
 
+#ifdef ASM486_ALIAS_PREPARE_LOCAL
+	/*
+	 * The transform/project helpers do not mutate r_apverts.  Keep only the
+	 * advancing source cursor local; retain the original clip-bound loads and
+	 * comparison order because a prior aliasvrect-hoist experiment was
+	 * rejected.  Publish the advanced source cursor after the loop because
+	 * the control path leaves r_apverts at the same post-incremented address.
+	 */
+	pverts = r_apverts;
+	for (i=0 ; i<r_anumverts ; i++, fv++, av++, pverts++, pstverts++)
+	{
+		R_AliasTransformFinalVert (fv, av, pverts, pstverts);
+		if (av->fv[2] < ALIAS_Z_CLIP_PLANE)
+			fv->flags |= ALIAS_Z_CLIP;
+		else
+		{
+			R_AliasProjectFinalVertDispatch (fv, av);
+
+			if (fv->v[0] < r_refdef.aliasvrect.x)
+				fv->flags |= ALIAS_LEFT_CLIP;
+			if (fv->v[1] < r_refdef.aliasvrect.y)
+				fv->flags |= ALIAS_TOP_CLIP;
+			if (fv->v[0] > r_refdef.aliasvrectright)
+				fv->flags |= ALIAS_RIGHT_CLIP;
+			if (fv->v[1] > r_refdef.aliasvrectbottom)
+				fv->flags |= ALIAS_BOTTOM_CLIP;
+		}
+	}
+	r_apverts = pverts;
+#else
 	for (i=0 ; i<r_anumverts ; i++, fv++, av++, r_apverts++, pstverts++)
 	{
 		R_AliasTransformFinalVert (fv, av, r_apverts, pstverts);
@@ -368,6 +401,7 @@ void R_AliasPreparePoints (void)
 				fv->flags |= ALIAS_BOTTOM_CLIP;	
 		}
 	}
+#endif
 
 //
 // clip and draw all triangles

@@ -135,6 +135,62 @@ Final closure validation after the control rebuild passed as well:
 candidate `out\dos-smoke\smoke-result.json` records DOSBox-X and Quake exit
 codes both `0`.
 
+### Alias-model prepare source-cursor experiment (2026-09-28)
+
+The final PROFILE486 control ranked texture spans at `28.11%` self time, alias
+models at `13.38%`, world BSP at `11.49%`, surface cache at `10.03%`, Z spans
+at `9.37%`, and edge-scan self at `9.00%`; alias work was 5,470 models and
+417,090 vertices. The new build-time selector is
+`-AliasPrepareImplementation control|local`, with `control` unchanged as the
+production default. The `local` candidate only carries `r_apverts` through
+`R_AliasPreparePoints` in a local pointer, then publishes the same final
+post-incremented cursor. Clip-bound loads, helper/comparison order, fixed-point
+and x87 behavior, flags, simulation, audio, and framebuffer writes remain
+unchanged. The previously rejected `aliasvrect`-local hoist was not retried.
+
+Both final builds used DJGPP GCC 12.2.0, target `i586-pc-msdosdjgpp`,
+`-O3 -march=i486`, 83 C sources, and 21 assembly sources. The control and
+candidate `qbench.exe` hashes are respectively
+`18C5A92B2F6CB0DF6BB10BADDDA1491BB0BCFC11738BB80A80B56A939FBCCA33` and
+`876B1AD6C22BFEC9B1CC6048F5E97A01A8F34B45D64E55522D30BE81D6A1580A`; the
+instrumented `qprof.exe` hashes are
+`CFEA0ED0F24DC7F85F99CD57C6B8BDCA27B36460317699D453564F61BEEB151B` and
+`3729E13DECDB7F203E0F939E1ABE5193882976AEB3A5C7792F0D3A255CBEBEDE`.
+The build manifests record the selector and keep the candidate in the
+`...-aliaslocal...` output family. Their `sourceCommit` is
+`de1d41d12d3e54286291c59e35822e27182e2228`; the selector and source-cursor
+change are the intentional working-tree patch under test.
+
+The benchmark, timedemo, and smoke wrapper auto-build paths also use named
+parameter forwarding, so a missing isolated executable cannot misbind a
+selector or benchmark switch. Explicit build followed by `-SkipBuild` remains
+the preferred measured workflow.
+
+The control correctness result is
+`out\dos-bench-20260928-111615\bench-result.json`; the candidate result is
+`out\dos-bench-20260928-104656\bench-result.json`. Both passed
+`486 benchmark correctness PASS` with end checksum `2378409472` and DOSBox-X
+exit code `0`. The candidate smoke result reports DOSBox-X and Quake exit code
+`0`.
+
+The fresh alternating release set was:
+
+```text
+control: 59.408180 / 59.408212 / 59.408172 s, median 59.408180 s, 16.310885 FPS
+local:   59.404173 / 59.404192 / 59.404109 s, median 59.404173 s, 16.311986 FPS
+```
+
+Every run completed 969 frames with framebuffer checksum `1047377823`. The
+candidate median is `0.004007` seconds faster (`0.006745%`), with maximum
+within-variant spread `0.000083` seconds. It still fails the required `0.05%`
+promotion threshold, so it is rejected and retained only as an opt-in
+experiment; `control` remains the default. Release results are in
+`out\dos-timedemo-20260928-110615`, `...-110752`, `...-110904`,
+`...-111017`, `...-111130`, and `...-111242`. The control and candidate
+PROFILE486 runs are `out\dos-timedemo-20260928-111433` and
+`out\dos-timedemo-20260928-110347`; their instrumented timings are attribution
+evidence only.
+
 ### Texture-span tail-store experiment (2026-09-28)
 
 The variable-length final segment of `D_DrawSpans16` has an opt-in

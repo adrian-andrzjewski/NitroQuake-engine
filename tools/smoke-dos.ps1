@@ -8,6 +8,8 @@ param(
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet('c', 'asm')]
     [string]$MemoryImplementation = 'asm',
+    [ValidateSet('control', 'local')]
+    [string]$AliasPrepareImplementation = 'control',
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'c',
     [ValidateSet('control', 'loadfirst')]
@@ -38,6 +40,7 @@ if ($OptimizationProfile -eq 'baseline') { $profileSuffixParts += 'baseline' }
 if ($MemoryImplementation -eq 'asm') { $profileSuffixParts += 'memasm' }
 if ($TextureSpanLoadOrder -eq 'loadfirst') { $profileSuffixParts += 'spanloadfirst' }
 $profileSuffixParts += 'zneg4'
+if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
 $profileSuffixParts += 'lightmapstylesasm'
 $profileSuffixParts += 'fusedlightmapasm'
@@ -63,14 +66,18 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     if ($SkipBuild) {
         throw "DOS executable not found at '$djgppExe'. Run build-dos.ps1 first or omit -SkipBuild."
     }
-    $buildArgs = @('-ToolRoot', $ToolRoot, '-OptimizationProfile', $OptimizationProfile,
-        '-MemoryImplementation', $MemoryImplementation,
-        '-DynamicLightImplementation', $DynamicLightImplementation,
-        '-TextureSpanLoadOrder', $TextureSpanLoadOrder)
-    if ($NoBootstrap) {
-        $buildArgs += '-NoBootstrap'
+    $buildParams = @{
+        ToolRoot = $ToolRoot
+        OptimizationProfile = $OptimizationProfile
+        MemoryImplementation = $MemoryImplementation
+        AliasPrepareImplementation = $AliasPrepareImplementation
+        DynamicLightImplementation = $DynamicLightImplementation
+        TextureSpanLoadOrder = $TextureSpanLoadOrder
     }
-    & $build @buildArgs
+    if ($NoBootstrap) {
+        $buildParams['NoBootstrap'] = $true
+    }
+    & $build @buildParams
 }
 if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     throw "Required DOS executable is missing: '$djgppExe'."
@@ -199,6 +206,7 @@ $result = [ordered]@{
     executable = $djgppExe
     dataRoot = $DataRoot
     dynamicLightImplementation = $DynamicLightImplementation
+    aliasPrepareImplementation = $AliasPrepareImplementation
     textureSpanLoadOrder = $TextureSpanLoadOrder
     timeoutSeconds = $TimeoutSeconds
 }

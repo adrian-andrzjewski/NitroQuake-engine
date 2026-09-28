@@ -316,6 +316,79 @@ candidate smoke result is `out\dos-smoke\smoke-result.json`, with DOSBox-X and
 Quake exit codes both `0`. These checks confirm the retained opt-in candidate
 after the documented timedemo comparison.
 
+### Alias-model prepare source-cursor experiment (2026-09-28)
+
+The PROFILE486 rerun selected alias-model work as the next eligible hotspot
+after the texture-span experiments: texture spans were `28.11%` of profiled
+self time, alias models `13.38%`, world BSP `11.49%`, surface cache `10.03%`,
+Z spans `9.37%`, and edge-scan self `9.00%`. The alias workload was 5,470
+models and 417,090 vertices. The new `-AliasPrepareImplementation
+control|local` selector keeps `control` as the production default. `local`
+only carries `r_apverts` through `R_AliasPreparePoints` in a local source
+pointer and publishes the same post-incremented cursor after the loop. It
+retains the original clip-bound loads, helper calls, fixed-point/x87 behavior,
+comparison order, flag writes, simulation, audio, and framebuffer writes. It
+does not retry the previously rejected `aliasvrect` local hoist.
+
+The final matched commands were:
+
+~~~powershell
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasPrepareImplementation control
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasPrepareImplementation local
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation local -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 120
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasPrepareImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasPrepareImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+~~~
+
+Both builds used `i586-pc-msdosdjgpp-gcc.exe (GCC) 12.2.0`, target
+`i586-pc-msdosdjgpp`, aggressive `-O3 -march=i486`, 83 retained C sources
+(82 standalone), and 21 assembly sources. The build manifests record
+`aliasPrepareImplementation`, and both output families are isolated under
+`out\dos-memasm-zneg4-...` and `out\dos-memasm-zneg4-aliaslocal-...`.
+Their `sourceCommit` is `de1d41d12d3e54286291c59e35822e27182e2228`; the
+selector and source-cursor change are the intentional working-tree patch under
+test.
+
+The benchmark, timedemo, and smoke wrappers now forward auto-build parameters
+by name, preserving the selected implementation when an isolated executable
+is absent. The reproducible measured workflow remains an explicit build
+followed by `-SkipBuild`.
+
+| artifact | control | local candidate |
+| --- | --- | --- |
+| `qbench.exe` SHA-256 | `18C5A92B2F6CB0DF6BB10BADDDA1491BB0BCFC11738BB80A80B56A939FBCCA33` | `876B1AD6C22BFEC9B1CC6048F5E97A01A8F34B45D64E55522D30BE81D6A1580A` |
+| instrumented `qprof.exe` SHA-256 | `CFEA0ED0F24DC7F85F99CD57C6B8BDCA27B36460317699D453564F61BEEB151B` | `3729E13DECDB7F203E0F939E1ABE5193882976AEB3A5C7792F0D3A255CBEBEDE` |
+
+The control correctness result is `out\dos-bench-20260928-111615\bench-result.json`
+and the candidate result is `out\dos-bench-20260928-104656\bench-result.json`.
+Both report DOSBox-X exit code `0`, `486 benchmark correctness PASS`, and end
+checksum `2378409472`. The candidate normal executable is
+`out\dos-memasm-zneg4-aliaslocal-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\quake.exe`
+(SHA-256 `B548C523E48921CC1073D4DF7E046B5EDFE108065A80506AB8CDED6CE89B19C6`);
+`out\dos-smoke\smoke-result.json` reports DOSBox-X and Quake exit codes both
+`0`.
+
+The matching release timedemo pairs all completed 969 frames with framebuffer
+checksum `1047377823`:
+
+| variant | samples (seconds) | median | median FPS |
+| --- | --- | ---: | ---: |
+| control | 59.408180 / 59.408212 / 59.408172 | 59.408180 | 16.310885 |
+| local | 59.404173 / 59.404192 / 59.404109 | 59.404173 | 16.311986 |
+
+The candidate median is `0.004007` seconds faster, or `0.006745%`, while the
+largest within-variant spread is `0.000083` seconds. This does not clear the
+required `0.05%` repeatable-improvement gate, so the candidate is rejected for
+promotion and remains an explicit opt-in experiment. The control selector stays
+the default. Release evidence is in
+`out\dos-timedemo-20260928-110615`, `...-110752`, `...-110904`,
+`...-111017`, `...-111130`, and `...-111242`; attribution profiles are in
+`out\dos-timedemo-20260928-111433` (control) and
+`out\dos-timedemo-20260928-110347` (local). The profile ranking and counters
+are diagnostic attribution, not release timing.
+
 ### Texture-span tail-store experiment (2026-09-28)
 
 The variable-length final segment of `D_DrawSpans16` has a separate selector,

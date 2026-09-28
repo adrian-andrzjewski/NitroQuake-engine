@@ -34,6 +34,8 @@ param(
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
+    [ValidateSet('control', 'local')]
+    [string]$AliasPrepareImplementation = 'control',
     [ValidateSet('c', 'special')]
     [string]$AliasMatrixCompositionImplementation = 'special',
     [ValidateSet('c', 'asm')]
@@ -145,6 +147,9 @@ if ($AliasBBoxProjectImplementation -eq 'c') {
 if ($AliasTransformFinalImplementation -eq 'c') {
     $profileSuffixParts += 'aliastransformc'
 }
+if ($AliasPrepareImplementation -eq 'local') {
+$profileSuffixParts += 'aliaslocal'
+}
 if ($AliasMatrixCompositionImplementation -eq 'special') {
     $profileSuffixParts += 'aliasmatrixspecial'
 }
@@ -197,34 +202,38 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
     }
 
-    $buildArgs = @('-Benchmark', '-OptimizationProfile', $OptimizationProfile,
-        '-TextureAxisCacheEntries', $TextureAxisCacheEntries,
-        '-TextureAxisImplementation', $TextureAxisImplementation,
-        '-SurfaceCacheImplementation', $SurfaceCacheImplementation,
-        '-MipLevelImplementation', $MipLevelImplementation,
-        '-MemoryImplementation', $MemoryImplementation,
-        '-TurbulentImplementation', $TurbulentImplementation,
-        '-TextureSpanStores', $TextureSpanStores,
-        '-TextureSpanTailStores', $TextureSpanTailStores,
-        '-TextureSpanRowPath', $TextureSpanRowPath,
-        '-TextureSpanLoadOrder', $TextureSpanLoadOrder,
-        '-ZSpanNegativeUnroll', $ZSpanNegativeUnroll,
-        '-AliasProjectImplementation', $AliasProjectImplementation,
-        '-AliasBBoxProjectImplementation', $AliasBBoxProjectImplementation,
-        '-AliasTransformFinalImplementation', $AliasTransformFinalImplementation,
-        '-AliasMatrixCompositionImplementation', $AliasMatrixCompositionImplementation,
-        '-TextureAnimationImplementation', $TextureAnimationImplementation,
-        '-LightMapNormalizeImplementation', $LightMapNormalizeImplementation,
-        '-LightMapStylesImplementation', $LightMapStylesImplementation,
-        '-FusedLightMapImplementation', $FusedLightMapImplementation,
-        '-DynamicLightImplementation', $DynamicLightImplementation,
-        '-BspPlaneDotImplementation', $BspPlaneDotImplementation,
-        '-BspClipImplementation', $BspClipImplementation,
-        '-ToolRoot', $ToolRoot)
-    if ($NoBootstrap) {
-        $buildArgs += '-NoBootstrap'
+    $buildParams = @{
+        Benchmark = $true
+        OptimizationProfile = $OptimizationProfile
+        TextureAxisCacheEntries = $TextureAxisCacheEntries
+        TextureAxisImplementation = $TextureAxisImplementation
+        SurfaceCacheImplementation = $SurfaceCacheImplementation
+        MipLevelImplementation = $MipLevelImplementation
+        MemoryImplementation = $MemoryImplementation
+        TurbulentImplementation = $TurbulentImplementation
+        TextureSpanStores = $TextureSpanStores
+        TextureSpanTailStores = $TextureSpanTailStores
+        TextureSpanRowPath = $TextureSpanRowPath
+        TextureSpanLoadOrder = $TextureSpanLoadOrder
+        ZSpanNegativeUnroll = $ZSpanNegativeUnroll
+        AliasProjectImplementation = $AliasProjectImplementation
+        AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
+        AliasTransformFinalImplementation = $AliasTransformFinalImplementation
+        AliasPrepareImplementation = $AliasPrepareImplementation
+        AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
+        TextureAnimationImplementation = $TextureAnimationImplementation
+        LightMapNormalizeImplementation = $LightMapNormalizeImplementation
+        LightMapStylesImplementation = $LightMapStylesImplementation
+        FusedLightMapImplementation = $FusedLightMapImplementation
+        DynamicLightImplementation = $DynamicLightImplementation
+        BspPlaneDotImplementation = $BspPlaneDotImplementation
+        BspClipImplementation = $BspClipImplementation
+        ToolRoot = $ToolRoot
     }
-    & $build @buildArgs
+    if ($NoBootstrap) {
+        $buildParams['NoBootstrap'] = $true
+    }
+    & $build @buildParams
 }
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
@@ -380,6 +389,7 @@ $result = [ordered]@{
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
     aliasTransformFinalImplementation = $AliasTransformFinalImplementation
+    aliasPrepareImplementation = $AliasPrepareImplementation
     aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation

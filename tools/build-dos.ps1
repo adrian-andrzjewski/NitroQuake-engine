@@ -34,6 +34,8 @@ param(
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
+    [ValidateSet('control', 'local')]
+    [string]$AliasPrepareImplementation = 'control',
     [ValidateSet('c', 'special')]
     [string]$AliasMatrixCompositionImplementation = 'special',
     [ValidateSet('c', 'asm')]
@@ -150,6 +152,9 @@ if ($AliasBBoxProjectImplementation -eq 'c') {
 }
 if ($AliasTransformFinalImplementation -eq 'c') {
     $profileSuffixParts += 'aliastransformc'
+}
+if ($AliasPrepareImplementation -eq 'local') {
+    $profileSuffixParts += 'aliaslocal'
 }
 if ($AliasMatrixCompositionImplementation -eq 'special') {
     $profileSuffixParts += 'aliasmatrixspecial'
@@ -324,6 +329,9 @@ try {
     if ($AliasTransformFinalImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_TRANSFORM_FINAL'
     }
+    if ($AliasPrepareImplementation -eq 'local') {
+        $cFlags += '-DASM486_ALIAS_PREPARE_LOCAL'
+    }
     if ($AliasMatrixCompositionImplementation -eq 'special') {
         $cFlags += '-DASM486_ALIAS_MATRIX_COMPOSE'
     }
@@ -435,6 +443,7 @@ try {
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation
+        aliasPrepareImplementation = $AliasPrepareImplementation
         aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
         textureAnimationImplementation = $TextureAnimationImplementation
         lightMapNormalizeImplementation = $LightMapNormalizeImplementation
