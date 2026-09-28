@@ -455,6 +455,22 @@ hold the DOSBox-X profile, DPMI host, data directory, command line, and random
 seed constant. Keep an implementation only when its complete timedemo improves
 repeatably and preserves the current checksum.
 
+### Cross-version comparison (2026-09-28)
+
+The current project build was also compared with the supplied `486quake.exe`
+optimization project and original `QUAKE.EXE` under the same DOSBox-X profile,
+data set, `demo1` workload, and 969-frame timedemo. The current build measured
+**16.310912 FPS** (59.408082 seconds median across three runs), compared with
+approximately **14.2 FPS** for `486quake.exe` and **13.4 FPS** for the original.
+The current build was approximately 21.9% faster than the original and 14.8%
+faster than `486quake.exe`.
+
+The detailed comparison, executable hashes, and evidence limitations are in
+[`BENCHMARK-COMPARISON.md`](BENCHMARK-COMPARISON.md). The two supplied
+executables report their result on-screen rather than producing the repository
+runner's machine-readable timing and checksum files, so their values are
+rounded single-run observations.
+
 ### Lightmap style accumulation
 
 The generic raw style-combination loop in R_BuildLightMap is selectable with
