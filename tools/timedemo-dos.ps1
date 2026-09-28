@@ -25,6 +25,8 @@ param(
     [string]$TextureSpanTailStores = 'control',
     [ValidateSet('control', 'norowcross')]
     [string]$TextureSpanRowPath = 'control',
+    [ValidateSet('control', 'loadfirst')]
+    [string]$TextureSpanLoadOrder = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('c', 'asm')]
@@ -89,6 +91,9 @@ $DataRoot = [IO.Path]::GetFullPath($DataRoot)
 if ($TimeoutSeconds -lt 30) {
     throw 'TimeoutSeconds must be at least 30 seconds.'
 }
+if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
+    throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
+}
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
 $profileSuffixParts = @()
@@ -130,6 +135,9 @@ if ($TextureSpanTailStores -eq 'word') {
 }
 if ($TextureSpanRowPath -eq 'norowcross') {
     $profileSuffixParts += 'spannorow'
+}
+if ($TextureSpanLoadOrder -eq 'loadfirst') {
+    $profileSuffixParts += 'spanloadfirst'
 }
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
@@ -212,6 +220,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         '-TextureSpanStores', $TextureSpanStores,
         '-TextureSpanTailStores', $TextureSpanTailStores,
         '-TextureSpanRowPath', $TextureSpanRowPath,
+        '-TextureSpanLoadOrder', $TextureSpanLoadOrder,
         '-ZSpanNegativeUnroll', $ZSpanNegativeUnroll,
         '-AliasProjectImplementation', $AliasProjectImplementation,
         '-AliasBBoxProjectImplementation', $AliasBBoxProjectImplementation,
@@ -584,6 +593,7 @@ $result = [ordered]@{
     textureSpanStores = $TextureSpanStores
     textureSpanTailStores = $TextureSpanTailStores
     textureSpanRowPath = $TextureSpanRowPath
+    textureSpanLoadOrder = $TextureSpanLoadOrder
     zSpanNegativeUnroll = $ZSpanNegativeUnroll
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation

@@ -24,6 +24,8 @@ param(
     [string]$TextureSpanTailStores = 'control',
     [ValidateSet('control', 'norowcross')]
     [string]$TextureSpanRowPath = 'control',
+    [ValidateSet('control', 'loadfirst')]
+    [string]$TextureSpanLoadOrder = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('c', 'asm')]
@@ -56,6 +58,9 @@ $ErrorActionPreference = 'Stop'
 
 if ($Instrumentation -and -not $Benchmark) {
     throw 'Profile builds require -Benchmark.'
+}
+if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
+    throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -127,6 +132,9 @@ if ($TextureSpanTailStores -eq 'word') {
 }
 if ($TextureSpanRowPath -eq 'norowcross') {
     $profileSuffixParts += 'spannorow'
+}
+if ($TextureSpanLoadOrder -eq 'loadfirst') {
+    $profileSuffixParts += 'spanloadfirst'
 }
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
@@ -357,6 +365,9 @@ try {
     if ($TextureSpanTailStores -eq 'word') {
         $asmFlags += '-DASM486_SPAN16_TAIL_WORD_STORES'
     }
+    if ($TextureSpanLoadOrder -eq 'loadfirst') {
+        $asmFlags += '-DASM486_SPAN16_LOAD_FIRST'
+    }
     if ($ZSpanNegativeUnroll -eq 'unroll8') {
         $asmFlags += '-DASM486_ZSPAN_NEG_UNROLL8'
     }
@@ -419,6 +430,7 @@ try {
         textureSpanStores = $TextureSpanStores
         textureSpanTailStores = $TextureSpanTailStores
         textureSpanRowPath = $TextureSpanRowPath
+        textureSpanLoadOrder = $TextureSpanLoadOrder
         zSpanNegativeUnroll = $ZSpanNegativeUnroll
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation

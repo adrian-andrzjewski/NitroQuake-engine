@@ -662,6 +662,60 @@ LSpan16LoopA:
 	stosb
 	jnz		LSpan16LoopA
 #elif defined(ASM486_SPAN16_WORD_STORES)
+#ifdef ASM486_SPAN16_LOAD_FIRST
+	// Start each independent texel load before the fixed-point updates.
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,1(%edi)
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,3(%edi)
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,5(%edi)
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,7(%edi)
+#else
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
 	movb	(%esi),%al
@@ -713,6 +767,7 @@ LSpan16LoopA:
 	movb	(%esi),%ah
 	adcl	advancetable+4(,%ecx,4),%esi
 	movw	%ax,7(%edi)
+#endif
 
 #elif defined(ASM486_SPAN16_DWORD_STORES)
 	// 486-class stores: pack four sequential dest pixels and movl them.
@@ -994,6 +1049,52 @@ LSpan16LoopB:
 	stosb
 	jnz		LSpan16LoopB
 #elif defined(ASM486_SPAN16_WORD_STORES)
+#ifdef ASM486_SPAN16_LOAD_FIRST
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,9(%edi)
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,11(%edi)
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+
+	movb	(%esi),%ah
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+	movw	%ax,13(%edi)
+
+	movb	(%esi),%al
+	addl	tstep,%edx
+	sbbl	%ecx,%ecx
+	addl	%ebp,%ebx
+	adcl	advancetable+4(,%ecx,4),%esi
+#else
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
 	movb	(%esi),%al
@@ -1038,6 +1139,7 @@ LSpan16LoopB:
 	movb	(%esi),%al
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
+#endif
 
 #elif defined(ASM486_SPAN16_DWORD_STORES)
 	movb	(%esi),%al

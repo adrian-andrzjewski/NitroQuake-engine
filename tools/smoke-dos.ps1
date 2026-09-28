@@ -10,6 +10,8 @@ param(
     [string]$MemoryImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'c',
+    [ValidateSet('control', 'loadfirst')]
+    [string]$TextureSpanLoadOrder = 'control',
     [int]$TimeoutSeconds = 90
 )
 
@@ -34,6 +36,11 @@ $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain
 $profileSuffixParts = @()
 if ($OptimizationProfile -eq 'baseline') { $profileSuffixParts += 'baseline' }
 if ($MemoryImplementation -eq 'asm') { $profileSuffixParts += 'memasm' }
+if ($TextureSpanLoadOrder -eq 'loadfirst') { $profileSuffixParts += 'spanloadfirst' }
+$profileSuffixParts += 'zneg4'
+$profileSuffixParts += 'aliasmatrixspecial'
+$profileSuffixParts += 'lightmapstylesasm'
+$profileSuffixParts += 'fusedlightmapasm'
 if ($DynamicLightImplementation -eq 'asm') { $profileSuffixParts += 'dlightasm' }
 $profileSuffix = if ($profileSuffixParts.Count) { '-' + ($profileSuffixParts -join '-') } else { '' }
 $djgppExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\quake.exe')
@@ -58,7 +65,8 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     }
     $buildArgs = @('-ToolRoot', $ToolRoot, '-OptimizationProfile', $OptimizationProfile,
         '-MemoryImplementation', $MemoryImplementation,
-        '-DynamicLightImplementation', $DynamicLightImplementation)
+        '-DynamicLightImplementation', $DynamicLightImplementation,
+        '-TextureSpanLoadOrder', $TextureSpanLoadOrder)
     if ($NoBootstrap) {
         $buildArgs += '-NoBootstrap'
     }
@@ -191,6 +199,7 @@ $result = [ordered]@{
     executable = $djgppExe
     dataRoot = $DataRoot
     dynamicLightImplementation = $DynamicLightImplementation
+    textureSpanLoadOrder = $TextureSpanLoadOrder
     timeoutSeconds = $TimeoutSeconds
 }
 $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingRoot 'smoke-result.json') -Encoding ASCII
