@@ -9,6 +9,22 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Current parity-gated closure (2026-09-28)
+
+The current release/default path remains the control implementation.  The
+latest BSP experiment is available through the opt-in
+`BspFrameCountImplementation=local` selector, but it is not promoted: the
+candidate preserved the correctness checksum (`2378409472`), clean startup,
+and the release framebuffer checksum (`1047377823`), yet its independent
+three-run median was 59.435670 seconds versus 59.408194 seconds for control
+(0.046250% slower).  This is below the required 0.05% improvement gate and is
+therefore retained only for reproducible A/B testing.
+
+The release gate remains 969 frames with checksum `1047377823`; profiling
+duration is attribution evidence, not release timing.  No visual-quality,
+resolution, presentation, scene, or timing changes are part of this pass.  The
+next eligible hotspot is the surface-cache rebuild path.
+
 ### Fresh control and PROFILE486 baseline (2026-09-28)
 
 The exact-parity pass was re-established from the current source before the

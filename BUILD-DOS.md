@@ -32,6 +32,22 @@ The experimental status and next-agent continuation plan are maintained in
 `ASM486-HANDOFF.md`.  This document is the operational reference for building,
 running, benchmarking, and interpreting the results.
 
+## Current 486 performance-pass closure
+
+The production/default renderer remains on the exact-parity control paths.  The
+latest world-BSP frame-count cache candidate is selectable with
+`-BspFrameCountImplementation local`, but is intentionally not promoted: it
+passed the correctness and smoke gates, and every release run kept 969 frames
+with framebuffer checksum `1047377823`, while the candidate median was
+59.435670 seconds versus 59.408194 seconds for control (0.046250% slower).
+The required promotion threshold is a 0.05% improvement, so `control` remains
+the release default and `local` remains an opt-in A/B experiment.
+
+The benchmark correctness checksum is `2378409472`; PROFILE486 timing is used
+only for hotspot attribution.  This pass changes no visual quality,
+resolution, presentation, scene, or timing behavior.  The next documented
+hotspot is the surface-cache rebuild path.
+
 The bootstrapper installs both tools in:
 
 ~~~text
