@@ -352,6 +352,7 @@ void R_AliasPreparePoints (void)
  	fv = pfinalverts;
 	av = pauxverts;
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_TRANSFORM);
 #ifdef ASM486_ALIAS_PREPARE_LOCAL
 	/*
 	 * The transform/project helpers do not mutate r_apverts.  Keep only the
@@ -402,12 +403,14 @@ void R_AliasPreparePoints (void)
 		}
 	}
 #endif
+	BENCH486_PROFILE_LEAVE ();
 
 //
 // clip and draw all triangles
 //
 	r_affinetridesc.numtriangles = 1;
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_RASTER);
 	ptri = (mtriangle_t *)((byte *)paliashdr + paliashdr->triangles);
 	for (i=0 ; i<pmdl->numtris ; i++, ptri++)
 	{
@@ -430,6 +433,7 @@ void R_AliasPreparePoints (void)
 			R_AliasClipTriangle (ptri);
 		}
 	}
+	BENCH486_PROFILE_LEAVE ();
 }
 
 
@@ -709,7 +713,9 @@ void R_AliasPrepareUnclippedPoints (void)
 // FIXME: just use pfinalverts directly?
 	fv = pfinalverts;
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_TRANSFORM);
 	R_AliasTransformAndProjectFinalVerts (fv, pstverts);
+	BENCH486_PROFILE_LEAVE ();
 
 	if (r_affinetridesc.drawtype)
 		D_PolysetDrawFinalVerts (fv, r_anumverts);
@@ -719,7 +725,9 @@ void R_AliasPrepareUnclippedPoints (void)
 			((byte *)paliashdr + paliashdr->triangles);
 	r_affinetridesc.numtriangles = pmdl->numtris;
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_RASTER);
 	D_PolysetDraw ();
+	BENCH486_PROFILE_LEAVE ();
 }
 
 /*
@@ -906,6 +914,7 @@ void __attribute__((regparm(1))) R_AliasDrawModel (alight_t *plighting)
 	BENCH486_PROFILE_WORK (BENCH486_PROFILE_ALIAS_MODEL, 1,
 			(unsigned long)pmdl->numverts);
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SETUP);
 	R_AliasSetupSkin ();
 	if (alias_transform_entity != currententity ||
 			alias_transform_mode != currententity->trivial_accept)
@@ -937,6 +946,7 @@ void __attribute__((regparm(1))) R_AliasDrawModel (alight_t *plighting)
 		ziscale = (float)0x8000 * (float)0x10000;
 	else
 		ziscale = (float)0x8000 * (float)0x10000 * 3.0;
+	BENCH486_PROFILE_LEAVE ();
 
 	if (currententity->trivial_accept)
 		R_AliasPrepareUnclippedPoints ();

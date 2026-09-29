@@ -9,6 +9,60 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Alias sub-node instrumentation and the alias cost breakdown (2026-09-29)
+
+The alias-model bucket is no longer a single flat bracket. `BENCH486_PROFILE_ALIAS_SETUP`,
+`BENCH486_PROFILE_ALIAS_TRANSFORM`, and `BENCH486_PROFILE_ALIAS_RASTER` were added to
+`WinQuake\quakedef.h` (immediately after `ALIAS_MODEL`) and to the name table in
+`WinQuake\host_cmd.c`. `WinQuake\r_alias.c` wraps three sub-regions of
+`R_AliasDrawModel` and its two prepare helpers: the once-per-model setup
+(`R_AliasSetupSkin` through `ziscale`, `r_alias.c:917-949`), the per-vertex
+transform/project loop (in both `R_AliasPrepareUnclippedPoints` and
+`R_AliasPreparePoints`), and the rasterizer call (the per-triangle
+`D_PolysetDraw`/`R_AliasClipTriangle` loop in `R_AliasPreparePoints`, and
+`D_PolysetDraw` in `R_AliasPrepareUnclippedPoints`). This is measurement only:
+the `PROFILE486` macros compile to `((void)0)` in release builds, and the
+release timedemo is unchanged at 969 frames and checksum `1047377823`.
+
+The breakdown from `out\dos-timedemo-20260929-093012\timedemo-result.json`
+(frame total 67.946126 s, attribution only):
+
+```text
+alias-raster      7.384299 s  10.87%   82.95% of the alias bucket
+alias-transform   1.335922 s   1.97%   15.01%
+alias-setup       0.181710 s   0.27%    2.04%
+alias-model self  0.298821 s   0.44%   (unattributed remainder)
+```
+
+**This settles the question the previous pass could not.** The earlier
+arithmetic showed the bucket cost ~716 cycles per vertex when an x87 transform
+is only ~40-60, so it could not be transform-bound; the instrumentation
+confirms that directly. The alias cost is overwhelmingly **rasterization**,
+not setup and not the per-vertex transform. The three setup helpers
+(`R_AliasSetupSkin`, `R_AliasSetUpTransform`, `R_AliasSetupLighting`,
+`R_AliasSetupFrame`) together cost only 0.27%, and the per-vertex transform and
+clip loop is 1.97%. Optimizing the setup prologue or the transform helper —
+both of which had prior rejected experiments in the ledger — could not have
+moved the needle.
+
+The remaining alias cost is the pixel work itself: `D_PolysetDrawSpans8` and
+`D_PolysetScanLeftEdge` in `WinQuake\d_polysa.s`, plus the three still-C helpers
+they call, `D_PolysetSetEdgeTable`, `D_RasterizeAliasPolySmooth`, and
+`D_PolysetSetUpForLineScan` in `WinQuake\d_polyse.c`. Because the pixel loops
+in `d_polysa.s` are already heavily mined and the alignment experiment showed
+the loop body resists rearrangement, the remaining C-to-ASM surface in the
+alias raster path is the only unexhausted avenue, and it is now the
+highest-value remaining target in the renderer.
+
+Instrumentation integrity: `alias-models` is still 5470 and `alias-vertices`
+still 417090, `max-depth` is 8 (was 6), and `stack-overflows` and `bad-leaves`
+are both 0. The added sub-nodes cost 0.243 s (`0.36%`) against the prior
+profile run. Note the three sub-nodes aggregate across both the `entities` and
+`viewmodel` call sites, so their sum exceeds either single parent's inclusive
+time; that is expected, not an accounting error. Because `alias-raster` now
+appears directly in the ranked self-time list at 10.87%, it displaces
+`world-bsp` (11.38%) and ranks third overall behind `texture-spans` (27.82%).
+
 ### Aff8 16-byte code-alignment experiment (2026-09-29) — rejected and reverted
 
 This was the first attempt in the checkout to use the 486 code-layout axis.

@@ -34,6 +34,34 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
+### Alias sub-node instrumentation (2026-09-29)
+
+The alias-model profile node is now split into three children:
+`alias-setup`, `alias-transform`, and `alias-raster`. To produce them, build the
+profile executable and pass `-Instrumentation` to the runner as well — the
+runner selects `qprof.exe` by that flag, so omitting it silently runs the
+un-instrumented `qbench.exe` and produces a normal-looking result with no
+profile tree:
+
+```powershell
+.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -Instrumentation
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -Instrumentation -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\profile-report.ps1 -ProfileJson 'out\dos-timedemo-<timestamp>\timedemo-result.json'
+```
+
+An instrumented run prints a `profile-tree` section, and the three new ids
+appear in the `profile-hotspots` self-time list. Confirm the run is genuinely
+instrumented by checking that `executable` ends in `qprof.exe` and
+`instrumentation` is `true` in `timedemo-result.json`; the framebuffer
+checksum must still be `1047377823` and the workload counters unchanged
+(`alias-models` 5470, `alias-vertices` 417090).
+
+The measured breakdown (frame total 67.946126 s, attribution only — not a
+release timing claim) is `alias-raster` 7.384299 s (10.87%), `alias-transform`
+1.335922 s (1.97%), and `alias-setup` 0.181710 s (0.27%). The alias cost is
+therefore raster-dominated. See `ASM486-HANDOFF.md` for the full record and its
+consequences for the next optimization pass.
+
 ### Aff8 16-byte code-alignment experiment (2026-09-29) — rejected and reverted
 
 `-Aff8LoopAlignment aligned` defined `ASM486_AFF8_ALIGN` in
