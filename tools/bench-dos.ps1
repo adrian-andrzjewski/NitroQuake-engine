@@ -18,7 +18,7 @@ param(
     [string]$MemoryImplementation = 'asm',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
-    [ValidateSet('byte', 'word', 'dword', 'loop')]
+    [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
     [string]$TextureSpanStores = 'word',
     [ValidateSet('control', 'word')]
     [string]$TextureSpanTailStores = 'control',
@@ -110,6 +110,12 @@ if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanLoadOrder -ne 'control'
 if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanRowPath -ne 'control') {
     throw 'The branch texture-span address path requires -TextureSpanRowPath control.'
 }
+if ($TextureSpanStores -eq 'stosw' -and
+		($TextureSpanLoadOrder -ne 'control' -or
+		$TextureSpanAddressing -ne 'control' -or
+		$TextureSpanRowPath -ne 'control')) {
+	throw 'The stosw texture-span store path requires control load order, addressing, and row path.'
+}
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
 $profileSuffixParts = @()
@@ -145,6 +151,9 @@ elseif ($TextureSpanStores -eq 'dword') {
 }
 elseif ($TextureSpanStores -eq 'loop') {
     $profileSuffixParts += 'spanloop'
+}
+elseif ($TextureSpanStores -eq 'stosw') {
+    $profileSuffixParts += 'spanstosw'
 }
 if ($TextureSpanTailStores -eq 'word') {
     $profileSuffixParts += 'spantailword'

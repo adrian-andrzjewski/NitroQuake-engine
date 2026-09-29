@@ -9,6 +9,23 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Current texture-span follow-up (2026-09-29)
+
+The latest PROFILE486 control run is
+`out\dos-timedemo-20260929-071039\timedemo-result.json`: 969 frames,
+framebuffer checksum `1047377823`, with texture spans first at 27.92% self
+time and alias models next at 13.29%. The instrumented duration is attribution
+only.
+
+The new opt-in `-TextureSpanStores stosw` path uses unrolled `STOSW` stores
+for full 16-pixel segments; `word` remains the default. Candidate smoke and
+full `bench486` correctness passed (`2378409472`). Three alternating pinned
+timedemo pairs retained 969 frames and checksum `1047377823`; medians were
+59.265502 seconds for `word` and 59.325327 seconds for `stosw` (0.10094%
+slower). Keep `stosw` only for reproducible A/B work. Full profile, timing,
+spread, and artifact details are in `BUILD-DOS.md` under “Latest PROFILE486
+and texture-span STOSW experiment.” Alias-model rendering is the next hotspot.
+
 ### Current parity-gated closure (2026-09-28)
 
 The release defaults now use the mip-0 four-row and mip-1 eight-row

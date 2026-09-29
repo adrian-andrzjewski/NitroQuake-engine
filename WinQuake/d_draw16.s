@@ -28,6 +28,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_draw.h"
 #include "d_ifacea.h"
 
+#ifdef ASM486_SPAN16_WORD_STOS
+#define SPAN16_STORE_WORD(offset) stosw
+#else
+#define SPAN16_STORE_WORD(offset) movw %ax,offset(%edi)
+#endif
+
 #if	id386
 
 #ifdef PROFILE486
@@ -550,7 +556,7 @@ LSpan16NoRowCrossLoopA:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4,%esi
-	movw	%ax,1(%edi)
+	SPAN16_STORE_WORD(1)
 
 	movb	(%esi),%al
 	addl	%ebp,%ebx
@@ -558,7 +564,7 @@ LSpan16NoRowCrossLoopA:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4,%esi
-	movw	%ax,3(%edi)
+	SPAN16_STORE_WORD(3)
 
 	movb	(%esi),%al
 	addl	%ebp,%ebx
@@ -566,7 +572,7 @@ LSpan16NoRowCrossLoopA:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4,%esi
-	movw	%ax,5(%edi)
+	SPAN16_STORE_WORD(5)
 
 	movb	(%esi),%al
 	addl	%ebp,%ebx
@@ -574,7 +580,7 @@ LSpan16NoRowCrossLoopA:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4,%esi
-	movw	%ax,7(%edi)
+	SPAN16_STORE_WORD(7)
 
 #elif defined(ASM486_SPAN16_DWORD_STORES)
 	movb	(%edi),%al
@@ -662,6 +668,9 @@ LSpan16LoopA:
 	stosb
 	jnz		LSpan16LoopA
 #elif defined(ASM486_SPAN16_WORD_STORES) && !defined(ASM486_SPAN16_BRANCH_ADDRESS)
+#ifdef ASM486_SPAN16_WORD_STOS
+	incl	%edi
+#endif
 #ifdef ASM486_SPAN16_LOAD_FIRST
 	// Start each independent texel load before the fixed-point updates.
 	movb	(%esi),%al
@@ -675,7 +684,7 @@ LSpan16LoopA:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,1(%edi)
+	SPAN16_STORE_WORD(1)
 
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -688,7 +697,7 @@ LSpan16LoopA:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,3(%edi)
+	SPAN16_STORE_WORD(3)
 
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -701,7 +710,7 @@ LSpan16LoopA:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,5(%edi)
+	SPAN16_STORE_WORD(5)
 
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -714,7 +723,7 @@ LSpan16LoopA:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,7(%edi)
+	SPAN16_STORE_WORD(7)
 #elif defined(ASM486_SPAN16_BRANCH_ADDRESS)
 	// Opt-in address-update experiment: replace the indexed two-entry
 	// advance table with direct base/extra adds selected by the T carry.
@@ -745,7 +754,7 @@ LSpan16BranchA2Carry:
 	addl	%ebp,%ebx
 	adcl	advancetable,%esi
 LSpan16BranchA2Done:
-	movw	%ax,1(%edi)
+	SPAN16_STORE_WORD(1)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -772,7 +781,7 @@ LSpan16BranchA4Carry:
 	addl	%ebp,%ebx
 	adcl	advancetable,%esi
 LSpan16BranchA4Done:
-	movw	%ax,3(%edi)
+	SPAN16_STORE_WORD(3)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -799,7 +808,7 @@ LSpan16BranchA6Carry:
 	addl	%ebp,%ebx
 	adcl	advancetable,%esi
 LSpan16BranchA6Done:
-	movw	%ax,5(%edi)
+	SPAN16_STORE_WORD(5)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -826,7 +835,7 @@ LSpan16BranchA8Carry:
 	addl	%ebp,%ebx
 	adcl	advancetable,%esi
 LSpan16BranchA8Done:
-	movw	%ax,7(%edi)
+	SPAN16_STORE_WORD(7)
 #else
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -839,7 +848,7 @@ LSpan16BranchA8Done:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,1(%edi)
+	SPAN16_STORE_WORD(1)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -852,7 +861,7 @@ LSpan16BranchA8Done:
 	addl	%ebp,%ebx
 	movb	(%esi),%ah
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,3(%edi)
+	SPAN16_STORE_WORD(3)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -865,7 +874,7 @@ LSpan16BranchA8Done:
 	addl	%ebp,%ebx
 	movb	(%esi),%ah
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,5(%edi)
+	SPAN16_STORE_WORD(5)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -878,7 +887,7 @@ LSpan16BranchA8Done:
 	addl	%ebp,%ebx
 	movb	(%esi),%ah
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,7(%edi)
+	SPAN16_STORE_WORD(7)
 #endif
 
 #elif defined(ASM486_SPAN16_DWORD_STORES)
@@ -1053,7 +1062,7 @@ LSpan16NoRowCrossLoopB:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4,%esi
-	movw	%ax,9(%edi)
+	SPAN16_STORE_WORD(9)
 
 	movb	(%esi),%al
 	addl	%ebp,%ebx
@@ -1061,7 +1070,7 @@ LSpan16NoRowCrossLoopB:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4,%esi
-	movw	%ax,11(%edi)
+	SPAN16_STORE_WORD(11)
 
 	movb	(%esi),%al
 	addl	%ebp,%ebx
@@ -1069,7 +1078,7 @@ LSpan16NoRowCrossLoopB:
 	movb	(%esi),%ah
 	addl	%ebp,%ebx
 	adcl	advancetable+4,%esi
-	movw	%ax,13(%edi)
+	SPAN16_STORE_WORD(13)
 
 	movb	(%esi),%al
 	addl	%ebp,%ebx
@@ -1173,7 +1182,7 @@ LSpan16LoopB:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,9(%edi)
+	SPAN16_STORE_WORD(9)
 
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -1186,7 +1195,7 @@ LSpan16LoopB:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,11(%edi)
+	SPAN16_STORE_WORD(11)
 
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -1199,7 +1208,7 @@ LSpan16LoopB:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,13(%edi)
+	SPAN16_STORE_WORD(13)
 
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -1218,7 +1227,7 @@ LSpan16LoopB:
 	addl	%ebp,%ebx
 	movb	(%esi),%ah
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,9(%edi)
+	SPAN16_STORE_WORD(9)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -1231,7 +1240,7 @@ LSpan16LoopB:
 	addl	%ebp,%ebx
 	movb	(%esi),%ah
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,11(%edi)
+	SPAN16_STORE_WORD(11)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -1244,7 +1253,7 @@ LSpan16LoopB:
 	addl	%ebp,%ebx
 	movb	(%esi),%ah
 	adcl	advancetable+4(,%ecx,4),%esi
-	movw	%ax,13(%edi)
+	SPAN16_STORE_WORD(13)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -1278,7 +1287,7 @@ LSpan16BranchB2Carry:
 	addl	%ebp,%ebx
 	adcl	advancetable,%esi
 LSpan16BranchB2Done:
-	movw	%ax,9(%edi)
+	SPAN16_STORE_WORD(9)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -1305,7 +1314,7 @@ LSpan16BranchB4Carry:
 	addl	%ebp,%ebx
 	adcl	advancetable,%esi
 LSpan16BranchB4Done:
-	movw	%ax,11(%edi)
+	SPAN16_STORE_WORD(11)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -1332,7 +1341,7 @@ LSpan16BranchB6Carry:
 	addl	%ebp,%ebx
 	adcl	advancetable,%esi
 LSpan16BranchB6Done:
-	movw	%ax,13(%edi)
+	SPAN16_STORE_WORD(13)
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
@@ -1449,7 +1458,10 @@ LSpan16BranchB7Done:
 
 LSpan16AfterStoresB:
 
-#ifndef ASM486_SPAN16_LOOP_STOSB
+#ifdef ASM486_SPAN16_WORD_STOS
+	movb	%al,(%edi)
+	incl	%edi
+#elif !defined(ASM486_SPAN16_LOOP_STOSB)
 	addl	$16,%edi
 #endif
 	movl	%edx,tfracf
@@ -1465,7 +1477,9 @@ LSpan16AfterStoresB:
 // determine whether last span or not
 //
 	cmpl	$16,%ecx				// are there multiple segments remaining?
+#ifndef ASM486_SPAN16_WORD_STOS
 	movb	%al,-1(%edi)
+#endif
 	ja		LNotLastSegment		// yes
 
 //

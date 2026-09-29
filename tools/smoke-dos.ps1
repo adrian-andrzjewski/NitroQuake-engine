@@ -12,6 +12,8 @@ param(
     [string]$AliasPrepareImplementation = 'control',
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'c',
+    [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
+    [string]$TextureSpanStores = 'word',
     [ValidateSet('control', 'loadfirst')]
     [string]$TextureSpanLoadOrder = 'control',
     [ValidateSet('control', 'branch')]
@@ -48,10 +50,20 @@ if ([string]::IsNullOrWhiteSpace($DataRoot)) {
 }
 $DataRoot = [IO.Path]::GetFullPath($DataRoot)
 
+if ($TextureSpanStores -eq 'stosw' -and
+		($TextureSpanLoadOrder -ne 'control' -or
+		$TextureSpanAddressing -ne 'control')) {
+	throw 'The stosw texture-span store path requires control load order and addressing.'
+}
+
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
 $profileSuffixParts = @()
 if ($OptimizationProfile -eq 'baseline') { $profileSuffixParts += 'baseline' }
 if ($MemoryImplementation -eq 'asm') { $profileSuffixParts += 'memasm' }
+if ($TextureSpanStores -eq 'byte') { $profileSuffixParts += 'spanbyte' }
+elseif ($TextureSpanStores -eq 'dword') { $profileSuffixParts += 'spandword' }
+elseif ($TextureSpanStores -eq 'loop') { $profileSuffixParts += 'spanloop' }
+elseif ($TextureSpanStores -eq 'stosw') { $profileSuffixParts += 'spanstosw' }
 if ($TextureSpanLoadOrder -eq 'loadfirst') { $profileSuffixParts += 'spanloadfirst' }
 if ($TextureSpanAddressing -eq 'branch') { $profileSuffixParts += 'spanaddrbranch' }
 if ($AliasSpanAddressing -eq 'branch') { $profileSuffixParts += 'aliasspanaddrbranch' }
@@ -95,6 +107,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         MemoryImplementation = $MemoryImplementation
         AliasPrepareImplementation = $AliasPrepareImplementation
         DynamicLightImplementation = $DynamicLightImplementation
+        TextureSpanStores = $TextureSpanStores
         TextureSpanLoadOrder = $TextureSpanLoadOrder
         TextureSpanAddressing = $TextureSpanAddressing
         AliasSpanAddressing = $AliasSpanAddressing
@@ -236,6 +249,7 @@ $result = [ordered]@{
     executable = $djgppExe
     dataRoot = $DataRoot
     dynamicLightImplementation = $DynamicLightImplementation
+    textureSpanStores = $TextureSpanStores
     aliasPrepareImplementation = $AliasPrepareImplementation
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing

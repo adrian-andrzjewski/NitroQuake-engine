@@ -65,6 +65,48 @@ levels. The world-BSP `local` frame-count candidate remains unpromoted because
 its median was 0.046250% slower than control. This pass changes no visual
 quality, resolution, presentation, scene, or timing behavior.
 
+### Latest PROFILE486 and texture-span STOSW experiment (2026-09-29)
+
+The post-closure control profile is
+`out\dos-timedemo-20260929-071039\timedemo-result.json`. It completed 969
+frames with framebuffer checksum `1047377823`; its 67.718592-second duration
+is attribution only. Texture spans remain the largest leaf at 18.900351
+seconds (27.92%; 1,454,252 spans and 43,955,777 texture pixels), followed by
+alias models at 8.999381 seconds (13.29%), world BSP at 11.42%, surface cache
+at 10.61%, and Z spans at 9.31%.
+
+The opt-in `-TextureSpanStores stosw` candidate uses unrolled `STOSW` for the
+seven packed destination writes in each full 16-pixel span segment. Texture
+sampling and fixed-point stepping are unchanged; `word` remains the default.
+The candidate requires control texture-span load order, addressing, and row
+path.
+
+Reproduction commands:
+
+```powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanStores stosw
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanStores stosw -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -NoBootstrap -TextureSpanStores stosw -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanStores stosw -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+```
+
+The candidate passed DOS smoke and the full `bench486` correctness suite with
+checksum `2378409472`. Three alternating pinned `demo1` pairs all completed
+969 frames with framebuffer checksum `1047377823`:
+
+```text
+word:  59.265536 / 59.265434 / 59.265502 s; median 59.265502 s; spread 0.000102 s
+stosw: 59.325296 / 59.325327 / 59.779146 s; median 59.325327 s; spread 0.453850 s
+```
+
+`stosw` is 59.825 ms (0.10094%) slower by median and is rejected for
+promotion; retain it only as an explicit A/B option. Artifacts are in
+`out\dos-memasm-spanstosw-zneg4-surf0rows4-surf0hflat-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm`,
+`out\dos-bench-20260929-074040`, `out\dos-smoke`, and timedemos
+`out\dos-timedemo-20260929-075328` through
+`out\dos-timedemo-20260929-075908`. The next measured hotspot is alias-model
+rendering.
+
 ### Monster gib trail zero-XY experiment (2026-09-29)
 
 `R_RocketTrail` creates `pt_grav` only for the `EF_GIB` and `EF_ZOMGIB` blood
