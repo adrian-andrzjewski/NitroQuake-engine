@@ -26,7 +26,9 @@ static int	miplevel;
 static float	d_mipscale_values[4] = {1.0, 0.5, 0.25, 0.125};
 static float	d_mip_xscale[4];
 static float	d_mip_yscale[4];
-static float	d_mip_t16[4];
+// 0x10000 * d_mipscale_values[] for {1.0, 0.5, 0.25, 0.125}; all exactly
+// representable, so this is the same value the loop used to recompute.
+static const float	d_mip_t16[4] = {0x10000, 0x8000, 0x4000, 0x2000};
 
 #ifndef D_TEXAXIS_CACHE_SIZE
 #define D_TEXAXIS_CACHE_SIZE	256
@@ -455,7 +457,6 @@ void D_DrawSurfaces (void)
 		{
 			d_mip_xscale[mip] = xscaleinv * d_mipscale_values[mip];
 			d_mip_yscale[mip] = yscaleinv * d_mipscale_values[mip];
-			d_mip_t16[mip] = 0x10000 * d_mipscale_values[mip];
 		}
 	}
 
