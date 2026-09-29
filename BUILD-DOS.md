@@ -34,6 +34,28 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
+### Hot-code clustering (2026-09-29) — rejected, selector removed
+
+`.text` is 738,392 bytes, 90x the 486's 8 KB unified L1, and the two dominant
+self-time buckets live in separate objects. An opt-in
+`-HotCodeClustering control|cluster` selector reordered the link line to put
+`d_draw16.obj`, `d_polysa.obj` and `d_draw.obj` first. Because no code or data
+changed, the checksum could not move — and it did not:
+
+```text
+control  59.265504 s   framebuffer-checksum 1047377823
+cluster  59.728678 s   framebuffer-checksum 1047377823   0.7815% slower
+```
+
+Rejected. The failure is diagnostic: disassembly of the clustered build shows the
+Aff8 leaf's 16 sites moved from `0x90964` to `0x3524` — the very front of
+`.text` — while the 8-site group stayed at `0x92c15`. The gap between the two
+hot halves grew from 8,062 to 586,686 bytes, 73x worse. Reordering whole objects
+cannot cluster two functions when each object is far larger than the cache. A
+real attempt needs function-level placement via a linker `-T` script, which
+would be uninterpretable in a harness that does not model unified-cache
+displacement. The selector and its output directory have been removed.
+
 ### What this harness can and cannot measure (2026-09-29)
 
 The renderer is converged at the source level on every path the profile can
@@ -64,7 +86,11 @@ report, but no code compares it to a constant. Changing the DOSBox-X core would
 silently re-baseline the whole ledger rather than being caught.
 
 Resolving any of this properly needs physical 486 hardware or a cycle-accurate
-alternative; see `ASM486-HANDOFF.md` for the full record.
+alternative; see `ASM486-HANDOFF.md` for the full record. On that evidence the
+recommendation is to stop optimizing against this harness: every remaining idea
+is either closed by measurement or invisible to the emulator. The work stands at
+59.265 s / 16.35 FPS for `demo1`, about 22% faster than original Quake, with 969
+frames and framebuffer checksum `1047377823` reproduced on every run.
 
 ### Z-span x87 prologue (2026-09-29) — measured at 0.71%, not worth porting
 

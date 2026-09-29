@@ -9,6 +9,39 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Hot-code clustering (2026-09-29) — rejected, and object granularity is the blocker
+
+The measured facts made this look like the strongest remaining idea: `.text` is
+738,392 bytes — **90x the 486's 8 KB unified L1** — and the two dominant
+self-time buckets, texture spans (22.34%) and alias raster (10.87%), live in
+separate objects. An opt-in `-HotCodeClustering control|cluster` selector
+reordered the link line to place `d_draw16.obj`, `d_polysa.obj` and
+`d_draw.obj` first. No code or data changed, so the checksum could not move —
+and it did not: both variants returned `1047377823`.
+
+```text
+control  59.265504 s   checksum 1047377823
+cluster  59.728678 s   checksum 1047377823   0.7815% SLOWER
+```
+
+**Rejected, and the failure is diagnostic.** Disassembly of the clustered
+binary shows why. The Aff8 leaf's 16 sites moved from `0x90964` to `0x3524` —
+to the very front of `.text` — while the 8-site group stayed at `0x92c15`. The
+gap between the two hot halves therefore grew from **8,062 bytes to 586,686
+bytes**, 73x worse. Reordering whole objects cannot cluster two functions when
+the objects holding them are each far larger than the cache; it only relocates
+one of them and displaces everything else.
+
+A real attempt needs function-level placement — a linker `-T` script naming
+`D_DrawSpans16` and `D_PolysetDrawSpans8` explicitly, or `.text.*` subsections.
+That is a materially larger change than an object reordering, and given the
+harness cannot model unified-cache displacement (see "What this harness can and
+cannot measure" above) the result would be uninterpretable either way. Not
+pursued.
+
+The selector and its output directory have been removed; the tree is back to
+`43ebcab` with the release build re-verified.
+
 ### What this harness can and cannot measure (2026-09-29)
 
 The project has reached the point where the binding constraint is the emulator,
@@ -67,6 +100,36 @@ recognise that a null is uninformative. Those ideas can only be settled on
 hardware. Ideas whose payoff is instruction count, memory traffic, or
 arithmetic are still fully measurable here, and that is where any further
 optimization effort belongs.
+
+### Where this leaves the project
+
+The renderer is converged at the source level. Every remaining mechanism I can
+identify is either closed by measurement or closed by the harness's own
+limits:
+
+- texture spans, alias raster, the Z-span prologue, the video path, and the
+  surface-cache size/layout are all closed by evidence, with the numbers
+  recorded above;
+- x87 latency, fetch boundaries, write-buffer occupancy, and 4 KB aliasing are
+  unmeasurable here and no DOSBox-X option changes that;
+- code layout is measurable only at object granularity, which the
+  clustering experiment just showed is too coarse to be useful.
+
+**The honest recommendation is to stop optimizing against this harness.** Not
+because the renderer cannot be improved, but because the remaining ideas target
+costs the measurement cannot see, and the project has no way to tell a real win
+from an invisible one.
+
+If the goal is real 486 hardware rather than the DOSBox-X benchmark, the next
+step is not more assembly — it is a machine that can see what a 486 actually
+pays. A physical 486DX2/DX4, or a cycle-accurate alternative emulator, would
+immediately make the write-buffer, aliasing, and code-layout questions
+answerable, and would let the alignment and prologue results be re-examined
+without the emulator's flat FPU model distorting them.
+
+Until then, the work stands as a complete, parity-gated optimization pass:
+59.265 s / 16.35 FPS for `demo1`, roughly 22% faster than original Quake, with
+969 frames and framebuffer checksum `1047377823` reproduced on every run.
 
 ### Z-span x87 prologue (2026-09-29) — measured, and the idea does not survive
 
@@ -2272,6 +2335,13 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    parity intact, and the `-Aff8AgiPadding` selector has since been removed
    from the tree.  Do not re-run it.  Check adjacency and operand types before
    believing any 486 interlock claim.
+   Hot-code clustering via object reordering was measured at 0.7815% SLOWER
+   and removed.  Reordering whole objects cannot cluster the two dominant
+   drawers when each object is far larger than the 8 KB L1: it moved one
+   leaf to the front of .text and grew the gap to the other from 8,062 to
+   586,686 bytes.  Do not retry object reordering.  Function-level placement
+   via a linker -T script remains untried but would be uninterpretable in
+   this harness, which does not model unified-cache displacement.
    The Z-span x87 prologue (`d_draw.s:812-846`) is NOT worth porting.  An
    instruction count suggested 7.8% of frame; measured by duplicating the
    prologue into dead scratch it is 0.419 s, 0.71% of frame, 9.4 cycles/span.
