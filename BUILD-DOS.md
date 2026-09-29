@@ -34,6 +34,38 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
+### Z-span x87 prologue (2026-09-29) — measured at 0.71%, not worth porting
+
+The per-span prologue at `WinQuake\d_draw.s:812-838` runs nine serialized x87
+instructions to compute the initial 1/z, amortized over only 30.7 pixels on
+average. An instruction count suggested roughly 7.8% of the frame. It was
+measured by duplicating the identical prologue into dead scratch and timing the
+delta:
+
+```text
+control  59.265481 s   framebuffer-checksum 1047377823
+probe    59.684261 s   framebuffer-checksum 1047377823
+delta     0.418780 s = one prologue = 9.4 cycles/span = 0.71% of frame
+```
+
+Both runs returned the same checksum, which is what makes this style of probe
+safe: recomputing the same value cannot change the framebuffer. The estimate
+was 11x too high because it priced x87 ops at physical 486 speeds (about 12
+cycles each, `FISTP` at 30-90) while DOSBox-X emulates them far more cheaply.
+
+The idea is not pursued. Even a perfect fix caps at 0.71%, and the bit-exact
+rewrite is blocked: the prologue rounds to single precision after each of three
+float operations, so an integer replacement fails the checksum. Matching it
+would mean emulating x87 rounding in integer arithmetic, costing more than the
+0.419 s removed. The probe, its `-ZSpanArithmetic` selector, and its output
+directory have all been removed; the tree is at `1f01959` and the release build
+re-verified at 969 frames, checksum `1047377823`.
+
+**Method note for future work:** to price a hot sequence, duplicate it into dead
+scratch and time the delta. That is bit-exact and needs no correctness
+argument. Do not price a sequence by overwriting live output — that produces a
+faster but meaningless number and a binary that renders wrongly.
+
 ### Aff8 AGI back-edge padding (2026-09-29) — measured null, selector removed
 
 An opt-in `-Aff8AgiPadding control|pad` selector added one NOP at each

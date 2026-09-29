@@ -352,11 +352,15 @@ faithfully reproduced by DOSBox-X anyway (`BENCHMARK-COMPARISON.md:49`).
 
 ### Current texture-span follow-up (2026-09-29)
 
-The latest PROFILE486 control run is
+A PROFILE486 control run is recorded in
 `out\dos-timedemo-20260929-071039\timedemo-result.json`: 969 frames,
 framebuffer checksum `1047377823`, with texture spans first at 27.92% self
 time and alias models next at 13.29%. The instrumented duration is attribution
-only.
+only. **This is no longer the most recent profile** — the alias subtree has
+since been split into seven sub-nodes (see the sections above), which
+re-attributes the alias bucket as 82.95% raster / 15.01% transform / 2.04%
+setup, and reports `alias-raster` self time directly. The texture-span
+percentage is unchanged; only the alias attribution is refined.
 
 The new opt-in `-TextureSpanStores stosw` path uses unrolled `STOSW` stores
 for full 16-pixel segments; `word` remains the default. Candidate smoke and
