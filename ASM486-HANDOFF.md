@@ -9,6 +9,57 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Alias-raster child breakdown (2026-09-29) — C cost is 2.86%, not the predicted <1%
+
+`alias-raster` is now split into its four children:
+`alias-calcgradients`, `alias-linescan-setup`, `alias-scan-left-edge`, and
+`alias-draw-spans`. The enum entries go after `BENCH486_PROFILE_ALIAS_RASTER`
+in `WinQuake\quakedef.h`, the matching names after `"alias-raster"` in
+`WinQuake\host_cmd.c` (the two lists must stay in identical order), and the
+ENTER/LEAVE pairs are in `WinQuake\d_polyse.c` inside
+`D_RasterizeAliasPolySmooth`, wrapping each call individually. The two
+right-edge `linescan-setup` calls have no matching `ScanLeftEdge`; they exist
+only to set `ubastep`/`erroradjust*` for the `D_PolysetDrawSpans8` right-edge
+loop.
+
+Measured from `out\dos-timedemo-20260929-095627\timedemo-result.json`
+(frame total 77.643930 s, attribution only):
+
+```text
+alias-raster self   8.339431 s  10.74%   unattributed C glue
+alias-draw-spans    3.287665 s   4.23%   ASM  153852 calls
+alias-linescan-setup 2.222018 s  2.86%   C    263814 calls
+alias-scan-left-edge 1.788217 s  2.30%   ASM  109962 calls
+alias-calcgradients  1.420764 s   1.83%   ASM  124767 calls
+```
+
+Call multiplicities confirm the model: 124,767 triangles at ~22.8 per model,
+2.11 line-scan setups and 1.23 draw-spans per triangle, 0.88 left-edge scans.
+
+**A prior estimate in this session was wrong by 3.5x and is corrected here.**
+The pre-measurement estimate put `D_PolysetSetUpForLineScan` at 0.32-0.63 s
+(0.46-0.93% of frame), reasoning from a ~40-80 cycle `adivtab` lookup. It
+actually costs **281.7 cycles per call**, because 263,814 non-inlined calls each
+pay argument setup and the global write-back, and the estimate counted only the
+fast-path body. It is 2.86% of frame, not under 1%. Recording the miss because
+the ledger's value is precisely in not repeating wrong estimates.
+
+Consequences for the next pass. The raster subtree is 51.1% identifiable C
+(`alias-linescan-setup` at 2.86% of frame) and 48.9% ASM, and the largest single
+item remains the **8.339 s of unattributed `alias-raster` self time (10.74% of
+frame)** — larger than any named child. That residual is the C glue in
+`D_RasterizeAliasPolySmooth`: the duplicated base/extra step precomputation at
+`d_polyse.c:828-873` and `925-967`, the span-package setup blocks, and
+`D_PolysetSetEdgeTable`. It has not yet been split. That residual, not the
+line-scan helper, is the next thing worth instrumenting or porting.
+
+Instrumentation integrity: `alias-models` 5470, `alias-vertices` 417090,
+`line-setups` 263814, `stack-overflows` 0, `bad-leaves` 0, `max-depth` 8.
+The release build is unchanged at 969 frames and checksum `1047377823`. Note the
+instrumented run costs 77.6 s against 67.96 s for the previous level, so
+timer reads rose from 553,450 to 1,858,372; instrumented durations are
+attribution evidence only and must not be compared to release timings.
+
 ### Alias sub-node instrumentation and the alias cost breakdown (2026-09-29)
 
 The alias-model bucket is no longer a single flat bracket. `BENCH486_PROFILE_ALIAS_SETUP`,
@@ -1967,6 +2018,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    already-large unrolled bodies measurably hurt; prefer layout experiments
    that do not grow the bodies.  The experiment code and its
    `-Aff8LoopAlignment` selector have been removed from the tree.
+   Do not port `D_PolysetSetEdgeTable` to assembler on principle.  It is a
+   short branch tree that only assigns `pedgetable`; the remaining C cost in
+   the alias raster path is concentrated in the step-precomputation blocks
+   and the span-package setup of `D_RasterizeAliasPolySmooth`, not in this
+   predicate.  Instrument that residual (10.74% of frame) before choosing a
+   port target.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

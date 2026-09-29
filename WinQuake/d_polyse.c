@@ -773,7 +773,9 @@ void D_RasterizeAliasPolySmooth (void)
 // set the s, t, and light gradients, which are consistent across the triangle
 // because being a triangle, things are affine
 //
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_CALCGRADIENTS);
 	D_PolysetCalcGradients (r_affinetridesc.skinwidth);
+	BENCH486_PROFILE_LEAVE ();
 
 //
 // rasterize the polygon
@@ -822,8 +824,10 @@ void D_RasterizeAliasPolySmooth (void)
 	}
 	else
 	{
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 		D_PolysetSetUpForLineScan(plefttop[0], plefttop[1],
 							  pleftbottom[0], pleftbottom[1]);
+		BENCH486_PROFILE_LEAVE ();
 
 	#if	id386
 		d_pzbasestep = (d_zwidth + ubasestep) << 1;
@@ -872,7 +876,9 @@ void D_RasterizeAliasPolySmooth (void)
 		d_lightextrastep = d_lightbasestep + working_lstepx;
 		d_ziextrastep = d_zibasestep + r_zistepx;
 
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
 		D_PolysetScanLeftEdge (initialleftheight);
+		BENCH486_PROFILE_LEAVE ();
 	}
 
 //
@@ -919,8 +925,10 @@ void D_RasterizeAliasPolySmooth (void)
 		}
 		else
 		{
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 			D_PolysetSetUpForLineScan(plefttop[0], plefttop[1],
 								  pleftbottom[0], pleftbottom[1]);
+			BENCH486_PROFILE_LEAVE ();
 
 			d_pdestbasestep = screenwidth + ubasestep;
 			d_pdestextrastep = d_pdestbasestep + 1;
@@ -966,7 +974,9 @@ void D_RasterizeAliasPolySmooth (void)
 			d_lightextrastep = d_lightbasestep + working_lstepx;
 			d_ziextrastep = d_zibasestep + r_zistepx;
 
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
 			D_PolysetScanLeftEdge (height);
+			BENCH486_PROFILE_LEAVE ();
 		}
 	}
 
@@ -974,13 +984,17 @@ void D_RasterizeAliasPolySmooth (void)
 // count field
 	d_pedgespanpackage = a_spans;
 
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 	D_PolysetSetUpForLineScan(prighttop[0], prighttop[1],
 						  prightbottom[0], prightbottom[1]);
+	BENCH486_PROFILE_LEAVE ();
 	d_aspancount = 0;
 	d_countextrastep = ubasestep + 1;
 	originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of the spanpackages
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_DRAW_SPANS);
 	D_PolysetDrawSpans8 (a_spans);
+	BENCH486_PROFILE_LEAVE ();
 
 // scan out the bottom part of the right edge, if it exists
 	if (pedgetable->numrightedges == 2)
@@ -998,13 +1012,17 @@ void D_RasterizeAliasPolySmooth (void)
 
 		height = prightbottom[1] - prighttop[1];
 
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 		D_PolysetSetUpForLineScan(prighttop[0], prighttop[1],
 							  prightbottom[0], prightbottom[1]);
+		BENCH486_PROFILE_LEAVE ();
 
 		d_countextrastep = ubasestep + 1;
 		a_spans[initialrightheight + height].count = -999999;
 											// mark end of the spanpackages
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_DRAW_SPANS);
 		D_PolysetDrawSpans8 (pstart);
+		BENCH486_PROFILE_LEAVE ();
 	}
 }
 

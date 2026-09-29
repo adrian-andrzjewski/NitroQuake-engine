@@ -34,6 +34,36 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
+### Alias-raster child instrumentation (2026-09-29)
+
+`alias-raster` is further split into `alias-calcgradients`,
+`alias-linescan-setup`, `alias-scan-left-edge`, and `alias-draw-spans`. The
+EN/LEAVE pairs live in `WinQuake\d_polyse.c` inside
+`D_RasterizeAliasPolySmooth` and wrap each call individually, because the
+calls sit in non-uniform branches. Same build and run commands as above;
+confirm `executable` ends in `qprof.exe` before trusting the profile tree.
+
+Measured breakdown (frame total 77.643930 s, attribution only):
+
+```text
+alias-raster self   8.339431 s  10.74%   unattributed C glue
+alias-draw-spans    3.287665 s   4.23%   ASM  153852 calls
+alias-linescan-setup 2.222018 s  2.86%   C    263814 calls
+alias-scan-left-edge 1.788217 s  2.30%   ASM  109962 calls
+alias-calcgradients  1.420764 s   1.83%   ASM  124767 calls
+```
+
+The largest single item is the unattributed `alias-raster` self time, which is
+the C glue in `D_RasterizeAliasPolySmooth`: the duplicated base/extra step
+precomputation at `d_polyse.c:828-873` and `925-967`, the span-package setup
+blocks, and `D_PolysetSetEdgeTable`. Instrument or port that residual next.
+See `ASM486-HANDOFF.md` for the full record.
+
+Note that each instrumentation level adds timer reads: this level costs 77.6 s
+against 67.96 s for the previous one (timer reads 553,450 to 1,858,372).
+Instrumented durations are attribution evidence and are not comparable to
+release timings or to other instrumentation levels.
+
 ### Alias sub-node instrumentation (2026-09-29)
 
 The alias-model profile node is now split into three children:
