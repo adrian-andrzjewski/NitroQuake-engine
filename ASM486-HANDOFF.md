@@ -9,6 +9,42 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Aff8 AGI back-edge padding (2026-09-29) — measured null, rejected
+
+The per-pixel AGI hypothesis in the Aff8 leaf was disproven by operand analysis
+(the `movb %dh,%ah` partial write has no memory operand, and the `%eax` base use
+is already separated by the Z store). The one genuine interlock in the loop is
+`addl $16,%ecx` immediately preceding `cmpw (%ecx),%bp` at the two `LDrawLoop`
+group back-edges, `d_polysa.s:988` and `d_polysa.s:1124`. To settle it by
+measurement rather than argument, an opt-in `-Aff8AgiPadding control|pad`
+selector defines `ASM486_AFF8_AGI_PAD`, which emits one `AFF8_AGI_PAD` NOP at
+each back-edge. The padding was verified in the linked binary before timing:
+control runs `add $0x10,%ecx` straight into `cmpw (%ecx),%bp` at `0x90b14`,
+while `pad` inserts `0x90b17: nop` between them.
+
+The candidate passed every parity gate: `486 benchmark correctness PASS` with
+end checksum `2378409472` (`out\dos-bench-20260929-102523`), a clean DOS smoke
+test, and all six timedemo runs at 969 frames with framebuffer checksum
+`1047377823`. Three alternating pinned `demo1` pairs:
+
+```text
+control: 59.265427 / 59.265498 / 59.265442 s; median 59.265498 s, 16.350153 FPS
+pad:     59.265453 / 59.265466 / 59.265480 s; median 59.265466 s, 16.350159 FPS
+```
+
+The delta is **-0.000032 s (-0.000054%)**, roughly 1,000x smaller than the
+0.05% promotion gate and inside the run-to-run spread (0.000071 s for control,
+0.000024 s for pad). This is a clean null result, not a regression: the NOP is
+free in this workload but buys nothing either. `control` remains the default and
+the selector is rejected for promotion; it is kept only as an explicit opt-in
+for reproducible A/B work. Artifacts are in `out\dos-timedemo-20260929-103519`
+through `out\dos-timedemo-20260929-104051`.
+
+This is the third data point pointing the same way. The alignment experiment
+lost 0.806% by growing the loop; this padding changes nothing measurable, which
+confirms there is no per-group interlock cost worth recovering. The Aff8 leaf
+is done.
+
 ### Aff8 AGI interlock hypothesis (2026-09-29) — disproven, no change made
 
 The Aff8 pixel leaf was proposed as the last untested 486 mechanism from the
@@ -2127,10 +2163,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not add AGI-interlock padding to the Aff8 pixel leaf.  The apparent
    hazard (`movb %dh,%ah` beside a `(%eax)`-based colormap load) is not a real
    interlock: the partial write has no memory operand and the `%eax` base use
-   is already separated by the Z store.  The only genuine AGI is
-   `addl $16,%ecx` -> `cmpw (%ecx),%bp` at the `LDrawLoop` back-edge, once per
-   8-pixel group, on a back-edge that already pays a branch flush.  Below the
-   promotion gate; do not spend a timedemo A/B on it.
+   is already separated by the Z store.  The one genuine interlock is
+   `addl $16,%ecx` -> `cmpw (%ecx),%bp` at the `LDrawLoop` back-edge, and
+   `-Aff8AgiPadding pad` was measured at -0.000054% (a null result, not a
+   regression) across three alternating pairs with checksum parity intact.  Do
+   not re-run it.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,

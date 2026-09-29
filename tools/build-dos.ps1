@@ -30,6 +30,8 @@ param(
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
+    [ValidateSet('control', 'pad')]
+    [string]$Aff8AgiPadding = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
@@ -175,6 +177,9 @@ if ($TextureSpanAddressing -eq 'branch') {
 }
 if ($AliasSpanAddressing -eq 'branch') {
     $profileSuffixParts += 'aliasspanaddrbranch'
+}
+if ($Aff8AgiPadding -eq 'pad') {
+    $profileSuffixParts += 'aff8agipad'
 }
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
@@ -451,6 +456,9 @@ try {
     if ($AliasSpanAddressing -eq 'branch') {
         $asmFlags += '-DASM486_ALIAS_SPAN_BRANCH_ADDRESS'
     }
+    if ($Aff8AgiPadding -eq 'pad') {
+        $asmFlags += '-DASM486_AFF8_AGI_PAD'
+    }
     if ($ZSpanNegativeUnroll -eq 'unroll8') {
         $asmFlags += '-DASM486_ZSPAN_NEG_UNROLL8'
     }
@@ -531,6 +539,7 @@ try {
         textureSpanLoadOrder = $TextureSpanLoadOrder
         textureSpanAddressing = $TextureSpanAddressing
         aliasSpanAddressing = $AliasSpanAddressing
+        aff8AgiPadding = $Aff8AgiPadding
         zSpanNegativeUnroll = $ZSpanNegativeUnroll
         surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
         surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat

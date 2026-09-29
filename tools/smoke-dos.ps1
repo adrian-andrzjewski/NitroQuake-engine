@@ -20,6 +20,7 @@ param(
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
+    [string]$Aff8AgiPadding = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
     [string]$SurfaceBlockMip0Rows = 'unroll4',
     [ValidateSet('control', 'fast')]
@@ -67,6 +68,7 @@ elseif ($TextureSpanStores -eq 'stosw') { $profileSuffixParts += 'spanstosw' }
 if ($TextureSpanLoadOrder -eq 'loadfirst') { $profileSuffixParts += 'spanloadfirst' }
 if ($TextureSpanAddressing -eq 'branch') { $profileSuffixParts += 'spanaddrbranch' }
 if ($AliasSpanAddressing -eq 'branch') { $profileSuffixParts += 'aliasspanaddrbranch' }
+if ($Aff8AgiPadding -eq 'pad') { $profileSuffixParts += 'aff8agipad' }
 $profileSuffixParts += 'zneg4'
 if ($SurfaceBlockMip0Rows -eq 'unroll4') { $profileSuffixParts += 'surf0rows4' }
 elseif ($SurfaceBlockMip0Rows -eq 'unroll8') { $profileSuffixParts += 'surf0rows8' }
@@ -114,6 +116,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
         SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
+        Aff8AgiPadding = $Aff8AgiPadding
         BspFrameCountImplementation = $BspFrameCountImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }
@@ -257,6 +260,7 @@ $result = [ordered]@{
     surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
     surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
+    aff8AgiPadding = $Aff8AgiPadding
     bspFrameCountImplementation = $BspFrameCountImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     timeoutSeconds = $TimeoutSeconds

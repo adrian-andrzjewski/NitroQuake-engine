@@ -76,6 +76,20 @@ lzistepx:		.long	0
 .endm
 #endif
 
+#ifdef ASM486_AFF8_AGI_PAD
+// Opt-in AGI-interlock experiment.  At the two Aff8 group back-edges the
+// pointer bump `addl $16,%ecx` immediately precedes `cmpw (%ecx),%bp` at
+// LDrawLoop, which is a genuine 486 address-generation interlock: D2 needs
+// %ecx while the bump is still in EX.  The per-pixel leaf has no such hazard
+// (the `movb %dh,%ah` partial write has no memory operand, and the %eax base
+// use is already separated by the Z store), so this pads only the back-edges.
+// It costs one NOP byte per 8-pixel group in a loop already known to be
+// code-size sensitive, so it is expected to be at or below the promotion gate.
+#define AFF8_AGI_PAD .byte 0x90
+#else
+#define AFF8_AGI_PAD
+#endif
+
 	.extern C(D_PolysetSetEdgeTable)
 	.extern C(D_RasterizeAliasPolySmooth)
 
@@ -986,6 +1000,7 @@ Lp8:
 
 	addl	$8,%edi
 	addl	$16,%ecx
+	AFF8_AGI_PAD
 
 // The second half is duplicated so the common 16-pixel case does not need
 // to jump through LDrawLoop between the two eight-pixel groups.
@@ -1122,6 +1137,7 @@ Lq16p8:
 
 	addl	$8,%edi
 	addl	$16,%ecx
+	AFF8_AGI_PAD
 	jmp		LDrawLoop
 
 LAff8LastGroup:

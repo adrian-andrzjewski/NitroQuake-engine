@@ -31,6 +31,7 @@ param(
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
+    [string]$Aff8AgiPadding = 'control',
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
@@ -178,6 +179,7 @@ if ($TextureSpanAddressing -eq 'branch') {
 }
 if ($AliasSpanAddressing -eq 'branch') {
     $profileSuffixParts += 'aliasspanaddrbranch'
+if ($Aff8AgiPadding -eq 'pad') { $profileSuffixParts += 'aff8agipad' }
 }
 if ($ZSpanNegativeUnroll -eq 'unroll8') {
     $profileSuffixParts += 'zneg8'
@@ -289,6 +291,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         TextureSpanLoadOrder = $TextureSpanLoadOrder
         TextureSpanAddressing = $TextureSpanAddressing
         AliasSpanAddressing = $AliasSpanAddressing
+        Aff8AgiPadding = $Aff8AgiPadding
         ZSpanNegativeUnroll = $ZSpanNegativeUnroll
         SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
         SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
@@ -671,6 +674,7 @@ $result = [ordered]@{
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
     aliasSpanAddressing = $AliasSpanAddressing
+    aff8AgiPadding = $Aff8AgiPadding
     zSpanNegativeUnroll = $ZSpanNegativeUnroll
     surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
     surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
