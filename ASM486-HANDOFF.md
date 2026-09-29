@@ -9,45 +9,54 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
-### Z-span x87 prologue (2026-09-29) — measurement attempted, experiment abandoned
+### Z-span x87 prologue (2026-09-29) — measured, and the idea does not survive
 
-`d_draw.s:812-838` runs nine serialized x87 instructions per span to compute the
-initial 1/z, amortized over only 30.7 pixels on average (1,494,650 spans for
-45,953,856 pixels). A 486 has no FPU pipeline, so an instruction count of ~108
-cycles per span implies roughly 4.6 s, about 7.8% of the release frame. This is
-the largest identified win in a bucket that no logged Z-span experiment has
-touched: all six ledger entries target addressing (`zspantable`), packing
-(`shldl`/`rorl`), unrolling, or stack traffic, and none touches `d_draw.s:812-846`
-or `:1022-1046`.
+`d_draw.s:812-838` runs nine serialized x87 instructions per span to compute
+the initial 1/z, amortized over only 30.7 pixels on average (1,494,650 spans
+for 45,953,856 pixels). It was the largest identified win in a bucket that no
+logged Z-span experiment touches — all six ledger entries target addressing
+(`zspantable`), packing (`shldl`/`rorl`), unrolling, or stack traffic.
 
-**The experiment was abandoned during the measurement step, and the reason is
-worth recording.** The plan called for a timing probe that replaces the
-clamp-and-convert tail with a constant before writing any real optimization.
-That probe writes a constant `0x10000000` into the Z buffer in place of each
-span's true depth, which corrupts visibility for everything that Z-tests —
-alias models, sprites, particles — and produces visibly broken textures. The
-candidate binary was left runnable, someone ran it, and the glitch was reported.
+**An instruction count suggested ~4.6 s, about 7.8% of frame. Measurement says
+0.419 s, about 0.71%. The estimate was 11x too high.**
 
-Do not repeat this. Two lessons:
+Measured with a probe that recomputes the identical prologue into the same
+scratch slot, discarding the result. Because it reproduces the same value, the
+framebuffer is bit-identical — both runs returned checksum `1047377823`, which
+is what makes this probe safe to run, unlike the earlier attempt that
+overwrote the Z buffer with a constant and produced visibly broken textures.
 
-- **A throwaway probe must not be left runnable.** A timing-only build that
-  corrupts the framebuffer is a trap: the timedemo gate would have caught it on
-  the checksum, but the binary was sitting in `out\` waiting to be launched.
-  Build probes into an isolated output directory, and delete them the moment
-  the measurement is taken.
-- **Timing probes that break parity can still mislead.** The delta would have
-  been a valid *upper bound* on the x87 tail, but the constant also shortens
-  the store loop's dependency on a real gradient, so the number is not a clean
-  measurement of the prologue.
+```text
+control  59.265481 s   checksum 1047377823
+probe    59.684261 s   checksum 1047377823   (prologue done twice)
+delta     0.418780 s = one prologue = 9.4 cycles/span = 0.71% of frame
+```
 
-The probe, its `-ZSpanArithmetic` selector, and its `out\` directory have all
-been removed; the tree is back to `1f01959` and the release build re-verified at
-969 frames and checksum `1047377823`, 59.265478 s.
+The estimate was wrong because it priced x87 ops at real 486 silicon speeds
+(~12 cycles each, with `FISTP` at 30-90). DOSBox-X emulates them far more
+cheaply; nine of them cost 9.4 cycles. A real 486DX would show a much larger
+number, which is precisely the gap the project's standing caveat about
+emulator results not predicting physical hardware applies to — in the opposite
+direction from the usual one, where emulation flatters a change.
 
-If this work is resumed, the correct sequence is: implement the real fixed-point
-prologue with exact S8.24 scaling, confirm checksum `1047377823` **first**,
-and only then measure. Do not size the prize with a build that breaks the
-renderer.
+**The idea is not worth pursuing.** Even a perfect fix caps at 0.71% of frame,
+and the bit-exact rewrite is blocked: the prologue computes in *single*
+precision, rounding after each of the three float operations, so an integer
+replacement would have to reproduce that rounding exactly. A naive integer
+version fails the checksum. Reaching even half the ceiling would mean
+emulating x87 rounding in integer arithmetic — far more expensive than the
+0.419 s being removed.
+
+Recorded so the 7.8% figure is not resurrected. The probe, its
+`-ZSpanArithmetic` selector, and its `out\` directory have all been removed; the
+tree is back to `1f01959` and the release build re-verified at 969 frames and
+checksum `1047377823`, 59.265510 s.
+
+**Method note worth keeping:** the safe way to price a hot sequence is to
+duplicate it into dead scratch and time the delta. It is bit-exact, needs no
+correctness argument, and cannot render anything wrong. The unsafe version —
+overwriting live output — produces a faster but meaningless number *and* a
+broken binary.
 
 ### Aff8 AGI interlock investigation (2026-09-29) — null result, selector removed
 
@@ -2196,12 +2205,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    parity intact, and the `-Aff8AgiPadding` selector has since been removed
    from the tree.  Do not re-run it.  Check adjacency and operand types before
    believing any 486 interlock claim.
-   The Z-span x87 prologue (`d_draw.s:812-846`) is the largest untried Z-span
-   idea and is still open, but do NOT size it with a probe that overwrites the
-   Z buffer with a constant.  That corrupts alias/sprite/particle visibility
-   and renders visibly broken textures, and the broken binary is easy to
-   mistake for a real regression.  Implement the real fixed-point path and gate
-   on checksum `1047377823` first.
+   The Z-span x87 prologue (`d_draw.s:812-846`) is NOT worth porting.  An
+   instruction count suggested 7.8% of frame; measured by duplicating the
+   prologue into dead scratch it is 0.419 s, 0.71% of frame, 9.4 cycles/span.
+   Do not resurrect the 7.8% figure.  The rewrite is also blocked: the
+   prologue rounds to single precision after each of three float ops, so an
+   integer replacement fails the checksum.  If pricing any hot sequence again,
+   duplicate it into dead scratch and time the delta — that is bit-exact and
+   cannot render anything wrong, unlike overwriting live output.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
