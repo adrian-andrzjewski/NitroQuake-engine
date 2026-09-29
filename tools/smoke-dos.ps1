@@ -148,14 +148,19 @@ New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
 Copy-Item -LiteralPath $djgppExe -Destination (Join-Path $quakeRoot 'quake.exe') -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
-# Stage only PAK files. Steam id1 also contains configs, saves, and
-# autoexec lines that can prevent +quit from returning under the 486 cycle cap.
+# Stage only PAK files, as hardlinks. Steam id1 also contains configs, saves,
+# and autoexec lines that can prevent +quit from returning under the 486 cycle
+# cap. Hardlinking needs the same volume as the repository because NTFS
+# hardlinks cannot span volumes.
 $pakFiles = @(Get-ChildItem -LiteralPath $DataRoot -Filter 'pak*.pak' -File)
 if ($pakFiles.Count -eq 0) {
     throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not included in Git."
 }
+if ([IO.Path]::GetPathRoot($DataRoot) -ne [IO.Path]::GetPathRoot($repoRoot)) {
+    throw "Game data must be on the same volume as the repository so staging can hardlink it instead of copying 50 MB per run. Copy pak*.pak to '$(Join-Path $repoRoot 'testdata\id1')' and drop -DataRoot. See BUILD-DOS.md."
+}
 foreach ($pak in $pakFiles) {
-    Copy-Item -LiteralPath $pak.FullName -Destination (Join-Path $stagedData $pak.Name) -Force
+    New-Item -ItemType HardLink -Path (Join-Path $stagedData $pak.Name) -Value $pak.FullName -Force | Out-Null
 }
 
 # quake.rc runs startdemos after stuffcmds in some layouts; a local autoexec

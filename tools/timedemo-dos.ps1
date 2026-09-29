@@ -352,7 +352,15 @@ $hdpmiLoadLine = ''
 $dpmiProbeLines = @()
 
 Copy-Item -LiteralPath $benchmarkExe -Destination (Join-Path $quakeRoot $executableName)
-Copy-Item -Path (Join-Path $DataRoot '*') -Destination $stagedData -Recurse -Force
+
+# Hardlink the paks instead of copying ~50 MB per run. Same volume as the
+# repository is required because NTFS hardlinks cannot span volumes.
+if ([IO.Path]::GetPathRoot($DataRoot) -ne [IO.Path]::GetPathRoot($repoRoot)) {
+    throw "Game data must be on the same volume as the repository so staging can hardlink it instead of copying 50 MB per run. Copy pak*.pak to '$(Join-Path $repoRoot 'testdata\id1')' and drop -DataRoot. See BUILD-DOS.md."
+}
+foreach ($pak in Get-ChildItem -LiteralPath $DataRoot -Filter 'pak*.pak' -File) {
+    New-Item -ItemType HardLink -Path (Join-Path $stagedData $pak.Name) -Value $pak.FullName -Force | Out-Null
+}
 
 if ($DpmiHost -eq 'cwsdpmi') {
     if (-not (Test-Path -LiteralPath $cwsdpmiSource -PathType Leaf)) {

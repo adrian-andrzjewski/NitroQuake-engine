@@ -39,12 +39,10 @@ benefit over the project's vendored **CWSDPMI** on the pinned DOSBox-X
 ### How to reproduce
 
 ```powershell
-.\tools\timedemo-dos.ps1 -SkipBuild -DpmiHost cwsdpmi -Runs 5 `
-  -DataRoot 'C:\path\to\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -DpmiHost hdpmi32 -Runs 5 `
-  -DataRoot 'C:\path\to\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -DpmiHost cwsdpmi -Runs 5
+.\tools\timedemo-dos.ps1 -SkipBuild -DpmiHost hdpmi32 -Runs 5
 # Or both, with a merged report:
-.\tools\compare-dpmi-dos.ps1 -SkipBuild -Runs 5 -DataRoot 'C:\path\to\Quake\id1'
+.\tools\compare-dpmi-dos.ps1 -SkipBuild -Runs 5
 ```
 
 ## Results (5 runs each)

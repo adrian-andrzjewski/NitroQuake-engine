@@ -697,11 +697,11 @@ The reproducible commands are:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -BspFrameCountImplementation control
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -BspFrameCountImplementation local
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation control -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DynamicLightImplementation asm -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation control
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation local
 ~~~
 
 Both variants used DJGPP GCC 12.2.0, target i586-pc-msdosdjgpp,
@@ -2509,11 +2509,10 @@ Use a local, legally obtained `id1` directory containing `pak0.pak`:
 
 ```powershell
 .\tools\build-dos.ps1 -Clean -Benchmark -NoBootstrap
-.\tools\bench-dos.ps1 -SkipBuild -AliasTransformFinalOnly `
-  -DataRoot 'C:\path\to\Quake\id1'
-.\tools\smoke-dos.ps1 -SkipBuild -DataRoot 'C:\path\to\Quake\id1' `
+.\tools\bench-dos.ps1 -SkipBuild -AliasTransformFinalOnly
+.\tools\smoke-dos.ps1 -SkipBuild `
   -TimeoutSeconds 90
-.\tools\timedemo-dos.ps1 -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+.\tools\timedemo-dos.ps1 -Runs 3
 ```
 
 For the direct C/ASM transform A/B, build each selected benchmark executable
@@ -2523,13 +2522,11 @@ and run the focused command with the matching selector:
 .\tools\build-dos.ps1 -Clean -Benchmark `
   -AliasTransformFinalImplementation c -NoBootstrap
 .\tools\bench-dos.ps1 -SkipBuild -AliasTransformFinalOnly `
-  -AliasTransformFinalImplementation c `
-  -DataRoot 'C:\path\to\Quake\id1'
+  -AliasTransformFinalImplementation c
 .\tools\build-dos.ps1 -Clean -Benchmark `
   -AliasTransformFinalImplementation asm -NoBootstrap
 .\tools\bench-dos.ps1 -SkipBuild -AliasTransformFinalOnly `
-  -AliasTransformFinalImplementation asm `
-  -DataRoot 'C:\path\to\Quake\id1'
+  -AliasTransformFinalImplementation asm
 ```
 
 The relevant source entry points are

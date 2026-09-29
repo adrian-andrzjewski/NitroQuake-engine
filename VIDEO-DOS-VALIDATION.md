@@ -29,7 +29,7 @@ was preserved byte for byte and is excluded from the video change.
 - Normal DJGPP build: `tools/build-dos.ps1 -NoBootstrap` passed.
 - Benchmark build: `tools/build-dos.ps1 -Benchmark -DynamicLightImplementation asm -NoBootstrap` passed.
   Use Windows PowerShell 5.1, as documented in BUILD-DOS.md.
-- `tools/smoke-dos.ps1 -NoBootstrap -SkipBuild -DataRoot <legal-id1>` passed.
+- `tools/smoke-dos.ps1 -NoBootstrap -SkipBuild` passed.
 - `python tools/test-video-dos.py` passed with native GCC. It compiles the
   production VBE decoder, discovery, initialization, presentation, mode
   recovery, startup update, and VGA direct-rectangle functions with mocked
@@ -74,8 +74,8 @@ are used for both backends. The forced VGA command adds only `-stdvid`.
 
 ```powershell
 ./tools/build-dos.ps1 -Benchmark -DynamicLightImplementation asm -NoBootstrap
-./tools/timedemo-dos.ps1 -NoBootstrap -SkipBuild -DynamicLightImplementation asm -Runs 3 -NoFpsStats -DataRoot <legal-id1>
-./tools/timedemo-dos.ps1 -NoBootstrap -SkipBuild -DynamicLightImplementation asm -Runs 3 -NoFpsStats -DataRoot <legal-id1> -QuakeExtraArgs '-stdvid'
+./tools/timedemo-dos.ps1 -NoBootstrap -SkipBuild -DynamicLightImplementation asm -Runs 3 -NoFpsStats
+./tools/timedemo-dos.ps1 -NoBootstrap -SkipBuild -DynamicLightImplementation asm -Runs 3 -NoFpsStats -QuakeExtraArgs '-stdvid'
 ```
 
 | Backend | Run 1 seconds | Run 2 seconds | Run 3 seconds | Frames each | Checksum each |

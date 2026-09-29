@@ -201,7 +201,7 @@ profile tree:
 
 ```powershell
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -Instrumentation
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -Instrumentation -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -Instrumentation
 .\tools\profile-report.ps1 -ProfileJson 'out\dos-timedemo-<timestamp>\timedemo-result.json'
 ```
 
@@ -314,9 +314,9 @@ Reproduction commands:
 
 ```powershell
 .\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanStores stosw
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanStores stosw -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\smoke-dos.ps1 -NoBootstrap -TextureSpanStores stosw -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanStores stosw -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanStores stosw -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -NoBootstrap -TextureSpanStores stosw -DynamicLightImplementation asm -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanStores stosw
 ```
 
 The candidate passed DOS smoke and the full `bench486` correctness suite with
@@ -559,10 +559,10 @@ DOSBox-X profile, are:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanRowPath control
 .\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanRowPath norowcross
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanRowPath control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanRowPath norowcross -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanRowPath control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanRowPath norowcross -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanRowPath control -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanRowPath norowcross -TimeoutSeconds 600
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanRowPath control
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanRowPath norowcross
 ~~~
 
 Both builds passed the existing correctness harness (`486 benchmark correctness
@@ -604,9 +604,9 @@ Reproducible commands are:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanStores word -TextureSpanAddressing control
 .\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanStores word -TextureSpanAddressing branch
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanStores word -TextureSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\smoke-dos.ps1 -NoBootstrap -TextureSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanStores word -TextureSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanStores word -TextureSpanAddressing branch -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -NoBootstrap -TextureSpanAddressing branch -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanStores word -TextureSpanAddressing branch
 ~~~
 
 The fresh control `qbench.exe` SHA-256 is
@@ -656,10 +656,10 @@ The reproducible build, correctness, and timedemo commands are:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -TextureSpanLoadOrder control
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -TextureSpanLoadOrder loadfirst
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanLoadOrder control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanLoadOrder loadfirst -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanLoadOrder control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanLoadOrder loadfirst -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanLoadOrder control -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanLoadOrder loadfirst -TimeoutSeconds 600
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanLoadOrder control
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 3 -NoFpsStats -TextureSpanLoadOrder loadfirst
 ~~~
 
 Both benchmark builds used the pinned `i586-pc-msdosdjgpp-gcc 12.2.0`
@@ -724,11 +724,11 @@ The final matched commands were:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasPrepareImplementation control
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasPrepareImplementation local
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation local -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 120
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasPrepareImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasPrepareImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation control -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation local -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -AliasPrepareImplementation local -DynamicLightImplementation asm -TimeoutSeconds 120
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasPrepareImplementation control
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasPrepareImplementation local
 ~~~
 
 Both builds used `i586-pc-msdosdjgpp-gcc.exe (GCC) 12.2.0`, target
@@ -796,11 +796,11 @@ The reproducible commands are:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasSpanAddressing control
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -AliasSpanAddressing branch
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing branch -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasSpanAddressing control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasSpanAddressing branch -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing control -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing branch -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -AliasSpanAddressing branch -DynamicLightImplementation asm -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasSpanAddressing control
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -AliasSpanAddressing branch
 ~~~
 
 Both builds used DJGPP GCC 12.2.0, target i586-pc-msdosdjgpp,
@@ -858,11 +858,11 @@ The reproducible commands are:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -BspFrameCountImplementation control
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -BspFrameCountImplementation local
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DynamicLightImplementation asm -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 180
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation local -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation control -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -TimeoutSeconds 600
+.\tools\smoke-dos.ps1 -SkipBuild -NoBootstrap -BspFrameCountImplementation local -DynamicLightImplementation asm -TimeoutSeconds 180
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation control
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -BspFrameCountImplementation local
 ~~~
 
 Both variants used DJGPP GCC 12.2.0, target i586-pc-msdosdjgpp,
@@ -921,10 +921,10 @@ DOSBox-X profile, are:
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanTailStores control
 .\tools\build-dos.ps1 -Benchmark -NoBootstrap -TextureSpanTailStores word
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanTailStores control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanTailStores word -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanTailStores control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanTailStores word -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanTailStores control -TimeoutSeconds 600
+.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -TextureSpanTailStores word -TimeoutSeconds 600
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanTailStores control
+.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -TextureSpanTailStores word
 ~~~
 
 Both builds passed the existing correctness harness (`486 benchmark correctness
@@ -1064,7 +1064,13 @@ Place legally obtained Quake data in the ignored directory:
 
 ~~~text
 testdata\id1\pak0.pak
+testdata\id1\pak1.pak
 ~~~
+
+The data must live on the same volume as the repository, because the runners
+hardlink the paks into each staging directory rather than copying them and NTFS
+hardlinks cannot span volumes.  If you keep your game data on another volume,
+copy the two paks to `testdata\id1` and drop `-DataRoot`.
 
 Then run:
 
@@ -1080,8 +1086,9 @@ code and a Quake exit marker.  The staged runtime uses the normal Quake layout:
 mounted `quake` directory.  Use -DataRoot to point at another local data
 directory, `-OptimizationProfile baseline` to smoke the `-O2` build, or
 -SkipBuild when the executable is already available.
-The runner copies only `pak*.pak` (not Steam configs or autoexec files),
-writes a local `autoexec.cfg` containing `quit`, and launches with
+The runner stages only `pak*.pak` as hardlinks (not Steam configs, saves, or
+autoexec files), writes a local `autoexec.cfg` containing `quit`, and launches
+with
 `-stdvid -forcquit +quit` so the attract demos and the Y/N quit menu cannot
 hold the 486 cycle cap.  `-forcquit` also skips `Con_NotifyBox` key waits and
 the VGA sell screen.  The generated smoke configuration is the pinned
@@ -1294,11 +1301,12 @@ Use the repository runner for repeatable measurements instead of manually
 copying executables:
 
 ~~~powershell
-.\tools\timedemo-dos.ps1 -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+.\tools\timedemo-dos.ps1 -Runs 3
 ~~~
 
-It stages a fresh DOS directory for every run, writes six-decimal timing data,
-and reports the median FPS.  The runner only compiles `qbench.exe` when that
+It stages a fresh DOS directory for every run, hardlinking `pak*.pak` from
+`testdata\id1` instead of copying them, so `out\` stays small, writes six-decimal
+timing data, and reports the median FPS.  The runner only compiles `qbench.exe` when that
 file is missing; after source changes run `.\tools\build-dos.ps1 -Benchmark`
 first, then `timedemo-dos.ps1 -SkipBuild`.  Keep the demo name, DOSBox-X
 version, 486 profile, fixed cycle count, video mode, optimization profile, and
@@ -1314,9 +1322,8 @@ The default staging still copies `cwsdpmi.exe` beside the EXE.  For an isolated
 DPMI-server A/B without rebuilding Quake:
 
 ~~~powershell
-.\tools\timedemo-dos.ps1 -SkipBuild -DpmiHost hdpmi32 -Runs 5 `
-  -DataRoot 'C:\path\to\Quake\id1'
-.\tools\compare-dpmi-dos.ps1 -SkipBuild -Runs 5 -DataRoot 'C:\path\to\Quake\id1'
+.\tools\timedemo-dos.ps1 -SkipBuild -DpmiHost hdpmi32 -Runs 5
+.\tools\compare-dpmi-dos.ps1 -SkipBuild -Runs 5
 ~~~
 
 `-DpmiHost hdpmi32` stages Japheth's `HDPMI32.EXE` from
@@ -1853,7 +1860,7 @@ build directory:
 
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -TextureAxisCacheEntries 128
-.\tools\timedemo-dos.ps1 -TextureAxisCacheEntries 128 -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+.\tools\timedemo-dos.ps1 -TextureAxisCacheEntries 128 -Runs 3
 ~~~
 
 A one-run demo1 screen under the same pinned profile completed all 969 frames
@@ -1886,7 +1893,7 @@ With Quake data available, the repository runner can stage and execute the
 benchmark under the pinned 486 DOSBox-X profile:
 
 ~~~powershell
-.\tools\bench-dos.ps1 -DataRoot 'C:\path\to\Quake\id1'
+.\tools\bench-dos.ps1
 ~~~
 
 Stage `out\dos\qbench.exe` beside `cwsdpmi.exe` and the `id1` data
@@ -1920,14 +1927,12 @@ The focused benchmark can select each implementation independently:
   -BspPlaneDotImplementation asm `
   -BspClipImplementation asm `
   -AliasTransformFinalImplementation asm `
-  -DataRoot 'C:\path\to\Quake\id1'
 .\tools\bench-dos.ps1 -TextureAxisImplementation c `
   -SurfaceCacheImplementation c `
   -MipLevelImplementation c `
   -TurbulentImplementation asm `
   -AliasBBoxProjectImplementation c `
   -AliasTransformFinalImplementation c `
-  -DataRoot 'C:\path\to\Quake\id1'
 ~~~
 
 Individual implementation switches can be omitted.  The defaults are C for
@@ -1987,10 +1992,8 @@ correctness/microbenchmark matrix, then use matched timedemos for the runtime
 comparison:
 
 ~~~powershell
-.\tools\timedemo-dos.ps1 -MemoryImplementation c `
-  -DataRoot 'C:\path\to\Quake\id1' -Runs 3
-.\tools\timedemo-dos.ps1 -MemoryImplementation asm `
-  -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+.\tools\timedemo-dos.ps1 -MemoryImplementation c -Runs 3
+.\tools\timedemo-dos.ps1 -MemoryImplementation asm -Runs 3
 ~~~
 
 The timedemo result records `memoryImplementation` and the build manifest
@@ -2452,8 +2455,7 @@ available for A/B comparison and writes beside the default build:
 
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -OptimizationProfile baseline
-.\tools\timedemo-dos.ps1 -OptimizationProfile baseline `
-  -DataRoot 'C:\path\to\Quake\id1' -Runs 3
+.\tools\timedemo-dos.ps1 -OptimizationProfile baseline -Runs 3
 ~~~
 
 A matched 2026-09-10 `-O3` rerun after the `Mod_LoadTexinfo` UB fix reached
@@ -2570,8 +2572,7 @@ Use `-Instrumentation` with `-Benchmark` to build `out\dos-profile\qprof.exe`
 and collect the hierarchical renderer profile through the timedemo runner:
 
 ~~~powershell
-.\tools\timedemo-dos.ps1 -Instrumentation `
-  -DataRoot 'C:\path\to\Quake\id1' -Runs 1
+.\tools\timedemo-dos.ps1 -Instrumentation -Runs 1
 ~~~
 
 Instrumentation changes timing, so its FPS is diagnostic only.  The release
