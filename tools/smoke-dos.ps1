@@ -20,10 +20,14 @@ param(
     [string]$AliasSpanAddressing = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
     [string]$SurfaceBlockMip0Rows = 'unroll4',
+    [ValidateSet('control', 'fast')]
+    [string]$SurfaceBlockMip0HorizontalFlat = 'fast',
     [ValidateSet('control', 'unroll8')]
     [string]$SurfaceBlockMip1Rows = 'unroll8',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
+    [ValidateSet('control', 'skipzero')]
+    [string]$GibTrailHorizontalIntegration = 'control',
     [int]$TimeoutSeconds = 90
 )
 
@@ -55,6 +59,7 @@ $profileSuffixParts += 'zneg4'
 if ($SurfaceBlockMip0Rows -eq 'unroll4') { $profileSuffixParts += 'surf0rows4' }
 elseif ($SurfaceBlockMip0Rows -eq 'unroll8') { $profileSuffixParts += 'surf0rows8' }
 elseif ($SurfaceBlockMip0Rows -eq 'unroll16') { $profileSuffixParts += 'surf0rows16' }
+if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf0hflat' }
 if ($SurfaceBlockMip1Rows -eq 'unroll8') { $profileSuffixParts += 'surf1rows8' }
 if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
@@ -62,6 +67,7 @@ $profileSuffixParts += 'lightmapstylesasm'
 $profileSuffixParts += 'fusedlightmapasm'
 if ($DynamicLightImplementation -eq 'asm') { $profileSuffixParts += 'dlightasm' }
 if ($BspFrameCountImplementation -eq 'local') { $profileSuffixParts += 'bspframecache' }
+if ($GibTrailHorizontalIntegration -eq 'skipzero') { $profileSuffixParts += 'gibskipzero' }
 $profileSuffix = if ($profileSuffixParts.Count) { '-' + ($profileSuffixParts -join '-') } else { '' }
 $djgppExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\quake.exe')
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
@@ -93,8 +99,10 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         TextureSpanAddressing = $TextureSpanAddressing
         AliasSpanAddressing = $AliasSpanAddressing
         SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+        SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         BspFrameCountImplementation = $BspFrameCountImplementation
+        GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
@@ -232,7 +240,11 @@ $result = [ordered]@{
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
     aliasSpanAddressing = $AliasSpanAddressing
+    surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+    surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
+    surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     bspFrameCountImplementation = $BspFrameCountImplementation
+    gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     timeoutSeconds = $TimeoutSeconds
 }
 $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingRoot 'smoke-result.json') -Encoding ASCII

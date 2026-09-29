@@ -34,22 +34,56 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
-The current performance defaults use the mip-0 four-row and mip-1 eight-row
-surface-block loops. The combined build completed three timedemo runs at
+The promoted row-loop defaults use the mip-0 four-row and mip-1 eight-row
+surface-block loops. That combined build completed three timedemo runs at
 59.344208 seconds median (16.328468 FPS), each with 969 frames and framebuffer
 checksum `1047377823`. The mip-1 change measured 0.0504% faster than the
 five-run mip-0-only control and passed DOS smoke plus the full `bench486`
 correctness suite (`2378409472`). Both loop controls remain selectable with
 `-SurfaceBlockMip0Rows control` and `-SurfaceBlockMip1Rows control`.
 
-The latest PROFILE486 run is
-`out\dos-timedemo-20260928-194016\timedemo-result.json`; its 67.788754-second
-duration is used only for hotspot attribution. Self-time ranking: texture
-spans 27.89%, alias models 13.28%, world BSP 11.41%, surface cache 10.72%, Z
-spans 9.30%, and edge scanning 8.94%. The world-BSP `local` frame-count
-candidate remains unpromoted because its median was 0.046250% slower than
-control. This pass changes no visual quality, resolution, presentation, scene,
-or timing behavior.
+`-SurfaceBlockMip0HorizontalFlat fast` uses one constant light-map row when a
+mip-0 block has matching left/right light values and matching vertical steps.
+It skips the per-texel horizontal light updates; `control` selects the original
+drawer. Five alternating control/fast `demo1` runs measured medians of
+59.344211 and 59.265486 seconds, respectively, a 78.725 ms (0.13266%) gain.
+The control spread was 0.094 ms and the fast spread was 0.053 ms. All ten runs
+completed 969 frames with checksum `1047377823`; candidate DOS smoke and full
+`bench486` correctness passed (`2378409472`). `fast` is now the default.
+Artifacts: `out\dos-bench-20260929-061426`, `out\dos-smoke`, and alternating
+timedemos `out\dos-timedemo-20260929-062348` through
+`out\dos-timedemo-20260929-063449`.
+
+The fresh PROFILE486 control run is
+`out\dos-timedemo-20260929-055543\timedemo-result.json`; its 67.797249-second
+duration is attribution only. Self-time ranking: texture spans 27.89%, alias
+models 13.28%, world BSP 11.41%, surface cache 10.72%, Z spans 9.29%, and edge
+scanning 8.93%. The surface cache had 8,913 rebuilds, 6.481275 seconds of
+rebuild time, and no thrash frames. Its mip-0 block drawer took 3.692177
+seconds and PROFILE486 counted 26,861 horizontal-flat blocks across mip
+levels. The world-BSP `local` frame-count candidate remains unpromoted because
+its median was 0.046250% slower than control. This pass changes no visual
+quality, resolution, presentation, scene, or timing behavior.
+
+### Monster gib trail zero-XY experiment (2026-09-29)
+
+`R_RocketTrail` creates `pt_grav` only for the `EF_GIB` and `EF_ZOMGIB` blood
+trail variants. They start with zero velocity on every axis; only vertical
+velocity changes. The opt-in build selector
+`-GibTrailHorizontalIntegration skipzero` skips the two horizontal
+zero-velocity position updates in `R_DrawParticles`. Use `control` (the
+default) for the original path. The selector is recorded in build manifests
+and timedemo, smoke, and `bench486` reports. PROFILE486 includes
+`metrics.gib_trail_particles` to identify gib trail work in a replay.
+
+With the pinned DOSBox-X 486 profile, `demo1` processed 8,162 gib trail
+particles out of 134,544 total particle updates over 969 frames. Three-run
+control times were 59.344224, 59.344081, and 59.344071 seconds (median
+59.344081). Three `skipzero` runs were 59.337226, 59.337036, and 59.336899
+seconds (median 59.337036), a 0.0119% gain below the 0.05% promotion gate.
+All runs retained framebuffer checksum `1047377823`; candidate smoke passed
+and the `bench486` correctness suite passed with checksum `2378409472`. Keep
+`control` as the default and use `skipzero` only for further A/B work.
 
 Mip-0 `unroll8` and `unroll16` remain opt-in selectors for A/B runs. Five fresh
 alternating runs using same-source rebuilds measured 59.344242 seconds for

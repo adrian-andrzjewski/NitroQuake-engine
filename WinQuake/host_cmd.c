@@ -138,6 +138,7 @@ double bench486_alias_seconds;
 double bench486_surface_seconds;
 double bench486_turbulent_seconds;
 unsigned long bench486_particle_count;
+unsigned long bench486_gib_trail_particles;
 double bench486_particle_seconds;
 
 #define BENCH486_PROFILE_MAX_DEPTH 24
@@ -1021,7 +1022,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
 			"    \"surfaces\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
-			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu,\n"
+			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu, \"gib_trail_particles\": %lu,\n"
 			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu,\n"
 			"    \"texture_span_buckets\": [%lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_widths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
@@ -1042,6 +1043,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_texture_span_count, bench486_texture_span_pixels,
 			bench486_texture_span_segments, bench486_alias_models,
 			bench486_alias_vertices, bench486_particle_count,
+			bench486_gib_trail_particles,
 			bench486_present_rects, bench486_present_pixels,
 			bench486_sound_update_calls, bench486_sound_mix_calls,
 			bench486_texture_span_buckets[0], bench486_texture_span_buckets[1],
@@ -1185,6 +1187,7 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_surface_seconds = 0;
 	bench486_turbulent_seconds = 0;
 	bench486_particle_count = 0;
+	bench486_gib_trail_particles = 0;
 	bench486_particle_seconds = 0;
 }
 
@@ -1207,6 +1210,7 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			"visibility-sec %.6f world-sec %.6f edge-scan-sec %.6f "
 			"surface-sec %.6f surface-cache-sec %.6f span-draw-sec %.6f "
 			"alias-sec %.6f turbulent-sec %.6f particles %lu "
+			"gib-trail-particles %lu "
 			"particle-sec %.6f sound-sec %.6f framebuffer-sec %.6f "
 			"alias-models %lu alias-vertices %lu surfaces %lu "
 			"texture-spans %lu texture-pixels %lu texture-segments %lu "
@@ -1224,6 +1228,7 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_surface_seconds, bench486_surface_cache_seconds,
 			bench486_span_draw_seconds, bench486_alias_seconds,
 			bench486_turbulent_seconds, bench486_particle_count,
+			bench486_gib_trail_particles,
 			bench486_particle_seconds, bench486_sound_seconds,
 			bench486_framebuffer_seconds,
 			bench486_alias_models, bench486_alias_vertices,

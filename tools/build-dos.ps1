@@ -34,6 +34,8 @@ param(
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
     [string]$SurfaceBlockMip0Rows = 'unroll4',
+    [ValidateSet('control', 'fast')]
+    [string]$SurfaceBlockMip0HorizontalFlat = 'fast',
     [ValidateSet('control', 'unroll8')]
     [string]$SurfaceBlockMip1Rows = 'unroll8',
     [ValidateSet('c', 'asm')]
@@ -62,6 +64,8 @@ param(
     [string]$BspClipImplementation = 'c',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
+    [ValidateSet('control', 'skipzero')]
+    [string]$GibTrailHorizontalIntegration = 'control',
     [string]$ToolRoot
 )
 
@@ -178,6 +182,9 @@ elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
 elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
     $profileSuffixParts += 'surf0rows16'
 }
+if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
+    $profileSuffixParts += 'surf0hflat'
+}
 if ($SurfaceBlockMip1Rows -eq 'unroll8') {
     $profileSuffixParts += 'surf1rows8'
 }
@@ -219,6 +226,9 @@ if ($BspClipImplementation -eq 'asm') {
 }
 if ($BspFrameCountImplementation -eq 'local') {
     $profileSuffixParts += 'bspframecache'
+}
+if ($GibTrailHorizontalIntegration -eq 'skipzero') {
+    $profileSuffixParts += 'gibskipzero'
 }
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
@@ -366,6 +376,9 @@ try {
     if ($BspFrameCountImplementation -eq 'local') {
         $cFlags += '-DASM486_BSP_FRAME_COUNT'
     }
+    if ($GibTrailHorizontalIntegration -eq 'skipzero') {
+        $cFlags += '-DASM486_GIB_TRAIL_SKIP_ZERO_XY'
+    }
     if ($AliasBBoxProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_BBOX_PROJECT'
     }
@@ -437,6 +450,9 @@ try {
     elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
         $asmFlags += '-DASM486_SURF8_MIP0_ROWS16'
     }
+    if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
+        $asmFlags += '-DASM486_SURF8_MIP0_HORIZONTAL_FLAT'
+    }
     if ($SurfaceBlockMip1Rows -eq 'unroll8') {
         $asmFlags += '-DASM486_SURF8_MIP1_ROWS8'
     }
@@ -504,6 +520,7 @@ try {
         aliasSpanAddressing = $AliasSpanAddressing
         zSpanNegativeUnroll = $ZSpanNegativeUnroll
         surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+        surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
@@ -518,6 +535,7 @@ try {
         bspPlaneDotImplementation = $BspPlaneDotImplementation
         bspClipImplementation = $BspClipImplementation
         bspFrameCountImplementation = $BspFrameCountImplementation
+        gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
         optimizationProfile = $OptimizationProfile
         optimizationLevel = $optimizationLevel
         textureAxisCacheEntries = $TextureAxisCacheEntries

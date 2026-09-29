@@ -35,6 +35,8 @@ param(
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
     [string]$SurfaceBlockMip0Rows = 'unroll4',
+    [ValidateSet('control', 'fast')]
+    [string]$SurfaceBlockMip0HorizontalFlat = 'fast',
     [ValidateSet('control', 'unroll8')]
     [string]$SurfaceBlockMip1Rows = 'unroll8',
     [ValidateSet('c', 'asm')]
@@ -63,6 +65,8 @@ param(
     [string]$BspClipImplementation = 'c',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
+    [ValidateSet('control', 'skipzero')]
+    [string]$GibTrailHorizontalIntegration = 'control',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
     [string]$DemoName = 'demo1',
     [ValidateRange(1, 9)]
@@ -181,6 +185,9 @@ elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
 elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
     $profileSuffixParts += 'surf0rows16'
 }
+if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
+    $profileSuffixParts += 'surf0hflat'
+}
 if ($SurfaceBlockMip1Rows -eq 'unroll8') {
     $profileSuffixParts += 'surf1rows8'
 }
@@ -222,6 +229,9 @@ if ($BspClipImplementation -eq 'asm') {
 }
 if ($BspFrameCountImplementation -eq 'local') {
     $profileSuffixParts += 'bspframecache'
+}
+if ($GibTrailHorizontalIntegration -eq 'skipzero') {
+    $profileSuffixParts += 'gibskipzero'
 }
 if ($Instrumentation) {
     $profileSuffixParts += 'profile'
@@ -272,6 +282,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         AliasSpanAddressing = $AliasSpanAddressing
         ZSpanNegativeUnroll = $ZSpanNegativeUnroll
         SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+        SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
@@ -286,6 +297,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         BspPlaneDotImplementation = $BspPlaneDotImplementation
         BspClipImplementation = $BspClipImplementation
         BspFrameCountImplementation = $BspFrameCountImplementation
+        GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
         ToolRoot = $ToolRoot
     }
     if ($Instrumentation) {
@@ -652,6 +664,7 @@ $result = [ordered]@{
     aliasSpanAddressing = $AliasSpanAddressing
     zSpanNegativeUnroll = $ZSpanNegativeUnroll
     surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+    surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
@@ -667,6 +680,7 @@ $result = [ordered]@{
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
     bspFrameCountImplementation = $BspFrameCountImplementation
+    gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     instrumentation = [bool]$Instrumentation
     frameFpsStats = [bool](-not $NoFpsStats)
     dataRoot = $DataRoot

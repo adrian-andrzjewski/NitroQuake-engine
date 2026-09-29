@@ -21,21 +21,68 @@ frames with framebuffer checksum `1047377823`; the candidate also passed DOS
 smoke and full `bench486` correctness (`2378409472`). Both control paths remain
 selectable for matched A/B comparisons.
 
-The latest PROFILE486 run at the promoted defaults is
-`out\dos-timedemo-20260928-194016\timedemo-result.json`. Its 67.788754-second
+The fresh PROFILE486 control run is
+`out\dos-timedemo-20260929-055543\timedemo-result.json`. Its 67.797249-second
 duration is attribution evidence, not release timing. Self-time ranking is
 texture spans 27.89%, alias models 13.28%, world BSP 11.41%, surface cache
-10.72%, Z spans 9.30%, and edge scanning 8.94%. The release gate remains 969
-frames with checksum `1047377823`. Previously tested texture-span addressing,
-load-order, and tail-store alternatives remain rejected or below threshold;
-choose the next experiment from a specific measured path and retain its
-control. No visual-quality, resolution, presentation, scene, or timing changes
-are part of this pass.
+10.72%, Z spans 9.29%, and edge scanning 8.93%. The surface cache recorded
+8,913 rebuilds, 6.481275 seconds of rebuild time, 5.616218 seconds in block
+drawing, and no thrash frames. Mip-0 block drawing took 3.692177 seconds; the
+profile counted 26,861 horizontal-flat blocks across mip levels. The release
+gate remains 969 frames with checksum `1047377823`. Previously tested
+texture-span addressing, load-order, and tail-store alternatives remain
+rejected or below threshold. No visual-quality, resolution, presentation,
+scene, or timing changes are part of this pass.
 
 The BSP frame-count experiment remains unpromoted. Its `local` selector
 preserved correctness, smoke, and release framebuffer parity, but its
 three-run median was 59.435670 seconds versus 59.408194 seconds for its
 control, so it did not clear the 0.05% improvement gate.
+
+### Horizontal-flat mip-0 surface blocks (2026-09-29)
+
+The opt-in `-SurfaceBlockMip0HorizontalFlat fast` path specializes blocks
+whose top-left and top-right light values match and whose left/right vertical
+steps also match. Each scanline then uses one constant light-map row, so the
+drawer skips its per-texel horizontal light updates. The `control` selector
+retains the original path. PROFILE486 counted 26,861 horizontal-flat blocks
+across the mip levels, motivating a mip-0 specialization.
+
+Five alternating pinned `demo1` runs measured control at
+`59.344206 / 59.344204 / 59.344211 / 59.344238 / 59.344298` seconds and fast
+at `59.265472 / 59.265448 / 59.265501 / 59.265486 / 59.265487` seconds. The
+medians are `59.344211` and `59.265486` seconds, a 78.725 ms (0.13266%) gain;
+the full timing ranges are 0.094 ms and 0.053 ms. Every run completed 969
+frames with framebuffer checksum `1047377823`. Candidate smoke passed and the
+full `bench486` correctness suite passed with checksum `2378409472`. Promote
+`fast` as the build, smoke, benchmark, and timedemo default; `control` remains
+available for A/B checks. Artifacts are in `out\dos-bench-20260929-061426`,
+`out\dos-smoke`, and timedemo directories
+`out\dos-timedemo-20260929-062348` through
+`out\dos-timedemo-20260929-063449`.
+
+### Monster gib trail zero-XY experiment (2026-09-29)
+
+`R_RocketTrail` creates `pt_grav` only for the `EF_GIB` and `EF_ZOMGIB` blood
+trail variants. Those particles start with zero velocity on all axes and only
+their vertical velocity changes. The opt-in
+`-GibTrailHorizontalIntegration skipzero` path skips the two horizontal
+zero-velocity position updates in `R_DrawParticles`; the default `control`
+path retains the original C behavior. The selector is supported by the build,
+timedemo, smoke, and `bench486` runners. PROFILE486 reports
+`metrics.gib_trail_particles` so a replay can confirm it exercises this path.
+
+The pinned `demo1` profile processed 8,162 gib trail particles out of 134,544
+total particle updates over 969 frames. The three-run control median was
+59.344081 seconds; `skipzero` measured 59.337036 seconds, a repeatable
+0.0119% improvement. All six timedemo runs retained framebuffer checksum
+`1047377823`. Candidate smoke passed and `bench486` reported correctness PASS
+with checksum `2378409472`. Keep `control` as the default: the measured gain is
+below the 0.05% promotion gate. Artifacts are in
+`out\dos-timedemo-20260928-224352`,
+`out\dos-timedemo-20260928-224550`,
+`out\dos-timedemo-20260928-224937`,
+`out\dos-bench-20260928-225518`, and `out\dos-smoke`.
 
 The mip-0 eight-row extension also remains opt-in. Five fresh alternating
 runs, with both executables rebuilt from the same source, measured 59.344242

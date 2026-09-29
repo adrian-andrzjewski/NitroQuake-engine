@@ -95,6 +95,21 @@ Lv_loop_mip0:
 
 	sarl	$4,%ebx
 	movl	%ecx,C(lightrightstep)
+#ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
+	// A flat top edge and matching left/right vertical steps keep each
+	// scanline at one light level. Draw those rows without horizontal
+	// light interpolation.
+	cmpl	%edx,%eax
+	jne	LSurfaceBlockMip0NotHorizontalFlat
+	cmpl	%ecx,%ebx
+	jne	LSurfaceBlockMip0NotHorizontalFlat
+	movl	%ecx,%ebp
+	xorl	%ebx,%ebx
+	xorl	%ecx,%ecx
+	call	LSurf8Mip0HorizontalFlat
+	jmp	LSurfaceBlockMip0Done
+LSurfaceBlockMip0NotHorizontalFlat:
+#endif
 
 	subl	%ecx,%ebx
 	andl	$0xFFFFF,%ebx
@@ -417,6 +432,7 @@ LBPatch15:
 	jc		Lblockloop8_mip0
 #endif
 
+LSurfaceBlockMip0Done:
 //			if (pbasesource >= r_sourcemax)
 //				pbasesource -= stepback;
 
@@ -435,6 +451,90 @@ LSkip_mip0:
 	popl	%edi
 	popl	%ebp				// restore the caller's stack frame
 	ret
+
+#ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
+.macro SURF8_MIP0_HORIZONTAL_FLAT_ROW
+	movb	%dh,%bh
+	movb	%dh,%ch
+	movb	15(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat0:
+	movb	%al,15(%edi)
+	movb	14(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat1:
+	movb	%al,14(%edi)
+	movb	13(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat2:
+	movb	%al,13(%edi)
+	movb	12(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat3:
+	movb	%al,12(%edi)
+	movb	11(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat4:
+	movb	%al,11(%edi)
+	movb	10(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat5:
+	movb	%al,10(%edi)
+	movb	9(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat6:
+	movb	%al,9(%edi)
+	movb	8(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat7:
+	movb	%al,8(%edi)
+	movb	7(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat8:
+	movb	%al,7(%edi)
+	movb	6(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat9:
+	movb	%al,6(%edi)
+	movb	5(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat10:
+	movb	%al,5(%edi)
+	movb	4(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat11:
+	movb	%al,4(%edi)
+	movb	3(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat12:
+	movb	%al,3(%edi)
+	movb	2(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat13:
+	movb	%al,2(%edi)
+	movb	1(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflat14:
+	movb	%al,1(%edi)
+	movb	(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflat15:
+	movb	%al,(%edi)
+.endm
+
+	.p2align 4,,15
+LSurf8Mip0HorizontalFlat:
+	pushl	$16
+LSurf8Mip0HorizontalFlatRow:
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	decl	(%esp)
+	jnz	LSurf8Mip0HorizontalFlatRow
+	addl	$4,%esp
+	ret
+#endif
 
 
 //----------------------------------------------------------------------
@@ -1230,6 +1330,24 @@ SURF8_PATCH_ROW p
 #endif
 	.long	LBPatch30-4
 	.long	LBPatch31-4
+#ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
+	.long	.LLBPatchflat0-4
+	.long	.LLBPatchflat1-4
+	.long	.LLBPatchflat2-4
+	.long	.LLBPatchflat3-4
+	.long	.LLBPatchflat4-4
+	.long	.LLBPatchflat5-4
+	.long	.LLBPatchflat6-4
+	.long	.LLBPatchflat7-4
+	.long	.LLBPatchflat8-4
+	.long	.LLBPatchflat9-4
+	.long	.LLBPatchflat10-4
+	.long	.LLBPatchflat11-4
+	.long	.LLBPatchflat12-4
+	.long	.LLBPatchflat13-4
+	.long	.LLBPatchflat14-4
+	.long	.LLBPatchflat15-4
+#endif
 
 	.text
 
@@ -1256,6 +1374,9 @@ C(R_Surf8Patch):
 	movl	$88,%ecx
 #else
 	movl	$32,%ecx
+#endif
+#ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
+	addl	$16,%ecx
 #endif
 LPatchLoop8:
 	movl	(%ebx),%edx

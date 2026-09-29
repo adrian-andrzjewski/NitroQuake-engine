@@ -21,6 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
+#ifdef PROFILE486
+extern unsigned long bench486_gib_trail_particles;
+#endif
+
 #define MAX_PARTICLES			2048	// default max # of particles at one
 										//  time
 #define ABSOLUTE_MIN_PARTICLES	512		// no fewer than this no matter what's
@@ -703,9 +707,29 @@ void R_DrawParticles (void)
 
 #ifdef PROFILE486
 		if (bench486_profile_frame_active)
+		{
 			bench486_particle_count++;
+			if (p->type == pt_grav)
+				bench486_gib_trail_particles++;
+		}
 #endif
 		D_DrawParticle (p);
+		/* Gib trails have zero horizontal velocity.  Avoid two zero-valued
+		   multiply/adds for every live blood particle on 486-class CPUs. */
+#ifdef ASM486_GIB_TRAIL_SKIP_ZERO_XY
+		if (p->type == pt_grav)
+		{
+			p->org[2] += p->vel[2]*frametime;
+#ifdef QUAKE2
+			p->vel[2] -= grav * 20;
+#else
+			p->vel[2] -= grav;
+#endif
+			link = &p->next;
+			continue;
+		}
+#endif
+
 		p->org[0] += p->vel[0]*frametime;
 		p->org[1] += p->vel[1]*frametime;
 		p->org[2] += p->vel[2]*frametime;
