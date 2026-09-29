@@ -34,6 +34,51 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
+### Aff8 16-byte code-alignment experiment (2026-09-29) — rejected and reverted
+
+`-Aff8LoopAlignment aligned` defined `ASM486_AFF8_ALIGN` in
+`WinQuake\d_polysa.s`, enabling an `AFF8_ALIGN` macro (`.p2align 4,,15`)
+before the five hot Aff8 labels `LDrawLoop`, `LDraw16`, `LAff8LastGroup`,
+`LNextSpan`, and `LExactlyOneLong`. Only instruction addresses changed; the
+store pattern, sampling order, and fixed-point DDA were untouched.
+`D_Aff8Patch` still covered all 18 colormap patch slots after padding, and the
+padding stayed inside the `D_PolysetAff8Start`..`End` range that `d_modech.c`
+makes writable.
+
+**This experiment has been reverted.** The selector, its `ASM486_AFF8_ALIGN`
+define, the `AFF8_ALIGN` sites, and the selector plumbing in all four runner
+scripts have been removed, so the selector no longer exists in the build. The
+measurement and decision below are retained as the record.
+
+```text
+control: 59.265452 / 59.265481 / 59.265442 s; median 59.265481 s, 16.350159 FPS
+aligned: 59.287251 / 59.287243 / 59.743230 s; median 59.743230 s, 16.219411 FPS
+```
+
+The candidate reported `486 benchmark correctness PASS` with end checksum
+`2378409472` (`out\dos-bench-20260929-084221`) and passed DOS smoke with both
+exit codes `0`. All six timedemo runs completed 969 frames with framebuffer
+checksum `1047377823`.
+
+`aligned` is `0.477749` seconds (`0.806117%`) slower than control, so it fails
+the 0.05% promotion threshold and was rejected. The third aligned sample is an
+outlier at `0.455987` s spread, but both clean aligned samples still trail
+every control sample, so the direction is consistently negative rather than
+noisy. Artifacts are in `out\dos-timedemo-20260929-085326` through
+`out\dos-timedemo-20260929-085922`.
+
+Two operational notes from this pass, both still relevant to any future
+selector work. `build-dos.ps1 -Benchmark` and a plain non-benchmark build share
+one `out\dos<suffix>` directory, so a `-Clean` non-benchmark build removes the
+`qbench.exe` from that path; rebuild the benchmark variant before running
+`bench-dos.ps1` or `timedemo-dos.ps1` against the same selector. Separately,
+`qbench.exe` is not byte-reproducible, because `host.c:912` and
+`host_cmd.c:4643` embed `__TIME__`/`__DATE__` in a startup banner and six stamp
+bytes differ between any two builds of identical source. Compare selectors and
+framebuffer checksums, not executable hashes.
+
+### Current promoted defaults
+
 The promoted row-loop defaults use the mip-0 four-row and mip-1 eight-row
 surface-block loops. That combined build completed three timedemo runs at
 59.344208 seconds median (16.328468 FPS), each with 969 frames and framebuffer

@@ -9,6 +9,78 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Aff8 16-byte code-alignment experiment (2026-09-29) — rejected and reverted
+
+This was the first attempt in the checkout to use the 486 code-layout axis.
+Exploration had confirmed that register allocation, load scheduling, and CSE
+were already mined, while **alignment padding was entirely untouched**: no NOP
+filler, no `Bochs D4`-style macro, and no `.rept` filler exists in any of the
+21 `.s` files, and `d_polysa.s` had exactly one `.p2align` (a `.data` label).
+The Aff8 pixel loop had no alignment directives at all.
+
+**The experiment code has since been reverted.** The temporary
+`-Aff8LoopAlignment control|aligned` selector, its `ASM486_AFF8_ALIGN` define
+in `WinQuake\d_polysa.s`, and the `AFF8_ALIGN` macro sites have all been
+removed, along with the selector plumbing in `build-dos.ps1`, `bench-dos.ps1`,
+`timedemo-dos.ps1`, and `smoke-dos.ps1`. The tree is back to its pre-experiment
+state and this section is preserved as a record of the measurement. The
+candidate had been defined as an `AFF8_ALIGN` macro (`.p2align 4,,15`) before
+five hot labels: `LDrawLoop`, `LDraw16`, `LAff8LastGroup`, `LNextSpan`, and
+`LExactlyOneLong`, with store counts, sampling order, and the fixed-point DDA
+unchanged so that only instruction addresses moved.
+
+Both variants used DJGPP GCC 12.2.0, target i586-pc-msdosdjgpp, `-O3
+-march=i486`, 83 C sources, and 21 assembly sources, with the pinned
+`tools\dosbox-x-486-high.conf` profile, CWSDPMI, and the seeded `demo1`
+workload. Note that `qbench.exe` is **not byte-reproducible**: `host.c:912`
+and `host_cmd.c:4643` embed `__TIME__`/`__DATE__` in a startup banner, so six
+stamp bytes differ between any two builds of identical source. Hashes recorded
+in this file identify a build, not the source; compare selectors and
+framebuffer checksums instead. The control `qbench.exe` SHA-256 for this pass
+was `96FC0BE537B01CA74CBC60D10D20F1610101792DCEA81D14F97396409543230B`.
+
+The alignment was verified in the linked binaries before timing. The candidate
+places `LDrawLoop` at `0x90960`, `LAff8LastGroup` at `0x90ce0`, `LNextSpan` at
+`0x90cf0`, and `LExactlyOneLong` at `0x90d10`, all on 16-byte boundaries, with
+13 NOP bytes of padding at `0x90ce3`-`0x90cef`. The `0x12345678` colormap
+placeholder count is **189 in both binaries**, which confirms `D_Aff8Patch`
+still covers all 18 patch slots and that `d_modech.c`'s
+`D_PolysetAff8Start`..`End` writable range still spans every patched byte
+after padding. The loop back-edge `jmp 0x90960` at `0x90cd7` confirms the
+target.
+
+Correctness and startup both passed. The candidate reported
+`486 benchmark correctness PASS` with end checksum `2378409472`
+(`out\dos-bench-20260929-084221\bench-result.json`) and a clean smoke test
+with DOSBox-X and Quake exit codes both `0`.
+
+Three alternating pinned `demo1` timedemo pairs followed. Every run completed
+969 frames with framebuffer checksum `1047377823`:
+
+```text
+control: 59.265452 / 59.265481 / 59.265442 s; median 59.265481 s, 16.350159 FPS
+aligned: 59.287251 / 59.287243 / 59.743230 s; median 59.743230 s, 16.219411 FPS
+```
+
+The aligned median is `0.477749` seconds (`0.806117%`) **slower** than
+control, against a required 0.05% improvement, so the candidate was rejected
+and is now fully removed. Artifacts remain in `out\dos-timedemo-20260929-085326`
+through `out\dos-timedemo-20260929-085922`.
+
+Two observations matter for interpreting this. First, the aligned spread is
+`0.455987` s because the third sample (`59.743230`) is a clear outlier, while
+its first two samples are only ~22 ms behind control; the project has seen
+this same isolated-outlier pattern in earlier `stosw` runs. Second, and more
+importantly, the direction is consistently wrong rather than noisy: even the
+two clean aligned samples are slower than every control sample. The likely
+cause is that the padding pushes already-large unrolled bodies across an extra
+16-byte fetch boundary and slightly worse I-cache placement, while the
+write-buffer and fetch-boundary costs this was meant to relieve turn out not
+to dominate. Because the measured effect is negative rather than
+indistinguishable, this is a rejected result and not a null result. Note also
+that a genuine physical-486 alignment benefit would not be expected to be
+faithfully reproduced by DOSBox-X anyway (`BENCHMARK-COMPARISON.md:49`).
+
 ### Current texture-span follow-up (2026-09-29)
 
 The latest PROFILE486 control run is
@@ -1835,6 +1907,12 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    Do not restore EmitEdge `movl C(surfaces),%esi` before the LSide1/LSide0
    `surface_p - surfaces` sub; the memory form and explicit sort-side
    `movl` are kept.
+   Do not retry 16-byte `.p2align` padding of the Aff8 hot labels
+   (reverted; 0.806117% slower median, checksum-clean).  The 486 code-layout
+   axis remains untried in every other loop family, but padding these
+   already-large unrolled bodies measurably hurt; prefer layout experiments
+   that do not grow the bodies.  The experiment code and its
+   `-Aff8LoopAlignment` selector have been removed from the tree.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
