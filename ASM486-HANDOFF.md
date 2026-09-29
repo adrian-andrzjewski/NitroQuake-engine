@@ -9,6 +9,48 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Aff8 AGI interlock hypothesis (2026-09-29) — disproven, no change made
+
+The Aff8 pixel leaf was proposed as the last untested 486 mechanism from the
+optimization brief, on the theory that `movb %dh,%ah` followed by
+`movb 0x12345678(%eax),%al` creates a per-pixel AGI interlock. **The hypothesis
+is false and no code was changed.** The assembled leaf is:
+
+```text
+  cmpw  (%ecx),%bp                 base=%ecx
+  jl    Lp1
+  movzbl (%esi),%eax              base=%esi, writes %eax
+  movb  %dh,%ah                   writes %eax, NO memory operand
+  movw  %bp,(%ecx)                base=%ecx
+  movb  0x12345678(%eax),%al      base=%eax
+  movb  %al,(%edi)                base=%edi
+```
+
+An AGI interlock requires instruction N to write a register that instruction
+N+1 uses as a memory base or index. Checking each adjacent pair: `movb %dh,%ah`
+writes `%eax` but has **no** memory operand, so it cannot be the N in a hazard,
+and the `%eax` base use two instructions later is already separated by the Z
+store. The `movzbl (%esi),%eax` → `movb %dh,%ah` pair looks like a hazard but
+the second instruction is register-to-register with no address generation.
+`ALIAS_SPAN_ADVANCE` ends by writing `%esi`, and the following `cmpw (%ecx),%bp`
+uses `%ecx`, leaving two instructions of separation before the `(%esi)` base
+use. There is no per-pixel AGI to remove; the original id Software schedule is
+already correct on this point.
+
+Exactly one real AGI remains in the loop: `addl $16,%ecx` immediately precedes
+`cmpw (%ecx),%bp` at the `LDrawLoop` back-edge (`d_polysa.s:988` and `:1124`).
+It is once per 8-pixel group, not per pixel, and it sits on a back-edge that
+already pays a taken-branch pipeline flush, which no NOP can avoid. Separating
+them would also add a byte to a loop already shown to be code-size sensitive by
+the rejected alignment experiment. Expected gain is below the 0.05% promotion
+gate, so it was not pursued.
+
+This is recorded rather than silently dropped because the reasoning error is
+the useful part: the interlock is easy to *see* in the disassembly
+(`movb %dh,%ah` next to a `(%eax)`-based load) and easy to believe, and it was
+wrong. Verify adjacency and operand types before spending a timedemo A/B on any
+486 interlock claim.
+
 ### Alias-raster C-glue instrumentation (2026-09-29) — residual localized, and the profiler is now the limiting factor
 
 The unattributed `alias-raster` self time is split into `alias-edge-setup`,
@@ -2082,6 +2124,13 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    improvements are already kept.  Do not open another C-to-ASM port here
    without a new source-level hypothesis, and note that per-call profiling now
    costs about as much as it measures.
+   Do not add AGI-interlock padding to the Aff8 pixel leaf.  The apparent
+   hazard (`movb %dh,%ah` beside a `(%eax)`-based colormap load) is not a real
+   interlock: the partial write has no memory operand and the `%eax` base use
+   is already separated by the Z store.  The only genuine AGI is
+   `addl $16,%ecx` -> `cmpw (%ecx),%bp` at the `LDrawLoop` back-edge, once per
+   8-pixel group, on a back-edge that already pays a branch flush.  Below the
+   promotion gate; do not spend a timedemo A/B on it.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
