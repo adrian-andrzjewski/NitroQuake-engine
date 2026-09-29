@@ -34,30 +34,20 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
-### Aff8 AGI back-edge padding (2026-09-29) — measured null, rejected
+### Aff8 AGI back-edge padding (2026-09-29) — measured null, selector removed
 
-`-Aff8AgiPadding pad` defines `ASM486_AFF8_AGI_PAD` in `WinQuake\d_polysa.s`,
-emitting one NOP at each of the two `LDrawLoop` group back-edges to break the
-`addl $16,%ecx` -> `cmpw (%ecx),%bp` address-generation interlock. The
-per-pixel leaf has no such hazard; see `ASM486-HANDOFF.md` for that analysis.
+An opt-in `-Aff8AgiPadding control|pad` selector added one NOP at each
+`LDrawLoop` group back-edge to break the `addl $16,%ecx` -> `cmpw (%ecx),%bp`
+address-generation interlock. It measured at **-0.000054%** (median 59.265466 s
+vs 59.265498 s control), a clean null rather than a regression, with all parity
+gates passing: correctness `2378409472`, clean smoke, and six timedemo runs at
+969 frames with checksum `1047377823`.
 
-```powershell
-.\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -Aff8AgiPadding pad
-.\tools\bench-dos.ps1 -SkipBuild -NoBootstrap -Aff8AgiPadding pad -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1' -TimeoutSeconds 600
-.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -Aff8AgiPadding control -DataRoot 'C:\Program Files (x86)\Steam\steamapps\common\Quake\id1'
-```
-
-Correctness passed (`2378409472`), smoke passed, and all six timedemo runs held
-969 frames with checksum `1047377823`:
-
-```text
-control: 59.265427 / 59.265498 / 59.265442 s; median 59.265498 s
-pad:     59.265453 / 59.265466 / 59.265480 s; median 59.265466 s
-```
-
-The delta is **-0.000032 s (-0.000054%)**, about 1,000x below the 0.05% gate
-and inside the run-to-run spread. A clean null: the NOP costs nothing and saves
-nothing. `control` remains the default; the selector is opt-in only.
+**The selector and its `ASM486_AFF8_AGI_PAD` define have been removed from the
+tree** — there was no measurable win to keep. The measurement and its artifact
+paths remain recorded in `ASM486-HANDOFF.md`. The per-pixel Aff8 leaf was also
+checked and has no interlock at all; see the handoff for the operand-level
+analysis.
 
 ### Alias-raster C-glue instrumentation (2026-09-29)
 
