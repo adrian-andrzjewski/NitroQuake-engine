@@ -34,6 +34,38 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
+### What this harness can and cannot measure (2026-09-29)
+
+The renderer is converged at the source level on every path the profile can
+see. The remaining constraint is the emulator. Nine serialized x87 operations
+in the Z-span prologue measure **9.4 cycles** here — about 1.04 cycles per op —
+where a physical 486DX spends roughly 12 per op and 30-90 on `FISTP` alone.
+
+DOSBox-X 2026.08.31 exposes no x87 timing or fidelity control: the pinned
+`tools\dosbox-x-486-high.conf` sets `core = dynamic`, `fpu = true`,
+`cputype = 486`, `cycles = fixed 33445`, and none of the 44 available `[cpu]`
+options changes per-instruction x87 cost. The FPU is present and bit-exact
+(checksum `1047377823`) — it is simply temporally free.
+
+**Therefore: a positive result here is sound; a negative result is weak
+evidence.** A measured win is real. A measured null only proves the emulator
+could not see the cost. This applies to any idea whose payoff comes from FPU
+latency, 16-byte fetch boundaries, write-buffer occupancy, or 4 KB paging
+aliasing — all invisible in DOSBox-X. Ideas paid for by instruction count,
+memory traffic, or arithmetic remain fully measurable, and that is where
+further optimization belongs.
+
+Two corrections this forced. The Aff8 padding post-mortem previously blamed
+"I-cache placement"; the 486 has **no instruction cache**, only an 8 KB unified
+data cache, so the mechanism is fetch boundaries and cache displacement. And
+the pinned profile SHA-256 is recorded but never enforced —
+`tools\timedemo-dos.ps1:439-446` computes it and `:653` writes it to the
+report, but no code compares it to a constant. Changing the DOSBox-X core would
+silently re-baseline the whole ledger rather than being caught.
+
+Resolving any of this properly needs physical 486 hardware or a cycle-accurate
+alternative; see `ASM486-HANDOFF.md` for the full record.
+
 ### Z-span x87 prologue (2026-09-29) — measured at 0.71%, not worth porting
 
 The per-span prologue at `WinQuake\d_draw.s:812-838` runs nine serialized x87

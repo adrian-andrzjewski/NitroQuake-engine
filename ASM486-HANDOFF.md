@@ -9,6 +9,65 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### What this harness can and cannot measure (2026-09-29)
+
+The project has reached the point where the binding constraint is the emulator,
+not the code. This section states the limit so later passes do not spend
+timedemos on ideas the harness cannot see.
+
+**The measurement.** Duplicating the Z-span x87 prologue into dead scratch cost
+9.4 cycles for nine serialized x87 operations — about 1.04 cycles per op. A
+physical 486DX spends roughly 12 cycles per x87 op and 30-90 on `FISTP` alone.
+That is a 30-90x gap.
+
+**No DOSBox-X option closes it.** The `[cpu]` section
+(`tools\dosbox-x-486-high.conf:490-537`) sets `core = dynamic`, `fpu = true`,
+`cputype = 486`, `cycles = fixed 33445`. DOSBox-X 2026.08.31 exposes 44 CPU
+options and none controls x87 latency or fidelity; the `core` values differ in
+which opcodes decode, not in per-instruction x87 timing. `fpu = true` decides
+whether an FPU exists, not how it is timed — the FPU is present, functionally
+correct (checksum `1047377823` is bit-exact), and temporally free.
+
+**The consequence, and it is the thing to remember:**
+
+> A **positive** result in this harness is sound — a measured win is a real
+> win, and the checksum gate makes the semantics exact. A **negative** result is
+> weak evidence. A measured null proves only that the emulator could not see the
+> cost.
+
+So the harness is reliable for finding wins and unreliable for rejecting
+486-specific ideas. Every axis where a real 486 pays and DOSBox-X does not:
+
+| axis | real 486DX | this harness | consequence |
+|---|---|---|---|
+| x87 latency | ~12 cy/op, `FISTP` 30-90 | ~1.04 cy/op | any win priced by FP-op count reads 10-30x small |
+| instruction cache | none — 8 KB unified data cache only | n/a | "I-cache" explanations are wrong by construction |
+| fetch boundary / write buffer | 16-byte bursts, 4-entry WB | not modelled | the two most 486-specific mechanisms are invisible |
+| 4 KB paging aliasing | real stall | not modelled | never tried, and unmeasurable here |
+
+**Two corrections this forced.**
+
+1. `ASM486-HANDOFF.md:346` attributes the Aff8 padding regression to *"slightly
+   worse I-cache placement."* **The 486 has no instruction cache** — only an
+   8 KB unified data cache. What the sentence describes is 16-byte fetch
+   boundaries and unified-cache displacement. That is the only I-cache
+   reference in the repository, and it has been shaping the recorded reasoning
+   about why the alignment experiment failed.
+2. The pinned profile SHA-256 is **recorded, not enforced**.
+   `tools\timedemo-dos.ps1:439-446` computes it and `:653` writes it into the
+   report, but nothing compares it to a constant — `F3948708` appears only in
+   prose (`BENCHMARK-COMPARISON.md:22`, `VIDEO-DOS-VALIDATION.md:71`,
+   `docs\PURE-ASSEMBLER-CANDIDATES.md`). A future change to the DOSBox-X core
+   would therefore not be caught; it would silently re-baseline every entry in
+   the ledger, because the hash protects the file, not the numbers.
+
+**Applying the rule.** Before spending a timedemo on an idea whose payoff comes
+from FPU latency, fetch boundaries, write-buffer occupancy, or 4 KB aliasing,
+recognise that a null is uninformative. Those ideas can only be settled on
+hardware. Ideas whose payoff is instruction count, memory traffic, or
+arithmetic are still fully measurable here, and that is where any further
+optimization effort belongs.
+
 ### Z-span x87 prologue (2026-09-29) — measured, and the idea does not survive
 
 `d_draw.s:812-838` runs nine serialized x87 instructions per span to compute
@@ -343,12 +402,16 @@ this same isolated-outlier pattern in earlier `stosw` runs. Second, and more
 importantly, the direction is consistently wrong rather than noisy: even the
 two clean aligned samples are slower than every control sample. The likely
 cause is that the padding pushes already-large unrolled bodies across an extra
-16-byte fetch boundary and slightly worse I-cache placement, while the
-write-buffer and fetch-boundary costs this was meant to relieve turn out not
-to dominate. Because the measured effect is negative rather than
-indistinguishable, this is a rejected result and not a null result. Note also
-that a genuine physical-486 alignment benefit would not be expected to be
-faithfully reproduced by DOSBox-X anyway (`BENCHMARK-COMPARISON.md:49`).
+16-byte fetch boundary and displaces other lines from the 8 KB unified cache,
+while the write-buffer and fetch-boundary costs this was meant to relieve turn
+out not to dominate. *(Corrected: an earlier revision of this paragraph said
+"I-cache placement." The 486 has no instruction cache — only an 8 KB unified
+data cache — so the mechanism is fetch boundaries and unified-cache
+displacement, not an I-cache.)* Because the measured effect is negative rather
+than indistinguishable, this is a rejected result and not a null result. Note
+also that a genuine physical-486 alignment benefit would not be expected to be
+faithfully reproduced by DOSBox-X anyway (`BENCHMARK-COMPARISON.md:49`, and see
+"What this harness can and cannot measure" above).
 
 ### Current texture-span follow-up (2026-09-29)
 
