@@ -34,6 +34,27 @@ running, benchmarking, and interpreting the results.
 
 ## Current 486 performance-pass closure
 
+### Alias-raster C-glue instrumentation (2026-09-29)
+
+The unattributed `alias-raster` self time is split into `alias-edge-setup`,
+`alias-span-package`, and `alias-step-math`. Same build and run commands as
+above; confirm `executable` ends in `qprof.exe`.
+
+This is the last useful profiling level. Each ENTER/LEAVE pair costs two
+`Sys_FloatTime` reads at roughly 253 cycles each, and this level added 16 reads
+per rasterized triangle — 923,482 extra reads and 6.98 s of frame time. That
+overhead is the same order as the regions being measured, so:
+
+- do not quote the new nodes' absolute seconds as real work;
+- do compare them per call or against each other, where the constant addend
+  does not reorder them;
+- the four earlier alias nodes stay directly comparable across runs (they
+  moved at most 11 ms between levels);
+- do not add a fourth per-call level here. If more resolution is ever needed,
+  time a whole span or triangle instead of each sub-block.
+
+Release parity is unchanged at 969 frames and checksum `1047377823`.
+
 ### Alias-raster child instrumentation (2026-09-29)
 
 `alias-raster` is further split into `alias-calcgradients`,

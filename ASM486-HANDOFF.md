@@ -9,6 +9,56 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Alias-raster C-glue instrumentation (2026-09-29) — residual localized, and the profiler is now the limiting factor
+
+The unattributed `alias-raster` self time is split into `alias-edge-setup`,
+`alias-span-package`, and `alias-step-math`, wrapping the cursor-init blocks,
+the single-row span-package emits, and the two duplicated base/extra step
+blocks in `WinQuake\d_polyse.c`. From
+`out\dos-timedemo-20260929-100501\timedemo-result.json` (frame total
+84.627456 s, attribution only), in total cycles per call:
+
+```text
+node                       impl   calls    cycles/call
+alias-draw-spans            ASM  153853       715.6
+alias-scan-left-edge        ASM  109941       544.9
+alias-calcgradients         ASM  124769       381.8
+alias-step-math              C   109941       303.8
+alias-linescan-setup         C   263794       283.1
+alias-edge-setup             C   183042       267.9
+alias-span-package           C   168786       252.9
+```
+
+**The remaining C is uniformly cheap.** The three glue regions are
+36.8% / 32.5% / 30.7% of the measured glue, 253-304 cycles per call, and none
+is an outlier. There is no single hot C block left to port; the C is thin,
+evenly spread setup code interleaved with three already-optimized ASM routines.
+Combined with the four pre-existing ASM children, this is the evidence that the
+alias raster path is converged at the source level.
+
+**Methodology note, because it changes how these numbers may be used.** Each
+added ENTER/LEAVE pair costs two `Sys_FloatTime` reads, and this level added
+16 reads per rasterized triangle: 923,482 extra reads and 6.98 s across the
+frame. That is **~253 cycles per timer read**, which is the same order as the
+regions being measured. Consequences:
+
+- Absolute seconds for the three new nodes are inflated by their own
+  instrumentation and must not be quoted as real work.
+- Per-call cycles are also inflated, but by a near-constant addend, so the
+  *ranking* and the *relative* split within the glue are sound. That is what
+  the table above is for.
+- The four pre-existing nodes are directly comparable across runs: they moved
+  by at most 11 ms between the previous level and this one.
+- Do not add a fourth level of per-call instrumentation here. The measurement
+  cost now rivals the signal, and no further decision hinges on it. If more
+  resolution is ever needed, amortize: time a whole span or a whole triangle
+  rather than each sub-block.
+
+Release parity is unchanged at 969 frames and checksum `1047377823`, confirmed
+after this level. Workload counters held: `alias-models` 5470,
+`alias-vertices` 417090, `line-setups` 263794, `max-depth` 8,
+`stack-overflows` 0, `bad-leaves` 0.
+
 ### Alias-raster child breakdown (2026-09-29) — C cost is 2.86%, not the predicted <1%
 
 `alias-raster` is now split into its four children:
@@ -2024,6 +2074,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    and the span-package setup of `D_RasterizeAliasPolySmooth`, not in this
    predicate.  Instrument that residual (10.74% of frame) before choosing a
    port target.
+   The alias raster path is now instrumented to the source level and is
+   converged: `D_PolysetCalcGradients`, `D_PolysetScanLeftEdge`, and
+   `D_PolysetDrawSpans8` are assembly; the remaining C (`linescan-setup`,
+   `edge-setup`, `span-package`, `step-math`, `SetEdgeTable`) measures
+   253-304 cycles per call with no outlier, and the two prior `SetUpForLineScan`
+   improvements are already kept.  Do not open another C-to-ASM port here
+   without a new source-level hypothesis, and note that per-call profiling now
+   costs about as much as it measures.
 2. Texture spans remain ~26.2% self time (`out\dos-timedemo-20260911-184157`,
    diagnostic).  Dest rows now come from
    `viewspantable` in the 16/8-pixel drawers, polyset, sprites,
