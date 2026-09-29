@@ -57,18 +57,26 @@ operations measure about 1.04 cycles each here, where a 486DX spends roughly 12
 per op and 30-90 on `FISTP` alone. Treat a win measured here as real, and a null
 as weak evidence.
 
-## Reproducibility hashes
+## Reproducibility
 
-| File | Size | SHA-256 |
-| --- | ---: | --- |
-| `out\dos-memasm-zneg4-surf0rows4-surf0hflat-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 792,064 bytes | `9F6BEC673DCB16D16A14761920DBC8563D0CECA657776B70711CBE3A8224C5E7` |
-| `tools\486quake.exe` | 834,560 bytes | `CF461CFA0FEA989AA1E2E834B6D5482B7C64F3279BD7BE56C52F92752FFF429E` |
-| `tools\QUAKE.EXE` | 409,600 bytes | `E0A1936400CA56E94D44D585097BD9E490035FCFB6E7D806D7E879F423928642` |
+The built executable is identified by its **framebuffer checksum**, not by a
+file hash:
 
-`qbench.exe` embeds `__TIME__`/`__DATE__` in a startup banner
-(`WinQuake\host.c:912`), so it is **not byte-reproducible**: the hash above
-identifies that one build, not the source. Six stamp bytes differ between any
-two builds of identical source. Framebuffer checksum `1047377823` is the
-stable identity of the build's output.
+| Artifact | Identity | Value |
+| --- | --- | --- |
+| `qbench.exe` (this build's output) | framebuffer checksum, 969 frames | `1047377823` |
+| `tools\486quake.exe` (supplied) | SHA-256, 834,560 bytes | `CF461CFA0FEA989AA1E2E834B6D5482B7C64F3279BD7BE56C52F92752FFF429E` |
+| `tools\QUAKE.EXE` (supplied) | SHA-256, 409,600 bytes | `E0A1936400CA56E94D44D585097BD9E490035FCFB6E7D806D7E879F423928642` |
+| `tools\dosbox-x-486-high.conf` (profile) | SHA-256 | `F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45` |
 
-`tools\QUAKE.EXE` is an untracked supplied input and was not modified.
+`qbench.exe` deliberately has **no SHA-256 recorded here**. It embeds
+`__TIME__`/`__DATE__` in a startup banner (`WinQuake\host.c:912`), so it is not
+byte-reproducible: six stamp bytes differ between any two builds of identical
+source, and any hash would describe one incidental build rather than the code.
+Recording a checksum and not a hash is the accurate choice, not a
+provisional one. The framebuffer checksum is the stable identity of the
+build's output: it must be `1047377823` on every run for the build to be
+considered correct.
+
+`tools\QUAKE.EXE` and `tools\486quake.exe` are untracked supplied inputs and
+were not modified; their hashes are stable and are recorded for provenance.
