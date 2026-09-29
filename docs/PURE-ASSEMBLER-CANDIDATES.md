@@ -1,6 +1,6 @@
 # Pure-Assembler Conversion Candidates
 
-Date: 2026-09-28
+Date: 2026-09-28, updated 2026-09-29
 Scope: i486 DOS WinQuake software renderer
 
 ## Conclusion
@@ -11,11 +11,21 @@ entire engine or every C function. High-level orchestration, floating-point
 setup, recursion, and pointer-heavy control flow should remain in C unless a
 profile identifies a very specific hot path.
 
-For further work, use the latest PROFILE486 ranking in `ASM486-HANDOFF.md` to
-choose one narrow remaining path and compare it against the current default.
-Texture spans remain the largest measured cost, but the obvious addressing,
-load-order, and tail-store variants have already been tested and should not be
-repeated without a new source-level hypothesis.
+**This survey is now closed as an optimization roadmap.** The alias-model path
+was subsequently instrumented down to the source level and found converged:
+three of its four hot callees are already assembly, and the remaining C
+(`linescan-setup`, `edge-setup`, `span-package`, `step-math`, `SetEdgeTable`)
+measures 253-304 cycles per call with no outlier. Texture spans remain the
+largest single cost at 22.34% of frame, but their addressing, load-order,
+tail-store, `stosw` and dword variants have all been tested. See
+`ASM486-HANDOFF.md` for the measured breakdown and the closing assessment.
+
+Further work should not be chosen from this list. Before spending a timedemo
+on any 486-specific idea, read "What this harness can and cannot measure" in
+`ASM486-HANDOFF.md`: DOSBox-X does not model x87 latency, fetch boundaries,
+write-buffer occupancy, or 4 KB aliasing, so a measured null for those is weak
+evidence. Optimization effort belongs with ideas paid for in instruction count,
+memory traffic, or arithmetic.
 
 ## Candidate areas
 
