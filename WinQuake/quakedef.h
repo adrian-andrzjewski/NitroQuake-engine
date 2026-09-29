@@ -133,6 +133,7 @@ extern double bench486_framebuffer_seconds;
 extern unsigned long bench486_alias_models;
 extern unsigned long bench486_alias_vertices;
 extern unsigned long bench486_surface_count;
+extern unsigned long bench486_surface_drawn;
 extern unsigned long bench486_texture_span_count;
 extern unsigned long bench486_texture_span_pixels;
 extern unsigned long bench486_texture_span_segments;

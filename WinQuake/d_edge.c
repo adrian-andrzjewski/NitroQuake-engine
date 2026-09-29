@@ -43,6 +43,28 @@ typedef struct
 
 static d_texaxis_cache_t	d_texaxis_cache[D_TEXAXIS_CACHE_SIZE];
 
+// E0: count DISTINCT faces drawn per frame, not total draws.  A per-face
+// precompute (E3) only pays if a face is drawn more than once in a frame;
+// counting draws would report a ratio of 1.0 by construction and settle
+// nothing.  Direct-mapped on the face pointer, so a collision merges two
+// faces and can only understate the distinct count -- the safe direction.
+// Instrumentation only; the release build never sees this.
+#ifdef PROFILE486
+#define D_FACEDRAWN_SEEN	4096
+static int	d_facedrawn_tag[D_FACEDRAWN_SEEN];
+
+static void D_NoteFaceDrawn (msurface_t *face)
+{
+	int		slot;
+
+	slot = (int)(((unsigned long)face >> 4) & (D_FACEDRAWN_SEEN - 1));
+	if (d_facedrawn_tag[slot] == r_framecount)
+		return;					// already counted this frame
+	d_facedrawn_tag[slot] = r_framecount;
+	bench486_surface_drawn++;
+}
+#endif
+
 // The view basis is stable for an entity during one render frame.  The
 // entity and frame keys therefore invalidate entries when world or bmodel
 // orientation changes, while collisions only cause a harmless recompute.
@@ -347,7 +369,10 @@ void D_CalcGradients (msurface_t *pface)
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
+	{
 		bench486_gradient_calls++;
+		D_NoteFaceDrawn (pface);
+	}
 #endif
 
 	pplane = pface->plane;

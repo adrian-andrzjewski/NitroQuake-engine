@@ -69,6 +69,7 @@ double bench486_framebuffer_seconds;
 unsigned long bench486_alias_models;
 unsigned long bench486_alias_vertices;
 unsigned long bench486_surface_count;
+unsigned long bench486_surface_drawn;
 unsigned long bench486_surface_cache_hits;
 unsigned long bench486_surface_cache_rebuilds;
 unsigned long bench486_surface_cache_dlight_probes;
@@ -1031,7 +1032,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"  \"metrics\": {\n"
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
-			"    \"surfaces\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
+			"    \"surfaces\": %lu, \"surface_drawn\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
 			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu, \"gib_trail_particles\": %lu,\n"
 			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu,\n"
 			"    \"texture_span_buckets\": [%lu, %lu, %lu, %lu, %lu],\n"
@@ -1045,7 +1046,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_bsp_surface_tests, bench486_scanlines,
 			bench486_edge_insert_calls, bench486_edge_remove_calls,
 			bench486_edge_step_calls, bench486_span_flushes,
-			bench486_surface_count, bench486_surface_span_count,
+			bench486_surface_count, bench486_surface_drawn, bench486_surface_span_count,
 			bench486_surface_span_pixels, bench486_surface_span_segments,
 			bench486_surface_sky_count, bench486_surface_background_count,
 			bench486_surface_turbulent_count, bench486_surface_normal_count,
@@ -1112,6 +1113,7 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_alias_models = 0;
 	bench486_alias_vertices = 0;
 	bench486_surface_count = 0;
+	bench486_surface_drawn = 0;
 	bench486_surface_cache_hits = 0;
 	bench486_surface_cache_rebuilds = 0;
 	bench486_surface_cache_dlight_probes = 0;
@@ -1231,7 +1233,7 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			"full-sfrac-zero %lu full-sone %lu full-exact %lu "
 			"final-exact %lu full-row-eligible %lu full-row-fast %lu "
 			"gradients %lu solid-spans %lu line-setups %lu "
-			"axis-hits %lu axis-misses %lu\n",
+			"surface-drawn %lu axis-hits %lu axis-misses %lu\n",
 			bench486_profile_frames, bench486_frame_seconds,
 			bench486_render_seconds, bench486_visibility_seconds,
 			bench486_world_seconds, bench486_edge_scan_seconds,
@@ -1291,6 +1293,7 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_texture_full_row_eligible,
 			bench486_texture_full_row_fast, bench486_gradient_calls,
 			bench486_solid_span_count, bench486_line_setup_calls,
+			bench486_surface_drawn,
 			bench486_axis_cache_hits, bench486_axis_cache_misses);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
