@@ -99,8 +99,10 @@ word:  59.265536 / 59.265434 / 59.265502 s; median 59.265502 s; spread 0.000102 
 stosw: 59.325296 / 59.325327 / 59.779146 s; median 59.325327 s; spread 0.453850 s
 ```
 
-`stosw` is 59.825 ms (0.10094%) slower by median and is rejected for
-promotion; retain it only as an explicit A/B option. Artifacts are in
+The third `stosw` run (59.779146 seconds) is a high outlier; its first two
+runs differ by 31 microseconds. Retaining all three samples, `stosw` is
+59.825 ms (0.10094%) slower by median and remains rejected for promotion.
+Retain it only as an explicit A/B option. Artifacts are in
 `out\dos-memasm-spanstosw-zneg4-surf0rows4-surf0hflat-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm`,
 `out\dos-bench-20260929-074040`, `out\dos-smoke`, and timedemos
 `out\dos-timedemo-20260929-075328` through
