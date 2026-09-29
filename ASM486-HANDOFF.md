@@ -9,6 +9,140 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### `d_mip_t16` as a constant table (2026-09-29) — landed; the promotion half was not attempted
+
+`D_DrawSurfaces` rebuilt three 4-entry float tables on every span flush
+(1,052/run) under a `// TODO: could preset a lot of this at mode set time`.
+One of the three is not runtime data at all: `d_mip_t16[mip] = 0x10000 *
+d_mipscale_values[mip]` is exactly `{0x10000, 0x8000, 0x4000, 0x2000}` for
+`d_mipscale_values = {1.0, 0.5, 0.25, 0.125}`, and all four are exactly
+representable in single precision. It is now a `static const` table and the
+store is gone.
+
+```text
+closure before E2:    59.265368 s  16.350189 FPS  checksum 1047377823
+with d_mip_t16 const: 59.265007 s  16.350289 FPS  checksum 1047377823
+delta: -0.000361 s = 0.0006% faster
+```
+
+**This is a cleanup, not a win, and it is kept on that basis.** The predicted
+ceiling was ~0.005% and the measurement is ~0.0006%; both are an order of
+magnitude below the 0.05% gate and near the 0.000049 s run spread, so no
+timedemo beyond this single confirmation run is justified. What it buys is the
+deletion of a redundant recomputation of a compile-time constant.
+
+**The planned hoist of `d_mip_xscale` / `d_mip_yscale` into `D_ViewChanged` was
+deliberately not done.** `xscaleinv` and `yscaleinv` have exactly one writer each
+(`r_main.c:418`, `:421`), both inside `R_ViewChanged`, which calls
+`D_ViewChanged()` last (`:482`) — so the ordering looks safe. But `R_ViewChanged`
+itself is only reached from `R_SetupFrame` (`r_misc.c:454`, `:478`, `:491`) under
+the condition `(r_dowarp != r_dowarpold) || r_viewchanged || lcd_x.value`, and
+from `SCR_UpdateScreen` (`screen.c:276`). The current code self-heals because
+`D_DrawSurfaces` fills the tables on its first call regardless. Hoisting trades
+that unconditional fill for a dependency on a conditional call having happened
+before the first `D_CalcGradients`; a missed first frame would leave the tables
+zero and silently break texture mapping. The remaining upside is ~0.003% and
+unmeasurable, which does not justify introducing a startup-ordering assumption
+that the checksum gate would only catch after the fact. Revisit only with a
+measurement that could resolve it.
+
+### E3 and E4 disposition (2026-09-29)
+
+Neither was built, for reasons that are now measurements rather than estimates.
+
+- **E3** (per-`(face, miplevel)` constants computed at map load) is **closed** by
+  the drawn-face ratio of 0.9585 measured above. A ~3.4% hit rate scales its
+  ~0.10-0.14% ceiling down to ~0.004% of frame.
+- **E4** (surface-cache span geometry split from lighting) was gated on E1-E3
+  landing. E1 was rejected and E3 is closed, so its precondition is not met and
+  it was not attempted. Its own stated ceiling was ~0.5%, which remains the
+  largest unclaimed item on the offline-precompute list, but it is a cache-policy
+  change rather than a precompute and does not belong to this pass.
+
+### Precomputed `izistep` for the Z-span prologue (2026-09-29) — rejected, and the estimate was wrong in the wrong direction
+
+`D_DrawZSpans` recomputed `d_zistepu * 2^31` once per call (58,051/run) via
+`flds` / `fmuls Float2ToThe31nd` / `fistpl`, even though `d_zistepu` was already
+cached per face by `R_SetSurfaceZGradients` (`r_draw.c:390-425`, a promoted win).
+An opt-in `-IzistepImplementation control|precomputed` selector stored the scaled
+value into the 8 free pad bytes at `surf_t` offset 56 and had the asm load it.
+
+It was bit-exact by construction — `* 2^31` is a pure exponent bump, and the
+C spelling `(int)(x * 0x8000 * 0x10000)` is the reference already in use at
+`d_scan.c:459` — and every gate passed: `486 benchmark correctness PASS` with
+end checksum `2378409472`, clean DOS smoke, and 969 frames with framebuffer
+checksum `1047377823` on all six timedemos.
+
+```text
+control:    59.265374 / 59.265325 s   (median 59.265374, 16.350188 FPS)
+precomputed: 59.285937 / 59.285888 / 59.285910 s  (median 59.285910, 16.344524 FPS)
+delta        0.020536 s = 0.0347% SLOWER
+```
+
+The control median is from its two clean samples; its third run was 59.660367 s,
+the isolated-outlier pattern already recorded elsewhere in this file. Every clean
+control sample beats every candidate sample, and the 0.020536 s delta is roughly
+420x the 0.000049 s run spread, so this is a real regression and not noise.
+The candidate spread was itself only 0.000049 s.
+
+**Why the estimate failed, which is the part worth keeping.** The prior plan
+predicted 0.044-0.054%, sitting right on the 0.05% gate. The direction was wrong:
+the change is not merely "saving" x87 work, it *adds* a store. `R_SetSurfaceZGradients`
+now writes a fourth field per face, and it runs on both the miss and the cache-hit
+path, so the cost is paid 58,051 times per run. What it removes is `flds` + `fmuls`
++ `fistpl`, which DOSBox-X prices at roughly a cycle each (the documented 1.04
+cy/x87-op figure). Trading a real memory write for three emulator-cheap
+instructions loses. This is **not** one of the axes the harness cannot see: it is
+a genuine instruction-count and memory-traffic result, measured correctly, and the
+answer is no.
+
+A structural finding did survive and is recorded here because it is true and
+cheap: **`LFNegSpan` in `d_draw.s` was dead code.** It was entered only from
+`jz LFNegSpan` when `d_zistepu == 0`, where `-0.0 * -2^31` truncates to 0, so it
+always fell through to `LZeroStepSpanLoop` regardless. Deleting it let the
+candidate drop the `flds` entirely rather than keep a fragile x87-stack
+dependency, but the net was still negative. `LFNegSpan` is live again.
+
+The selector, the `izistep` field, `d_izistep`, the asm symbol and the plumbing in
+all four runner scripts have been removed. The tree is back to control; the closure
+timedemo is 59.265368 s / 16.350189 FPS at 969 frames and checksum `1047377823`.
+Do not retry this as written. If anyone revisits removing x87 from the Z-span
+prologue, the cost is on the producer side, and it has to come down by removing
+the per-face store rather than by adding one.
+
+### Drawn-face ratio (2026-09-29) — measured at 0.9585, which closes the per-face precompute family
+
+The prior plan assumed a world `msurface_t` is drawn at most once per frame, and
+cited `gradients 58051 == surfaces work_items 58051` as support. That pair of
+counters cannot distinguish the claim from a tautology: both count *draws*.
+A per-face cache keyed on `(face, miplevel)` therefore has an unmeasured hit rate,
+and the whole E3 experiment was gated on that number.
+
+So the counter was changed to count **distinct** faces per frame, not draws, via a
+4096-slot direct-mapped table keyed on the face pointer and tagged with
+`r_framecount` (`D_NoteFaceDrawn`, `d_edge.c:46-68`). It is `#ifdef PROFILE486`
+only, costs nothing in release, and deliberately does not add a field to
+`msurface_t`, which is exactly 64 bytes and must stay so. A collision merges two
+faces, so the reported distinct count is a slight undercount and the true hit rate
+is a slight overstatement of the repeats — the safe direction.
+
+```text
+gradients calls      58051
+faces drawn (distinct) 55642
+ratio                 0.9585    (repeats 2409, 4.15% of draws)
+est. true ratio       ~0.966    (allowing ~426 expected collisions)
+```
+
+**The family is closed.** Faces do repeat, but only ~3.4% of the time — these are
+bmodel faces, redrawn once per visible leaf. A per-face table could serve at most
+that fraction of calls, so the E3 ceiling of ~0.10-0.14% of frame scales down to
+**~0.004%**, an order of magnitude below the 0.05% gate. E3 should not be built.
+This also retires the "memoization with a last-used compare loses" rule for this
+particular family: it was never the comparison that failed, it was the hit rate.
+
+The counter is kept, so the ratio can be re-measured rather than re-argued. It is
+instrumentation only and does not appear in release builds.
+
 ### Hot-code clustering (2026-09-29) — rejected, and object granularity is the blocker
 
 The measured facts made this look like the strongest remaining idea: `.text` is
