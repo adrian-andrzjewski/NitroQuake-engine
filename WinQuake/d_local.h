@@ -32,7 +32,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define DS_SPAN_LIST_END	-128
 
-#define SURFCACHE_SIZE_AT_320X200	1800*1024
+// The low-memory guard in vid_vga.c subtracts this same constant from
+// tbuffersize and adds it straight back, so at 320x200 it cancels and the
+// guard stays memsize - framebuffer + 192K. Raising this value therefore does
+// not weaken the guard on a small machine. 2400 KB measured 0.0634% faster
+// than 1800 KB with checksum 1047377823 on every run; 6000 KB added only a
+// further 0.015% for 2.5x the memory.
+#define SURFCACHE_SIZE_AT_320X200	2400*1024
 
 typedef struct surfcache_s
 {
@@ -69,6 +75,7 @@ extern surfcache_t	*d_initial_rover;
 #ifdef PROFILE486
 extern unsigned long bench486_surface_cache_hits;
 extern unsigned long bench486_surface_cache_rebuilds;
+extern unsigned long bench486_surface_cache_immutable_rebuilds;
 extern unsigned long bench486_surface_cache_dlight_probes;
 extern unsigned long bench486_surface_cache_dlight_contributing_probes;
 extern unsigned long bench486_surface_cache_draw_calls;
