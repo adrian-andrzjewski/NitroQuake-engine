@@ -464,6 +464,31 @@ void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 	psurf = &pmodel->surfaces[pmodel->firstmodelsurface];
 	numsurfaces = pmodel->nummodelsurfaces;
 
+#ifdef PROFILE486
+// A per-(face, entity) precompute of the backface dot product can only pay if
+// the same entity is drawn more than once: this loop already visits every face
+// of a submodel exactly once per call, so there is no reuse within a call.
+// Count calls, faces, distinct entities and repeat draws to test that.
+	{
+		extern unsigned long bench486_submodel_calls;
+		extern unsigned long bench486_submodel_faces;
+		extern unsigned long bench486_submodel_distinct_entities;
+		extern unsigned long bench486_submodel_entity_hits;
+		extern unsigned long bench486_submodel_table_overwrites;
+		extern void *bench486_submodel_entity_table[1024];
+		unsigned int slot = ((unsigned int)(size_t)currententity >> 4) & 1023u;
+		bench486_submodel_calls++;
+		bench486_submodel_faces += numsurfaces;
+		if (bench486_submodel_entity_table[slot] == currententity)
+			bench486_submodel_entity_hits++;
+		else if (bench486_submodel_entity_table[slot] != NULL)
+			bench486_submodel_table_overwrites++;
+		else
+			bench486_submodel_distinct_entities++;
+		bench486_submodel_entity_table[slot] = currententity;
+	}
+#endif
+
 	for (i=0 ; i<numsurfaces ; i++, psurf++)
 	{
 	// find which side of the node we are on

@@ -191,7 +191,7 @@ if ($profile.PSObject.Properties.Name -contains 'surface_cache') {
     Write-Host ''
     Write-Host 'Surface-cache metrics:'
     foreach ($metric in @(
-            'hits', 'rebuilds', 'allocations', 'wraps', 'invalidated_blocks',
+            'hits', 'rebuilds', 'immutable_rebuilds', 'allocations', 'wraps', 'invalidated_blocks',
             'requested_bytes', 'reclaimed_bytes', 'thrash_frames',
             'dlight_probes', 'dlight_contributing_probes', 'draw_calls',
             'hit_seconds', 'miss_check_seconds', 'rebuild_seconds',

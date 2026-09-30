@@ -72,6 +72,16 @@ unsigned long bench486_surface_count;
 unsigned long bench486_surface_drawn;
 unsigned long bench486_surface_cache_hits;
 unsigned long bench486_surface_cache_rebuilds;
+unsigned long bench486_surface_cache_immutable_rebuilds;
+unsigned long bench486_submodel_calls;
+unsigned long bench486_submodel_faces;
+unsigned long bench486_submodel_distinct_entities;
+unsigned long bench486_submodel_entity_hits;
+unsigned long bench486_submodel_table_overwrites;
+void *bench486_submodel_entity_table[1024];
+unsigned long bench486_turbulent_rows;
+unsigned long bench486_turbulent_chunks;
+unsigned long bench486_turbulent_pixels;
 unsigned long bench486_surface_cache_dlight_probes;
 unsigned long bench486_surface_cache_dlight_contributing_probes;
 unsigned long bench486_surface_cache_draw_calls;
@@ -978,8 +988,9 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_cache_moves, bench486_cache_move_bytes);
 
 	Bench486ProfileJsonPrintf (file_handle,
-			"  \"surface_cache\": {\"hits\": %lu, \"rebuilds\": %lu, \"allocations\": %lu, \"wraps\": %lu, \"invalidated_blocks\": %lu, \"requested_bytes\": %lu, \"reclaimed_bytes\": %lu, \"thrash_frames\": %lu, ",
+			"  \"surface_cache\": {\"hits\": %lu, \"rebuilds\": %lu, \"immutable_rebuilds\": %lu, \"allocations\": %lu, \"wraps\": %lu, \"invalidated_blocks\": %lu, \"requested_bytes\": %lu, \"reclaimed_bytes\": %lu, \"thrash_frames\": %lu, ",
 			bench486_surface_cache_hits, bench486_surface_cache_rebuilds,
+			bench486_surface_cache_immutable_rebuilds,
 			bench486_surface_cache_allocations, bench486_surface_cache_wraps,
 			bench486_surface_cache_invalidated_blocks,
 			bench486_surface_cache_requested_bytes,
@@ -1116,6 +1127,16 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_surface_drawn = 0;
 	bench486_surface_cache_hits = 0;
 	bench486_surface_cache_rebuilds = 0;
+	bench486_surface_cache_immutable_rebuilds = 0;
+	bench486_submodel_calls = 0;
+	bench486_submodel_faces = 0;
+	bench486_submodel_distinct_entities = 0;
+	bench486_submodel_entity_hits = 0;
+	bench486_submodel_table_overwrites = 0;
+	memset (bench486_submodel_entity_table, 0, sizeof (bench486_submodel_entity_table));
+	bench486_turbulent_rows = 0;
+	bench486_turbulent_chunks = 0;
+	bench486_turbulent_pixels = 0;
 	bench486_surface_cache_dlight_probes = 0;
 	bench486_surface_cache_dlight_contributing_probes = 0;
 	bench486_surface_cache_draw_calls = 0;
@@ -1359,15 +1380,28 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_profile_discarded_scopes);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
-			"profile-surface-cache hits %lu rebuilds %lu allocations %lu "
+			"profile-surface-cache hits %lu rebuilds %lu immutable-rebuilds %lu allocations %lu "
 			"wraps %lu invalidated-blocks %lu requested-bytes %lu "
 			"reclaimed-bytes %lu thrash-frames %lu\n",
 			bench486_surface_cache_hits, bench486_surface_cache_rebuilds,
+			bench486_surface_cache_immutable_rebuilds,
 			bench486_surface_cache_allocations, bench486_surface_cache_wraps,
 			bench486_surface_cache_invalidated_blocks,
 			bench486_surface_cache_requested_bytes,
 			bench486_surface_cache_reclaimed_bytes,
 			bench486_surface_cache_thrash_frames);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-submodel calls %lu faces %lu distinct-entities %lu "
+			"entity-hits %lu table-overwrites %lu\n",
+			bench486_submodel_calls, bench486_submodel_faces,
+			bench486_submodel_distinct_entities, bench486_submodel_entity_hits,
+			bench486_submodel_table_overwrites);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-turbulent rows %lu chunks %lu pixels %lu\n",
+			bench486_turbulent_rows, bench486_turbulent_chunks,
+			bench486_turbulent_pixels);
 	Bench486ProfileReportText (report_handle, text);
 	Bench486WriteProfileJson (timedemo_frames, timedemo_seconds);
 #else

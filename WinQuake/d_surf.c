@@ -408,6 +408,11 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 		bench486_surface_cache_rebuild_start =
 				bench486_surface_cache_now;
 		bench486_surface_cache_rebuilds++;
+		if (d_lightstylevalue[surface->styles[0]] == 256 &&
+			d_lightstylevalue[surface->styles[1]] == 256 &&
+			d_lightstylevalue[surface->styles[2]] == 256 &&
+			d_lightstylevalue[surface->styles[3]] == 256)
+			bench486_surface_cache_immutable_rebuilds++;
 	}
 #endif
 

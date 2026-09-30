@@ -166,6 +166,9 @@ void Turbulent8 (espan_t *pspan)
 	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
 	float			sdivz16stepu, tdivz16stepu, zi16stepu;
 #ifdef PROFILE486
+	extern unsigned long bench486_turbulent_rows;
+	extern unsigned long bench486_turbulent_chunks;
+	extern unsigned long bench486_turbulent_pixels;
 	double			bench486_turbulent_start;
 
 	if (bench486_profile_frame_active)
@@ -185,6 +188,13 @@ void Turbulent8 (espan_t *pspan)
 
 	do
 	{
+#ifdef PROFILE486
+		// Price the removable setup work against the irreducible blit: the
+		// outer loop runs once per row (each pspan in the list is one row) and
+		// the inner loop once per 16-pixel chunk, and both do one x87 divide.
+		bench486_turbulent_rows++;
+		bench486_turbulent_pixels += pspan->count;
+#endif
 		// Live dest rows use viewspantable (same table as texture spans).
 		// The multiply form is d_viewbuffer + screenwidth*v + u.
 		r_turb_pdest = viewspantable[pspan->v] + pspan->u;
@@ -284,6 +294,9 @@ void Turbulent8 (espan_t *pspan)
 			r_turb_t = r_turb_t & ((CYCLE<<16)-1);
 
 			D_DrawTurbulent8Span ();
+#ifdef PROFILE486
+		bench486_turbulent_chunks++;
+#endif
 
 			r_turb_s = snext;
 			r_turb_t = tnext;
