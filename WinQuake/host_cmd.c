@@ -3511,6 +3511,247 @@ static void Bench486FillCase (void)
 			vid.width, vid.height, elapsed, rate, checksum);
 }
 
+/*
+==================
+Bench486FidelityCases
+
+Validates that the emulator under test actually prices the costs a real 486
+pays, before it is trusted as the 486-cost gate. A new harness with unvalidated
+486 fidelity would be a second, worse version of the mistake recorded at
+ASM486-HANDOFF.md:452-509, so these cases are the precondition for using it.
+
+Four probes, each with a known 486 cost that tools\486-fidelity.ps1 checks:
+
+  1. x87 op chain  - a loop whose body is the d_draw16.s:145-198 prologue
+                     shape. A flat-FPU emulator prices every x87 op near one
+                     cycle and this collapses; a cycle-accurate 486 charges
+                     roughly the published latencies.
+  2. FISTPL vs FIST - 16-bit store against 32-bit. The cost model prices
+                     fistp at 39 cy, so this is the probe for the C1 claim.
+  3. L1 residency  - 4 KB working set against 24 KB. Only an emulator with a
+                     real 8 KB unified cache shows the second one slowing.
+  4. Set aliasing  - two buffers sharing an L1 set index against two that do
+                     not. Only a set-associative cache model separates them.
+
+Each probe reports nanoseconds per iteration; the driver script converts using
+the pinned clock and compares against the expected ratio.
+==================
+*/
+#define	BENCH486_FIDELITY_WARMUP	100
+// Under emulation a serialized x87 chain costs microseconds per iteration, not
+// nanoseconds, so the iteration count has to stay small enough to finish. The
+// probes compare ratios, so a small count costs precision rather than validity;
+// 20000 is comfortably above timer resolution for every probe.
+#define	BENCH486_FIDELITY_ITERATIONS	20000
+// The 486DX L1 is 8 KB, 4-way, 32-byte lines, 64 sets, so the set index is
+// A[11:5]: two addresses share a set when they agree modulo 2048 bytes. 64-byte
+// offset moves the index by 2 lines; 2048 and 4096 do not move it at all.
+#define	BENCH486_FIDELITY_ALIAS_SPAN	2048
+#define	BENCH486_FIDELITY_L1_FIT_BYTES	4096
+#define	BENCH486_FIDELITY_L1_MISS_BYTES	24576
+
+static double bench486_fidelity_sink;
+
+// Probe 2: 32-bit FISTPL against 16-bit FIST. The cost model prices fistp at
+// 39 cy, so a cycle-accurate 486 must show a clear gap between the two. This is
+// the direct test of the C1 candidate (16-bit FIST in d_draw16.s:233-234).
+static void Bench486FidelityFpu (int use_fist)
+{
+	double		start, elapsed;
+	int			i;
+	volatile int	sink;
+	float		a = 1.0001f, b = 0.9999f;
+	int			wide = 0;
+	short		narrow = 0;
+	const char	*label = use_fist ? "fist16" : "fistp32";
+
+	for (i=0 ; i<BENCH486_FIDELITY_WARMUP ; i++)
+	{
+		float value = (a * b) + a;
+		if (use_fist)
+		{
+			__asm__ __volatile__ ("fistps %0" : "=m" (narrow) : "t" (value));
+		}
+		else
+		{
+			__asm__ __volatile__ ("fistpl %0" : "=m" (wide) : "t" (value));
+		}
+	}
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<BENCH486_FIDELITY_ITERATIONS ; i++)
+	{
+		float value = (a * b) + a;
+		if (use_fist)
+		{
+			__asm__ __volatile__ ("fistps %0" : "=m" (narrow) : "t" (value));
+		}
+		else
+		{
+			__asm__ __volatile__ ("fistpl %0" : "=m" (wide) : "t" (value));
+		}
+		// Keep the value in a narrow range so neither store takes the
+		// integer-indefinite path, which would distort the comparison.
+		a = 1.0f + (float)(wide & 0xff) * 0.0001f + (float)(narrow & 0xff) * 0.0001f;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	sink = wide + narrow;
+	bench486_fidelity_sink += sink;
+	Bench486Printf ("fidelity fpu %s %d ops %.6f sec %.1f ns/op checksum %d\n",
+			label, BENCH486_FIDELITY_ITERATIONS, elapsed,
+			elapsed * 1e9 / BENCH486_FIDELITY_ITERATIONS, sink);
+}
+
+// Probe 1: the texture-span prologue shape. A serialized x87 dependency chain
+// with a real divide, so a cycle-accurate 486 charges the full chain latency
+// while a flat-FPU emulator collapses it toward one cycle per operation.
+static void Bench486FidelityX87Chain (void)
+{
+	double		start, elapsed;
+	int			i;
+	volatile int	sink;
+	int			s = 0, t = 0;
+
+	// Memory operands, exactly as the real prologue references its globals
+	// (d_sdivzstepu, d_sdivzorigin, d_ziorigin, ... in d_draw16.s:145-198).
+	// This keeps the chain serialized: each result is consumed by the next op,
+	// so a latency-accurate 486 cannot hide any of it behind parallelism.
+	float		sdivzstepu = 0.5f, sdivzstepv = 0.25f, sdivzorigin = 0.125f;
+	float		tdivzstepu = 0.5f, tdivzstepv = 0.25f, tdivzorigin = 0.5f;
+	float		zistepu = 0.0625f, zistepv = 0.03125f, ziorigin = 1.0f;
+	float		fp64k = 65536.0f;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<BENCH486_FIDELITY_ITERATIONS ; i++)
+	{
+		int dv = i, du = i ^ 0x5a5a;
+
+		__asm__ __volatile__
+		(
+		"fildl %2\n\t"                  // dv
+		"fildl %3\n\t"                  // du
+		"fmuls %4\n\t"                  // du * sdivzstepu
+		"fmuls %5\n\t"                  // dv * sdivzstepv
+		"faddp %%st(0),%%st(1)\n\t"
+		"fadds %6\n\t"                  // + sdivzorigin
+		"fmuls %7\n\t"                  // * tdivzstepu
+		"fmuls %8\n\t"                  // * tdivzstepv
+		"faddp %%st(0),%%st(1)\n\t"
+		"fadds %9\n\t"                  // + tdivzorigin
+		"fmuls %10\n\t"                 // * zistepu
+		"fmuls %11\n\t"                 // * zistepv
+		"faddp %%st(0),%%st(1)\n\t"
+		"fadds %12\n\t"                 // + ziorigin
+		"flds %13\n\t"                  // fp_64k
+		"fdivr %%st(0),%%st(1)\n\t"     // 1/z, a real divide
+		"fistpl %0\n\t"                 // s
+		"fistpl %1\n\t"                 // t
+		: "=m" (s), "=m" (t)
+		: "m" (dv), "m" (du), "m" (sdivzstepu), "m" (sdivzstepv),
+		  "m" (sdivzorigin), "m" (tdivzstepu), "m" (tdivzstepv),
+		  "m" (tdivzorigin), "m" (zistepu), "m" (zistepv), "m" (ziorigin),
+		  "m" (fp64k)
+		);
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	sink = s + t;
+	bench486_fidelity_sink += sink;
+	Bench486Printf ("fidelity x87chain %d ops %.6f sec %.1f ns/op checksum %d\n",
+			BENCH486_FIDELITY_ITERATIONS, elapsed,
+			elapsed * 1e9 / BENCH486_FIDELITY_ITERATIONS, sink);
+}
+
+// Probe 3: a working set that fits the 8 KB L1 against one that cannot.
+static void Bench486FidelityL1 (int bytes)
+{
+	byte		*buffer;
+	double		start, elapsed;
+	int			i;
+	volatile int	sink;
+	int			count = bytes / 4;
+
+	buffer = Z_TagMalloc (bytes + 64, 0x1000);
+	if (!buffer)
+	{
+		Bench486Printf ("fidelity l1-%d skipped: allocation failed\n", bytes);
+		return;
+	}
+	for (i=0 ; i<count ; i++)
+		((int *)buffer)[i] = i;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<BENCH486_FIDELITY_ITERATIONS ; i++)
+	{
+		int index = (i * 4) & (count - 1);
+		int value = ((int *)buffer)[index];
+		((int *)buffer)[index] = value + 1;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	sink = ((int *)buffer)[0];
+	bench486_fidelity_sink += sink;
+	Bench486Printf ("fidelity l1-%d %d ops %.6f sec %.1f ns/op checksum %d\n",
+			bytes, BENCH486_FIDELITY_ITERATIONS, elapsed,
+			elapsed * 1e9 / BENCH486_FIDELITY_ITERATIONS, sink);
+	Z_Free (buffer);
+}
+
+// Probe 4: two buffers sharing an L1 set index against two that do not.
+// This is the shape of the vid_surfcache / lvid->buffer collision measured in
+// vid_vga.c:299-304, which the DOSBox-X harness cannot observe at all.
+static void Bench486FidelityAlias (int offset)
+{
+	byte		*region, *first, *second;
+	double		start, elapsed;
+	int			i;
+	volatile int	sink;
+	int			count = 1024;
+
+	region = Z_TagMalloc (BENCH486_FIDELITY_ALIAS_SPAN * 2 + 8192, 0x1001);
+	if (!region)
+	{
+		Bench486Printf ("fidelity alias-%d skipped: allocation failed\n", offset);
+		return;
+	}
+	first = region + 1024;
+	second = first + offset;
+	memset (first, 1, count);
+	memset (second, 2, count);
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<BENCH486_FIDELITY_ITERATIONS ; i++)
+	{
+		// Same access pattern the draw loop uses: read one buffer, store to the
+		// other, so an aliasing pair contends for the same set on every pass.
+		int value = first[i & (count - 1)];
+		second[i & (count - 1)] = value + 1;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	sink = first[0] + second[0];
+	bench486_fidelity_sink += sink;
+	Bench486Printf ("fidelity alias-%d %d ops %.6f sec %.1f ns/op checksum %d\n",
+			offset, BENCH486_FIDELITY_ITERATIONS, elapsed,
+			elapsed * 1e9 / BENCH486_FIDELITY_ITERATIONS, sink);
+	Z_Free (region);
+}
+
+static void Bench486FidelityCases (void)
+{
+	Bench486Printf ("fidelity probes measure whether the emulator prices 486 costs.\n");
+	Bench486Printf ("A flat-FPU emulator collapses the x87 probes and the cache\n");
+	Bench486Printf ("probes tie; tools\\486-fidelity.ps1 fails the run in that case.\n");
+	Bench486FidelityX87Chain ();
+	Bench486FidelityFpu (0);
+	Bench486FidelityFpu (1);
+	Bench486FidelityL1 (BENCH486_FIDELITY_L1_FIT_BYTES);
+	Bench486FidelityL1 (BENCH486_FIDELITY_L1_MISS_BYTES);
+	Bench486FidelityAlias (0);
+	Bench486FidelityAlias (64);
+}
+
 static void Bench486_f (void)
 {
 	bench486_report_handle = Sys_FileOpenWrite ("bench486.txt");
@@ -3518,6 +3759,23 @@ static void Bench486_f (void)
 		Con_Printf ("bench486: could not create bench486.txt\n");
 
 	Bench486Printf ("486 benchmark begin\n");
+	if (COM_CheckParm ("-benchfidelity"))
+	{
+		Bench486Printf ("fidelity probes establish whether this emulator prices 486\n");
+		Bench486Printf ("x87 latency, L1 residency, and cache-set aliasing\n");
+		Bench486FidelityCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchaliasproject"))
 	{
 		Bench486Printf ("alias-project experiment compares the C projection helper\n");

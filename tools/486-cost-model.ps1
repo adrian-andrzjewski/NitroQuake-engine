@@ -40,6 +40,13 @@ param(
     [int]$ScreenWidth = 320,
     [int]$ScreenHeight = 200,
 
+    # Directory of retained .obj files for the same build as -Executable. The
+    # link step strips (-s), so the image carries no symbols and per-function
+    # attribution is impossible from it. The objects are retained by the build
+    # (out\dos<profile>\obj-bench), so this is where function-level x87
+    # accounting comes from. Defaults to the sibling obj-bench directory.
+    [string]$ObjectDirectory,
+
     # 486 clock used only as a time base for the percentage projection. The
     # projection scales linearly with it; 33.445 MHz matches the pinned
     # DOSBox-X profile (cycles = fixed 33445).
@@ -307,6 +314,96 @@ foreach ($line in $disasmLines) {
 }
 
 # ---------------------------------------------------------------------------
+# Section 1b - per-object x87 accounting from the retained .obj files.
+#
+# The linked image is stripped (build-dos.ps1:489 passes -s), so objdump -d on
+# it reports no symbols and every function is anonymous. The objects are
+# retained next to the executable, and an unstripped .obj disassembles with
+# its symbol table intact, which is what makes per-function attribution
+# possible. Without this the model can only report coarse image totals.
+# ---------------------------------------------------------------------------
+$objectFacts = $null
+if ([string]::IsNullOrWhiteSpace($ObjectDirectory)) {
+    $ObjectDirectory = Join-Path (Split-Path -Parent $Executable) 'obj-bench'
+}
+$ObjectDirectory = Resolve-InputPath $ObjectDirectory
+if (Test-Path -LiteralPath $ObjectDirectory -PathType Container) {
+    $objectList = @(Get-ChildItem -LiteralPath $ObjectDirectory -Filter '*.obj' -File |
+            Sort-Object Name)
+    $perObject = @()
+    $objectX87Total = 0
+    foreach ($obj in $objectList) {
+        $objDisasm = (& $Objdump -d $obj.FullName 2>$null | Out-String)
+        if ($LASTEXITCODE -ne 0) { continue }
+        $currentSymbol = $null
+        $symbolX87 = 0
+        $symbolCycles = 0.0
+        $symbolMnemonics = @{}
+        $symbolBytes = 0
+
+        $objLines = $objDisasm -split "`r?`n"
+        for ($lineIndex = 0; $lineIndex -le $objLines.Count; $lineIndex++) {
+            $line = if ($lineIndex -lt $objLines.Count) { $objLines[$lineIndex] } else { '' }
+
+            # A function label: "00000220 <_D_DrawSpans16>:". The section header
+            # "00000000 <.text>:" has the same shape, so a leading-dot name is
+            # a section, not a function, and closes any open symbol.
+            $isLabel = $false
+            $nextSymbol = $null
+            if ($line -match '^[0-9a-fA-F]+ <(?<name>[^>]+)>:$') {
+                $name = $Matches['name']
+                $nextSymbol = if ($name.StartsWith('.')) { $null } else { $name }
+                $isLabel = $true
+            }
+
+            if ($isLabel) {
+                if ($null -ne $currentSymbol) {
+                    $perObject += [ordered]@{
+                        object = $obj.Name
+                        symbol = $currentSymbol
+                        x87 = $symbolX87
+                        x87Cycles = [math]::Round($symbolCycles, 2)
+                        bytes = $symbolBytes
+                        mnemonics = $symbolMnemonics
+                    }
+                }
+                $currentSymbol = $nextSymbol
+                $symbolX87 = 0
+                $symbolCycles = 0.0
+                $symbolBytes = 0
+                $symbolMnemonics = @{}
+                continue
+            }
+
+            # An instruction: " 12b:\tdc f9                \tfdivr  %st,%st(1)"
+            if ($line -match '^\s*[0-9a-fA-F]+:\s+(?<bytes>(?:[0-9a-fA-F]{2}\s+)+)(?<mnemonic>\S+)(?:\s+(.*))?$') {
+                $mnemonic = $Matches['mnemonic']
+                $byteCount = ([regex]::Matches($Matches['bytes'], '\b[0-9a-fA-F]{2}\b')).Count
+                $symbolBytes += $byteCount
+                if ($mnemonic -match '^f' -and $notX87 -notcontains $mnemonic) {
+                    $symbolX87++
+                    $objectX87Total++
+                    $symbolCycles += Get-X87Latency $mnemonic
+                    if (-not $symbolMnemonics.ContainsKey($mnemonic)) {
+                        $symbolMnemonics[$mnemonic] = 0
+                    }
+                    $symbolMnemonics[$mnemonic]++
+                }
+            }
+        }
+    }
+    if ($objectList.Count -gt 0) {
+        $objectFacts = [ordered]@{
+            objectDirectory = $ObjectDirectory
+            objectCount = $objectList.Count
+            x87Total = $objectX87Total
+            symbols = @($perObject | Where-Object { $_.x87 -gt 0 } |
+                    Sort-Object -Property x87Cycles -Descending)
+        }
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Section 2 - per-path x87 accounting from the assembler sources
 # ---------------------------------------------------------------------------
 function Read-AsmPaths {
@@ -486,6 +583,26 @@ if ($unknownX87.Count -gt 0) {
 }
 Write-Host ''
 
+if ($null -ne $objectFacts) {
+    Write-Host ("1b. Per-function x87 cost from the retained objects ({0} objects, symbols intact)" -f $objectFacts.objectCount)
+    Write-Host ("   {0,-20} {1,-34} {2,6} {3,10}" -f 'OBJECT', 'SYMBOL', 'X87', '486 CYCLES')
+    $objShown = 0
+    foreach ($row in $objectFacts.symbols) {
+        if ($objShown -ge $Top) { break }
+        $objShown++
+        $label = $row.symbol
+        if ($label.Length -gt 34) { $label = $label.Substring(0, 31) + '...' }
+        Write-Host ("   {0,-20} {1,-34} {2,6} {3,10:N0}" -f
+            $row.object, $label, $row.x87, $row.x87Cycles)
+    }
+    Write-Host ''
+}
+else {
+    Write-Host '1b. Per-function x87 cost: SKIPPED (no object directory found; the stripped'
+    Write-Host '    image carries no symbols, so only image totals are available above).'
+    Write-Host ''
+}
+
 Write-Host '2. x87 cost per assembly path (source-level; the image has no symbols)'
 Write-Host ("   {0,-18} {1,-16} {2,6} {3,6} {4,10}" -f 'FILE', 'LABEL', 'OPS', 'X87', '486 CYCLES')
 $shown = 0
@@ -560,6 +677,7 @@ Write-Host '   admissible. That is where optimization effort belongs.'
 if (-not [string]::IsNullOrWhiteSpace($Json)) {
     $result = [ordered]@{
         executable = $Executable
+        objectFacts = $objectFacts
         text_bytes = $textSize
         x87_instructions = $x87Total
         l1_bytes = $l1Bytes

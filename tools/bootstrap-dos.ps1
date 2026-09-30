@@ -1,7 +1,14 @@
 [CmdletBinding()]
 param(
     [switch]$Force,
-    [string]$ToolRoot
+    [string]$ToolRoot,
+    # Also fetch the optional PCem cycle-accurate 486 reference. It is the
+    # 486-cost gate, but DOSBox-X remains the parity gate, so a machine without
+    # it can still build, benchmark, and time the demo.
+    [switch]$WithPcem,
+    # Print the SHA-256 of the PCem archive so it can be pinned in the manifest.
+    # Required before any candidate is promoted on PCem cycles.
+    [switch]$RecordPcemHash
 )
 
 Set-StrictMode -Version Latest
@@ -49,7 +56,24 @@ function Assert-FileHash {
 }
 
 function Get-VerifiedArchive {
-    param([Parameter(Mandatory = $true)]$Definition)
+    param(
+        [Parameter(Mandatory = $true)]$Definition,
+        # An unpinned definition is fetched and hashed but not verified against a
+        # constant. Only for first-fetch hash recording; a tool that gates a
+        # promotion must be pinned in the manifest.
+        [switch]$AllowUnpinned
+    )
+
+    $expected = $null
+    if ($Definition.PSObject.Properties.Name -contains 'sha256') {
+        $expected = [string]$Definition.sha256
+    }
+    if ([string]::IsNullOrWhiteSpace($expected)) {
+        if (-not $AllowUnpinned) {
+            throw "No pinned sha256 for '$($Definition.url)'. Pin it in the manifest, or pass -AllowUnpinned to record the hash on first fetch."
+        }
+        $expected = $null
+    }
 
     $downloadRoot = Join-Path $ToolRoot 'downloads'
     New-Item -ItemType Directory -Path $downloadRoot -Force | Out-Null
@@ -62,11 +86,18 @@ function Get-VerifiedArchive {
     }
 
     if (Test-Path -LiteralPath $archivePath) {
-        Assert-FileHash -Path $archivePath -Expected $Definition.sha256
+        if ($null -ne $expected) {
+            Assert-FileHash -Path $archivePath -Expected $expected
+        }
     } else {
         Write-Host "Downloading $archiveName"
         Invoke-WebRequest -UseBasicParsing -Uri $Definition.url -OutFile $archivePath
-        Assert-FileHash -Path $archivePath -Expected $Definition.sha256
+        if ($null -ne $expected) {
+            Assert-FileHash -Path $archivePath -Expected $expected
+        }
+        else {
+            Write-Warning "Downloaded $archiveName with no pinned hash. Record it with -RecordPcemHash before trusting this tool."
+        }
     }
 
     return $archivePath
@@ -130,4 +161,27 @@ foreach ($requiredPath in @($compilerPath, $objdumpPath, $dosboxPath)) {
 
 Write-Host "DJGPP root: $djgppRoot"
 Write-Host "DOSBox-X:   $dosboxPath"
+
+if ($WithPcem -or $RecordPcemHash) {
+    if ($null -eq $manifest.pcem) {
+        throw 'The toolchain manifest has no "pcem" block.'
+    }
+    $pcemArchive = Get-VerifiedArchive -Definition $manifest.pcem -AllowUnpinned
+    if ($RecordPcemHash) {
+        Write-Host ''
+        Write-Host "PCem archive:  $pcemArchive"
+        Write-Host "PCem SHA-256:  $((Get-FileHash -LiteralPath $pcemArchive -Algorithm SHA256).Hash)"
+        Write-Host 'Pin that value as "pcem"."sha256" in tools\dos-toolchain.json before promoting on PCem cycles.'
+    }
+    $pcemRoot = Install-ZipArtifact -Definition $manifest.pcem -ArchivePath $pcemArchive
+    $pcemPath = Join-Path $pcemRoot (ConvertTo-NativeRelativePath $manifest.pcem.executable)
+    if (-not (Test-Path -LiteralPath $pcemPath -PathType Leaf)) {
+        throw "Bootstrap completed but PCem is missing: '$pcemPath'."
+    }
+    Write-Host "PCem:         $pcemPath"
+}
+else {
+    Write-Host 'PCem:         not installed (pass -WithPcem to add the 486-cost gate)'
+}
+
 Write-Host 'Toolchain bootstrap complete.'

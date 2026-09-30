@@ -85,7 +85,16 @@ param(
     # Extra Quake/qbench command-line tokens (e.g. '-mem 8' to pin heap size across DPMI hosts).
     [string]$QuakeExtraArgs = '',
     # When using hdpmi32, still run DPMI.EXE to record the resident host identity.
-    [switch]$SkipDpmiProbe
+    [switch]$SkipDpmiProbe,
+    #
+    # Parity gates. These were previously recorded in the report but never
+    # compared, so a changed emulator core or profile would silently re-baseline
+    # every number in the ledger. They are now enforced; a mismatch fails the run.
+    # Pass -AllowGateOverride to record a deliberate exception, which is logged.
+    [string]$ExpectedProfileSha256 = 'F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45',
+    [int]$ExpectedFrames = 969,
+    [int]$ExpectedChecksum = 1047377823,
+    [switch]$AllowGateOverride
 )
 
 Set-StrictMode -Version Latest
@@ -269,11 +278,65 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
     throw "Required DOSBox-X executable is missing: '$dosbox'."
 }
 
-if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
+# The previous gate here was `if (-not (Test-Path $benchmarkExe))`, keyed on the
+# selector profile alone. That silently ignored every source edit once the
+# executable existed, so a timedemo could report the previous binary's time; it
+# produced a real false negative in this project. Hash the sources and the
+# resolved selectors instead, and rebuild whenever they differ.
+$sourceRoot = Join-Path $repoRoot 'WinQuake'
+$selectorState = @(
+    $OptimizationProfile, $TextureAxisCacheEntries, $TextureAxisImplementation,
+    $SurfaceCacheImplementation, $MipLevelImplementation, $MemoryImplementation,
+    $TurbulentImplementation, $TextureSpanStores, $TextureSpanTailStores,
+    $TextureSpanRowPath, $TextureSpanLoadOrder, $TextureSpanAddressing,
+    $AliasSpanAddressing, $ZSpanNegativeUnroll, $SurfaceBlockMip0Rows,
+    $SurfaceBlockMip0HorizontalFlat, $SurfaceBlockMip1Rows,
+    $AliasProjectImplementation, $AliasBBoxProjectImplementation,
+    $AliasTransformFinalImplementation, $AliasPrepareImplementation,
+    $AliasMatrixCompositionImplementation, $TextureAnimationImplementation,
+    $LightMapNormalizeImplementation, $LightMapStylesImplementation,
+    $FusedLightMapImplementation, $DynamicLightImplementation,
+    $BspPlaneDotImplementation, $BspClipImplementation,
+    $BspFrameCountImplementation, $GibTrailHorizontalIntegration
+) -join '|'
+$buildInputs = @(
+    Get-ChildItem -LiteralPath $sourceRoot -Include '*.c', '*.s', '*.h' -File -Recurse |
+        Sort-Object FullName |
+        ForEach-Object { "$($_.FullName.Substring($sourceRoot.Length))=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" }
+)
+$buildInputs += "selectors=$selectorState"
+$buildInputs += "instrumentation=$([bool]$Instrumentation)"
+$fingerprintSource = $buildInputs -join "`n"
+$fingerprintHasher = [Security.Cryptography.SHA256]::Create()
+try {
+    $sourceFingerprint = ([BitConverter]::ToString(
+            $fingerprintHasher.ComputeHash(
+                [Text.Encoding]::UTF8.GetBytes($fingerprintSource)))).Replace('-', '')
+}
+finally {
+    $fingerprintHasher.Dispose()
+}
+$fingerprintPath = Join-Path (Split-Path -Parent $benchmarkExe) 'qbench.sources.sha256'
+$executableExists = Test-Path -LiteralPath $benchmarkExe -PathType Leaf
+$staleBuild = $false
+if ($executableExists) {
+    if (-not (Test-Path -LiteralPath $fingerprintPath -PathType Leaf)) {
+        # Pre-fingerprint binary: its provenance is unknowable, so rebuild it.
+        $staleBuild = $true
+    }
+    else {
+        $staleBuild = ((Get-Content -LiteralPath $fingerprintPath -Raw).Trim() -ne $sourceFingerprint)
+    }
+}
+if ((-not $executableExists) -or $staleBuild) {
     if ($SkipBuild) {
+        if ($staleBuild) {
+            throw "Benchmark executable '$benchmarkExe' is stale with respect to the current sources (fingerprint $sourceFingerprint). Rerun without -SkipBuild to rebuild; see ASM486-HANDOFF.md 'the timedemo runner will not rebuild after a source edit'."
+        }
         throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
     }
 
+    Write-Host ("Benchmark build is stale (fingerprint {0}); rebuilding." -f $sourceFingerprint.Substring(0, 12))
     $buildParams = @{
         Benchmark = $true
         OptimizationProfile = $OptimizationProfile
@@ -316,6 +379,10 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         $buildParams['NoBootstrap'] = $true
     }
     & $build @buildParams
+    if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
+        throw "Required benchmark executable is missing: '$benchmarkExe'."
+    }
+    Set-Content -LiteralPath $fingerprintPath -Value $sourceFingerprint -Encoding ASCII -NoNewline
 }
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
@@ -455,6 +522,19 @@ finally {
 $culture = [Globalization.CultureInfo]::InvariantCulture
 $results = @()
 
+# The profile hash protects the file, not the numbers behind it. Compare it
+# against the pinned constant so a changed DOSBox-X core or configuration cannot
+# silently re-baseline the ledger (ASM486-HANDOFF.md:496-502).
+if ($profileHash -ne $ExpectedProfileSha256) {
+    if (-not $AllowGateOverride) {
+        throw ("DOSBox-X profile SHA-256 mismatch.`n  expected {0}`n  actual   {1}`n" +
+            "The pinned 486 profile has changed, so its timings are not comparable to the recorded baseline. " +
+            "Re-baseline deliberately with -AllowGateOverride, and record the new profile in BENCHMARK-COMPARISON.md.") -f `
+            $ExpectedProfileSha256, $profileHash
+    }
+    Write-Warning "PROFILE GATE OVERRIDDEN: expected $ExpectedProfileSha256, got $($profileHash). Results are NOT comparable to the recorded baseline."
+}
+
 for ($run = 1; $run -le $Runs; $run++) {
     $reportPath = Join-Path $quakeRoot 'timedemo.txt'
     if (Test-Path -LiteralPath $reportPath) {
@@ -520,11 +600,42 @@ for ($run = 1; $run -le $Runs; $run++) {
         $profileData = Get-Content -LiteralPath $profileJsonPath -Raw | ConvertFrom-Json
     }
 
+    $runFrames = [int]$match.Groups['frames'].Value
+    $runSeconds = [double]::Parse($match.Groups['seconds'].Value, $culture)
+    $runFps = [double]::Parse($match.Groups['fps'].Value, $culture)
+
+    # A run that completed the wrong number of frames, or rendered a different
+    # framebuffer, is not a timing result. Fail rather than report it.
+    $checksumMatch = [regex]::Match($report, 'framebuffer-checksum\s+(?<checksum>\d+)')
+    $runChecksum = if ($checksumMatch.Success) {
+        [int64]$checksumMatch.Groups['checksum'].Value
+    }
+    else {
+        $null
+    }
+    $gateFailures = @()
+    if ($runFrames -ne $ExpectedFrames) {
+        $gateFailures += "frames $runFrames != $ExpectedFrames"
+    }
+    if ($null -eq $runChecksum) {
+        $gateFailures += 'framebuffer checksum absent from the report'
+    }
+    elseif ($runChecksum -ne $ExpectedChecksum) {
+        $gateFailures += "framebuffer checksum $runChecksum != $ExpectedChecksum"
+    }
+    if ($gateFailures.Count -gt 0) {
+        $detail = $gateFailures -join '; '
+        if (-not $AllowGateOverride) {
+            throw "Timedemo run $run failed the parity gate: $detail. This is not a valid timing result; fix the regression or re-baseline deliberately with -AllowGateOverride."
+        }
+        Write-Warning "PARITY GATE OVERRIDDEN on run ${run}: $detail. Results are NOT comparable to the recorded baseline."
+    }
+
     $results += [ordered]@{
         run = $run
-        frames = [int]$match.Groups['frames'].Value
-        seconds = [double]::Parse($match.Groups['seconds'].Value, $culture)
-        fps = [double]::Parse($match.Groups['fps'].Value, $culture)
+        frames = $runFrames
+        seconds = $runSeconds
+        fps = $runFps
         fpsStats = $fpsStatsData
         report = $report.Trim()
         profile = $profileData
@@ -659,6 +770,13 @@ $result = [ordered]@{
     dosboxVersion = $toolManifest.dosboxX.version
     profile = $profilePath
     profileSha256 = $profileHash
+    sourceFingerprint = $sourceFingerprint
+    parityGate = [ordered]@{
+        expectedProfileSha256 = $ExpectedProfileSha256
+        expectedFrames = $ExpectedFrames
+        expectedChecksum = $ExpectedChecksum
+        enforced = (-not $AllowGateOverride)
+    }
     executable = $benchmarkExe
     dpmiHost = $DpmiHost
     dpmiHostPath = $dpmiHostPath

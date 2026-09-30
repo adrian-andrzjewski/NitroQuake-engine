@@ -9,6 +9,80 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Harness integrity and the 486-fidelity baseline (2026-09-30) — the gate problem is now measured, not asserted
+
+The conclusion at `:511-539` — stop optimizing against this harness, because it
+cannot see what a 486 pays — is now backed by an executable measurement rather
+than an argument. This entry records the tooling that establishes it, because
+the next passes depend on it.
+
+**Three harness defects fixed first**, since every other number in this ledger
+depends on them:
+
+1. **The stale-binary hazard is closed.** `timedemo-dos.ps1` built only
+   `if (-not (Test-Path $benchmarkExe))`, keyed on the selector profile alone,
+   so a source edit was silently ignored and the previous binary measured (see
+   the warning at `:53-64`). It now hashes all 163 `.c`/`.s`/`.h` files plus the
+   resolved selectors into a fingerprint stored beside the executable, and
+   rebuilds on mismatch. **Note there is no `-Clean` switch** — verified; the
+   documented remedy did not exist, and `:53-64` and `BUILD-DOS.md` should be
+   read with that in mind.
+2. **The recorded-but-unenforced constants now fail the run** (`:496-502`).
+   `timedemo-dos.ps1` compares the profile SHA-256 against
+   `F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45` and gates
+   every run on 969 frames and framebuffer checksum `1047377823`. A wrong value
+   fails the run rather than reporting a time; `-AllowGateOverride` records a
+   deliberate exception and warns.
+3. **Per-function attribution is available.** The link strips with `-s`
+   (`build-dos.ps1:489`), so `:19-24` of `486-cost-model.ps1` could only report
+   image totals. The build already retains 103 objects under
+   `out\dos<profile>\obj-bench`, so the cost model now disassembles those and
+   reports per-symbol x87 cost (new section 1b). `-s` is kept; dropping it would
+   perturb an already non-reproducible image.
+
+**The fidelity suite.** `tools\486-fidelity.ps1` runs four in-engine probes
+(`WinQuake\host_cmd.c`, `-benchfidelity`, dispatched via `+bench486`) whose 486
+costs are known, and judges whether an emulator actually prices them:
+
+| probe | measures |
+|---|---|
+| `x87chain` | a serialized x87 chain with a real FDIV, the `d_draw16.s:145-198` shape |
+| `fpu fistp32` vs `fist16` | 32-bit against 16-bit float-to-int store; the model prices `fistp` at 39 cy |
+| `l1-4096` vs `l1-24576` | 4 KB working set (fits the 8 KB L1) against one that cannot |
+| `alias-0` vs `alias-64` | two buffers sharing an L1 set against two that do not; the `vid_vga.c:299-304` shape |
+
+**DOSBox-X scores 0 of 4** (`out\fidelity-dosbox-x.json`):
+
+```text
+fidelity x87chain   748.1 ns/op
+fidelity fpu fistp32 329.2 ns/op
+fidelity fpu fist16  329.2 ns/op     -> 1.000x separation
+fidelity l1-4096    179.7 ns/op
+fidelity l1-24576   179.7 ns/op      -> 1.000x separation
+fidelity alias-0    239.5 ns/op
+fidelity alias-64   239.5 ns/op      -> 1.000x separation
+```
+
+The three 1.000x results are exact ties, not noise: **DOSBox-X has no cache
+model whatsoever**, so neither L1 capacity nor set aliasing can move its clock.
+`fistp32` and `fist16` tying at 329.2 ns is the flat-FPU model stated directly.
+Only the x87 chain separates, at 2.27x, which is the op-count ratio rather than
+the latency ratio a 486DX charges.
+
+**This is the correct and expected result.** DOSBox-X remains the **parity gate**
+— checksum, frame count, functional correctness — where its flat FPU does not
+make it *wrong*, only insensitive. A new cycle-accurate reference is the
+**486-cost gate**, and it must pass these same four probes before anything is
+promoted on it; a second harness with unvalidated fidelity would be a worse
+version of the original mistake.
+
+**PCem is integrated but not installed.** `tools\dos-toolchain.json` carries an
+optional `pcem` block and `bootstrap-dos.ps1` accepts `-WithPcem` /
+`-RecordPcemHash`. No 486-accurate emulator is present on this machine, so the
+486-cost gate is **not yet available** and no 486-specific candidate has been
+promoted. The manifest's `pcem.sha256` is deliberately empty: the hash must be
+recorded and pinned before anything is trusted on PCem cycles.
+
 ### The 1800 KB surface-cache wall does not exist (2026-09-29) — root-caused, and the latent win is promoted
 
 Four experiments in this ledger record that growing `SURFCACHE_SIZE_AT_320X200`
@@ -58,10 +132,17 @@ by source content. **If that executable exists, a source or header edit is
 silently ignored and the previous binary is measured.** Editing
 `d_local.h` appeared to do nothing for three timedemos; the binary still
 carried `mov $0x1c2000,%eax` (1800 KB) while a direct compile of the same
-file emitted `mov $0x258000,%eax` (2400 KB). **Pass `-Clean`, or verify the
-constant in the linked image, after any source edit before trusting a
-timedemo.** This is a live hazard for every source-level experiment in this
-project, not just this one.
+file emitted `mov $0x258000,%eax` (2400 KB). **Pass `-Clean` to
+`build-dos.ps1`, or verify the constant in the linked image, after any source
+edit before trusting a timedemo.** This is a live hazard for every source-level
+experiment in this project, not just this one.
+
+**RESOLVED 2026-09-30.** The runner now hashes all 163 source files plus the
+resolved selectors and rebuilds on mismatch, so neither flag is required and the
+false negative can no longer occur. Two corrections to the note above: the
+documented `-Clean` switch belongs to `build-dos.ps1`, **not**
+`timedemo-dos.ps1`, which never had one; and the anchor `timedemo-dos.ps1:272`
+has moved as the file has been edited.
 
 ### `Turbulent8` setup precompute (2026-09-30) — priced with a bit-exact dead-scratch probe; 0.034% addressable, below the gate
 
