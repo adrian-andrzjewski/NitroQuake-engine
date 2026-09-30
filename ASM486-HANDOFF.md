@@ -146,6 +146,59 @@ What is legitimate, if a 486-cost gate is wanted:
 None of these is available to an automated pass, which is why the 486-cost gate
 is recorded as wired-but-unexercised rather than forced.
 
+### Sourcing research: the legal-BIOS question, answered (2026-09-30)
+
+Because the ROM route is closed, the obvious hope is a ROM-free emulator that is
+still cycle-accurate. Researched and **eliminated**, with the decisive evidence
+rather than a summary:
+
+**Bochs ships a GPL BIOS and needs no third-party ROM — and is disqualified by
+its CPU model.** Its `bochs/cpu/cpu.h` (6151 lines) has **no data cache
+whatsoever**: no `bxDCache`, no `bxCache_c`, no set index, no tag array, no
+associativity. The only cache class is `bxICache_c` (`:428-429`, `:1442`), and
+that is a fetch-unit trace cache, not a set-associative L1. `CACHE_LINE_SIZE` is
+a hardcoded `const 64` (`:421`) used only for UMONITOR alignment (`:879`) — and
+64 bytes is wrong for a 486 regardless, which has 32-byte lines. There is no
+cache configuration option of any kind. The x87 is softfloat (`i387_t` at
+`:1100-1101`, `softfloat_status_t` at `:837`) for correctness only, with no
+latency model, and `icount` (`:1002`) is incremented by 1 per instruction
+(`:6105-6109`) with **no cycle concept anywhere** — grepping
+`cycle|latency|stall|ips` over the whole file returns one hit, an unrelated
+comment.
+
+So Bochs would score 0/4 on the fidelity suite, for the same reason DOSBox-X
+does: it has no data cache and a free FPU. It also has the wrong line size and
+the wrong associativity even if a cache existed. **Do not install Bochs as a
+486-cost reference.**
+
+**SeaBIOS is GPL and is QEMU's default, but it does not help.** It targets
+QEMU's own virtual hardware (i440fx/q35, `fw_cfg`, virtio) and is used by no
+period-ISA emulator, so it is not a general escape. QEMU's TCG is, like DOSBox-X,
+an instruction-count model with a flat FPU and no cache — it would fail the
+same probes. Booting DOS under it is possible but buys nothing for this
+project.
+
+**Net conclusion, and it is the honest one:** there is **no legally-obtainable,
+ROM-free, cycle-accurate 486 emulator** available. Emulators that model 486
+cache and FPU latency (PCem, 86Box) are ROM-dependent by design, because that
+hardware's behaviour is defined by the firmware. Emulators that are ROM-free
+(Bochs, QEMU) are not cycle-accurate. The two properties are not separable
+without either a BIOS the user owns or real hardware.
+
+That is a stronger result than "we did not find one", and it should end the
+search rather than license a repeat of it. The measurement gap is real, it is
+now measured (0/4), and it is **not closable within this project's constraints**.
+
+**What this means for the plan.** The Phase 3/Phase 4 candidates stay
+unimplemented, and the reason is now stronger than "we lack a measurement":
+the available legal harnesses cannot supply the measurement at all, so any
+candidate built now would rest on published latencies alone. That is
+precisely the reasoning error the ledger documents for the Z-span prologue
+(`:561-578`), where an instruction-count estimate said 7.8% and the truth was
+0.71%. **The honest position is that the renderer is converged, the reason is
+now proven rather than asserted, and the remaining 486-specific wins are real but
+unclaimable without hardware the project does not have.**
+
 
 
 ### The 486-cost runner (2026-09-30) — written, wired, and blocked on the same ROM
