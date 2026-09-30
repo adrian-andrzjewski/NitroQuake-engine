@@ -199,6 +199,82 @@ precisely the reasoning error the ledger documents for the Z-span prologue
 now proven rather than asserted, and the remaining 486-specific wins are real but
 unclaimable without hardware the project does not have.**
 
+### 86Box, verified against source (2026-09-30) — the best ROM-free candidate, still disqualified
+
+86Box was the strongest remaining hope, and it was checked properly rather than
+dismissed. It is GPL and its emulator is freely installable; the problem is the
+same ROM dependency plus a cache model that does not exist.
+
+**The `_cache[2048]` array is not a cache.** This is the load-bearing fact and it
+is easy to get wrong from a name. Declared `src/cpu/cpu.c:289-290` (externs at
+`cpu.h:640-641`). Its only uses repo-wide are in Pentium-era test-register
+emulation, `src/cpu/x86_ops_mov_ctrl.h:424-425`:
+
+```c
+_tr[3]      = *(uint32_t *) &(_cache[cache_index]);
+cache_index = (cache_index + 4) & 0xf;
+```
+
+`cache_index` is a **rotating cursor, not derived from any address** — there is
+no shift-mask, no tag array, no replacement policy, and only bytes 0-15 of the
+2048-byte array are ever touched. The other 2032 bytes are dead space, and the
+symbol is a leftover from PCem's test-register path. Our own grep of `cpu.c`
+independently found zero uses there, which agrees.
+
+**Cache cost is a flat per-model constant**, not a structure. `cpu_update_waitstates()`
+(`cpu.c:4543-4588`) assigns one pair of numbers to every read and write
+regardless of address:
+
+```c
+cpu_cycles_read  = cpu_s->cache_read_cycles;
+cpu_cycles_write = cpu_s->cache_write_cycles;
+```
+
+There is no cache-size configuration anywhere; `src/config.c` mentions "cache"
+only for a host-side disk cache. **86Box therefore cannot answer any capacity,
+associativity, geometry, or set-conflict question at all** — a 4 KB and a 24 KB
+working set cost it identically because it has no notion of capacity.
+
+**x87 latency is genuine, and is 86Box's one real strength.** `x87_timings_486`
+at `src/cpu/x87_timings.c:314` carries Intel-derived per-instruction latencies
+(`.fdiv = 73`, `.fild_16 = 14`, `.fild_32 = 10`, `.fmul_32 = 11`) with a separate
+`x87_concurrency_486` table for dependency busy-wait. So 86Box is markedly better
+than Bochs or DOSBox-X on the x87 axis.
+
+**But the one candidate that matters most is exactly the one 86Box cannot
+distinguish.** `.fist_16` and `.fist_32` are **both 31 cycles**
+(`x87_timings.c:346-347`) — there is no FIST-versus-FISTPL distinction, because
+the 486 penalty is for a 16-bit *integer store destination*, not the opcode.
+**Candidate C1 is precisely a 16-bit FIST substitution.** So 86Box would tie on
+the exact axis the leading candidate pays for, and would also tie on all three
+cache probes. It could not promote C1, and it could not promote C3 or C4 either.
+
+**No cycle-count output and no script interface.** `-S` is `--settings`, not a
+script. Automation is `--config` + `--image` + `--logfile` only, and there is no
+user-facing emulated-cycle counter (`instr_counts` is a JIT block counter). So
+even a legal ROM would leave the promotion signal resting on wall-clock timing,
+which is unreliable for a ~31-cycle difference.
+
+The 486 machines want the same vendor firmware as everything else —
+`roms/machines/ami495/opt495sx.ami`, `roms/machines/c747/486-C747 Tandon.BIN`,
+`roms/machines/pred1plus/PRED1PLUS.BIN` (`src/machine/m_at_386dx_486.c`,
+`src/machine/m_at_socket3.c`). The `86box/roms` repository is exactly the
+unlicensed vendor-firmware redistribution already ruled out, and its own README
+carries no licensing grant at all — only contribution guidelines.
+
+**A DOS image does not help, and this is worth stating because it looks like it
+should.** A Windows-hosted DOS install is the *guest OS*, not the *BIOS*; the
+firmware that defines the emulated hardware's behaviour is the thing in question,
+and DOSBox-X already supplies a perfectly good guest DOS. WinWorldPC's MS-DOS
+6.0/6.22 are abandonware and reasonable to use for exactly that purpose, but they
+resolve nothing about the ROM. (Its 7.1 page is the China DOS Union custom
+build, which the site itself notes it does not normally approve of.)
+
+**So the three suggested routes resolve as:** 86Box's *emulator* is fine to
+install but is disqualified on fidelity (no cache model; ties on C1's own axis);
+the 86Box *ROMs* repo is the same copyright problem and is not a workaround; a
+*DOS image* was never the missing piece. The search is closed.
+
 
 
 ### The 486-cost runner (2026-09-30) — written, wired, and blocked on the same ROM
