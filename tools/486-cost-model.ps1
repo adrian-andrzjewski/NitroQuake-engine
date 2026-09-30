@@ -13,7 +13,7 @@
 
     This tool is a DISQUALIFIER and a RANKING AID. It can never promote a
     change. The 0.05% DOSBox-X timedemo delta remains the sole promotion
-    criterion; see ASM486-HANDOFF.md:179-236. A cycle figure printed here is a
+    criterion; see ASM486-HANDOFF.md:452-509. A cycle figure printed here is a
     published-latency estimate, not a measurement taken by this project.
 
 .NOTES
@@ -116,7 +116,7 @@ if (-not (Test-Path -LiteralPath $Executable -PathType Leaf)) {
 # point instruction timings), NOT measurements taken by this project. They are
 # order-of-magnitude correct and deliberately not tuned. The DOSBox-X
 # comparison stands at ~1.04 cy/op for every one of them
-# (ASM486-HANDOFF.md:185-188).
+# (ASM486-HANDOFF.md:458-461).
 # ---------------------------------------------------------------------------
 $latency = @{
     'fxch'     = 1;    'fwait'    = 1
@@ -371,7 +371,7 @@ foreach ($path in $asmPaths) {
 }
 $pathRows = @($pathRows | Sort-Object { $_.X87Cycles } -Descending)
 
-# The Z-span prologue, documented at ASM486-HANDOFF.md:268-273 and
+# The Z-span prologue, documented at ASM486-HANDOFF.md:541-546 and
 # d_draw.s:LFSpanLoop. The ledger calls it "nine serialized x87 operations";
 # the source region actually contains twelve x87 instructions. Both numbers
 # are reported so the discrepancy stays visible rather than being baked in.
@@ -460,7 +460,7 @@ if ($null -ne $spanCount -and $spanCount -gt 0 -and $null -ne $pixelCount) {
 # Report
 # ---------------------------------------------------------------------------
 Write-Host '486DX static cost model - a disqualifier, never a promotion criterion.'
-Write-Host ("Promotion remains the 0.05% DOSBox-X timedemo delta; see ASM486-HANDOFF.md:179-236.")
+Write-Host ("Promotion remains the 0.05% DOSBox-X timedemo delta; see ASM486-HANDOFF.md:452-509.")
 Write-Host ("Executable: {0}" -f $Executable)
 Write-Host ("Profile:    {0}" -f $(if ($null -ne $profile) { $ProfileJson } else { $profileNote }))
 Write-Host ''

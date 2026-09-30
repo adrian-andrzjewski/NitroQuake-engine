@@ -35,7 +35,7 @@ the memory, so 2400 KB is the knee. Instrumented, evictions fall from 2,151 to
 2,122 invalidations and surface-cache self time from 7.260873 s to 7.240347 s.
 
 **Why the historical rows were wrong.** They all report the *same* wrong
-checksum `2955717646`, and this ledger already notes at `:1671-1672` that it is
+checksum `2955717646`, and this ledger already notes at `:1877` that it is
 "the same hash as the reverted texture-source row-lookup" — an unrelated bug's
 signature. A genuine cache-size-dependent defect would not reproduce one
 unrelated bug's exact checksum at four different sizes. Those runs were
