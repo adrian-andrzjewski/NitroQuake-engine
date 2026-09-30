@@ -288,15 +288,18 @@ Write-Host $report
 # ---------------------------------------------------------------------------
 $probes = @{}
 foreach ($line in ($report -split "`r?`n")) {
-    if ($line -match 'fidelity (?<name>\S+)\s+(?<rest>.*)$') {
-        $name = $Matches['name']
-        $rest = $Matches['rest']
-        if ($rest -match '(?<iterations>\d+)\s+ops\s+(?<seconds>[0-9.]+)\s+sec\s+(?<ns>[0-9.]+)\s+ns/op') {
-            $probes[$name] = [ordered]@{
-                iterations = [int]$Matches['iterations']
-                seconds = [double]$Matches['seconds']
-                nanosecondsPerOp = [double]$Matches['ns']
-            }
+    # The two FPU cases share the probe name "fpu" and differ only by the
+    # trailing label, so the label must be consumed explicitly. A greedy \S+
+    # would swallow the iteration count and fail to match, which is how the
+    # first version of this parser silently lost both FIST timings.
+    if ($line -match 'fidelity\s+(?<name>\S+)(?:\s+(?<label>fistp32|fist16))?\s+(?<iterations>\d+)\s+ops\s+(?<seconds>[0-9.]+)\s+sec\s+(?<ns>[0-9.]+)\s+ns/op') {
+        $key = if ($Matches['label']) { $Matches['label'] } else { $Matches['name'] }
+        $probes[$key] = [ordered]@{
+            probe = $Matches['name']
+            label = $Matches['label']
+            iterations = [int]$Matches['iterations']
+            seconds = [double]$Matches['seconds']
+            nanosecondsPerOp = [double]$Matches['ns']
         }
     }
 }
@@ -325,8 +328,10 @@ $checks = @()
 
 # 1. x87 chain. On a 486 the chain carries two FILDs, a dozen multiply/adds, a
 # real divide and two FISTPLs, so it must be far dearer per op than the
-# single-store FPU probe. A flat-FPU emulator makes the two converge.
-$x87VsFpu = Get-ProbeRatio -Numerator 'x87chain' -Denominator 'fpu'
+# single-store FPU probe. A flat-FPU emulator makes the two converge. The
+# denominator is 'fistp32' because the parser now keys the two FPU cases
+# separately; the bare name 'fpu' no longer exists.
+$x87VsFpu = Get-ProbeRatio -Numerator 'x87chain' -Denominator 'fistp32'
 $checks += [ordered]@{
     name = 'x87 chain is charged for its latency'
     detail = 'x87chain vs single FPU store'
@@ -336,26 +341,15 @@ $checks += [ordered]@{
 }
 
 # 2. FISTPL against 16-bit FIST. The cost model prices fistp at 39 cycles and
-# fistps materially less, so the two must separate. The two cases share a probe
-# name and differ only by label, so read the timings out of the report.
-$fist32Ns = $null
-$fist16Ns = $null
-if ($report -match 'fidelity fpu fistp32\s+\d+ ops\s+[0-9.]+ sec\s+(?<ns>[0-9.]+)') {
-    $fist32Ns = [double]$Matches['ns']
-}
-if ($report -match 'fidelity fpu fist16\s+\d+ ops\s+[0-9.]+ sec\s+(?<ns>[0-9.]+)') {
-    $fist16Ns = [double]$Matches['ns']
-}
-$fistSeparation = $null
-if ($null -ne $fist32Ns -and $null -ne $fist16Ns -and $fist16Ns -gt 0) {
-    $fistSeparation = $fist32Ns / $fist16Ns
-}
+# fistps materially less, so the two must separate. Both cases are now keyed
+# distinctly by the parser above.
+$fistSeparation = Get-ProbeRatio -Numerator 'fistp32' -Denominator 'fist16'
 $checks += [ordered]@{
     name = 'FISTPL and 16-bit FIST are charged differently'
     detail = 'fistp32 vs fist16'
     ratio = $fistSeparation
     pass = ($null -ne $fistSeparation -and $fistSeparation -ge $flatFloor)
-    requirement = 'fistp32 must be >= 1.05x fist16 (the model prices it at 39 cy)'
+    requirement = "fistp32 must be >= $flatFloor x fist16 (the model prices it at 39 cy)"
 }
 
 # 3. L1 residency. 4 KB fits the 8 KB unified cache; 24 KB cannot.

@@ -66,8 +66,8 @@ fidelity alias-64   239.5 ns/op      -> 1.000x separation
 The three 1.000x results are exact ties, not noise: **DOSBox-X has no cache
 model whatsoever**, so neither L1 capacity nor set aliasing can move its clock.
 `fistp32` and `fist16` tying at 329.2 ns is the flat-FPU model stated directly.
-Only the x87 chain separates, at 2.27x, which is the op-count ratio rather than
-the latency ratio a 486DX charges.
+Only the x87 chain separates, at 2.272x, which is closer to the op-count ratio
+than to the latency ratio a 486DX charges.
 
 **This is the correct and expected result.** DOSBox-X remains the **parity gate**
 — checksum, frame count, functional correctness — where its flat FPU does not
@@ -98,11 +98,55 @@ while wiring it: the v17 release asset is `PCemV17Win.zip` (the
 is `PCem.exe`, not `pcem-qemu-x64_64.exe`. The `src\codegen_timing_486.c` file
 confirms the cycle-accurate 486 core is what this build carries.
 
-**Consequence: the 486-cost gate is integrated but not yet available.** DOSBox-X
-remains the sole gate, and no 486-specific candidate has been promoted. The
-honest state is that the measurement problem is now *measured* (0/4) and the
-remedy is *installed and wired*, but cannot be exercised until a BIOS ROM is
-supplied and a DOS boot path exists.
+**The probes were validated on real x86 silicon, and they are sound.**
+`tools\fidelity-probe-host.c` is a host-native build of the same four probes,
+runnable with `gcc -O2 -march=native -o out\fidelity-probe-host.exe
+tools\fidelity-probe-host.c`. Run on this machine (AMD Ryzen 5 3600, Zen 3):
+
+```text
+fidelity x87chain  4.66 ns/op
+fidelity fpu fistp32  10.89 ns/op
+fidelity fpu fist16    9.58 ns/op   -> fistp32/fist16 = 1.136x   PASS
+fidelity l1-4096     0.35 ns/op
+fidelity l1-24576    0.46 ns/op   -> 1.342x                    PASS
+fidelity alias-0     0.55 ns/op
+fidelity alias-64    0.53 ns/op   -> 1.034x                    (below the 1.05 gate)
+```
+
+**This is the control the DOSBox-X 0/4 result needed.** The probes do detect a
+real FISTPL/FIST latency gap and a real L1 capacity cliff when the hardware has
+one, so the ties under DOSBox-X are the *emulator's* blind spots rather than
+broken probes. The two that do not separate here fail for an instructive reason:
+a Zen 3 has a 32 KB L1d and a hardware prefetcher, so a 4 KB versus 24 KB
+working set and a 2048-byte set conflict both sit far below its thresholds.
+**The probes are calibrated to 486 geometry; this host is not a 486.** That is
+precisely the class of difference the 486-cost gate exists to span.
+
+It also bounds what a modern host can be used for: it can validate probe design,
+and it cannot stand in for a 486 reference.
+
+### Legal sources for a 486 machine ROM (not pursued here)
+
+Asked to source the PCem BIOS, the answer is that the copyrighted-vendor images
+are not something to fetch: every machine profile in `mem_bios.c` wants a
+specific third-party firmware image (AMI, Award, Phoenix, ALi, IBM, SiS, VIA),
+and the sites that host them distribute them without permission. PCem's own
+README says it will never bundle them, and that position is the correct one.
+
+What is legitimate, if a 486-cost gate is wanted:
+
+- **A physical 486 machine**, dumping its own ROM. PCem's own README names this
+  as the intended route, and the project's ledger already recommends a real
+  486DX2/DX4 as the honest arbiter (`:530-535`). This is the best option: it
+  settles every axis, including the ones no emulator models.
+- **A ROM the user already owns**, from a machine in their possession.
+- **A freely-licensed BIOS** where an emulator supports one. 86Box and PCem are
+  both ROM-dependent by design, so this is not a general escape.
+
+None of these is available to an automated pass, which is why the 486-cost gate
+is recorded as wired-but-unexercised rather than forced.
+
+
 
 ### The 486-cost runner (2026-09-30) — written, wired, and blocked on the same ROM
 
