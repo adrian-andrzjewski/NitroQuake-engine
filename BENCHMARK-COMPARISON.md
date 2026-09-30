@@ -31,13 +31,18 @@ and cannot measure".
 
 | Version | Executable | Runs | Time | FPS | Frames | Checksum | Evidence |
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
-| Current project build | `out\dos-memasm-zneg4-surf0rows4-surf0hflat-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.265411 s** median | **16.350178** | 969 each | `1047377823` each | Machine-readable timedemo report |
+| Current project build | `out\dos-memasm-zneg4-surf0rows4-surf0hflat-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.227329 s** median | **16.360690** | 969 each | `1047377823` each | `out\dos-timedemo-20260929-181619` |
+| Previous build (1800 KB surface cache) | same path, previous binary | 3 | 59.264965 s median | 16.350301 | 969 each | `1047377823` each | `out\dos-timedemo-20260929-175705` |
 | 486quake optimization project | `tools\486quake.exe` | 1 | ~68.2 s | ~14.2 | 969 | Not emitted | On-screen timedemo result |
 | Original Quake | `tools\QUAKE.EXE` | 1 | ~72.4 s | ~13.4 | 969 | Not emitted | On-screen timedemo result |
 
-The three current-build samples were 59.265453 s, 59.265404 s, and 59.265411
-s, with the same framebuffer checksum on every run and a spread of 0.000049 s.
-This build uses the promoted `SurfaceBlockMip0Rows=unroll4`,
+The current-build samples were 59.227329 s, 59.227265 s, and 59.227384 s, with
+the same framebuffer checksum on every run and a spread of 0.000119 s. The
+previous row is the same selector set with the surface cache at 1800 KB; the
+2400 KB default measured **0.0635% faster** (delta 0.037636 s, about 770x the
+run spread), which cleared the 0.05% promotion gate. See
+`ASM486-HANDOFF.md`, "The 1800 KB surface-cache wall does not exist". This build
+uses the promoted `SurfaceBlockMip0Rows=unroll4`,
 `SurfaceBlockMip1Rows=unroll8`, and `SurfaceBlockMip0HorizontalFlat=fast`
 defaults. See `docs/PURE-ASSEMBLER-CANDIDATES.md` for the matched samples and
 correctness evidence behind those promotions.
@@ -46,9 +51,9 @@ correctness evidence behind those promotions.
 
 Using the rounded on-screen values for the two supplied executables:
 
-- Current project build is approximately **18.1% faster** than the original.
+- Current project build is approximately **18.2% faster** than the original.
 - `486quake.exe` is approximately **5.8% faster** than the original.
-- Current project build is approximately **13.1% faster** than `486quake.exe`.
+- Current project build is approximately **13.2% faster** than `486quake.exe`.
 
 These percentages are comparative DOSBox-X results. They are not a claim about
 timing on physical 486 hardware. The emulator does not model 486 costs in the

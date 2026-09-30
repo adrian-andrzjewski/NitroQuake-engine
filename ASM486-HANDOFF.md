@@ -9,6 +9,279 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### The 1800 KB surface-cache wall does not exist (2026-09-29) — root-caused, and the latent win is promoted
+
+Four experiments in this ledger record that growing `SURFCACHE_SIZE_AT_320X200`
+past 1800 KB produced checksum `2955717646` and was reverted, throwing away a
+claimed 0.4-0.8% win each time. **There is no such defect.** A larger cache
+renders correctly and is faster.
+
+`D_SurfaceCacheForRes` (`d_surf.c:58-76`) already honours a runtime
+`-surfcachesize <KB>` parameter, so the size can be swept with no rebuild. The
+knob is provably live: `-surfcachesize 30000` fails with Quake refusing the
+video mode, exactly as the memory guard at `vid_vga.c:269-276` predicts.
+
+| cache | median time | FPS | checksum |
+| ---: | ---: | ---: | --- |
+| 1800 KB (previous default) | 59.264965 s | 16.350301 | `1047377823` |
+| 1900 KB | 59.252435 s | 16.353759 | `1047377823` |
+| **2400 KB (new default)** | **59.227329 s** | **16.360690** | `1047377823` |
+| 6000 KB | 59.218547 s | 16.363117 | `1047377823` |
+
+**Promoted: 2400 KB, 0.0635% faster, above the 0.05% gate.** Delta 0.037636 s
+against a 0.000049 s run spread — roughly 770x the spread, and the checksum was
+`1047377823` on all six A/B runs. 6000 KB adds only a further 0.015% for 2.5x
+the memory, so 2400 KB is the knee. Instrumented, evictions fall from 2,151 to
+2,122 invalidations and surface-cache self time from 7.260873 s to 7.240347 s.
+
+**Why the historical rows were wrong.** They all report the *same* wrong
+checksum `2955717646`, and this ledger already notes at `:1671-1672` that it is
+"the same hash as the reverted texture-source row-lookup" — an unrelated bug's
+signature. A genuine cache-size-dependent defect would not reproduce one
+unrelated bug's exact checksum at four different sizes. Those runs were
+confounded by an experimental build that was itself rendering incorrectly; the
+cache size was an incidental variable. **Do not re-investigate a cache-size
+correctness bug; there is none.**
+
+**Raising the default does not weaken the low-memory guard.** The guard at
+`vid_vga.c:334-335` is
+`memsize - tbuffersize + SURFCACHE_SIZE_AT_320X200 + 0x10000*3 < minimum_memory`,
+and at 320x200 `tbuffersize` already contains that same constant, so the two
+terms cancel and the guard reduces to `memsize - framebuffer + 192K` whatever
+the cache size is. A small machine is exactly as protected as before.
+
+**⚠⚠ THE TIMEDEMO RUNNER WILL NOT REBUILD AFTER A SOURCE EDIT — THIS ALMOST
+PRODUCED A FALSE FINDING HERE.** `timedemo-dos.ps1:272` gates the entire build
+on `if (-not (Test-Path $benchmarkExe))`, and `$benchmarkExe` is
+`out\dos<profile-suffix>\qbench.exe` — keyed only by the *selector profile*, not
+by source content. **If that executable exists, a source or header edit is
+silently ignored and the previous binary is measured.** Editing
+`d_local.h` appeared to do nothing for three timedemos; the binary still
+carried `mov $0x1c2000,%eax` (1800 KB) while a direct compile of the same
+file emitted `mov $0x258000,%eax` (2400 KB). **Pass `-Clean`, or verify the
+constant in the linked image, after any source edit before trusting a
+timedemo.** This is a live hazard for every source-level experiment in this
+project, not just this one.
+
+### `Turbulent8` setup precompute (2026-09-30) — priced with a bit-exact dead-scratch probe; 0.034% addressable, below the gate
+
+The last open candidate on the admissible list, quoted at **2.27% of frame**
+(the whole `turbulent-spans` bucket). Unlike the previous three this ceiling
+was a real bucket share rather than a mis-attribution, so it was measured
+properly rather than dismissed arithmetically.
+
+**Structure (PROFILE486 counters in `Turbulent8`):**
+
+```text
+profile-turbulent rows 40147 chunks 144705 pixels 1997515
+turbulent-spans self 1.927013 s = 2.28% of the profiled frame
+```
+
+1,997,515 pixels are blitted and that blit is irreducible, so the only prize is
+the s/t setup: one x87 divide plus a dozen flops per row **and** per 16-pixel
+chunk.
+
+**The probe.** The setup arithmetic was duplicated into scratch variables inside
+the same loops, accumulated into a file-scope global so the compiler could not
+eliminate it, and never fed to the blitter. Both probe builds rendered
+**checksum `1047377823`, bit-identical to control** — which is what makes this
+a sound measurement rather than the failed `z = 1.0f` attempt, which destroyed
+the texture coordinates and faulted.
+
+| build | median | delta vs control | % of frame |
+|---|---:|---:|---:|
+| control | 59.227346 s | — | — |
+| row setup duplicated only | 59.247732 s | +0.020386 s | **0.0344%** |
+| row + chunk setup duplicated | 59.296962 s | +0.069616 s | **0.1176%** |
+| so the chunk share alone | — | +0.049230 s | 0.0831% |
+
+**Dead, and the reason is structural.** The chunk-level setup
+(`sdivz += sdivz16stepu; ... z = 0x10000 / zi;`) is a **running accumulation**:
+each chunk depends on the previous one's state, so no per-`(surface, row)`
+memo can cover it. That is 0.0831% of frame, permanently unaddressable. The
+only work a memo could remove is the 40,147 row-level setups, worth
+**0.0344% — below the 0.05% gate** — and that is an upper bound assuming a
+100% hit rate and a free lookup, before accounting for the fact that the
+inputs (`d_sdivzorigin`, `d_sdivzstepu`, ...) are recomputed per surface per
+frame from the current view and so change every frame of a moving demo.
+
+**The quoted 2.27% was ~66x the addressable work.** The whole duplicated setup
+is 0.1176% of frame against a 2.28% bucket, so ~95% of the bucket is the
+1,997,515-pixel blit and its surrounding call overhead, and the rest is
+arithmetic no memo can reach.
+
+Two process notes, both learned the hard way here:
+
+- **A dead-scratch probe must not perturb the code it is pricing.** Forcing
+  `z = 1.0f` to remove the divides *is* removing the thing the divides produce,
+  so it broke water and faulted the run. Duplicate the work, discard the
+  result, never change an input.
+- **When inserting code by anchor, bound the search to the target function.**
+  Two of the five probe blocks were placed by a whole-file pattern match and
+  landed in `D_DrawSpans8`, which shares the same statement shapes. The compile
+  caught it; a narrower anchor would not have.
+
+Instrumentation retained: the three `PROFILE486` counters
+(`bench486_turbulent_rows/_chunks/_pixels`). Inert in release builds.
+
+### The bmodel frustum `FIXME` (2026-09-29) — premise measured, ceiling is two orders of magnitude short, do not build
+
+The last sizeable candidate on the admissible list was the pair of in-code
+precompute TODOs in `R_DrawSubmodelPolygons` (`r_bsp.c:462` and `:480`,
+`/* FIXME: use bounding-box-based frustum clipping info? */`). The loop runs a
+per-surface `DotProduct(modelorg, pplane->normal) - pplane->dist` backface test
+(`:472`) for every face of every visible bmodel, and the proposal was a
+per-`(face, entity)` precompute. It was quoted at **1.5-2.5% of frame**.
+
+**Measured, and both halves of the premise are now known:**
+
+```text
+profile-submodel calls 2118 faces 12708 distinct-entities 26 \
+  entity-hits 2092 table-overwrites 0
+```
+
+- **The reuse premise is TRUE, and unusually good.** 2,092 of 2,118 calls
+  re-draw an entity already seen, across only **26 distinct entities** — a
+  98.8% hit rate, nothing like E0's 3.4% or E4's zero. Structurally this is
+  expected: the loop already visits every face of a submodel exactly once per
+  call, so reuse can only come from repeated entity draws, and demo1 redraws
+  26 entities 2,118 times. The `(face, entity, miplevel)` key would have hit
+  almost every time.
+- **The ceiling kills it anyway.** 12,708 face tests in the entire 969-frame
+  run is **13.1 per frame**. The backface test is three multiplies, two adds
+  and a subtract on data already in cache, so the whole loop is worth on the
+  order of **200 cycles/frame** — against a promotion gate of **1,022.8
+  cycles/frame**. Even deleting every dot product outright lands near
+  **0.01% of frame, roughly 5x below the 0.05% gate.**
+
+**The 1.5-2.5% figure was wrong by about two orders of magnitude**, most
+likely by attributing the bmodel path's 13.60% `alias-raster` share to this
+loop. Note the loop is a small part of the alias path even in absolute terms:
+12,708 faces here against 417,090 alias-vertices. **Do not build this, and do
+not re-quote its ceiling.**
+
+The instrumentation is `PROFILE486`-only and inert in release builds (release
+re-measured at 59.227374 s median, checksum unchanged). It is kept because it
+is the evidence for the ceiling and because `table-overwrites 0` is what makes
+`distinct-entities 26` trustworthy; a future reader can delete it with the rest
+of the counters without loss.
+
+**This is now the third candidate on the offline-precompute axis to die on a
+measured premise** (E0 3.4% hit rate, E4 zero immutable rebuilds, bmodel
+frustum 5x under gate). All three quoted their ceiling from a *bucket share* or
+a *cost of churn* rather than from the addressable work. The screening rule that
+would have caught all three: **price the prize, not the hit rate** — count the
+operations the optimisation would remove, divide by frames, and compare to
+1,022.8 cycles/frame before asking whether the cache hits.
+
+### E4, the surface-cache eviction churn (2026-09-29) — premise falsified before it was built, 0 of 8,886 rebuilds
+
+E4 was the largest candidate left on the offline-precompute axis at a quoted
+**2.61% of frame**: 2,151 of 9,009 surface-cache rebuilds per run are
+eviction-caused (1.547 s at 0.719 ms/rebuild), and the claim was that those
+re-light surfaces whose lightstyle is permanently `256`
+(`d_lightstylevalue[j] = 256` for any zero-length style, `r_light.c:68`) and
+whose lit pixels therefore can never change, so the re-light is pure waste.
+
+**That population does not exist in this workload.** A PROFILE486 counter was
+added at the miss site in `D_CacheSurface` (`d_surf.c:410`) counting rebuilds
+whose four `d_lightstylevalue[surface->styles[k]]` are all `256`:
+
+```text
+profile-surface-cache hits 46414 rebuilds 8886 immutable-rebuilds 0 \
+  allocations 2710 wraps 3 invalidated-blocks 1893 thrash-frames 0
+```
+
+**Zero**, out of 8,886 rebuilds. Every surface that gets re-lit carries at least
+one lightstyle that is not statically fullbright, so its lit pixels genuinely
+depend on the current style value and the rebuild is necessary work. **Do not
+build E4. The 2.61% ceiling was an upper bound on the *cost of eviction*, never
+on the *addressable* part of it, and the addressable part is nil.**
+
+Two secondary readings from the same run, at the new 2400 KB default:
+
+- raising the cache 1800 -> 2400 KB cut invalidated blocks 2,151 -> **1,893**
+  (12%) and wraps 4 -> 3, but rebuilds only 9,009 -> 8,886 (1.4%). Eviction
+  churn is therefore **not** capacity-bound, which is the second reason a
+  cache-policy fix could not have recovered 2.61%.
+- `immutable_rebuilds` is a permanent PROFILE486-only metric; it costs nothing
+  in release builds (median re-measured at 59.227332 s, unchanged). It is kept
+  because it is the evidence for this null. Remove it if the tree is ever
+  pruned of counters.
+
+Admissible work after this null: `turbulent-spans` (~2.27%) and the bmodel
+frustum `FIXME` (1.5-2.5%, keyed on `(face, entity, miplevel)`). E2 remains
+below the run spread and should not be attempted.
+
+### Static 486 cost model (2026-09-29) — built; it disqualifies all three blind axes and promotes nothing
+
+`tools\486-cost-model.ps1` prices the three axes this harness cannot see, using
+the pinned toolchain's objdump plus the Intel 486 published FP latencies. It is
+a **disqualifier and a ranking aid, never a promotion criterion**: the 0.05%
+DOSBox-X timedemo delta remains the sole gate, and a cycle figure from this
+tool is a published-latency estimate, not a measurement taken here.
+
+```powershell
+.\tools\486-cost-model.ps1 `
+    -ProfileJson 'out\dos-timedemo-<timestamp>\timedemo-result.json' `
+    -Json 'out\486-cost-model.json'
+```
+
+**Measured against the promoted build:**
+
+| quantity | value |
+|---|---:|
+| `.text` | 738,648 B = **91** unified-cache windows (90.2x the 8 KB L1) |
+| x87 instructions in `.text` | 23,020 |
+| Z-span prologue x87 cost | **74 cy/span** vs **9.4 cy** measured in DOSBox-X |
+| spans / pixels per span | 1,494,649 / **30.75** (ledger records 30.7) |
+| `z-spans` node calls | **58,051** (matches the ledger anchor exactly) |
+| projected prologue share of frame | **3.91%** at 33.445 MHz, 1.95% at 66.9 MHz |
+
+**The three disqualifications, all now quantified rather than asserted:**
+
+1. **x87 latency — disqualified.** 74 cy/span against a measured 9.4 is a
+   **7.9x** gap, and 3.91% of frame on a 486 against 0.71% measured here. The
+   percentage scales linearly with clock; the ledger's historical **7.8%**
+   estimate is consistent with this model at roughly 25 MHz, so the two agree
+   in order of magnitude. Under a retained timedemo gate this axis cannot be
+   promoted at any clock, which is why the Z-span prologue is a *rejected
+   target* rather than a deferred one.
+2. **L1 footprint — disqualified.** `.text` spans 91 windows of an 8 KB
+   unified cache, and DOSBox-X does not model displacement.
+3. **4 KB aliasing — disqualified, precondition confirmed by computation.**
+   From `vid_vga.c:299-304`: zbuffer 128,000 B, then `vid_surfcache` at
+   +128,000, then `lvid->buffer` at +1,971,200. Both land at page offset
+   **1,024**, so they alias. This is now a computed fact, not a hypothesis —
+   but the stall itself is unmodelled, so a null result would be uninformative.
+
+**Two corrections this pass produced.**
+
+- **The prologue is twelve x87 instructions, not nine.** `d_draw.s:812-835`
+  contains `fildl fildl fmuls fxch fmuls fxch fadds faddp fcoms fnstsw fmuls
+  fistpl`. The ledger's "nine" appears to count a latency-carrying subset
+  (the two `fxch` register swaps and the `fnstsw` status read carry no
+  dependency). Both figures are reported by the tool; the twelve are priced.
+- **The linked executable is stripped by the build**, not by accident:
+  `build-dos.ps1:489` links with `-s`, so `objdump -t` reports *no symbols*.
+  Per-function attribution is therefore impossible from the image, and the
+  tool splits its work accordingly — exact image totals from the binary,
+  per-path x87 accounting from the assembler sources where labels and line
+  numbers exist. The object-granularity clustering experiment's lesson
+  applies here too: this tool says nothing about *placement*.
+
+**A counting trap worth recording.** objdump prints segment prefixes as
+separate tokens and disassembles some data regions linearly, so a naive
+"mnemonic begins with `f`" rule counted 336 `fs` prefixes, 68 bare `ff` grp5
+opcodes and 3 AMD 3DNow `femms`/`fcmovnu` as x87 — 407 false positives, 1.7% of
+the total. The tool carries an explicit exclusion list and **reports any x87
+opcode it has no published latency for**, so a table gap is visible rather than
+silently priced at the 3-cycle default.
+
+Admissible work is unchanged: payoff in instruction count, memory traffic, or
+arithmetic. That is E4 (surface-cache eviction churn), `turbulent-spans`, and
+the bmodel frustum `FIXME`.
+
 ### `d_mip_t16` as a constant table (2026-09-29) — landed; the promotion half was not attempted
 
 `D_DrawSurfaces` rebuilt three 4-entry float tables on every span flush
@@ -1305,8 +1578,10 @@ repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
 - `R_DrawSurface` wraps the per-column source offset with AND when the
   mip width is a power of two; the compare/branch loop remains the
   non-POT reference.
-- Surface cache: `SURFCACHE_SIZE_AT_320X200` is `1800*1024` (3x the
-  original 600 KB).  1900 KB and larger failed checksum `2955717646`.
+- Surface cache: `SURFCACHE_SIZE_AT_320X200` is `2400*1024` (was `1800*1024`;
+  **raised 2026-09-29 — 0.0635% faster, checksum `1047377823`, and the
+  "1900 KB and larger failed checksum `2955717646`" claim below is a
+  confounded build, not a cache-size defect**).
   `D_CacheSurface` skips `R_TextureAnimation` for static textures and
   fills `r_drawsurf` only on a miss; unused extra light styles are skipped
   when `styles[1] == 255`.  `R_TextureAnimation` remains the
@@ -1426,10 +1701,10 @@ physical 486 variants.
 | Turbulent last-segment divisor switch | Constant `/1`..`/15` so GCC emits IMUL magic | 67.275508 s / 14.403459 FPS, 27.6 ms slower | Reverted |
 | Alias POT skinwidth shift (`D_PolysetCalcGradients`) | `shll %cl` when skinwidth is POT, IMUL fallback | 67.260820 s / 14.406604 FPS, 11.7 ms slower | Reverted |
 | PreparePoints clip hoist (`R_AliasPreparePoints`) | Locals for `aliasvrect` clip edges | 67.234277 s / 14.412292 FPS, 15.7 ms slower | Reverted |
-| 1900 KB surface cache | between 1800 and 2100 | checksum `2955717646` | Reverted |
-| 2000 KB surface cache | between 1800 and 2100 | checksum `2955717646` | Reverted |
-| 2100 KB surface cache | between 1800 and 2400 | checksum `2955717646`; run 1 hitch min 1.72 FPS | Reverted |
-| 4x surface cache (`SURFCACHE_SIZE_AT_320X200`) | 2400 KB | checksum `2955717646` | Reverted |
+| 1900 KB surface cache | between 1800 and 2100 | checksum `2955717646` | Reverted — **superseded 2026-09-29, the checksum was a confounded build; 1900 KB is correct and faster** |
+| 2000 KB surface cache | between 1800 and 2100 | checksum `2955717646` | Reverted — **superseded 2026-09-29, as above** |
+| 2100 KB surface cache | between 1800 and 2400 | checksum `2955717646`; run 1 hitch min 1.72 FPS | Reverted — **superseded 2026-09-29, as above** |
+| 4x surface cache (`SURFCACHE_SIZE_AT_320X200`) | 2400 KB | checksum `2955717646` | Reverted — **superseded 2026-09-29; 2400 KB is now the default, 0.0635% faster at checksum `1047377823`** |
 | Aggressive `-funroll-loops` (`build-dos.ps1`) | Faster but wrong FB | 66.801015 s / 14.505767 FPS; checksum `2623602099` | Reverted |
 | MarkLights plane cull (`R_MarkLights`) | Same reject as `R_AddDynamicLights` | 66.776824 s / 14.511022 FPS, 185.8 ms faster | Kept |
 | MarkLights S/T extent cull (`R_MarkLights`) | AABB expand by `fmin` after plane reject | 64.253958 s / 15.080783 FPS, 2522.9 ms faster | Kept |
@@ -1600,8 +1875,11 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   median **67.249168 s / 14.409100 FPS**, checksum `4154140932`.  About
   166.8 ms faster than 2x.  1900 KB, 2000 KB, 2100 KB, and 2400 KB
   were all faster but checksum `2955717646` (same hash as the
-  reverted texture-source row-lookup).  Do not grow the cache past
-  1800 KB without a new checksum-identical size.
+  reverted texture-source row-lookup).  **Do not grow the cache past
+  1800 KB without a new checksum-identical size. — SUPERSEDED
+  2026-09-29: this was a confounded build, not a cache-size defect.
+  2400 KB is now the default at checksum `1047377823`, 0.0635%
+  faster; see "The 1800 KB surface-cache wall does not exist".**
 - Previous default after `Turbulent8` `viewspantable` dest rows
   (`out\dos-timedemo-20260911-143822`): `67.248071 / 67.247843 / 67.247873` s,
   median **67.247873 s / 14.409378 FPS**, checksum `4154140932`.  About
@@ -2308,7 +2586,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
   14.43 FPS) but checksum `2955717646`.  2100 KB run 1 also hitched
   to 1.72 FPS.  1800 KB is the largest checksum-identical size
   measured.  Do not retry 1900 KB or larger without a new
-  checksum-identical size.
+  checksum-identical size.  **— SUPERSEDED 2026-09-29: there is no
+  cache-size correctness bug. 1900/2400/6000 KB all render checksum
+  `1047377823`; 2400 KB is promoted.**
 - Aggressive `-funroll-loops` in `tools\build-dos.ps1`
   (`out\dos-timedemo-20260914-134806`) was about 161.6 ms faster than the
   matched control (`out\dos-timedemo-20260914-134340`: median
@@ -2507,6 +2787,9 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    now 1800 KB; 1200 KB also matched the checksum.  1900 KB, 2000 KB,
    2100 KB, and 2400 KB all failed checksum `2955717646`.  Do not
    retry those sizes.  Do not add another predicate helper.  Static
+   **(superseded 2026-09-29: those four sizes are correct — the failures
+   were a confounded build. The default is now 2400 KB. Do not add
+   another predicate helper still.)**
    textures now skip `R_TextureAnimation` and `r_drawsurf` stores on
    a hit, and unused extra light styles are skipped when
    `styles[1] == 255`.  No-dlight invert/clamp is fused

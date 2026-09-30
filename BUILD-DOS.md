@@ -309,12 +309,82 @@ profile tree:
 .\tools\profile-report.ps1 -ProfileJson 'out\dos-timedemo-<timestamp>\timedemo-result.json'
 ```
 
+**⚠ The timedemo runner will not rebuild after a source edit.** The runner only
+invokes the build when the benchmark executable is absent
+(`tools\timedemo-dos.ps1:272`), and that executable lives at
+`out\dos<profile-suffix>\qbench.exe` — a path keyed by the *selector profile*
+alone, not by source content. If it already exists, an edit to any `.c`, `.s`
+or header is silently ignored and the **previous** binary is measured. This has
+already produced one false negative: raising `SURFCACHE_SIZE_AT_320X200` appeared
+to change nothing across three timedemos while the linked image still carried
+`mov $0x1c2000,%eax`. **After any source edit, pass `-Clean` to
+`build-dos.ps1` (or delete the executable) before trusting a timedemo.** A quick
+confirmation that the intended code is in the image is to disassemble it:
+
+```powershell
+$objdump = "$env:LOCALAPPDATA\486quake\tools\djgpp-2.05-gcc-12.2.0\bin\i586-pc-msdosdjgpp-objdump.exe"
+& $objdump -d 'out\dos<profile-suffix>\qbench.exe' | Select-String '1c2000|258000'
+```
+
+The surface-cache size can also be swept at **runtime** with no rebuild, which is
+the cheapest way to test it: `.\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap
+-Runs 1 -QuakeExtraArgs '-surfcachesize 2400'` (the value is in KB and overrides
+`SURFCACHE_SIZE_AT_320X200`).
+
 An instrumented run prints a `profile-tree` section, and the three new ids
 appear in the `profile-hotspots` self-time list. Confirm the run is genuinely
 instrumented by checking that `executable` ends in `qprof.exe` and
 `instrumentation` is `true` in `timedemo-result.json`; the framebuffer
 checksum must still be `1047377823` and the workload counters unchanged
 (`alias-models` 5470, `alias-vertices` 417090).
+
+### Static 486 cost model (read-only analysis)
+
+`tools\486-cost-model.ps1` prices the three axes DOSBox-X cannot see — x87
+latency, 4 KB page aliasing, and L1 footprint — using the pinned toolchain's
+objdump and the Intel 486 published FP latencies. It reads the same
+`timedemo-result.json` the profile report does, and needs no build of its own:
+
+```powershell
+.\tools\486-cost-model.ps1 `
+    -ProfileJson 'out\dos-timedemo-<timestamp>\timedemo-result.json' `
+    -Json 'out\486-cost-model.json'
+```
+
+`qbench.exe` is all you need for the linked-image facts; `-ProfileJson` is
+optional and only adds the per-frame projection. Useful switches:
+`-Executable` (defaults to the newest `qbench.exe` under `out\`), `-CpuHz`
+(default 33445000, matching `cycles = fixed 33445` in the pinned profile — the
+projected percentage scales linearly with it), `-Top`, `-ScreenWidth`,
+`-ScreenHeight`, `-SurfaceCacheSize`.
+
+**It cannot promote a change.** The 0.05% timedemo delta remains the only
+promotion criterion; the cycle figures here are published-latency estimates.
+Its job is to keep timedemos off ideas whose payoff the harness cannot see.
+Note that the linked executable is stripped (`build-dos.ps1:489` passes `-s`),
+so the tool takes exact totals from the image and per-path detail from the
+assembler sources. Findings are recorded in `ASM486-HANDOFF.md`.
+
+### Premise-measurement counters (PROFILE486 only)
+
+Three metric groups were added to answer candidate premises by measurement
+rather than by argument. They compile only under `PROFILE486`, cost nothing in
+release builds, and appear in the profile report and the `timedemo.txt` text
+stream:
+
+| group | counters | what it answered |
+| --- | --- | --- |
+| `profile-surface-cache` | `immutable_rebuilds` | 0 of 8,886 — closed the E4 surface-cache candidate |
+| `profile-submodel` | `calls`, `faces`, `distinct-entities`, `entity-hits`, `table-overwrites` | 12,708 face tests over the run, so the bmodel frustum candidate sits ~5x under the gate |
+| `profile-turbulent` | `rows`, `chunks`, `pixels` | 40,147 / 144,705 / 1,997,515, which priced the `Turbulent8` setup with a bit-exact dead-scratch probe |
+
+`table-overwrites 0` is what makes `distinct-entities 26` trustworthy — a
+collision would have inflated the reuse figure rather than deflating it, so
+that counter is what licenses the conclusion drawn from the other.
+
+The counters are evidence, not instrumentation overhead to be removed: each one
+exists because a candidate died on a measured premise. See
+`ASM486-HANDOFF.md` for the three write-ups.
 
 The measured breakdown (frame total 67.946126 s, attribution only — not a
 release timing claim) is `alias-raster` 7.384299 s (10.87%), `alias-transform`
