@@ -131,13 +131,21 @@ function Install-ZipArtifact {
     New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
     Expand-Archive -LiteralPath $ArchivePath -DestinationPath $extractRoot -Force
 
-    $archiveRoot = Join-Path $extractRoot (ConvertTo-NativeRelativePath $Definition.archiveRoot)
+    # An empty archiveRoot means the archive's own top level is the install
+    # root, so move the extraction directory itself rather than a subdirectory
+    # of it.
+    if ([string]::IsNullOrWhiteSpace([string]$Definition.archiveRoot)) {
+        $archiveRoot = $extractRoot
+    }
+    else {
+        $archiveRoot = Join-Path $extractRoot (ConvertTo-NativeRelativePath $Definition.archiveRoot)
+    }
     if (-not (Test-Path -LiteralPath $archiveRoot)) {
         throw "Archive '$ArchivePath' does not contain '$($Definition.archiveRoot)'."
     }
 
     Move-Item -LiteralPath $archiveRoot -Destination $installRoot
-    Remove-Item -LiteralPath $extractRoot -Recurse -Force
+    Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
     return $installRoot
 }
 

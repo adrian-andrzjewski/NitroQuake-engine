@@ -21,13 +21,13 @@
   },
   "pcem": {
     "version": "17",
-    "url": "https://github.com/sarah-walker-pcem/pcem/releases/download/v17/pcem-qemu-x64-17.zip",
-    "sha256": "",
-    "archiveRoot": "pcem",
+    "url": "https://github.com/sarah-walker-pcem/pcem/releases/download/v17/PCemV17Win.zip",
+    "sha256": "3F309D6B19F9C3A1FC4C256C53589F812FC5A4C4BFB84636AD325E02149460E1",
+    "archiveRoot": "",
     "installDirectory": "pcem-17",
-    "marker": "pcem-qemu-x64_64.exe",
-    "executable": "pcem-qemu-x64_64.exe",
+    "marker": "PCem.exe",
+    "executable": "PCem.exe",
     "optional": true,
-    "note": "Cycle-accurate 486 reference used as the 486-cost gate. Optional: DOSBox-X remains the parity gate, so a machine without PCem can still build and run the timedemo. The sha256 is filled in by tools/bootstrap-dos.ps1 -RecordPcemHash on first fetch, and must be pinned before any candidate is promoted on PCem cycles."
+    "note": "Cycle-accurate 486 reference used as the 486-cost gate. Optional: DOSBox-X remains the parity gate, so a machine without PCem can still build and run the timedemo. Hash recorded 2026-09-30 from the v17 release asset; pin before promoting anything on PCem cycles."
   }
 }

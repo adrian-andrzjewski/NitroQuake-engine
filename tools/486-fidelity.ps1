@@ -52,6 +52,12 @@ param(
 
     [int]$TimeoutSeconds = 600,
 
+    # PCem only. PCem ships no copyrighted BIOS ROMs, so a 486 machine ROM must
+    # be supplied for the 486-cost gate to run. Defaults to the win486 profile
+    # path under the PCem install.
+    [string]$PcemMachine = 'win486',
+    [string]$PcemBiosRom,
+
     # Fail rather than report. Use this in any gate that depends on the answer.
     [switch]$Require,
 
@@ -101,10 +107,6 @@ else {
     }
     $pcemRoot = Join-Path $ToolRoot $manifest.pcem.installDirectory
     $emulatorPath = Join-Path $pcemRoot ($manifest.pcem.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
-    # PCem takes its machine from a config file and drives DOS directly. The
-    # arguments are filled in per-run below; the config is written next to the
-    # staged batch file.
-    $emulatorArgs = @('-config', '{config}', '-script', '{script}')
     $emulatorVersion = $manifest.pcem.version
     if ([string]::IsNullOrWhiteSpace([string]$manifest.pcem.sha256)) {
         Write-Warning 'PCem has no pinned SHA-256 in the manifest. Run bootstrap-dos.ps1 -RecordPcemHash and pin it before promoting anything on PCem cycles.'
@@ -200,25 +202,54 @@ exit
     $arguments = @('-conf', $configPath, '-exit') -join ' '
 }
 else {
-    # PCem is configured with a machine file rather than a DOSBox-style conf.
-    # The staged batch is handed to the emulator as a DOS boot script.
-    $pcemConfigPath = Join-Path $stagingRoot 'pcem-machine.json'
-    @{
-        cpu = @{
-            type            = 'i486'
-            cycles          = 33445
-            fpu             = $true
-            fpu_type        = 'i387'
-            # PCem reports an emulated cycle count when instruction counting is
-            # enabled; that count, not wall time, is the promotion signal.
-            instructions    = [int](33445 * 1000)
-            bbios           = Join-Path $ToolRoot ($manifest.pcem.installDirectory + '\bios.bin')
-        }
-        ram = @{ size = 32 }
-        display = @{ enable = 1 }
-        devices = @{ fdc = 1 }
-    } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $pcemConfigPath -Encoding ASCII
-    $arguments = @('-config', $pcemConfigPath, '-script', $batchPath) -join ' '
+    # PCem is configured with its own INI-style config file, not a DOSBox conf,
+    # and its CLI accepts only --config/--fullscreen/--load_drive_a/--load_drive_b
+    # (verified with `PCem.exe --help`). There is no script argument, so the
+    # staged DOS batch cannot be handed to it directly.
+    #
+    # It also requires a machine BIOS ROM. PCem ships none, by design: its
+    # README states "NO COPYRIGHTED ROM FILES ARE INCLUDED NOR WILL THEY BE".
+    # A 486 machine profile and its ROM path are therefore configured here, and
+    # the run is refused up front if the ROM is absent, rather than launching an
+    # emulator that cannot boot.
+    $pcemConfigPath = Join-Path $stagingRoot 'pcem-machine.cfg'
+    $machineName = if ([string]::IsNullOrWhiteSpace($PcemMachine)) { 'win486' } else { $PcemMachine }
+    $romPath = if ([string]::IsNullOrWhiteSpace($PcemBiosRom)) {
+        Join-Path $ToolRoot ('pcem-17\roms\' + $machineName + '\bios.rom')
+    }
+    else {
+        [IO.Path]::GetFullPath($PcemBiosRom)
+    }
+    if (-not (Test-Path -LiteralPath $romPath -PathType Leaf)) {
+        throw ("PCem is installed but has no BIOS ROM for machine '$machineName' at '$romPath'.`n" +
+            "PCem deliberately bundles no copyrighted ROM files, so this must be supplied. Point -PcemBiosRom at a BIOS ROM " +
+            "for a 486-class machine (for example the win486 profile's bios.rom) to run the 486-cost gate. Until then DOSBox-X " +
+            "remains the parity gate and no 486-specific candidate can be promoted.")
+    }
+    $pcemConfig = @(
+        "[PCem]",
+        "machine = $machineName",
+        "scaler = fit",
+        "window_width = 640",
+        "window_height = 480",
+        "window_zoomed = 0",
+        "display = surface",
+        "sound = none",
+        "ramsize = 32",
+        "bios_path = $romPath",
+        "[cpu]",
+        "cpu_type = 486",
+        "cpu_speed = 25",
+        "fpu = enabled",
+        "fpu_type = internal",
+        "cycles = 33445",
+        "extfpu = disabled",
+        "advanced = 0",
+        "[display]",
+        "display_type = internal"
+    ) -join "`r`n"
+    $pcemConfig | Set-Content -LiteralPath $pcemConfigPath -Encoding ASCII
+    $arguments = @('-config', $pcemConfigPath) -join ' '
 }
 
 Write-Host "Launching $Emulator $emulatorVersion fidelity probes"

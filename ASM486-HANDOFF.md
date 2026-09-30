@@ -76,12 +76,77 @@ make it *wrong*, only insensitive. A new cycle-accurate reference is the
 promoted on it; a second harness with unvalidated fidelity would be a worse
 version of the original mistake.
 
-**PCem is integrated but not installed.** `tools\dos-toolchain.json` carries an
-optional `pcem` block and `bootstrap-dos.ps1` accepts `-WithPcem` /
-`-RecordPcemHash`. No 486-accurate emulator is present on this machine, so the
-486-cost gate is **not yet available** and no 486-specific candidate has been
-promoted. The manifest's `pcem.sha256` is deliberately empty: the hash must be
-recorded and pinned before anything is trusted on PCem cycles.
+**PCem is installed and hash-pinned, but cannot boot on this machine.** Two
+blockers, both external to the code, and both verified rather than assumed:
+
+1. **No BIOS ROM.** PCem ships none by design — its `README.md` states
+   *"NO COPYRIGHTED ROM FILES ARE INCLUDED NOR WILL THEY BE"*. The `roms\`
+   tree contains only a `roms.txt` placeholder per machine. A 486 machine ROM
+   must be supplied by the user. `486-fidelity.ps1` now refuses up front with
+   that instruction rather than launching an emulator that cannot boot.
+2. **No script argument.** Verified with `PCem.exe --help`: the CLI accepts
+   only `--config`, `--fullscreen`, `--load_drive_a`, `--load_drive_b`. There is
+   no DOSBox-style script option, so the staged `bench486` batch cannot be
+   handed to it directly, and a bootable DOS image (or a hand-run session) is
+   needed to drive the probes. Its config is also INI-style, not a DOSBox conf.
+
+The install is pinned to `PCemV17Win.zip`, SHA-256
+`3F309D6B19F9C3A1FC4C256C53589F812FC5A4C4BFB84636AD325E02149460E1`, installed at
+`%LOCALAPPDATA%\486quake\tools\pcem-17`. Two corrections to what was assumed
+while wiring it: the v17 release asset is `PCemV17Win.zip` (the
+`pcem-qemu-x64-17.zip` name in the first manifest edit 404s), and the executable
+is `PCem.exe`, not `pcem-qemu-x64_64.exe`. The `src\codegen_timing_486.c` file
+confirms the cycle-accurate 486 core is what this build carries.
+
+**Consequence: the 486-cost gate is integrated but not yet available.** DOSBox-X
+remains the sole gate, and no 486-specific candidate has been promoted. The
+honest state is that the measurement problem is now *measured* (0/4) and the
+remedy is *installed and wired*, but cannot be exercised until a BIOS ROM is
+supplied and a DOS boot path exists.
+
+### The 486-cost runner (2026-09-30) — written, wired, and blocked on the same ROM
+
+`tools\bench486-dos.ps1` is the second gate. Its method differs from
+`timedemo-dos.ps1` in three deliberate ways, each for a reason:
+
+1. **Promotion is on emulated cycles, never wall time.** A millisecond figure
+   from PCem is not comparable to a millisecond figure from DOSBox-X, and
+   cycle-accurate emulation's wall clock varies with host scheduling far more
+   than DOSBox-X's 0.000049 s spread. The script prints its wall figure with an
+   explicit warning against quoting it as a speedup, because the tempting
+   mistake is to compare 59.2 s against a PCem number and call it a result.
+2. **≥7 alternating runs, median and MAD.** `n=3` cannot separate a cycle
+   median from its spread once the harness is this noisy. A candidate is
+   promoted only when the medians separate **and** the spreads do not overlap.
+3. **Fidelity is re-checked first and is a hard gate.** The runner runs
+   `486-fidelity.ps1 -Require` before measuring anything, because a 486-cost
+   gate whose fidelity is unvalidated would be a second, worse version of the
+   mistake this project is correcting.
+
+The guest DOS tree is staged identically to the timedemo's, so the only
+variable between the two harnesses is the CPU model. Parity is re-verified on
+the 486 gate too — 969 frames, checksum `1047377823`, and the in-engine
+`486 benchmark correctness PASS` — as a necessary but **not** sufficient
+condition. The role split is explicit and non-overlapping: a DOSBox-X null is
+never grounds for rejecting a candidate, and a PCem null is, once fidelity has
+passed.
+
+`-Runs` is the number of timedemos the caller intends to collect for a label,
+recorded for completeness; each invocation performs one. Repetition has to
+interleave two different *builds*, which cannot be alternated from inside a
+single run.
+
+**Currently blocked at the BIOS-ROM gate, before the emulator is ever launched**,
+with an actionable message. Its parsing and gate logic were verified against a
+synthetic report: 969 frames, checksum `1047377823` and `PASS` all parse
+correctly, and a substituted checksum is detected.
+
+**What this unlocks, and what it does not.** It does not make any candidate
+promotable today. It means that when a ROM is supplied, the C1/C3/C4 candidates
+can finally be *measured* rather than argued, which is the whole point of the
+plan. Until then they stay unimplemented: a bit-exactness rewrite justified by
+a published-latency estimate is exactly the reasoning error this project has
+already made once.
 
 ### The 1800 KB surface-cache wall does not exist (2026-09-29) — root-caused, and the latent win is promoted
 
