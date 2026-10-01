@@ -29,8 +29,8 @@ The 0.05% DOSBox-X timedemo delta is the **sole promotion criterion**, and it
 is unchanged. An earlier draft of the plan proposed replacing it with a static
 486 cycle model; that was wrong and was reverted.
 
-The reasoning is the harness's own, recorded at `../ASM486-HANDOFF.md:452-509`
-("Applying the rule" is at `:504`):
+The reasoning is the harness's own, recorded at `../ASM486-HANDOFF.md:728-736`
+("Applying the rule" is at `:754`):
 DOSBox-X prices x87 at ~1.04 cy/op where a 486DX spends roughly 12, and models
 neither fetch boundaries, write-buffer occupancy, nor 4 KB page aliasing. A
 measured win is therefore sound, but a measured null only proves the emulator
