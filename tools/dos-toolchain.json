@@ -18,40 +18,5 @@
     "installDirectory": "dosbox-x-2026.08.31",
     "marker": "dosbox-x.exe",
     "executable": "dosbox-x.exe"
-  },
-  "pcem": {
-    "version": "17",
-    "url": "https://github.com/sarah-walker-pcem/pcem/releases/download/v17/PCemV17Win.zip",
-    "sha256": "3F309D6B19F9C3A1FC4C256C53589F812FC5A4C4BFB84636AD325E02149460E1",
-    "archiveRoot": "",
-    "installDirectory": "pcem-17",
-    "marker": "PCem.exe",
-    "executable": "PCem.exe",
-    "optional": true,
-    "note": "Cycle-accurate 486 reference used as the 486-cost gate. Optional: DOSBox-X remains the parity gate, so a machine without PCem can still build and run the timedemo. Hash recorded 2026-09-30 from the v17 release asset; pin before promoting anything on PCem cycles.",
-    "extraInstalls": [
-      {
-        "name": "manual",
-        "installDirectory": "D:/Downloads/PCemV17Win",
-        "marker": "PCem.exe",
-        "executable": "PCem.exe",
-        "note": "Hand-extracted copy outside the managed toolchain. Not written by bootstrap; tools\\pcem-roms.ps1 wires its [Paths] roms_paths so the interactive hand-run path finds the same ROM set."
-      }
-    ]
-  },
-  "pcemRomset": {
-    "path": "D:/Project/486quake/PCem-ROMs-master/PCem-ROMs-master",
-    "machine": "sis496",
-    "bios": "sis496/sis496-1.awa",
-    "expectedBiosBytes": 131072,
-    "note": "PCem ships no ROMs by design (README.md: 'NO COPYRIGHTED ROM FILES ARE INCLUDED NOR WILL THEY BE'). This set is consumed in place via [Paths] roms_paths rather than copied, so it stays the single source of truth. The machine and the BIOS filename are not arbitrary: src\\model.c:227 defines the profile as {[486] Award SiS 496/497, ROM_SIS496, \"sis496\", ...} and src\\mem_bios.c:549 reads exactly sis496/sis496-1.awa for ROM_SIS496, as 0x20000 (131072) bytes. CMOS for this machine is laid out by the Award BIOS, so tools\\pcem-machine.psm1 provisions its NVR from the install's nvr\\default\\sis496.nvr; see that module for the offsets."
-  },
-  "dosImage": {
-    "version": "MS-DOS 6.22",
-    "path": "D:/Project/486quake/Dos6.22.img",
-    "sha256": "1AB300A0A54B8F384CC457424EA0D2F3F46BEF11C0172429C6B207B2EC539E6E",
-    "expectedBytes": 1474560,
-    "provenance": "https://winiso.pl/windows-desktop/ms-dos",
-    "note": "Bootable 1.44 MB FAT12 floppy, volume label BOOT622, containing IO.SYS/MSDOS.SYS/COMMAND.COM/HIMEM.SYS. CONFIG.SYS already loads HIMEM.SYS /testmem:off, which is what CWSDPMI needs for XMS. Hash-verified SOURCE of the four DOS binaries (IO.SYS, MSDOS.SYS, COMMAND.COM, HIMEM.SYS) that tools\\pcem-stage.ps1 installs onto C: of dos.hdd. Never modified; no longer attached as a floppy - the HDD boots itself."
   }
 }

@@ -1,14 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Force,
-    [string]$ToolRoot,
-    # Also fetch the optional PCem cycle-accurate 486 reference. It is the
-    # 486-cost gate, but DOSBox-X remains the parity gate, so a machine without
-    # it can still build, benchmark, and time the demo.
-    [switch]$WithPcem,
-    # Print the SHA-256 of the PCem archive so it can be pinned in the manifest.
-    # Required before any candidate is promoted on PCem cycles.
-    [switch]$RecordPcemHash
+    [string]$ToolRoot
 )
 
 Set-StrictMode -Version Latest
@@ -54,25 +47,15 @@ function Assert-FileHash {
         throw "SHA-256 mismatch for '$Path'. Expected $Expected, got $actual."
     }
 }
-
 function Get-VerifiedArchive {
-    param(
-        [Parameter(Mandatory = $true)]$Definition,
-        # An unpinned definition is fetched and hashed but not verified against a
-        # constant. Only for first-fetch hash recording; a tool that gates a
-        # promotion must be pinned in the manifest.
-        [switch]$AllowUnpinned
-    )
+    param([Parameter(Mandatory = $true)]$Definition)
 
     $expected = $null
     if ($Definition.PSObject.Properties.Name -contains 'sha256') {
         $expected = [string]$Definition.sha256
     }
     if ([string]::IsNullOrWhiteSpace($expected)) {
-        if (-not $AllowUnpinned) {
-            throw "No pinned sha256 for '$($Definition.url)'. Pin it in the manifest, or pass -AllowUnpinned to record the hash on first fetch."
-        }
-        $expected = $null
+        throw "No pinned sha256 for '$($Definition.url)'. Pin it in tools\dos-toolchain.json before installing this tool."
     }
 
     $downloadRoot = Join-Path $ToolRoot 'downloads'
@@ -86,18 +69,12 @@ function Get-VerifiedArchive {
     }
 
     if (Test-Path -LiteralPath $archivePath) {
-        if ($null -ne $expected) {
-            Assert-FileHash -Path $archivePath -Expected $expected
-        }
-    } else {
+        Assert-FileHash -Path $archivePath -Expected $expected
+    }
+    else {
         Write-Host "Downloading $archiveName"
         Invoke-WebRequest -UseBasicParsing -Uri $Definition.url -OutFile $archivePath
-        if ($null -ne $expected) {
-            Assert-FileHash -Path $archivePath -Expected $expected
-        }
-        else {
-            Write-Warning "Downloaded $archiveName with no pinned hash. Record it with -RecordPcemHash before trusting this tool."
-        }
+        Assert-FileHash -Path $archivePath -Expected $expected
     }
 
     return $archivePath
@@ -169,57 +146,4 @@ foreach ($requiredPath in @($compilerPath, $objdumpPath, $dosboxPath)) {
 
 Write-Host "DJGPP root: $djgppRoot"
 Write-Host "DOSBox-X:   $dosboxPath"
-
-if ($WithPcem -or $RecordPcemHash) {
-    if ($null -eq $manifest.pcem) {
-        throw 'The toolchain manifest has no "pcem" block.'
-    }
-    $pcemArchive = Get-VerifiedArchive -Definition $manifest.pcem -AllowUnpinned
-    if ($RecordPcemHash) {
-        Write-Host ''
-        Write-Host "PCem archive:  $pcemArchive"
-        Write-Host "PCem SHA-256:  $((Get-FileHash -LiteralPath $pcemArchive -Algorithm SHA256).Hash)"
-        Write-Host 'Pin that value as "pcem"."sha256" in tools\dos-toolchain.json before promoting on PCem cycles.'
-    }
-    $pcemRoot = Install-ZipArtifact -Definition $manifest.pcem -ArchivePath $pcemArchive
-    $pcemPath = Join-Path $pcemRoot (ConvertTo-NativeRelativePath $manifest.pcem.executable)
-    if (-not (Test-Path -LiteralPath $pcemPath -PathType Leaf)) {
-        throw "Bootstrap completed but PCem is missing: '$pcemPath'."
-    }
-    Write-Host "PCem:         $pcemPath"
-}
-else {
-    Write-Host 'PCem:         not installed (pass -WithPcem to add the 486-cost gate)'
-}
-
-# ---------------------------------------------------------------------------
-# 486-cost gate readiness: the gate also needs the ROM set wired and a clean
-# DOS floppy, neither of which this script installs. Report both so a fresh
-# machine can see what is still missing before 486-fidelity.ps1 -Emulator pcem.
-# ---------------------------------------------------------------------------
-if ($null -ne $manifest.pcemRomset) {
-    $romsetPath = [IO.Path]::GetFullPath([string]$manifest.pcemRomset.path)
-    $biosFile = Join-Path $romsetPath (([string]$manifest.pcemRomset.bios) -replace '/', '\')
-    if ((Test-Path -LiteralPath $biosFile -PathType Leaf) -and
-        (Get-Item -LiteralPath $biosFile).Length -eq [int]$manifest.pcemRomset.expectedBiosBytes) {
-        Write-Host "PCem ROM set:  $romsetPath ($($manifest.pcemRomset.machine) BIOS found)"
-    }
-    else {
-        Write-Host 'PCem ROM set:  NOT WIRED (pass .\tools\pcem-roms.ps1)'
-    }
-}
-if ($null -ne $manifest.dosImage) {
-    $dosImagePath = [IO.Path]::GetFullPath([string]$manifest.dosImage.path)
-    if (-not (Test-Path -LiteralPath $dosImagePath -PathType Leaf)) {
-        Write-Host "DOS image:     NOT FOUND ($dosImagePath)"
-    }
-    elseif ((Get-FileHash -LiteralPath $dosImagePath -Algorithm SHA256).Hash -ne
-        ([string]$manifest.dosImage.sha256).ToUpperInvariant()) {
-        Write-Host "DOS image:     HASH MISMATCH ($dosImagePath)"
-    }
-    else {
-        Write-Host "DOS image:     $dosImagePath (hash OK)"
-    }
-}
-
 Write-Host 'Toolchain bootstrap complete.'
