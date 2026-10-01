@@ -3518,9 +3518,9 @@ Bench486FidelityCases
 Validates that the emulator under test actually prices the costs a real 486
 pays, before it is trusted as the 486-cost gate. A new harness with unvalidated
 486 fidelity would be a second, worse version of the mistake recorded at
-ASM486-HANDOFF.md:452-509, so these cases are the precondition for using it.
+ASM486-HANDOFF.md:728-736, so these cases are the precondition for using it.
 
-Four probes, each with a known 486 cost that tools\486-fidelity.ps1 checks:
+Four probes, each with a known 486 cost and the separation a real 486 shows:
 
   1. x87 op chain  - a loop whose body is the d_draw16.s:145-198 prologue
                      shape. A flat-FPU emulator prices every x87 op near one
@@ -3742,7 +3742,7 @@ static void Bench486FidelityCases (void)
 {
 	Bench486Printf ("fidelity probes measure whether the emulator prices 486 costs.\n");
 	Bench486Printf ("A flat-FPU emulator collapses the x87 probes and the cache\n");
-	Bench486Printf ("probes tie; tools\\486-fidelity.ps1 fails the run in that case.\n");
+	Bench486Printf ("probes tie; such an emulator cannot be used to reject an idea.\n");
 	Bench486FidelityX87Chain ();
 	Bench486FidelityFpu (0);
 	Bench486FidelityFpu (1);
