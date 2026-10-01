@@ -26,6 +26,8 @@ param(
     [string]$SurfaceBlockMip0HorizontalFlat = 'fast',
     [ValidateSet('control', 'unroll8')]
     [string]$SurfaceBlockMip1Rows = 'unroll8',
+    [ValidateSet('control', 'fast')]
+    [string]$SurfaceBlockMip1HorizontalFlat = 'fast',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('control', 'skipzero')]
@@ -73,6 +75,7 @@ elseif ($SurfaceBlockMip0Rows -eq 'unroll8') { $profileSuffixParts += 'surf0rows
 elseif ($SurfaceBlockMip0Rows -eq 'unroll16') { $profileSuffixParts += 'surf0rows16' }
 if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf0hflat' }
 if ($SurfaceBlockMip1Rows -eq 'unroll8') { $profileSuffixParts += 'surf1rows8' }
+if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf1hflat' }
 if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
 $profileSuffixParts += 'lightmapstylesasm'
@@ -114,6 +117,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
         SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
+        SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
         BspFrameCountImplementation = $BspFrameCountImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }
@@ -263,6 +267,7 @@ $result = [ordered]@{
     surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     bspFrameCountImplementation = $BspFrameCountImplementation
+    surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     timeoutSeconds = $TimeoutSeconds
 }

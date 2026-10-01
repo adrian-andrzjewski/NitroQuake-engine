@@ -327,6 +327,17 @@ if ($profile.PSObject.Properties.Name -contains 'surface_cache') {
             $profile.surface_cache.horizontal_flat_blocks,
             $profile.surface_cache.vertical_flat_blocks)
     }
+    if ($profile.surface_cache.PSObject.Properties.Name -contains 'horizontal_flat_per_mip') {
+        Write-Host '  flat blocks by mip (total / horizontal-flat / fully-flat):'
+        for ($mip = 0; $mip -lt 4; $mip++) {
+            $tot = [uint64]$profile.surface_cache.blocks_per_mip[$mip]
+            $hf = [uint64]$profile.surface_cache.horizontal_flat_per_mip[$mip]
+            $ff = [uint64]$profile.surface_cache.fully_flat_per_mip[$mip]
+            $pct = if ($tot -gt 0) { 100.0 * $hf / $tot } else { 0 }
+            Write-Host ("    mip {0}: {1,8} / {2,8} ({3,5:0.00}%) / {4,8}" -f
+                $mip, $tot, $hf, $pct, $ff)
+        }
+    }
 }
 
 if ($profile.metrics.PSObject.Properties.Name -contains 'texture_widths') {

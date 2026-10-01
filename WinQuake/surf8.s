@@ -595,6 +595,27 @@ Lv_loop_mip1:
 	sarl	$3,%ebx
 	movl	%ecx,C(lightrightstep)
 
+#ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
+	// The mip-0 specialization, applied to the mip-1 block loop. This test has
+	// to sit here, before the two `subl %reg,%reg' below clear %ecx and %ebx
+	// for loop addressing: it needs the real lightleftstep/lightrightstep
+	// pair. A flat top edge with matching left/right vertical steps means
+	// every scanline of the block sits at one light level, so the per-texel
+	// horizontal light updates are pure waste. Column order, byte packing and
+	// the colormap lookups are identical to the general row; only the two
+	// `addl %ebp,%edx' per texel go.
+	cmpl	%edx,%eax
+	jne	LSurfaceBlockMip1NotHorizontalFlat
+	cmpl	%ecx,%ebx
+	jne	LSurfaceBlockMip1NotHorizontalFlat
+	movl	%ecx,%ebp		// constant per-row vertical step
+	xorl	%ebx,%ebx		// colormap indexes start at zero
+	xorl	%ecx,%ecx
+	call	LSurf8Mip1HorizontalFlat
+	jmp	LSurfaceBlockMip1Done
+LSurfaceBlockMip1NotHorizontalFlat:
+#endif
+
 	subl	%ecx,%ebx
 	andl	$0xFFFFF,%ebx
 
@@ -769,6 +790,11 @@ LBPatch29:
 //			if (pbasesource >= r_sourcemax)
 //				pbasesource -= stepback;
 
+#ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
+LSurfaceBlockMip1Done:
+	movl	%edx,C(lightright)
+#endif
+
 	cmpl	C(r_sourcemax),%esi
 	jb		LSkip_mip1
 	subl	C(r_stepback),%esi
@@ -784,6 +810,77 @@ LSkip_mip1:
 	popl	%edi
 	popl	%ebp				// restore the caller's stack frame
 	ret
+
+#ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
+// Flat-row body for the mip-1 block: the general SURF8_MIP1_ROW with every
+// per-texel light update removed. %edx already holds this row's light and
+// %ebp the constant per-row step, so eight texels need one `addl %ebp,%edx'
+// afterwards instead of two adds per texel. Source byte order, the %eax
+// packing, the rorl $16 word swap and both colormap lookups per texel are
+// byte-for-byte the general path, so the rendered output is identical.
+.macro SURF8_MIP1_FLAT_ROW suffix
+	movb	6(%esi),%cl
+	movb	%dh,%bh
+	movb	7(%esi),%bl
+	movb	%dh,%ch
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_0:
+	movb	5(%esi),%bl
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_1:
+	movb	4(%esi),%cl
+	movb	%dh,%bh
+	rorl	$16,%eax
+	movb	%dh,%ch
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_2:
+	movb	3(%esi),%bl
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_3:
+	movb	2(%esi),%cl
+	movl	%eax,4(%edi)
+	movb	%dh,%bh
+	movb	%dh,%ch
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_4:
+	movb	1(%esi),%bl
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_5:
+	movb	(%esi),%cl
+	movb	%dh,%bh
+	rorl	$16,%eax
+	movb	%dh,%ch
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_6:
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_7:
+	movl	%eax,(%edi)
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	addl	%ebp,%edx
+.endm
+
+	.p2align 4,,15
+LSurf8Mip1HorizontalFlat:
+	// The eight rows are unrolled below, so this loop runs once per block: the
+	// counter is the number of ROW-BODIES here, not the block height. (A block
+	// of eight rows unrolled eight times and then looped eight times would
+	// draw sixty-four rows and run off the end of the surface cache.)
+	pushl	$1
+LSurf8Mip1HorizontalFlatRow:
+	SURF8_MIP1_FLAT_ROW a
+	SURF8_MIP1_FLAT_ROW b
+	SURF8_MIP1_FLAT_ROW c
+	SURF8_MIP1_FLAT_ROW d
+	SURF8_MIP1_FLAT_ROW e
+	SURF8_MIP1_FLAT_ROW f
+	SURF8_MIP1_FLAT_ROW g
+	SURF8_MIP1_FLAT_ROW h
+	decl	(%esp)
+	jnz	LSurf8Mip1HorizontalFlatRow
+	addl	$4,%esp
+	ret
+#endif
 
 
 //----------------------------------------------------------------------
@@ -1348,6 +1445,72 @@ SURF8_PATCH_ROW p
 	.long	.LLBPatchflat14-4
 	.long	.LLBPatchflat15-4
 #endif
+#ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
+	.long	.LLBPatchm1fa_0-4
+	.long	.LLBPatchm1fa_1-4
+	.long	.LLBPatchm1fa_2-4
+	.long	.LLBPatchm1fa_3-4
+	.long	.LLBPatchm1fa_4-4
+	.long	.LLBPatchm1fa_5-4
+	.long	.LLBPatchm1fa_6-4
+	.long	.LLBPatchm1fa_7-4
+	.long	.LLBPatchm1fb_0-4
+	.long	.LLBPatchm1fb_1-4
+	.long	.LLBPatchm1fb_2-4
+	.long	.LLBPatchm1fb_3-4
+	.long	.LLBPatchm1fb_4-4
+	.long	.LLBPatchm1fb_5-4
+	.long	.LLBPatchm1fb_6-4
+	.long	.LLBPatchm1fb_7-4
+	.long	.LLBPatchm1fc_0-4
+	.long	.LLBPatchm1fc_1-4
+	.long	.LLBPatchm1fc_2-4
+	.long	.LLBPatchm1fc_3-4
+	.long	.LLBPatchm1fc_4-4
+	.long	.LLBPatchm1fc_5-4
+	.long	.LLBPatchm1fc_6-4
+	.long	.LLBPatchm1fc_7-4
+	.long	.LLBPatchm1fd_0-4
+	.long	.LLBPatchm1fd_1-4
+	.long	.LLBPatchm1fd_2-4
+	.long	.LLBPatchm1fd_3-4
+	.long	.LLBPatchm1fd_4-4
+	.long	.LLBPatchm1fd_5-4
+	.long	.LLBPatchm1fd_6-4
+	.long	.LLBPatchm1fd_7-4
+	.long	.LLBPatchm1fe_0-4
+	.long	.LLBPatchm1fe_1-4
+	.long	.LLBPatchm1fe_2-4
+	.long	.LLBPatchm1fe_3-4
+	.long	.LLBPatchm1fe_4-4
+	.long	.LLBPatchm1fe_5-4
+	.long	.LLBPatchm1fe_6-4
+	.long	.LLBPatchm1fe_7-4
+	.long	.LLBPatchm1ff_0-4
+	.long	.LLBPatchm1ff_1-4
+	.long	.LLBPatchm1ff_2-4
+	.long	.LLBPatchm1ff_3-4
+	.long	.LLBPatchm1ff_4-4
+	.long	.LLBPatchm1ff_5-4
+	.long	.LLBPatchm1ff_6-4
+	.long	.LLBPatchm1ff_7-4
+	.long	.LLBPatchm1fg_0-4
+	.long	.LLBPatchm1fg_1-4
+	.long	.LLBPatchm1fg_2-4
+	.long	.LLBPatchm1fg_3-4
+	.long	.LLBPatchm1fg_4-4
+	.long	.LLBPatchm1fg_5-4
+	.long	.LLBPatchm1fg_6-4
+	.long	.LLBPatchm1fg_7-4
+	.long	.LLBPatchm1fh_0-4
+	.long	.LLBPatchm1fh_1-4
+	.long	.LLBPatchm1fh_2-4
+	.long	.LLBPatchm1fh_3-4
+	.long	.LLBPatchm1fh_4-4
+	.long	.LLBPatchm1fh_5-4
+	.long	.LLBPatchm1fh_6-4
+	.long	.LLBPatchm1fh_7-4
+#endif
 
 	.text
 
@@ -1377,6 +1540,10 @@ C(R_Surf8Patch):
 #endif
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
 	addl	$16,%ecx
+#endif
+#ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
+	// Eight rows of eight colormap sites each.
+	addl	$64,%ecx
 #endif
 LPatchLoop8:
 	movl	(%ebx),%edx

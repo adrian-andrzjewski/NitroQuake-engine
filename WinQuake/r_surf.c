@@ -845,6 +845,8 @@ void R_DrawSurface (void)
 #ifdef PROFILE486
 	if (bench486_surface_profile_active)
 	{
+		int	bench486_mip = r_drawsurf.surfmip & 3;
+
 		for (bench486_light_v=0 ; bench486_light_v<r_numvblocks ;
 				bench486_light_v++)
 		{
@@ -857,16 +859,23 @@ void R_DrawSurface (void)
 				bench486_light_tr = bench486_light_top[u+1];
 				bench486_light_bl = bench486_light_bottom[u];
 				bench486_light_br = bench486_light_bottom[u+1];
+				bench486_surface_cache_mip_blocks_flat[bench486_mip]++;
 				if (bench486_light_tl == bench486_light_tr &&
 						bench486_light_bl == bench486_light_br)
+				{
 					bench486_surface_cache_horizontal_flat_blocks++;
+					bench486_surface_cache_horizontal_flat_per_mip[bench486_mip]++;
+				}
 				if (bench486_light_tl == bench486_light_bl &&
 						bench486_light_tr == bench486_light_br)
 					bench486_surface_cache_vertical_flat_blocks++;
 				if (bench486_light_tl == bench486_light_tr &&
 						bench486_light_tl == bench486_light_bl &&
 						bench486_light_tl == bench486_light_br)
+				{
 					bench486_surface_cache_flat_blocks++;
+					bench486_surface_cache_flat_blocks_per_mip[bench486_mip]++;
+				}
 			}
 		}
 	}

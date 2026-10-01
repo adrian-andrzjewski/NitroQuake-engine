@@ -1141,6 +1141,103 @@ need the dead-scratch probe or real hardware, not another scope. **Do not add a
 scope to `edge-scan`; the floor arithmetic above is the reason, and it will not
 improve with more runs.**
 
+### mip-1 horizontal-flat surface blocks (2026-10-01) — **PROMOTED, 0.0513%**
+
+The first admissible win since the profiler was corrected, and the first
+candidate to clear the gate on a *measured* premise rather than an extrapolated
+one. It is the mip-0 specialisation applied one mip level down.
+
+**Premise, measured before anything was built.** The flat-block counters were
+split by mip level (they had only been summed, which is what hid the
+opportunity). mip-1 has more blocks than mip-0, and a higher flat fraction:
+
+```text
+mip     blocks  horizontal-flat   share
+0      93,602           7,158      7.65%
+1     142,258          14,837     10.43%
+2      44,445           3,930      8.84%
+3       7,364             591      8.03%
+```
+
+**The price, and why modelling was not enough.** Calibrating against the
+measured mip-0 promotion (78.725 ms net) gave 0.839 cycles per removed
+`addl %ebp,%edx`, which put mip-1 at **1,015 cycles/frame against the
+1,022-cycle gate — 0.99x.** The entire verdict hinged on one assumption: that
+the four-instruction eligibility test would cost 4 cycles on the 127,421
+non-flat mip-1 blocks.
+
+**That assumption was wrong, and only a measurement could say so.** A temporary
+probe duplicated the mip-0 flat test (both outcomes falling through, so it is
+bit-exact) behind a `-FlatTestProbe` switch that was part of the build
+fingerprint and the profile suffix, so a probe run could never measure a control
+binary. Three alternating pairs:
+
+```text
+control   59.228381 / 59.228440 / 59.228389 s
+probe     59.228407 / 59.228396 / 59.228387 s
+delta    -0.000033 s  = -1.1 cycles/frame
+```
+
+**The eligibility test is free** — the branch is perfectly predicted and the
+four instructions overlap with surrounding work. So the mip-1 prize is the
+gross figure, **1,542 cycles/frame = 1.51x the gate**, not the net figure the
+model produced. The probe, its switch and its plumbing were then removed
+completely; the tree is back to a clean two-state selector.
+
+**This is the general lesson worth keeping.** A model calibrated on real data
+still got the sign of the answer wrong, by 0.01x, because one of its two
+parameters was an assumption rather than a measurement. The 0.99x looked like a
+refusal to build; it was actually an invitation to measure the one number that
+decided it.
+
+**Implementation.** `surf8.s` gains `LSurf8Mip1HorizontalFlat`, the general
+`SURF8_MIP1_ROW` with every per-texel light update removed. Source byte order,
+the `%eax` packing, both `rorl $16` word swaps and both colormap lookups per
+texel are byte-for-byte the general path, so the output is identical; only the
+light updates go, replaced by one `addl %ebp,%edx` per row. 64 new colormap
+patch sites, so `R_Surf8Patch`'s `%ecx` ladder gains `addl $64,%ecx` — the
+documented footgun, verified by preprocessing the table with the real toolchain
+and counting (216 entries against a computed 216) before building.
+
+**Two bugs worth recording, because both produced a hard fault rather than wrong
+pixels, and neither was findable by reading the code.**
+
+1. The eligibility test has to sit **before** the `subl %ecx,%ecx` /
+   `subl %ebx,%ebx` that clear those registers for loop addressing. mip-0 has no
+   such zeroing, so copying mip-0's *position* verbatim on mip-1 put the test
+   after them, where it compared 0 to 0, always passed, and set the per-row step
+   to 0.
+2. The eight rows are unrolled inside the subroutine, so the loop counter is the
+   number of **row bodies** (1), not the block height (8). Copying mip-0's
+   `pushl $16` shape and unrolling eight rows gave 8x8 = 64 rows, which ran off
+   the end of the surface cache. Quake faulted with no output at all, which is
+   how a surface-cache overrun presents.
+
+**Result.** Three alternating pairs, control first, both from the same tree:
+
+| build | runs (s) | median | frames / checksum |
+|---|---|---:|---|
+| `SurfaceBlockMip1HorizontalFlat=control` | 59.227632 / 59.227598 / 59.227546 | 59.227632 | 969 / `1047377823` |
+| `SurfaceBlockMip1HorizontalFlat=fast` | 59.197250 / 59.197203 / 59.197264 | **59.197264** | 969 / `1047377823` |
+
+**0.030368 s, 0.0513% faster** — above the 0.05% gate, and about 353x the
+0.000086 s control spread. Every candidate run beat every control run. The
+candidate passed the DOS smoke test and the full `bench486` correctness suite
+(`486 benchmark correctness PASS`, end checksum `2378409472`).
+
+**Promoted to the default** in `build-dos.ps1`, `bench-dos.ps1`,
+`timedemo-dos.ps1` and `smoke-dos.ps1`; `control` remains selectable for A/B.
+The promoted default re-measures at **59.197264 s** median
+(59.197260 / 59.197266 / 59.197264), checksum `1047377823` on all three, with
+`bench486` PASS and smoke clean.
+
+**New baseline: 59.197264 s / 16.369000 FPS**, from 59.227329 s / 16.360690.
+
+Because this win is a straight removal of arithmetic, it is squarely on the
+admissible side of the gate. Note the two facts that made it possible and that
+were both unavailable before 2026-10-01: the per-mip flat counts, which the
+summed counter hid, and a profile whose self-times can be trusted.
+
 - Do not add a fourth level of per-call instrumentation here. The measurement
   cost now rivals the signal, and no further decision hinges on it. If more
   resolution is ever needed, amortize: time a whole span or a whole triangle

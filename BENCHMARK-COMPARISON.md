@@ -41,29 +41,37 @@ and cannot measure".
 
 | Version | Executable | Runs | Time | FPS | Frames | Checksum | Evidence |
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
-| Current project build | `out\dos-memasm-zneg4-surf0rows4-surf0hflat-surf1rows8-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.227329 s** median | **16.360690** | 969 each | `1047377823` each | `out\dos-timedemo-20260929-181619` |
+| Current project build | `out\dos-memasm-zneg4-surf0rows4-surf0hflat-surf1rows8-surf1hflat-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.197264 s** median | **16.369000** | 969 each | `1047377823` each | `out\dos-timedemo-20261001-184634` |
+| Previous build (mip-1 flat off) | same path, `-SurfaceBlockMip1HorizontalFlat control` | 3 | 59.227632 s median | 16.360597 | 969 each | `1047377823` each | `out\dos-timedemo-20261001-184432` |
 | Previous build (1800 KB surface cache) | same path, previous binary | 3 | 59.264965 s median | 16.350301 | 969 each | `1047377823` each | `out\dos-timedemo-20260929-175705` |
 | 486quake optimization project | `tools\486quake.exe` | 1 | ~68.2 s | ~14.2 | 969 | Not emitted | On-screen timedemo result |
 | Original Quake | `tools\QUAKE.EXE` | 1 | ~72.4 s | ~13.4 | 969 | Not emitted | On-screen timedemo result |
 
-The current-build samples were 59.227329 s, 59.227265 s, and 59.227384 s, with
-the same framebuffer checksum on every run and a spread of 0.000119 s. The
-previous row is the same selector set with the surface cache at 1800 KB; the
-2400 KB default measured **0.0635% faster** (delta 0.037636 s, about 770x the
-run spread), which cleared the 0.05% promotion gate. See
-`ASM486-HANDOFF.md`, "The 1800 KB surface-cache wall does not exist". This build
+The current-build samples were 59.197260 s, 59.197266 s and 59.197264 s, with
+the same framebuffer checksum on every run and a spread of 0.000006 s. The
+second row is the same source with the promoted mip-1 horizontal-flat selector
+set to `control`, measured as three alternating control/candidate pairs:
+0.030368 s, **0.0513% faster**, about 353x the 0.000086 s control spread, with
+every candidate run faster than every control run. That is the
+`SurfaceBlockMip1HorizontalFlat=fast` promotion; see `ASM486-HANDOFF.md`,
+"mip-1 horizontal-flat surface blocks". The 1800 KB row is the same selector set
+with the surface cache at 1800 KB; the 2400 KB default measured **0.0635%
+faster** (delta 0.037636 s, about 770x the run spread), and the checksum was
+`1047377823` on all six A/B runs. See `ASM486-HANDOFF.md`, "The 1800 KB
+surface-cache wall does not exist". This build
 uses the promoted `SurfaceBlockMip0Rows=unroll4`,
-`SurfaceBlockMip1Rows=unroll8`, and `SurfaceBlockMip0HorizontalFlat=fast`
-defaults. See `docs/PURE-ASSEMBLER-CANDIDATES.md` for the matched samples and
+`SurfaceBlockMip0HorizontalFlat=fast`, `SurfaceBlockMip1Rows=unroll8`, and
+`SurfaceBlockMip1HorizontalFlat=fast` defaults. See
+`docs/PURE-ASSEMBLER-CANDIDATES.md` for the matched samples and
 correctness evidence behind those promotions.
 
 ## Relative result
 
 Using the rounded on-screen values for the two supplied executables:
 
-- Current project build is approximately **18.2% faster** than the original.
+- Current project build is approximately **18.3% faster** than the original.
 - `486quake.exe` is approximately **5.8% faster** than the original.
-- Current project build is approximately **13.2% faster** than `486quake.exe`.
+- Current project build is approximately **13.4% faster** than `486quake.exe`.
 
 These percentages are comparative DOSBox-X results. They are not a claim about
 timing on physical 486 hardware. The emulator does not model 486 costs in the

@@ -63,6 +63,12 @@ unsigned long bench486_surface_cache_mip_blocks[4];
 unsigned long bench486_surface_cache_flat_blocks;
 unsigned long bench486_surface_cache_horizontal_flat_blocks;
 unsigned long bench486_surface_cache_vertical_flat_blocks;
+// The three counters above are summed over every mip level, which hides whether
+// a level has enough flat blocks to be worth a specialised drawer. These are
+// the same counts indexed by r_drawsurf.surfmip.
+unsigned long bench486_surface_cache_flat_blocks_per_mip[4];
+unsigned long bench486_surface_cache_horizontal_flat_per_mip[4];
+unsigned long bench486_surface_cache_mip_blocks_flat[4];
 double bench486_span_draw_seconds;
 double bench486_sound_seconds;
 double bench486_framebuffer_seconds;
@@ -1109,10 +1115,26 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_surface_cache_mip_seconds[2],
 			bench486_surface_cache_mip_seconds[3]);
 	Bench486ProfileJsonPrintf (file_handle,
-			"\"flat_blocks\": %lu, \"horizontal_flat_blocks\": %lu, \"vertical_flat_blocks\": %lu},\n",
+			"\"flat_blocks\": %lu, \"horizontal_flat_blocks\": %lu, \"vertical_flat_blocks\": %lu, ",
 			bench486_surface_cache_flat_blocks,
 			bench486_surface_cache_horizontal_flat_blocks,
 			bench486_surface_cache_vertical_flat_blocks);
+	Bench486ProfileJsonPrintf (file_handle,
+			"\"blocks_per_mip\": [%lu, %lu, %lu, %lu], "
+			"\"horizontal_flat_per_mip\": [%lu, %lu, %lu, %lu], "
+			"\"fully_flat_per_mip\": [%lu, %lu, %lu, %lu]},\n",
+			bench486_surface_cache_mip_blocks_flat[0],
+			bench486_surface_cache_mip_blocks_flat[1],
+			bench486_surface_cache_mip_blocks_flat[2],
+			bench486_surface_cache_mip_blocks_flat[3],
+			bench486_surface_cache_horizontal_flat_per_mip[0],
+			bench486_surface_cache_horizontal_flat_per_mip[1],
+			bench486_surface_cache_horizontal_flat_per_mip[2],
+			bench486_surface_cache_horizontal_flat_per_mip[3],
+			bench486_surface_cache_flat_blocks_per_mip[0],
+			bench486_surface_cache_flat_blocks_per_mip[1],
+			bench486_surface_cache_flat_blocks_per_mip[2],
+			bench486_surface_cache_flat_blocks_per_mip[3]);
 
 	Bench486ProfileJsonPrintf (file_handle,
 			"  \"platform\": {\"joystick_reads\": %lu, \"joystick_poll_iterations\": %lu, \"joystick_timeouts\": %lu, \"move_calls\": %lu, \"hull_check_calls\": %lu},\n",
@@ -1226,6 +1248,12 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_surface_cache_draw_calls = 0;
 	bench486_surface_cache_flat_blocks = 0;
 	bench486_surface_cache_horizontal_flat_blocks = 0;
+	for (i=0 ; i<4 ; i++)
+	{
+		bench486_surface_cache_flat_blocks_per_mip[i] = 0;
+		bench486_surface_cache_horizontal_flat_per_mip[i] = 0;
+		bench486_surface_cache_mip_blocks_flat[i] = 0;
+	}
 	bench486_surface_cache_vertical_flat_blocks = 0;
 	bench486_surface_cache_allocations = 0;
 	bench486_surface_cache_wraps = 0;

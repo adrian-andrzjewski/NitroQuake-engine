@@ -38,6 +38,8 @@ param(
     [string]$SurfaceBlockMip0HorizontalFlat = 'fast',
     [ValidateSet('control', 'unroll8')]
     [string]$SurfaceBlockMip1Rows = 'unroll8',
+    [ValidateSet('control', 'fast')]
+    [string]$SurfaceBlockMip1HorizontalFlat = 'fast',
     [ValidateSet('c', 'asm')]
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -196,6 +198,9 @@ if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
 }
 if ($SurfaceBlockMip1Rows -eq 'unroll8') {
     $profileSuffixParts += 'surf1rows8'
+}
+if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
+    $profileSuffixParts += 'surf1hflat'
 }
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
@@ -469,6 +474,9 @@ try {
     if ($SurfaceBlockMip1Rows -eq 'unroll8') {
         $asmFlags += '-DASM486_SURF8_MIP1_ROWS8'
     }
+    if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
+        $asmFlags += '-DASM486_SURF8_MIP1_HORIZONTAL_FLAT'
+    }
     if ($AliasProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_PROJECT'
     }
@@ -535,6 +543,7 @@ try {
         surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
         surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
+    surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation
