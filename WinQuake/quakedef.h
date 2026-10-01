@@ -84,8 +84,14 @@ typedef enum
 	BENCH486_PROFILE_ALIAS_MODEL,
 	BENCH486_PROFILE_ALIAS_SETUP,
 	BENCH486_PROFILE_ALIAS_TRANSFORM,
-	BENCH486_PROFILE_ALIAS_RASTER,
-	BENCH486_PROFILE_ALIAS_CALCGRADIENTS,
+BENCH486_PROFILE_ALIAS_RASTER,
+// Whole-triangle scope over the C glue. The four per-call C scopes below
+// (LINESCAN_SETUP, EDGE_SETUP, SPAN_PACKAGE, STEP_MATH) are no longer emitted:
+// at 100k-260k calls each they cost more in timer reads than they measured.
+// They remain in the enum so older profile files still parse, and now report
+// zero calls.
+BENCH486_PROFILE_ALIAS_GLUE,
+BENCH486_PROFILE_ALIAS_CALCGRADIENTS,
 	BENCH486_PROFILE_ALIAS_LINESCAN_SETUP,
 	BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE,
 	BENCH486_PROFILE_ALIAS_DRAW_SPANS,

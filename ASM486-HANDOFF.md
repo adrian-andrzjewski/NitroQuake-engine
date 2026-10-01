@@ -760,6 +760,16 @@ optimization effort belongs.
 
 ### Where this leaves the project
 
+> **Amended 2026-10-01.** The first two bullets below were not "closed by
+> evidence". `alias raster` was closed by a measurement that was measuring its
+> own timer, and it is now 4.0% of frame rather than 13.6% — small, but
+> un-decomposed rather than converged. The claim that "every remaining mechanism
+> is closed" rested partly on that. The recommendation to stop stands for the
+> 486-specific axes, which really are invisible here; it did not cover the
+> instruction-count axes, and the corrected profile identifies two of them
+> (`world-bsp` 10.2%, `edge-scan` 8.0%) that were never structurally priced.
+> See "Alias attribution corrected".
+
 The renderer is converged at the source level. Every remaining mechanism I can
 identify is either closed by measurement or closed by the harness's own
 limits:
@@ -902,7 +912,17 @@ keeping — the interlock is easy to *see* in a disassembly and easy to believe,
 and it was wrong. Verify adjacency **and operand types** before spending a
 timedemo A/B on any 486 interlock claim.
 
-### Alias-raster C-glue instrumentation (2026-09-29) — residual localized, and the profiler is now the limiting factor
+### Alias-raster C-glue instrumentation (2026-09-29) — **SUPERSEDED 2026-10-01, the numbers below are instrumentation-limited**
+
+> **The table in this section does not support the conclusion drawn from it, and
+> the conclusion is withdrawn.** The four per-call C regions were measured at
+> 253-304 cycles/call, but each scope's measured window physically contains its
+> own timer read, and one read costs ~193 cycles. Between **62% and 76%** of
+> every figure in the table is the clock, not the code. Re-measured with the
+> scope amortized to one per triangle, the C glue is **1.83 s, not the ~5.97 s
+> these numbers implied — a 3.1x overstatement.** See "Alias attribution
+> corrected" below. The text is kept as written on 2026-09-29 so the reasoning
+> error stays visible; do not cite the table as evidence of convergence.
 
 The unattributed `alias-raster` self time is split into `alias-edge-setup`,
 `alias-span-package`, and `alias-step-math`, wrapping the cursor-init blocks,
@@ -929,6 +949,13 @@ evenly spread setup code interleaved with three already-optimized ASM routines.
 Combined with the four pre-existing ASM children, this is the evidence that the
 alias raster path is converged at the source level.
 
+> **Withdrawn 2026-10-01.** The uniformity observation may well be true, but it
+> was not established by this table: every per-call value here is at or below
+> the instrumentation that produced it. "No outlier" is what a clock-dominated
+> measurement looks like regardless of the code. The *conclusion* (do not port
+> this C) still happens to be the right call, and for a better reason — see
+> "Alias attribution corrected" — but it is not supported by this evidence.
+
 **Methodology note, because it changes how these numbers may be used.** Each
 added ENTER/LEAVE pair costs two `Sys_FloatTime` reads, and this level added
 16 reads per rasterized triangle: 923,482 extra reads and 6.98 s across the
@@ -939,9 +966,104 @@ regions being measured. Consequences:
   instrumentation and must not be quoted as real work.
 - Per-call cycles are also inflated, but by a near-constant addend, so the
   *ranking* and the *relative* split within the glue are sound. That is what
-  the table above is for.
+  the table above is for. **(2026-10-01: this second bullet is also withdrawn.
+  When the signal is smaller than the addend, the ranking is an artifact of call
+  counts, not of cost. The measured per-call figures are 253-304 cycles against
+  a ~193-cycle read, leaving 25-38% signal, so the split is not sound.)**
 - The four pre-existing nodes are directly comparable across runs: they moved
   by at most 11 ms between the previous level and this one.
+
+### Alias attribution corrected (2026-10-01) — the profiler was measuring itself; C glue is 3.1x cheaper than recorded
+
+The self-time ranking this project has been steering by is distorted by the
+profiler, and the distortion is large enough to have produced a false
+convergence verdict. This entry records the correction, the tool that makes it
+automatic, and the amended cost distribution.
+
+**The mechanism.** `Bench486ProfileEnter` reads `Sys_FloatTime` *before*
+recording the scope start, and `Bench486ProfileLeave` reads it again at the
+top. So a scope's measured self window physically contains one `Sys_FloatTime`
+call of its own, plus one for every child scope it enters. The profiler now
+calibrates the real cost of a read at startup (`Bench486ProfileCalibrateTimer`,
+256 back-to-back reads) and reports it in `profile.jsn` as
+`instrumentation.read_seconds`, and emits a per-node `instr_reads` count. The
+measured cost is **193.3 cycles per read** on the pinned profile — close to,
+and slightly below, the 253 cycles independently estimated at `:952`.
+
+**What that does to the recorded table.** The four C-glue regions, re-priced
+against their own instrumentation:
+
+```text
+node                    calls    raw cyc/call -> signal cyc/call   signal
+alias-span-package    168,782           252.9  ->          59.8      23.6%
+alias-edge-setup      183,040           268.0  ->          74.8      27.9%
+alias-linescan-setup  263,792           283.2  ->          90.0      31.8%
+alias-step-math       109,941           303.8  ->         110.6      36.4%
+```
+
+**Between 62% and 76% of every number in that table was the clock.** The raw
+figures reproduce the 2026-09-29 values exactly, which confirms the correction is
+calibrated rather than fitted. Summed, the four regions cost
+`(168782*252.9 + 183040*268.0 + 263792*283.2 + 109941*303.8)` = **5.97 s** on
+the raw readings.
+
+**Measured properly, they cost 1.83 s** — a **3.1x overstatement**.
+
+**The fix, and why it was the right one anyway.** The four per-call C scopes are
+gone. `D_RasterizeAliasPolySmooth` now opens **one** `alias-glue` scope per
+triangle, and the three ASM helpers keep their own scopes, so `alias-glue`'s
+self time is the C and nothing else. Timer reads fell **2,781,830 ->
+1,580,280 (-43%)** and the profiled frame from 84.59 s to 75.68 s, with
+checksum `1047377823` unchanged on every run. The ledger's own advice at `:946-948`
+("amortize: time a whole span or a whole triangle rather than each sub-block")
+was right and had simply not been carried out.
+
+**The amended distribution** (corrected self time, `out\dos-timedemo-20261001-154726`):
+
+```text
+node                corrected   % of profiled frame   signal
+texture-spans         18.587 s            24.6%         98.3%
+world-bsp              7.724 s            10.2%         99.9%
+surface-cache          6.832 s             9.0%         95.5%
+edge-scan              6.043 s             8.0%         99.8%
+z-spans                5.968 s             7.9%         94.7%
+alias-raster           2.999 s             4.0%         79.9%
+surfaces               2.805 s             3.7%         67.8%
+alias-draw-spans       2.408 s             3.2%         73.0%
+turbulent-spans        1.911 s             2.5%         99.2%
+alias-glue (the C)     1.827 s             2.4%         38.1%
+alias-transform        1.305 s             1.7%         97.6%
+brush-entities         1.228 s             1.6%         99.5%
+```
+
+`alias-raster` is no longer 13.6% of frame; it is 4.0%, and the C glue inside it
+is 2.4%. **The alias raster path is still not worth porting** — the C is thin —
+but that is now a conclusion from a measurement that can see it, not from one
+that could not. Do not cite the old table again.
+
+**Two corrections to the project's standing numbers.**
+
+1. **`frameFpsStats` was silently costing 0.020% of frame.** The recorded
+   baseline 59.227329 s was measured with it **off**, but the runner defaulted
+   it **on**, so a default `timedemo-dos.ps1` invocation produced 59.239011 s —
+   **0.0117 s, which is 39% of the entire 0.05% promotion gate**, before any
+   code change. The flag is now opt-in (`-FpsStats`), a run with it enabled
+   prints a warning that the result is a diagnostic and not a promotion
+   measurement, and the resolved value is written to the report JSON. With it
+   off, the tree reproduces the baseline at **59.227628 s median**
+   (59.227596 / 59.227628 / 59.227631), a 0.0005% difference.
+2. **`tools\profile-report.ps1` now refuses to mislead.** It prints corrected
+   self time, the per-read floor, a per-call figure with the signal fraction, and
+   an explicit `LOW SIGNAL` list naming the regions whose measured window is
+   mostly clock, with the instruction not to port or close them on that
+   evidence. Any future pass that adds a per-call scope will see its own floor
+   immediately.
+
+**What this does not change.** The promotion gate, the parity gates, the
+inadmissibility of the x87/fetch/write-buffer/aliasing axes, and the closure of
+E0, E4, the bmodel `FIXME`, and `Turbulent8` all stand. The two buckets this
+re-opens as unmeasured rather than closed are `world-bsp` (10.2%) and
+`edge-scan` (8.0%) — both high signal, both never structurally decomposed.
 - Do not add a fourth level of per-call instrumentation here. The measurement
   cost now rivals the signal, and no further decision hinges on it. If more
   resolution is ever needed, amortize: time a whole span or a whole triangle
@@ -2982,14 +3104,19 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    and the span-package setup of `D_RasterizeAliasPolySmooth`, not in this
    predicate.  Instrument that residual (10.74% of frame) before choosing a
    port target.
-   The alias raster path is now instrumented to the source level and is
-   converged: `D_PolysetCalcGradients`, `D_PolysetScanLeftEdge`, and
-   `D_PolysetDrawSpans8` are assembly; the remaining C (`linescan-setup`,
-   `edge-setup`, `span-package`, `step-math`, `SetEdgeTable`) measures
-   253-304 cycles per call with no outlier, and the two prior `SetUpForLineScan`
-   improvements are already kept.  Do not open another C-to-ASM port here
-   without a new source-level hypothesis, and note that per-call profiling now
-   costs about as much as it measures.
+    The alias raster path is now instrumented to the source level and is
+    converged: `D_PolysetCalcGradients`, `D_PolysetScanLeftEdge`, and
+    `D_PolysetDrawSpans8` are assembly; the remaining C (`linescan-setup`,
+    `edge-setup`, `span-package`, `step-math`, `SetEdgeTable`) measures
+    253-304 cycles per call with no outlier, and the two prior `SetUpForLineScan`
+    improvements are already kept.  Do not open another C-to-ASM port here
+    without a new source-level hypothesis, and note that per-call profiling now
+    costs about as much as it measures.
+    **(2026-10-01: the 253-304 cycles/call figure is withdrawn — it was 62-76%
+    profiler overhead. The C glue measures 1.83 s of frame, a 3.1x overstatement,
+    so "converged" is now a conclusion from a measurement that can see it. The
+    guidance not to port it still holds, and now rests on the corrected number
+    rather than on a clock artifact. See "Alias attribution corrected".)**
    Do not add AGI-interlock padding to the Aff8 pixel leaf.  The per-pixel
    hypothesis (`movb %dh,%ah` beside a `(%eax)`-based colormap load) is not a
    real interlock: the partial write has no memory operand and the `%eax` base

@@ -72,6 +72,11 @@ param(
     [ValidateRange(1, 9)]
     [int]$Runs = 3,
     [int]$TimeoutSeconds = 180,
+    # Per-frame FPS collection costs ~0.0117 s on the 969-frame demo1 run
+    # (0.020%, about 39% of the 0.05% promotion gate), so it is OFF by default
+    # and opt-in. The recorded baseline 59.227329 s was measured with it off.
+    [switch]$FpsStats,
+    # Retained so older recorded commands keep working; now the default.
     [switch]$NoFpsStats,
     # External DPMI host only; does not change the Quake/DJGPP binary.
     # cwsdpmi: stage CWSDPMI.EXE (DJGPP stub auto-loads it when no host is resident).
@@ -406,7 +411,8 @@ if (Test-Path -LiteralPath $stagingRoot) {
 }
 $quakeRoot = Join-Path $stagingRoot 'quake'
 $stagedData = Join-Path $quakeRoot 'id1'
-$fpsStatsOptions = if ($NoFpsStats) { '' } else { ' -fpsstats' }
+$fpsStatsEnabled = [bool]($FpsStats -and -not $NoFpsStats)
+$fpsStatsOptions = if ($fpsStatsEnabled) { ' -fpsstats' } else { '' }
 New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
 $cwsdpmiSource = Join-Path $repoRoot 'WinQuake\cwsdpmi.exe'
@@ -533,6 +539,15 @@ if ($profileHash -ne $ExpectedProfileSha256) {
             $ExpectedProfileSha256, $profileHash
     }
     Write-Warning "PROFILE GATE OVERRIDDEN: expected $ExpectedProfileSha256, got $($profileHash). Results are NOT comparable to the recorded baseline."
+}
+
+# Per-frame FPS collection adds two Sys_FloatTime reads per frame, worth about
+# 0.0117 s over 969 frames (0.020%, roughly 39% of the 0.05% promotion gate).
+# A run with it enabled is a valid diagnostic but not a valid promotion result.
+if ($fpsStatsEnabled) {
+    Write-Warning ("FPS STATS ENABLED: this run pays per-frame timer reads and is inflated by about 0.020% " +
+        "relative to the recorded baseline. It is valid as a diagnostic, NOT as a promotion measurement. " +
+        "Re-run without -FpsStats to compare against 59.227329 s.")
 }
 
 for ($run = 1; $run -le $Runs; $run++) {
@@ -817,7 +832,7 @@ $result = [ordered]@{
     bspFrameCountImplementation = $BspFrameCountImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     instrumentation = [bool]$Instrumentation
-    frameFpsStats = [bool](-not $NoFpsStats)
+    frameFpsStats = $fpsStatsEnabled
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     results = $results

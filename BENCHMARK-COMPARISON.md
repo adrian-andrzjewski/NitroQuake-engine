@@ -17,6 +17,16 @@ record for a later README benchmark section.
   their result on-screen but do not produce the repository runner's
   machine-readable `timedemo.txt` or framebuffer-checksum report.
 
+**Per-frame FPS collection was OFF for every number in the table.** It costs two
+`Sys_FloatTime` reads per frame, which is 0.0117 s over 969 frames — 0.020%, or
+**39% of the 0.05% promotion gate** — so it is now opt-in via `-FpsStats`
+rather than on by default. A run with it enabled prints a warning that its
+result is a diagnostic and not a promotion measurement, and the resolved value
+is written to the report JSON as `frameFpsStats`. Confirmed 2026-10-01: with it
+off the tree reproduces this baseline at 59.227628 s median
+(59.227596 / 59.227628 / 59.227631), a 0.0005% difference; with it on, the same
+binary measures 59.239011 s.
+
 Profile SHA-256:
 
 `F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45`

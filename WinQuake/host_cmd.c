@@ -223,6 +223,7 @@ static char *bench486_profile_node_names[BENCH486_PROFILE_NODE_COUNT] =
 	"alias-setup",
 	"alias-transform",
 	"alias-raster",
+	"alias-glue",
 	"alias-calcgradients",
 	"alias-linescan-setup",
 	"alias-scan-left-edge",
@@ -615,8 +616,54 @@ void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
 }
 
 #ifdef PROFILE486
+/*
+Measure what one Sys_FloatTime call actually costs on this host, by timing a
+back-to-back burst. Everything the profiler reports is bounded below by this
+value, so a per-call figure smaller than it is not a measurement.
+*/
+static double bench486_profile_read_seconds = 0;
+
+static void Bench486ProfileCalibrateTimer (void)
+{
+	int		i;
+	double	start, end;
+	const int reads = 256;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<reads ; i++)
+	{
+		Sys_FloatTime ();
+	}
+	end = Sys_FloatTime ();
+
+	// The two bracketing reads are themselves part of the elapsed interval.
+	bench486_profile_read_seconds = (end - start) / (reads + 2);
+}
+
+/*
+A scope's measured self window physically contains its own LEAVE timer read plus
+the ENTER read of every child scope it invokes. Both are real Sys_FloatTime calls,
+so a scope called N times cannot report a per-call cost below the time its own
+instrumentation consumed. Counting those reads lets the report refuse to quote a
+per-call figure that its own instrumentation floor swamps.
+*/
+static unsigned long Bench486ProfileChildReads (int node)
+{
+	unsigned long reads = 0;
+	int			child;
+
+	for (child=0 ; child<BENCH486_PROFILE_NODE_COUNT ; child++)
+	{
+		reads += (unsigned long)
+				bench486_profile_edges[node][child].calls;
+	}
+
+	return reads;
+}
+
 static void Bench486ProfileReset (void)
 {
+	Bench486ProfileCalibrateTimer ();
 	Zone_ResetProfileCounters ();
 	Q_memset (bench486_profile_stats, 0, sizeof(bench486_profile_stats));
 	Q_memset (bench486_profile_edges, 0, sizeof(bench486_profile_edges));
@@ -882,21 +929,40 @@ static void Bench486ProfileHotspots (int report_handle)
 	frame_seconds = Bench486ProfileFrameSeconds ();
 	for (i=0 ; i<count && i<12 ; i++)
 	{
+		unsigned long instr_reads;
+		double		floor_seconds;
+
 		node = order[i];
 		stat = &bench486_profile_stats[node];
+		instr_reads = (unsigned long)stat->calls +
+				Bench486ProfileChildReads (node);
+		floor_seconds = frame_seconds > 0
+				? instr_reads * bench486_profile_read_seconds
+				: 0;
 		sprintf (text,
 				"%2i %s self %.6f self%% %.2f inc %.6f calls %lu "
-				"work %lu bytes %lu\n",
+				"work %lu bytes %lu instr %lu%s\n",
 				i + 1, bench486_profile_node_names[node],
 				stat->self_seconds,
 				frame_seconds > 0 ? stat->self_seconds * 100.0 /
 						frame_seconds : 0,
 				stat->inclusive_seconds, stat->calls,
-				stat->work_items, stat->work_bytes);
+				stat->work_items, stat->work_bytes,
+				instr_reads,
+				floor_seconds > stat->self_seconds
+					? " [BELOW INSTRUMENTATION FLOOR]" : "");
 		Bench486ProfileReportText (report_handle, text);
 	}
 }
 
+/*
+A scope's measured self window physically contains its own LEAVE timer read plus
+the ENTER read of every child scope it invokes. Both are real Sys_FloatTime calls
+at roughly 250-305 cycles each, so a scope called N times cannot report a
+per-call cost below about 2N reads worth of time. Counting the reads charged
+into each node lets the report refuse to quote a per-call figure that its own
+instrumentation floor swamps.
+*/
 static void Bench486WriteProfileJson (int timedemo_frames,
 		float timedemo_seconds)
 {
@@ -922,16 +988,21 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_profile_timer_reads, bench486_profile_stack_overflows,
 			bench486_profile_bad_leaves, bench486_profile_max_depth,
 			bench486_profile_discarded_scopes);
+	Bench486ProfileJsonPrintf (file_handle,
+			"  \"instrumentation\": {\"timer\": \"Sys_FloatTime\", \"read_seconds\": %.9f, \"note\": \"Each scope charges one ENTER read to its parent and one LEAVE read to its own self time. A node's instr_reads is that floor; subtract it from self_seconds before quoting any per-call cost.\"},\n",
+			bench486_profile_read_seconds);
 
 	Bench486ProfileJsonPrintf (file_handle, "  \"nodes\": [\n");
 	for (child=0 ; child<BENCH486_PROFILE_NODE_COUNT ; child++)
 	{
+		unsigned long child_reads = Bench486ProfileChildReads (child);
 		stat = &bench486_profile_stats[child];
 		Bench486ProfileJsonPrintf (file_handle,
-				"    {\"id\": \"%s\", \"calls\": %lu, \"inclusive_seconds\": %.6f, \"self_seconds\": %.6f, \"work_items\": %lu, \"work_bytes\": %lu}%s\n",
+				"    {\"id\": \"%s\", \"calls\": %lu, \"inclusive_seconds\": %.6f, \"self_seconds\": %.6f, \"work_items\": %lu, \"work_bytes\": %lu, \"instr_reads\": %lu}%s\n",
 				bench486_profile_node_names[child], stat->calls,
 				stat->inclusive_seconds, stat->self_seconds,
 				stat->work_items, stat->work_bytes,
+				(unsigned long)stat->calls + child_reads,
 				child + 1 == BENCH486_PROFILE_NODE_COUNT ? "" : ",");
 	}
 	Bench486ProfileJsonPrintf (file_handle, "  ],\n");

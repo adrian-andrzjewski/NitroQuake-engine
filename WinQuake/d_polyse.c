@@ -760,6 +760,13 @@ void D_RasterizeAliasPolySmooth (void)
 	int				working_lstepx, originalcount;
 	int				skinwidth, sbase, tbase, sextra, textra;
 
+	// One scope per triangle rather than one per sub-block. The four per-call C
+	// scopes this replaces ran 110k-264k times each and spent more time inside
+	// Sys_FloatTime than they measured, so their per-call figures were dominated
+	// by the clock. The three ASM helpers keep their own scopes, so the self time
+	// left here is the C glue.
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_GLUE);
+
 	plefttop = pedgetable->pleftedgevert0;
 	prighttop = pedgetable->prightedgevert0;
 
@@ -784,7 +791,6 @@ void D_RasterizeAliasPolySmooth (void)
 //
 // scan out the top (and possibly only) part of the left edge
 //
-	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_EDGE_SETUP);
 	d_pedgespanpackage = a_spans;
 
 	ystart = plefttop[1];
@@ -806,11 +812,9 @@ void D_RasterizeAliasPolySmooth (void)
 	d_pz = zspantable[ystart] + plefttop[0];
 	// Multiply form: d_viewbuffer + ystart * screenwidth + plefttop[0]
 	// and d_pzbuffer + ystart * d_zwidth + plefttop[0].
-	BENCH486_PROFILE_LEAVE ();
 
 	if (initialleftheight == 1)
 	{
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SPAN_PACKAGE);
 		d_pedgespanpackage->pdest = d_pdest;
 		d_pedgespanpackage->pz = d_pz;
 		d_pedgespanpackage->count = d_aspancount;
@@ -824,16 +828,12 @@ void D_RasterizeAliasPolySmooth (void)
 		d_pedgespanpackage->zi = d_zi;
 
 		d_pedgespanpackage++;
-		BENCH486_PROFILE_LEAVE ();
 	}
 	else
 	{
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 		D_PolysetSetUpForLineScan(plefttop[0], plefttop[1],
 							  pleftbottom[0], pleftbottom[1]);
-		BENCH486_PROFILE_LEAVE ();
 
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_STEP_MATH);
 	#if	id386
 		d_pzbasestep = (d_zwidth + ubasestep) << 1;
 		d_pzextrastep = d_pzbasestep + 2;
@@ -880,7 +880,6 @@ void D_RasterizeAliasPolySmooth (void)
 	#endif
 		d_lightextrastep = d_lightbasestep + working_lstepx;
 		d_ziextrastep = d_zibasestep + r_zistepx;
-		BENCH486_PROFILE_LEAVE ();
 
 		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
 		D_PolysetScanLeftEdge (initialleftheight);
@@ -901,7 +900,6 @@ void D_RasterizeAliasPolySmooth (void)
 
 // TODO: make this a function; modularize this function in general
 
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_EDGE_SETUP);
 		ystart = plefttop[1];
 		d_aspancount = plefttop[0] - prighttop[0];
 		d_ptex = (byte *)r_affinetridesc.pskin + (plefttop[2] >> 16) +
@@ -913,11 +911,9 @@ void D_RasterizeAliasPolySmooth (void)
 
 		d_pdest = viewspantable[ystart] + plefttop[0];
 		d_pz = zspantable[ystart] + plefttop[0];
-		BENCH486_PROFILE_LEAVE ();
 
 		if (height == 1)
 		{
-			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SPAN_PACKAGE);
 			d_pedgespanpackage->pdest = d_pdest;
 			d_pedgespanpackage->pz = d_pz;
 			d_pedgespanpackage->count = d_aspancount;
@@ -931,16 +927,12 @@ void D_RasterizeAliasPolySmooth (void)
 			d_pedgespanpackage->zi = d_zi;
 
 			d_pedgespanpackage++;
-			BENCH486_PROFILE_LEAVE ();
 		}
 		else
 		{
-			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 			D_PolysetSetUpForLineScan(plefttop[0], plefttop[1],
 								  pleftbottom[0], pleftbottom[1]);
-			BENCH486_PROFILE_LEAVE ();
 
-			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_STEP_MATH);
 			d_pdestbasestep = screenwidth + ubasestep;
 			d_pdestextrastep = d_pdestbasestep + 1;
 
@@ -984,7 +976,6 @@ void D_RasterizeAliasPolySmooth (void)
 	#endif
 			d_lightextrastep = d_lightbasestep + working_lstepx;
 			d_ziextrastep = d_zibasestep + r_zistepx;
-			BENCH486_PROFILE_LEAVE ();
 
 			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
 			D_PolysetScanLeftEdge (height);
@@ -996,16 +987,12 @@ void D_RasterizeAliasPolySmooth (void)
 // count field
 	d_pedgespanpackage = a_spans;
 
-	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 	D_PolysetSetUpForLineScan(prighttop[0], prighttop[1],
 						  prightbottom[0], prightbottom[1]);
-	BENCH486_PROFILE_LEAVE ();
-	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SPAN_PACKAGE);
 	d_aspancount = 0;
 	d_countextrastep = ubasestep + 1;
 	originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of the spanpackages
-	BENCH486_PROFILE_LEAVE ();
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_DRAW_SPANS);
 	D_PolysetDrawSpans8 (a_spans);
 	BENCH486_PROFILE_LEAVE ();
@@ -1016,7 +1003,6 @@ void D_RasterizeAliasPolySmooth (void)
 		int				height;
 		spanpackage_t	*pstart;
 
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_EDGE_SETUP);
 		pstart = a_spans + initialrightheight;
 		pstart->count = originalcount;
 
@@ -1026,12 +1012,9 @@ void D_RasterizeAliasPolySmooth (void)
 		prightbottom = pedgetable->prightedgevert2;
 
 		height = prightbottom[1] - prighttop[1];
-		BENCH486_PROFILE_LEAVE ();
 
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_LINESCAN_SETUP);
 		D_PolysetSetUpForLineScan(prighttop[0], prighttop[1],
 							  prightbottom[0], prightbottom[1]);
-		BENCH486_PROFILE_LEAVE ();
 
 		d_countextrastep = ubasestep + 1;
 		a_spans[initialrightheight + height].count = -999999;
@@ -1040,6 +1023,8 @@ void D_RasterizeAliasPolySmooth (void)
 		D_PolysetDrawSpans8 (pstart);
 		BENCH486_PROFILE_LEAVE ();
 	}
+
+	BENCH486_PROFILE_LEAVE ();
 }
 
 

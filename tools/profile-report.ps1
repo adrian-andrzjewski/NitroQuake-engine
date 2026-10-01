@@ -3,7 +3,10 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$ProfileJson,
     [string]$BaselineResult,
-    [double]$BaselineSeconds = 0
+    [double]$BaselineSeconds = 0,
+    # Effective emulated clock for the pinned profile (tools\486-cost-model.ps1
+    # uses the same figure). Only used to render cycles.
+    [double]$CpuHz = 33445000.0
 )
 
 Set-StrictMode -Version Latest
@@ -36,6 +39,50 @@ if (-not $nodes.ContainsKey('frame')) {
 $frameSeconds = [double]$nodes['frame'].inclusive_seconds
 if ($frameSeconds -le 0) {
     $frameSeconds = [double]$profile.benchmark.demo_seconds
+}
+
+# Instrumentation floor. Each scope charges one ENTER read to its parent and one
+# LEAVE read to its own self window, so a node's self_seconds physically cannot
+# fall below the time those reads cost. Older profiles predate the calibration
+# field; fall back to deriving it from the gap against the release frame.
+$readSeconds = 0.0
+if ($profile.PSObject.Properties.Name -contains 'instrumentation' -and
+    $null -ne $profile.instrumentation -and
+    $profile.instrumentation.PSObject.Properties.Name -contains 'read_seconds') {
+    $readSeconds = [double]$profile.instrumentation.read_seconds
+}
+if ($readSeconds -le 0) {
+    Write-Warning ("This profile has no timer calibration. Re-run the instrumented build produced by the " +
+        "current host_cmd.c to get a per-read cost; without it the per-call figures below cannot be " +
+        "checked against their own instrumentation floor.")
+}
+
+function Get-InstrReads {
+    param($Node)
+    if ($Node.PSObject.Properties.Name -contains 'instr_reads') {
+        return [double]$Node.instr_reads
+    }
+    return 0.0
+}
+
+function Get-CorrectedSelf {
+    param($Node)
+    return [double]$Node.self_seconds - (Get-InstrReads $Node) * $readSeconds
+}
+
+function Test-BelowFloor {
+    param($Node)
+    return ((Get-InstrReads $Node) * $readSeconds) -gt [double]$Node.self_seconds
+}
+
+# A scope can sit above its floor and still be mostly clock. When the
+# instrumentation accounts for more than half the measured window, the reported
+# per-call figure is dominated by the measurement and must not be quoted as one.
+function Get-SignalFraction {
+    param($Node)
+    $self = [double]$Node.self_seconds
+    if ($self -le 0) { return 0.0 }
+    return 1.0 - ((Get-InstrReads $Node) * $readSeconds) / $self
 }
 
 function Format-Percent {
@@ -97,6 +144,11 @@ Write-Host (("Profile timer reads: {0}; maximum stack depth: {1}; stack errors: 
     $profile.profiler.timer_reads, $profile.profiler.max_depth,
     $profile.profiler.stack_overflows, $profile.profiler.bad_leaves,
     $profile.profiler.discarded_scopes)
+if ($readSeconds -gt 0) {
+    Write-Host (("Instrumentation floor: {0:0.000000000} s per Sys_FloatTime read = {1:0.0} cycles; " +
+        "a scope called N times cannot report less than about {2:0} cycles per call") -f
+        $readSeconds, ($readSeconds * $CpuHz), (2 * $readSeconds * $CpuHz))
+}
 if ($null -ne $fpsStats) {
     Write-Host (("Frame FPS: average {0:0.000000}, min {1:0.000000}, max {2:0.000000}, " +
         "median {3:0.000000}, 1% low {4:0.000000}, 0.1% low {5:0.000000}, " +
@@ -114,7 +166,68 @@ Write-Host 'Parent -> children performance tree (inclusive edge time; self node 
 Write-ProfileTree -ParentId $null -Depth 0 -Path @()
 
 Write-Host ''
-Write-Host 'Ranked hotspots by self time:'
+Write-Host 'Ranked hotspots by CORRECTED self time (instrumentation removed):'
+Write-Host 'A scope''s self window contains its own LEAVE read plus every child''s ENTER read, so raw self'
+Write-Host 'time is inflated by reads x per-read cost. LOW SIGNAL means most of the window was the clock.'
+$rank = 0
+foreach ($node in @($profile.nodes | Where-Object { (Get-CorrectedSelf $_) -gt 0 } |
+        Sort-Object { Get-CorrectedSelf $_ } -Descending | Select-Object -First 12)) {
+    $rank++
+    $corrected = Get-CorrectedSelf $node
+    $selfPercent = if ($frameSeconds -gt 0) {
+        $corrected * 100.0 / $frameSeconds
+    }
+    else { 0 }
+    $instr = Get-InstrReads $node
+    $signal = Get-SignalFraction $node
+    $flag = if (Test-BelowFloor $node) {
+        '  << BELOW FLOOR'
+    }
+    elseif ($signal -lt 0.5) {
+        '  << LOW SIGNAL'
+    }
+    else { '' }
+    $perCall = if ([int64]$node.calls -gt 0) {
+        "{0,7:0.0}" -f (($corrected / [int64]$node.calls) * $CpuHz)
+    }
+    else { '      -' }
+    Write-Host ("{0,2}. {1,-20} corrected {2,9:0.000000}s {3} raw {4,9:0.000000}s instr {5,9} reads signal {6,6:0.0}% {7:>8} cyc/call calls {8,7}{9}" -f
+        $rank, $node.id, $corrected, (Format-Percent $selfPercent),
+        [double]$node.self_seconds, $instr, ($signal * 100.0), $perCall,
+        $node.calls, $flag)
+}
+
+Write-Host ''
+Write-Host 'Scopes whose measured window is mostly instrumentation (LOW SIGNAL or BELOW FLOOR):'
+$weak = @($profile.nodes | Where-Object {
+        [double]$_.self_seconds -gt 0 -and
+        ((Test-BelowFloor $_) -or ((Get-SignalFraction $_) -lt 0.5))
+    })
+if ($weak.Count -eq 0) {
+    Write-Host '  (none)'
+}
+else {
+    foreach ($node in ($weak | Sort-Object { Get-SignalFraction $_ } |
+            Select-Object -First 14)) {
+        $raw = [double]$node.self_seconds
+        $rawPerCall = if ([int64]$node.calls -gt 0) {
+            "{0,7:0.0}" -f (($raw / [int64]$node.calls) * $CpuHz)
+        }
+        else { '      -' }
+        $sigPerCall = if ([int64]$node.calls -gt 0) {
+            "{0,7:0.0}" -f ((Get-CorrectedSelf $node) / [int64]$node.calls * $CpuHz)
+        }
+        else { '      -' }
+        Write-Host ("  {0,-22} calls {1,7}  raw {2,8:0.0} cyc/call -> signal {3,8:0.0} cyc/call  ({4:0.0}% signal)" -f
+            $node.id, $node.calls, $rawPerCall, $sigPerCall,
+            ((Get-SignalFraction $node) * 100.0))
+    }
+    Write-Host '  A raw per-call figure for these rows is a measurement of the clock, not of the code.'
+    Write-Host '  They are unmeasured, not cheap: do not port, delete, or close them on this evidence.'
+}
+
+Write-Host ''
+Write-Host 'Ranked hotspots by raw self time:'
 $rank = 0
 foreach ($node in @($profile.nodes | Where-Object { [double]$_.self_seconds -gt 0 } |
         Sort-Object { [double]$_.self_seconds } -Descending | Select-Object -First 12)) {

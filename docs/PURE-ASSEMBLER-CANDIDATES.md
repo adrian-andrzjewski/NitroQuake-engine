@@ -12,20 +12,24 @@ setup, recursion, and pointer-heavy control flow should remain in C unless a
 profile identifies a very specific hot path.
 
 **This survey is now closed as an optimization roadmap.** The alias-model path
-was subsequently instrumented down to the source level and found converged:
-three of its four hot callees are already assembly, and the remaining C
+was subsequently instrumented down to the source level and the remaining C
 (`linescan-setup`, `edge-setup`, `span-package`, `step-math`, `SetEdgeTable`)
-measures 253-304 cycles per call with no outlier. Texture spans remain the
-largest single cost at 22.34% of frame, but their addressing, load-order,
-tail-store, `stosw` and dword variants have all been tested. See
-`ASM486-HANDOFF.md` for the measured breakdown and the closing assessment.
+looked converged. **That convergence verdict was withdrawn on 2026-10-01**: the
+per-call figures behind it (253-304 cycles/call) were measured with a profiler
+whose own timer reads cost ~193 cycles, so 62-76% of each number was the clock.
+Re-measured with the scope amortized to one per triangle, the C glue costs
+1.83 s, a 3.1x overstatement — still thin, but now measured rather than assumed.
+See `ASM486-HANDOFF.md`, "Alias attribution corrected".
 
-Further work should not be chosen from this list. Before spending a timedemo
-on any 486-specific idea, read "What this harness can and cannot measure" in
-`ASM486-HANDOFF.md`: DOSBox-X does not model x87 latency, fetch boundaries,
-write-buffer occupancy, or 4 KB aliasing, so a measured null for those is weak
-evidence. Optimization effort belongs with ideas paid for in instruction count,
-memory traffic, or arithmetic.
+The two large regions that measurement *does* trust, and that had never been
+decomposed, are `world-bsp` (10.2% of frame, `R_RecursiveWorldNode` plus the
+~800-line `R_RenderFace`, `R_ClipEdge` and `R_EmitCachedEdge`) and `edge-scan`
+(8.0%, 1,373 cycles per scanline). Further work should not be chosen from this
+list. Before spending a timedemo on any 486-specific idea, read "What this
+harness can and cannot measure" in `ASM486-HANDOFF.md`: DOSBox-X does not model
+x87 latency, fetch boundaries, write-buffer occupancy, or 4 KB aliasing, so a
+measured null for those is weak evidence. Optimization effort belongs with ideas
+paid for in instruction count, memory traffic, or arithmetic.
 
 ## Candidate areas
 
