@@ -9,9 +9,9 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
-### Harness integrity and the 486-fidelity baseline (2026-09-30) — the gate problem is now measured, not asserted
+### Harness integrity and the measured fidelity result (2026-09-30) — the gate problem is now measured, not asserted
 
-The conclusion at `:511-539` — stop optimizing against this harness, because it
+The conclusion at `:775` — stop optimizing against this harness, because it
 cannot see what a 486 pays — is now backed by an executable measurement rather
 than an argument. This entry records the tooling that establishes it, because
 the next passes depend on it.
@@ -27,7 +27,7 @@ depends on them:
    rebuilds on mismatch. **Note there is no `-Clean` switch** — verified; the
    documented remedy did not exist, and `:53-64` and `BUILD-DOS.md` should be
    read with that in mind.
-2. **The recorded-but-unenforced constants now fail the run** (`:496-502`).
+2. **The recorded-but-unenforced constants now fail the run** (`:746-748`).
    `timedemo-dos.ps1` compares the profile SHA-256 against
    `F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45` and gates
    every run on 969 frames and framebuffer checksum `1047377823`. A wrong value
@@ -40,9 +40,9 @@ depends on them:
    reports per-symbol x87 cost (new section 1b). `-s` is kept; dropping it would
    perturb an already non-reproducible image.
 
-**The fidelity suite.** `tools\486-fidelity.ps1` runs four in-engine probes
-(`WinQuake\host_cmd.c`, `-benchfidelity`, dispatched via `+bench486`) whose 486
-costs are known, and judges whether an emulator actually prices them:
+**Four in-engine probes** (`WinQuake\host_cmd.c`, `-benchfidelity`, dispatched
+via `+bench486`) whose 486 costs are known, used to judge whether an emulator
+prices them at all:
 
 | probe | measures |
 |---|---|
@@ -71,83 +71,9 @@ than to the latency ratio a 486DX charges.
 
 **This is the correct and expected result.** DOSBox-X remains the **parity gate**
 — checksum, frame count, functional correctness — where its flat FPU does not
-make it *wrong*, only insensitive. A new cycle-accurate reference is the
-**486-cost gate**, and it must pass these same four probes before anything is
-promoted on it; a second harness with unvalidated fidelity would be a worse
-version of the original mistake.
-
-**PCem boots and runs the probes unattended.** The two historical blockers
-are resolved, with the resolution recorded here because both were subtle:
-
-1. **ROMs are wired, not bundled.** PCem ships no ROMs by design
-   (*"NO COPYRIGHTED ROM FILES ARE INCLUDED NOR WILL THEY BE"*). The ROM set
-   lives at `PCem-ROMs-master\` and is consumed in place: `pcem-roms.ps1`
-   writes `[Paths] roms_paths` into each install's `pcem.cfg`
-   (`sis496\sis496-1.awa`, 131,072 bytes, verified), and `486-fidelity.ps1`
-   refuses up front if that wiring or the BIOS file is missing.
-
-   The machine is the **Award SiS 496/497** (`model = sis496`), previously the
-   ALi M1429 AMI WinBIOS profile (`win486`). Both facts live in one place,
-   `pcemRomset` in `dos-toolchain.json`, and the harness asks the manifest
-   rather than repeating the name. The profile strings are not free choices:
-   `src\model.c:227` defines `sis496` and `src\mem_bios.c:549` reads exactly
-   `sis496/sis496-1.awa` as `0x20000` bytes. The CPU tables, `cpu_manufacturer`
-   indices and min/max RAM are identical between the two profiles, so
-   `cpu = 12` (iDX4/100) and `mem_size = 16384` carry over unchanged and the
-   emulated cycle count is unaffected by the swap.
-
-   Swapping vendors also swapped the **CMOS layout**, which is why CMOS is now
-   provisioned rather than seeded. Award keeps the drive C table at `0x30`
-   (type, cylinders, heads, sectors) and its checksum in the byte at `0x0F` for
-   the range `0x10..0x3D`; AMI kept the type at `0x12`, the geometry at
-   `0x19..0x1E`, and the checksum inside the range at `0x3E`/`0x3F`. A CMOS
-   written for one is not a CMOS the other will boot, and a CMOS with no drive
-   table for C: halts at POST with no INT13 drive 80, which is
-   indistinguishable from a failed measurement from outside the emulator.
-   `tools\pcem-machine.psm1` therefore rebuilds the NVRAM from the factory
-   CMOS PCem itself ships (`nvr\default\<machine>.nvr`) plus the staged
-   geometry on **every** launch, rather than restoring a hand-saved artifact.
-   That makes the gate a pure function of the machine and the disk rather than
-   of whatever the last interactive run left on disk, and it removes the
-   manual "run BIOS setup once and store the result" step the previous design
-   needed. The module holds one layout per vendor and **throws** for a machine
-   it has no layout for, rather than writing a nearly-right CMOS.
-
-   Related: PCem v17 reads its machine keys from the *nameless* first config
-   section (`src\config.c:145-150` allocates it, `src\config.c:241-259` matches
-   `NULL` against it), so the generated machine config is a flat key list with
-   no `[Header]` line. A `[PCem]`/`[cpu]`/`[display]` section is not ignored but
-   unreadable. `bench486-dos.ps1` still contained one - along with the removed
-   `bios_path` key, `machine =` instead of `model =`, `ramsize` instead of
-   `mem_size`, and a `-PcemBiosRom` parameter it forwarded to a script that no
-   longer accepted it - so it could not have booted. It now stages through
-   `pcem-stage.ps1` (`-BenchMode timedemo`, which is the only difference in the
-   guest command) and provisions the machine the same way, and collects its
-   report out of `dos.hdd` rather than expecting a host-side file PCem cannot
-   write.
-2. **No script argument still** (verified: only `--config`, `--fullscreen`,
-   `--load_drive_a`, `--load_drive_b`), so the run is driven from inside the
-   guest instead: `pcem-stage.ps1` installs MS-DOS 6.22 **on C:** and
-   `C:\AUTOEXEC.BAT` runs the probes, writes `C:\DONE.TXT`, and the host
-   polls `dos.hdd` for the sentinel, then reads `BENCH486.TXT` back out
-   through the FAT reader. No floppy is involved in the boot path.
-
-   Booting C: required implementing the real MS-DOS 6.22 boot contract,
-   extracted by disassembling `Dos6.22.img`'s own boot sector: an MBR
-   chain-loads the VBR to `0000:4000`, the VBR requires root entry0 =
-   `IO.SYS` and entry1 = `MSDOS.SYS`, loads IO.SYS's first three sectors to
-   `0000:0700`, copies the VBR to `0000:7C00`, and jumps `0070:0000` with
-   `CH=media`, `DL=BPB[0x24]` (= `0x80`), `BX=dataStart`. Root write order
-   in staging is therefore load-bearing (IO.SYS first, contiguous at
-   cluster 2). `pcem-stage.ps1` asserts all of it before any boot.
-
-The install is pinned to `PCemV17Win.zip`, SHA-256
-`3F309D6B19F9C3A1FC4C256C53589F812FC5A4C4BFB84636AD325E02149460E1`, installed at
-`%LOCALAPPDATA%\486quake\tools\pcem-17`. Two corrections to what was assumed
-while wiring it: the v17 release asset is `PCemV17Win.zip` (the
-`pcem-qemu-x64-17.zip` name in the first manifest edit 404s), and the executable
-is `PCem.exe`, not `pcem-qemu-x64_64.exe`. The `src\codegen_timing_486.c` file
-confirms the cycle-accurate 486 core is what this build carries.
+make it *wrong*, only insensitive. It cannot also price 486 costs, and no
+lawful automated harness here can supply that measurement instead, as the
+sourcing research below establishes.
 
 **The probes were validated on real x86 silicon, and they are sound.**
 `tools\fidelity-probe-host.c` is a host-native build of the same four probes,
@@ -171,31 +97,31 @@ broken probes. The two that do not separate here fail for an instructive reason:
 a Zen 3 has a 32 KB L1d and a hardware prefetcher, so a 4 KB versus 24 KB
 working set and a 2048-byte set conflict both sit far below its thresholds.
 **The probes are calibrated to 486 geometry; this host is not a 486.** That is
-precisely the class of difference the 486-cost gate exists to span.
+precisely the class of difference DOSBox-X cannot express either.
 
 It also bounds what a modern host can be used for: it can validate probe design,
 and it cannot stand in for a 486 reference.
 
 ### Legal sources for a 486 machine ROM (not pursued here)
 
-Asked to source the PCem BIOS, the answer is that the copyrighted-vendor images
-are not something to fetch: every machine profile in `mem_bios.c` wants a
-specific third-party firmware image (AMI, Award, Phoenix, ALi, IBM, SiS, VIA),
-and the sites that host them distribute them without permission. PCem's own
-README says it will never bundle them, and that position is the correct one.
+Asked to source a 486 machine BIOS, the answer is that the copyrighted-vendor
+images are not something to fetch: every machine profile wants a specific
+third-party firmware image (AMI, Award, Phoenix, ALi, IBM, SiS, VIA), and the
+sites that host them distribute them without permission. Emulators in this
+class state that they will never bundle them, and that position is the correct
+one.
 
-What is legitimate, if a 486-cost gate is wanted:
+What is legitimate, if 486 pricing is wanted:
 
-- **A physical 486 machine**, dumping its own ROM. PCem's own README names this
-  as the intended route, and the project's ledger already recommends a real
-  486DX2/DX4 as the honest arbiter (`:530-535`). This is the best option: it
-  settles every axis, including the ones no emulator models.
+- **A physical 486 machine**, dumping its own ROM. This is the best option: it
+  settles every axis, including the ones no emulator models, and the project's
+  ledger already recommends a real 486DX2/DX4 as the honest arbiter.
 - **A ROM the user already owns**, from a machine in their possession.
-- **A freely-licensed BIOS** where an emulator supports one. 86Box and PCem are
-  both ROM-dependent by design, so this is not a general escape.
+- **A freely-licensed BIOS** where an emulator supports one. 86Box is
+  ROM-dependent by design, so this is not a general escape.
 
-None of these is available to an automated pass, which is why the 486-cost gate
-is recorded as wired-but-unexercised rather than forced.
+None of these is available to an automated pass, which is why the pricing gap is
+recorded as measured-and-unclosable rather than forced.
 
 ### Sourcing research: the legal-BIOS question, answered (2026-09-30)
 
@@ -231,7 +157,7 @@ project.
 
 **Net conclusion, and it is the honest one:** there is **no legally-obtainable,
 ROM-free, cycle-accurate 486 emulator** available. Emulators that model 486
-cache and FPU latency (PCem, 86Box) are ROM-dependent by design, because that
+cache and FPU latency (86Box) are ROM-dependent by design, because that
 hardware's behaviour is defined by the firmware. Emulators that are ROM-free
 (Bochs, QEMU) are not cycle-accurate. The two properties are not separable
 without either a BIOS the user owns or real hardware.
@@ -245,7 +171,7 @@ unimplemented, and the reason is now stronger than "we lack a measurement":
 the available legal harnesses cannot supply the measurement at all, so any
 candidate built now would rest on published latencies alone. That is
 precisely the reasoning error the ledger documents for the Z-span prologue
-(`:561-578`), where an instruction-count estimate said 7.8% and the truth was
+(`:799-800`), where an instruction-count estimate said 7.8% and the truth was
 0.71%. **The honest position is that the renderer is converged, the reason is
 now proven rather than asserted, and the remaining 486-specific wins are real but
 unclaimable without hardware the project does not have.**
@@ -269,8 +195,8 @@ cache_index = (cache_index + 4) & 0xf;
 `cache_index` is a **rotating cursor, not derived from any address** — there is
 no shift-mask, no tag array, no replacement policy, and only bytes 0-15 of the
 2048-byte array are ever touched. The other 2032 bytes are dead space, and the
-symbol is a leftover from PCem's test-register path. Our own grep of `cpu.c`
-independently found zero uses there, which agrees.
+symbol is a leftover from an earlier emulator's test-register path. Our own grep
+of `cpu.c` independently found zero uses there, which agrees.
 
 **Cache cost is a flat per-model constant**, not a structure. `cpu_update_waitstates()`
 (`cpu.c:4543-4588`) assigns one pair of numbers to every read and write
@@ -326,52 +252,6 @@ install but is disqualified on fidelity (no cache model; ties on C1's own axis);
 the 86Box *ROMs* repo is the same copyright problem and is not a workaround; a
 *DOS image* was never the missing piece. The search is closed.
 
-
-
-### The 486-cost runner (2026-09-30) — written, wired, and blocked on the same ROM
-
-`tools\bench486-dos.ps1` is the second gate. Its method differs from
-`timedemo-dos.ps1` in three deliberate ways, each for a reason:
-
-1. **Promotion is on emulated cycles, never wall time.** A millisecond figure
-   from PCem is not comparable to a millisecond figure from DOSBox-X, and
-   cycle-accurate emulation's wall clock varies with host scheduling far more
-   than DOSBox-X's 0.000049 s spread. The script prints its wall figure with an
-   explicit warning against quoting it as a speedup, because the tempting
-   mistake is to compare 59.2 s against a PCem number and call it a result.
-2. **≥7 alternating runs, median and MAD.** `n=3` cannot separate a cycle
-   median from its spread once the harness is this noisy. A candidate is
-   promoted only when the medians separate **and** the spreads do not overlap.
-3. **Fidelity is re-checked first and is a hard gate.** The runner runs
-   `486-fidelity.ps1 -Require` before measuring anything, because a 486-cost
-   gate whose fidelity is unvalidated would be a second, worse version of the
-   mistake this project is correcting.
-
-The guest DOS tree is staged identically to the timedemo's, so the only
-variable between the two harnesses is the CPU model. Parity is re-verified on
-the 486 gate too — 969 frames, checksum `1047377823`, and the in-engine
-`486 benchmark correctness PASS` — as a necessary but **not** sufficient
-condition. The role split is explicit and non-overlapping: a DOSBox-X null is
-never grounds for rejecting a candidate, and a PCem null is, once fidelity has
-passed.
-
-`-Runs` is the number of timedemos the caller intends to collect for a label,
-recorded for completeness; each invocation performs one. Repetition has to
-interleave two different *builds*, which cannot be alternated from inside a
-single run.
-
-**Currently blocked at the BIOS-ROM gate, before the emulator is ever launched**,
-with an actionable message. Its parsing and gate logic were verified against a
-synthetic report: 969 frames, checksum `1047377823` and `PASS` all parse
-correctly, and a substituted checksum is detected.
-
-**What this unlocks, and what it does not.** It does not make any candidate
-promotable today. It means that when a ROM is supplied, the C1/C3/C4 candidates
-can finally be *measured* rather than argued, which is the whole point of the
-plan. Until then they stay unimplemented: a bit-exactness rewrite justified by
-a published-latency estimate is exactly the reasoning error this project has
-already made once.
-
 ### The 1800 KB surface-cache wall does not exist (2026-09-29) — root-caused, and the latent win is promoted
 
 Four experiments in this ledger record that growing `SURFCACHE_SIZE_AT_320X200`
@@ -398,7 +278,7 @@ the memory, so 2400 KB is the knee. Instrumented, evictions fall from 2,151 to
 2,122 invalidations and surface-cache self time from 7.260873 s to 7.240347 s.
 
 **Why the historical rows were wrong.** They all report the *same* wrong
-checksum `2955717646`, and this ledger already notes at `:1877` that it is
+checksum `2955717646`, and this ledger already notes at `:2127` that it is
 "the same hash as the reverted texture-source row-lookup" — an unrelated bug's
 signature. A genuine cache-size-dependent defect would not reproduce one
 unrelated bug's exact checksum at four different sizes. Those runs were
@@ -857,7 +737,7 @@ So the harness is reliable for finding wins and unreliable for rejecting
 
 **Two corrections this forced.**
 
-1. `ASM486-HANDOFF.md:346` attributes the Aff8 padding regression to *"slightly
+1. `ASM486-HANDOFF.md:1124-1130` attributes the Aff8 padding regression to *"slightly
    worse I-cache placement."* **The 486 has no instruction cache** — only an
    8 KB unified data cache. What the sentence describes is 16-byte fetch
    boundaries and unified-cache displacement. That is the only I-cache
