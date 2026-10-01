@@ -261,6 +261,13 @@ void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 	float		d0, d1, f;
 	mvertex_t	clipvert;
 
+#ifdef PROFILE486
+	extern unsigned long bench486_clipedge_calls;
+	extern unsigned long bench486_clipvert_clips;
+	if (bench486_profile_frame_active)
+		bench486_clipedge_calls++;
+#endif
+
 	if (clip)
 	{
 		do
@@ -364,6 +371,12 @@ void R_EmitCachedEdge (void)
 {
 	edge_t		*pedge_t;
 
+#ifdef PROFILE486
+	extern unsigned long bench486_emitcachededge_calls;
+	if (bench486_profile_frame_active)
+		bench486_emitcachededge_calls++;
+#endif
+
 	pedge_t = (edge_t *)((unsigned long)r_edges + r_pedge->cachededgeoffset);
 
 	if (!pedge_t->surfs[0])
@@ -436,6 +449,13 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	medge_t		*pedges, tedge;
 	clipplane_t	*pclip;
 	int			*psurfedges;
+
+#ifdef PROFILE486
+	extern unsigned long bench486_renderface_calls;
+	extern unsigned long bench486_renderface_emitted;
+	if (bench486_profile_frame_active)
+		bench486_renderface_calls++;
+#endif
 
 // skip out if no more surfs
 	if ((surface_p) >= surf_max)
@@ -1209,6 +1229,11 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 // if no edges made it out, return without posting the surface
 	if (!r_emitted)
 		return;
+
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_renderface_emitted++;
+#endif
 
 	r_polycount++;
 

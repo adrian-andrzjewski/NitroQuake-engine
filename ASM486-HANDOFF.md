@@ -1064,6 +1064,83 @@ inadmissibility of the x87/fetch/write-buffer/aliasing axes, and the closure of
 E0, E4, the bmodel `FIXME`, and `Turbulent8` all stand. The two buckets this
 re-opens as unmeasured rather than closed are `world-bsp` (10.2%) and
 `edge-scan` (8.0%) — both high signal, both never structurally decomposed.
+They are resolved immediately below.
+
+### `world-bsp` decomposed (2026-10-01) — it was never the BSP walk; 85% of it is per-face edge setup
+
+`world-bsp` sat at 10.2% of frame as a single opaque bucket covering
+`R_RecursiveWorldNode`, the ~800-line `R_RenderFace`, `R_ClipEdge` and
+`R_EmitCachedEdge`, with no split. Four PROFILE486 counters were added first
+(plain increments, no timer reads) to size the callees before committing to a
+scope, because sizing the scope by guesswork is how the alias table went wrong.
+
+```text
+renderface-calls    215,720   (222.6 per frame)
+renderface-emitted  104,642   (107.9 per frame; 48.5% of calls emit a surface)
+clipedge-calls            0   <-- the C R_ClipEdge is not the one that runs
+emitcached-calls   121,467   (125.3 per frame; 56% of calls hit the edge cache)
+```
+
+`clipedge-calls 0` is itself a result: `R_ClipEdge` is `r_drawa.s` assembly in
+every promoted build, so the C reference in `r_draw.c` is dead code on this
+path. The 486,253 calls per run that do **not** hit `R_EmitCachedEdge` go
+through the assembly clipper.
+
+222 calls/frame is low enough to scope. One `renderface` scope around the three
+`R_RenderFace` call sites in `r_bsp.c` splits the bucket cleanly
+(`out\dos-timedemo-20261001-171323`, checksum `1047377823`):
+
+```text
+region        corrected   % of frame   signal   per call
+renderface      6.549 s       8.29%     84.0%   1015 cyc/call
+world-bsp       2.157 s       2.73%     63.9%   (the walk, after subtraction)
+```
+
+**The BSP traversal is not the cost.** It is 2.7% of frame, and `R_RenderFace`
+is 8.3% — **85% of what was filed as "world BSP" is per-face edge setup.** The
+profile has been steering by "world-bsp 9-11%" for several passes, and that
+number was really the face-setup bucket wearing the wrong label.
+
+**Price, and the admissibility split.** `renderface` is 226,000 cycles/frame,
+**221x the 1,022-cycle gate**, so this is the largest admissible-axis pool found
+so far. But most of it is the assembly `R_ClipEdge`, and its 12 serialized x87
+instructions per clip plane are the **blind axis** — a change there pays in x87
+latency, which DOSBox-X cannot register, so it is inadmissible however large
+the prize. Only the instruction-count part of `R_RenderFace` — the unrolled
+per-edge dispatch scaffolding, the clip-plane link setup, and the cache
+validation in front of `R_EmitCachedEdge` — is admissible, and it has never
+been separated from the clipper. That separation is the next task, and it needs
+a probe rather than a timer, for the reason in the next section.
+
+### `edge-scan` cannot be decomposed (2026-10-01) — the arithmetic forbids it, do not retry
+
+`edge-scan` is 7.65% of frame and was the other undecomposed bucket. The
+counters give 73 inserts, 72 removes, 151 steps and 152 span generations per
+frame, so the whole bucket is 448 operations:
+
+```text
+edge-scan corrected budget   208,581 cycles/frame
+operations per frame                448
+cost per operation                  466 cycles
+timer floor per scope               387 cycles   (2 reads x 193.3)
+best achievable signal              17.0%
+```
+
+**Any per-call scope over these routines would report at most 17% signal.** At
+466 cycles of real work per operation against a 387-cycle floor, a decomposition
+would be measuring `Sys_FloatTime`, which is precisely the error that produced
+the withdrawn alias table. Adding one anyway would also cost 868k reads and put
+the build back above its previous 2.78M.
+
+**So `edge-scan` is closed as unresolvable by this instrument, not as converged.**
+Its components (`R_InsertNewEdges`, `R_RemoveEdges`, `R_StepActiveU`,
+`R_GenerateSpans` in `r_edgea.s`) are hand-tuned assembly with roughly twenty
+logged micro-experiments already rejected, so there is no strong reason to
+expect an unmeasured win. The honest statement is that a real win there would
+need the dead-scratch probe or real hardware, not another scope. **Do not add a
+scope to `edge-scan`; the floor arithmetic above is the reason, and it will not
+improve with more runs.**
+
 - Do not add a fourth level of per-call instrumentation here. The measurement
   cost now rivals the signal, and no further decision hinges on it. If more
   resolution is ever needed, amortize: time a whole span or a whole triangle

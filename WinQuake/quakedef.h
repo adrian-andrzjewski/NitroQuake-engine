@@ -68,8 +68,12 @@ typedef enum
 	BENCH486_PROFILE_SETUP,
 	BENCH486_PROFILE_VISIBILITY,
 	BENCH486_PROFILE_EDGE_DRAWING,
-	BENCH486_PROFILE_WORLD_BSP,
-	BENCH486_PROFILE_EDGE_SCAN,
+BENCH486_PROFILE_WORLD_BSP,
+// Coarse scope over R_RenderFace. The BSP walk and the per-face edge setup are
+// otherwise indistinguishable inside world-bsp's self time. Low call count by
+// construction (once per visible face), so the scope is affordable.
+BENCH486_PROFILE_RENDERFACE,
+BENCH486_PROFILE_EDGE_SCAN,
 	BENCH486_PROFILE_SURFACES,
 	BENCH486_PROFILE_SURFACE_CACHE,
 	BENCH486_PROFILE_GRADIENTS,

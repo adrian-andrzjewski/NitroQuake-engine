@@ -97,6 +97,15 @@ unsigned long bench486_texture_span_segments;
 unsigned long bench486_texture_span_buckets[5];
 unsigned long bench486_texture_widths[17];
 unsigned long bench486_texture_final_lengths[17];
+// Premise counters for the world-bsp and edge-scan decomposition. These are
+// plain increments with no timer reads, so they can be measured at any
+// granularity; they exist to decide where a coarse scope is worth adding
+// rather than to time anything.
+unsigned long bench486_renderface_calls;
+unsigned long bench486_renderface_emitted;
+unsigned long bench486_clipedge_calls;
+unsigned long bench486_emitcachededge_calls;
+unsigned long bench486_clipvert_clips;
 unsigned long bench486_texture_full_tzero;
 unsigned long bench486_texture_full_tdelta_zero;
 unsigned long bench486_texture_full_tfrac_zero;
@@ -207,6 +216,7 @@ static char *bench486_profile_node_names[BENCH486_PROFILE_NODE_COUNT] =
 	"visibility",
 	"edge-drawing",
 	"world-bsp",
+	"renderface",
 	"edge-scan",
 	"surfaces",
 	"surface-cache",
@@ -1117,6 +1127,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"surfaces\": %lu, \"surface_drawn\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
 			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu, \"gib_trail_particles\": %lu,\n"
 			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu,\n"
+			"    \"renderface_calls\": %lu, \"renderface_emitted\": %lu, \"clipedge_calls\": %lu, \"emitcachededge_calls\": %lu,\n"
 			"    \"texture_span_buckets\": [%lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_widths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_final_lengths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
@@ -1139,6 +1150,8 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_gib_trail_particles,
 			bench486_present_rects, bench486_present_pixels,
 			bench486_sound_update_calls, bench486_sound_mix_calls,
+			bench486_renderface_calls, bench486_renderface_emitted,
+			bench486_clipedge_calls, bench486_emitcachededge_calls,
 			bench486_texture_span_buckets[0], bench486_texture_span_buckets[1],
 			bench486_texture_span_buckets[2], bench486_texture_span_buckets[3],
 			bench486_texture_span_buckets[4],
@@ -1228,6 +1241,11 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_span_buckets[2] = 0;
 	bench486_texture_span_buckets[3] = 0;
 	bench486_texture_span_buckets[4] = 0;
+	bench486_renderface_calls = 0;
+	bench486_renderface_emitted = 0;
+	bench486_clipedge_calls = 0;
+	bench486_emitcachededge_calls = 0;
+	bench486_clipvert_clips = 0;
 	for (i=0 ; i<17 ; i++)
 	{
 		bench486_texture_widths[i] = 0;
@@ -1427,6 +1445,12 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_scanlines, bench486_edge_insert_calls,
 			bench486_edge_remove_calls, bench486_edge_step_calls,
 			bench486_span_flushes);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-work renderface-calls %lu renderface-emitted %lu "
+			"clipedge-calls %lu emitcached-calls %lu\n",
+			bench486_renderface_calls, bench486_renderface_emitted,
+			bench486_clipedge_calls, bench486_emitcachededge_calls);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
 			"profile-work surface-spans %lu surface-pixels %lu "
