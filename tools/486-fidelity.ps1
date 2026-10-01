@@ -52,11 +52,24 @@ param(
 
     [int]$TimeoutSeconds = 600,
 
-    # PCem only. PCem ships no copyrighted BIOS ROMs, so a 486 machine ROM must
-    # be supplied for the 486-cost gate to run. Defaults to the win486 profile
-    # path under the PCem install.
-    [string]$PcemMachine = 'win486',
-    [string]$PcemBiosRom,
+    # PCem only. ROMs are not supplied here: PCem ships none by design, and
+    # the ROM set this project uses is consumed in place via [Paths]
+    # roms_paths (tools\pcem-roms.ps1 wires it; pcemRomset in the manifest
+    # locates it). What is tunable is the machine itself. The default is the
+    # manifest's machine, Award SiS 496/497.
+    [string]$PcemMachine = '',
+
+    # cpus_i486[] index (src\cpu_tables.c): 12 = iDX4/100, 10 = i486DX2/66.
+    # Exposed so the cross-check run at a slower 486 can be made without
+    # editing the script.
+    [int]$PcemCpuIndex = 12,
+
+    # KiB. 16384 matches the DOSBox-X reference profile; Quake needs >= 8 MB.
+    [int]$PcemMemKiB = 16384,
+
+    # Override the manifest's PCem install directory (rarely needed; both
+    # installs are recorded in dos-toolchain.json).
+    [string]$PcemRoot,
 
     # Fail rather than report. Use this in any gate that depends on the answer.
     [switch]$Require,
@@ -86,6 +99,11 @@ if (-not (Test-Path -LiteralPath $DataRoot -PathType Container)) {
 }
 
 $manifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
+# Used by the PCem branch to stage images and poll the guest's sentinel.
+Import-Module (Join-Path $PSScriptRoot 'FatImage.psm1') -Force
+# Emits the machine config and provisions the machine's CMOS (see its header
+# for why both live in one place).
+Import-Module (Join-Path $PSScriptRoot 'pcem-machine.psm1') -Force
 $profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
 if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
     throw "486 profile is missing: '$profilePath'."
@@ -105,7 +123,12 @@ else {
     if ($null -eq $manifest.pcem) {
         throw 'The toolchain manifest has no "pcem" block.'
     }
-    $pcemRoot = Join-Path $ToolRoot $manifest.pcem.installDirectory
+    if (-not [string]::IsNullOrWhiteSpace($PcemRoot)) {
+        $pcemRoot = [IO.Path]::GetFullPath($PcemRoot)
+    }
+    else {
+        $pcemRoot = Join-Path $ToolRoot $manifest.pcem.installDirectory
+    }
     $emulatorPath = Join-Path $pcemRoot ($manifest.pcem.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
     $emulatorVersion = $manifest.pcem.version
     if ([string]::IsNullOrWhiteSpace([string]$manifest.pcem.sha256)) {
@@ -137,8 +160,8 @@ if (-not (Test-Path -LiteralPath $BenchmarkExe -PathType Leaf)) {
 }
 
 # ---------------------------------------------------------------------------
-# Stage the run: Quake, the DPMI host, and the id1 data, exactly as the
-# timedemo and bench runners do.
+# Stage the run. DOSBox-X gets a host directory, exactly as the timedemo and
+# bench runners do; PCem gets disk images (it cannot mount host paths).
 # ---------------------------------------------------------------------------
 $runName = 'dos-fidelity-' + $Emulator + '-' + (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
 $stagingRoot = Join-Path (Join-Path $repoRoot 'out') $runName
@@ -146,30 +169,47 @@ if (Test-Path -LiteralPath $stagingRoot) {
     throw "Fidelity staging path already exists; refusing to overwrite '$stagingRoot'."
 }
 $quakeRoot = Join-Path $stagingRoot 'quake'
-$stagedData = Join-Path $quakeRoot 'id1'
-New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
+$pcemStage = $null
+if ($Emulator -eq 'dosbox-x') {
+    $stagedData = Join-Path $quakeRoot 'id1'
+    New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
-Copy-Item -LiteralPath $BenchmarkExe -Destination (Join-Path $quakeRoot 'qbench.exe') -Force
-$dpmiSource = Join-Path $repoRoot 'WinQuake\cwsdpmi.exe'
-if (Test-Path -LiteralPath $dpmiSource -PathType Leaf) {
-    Copy-Item -LiteralPath $dpmiSource -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
-}
-$pak0 = Get-ChildItem -LiteralPath $DataRoot -Filter 'pak0.pak' -File | Select-Object -First 1
-if ($null -eq $pak0) {
-    throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not in Git."
-}
-Copy-Item -LiteralPath $pak0.FullName -Destination (Join-Path $stagedData 'pak0.pak') -Force
+    Copy-Item -LiteralPath $BenchmarkExe -Destination (Join-Path $quakeRoot 'qbench.exe') -Force
+    $dpmiSource = Join-Path $repoRoot 'WinQuake\cwsdpmi.exe'
+    if (Test-Path -LiteralPath $dpmiSource -PathType Leaf) {
+        Copy-Item -LiteralPath $dpmiSource -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
+    }
+    $pak0 = Get-ChildItem -LiteralPath $DataRoot -Filter 'pak0.pak' -File | Select-Object -First 1
+    if ($null -eq $pak0) {
+        throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not in Git."
+    }
+    Copy-Item -LiteralPath $pak0.FullName -Destination (Join-Path $stagedData 'pak0.pak') -Force
 
-$batchPath = Join-Path $quakeRoot 'fidelity.bat'
-# '+bench486' is what actually runs the command at startup; -benchfidelity is
-# only a selector that Bench486_f reads. Omitting the '+' leaves Quake with
-# nothing to do and it falls into its demo loop instead of probing anything.
-@(
-    '@echo off',
-    'cd \quake',
-    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfidelity -benchexit',
-    'exit'
-) | Set-Content -LiteralPath $batchPath -Encoding ASCII
+    $batchPath = Join-Path $quakeRoot 'fidelity.bat'
+    # '+bench486' is what actually runs the command at startup; -benchfidelity is
+    # only a selector that Bench486_f reads. Omitting the '+' leaves Quake with
+    # nothing to do and it falls into its demo loop instead of probing anything.
+    @(
+        '@echo off',
+        'cd \quake',
+        'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfidelity -benchexit',
+        'exit'
+    ) | Set-Content -LiteralPath $batchPath -Encoding ASCII
+}
+else {
+    # PCem cannot mount a host directory, so the guest tree lives inside
+    # dos.hdd: pcem-stage.ps1 installs MS-DOS on C: (bootable MBR + VBR
+    # chain loader) with C:\AUTOEXEC.BAT running the probes and writing
+    # C:\DONE.TXT. The host staging directory only needs to exist so the
+    # report read back out of the image has somewhere to land for the shared
+    # parser below. No floppy image is involved.
+    New-Item -ItemType Directory -Path $quakeRoot -Force | Out-Null
+    $pcemStage = & (Join-Path $PSScriptRoot 'pcem-stage.ps1') `
+        -StagingRoot $stagingRoot -BenchmarkExe $BenchmarkExe -DataRoot $DataRoot
+    if ($null -eq $pcemStage) {
+        throw "pcem-stage.ps1 produced no result. Staged run: $stagingRoot"
+    }
+}
 
 # ---------------------------------------------------------------------------
 # Launch.
@@ -202,54 +242,97 @@ exit
     $arguments = @('-conf', $configPath, '-exit') -join ' '
 }
 else {
-    # PCem is configured with its own INI-style config file, not a DOSBox conf,
-    # and its CLI accepts only --config/--fullscreen/--load_drive_a/--load_drive_b
-    # (verified with `PCem.exe --help`). There is no script argument, so the
-    # staged DOS batch cannot be handed to it directly.
+    # PCem is configured with its own config file, not a DOSBox conf, and its
+    # CLI accepts only --config/--fullscreen/--load_drive_a/--load_drive_b
+    # (verified with `PCem.exe --help`). Two dashes matter: a single dash is
+    # silently ignored and PCem boots model 0 with 4 MB while reporting success.
     #
-    # It also requires a machine BIOS ROM. PCem ships none, by design: its
-    # README states "NO COPYRIGHTED ROM FILES ARE INCLUDED NOR WILL THEY BE".
-    # A 486 machine profile and its ROM path are therefore configured here, and
-    # the run is refused up front if the ROM is absent, rather than launching an
-    # emulator that cannot boot.
+    # Every key below is one src\pc.c:698-816 actually reads, in the blank
+    # section (keys before any [header] land in CFG_MACHINE's "" section).
+    # Notable values: cdrom_channel must be -1 because its default of 2 makes
+    # src\ide.c:278 unconditionally retype channel 2 as CDROM and shadow the
+    # hard disk; gfxcard is deliberately absent, because pc.c:720-724 maps an
+    # empty value to standard VGA, which is Quake's guaranteed mode-13h path.
+
+    # ROM wiring: the BIOS is found through [Paths] roms_paths in the global
+    # pcem.cfg next to PCem.exe, not through any machine-config key. Refuse
+    # here rather than launching an emulator that prints "Failed to load ROM!"
+    # and carries on with is486 unset.
+    $pcemCfgPath = Join-Path $pcemRoot 'pcem.cfg'
+    if (-not (Test-Path -LiteralPath $pcemCfgPath -PathType Leaf) -or
+        (Get-Content -LiteralPath $pcemCfgPath -Raw) -notmatch '(?m)^\s*roms_paths\s*=') {
+        throw "PCem at '$pcemRoot' is not wired to the ROM set. Run .\tools\pcem-roms.ps1 first."
+    }
+    if ($null -eq $manifest.pcemRomset) {
+        throw 'The toolchain manifest has no "pcemRomset" block.'
+    }
+    $biosFile = Join-Path ([IO.Path]::GetFullPath([string]$manifest.pcemRomset.path)) (
+        ([string]$manifest.pcemRomset.bios) -replace '/', '\')
+    if (-not (Test-Path -LiteralPath $biosFile -PathType Leaf) -or
+        (Get-Item -LiteralPath $biosFile).Length -ne [int]$manifest.pcemRomset.expectedBiosBytes) {
+        throw "ROM set is missing '$($manifest.pcemRomset.bios)' at the expected size: '$biosFile'."
+    }
+
     $pcemConfigPath = Join-Path $stagingRoot 'pcem-machine.cfg'
-    $machineName = if ([string]::IsNullOrWhiteSpace($PcemMachine)) { 'win486' } else { $PcemMachine }
-    $romPath = if ([string]::IsNullOrWhiteSpace($PcemBiosRom)) {
-        Join-Path $ToolRoot ('pcem-17\roms\' + $machineName + '\bios.rom')
+    # The machine comes from the manifest so that the ROM that was verified
+    # above is the ROM that is actually booted, and the default is named in
+    # exactly one place. -PcemMachine still overrides it.
+    $machineName = if ([string]::IsNullOrWhiteSpace($PcemMachine)) {
+        [string]$manifest.pcemRomset.machine
     }
     else {
-        [IO.Path]::GetFullPath($PcemBiosRom)
+        $PcemMachine
     }
-    if (-not (Test-Path -LiteralPath $romPath -PathType Leaf)) {
-        throw ("PCem is installed but has no BIOS ROM for machine '$machineName' at '$romPath'.`n" +
-            "PCem deliberately bundles no copyrighted ROM files, so this must be supplied. Point -PcemBiosRom at a BIOS ROM " +
-            "for a 486-class machine (for example the win486 profile's bios.rom) to run the 486-cost gate. Until then DOSBox-X " +
-            "remains the parity gate and no 486-specific candidate can be promoted.")
+    if ([string]::IsNullOrWhiteSpace($machineName)) {
+        throw 'No PCem machine to run: pass -PcemMachine or set pcemRomset.machine in the manifest.'
     }
-    $pcemConfig = @(
-        "[PCem]",
-        "machine = $machineName",
-        "scaler = fit",
-        "window_width = 640",
-        "window_height = 480",
-        "window_zoomed = 0",
-        "display = surface",
-        "sound = none",
-        "ramsize = 32",
-        "bios_path = $romPath",
-        "[cpu]",
-        "cpu_type = 486",
-        "cpu_speed = 25",
-        "fpu = enabled",
-        "fpu_type = internal",
-        "cycles = 33445",
-        "extfpu = disabled",
-        "advanced = 0",
-        "[display]",
-        "display_type = internal"
-    ) -join "`r`n"
+    if ($machineName -ne [string]$manifest.pcemRomset.machine) {
+        Write-Warning ("-PcemMachine '$machineName' is not the manifest's machine " +
+            "'$($manifest.pcemRomset.machine)'. The BIOS verified above is the manifest's, so this " +
+            'run is NOT using a verified ROM unless the set also carries the other machine.')
+    }
+
+    # CMOS. PCem stores NVRAM per config file (nvr\<config-basename>.<model>.nvr,
+    # src\nvr.c:34-63) and the bytes are the firmware's own, so a CMOS with no
+    # drive table for C: halts POST at "Hard Disk C: Type: None" - no INT13
+    # drive 80, so DOS never mounts C: - and a stale checksum halts at "CMOS
+    # checksum failure". Both are provisioned from scratch before every launch,
+    # from the factory CMOS PCem ships plus the staged geometry, so the gate is
+    # a pure function of the machine and the disk rather than of whatever the
+    # last interactive run left behind. See tools\pcem-machine.psm1 for the
+    # per-vendor byte layouts.
+    $nvr = Set-PcemMachineNvr `
+        -PcemRoot $pcemRoot `
+        -Machine $machineName `
+        -ConfigName ([IO.Path]::GetFileNameWithoutExtension($pcemConfigPath)) `
+        -Cylinders $pcemStage.Cylinders `
+        -Heads $pcemStage.Heads `
+        -SectorsPerTrack $pcemStage.SectorsPerTrack
+    if ($null -ne $nvr) {
+        Write-Host ("CMOS:    {0} {1}/{2}/{3}, checksum {4} -> {5}" -f $nvr.Vendor, $nvr.Cylinders,
+            $nvr.Heads, $nvr.Sectors, $nvr.Checksum, [IO.Path]::GetFileName($nvr.Nvr))
+    }
+
+    $pcemConfig = Get-PcemMachineConfigText `
+        -Machine $machineName `
+        -HardDisk $pcemStage.HardDisk `
+        -Cylinders $pcemStage.Cylinders `
+        -Heads $pcemStage.Heads `
+        -SectorsPerTrack $pcemStage.SectorsPerTrack `
+        -CpuIndex $PcemCpuIndex `
+        -MemKiB $PcemMemKiB
     $pcemConfig | Set-Content -LiteralPath $pcemConfigPath -Encoding ASCII
-    $arguments = @('-config', $pcemConfigPath) -join ' '
+    $arguments = '--config "{0}"' -f $pcemConfigPath
+}
+
+function Test-SameBytes {
+    param([byte[]]$A, [byte[]]$B)
+
+    if ($null -eq $A -or $null -eq $B -or $A.Length -ne $B.Length) { return $false }
+    for ($i = 0; $i -lt $A.Length; $i++) {
+        if ($A[$i] -ne $B[$i]) { return $false }
+    }
+    return $true
 }
 
 Write-Host "Launching $Emulator $emulatorVersion fidelity probes"
@@ -261,15 +344,85 @@ $processInfo.UseShellExecute = $false
 $processInfo.CreateNoWindow = $true
 $process = New-Object System.Diagnostics.Process
 $process.StartInfo = $processInfo
+$emulatorExit = $null
 try {
     if (-not $process.Start()) {
         throw "$Emulator failed to start."
     }
-    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-        $process.Kill()
-        throw "$Emulator fidelity run exceeded $TimeoutSeconds seconds."
+    if ($Emulator -eq 'pcem') {
+        # PCem has no script argument and never exits on its own, so the run
+        # is driven from inside the guest: AUTOEXEC.BAT ends by writing
+        # C:\DONE.TXT, and the host polls dos.hdd for it. The report is then
+        # read back out of the image only once it reads byte-identical on
+        # consecutive polls - PCem's stdio buffer for the image is ~4 KB, so a
+        # single successful read proves the file exists, not that every byte
+        # has reached the host file. Only then is PCem killed.
+        $hardDisk = $pcemStage.HardDisk
+        $partOffset = $pcemStage.PartitionOffset
+        $deadlineUtc = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+        $completed = $false
+        $stableReads = 0
+        $lastReportBytes = $null
+        while ([DateTime]::UtcNow -lt $deadlineUtc) {
+            Start-Sleep -Milliseconds 500
+            if ($process.HasExited) {
+                throw ("$Emulator exited early (code $($process.ExitCode)) before the guest wrote " +
+                    "C:\DONE.TXT. The guest screen shows where it stopped; attach dos.hdd to a " +
+                    "diagnostic setup to read it. Staged run: $stagingRoot")
+            }
+            $sentinel = $false
+            try {
+                $sentinel = Test-FatImageFile -Path $hardDisk -Name 'DONE.TXT' -Offset $partOffset
+            }
+            catch {
+                continue    # image mid-write; try again on the next tick
+            }
+            if (-not $sentinel) { continue }
+            $fresh = $null
+            try {
+                $fresh = Read-FatImageFile -Path $hardDisk -Name 'QUAKE\BENCH486.TXT' -Offset $partOffset
+            }
+            catch {
+                continue    # sentinel flushed before the report's last sector; retry
+            }
+            if (Test-SameBytes -A $fresh -B $lastReportBytes) {
+                $stableReads++
+            }
+            else {
+                $stableReads = 0
+            }
+            $lastReportBytes = $fresh
+            if ($stableReads -ge 2) {
+                $completed = $true
+                break
+            }
+        }
+        if (-not $completed) {
+            if (-not $process.HasExited) { $process.Kill() }
+            throw ("$Emulator did not produce a stable C:\QUAKE\BENCH486.TXT within $TimeoutSeconds seconds " +
+                "(no C:\DONE.TXT sentinel, or the report never settled). Staged run: $stagingRoot`n" +
+                "Attach dos.hdd (or the staged machine config) by hand to see where the guest stopped - " +
+                "a halting POST (CMOS mismatch waiting for F1) or a boot failure both look like this from here.")
+        }
+        if (-not $process.HasExited) { $process.Kill() }
+        # Prefer a post-kill read: PCem's handle is closed, so nothing is left
+        # in flight. The bytes already proven stable are the fallback if the
+        # image is momentarily unopenable.
+        $finalReportBytes = $lastReportBytes
+        try {
+            $postKill = Read-FatImageFile -Path $hardDisk -Name 'QUAKE\BENCH486.TXT' -Offset $partOffset
+            if ($postKill.Length -gt 0) { $finalReportBytes = $postKill }
+        }
+        catch { }
+        [IO.File]::WriteAllBytes((Join-Path $quakeRoot 'bench486.txt'), $finalReportBytes)
     }
-    $emulatorExit = $process.ExitCode
+    else {
+        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+            $process.Kill()
+            throw "$Emulator fidelity run exceeded $TimeoutSeconds seconds."
+        }
+        $emulatorExit = $process.ExitCode
+    }
 }
 finally {
     $process.Dispose()

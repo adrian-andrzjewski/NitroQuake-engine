@@ -76,19 +76,70 @@ make it *wrong*, only insensitive. A new cycle-accurate reference is the
 promoted on it; a second harness with unvalidated fidelity would be a worse
 version of the original mistake.
 
-**PCem is installed and hash-pinned, but cannot boot on this machine.** Two
-blockers, both external to the code, and both verified rather than assumed:
+**PCem boots and runs the probes unattended.** The two historical blockers
+are resolved, with the resolution recorded here because both were subtle:
 
-1. **No BIOS ROM.** PCem ships none by design — its `README.md` states
-   *"NO COPYRIGHTED ROM FILES ARE INCLUDED NOR WILL THEY BE"*. The `roms\`
-   tree contains only a `roms.txt` placeholder per machine. A 486 machine ROM
-   must be supplied by the user. `486-fidelity.ps1` now refuses up front with
-   that instruction rather than launching an emulator that cannot boot.
-2. **No script argument.** Verified with `PCem.exe --help`: the CLI accepts
-   only `--config`, `--fullscreen`, `--load_drive_a`, `--load_drive_b`. There is
-   no DOSBox-style script option, so the staged `bench486` batch cannot be
-   handed to it directly, and a bootable DOS image (or a hand-run session) is
-   needed to drive the probes. Its config is also INI-style, not a DOSBox conf.
+1. **ROMs are wired, not bundled.** PCem ships no ROMs by design
+   (*"NO COPYRIGHTED ROM FILES ARE INCLUDED NOR WILL THEY BE"*). The ROM set
+   lives at `PCem-ROMs-master\` and is consumed in place: `pcem-roms.ps1`
+   writes `[Paths] roms_paths` into each install's `pcem.cfg`
+   (`sis496\sis496-1.awa`, 131,072 bytes, verified), and `486-fidelity.ps1`
+   refuses up front if that wiring or the BIOS file is missing.
+
+   The machine is the **Award SiS 496/497** (`model = sis496`), previously the
+   ALi M1429 AMI WinBIOS profile (`win486`). Both facts live in one place,
+   `pcemRomset` in `dos-toolchain.json`, and the harness asks the manifest
+   rather than repeating the name. The profile strings are not free choices:
+   `src\model.c:227` defines `sis496` and `src\mem_bios.c:549` reads exactly
+   `sis496/sis496-1.awa` as `0x20000` bytes. The CPU tables, `cpu_manufacturer`
+   indices and min/max RAM are identical between the two profiles, so
+   `cpu = 12` (iDX4/100) and `mem_size = 16384` carry over unchanged and the
+   emulated cycle count is unaffected by the swap.
+
+   Swapping vendors also swapped the **CMOS layout**, which is why CMOS is now
+   provisioned rather than seeded. Award keeps the drive C table at `0x30`
+   (type, cylinders, heads, sectors) and its checksum in the byte at `0x0F` for
+   the range `0x10..0x3D`; AMI kept the type at `0x12`, the geometry at
+   `0x19..0x1E`, and the checksum inside the range at `0x3E`/`0x3F`. A CMOS
+   written for one is not a CMOS the other will boot, and a CMOS with no drive
+   table for C: halts at POST with no INT13 drive 80, which is
+   indistinguishable from a failed measurement from outside the emulator.
+   `tools\pcem-machine.psm1` therefore rebuilds the NVRAM from the factory
+   CMOS PCem itself ships (`nvr\default\<machine>.nvr`) plus the staged
+   geometry on **every** launch, rather than restoring a hand-saved artifact.
+   That makes the gate a pure function of the machine and the disk rather than
+   of whatever the last interactive run left on disk, and it removes the
+   manual "run BIOS setup once and store the result" step the previous design
+   needed. The module holds one layout per vendor and **throws** for a machine
+   it has no layout for, rather than writing a nearly-right CMOS.
+
+   Related: PCem v17 reads its machine keys from the *nameless* first config
+   section (`src\config.c:145-150` allocates it, `src\config.c:241-259` matches
+   `NULL` against it), so the generated machine config is a flat key list with
+   no `[Header]` line. A `[PCem]`/`[cpu]`/`[display]` section is not ignored but
+   unreadable. `bench486-dos.ps1` still contained one - along with the removed
+   `bios_path` key, `machine =` instead of `model =`, `ramsize` instead of
+   `mem_size`, and a `-PcemBiosRom` parameter it forwarded to a script that no
+   longer accepted it - so it could not have booted. It now stages through
+   `pcem-stage.ps1` (`-BenchMode timedemo`, which is the only difference in the
+   guest command) and provisions the machine the same way, and collects its
+   report out of `dos.hdd` rather than expecting a host-side file PCem cannot
+   write.
+2. **No script argument still** (verified: only `--config`, `--fullscreen`,
+   `--load_drive_a`, `--load_drive_b`), so the run is driven from inside the
+   guest instead: `pcem-stage.ps1` installs MS-DOS 6.22 **on C:** and
+   `C:\AUTOEXEC.BAT` runs the probes, writes `C:\DONE.TXT`, and the host
+   polls `dos.hdd` for the sentinel, then reads `BENCH486.TXT` back out
+   through the FAT reader. No floppy is involved in the boot path.
+
+   Booting C: required implementing the real MS-DOS 6.22 boot contract,
+   extracted by disassembling `Dos6.22.img`'s own boot sector: an MBR
+   chain-loads the VBR to `0000:4000`, the VBR requires root entry0 =
+   `IO.SYS` and entry1 = `MSDOS.SYS`, loads IO.SYS's first three sectors to
+   `0000:0700`, copies the VBR to `0000:7C00`, and jumps `0070:0000` with
+   `CH=media`, `DL=BPB[0x24]` (= `0x80`), `BX=dataStart`. Root write order
+   in staging is therefore load-bearing (IO.SYS first, contiguous at
+   cluster 2). `pcem-stage.ps1` asserts all of it before any boot.
 
 The install is pinned to `PCemV17Win.zip`, SHA-256
 `3F309D6B19F9C3A1FC4C256C53589F812FC5A4C4BFB84636AD325E02149460E1`, installed at

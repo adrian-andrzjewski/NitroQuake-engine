@@ -192,4 +192,34 @@ else {
     Write-Host 'PCem:         not installed (pass -WithPcem to add the 486-cost gate)'
 }
 
+# ---------------------------------------------------------------------------
+# 486-cost gate readiness: the gate also needs the ROM set wired and a clean
+# DOS floppy, neither of which this script installs. Report both so a fresh
+# machine can see what is still missing before 486-fidelity.ps1 -Emulator pcem.
+# ---------------------------------------------------------------------------
+if ($null -ne $manifest.pcemRomset) {
+    $romsetPath = [IO.Path]::GetFullPath([string]$manifest.pcemRomset.path)
+    $biosFile = Join-Path $romsetPath (([string]$manifest.pcemRomset.bios) -replace '/', '\')
+    if ((Test-Path -LiteralPath $biosFile -PathType Leaf) -and
+        (Get-Item -LiteralPath $biosFile).Length -eq [int]$manifest.pcemRomset.expectedBiosBytes) {
+        Write-Host "PCem ROM set:  $romsetPath ($($manifest.pcemRomset.machine) BIOS found)"
+    }
+    else {
+        Write-Host 'PCem ROM set:  NOT WIRED (pass .\tools\pcem-roms.ps1)'
+    }
+}
+if ($null -ne $manifest.dosImage) {
+    $dosImagePath = [IO.Path]::GetFullPath([string]$manifest.dosImage.path)
+    if (-not (Test-Path -LiteralPath $dosImagePath -PathType Leaf)) {
+        Write-Host "DOS image:     NOT FOUND ($dosImagePath)"
+    }
+    elseif ((Get-FileHash -LiteralPath $dosImagePath -Algorithm SHA256).Hash -ne
+        ([string]$manifest.dosImage.sha256).ToUpperInvariant()) {
+        Write-Host "DOS image:     HASH MISMATCH ($dosImagePath)"
+    }
+    else {
+        Write-Host "DOS image:     $dosImagePath (hash OK)"
+    }
+}
+
 Write-Host 'Toolchain bootstrap complete.'
