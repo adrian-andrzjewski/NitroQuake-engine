@@ -453,14 +453,32 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 #ifdef PROFILE486
 	extern unsigned long bench486_renderface_calls;
 	extern unsigned long bench486_renderface_emitted;
+	extern unsigned long bench486_renderface_edge_setups;
+	extern unsigned long bench486_renderface_early_surfs;
+	extern unsigned long bench486_renderface_early_edges;
+	extern unsigned long bench486_renderface_faces;
 	if (bench486_profile_frame_active)
+	{
 		bench486_renderface_calls++;
+		bench486_renderface_edge_setups += (unsigned long)fa->numedges;
+		// Number of clip planes this face will push onto pclip, i.e. how many
+		// iterations the assembly clipper's plane loop will make.
+		bench486_renderface_faces +=
+			(unsigned long)((clipflags >> 3) & 1) +
+			(unsigned long)((clipflags >> 2) & 1) +
+			(unsigned long)((clipflags >> 1) & 1) +
+			(unsigned long)(clipflags & 1);
+	}
 #endif
 
 // skip out if no more surfs
 	if ((surface_p) >= surf_max)
 	{
 		r_outofsurfaces++;
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_renderface_early_surfs++;
+#endif
 		return;
 	}
 
@@ -468,6 +486,10 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	if ((edge_p + fa->numedges + 4) >= edge_max)
 	{
 		r_outofedges += fa->numedges;
+#ifdef PROFILE486
+		if (bench486_profile_frame_active)
+			bench486_renderface_early_edges++;
+#endif
 		return;
 	}
 

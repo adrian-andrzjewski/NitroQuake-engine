@@ -1112,6 +1112,53 @@ validation in front of `R_EmitCachedEdge` — is admissible, and it has never
 been separated from the clipper. That separation is the next task, and it needs
 a probe rather than a timer, for the reason in the next section.
 
+### `renderface` priced by premise (2026-10-01) — large pool, but the x87 in it is essential work; no probe built
+
+The obvious next step after the split above was a dead-scratch probe to price
+`R_RenderFace`'s C scaffolding against the assembly clipper. Before building
+it, the population was measured with plain counters (no timer reads), which is
+what the mip-1 result taught to do first.
+
+```text
+renderface-calls    215,720   (222.6 per frame, 4.99 edges per call)
+renderface-emitted  104,640   (48.5% of calls emit a surface)
+edge setups       1,077,059
+  of which cache-hit 121,466  (11.3%) -> R_EmitCachedEdge, no clipping at all
+  of which clipped    955,593  (88.7%) -> the assembly R_ClipEdge
+clip planes          637,693   (2.96 per face, but only 0.667 per clipper call)
+early returns              0   (no surface_p / edge_p exhaustion at all)
+```
+
+**This reframes the bucket, and it is why the probe was not built.**
+
+The 88.7% figure looks alarming, but it is the wrong number to fear. The
+clipper's *plane-dot* loop — the obviously inadmissible part, ~20 x87
+instructions per plane — runs **637,693** times in total, not 955,593, because
+two thirds of clipper calls arrive with `pclip == NULL` and fall straight
+through to `Lemit`. 637,693 x 20 is 12.8 M x87 instructions, about 13 M
+cycles: **~6% of `renderface`'s 219 M cycles.**
+
+So the bucket is not mostly "clipping x87 that could go away". It is mostly the
+per-edge **emit** path — `fldcw`, `LTransformAndProject` (project, 1/z divide,
+scale), edge store and stack clear — at 955,593 edges. That is essential edge
+work, not an optimisation target, and it is inadmissible in any case.
+
+What remains admissible is the C scaffolding around it, plausibly 30-40% of the
+bucket, i.e. 70,000-90,000 cycles/frame, still 70-90x the gate. **A price was
+not obtained and none is claimed.** The obstacle is not measurement: it is that
+no candidate transformation exists to price. The mip-1 win came from a *known*
+specialisation applied one level down, and the premise counters said where to
+apply it. Here there is no equivalent — the ledger already records the hoist
+and unroll attempts in `R_RenderFace`, and most were reverted.
+
+**Decision: `renderface` is closed as "large, correctly attributed, and without
+an admissible hypothesis". Do not build the probe.** Instrumenting 800 lines of
+unrolled C across ~24 edge sites to price a pool with no candidate is exactly
+the "another C-to-ASM port without a new source-level hypothesis" that
+`:2985-2992` warns against. If a hypothesis for the clip-plane link chain or
+the cache-validation sequence appears later, the counters above are already in
+the tree to test its premise for free.
+
 ### `edge-scan` cannot be decomposed (2026-10-01) — the arithmetic forbids it, do not retry
 
 `edge-scan` is 7.65% of frame and was the other undecomposed bucket. The

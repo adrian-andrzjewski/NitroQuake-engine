@@ -112,6 +112,14 @@ unsigned long bench486_renderface_emitted;
 unsigned long bench486_clipedge_calls;
 unsigned long bench486_emitcachededge_calls;
 unsigned long bench486_clipvert_clips;
+// R_RenderFace premise counters. The admissible part of renderface is its C
+// scaffolding; the inadmissible part is the assembly clipper's x87 chain.
+// These price the population split before any probe is built: edges that hit
+// the edge cache do no clipping at all, so their cost is pure C.
+unsigned long bench486_renderface_edge_setups;
+unsigned long bench486_renderface_early_surfs;
+unsigned long bench486_renderface_early_edges;
+unsigned long bench486_renderface_faces;
 unsigned long bench486_texture_full_tzero;
 unsigned long bench486_texture_full_tdelta_zero;
 unsigned long bench486_texture_full_tfrac_zero;
@@ -1271,6 +1279,10 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_span_buckets[4] = 0;
 	bench486_renderface_calls = 0;
 	bench486_renderface_emitted = 0;
+	bench486_renderface_edge_setups = 0;
+	bench486_renderface_early_surfs = 0;
+	bench486_renderface_early_edges = 0;
+	bench486_renderface_faces = 0;
 	bench486_clipedge_calls = 0;
 	bench486_emitcachededge_calls = 0;
 	bench486_clipvert_clips = 0;
@@ -1479,6 +1491,14 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			"clipedge-calls %lu emitcached-calls %lu\n",
 			bench486_renderface_calls, bench486_renderface_emitted,
 			bench486_clipedge_calls, bench486_emitcachededge_calls);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-work renderface-edges %lu early-surfs %lu early-edges %lu "
+			"clipplanes %lu\n",
+			bench486_renderface_edge_setups,
+			bench486_renderface_early_surfs,
+			bench486_renderface_early_edges,
+			bench486_renderface_faces);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
 			"profile-work surface-spans %lu surface-pixels %lu "
