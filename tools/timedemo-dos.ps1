@@ -45,6 +45,10 @@ param(
     # row.  Only has an effect when the flat path is on.
     [ValidateSet('control', 'hoist')]
     [string]$SurfaceBlockMip1IndexHoist = 'hoist',
+    # Dead-scratch probe over one edge-scan block; measurement only, never a
+    # candidate.  See build-dos.ps1 for what the probe actually duplicates.
+    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort')]
+    [string]$EdgeScanProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -225,6 +229,9 @@ if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
 if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
     $profileSuffixParts += 'surf1hflatidxhoist'
 }
+if ($EdgeScanProbe -ne 'control') {
+    $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
+}
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
@@ -308,6 +315,7 @@ $selectorState = @(
     $AliasSpanAddressing, $ZSpanNegativeUnroll, $SurfaceBlockMip0Rows,
     $SurfaceBlockMip0HorizontalFlat, $SurfaceBlockMip1Rows,
     $SurfaceBlockMip1HorizontalFlat, $SurfaceBlockMip1IndexHoist,
+    $EdgeScanProbe,
     $AliasProjectImplementation, $AliasBBoxProjectImplementation,
     $AliasTransformFinalImplementation, $AliasPrepareImplementation,
     $AliasMatrixCompositionImplementation, $TextureAnimationImplementation,
@@ -375,6 +383,7 @@ if ((-not $executableExists) -or $staleBuild) {
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
             SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
+            EdgeScanProbe = $EdgeScanProbe
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         AliasTransformFinalImplementation = $AliasTransformFinalImplementation
@@ -832,6 +841,7 @@ $result = [ordered]@{
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
+        edgeScanProbe = $EdgeScanProbe
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation

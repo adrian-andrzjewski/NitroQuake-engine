@@ -28,6 +28,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #if	id386
 
+#ifdef PROFILE486
+	// Loop-iteration census for the edge-scan dead-scratch probes.  The
+	// existing counters count CALLS (edge_insert_calls, edge_remove_calls,
+	// edge_step_calls, span_flushes), which is the wrong denominator: three
+	// of these routines walk a list, so one call can be many iterations and
+	// a probe priced per call would be sized wrong by that factor.
+	//
+	// These count iterations so each probe can be sized to clear the timedemo
+	// noise floor before it is built, rather than guessed.  PROFILE486-only,
+	// so they cost nothing in a release build.
+	.extern	C(bench486_edge_insert_iters)
+	.extern	C(bench486_edge_remove_iters)
+	.extern	C(bench486_edge_step_iters)
+	.extern	C(bench486_edge_pushback_iters)
+	.extern	C(bench486_edge_sort_iters)
+	.extern	C(bench486_edge_emit_blocks)
+	.extern	C(bench486_edge_genspans_edges)
+	.extern	C(bench486_edge_bmodel_zsort)
+	.extern	C(bench486_edge_trailing_calls)
+#endif
+
 	.data
 Ltemp:					.long	0
 float_1_div_0100000h:	.long	0x35800000	// 1.0/(float)0x100000
@@ -57,10 +78,30 @@ LDoNextEdge:
 	movl	%edx,%edi
 
 LContinueSearch:
+#ifdef PROFILE486
+	incl	C(bench486_edge_insert_iters)
+#endif
 // Defer et_next until after et_u early-out on the first three probes
 // (dead on LAddedge / LAddedge2).  Keep the fourth probe's jg fallthrough
 // so long walks do not pay an extra unconditional jmp.
 // Memory cmpl et_u (drop preload into %ebx); %ebx overwritten in LAddedge*.
+#ifdef EDGE_SCAN_PROBE_INSERT
+	// Dead-scratch probe, 4 instructions.  Duplicates loads of et_u(%ecx),
+	// writing %ebx, which the real search never reads and LAddedge/
+	// LAddedge2 overwrite.  Read-only, and the real compares set the flags
+	// the branches use, so no store or flag-carrying instruction is
+	// duplicated.
+	//
+	// %ecx only, never %esi.  The first version of this probe also read
+	// et_u(%esi) and faulted: %esi is DEAD-but-UNINITIALISED on the first
+	// pass through this loop, because it is not written until the second
+	// probe's `movl et_next(%ecx),%esi'.  A dead register is not a safe
+	// address; an initialised one is.
+	movl	et_u(%ecx),%ebx
+	cmpl	et_u(%ecx),%ebx
+	movl	et_u(%ecx),%ebx
+	cmpl	et_u(%ecx),%ebx
+#endif
 	cmpl	et_u(%ecx),%eax
 	jle		LAddedge
 	movl	et_next(%ecx),%esi
@@ -113,6 +154,9 @@ C(R_RemoveEdges):
 	movl	4(%esp),%eax
 
 Lre_loop:
+#ifdef PROFILE486
+	incl	C(bench486_edge_remove_iters)
+#endif
 // Match C: both unlink stores, then advance.  Odd-length tails no longer
 // take a special Lre_done path just to finish prev->next.
 	movl	et_next(%eax),%ecx
@@ -152,6 +196,24 @@ LNewEdge:
 	movl	et_u(%esi),%edi
 
 LNextEdge:
+#ifdef PROFILE486
+	incl	C(bench486_edge_step_iters)
+#endif
+#ifdef EDGE_SCAN_PROBE_STEP
+	// Dead-scratch probe, 8 instructions.  Duplicates probe 1's load and
+	// step, DROPPING the store: duplicating `movl %eax,et_u(%edx)' would
+	// advance et_u a second time and the run would diverge, which is the
+	// whole reason a probe on mutating list code copies compute and never
+	// stores.  %ecx and %ebx are dead on entry and rewritten below.
+	movl	et_u(%edx),%ecx
+	addl	et_u_step(%edx),%ecx
+	movl	et_u(%edx),%ebx
+	addl	et_u_step(%edx),%ebx
+	movl	et_u(%edx),%ecx
+	addl	et_u_step(%edx),%ecx
+	movl	et_u(%edx),%ebx
+	addl	et_u_step(%edx),%ebx
+#endif
 // Defer et_next past order early-out on probes 1–3 (dead on pushback /
 // aftertail).  Probe 4 keeps the preload so jnl LNextEdge needs no jmp.
 // Memory addl et_u_step (drop preload into %ebx).
@@ -205,6 +267,9 @@ LPushBack:
 
 // find out where the edge goes in the edge list
 LPushBackLoop:
+#ifdef PROFILE486
+	incl	C(bench486_edge_pushback_iters)
+#endif
 // Defer et_prev until after et_u early-out (dead on LPushBackFound).
 // Memory cmpl et_u (drop preload into %ebx); %ebx overwritten in LPushBackFound.
 	cmpl	et_u(%edi),%eax
@@ -244,6 +309,26 @@ LUDone:
 
 	.p2align 4,,15
 TrailingEdge:
+#ifdef PROFILE486
+	// TrailingEdge is entered for every edge with a surface going away, which
+	// is not the same as the number of spans it emits: the spanstate test
+	// below can exit without emitting.  Separating the two is what prices the
+	// per-call cost against the per-emit cost.
+	incl	C(bench486_edge_trailing_calls)
+#endif
+#ifdef EDGE_SCAN_PROBE_TRAILING
+	// Dead-scratch probe, 6 instructions.  Duplicates the two loads the
+	// dispatch performs, including st_spanstate, which the real code then
+	// decrements in place.  %eax/%ecx/%edx are all dead on entry to
+	// TrailingEdge -- only %esi, %ebx and %ebp are live -- so the probe
+	// cannot perturb the branch that follows.
+	movl	st_spanstate(%esi),%eax
+	movl	st_insubmodel(%esi),%ecx
+	movl	st_spanstate(%esi),%eax
+	movl	st_insubmodel(%esi),%ecx
+	movl	st_spanstate(%esi),%edx
+	movl	st_insubmodel(%esi),%eax
+#endif
 	// Match C's --surf->spanstate == 0 with a single memory decl (ZF).
 	// Both exits need the decremented value stored; inverted path no longer
 	// needs a separate store.
@@ -263,10 +348,29 @@ LSkipBmodelDec:
 	jnz		LNoEmit				// surface isn't on top, just remove
 
 // emit a span (current top going away)
+#ifdef PROFILE486
+	incl	C(bench486_edge_emit_blocks)
+#endif
 	movl	et_u(%ebx),%eax
 	shrl	$20,%eax				// iu = integral pixel u
 	movl	st_next(%esi),%ecx
-// Memory cmpl last_u (dead preload on LNoEmit2); load into %edx only on emit.
+#ifdef EDGE_SCAN_PROBE_EMIT
+	// Dead-scratch probe, 7 instructions.  This block has no free register:
+	// %eax holds iu, %ecx st_next and %edx the patch immediate at the same
+	// time, and both `jle LNoEmit2' and the following block read them.  So
+	// the probe borrows %eax across a push/pop and duplicates five loads
+	// into it.  push/pop rather than a .data scratch because `mov mem,mem' is
+	// not encodable on x86 -- the scratch long would need a register
+	// anyway, which is the thing being borrowed here.  The push/pop pair is
+	// counted in the seven, so the mix's true cost is what gets divided out.
+	pushl	%eax
+	movl	et_u(%ebx),%eax
+	movl	st_next(%esi),%eax
+	movl	st_last_u(%esi),%eax
+	movl	et_u(%ebx),%eax
+	movl	st_next(%esi),%eax
+	popl	%eax
+#endif// Memory cmpl last_u (dead preload on LNoEmit2); load into %edx only on emit.
 	cmpl	st_last_u(%esi),%eax
 	jle		LNoEmit2				// iu <= surf->last_u, so nothing to emit
 
@@ -342,6 +446,27 @@ C(R_GenerateSpans):
 	jz		Lgs_lastspan
 
 Lgs_edgeloop:
+#ifdef PROFILE486
+	// Per-edge entry into R_GenerateSpans.  This is the loop that the
+	// 208,581 cy/frame edge-scan bucket is mostly NOT in: the four counted
+	// inner loops together account for only about 52x the gate.  This
+	// counter is the denominator for the fixed per-edge setup below it.
+	incl	C(bench486_edge_genspans_edges)
+#endif
+
+#ifdef EDGE_SCAN_PROBE_ENTRY
+	// Dead-scratch probe, 6 instructions, duplicated the dispatch loads into
+	// %edx and %ecx.  Both registers are dead on entry to this loop and the
+	// real code rewrites them, so nothing here is observable.  No store is
+	// duplicated -- this block only reads, which is what makes it safe to
+	// run it twice.
+	movl	et_surfs(%ebx),%edx
+	movl	C(surfaces),%ecx
+	movl	et_surfs(%ebx),%edx
+	movl	C(surfaces),%ecx
+	movl	et_surfs(%ebx),%edx
+	movl	C(surfaces),%ecx
+#endif
 
 	movl	et_surfs(%ebx),%edi
 	movl	C(surfaces),%eax
@@ -399,11 +524,27 @@ LPatch2:
 // 		surf2 = surf2->next;
 // } while (surf->key >= surf2->key);
 Lsortloopnb:
+#ifdef PROFILE486
+incl	C(bench486_edge_sort_iters)
+#endif
+#ifdef EDGE_SCAN_PROBE_SORT
+	// Dead-scratch probe, 6 instructions, duplicated into %ecx, which is
+	// dead in both sort loops.  Deliberately placed BEFORE the real
+	// `cmpl st_key(%esi),%eax': both the jge/jg back-edge and the jne to
+	// LInsertAndExit read that compare's flags, so a probe after it would
+	// clobber them.
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+#endif
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
 	jge		Lsortloopnb
 
-	jmp		LInsertAndExit
+	jmp	LInsertAndExit
 
 
 // handle a leading bmodel edge
@@ -437,9 +578,23 @@ Lbmodel_leading:
 // 		surf2 = surf2->next;
 // } while (surf->key > surf2->key);
 Lsortloop:
+#ifdef PROFILE486
+incl	C(bench486_edge_sort_iters)
+#endif
+#ifdef EDGE_SCAN_PROBE_SORT
+	// Same six-instruction probe as Lsortloopnb.  Placement before the real
+	// compare matters here for both readers of its flags: `jg Lsortloop'
+	// and `jne LInsertAndExit'.
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+#endif
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
-	jg		Lsortloop
+	jg	Lsortloop
 
 	jne		LInsertAndExit
 
@@ -634,6 +789,13 @@ Lxl_done:
 
 	.p2align 4,,15
 Lzcheck_for_newtop:
+#ifdef PROFILE486
+	// The bmodel 1/z sort.  Roughly fifty instructions, about forty of them
+	// x87, and it is the leading suspect for the part of the edge-scan
+	// budget the integer loops do not account for.  Counted so that share
+	// can be separated from the per-edge entry cost rather than guessed.
+	incl	C(bench486_edge_bmodel_zsort)
+#endif
 	movl	et_u(%ebx),%eax
 	subl	$0xFFFFF,%eax
 	movl	%eax,Ltemp

@@ -32,6 +32,9 @@ param(
     # row.  Only has an effect when the flat path is on.
     [ValidateSet('control', 'hoist')]
     [string]$SurfaceBlockMip1IndexHoist = 'hoist',
+    # Dead-scratch probe over one edge-scan block; measurement only.
+    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort')]
+    [string]$EdgeScanProbe = 'control',
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
@@ -80,6 +83,7 @@ if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf0h
 if ($SurfaceBlockMip1Rows -eq 'unroll8') { $profileSuffixParts += 'surf1rows8' }
 if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf1hflat' }
 if ($SurfaceBlockMip1IndexHoist -eq 'hoist') { $profileSuffixParts += 'surf1hflatidxhoist' }
+if ($EdgeScanProbe -ne 'control') { $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe) }
 if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
 $profileSuffixParts += 'lightmapstylesasm'
@@ -123,6 +127,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
             SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
+            EdgeScanProbe = $EdgeScanProbe
         BspFrameCountImplementation = $BspFrameCountImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }
@@ -274,6 +279,7 @@ $result = [ordered]@{
     bspFrameCountImplementation = $BspFrameCountImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
+    edgeScanProbe = $EdgeScanProbe
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     timeoutSeconds = $TimeoutSeconds
 }

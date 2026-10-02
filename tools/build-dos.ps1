@@ -44,6 +44,13 @@ param(
     # row.  Only has an effect when the flat path is on.
     [ValidateSet('control', 'hoist')]
     [string]$SurfaceBlockMip1IndexHoist = 'hoist',
+    # Dead-scratch probe over one edge-scan block.  Duplicates a fixed,
+    # side-effect-free instruction sequence at that block's inner point and
+    # discards the result, so the timedemo delta prices those instructions.
+    # Never a candidate: the probe only measures.  'control' is the release
+    # path and must assemble instruction-for-instruction identically.
+    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort')]
+    [string]$EdgeScanProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -207,6 +214,9 @@ if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
 }
 if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
     $profileSuffixParts += 'surf1hflatidxhoist'
+}
+if ($EdgeScanProbe -ne 'control') {
+    $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
 }
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
@@ -486,6 +496,12 @@ try {
     if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
         $asmFlags += '-DASM486_SURF8_MIP1_INDEX_HOIST'
     }
+    if ($EdgeScanProbe -ne 'control') {
+        # Uppercased so one -D per probe value, matching the #ifdef form.
+        # gas macros are not C macros and #error is inert under
+        # -x assembler-with-cpp, so the define is the only reliable selector.
+        $asmFlags += ('-DEDGE_SCAN_PROBE_' + $EdgeScanProbe.ToUpperInvariant())
+    }
     if ($AliasProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_PROJECT'
     }
@@ -554,6 +570,7 @@ try {
         surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
         surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
+        edgeScanProbe = $EdgeScanProbe
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation

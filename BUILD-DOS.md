@@ -184,10 +184,14 @@ further optimization belongs.
 Two corrections this forced. The Aff8 padding post-mortem previously blamed
 "I-cache placement"; the 486 has **no instruction cache**, only an 8 KB unified
 data cache, so the mechanism is fetch boundaries and cache displacement. And
-the pinned profile SHA-256 is recorded but never enforced —
+~~the pinned profile SHA-256 is recorded but never enforced —
 `tools\timedemo-dos.ps1:439-446` computes it and `:653` writes it to the
 report, but no code compares it to a constant. Changing the DOSBox-X core would
-silently re-baseline the whole ledger rather than being caught.
+silently re-baseline the whole ledger rather than being caught.~~
+**(Corrected 2026-09-30: it is now enforced.** `timedemo-dos.ps1:548-556`
+compares it to `-ExpectedProfileSha256` (constant at `:104`) and throws unless
+`-AllowGateOverride` is passed. The line numbers above have moved again; grep for
+`ExpectedProfileSha256` rather than trusting any anchor.)
 
 Resolving any of this properly needs physical 486 hardware or a cycle-accurate
 alternative; see `ASM486-HANDOFF.md` for the full record. On that evidence the
@@ -306,20 +310,42 @@ profile tree:
 ```powershell
 .\tools\build-dos.ps1 -Benchmark -Clean -NoBootstrap -Instrumentation
 .\tools\timedemo-dos.ps1 -SkipBuild -NoBootstrap -Runs 1 -NoFpsStats -Instrumentation
-.\tools\profile-report.ps1 -ProfileJson 'out\dos-timedemo-<timestamp>\timedemo-result.json'
+.\tools\profile-report.ps1 -ProfileJson 'out\dos-timedemo-<timestamp>\quake\profile.jsn'
 ```
 
-**⚠ The timedemo runner will not rebuild after a source edit.** The runner only
-invokes the build when the benchmark executable is absent
-(`tools\timedemo-dos.ps1:272`), and that executable lives at
-`out\dos<profile-suffix>\qbench.exe` — a path keyed by the *selector profile*
-alone, not by source content. If it already exists, an edit to any `.c`, `.s`
-or header is silently ignored and the **previous** binary is measured. This has
-already produced one false negative: raising `SURFCACHE_SIZE_AT_320X200` appeared
-to change nothing across three timedemos while the linked image still carried
-`mov $0x1c2000,%eax`. **After any source edit, pass `-Clean` to
-`build-dos.ps1` (or delete the executable) before trusting a timedemo.** A quick
-confirmation that the intended code is in the image is to disassemble it:
+> Pass the **standalone `quake\PROFILE.JSN`**, not the run's
+> `timedemo-result.json`. `profile-report.ps1` requires a `schema` property
+> (`:21-23`) and `timedemo-result.json` has none, so under
+> `Set-StrictMode -Version Latest` it fails with a missing-property error rather
+> than anything that names the real cause. The profile document is embedded in
+> the result JSON under `results[].profile`, and DOS uppercases it to
+> `PROFILE.JSN`. `486-cost-model.ps1` accepts either shape; this tool does not.
+
+**The timedemo runner now rebuilds after a source edit — this hazard is closed.**
+The runner hashes every `*.c`/`*.s`/`*.h` under `WinQuake` plus the resolved
+selector set into `out\dos<suffix>\qbench.sources.sha256` and compares on every
+invocation (`tools\timedemo-dos.ps1:319-405`). On a mismatch it rebuilds, or with
+`-SkipBuild` it **throws** rather than measuring a stale binary:
+
+```text
+Benchmark build is stale (fingerprint 811A32D381FA); rebuilding.
+Benchmark executable '...qbench.exe' is stale with respect to the current sources
+  (fingerprint C41F6775E4BC...). Rerun without -SkipBuild to rebuild.
+```
+
+This replaces the earlier behaviour, documented in this file and in
+`ASM486-HANDOFF.md:763` and `:3701`, where the runner only built when the
+executable was absent. **Those two passages are stale — the `-Clean` habit below
+is still sound advice but is no longer required for correctness.** Note that
+`-Clean` belongs to `build-dos.ps1`; `timedemo-dos.ps1` never had one and its
+control flag is `-SkipBuild`.
+
+**`-Benchmark -Clean` and a plain `-Clean` are not equivalent.** The benchmark
+form removes only `obj-bench`, `qbench.exe` and `build-manifest-bench.json`; a
+plain `-Clean` removes the whole `out\dos<suffix>` directory, which also holds
+`qbench.exe`, because both variants share one output root (`build-dos.ps1:275-287`).
+
+A quick confirmation that the intended code is in the image is to disassemble it:
 
 ```powershell
 $objdump = "$env:LOCALAPPDATA\486quake\tools\djgpp-2.05-gcc-12.2.0\bin\i586-pc-msdosdjgpp-objdump.exe"
@@ -385,6 +411,18 @@ that counter is what licenses the conclusion drawn from the other.
 The counters are evidence, not instrumentation overhead to be removed: each one
 exists because a candidate died on a measured premise. See
 `ASM486-HANDOFF.md` for the three write-ups.
+
+**Added 2026-10-02 — `edge-iters`**, which decomposed the `edge-scan` bucket:
+
+| counter | run total | what it answered |
+| --- | ---: | --- |
+| `insert`, `remove`, `step`, `pushback`, `sort` | 532,086 / 150,392 / 972,457 / 96,274 / 1,763,039 | loop iterations, where the existing counters only had *calls* — three of the four edge routines walk a list, so a probe priced per call is sized wrong by the walk length |
+| `genspans` | 3,500,514 | per-edge entries, 3,612/frame. **This is what re-targeted the bucket**: the four micro-optimised loops are 52x the gate together against a 204x bucket |
+| `emit` / `trailing` | 1,043,177 / 2,238,002 | span emits against `TrailingEdge` calls, i.e. **53% of calls emit nothing**, previously unmeasured |
+| `bmodel-zsort` | 66,723 | bounds the ~50-instruction x87 bmodel 1/z sort, which is inadmissible on the blind axis and so is deliberately *not* probed |
+
+Reported on its own line rather than appended to the big block, per the
+`char text[1024]` rule below.
 
 The measured breakdown (frame total 67.946126 s, attribution only — not a
 release timing claim) is `alias-raster` 7.384299 s (10.87%), `alias-transform`
@@ -468,6 +506,50 @@ levels. The world-BSP `local` frame-count candidate remains unpromoted because
 its median was 0.046250% slower than control. This pass changes no visual
 quality, resolution, presentation, scene, or timing behavior.
 
+### `-EdgeScanProbe` — dead-scratch measurement switch, never a candidate (2026-10-02)
+
+```powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -EdgeScanProbe entry
+.\tools\timedemo-dos.ps1 -NoBootstrap -Runs 1 -NoFpsStats -EdgeScanProbe entry
+```
+
+One switch prices **one block** of `r_edgea.s`. It duplicates a fixed,
+side-effect-free instruction sequence at that block's inner point and discards
+the result, so the timedemo delta divided by the known probe instruction count
+gives this harness's cycles-per-instruction for that mix. Default `control`.
+Values: `control`, `entry`, `step`, `trailing`, `emit`, `insert`, `sort`.
+
+**This is instrumentation, not a candidate.** A probe build is strictly slower by
+construction; nothing here can ever be promoted. `control` was verified to
+assemble **instruction-for-instruction identical** to the pre-probe tree (377
+instructions, zero disassembly differences), so the release path is unchanged in
+fact and not merely in intent.
+
+Rules that are not obvious, each learned by faulting or mis-measuring a run:
+
+- **Duplicate compute, never a store.** On mutating list code a duplicated store
+  changes state and the run diverges. The `step` probe drops
+  `movl %eax,et_u(%edx)` and keeps the load and the add.
+- **A dead register is not a safe address.** `%esi` is dead in
+  `R_InsertNewEdges`' search loop but *uninitialised* on the first pass — it is
+  written only by the second probe — so the first `insert` probe faulted the
+  timedemo. Probe a register that is both dead **and** initialised.
+- **`mov mem,mem` does not assemble.** The `emit` block has no free register and
+  a `.data` scratch long needs one anyway, so it borrows `%eax` across a
+  `pushl`/`popl` pair, counted inside the seven probe instructions.
+- **Put the probe before any instruction whose flags a later branch reads.** Both
+  sort loops' back-edge and exit branch consume the flags of the real
+  `cmpl st_key(%esi),%eax`.
+- **Price with a trailing control run.** This host throws isolated ~0.36 s
+  outliers; every pair must be read on medians, and a trailing control catches
+  drift.
+
+Results, the census they rest on, and the 0.9864 mean rate are in
+`ASM486-HANDOFF.md`, "edge-scan decomposed by dead-scratch probe". The
+`PROFILE486` iteration counters the probes are sized against
+(`edge-iters insert/remove/step/pushback/sort/emit/genspans/bmodel-zsort/trailing`)
+are retained and cost nothing in release builds.
+
 ### Latest PROFILE486 and texture-span STOSW experiment (2026-09-29)
 
 The post-closure control profile is
@@ -536,9 +618,18 @@ Mip-0 `unroll8` and `unroll16` remain opt-in selectors for A/B runs. Five fresh
 alternating runs using same-source rebuilds measured 59.344242 seconds for
 `unroll4` and 59.338650 seconds for `unroll8` (0.0094%), then 59.344220 seconds
 for `unroll4` and 59.335845 seconds for `unroll16` (0.0141%). Both gains are
-below the 0.05% promotion gate. Keep `unroll4` as the default; build manifests
+below the 0.05% promotion gate. ~~Keep `unroll4` as the default;~~ build manifests
 and runtime reports record the selected value. See
 `docs/PURE-ASSEMBLER-CANDIDATES.md` for the full parity and timing evidence.
+
+> **Corrected 2026-10-02: the release default is now `unroll16`, not `unroll4`.**
+> The sub-gate closure above no longer applies — Decision 4 in
+> `docs/OPTIMIZATION-PLAN.md` bundles sub-gate wins because the gate is on the
+> total delta, and `unroll16` bundled with `SurfaceBlockMip1IndexHoist=hoist` and a
+> fully-flat mip-1 body to clear it at **0.0620%**. `unroll8` is now obsolete as a
+> candidate: it is a strictly worse variant of an already-promoted change, so there
+> is nothing left to bundle it with. `tools\build-dos.ps1:36-46` is the authority
+> for current defaults.
 
 The bootstrapper installs both tools in:
 

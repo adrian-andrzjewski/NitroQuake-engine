@@ -9,6 +9,107 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### `edge-scan` decomposed by dead-scratch probe (2026-10-02) — six probes, a fifth and sixth rate calibration, and **the closure above was half wrong**
+
+`edge-scan` was closed at `:1622-1649` as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
+zero measurement overhead — it *adds* work and is read off the whole-run timedemo delta against a 0.000049 s spread — so the per-routine decomposition the floor forbade is available by a different route. The ledger
+named this remedy itself (`:1647`) and never ran it. It has now been run, and the result re-opens the bucket.
+
+**Method.** A loop-iteration census first (`-Instrumentation`, one run), because the existing counters count *calls* and three of the four edge routines walk a list, so a probe priced per call would be sized wrong by
+the walk length. Then one dead-scratch probe per block, duplicating a fixed side-effect-free sequence and discarding the result. Three runs per variant plus a trailing control for drift; checksum `1047377823`
+enforced on all seven runs of every pair by the runner.
+
+### The census, and what it overturned
+
+```
+edge-iters insert 532086 remove 150392 step 972457 pushback 96274 sort 1763039
+            emit 1043177 genspans 3500514 bmodel-zsort 66723 trailing 2238002
+```
+
+**`genspans` is 3,500,514 edges — 3,612 per frame, 23.75 per scanline.** The four loops this file has spent twenty micro-experiments on (`LNextEdge`, `LContinueSearch`, `Lre_loop`, `Lsortloop*`) are **52x the gate
+together. The whole bucket is 204x.** So roughly three-quarters of `edge-scan` was never in the routines under test.
+
+**`TrailingEdge` is called 2,238,002 times and emits 1,043,177 spans: 53% of its calls emit nothing**, falling through to `LNoEmit2`/`LNoEmit`/`LInverted`. Nothing had measured that ratio.
+
+### The six probes
+
+Each delta is the probe run's median minus the control block's median; the instruction count is exact and is what the rate divides. Rates at 33.445 MHz:
+
+| probe | block | probe instrs | delta | **rate** | vs 1.0 prediction | delta/spread |
+|---|---|---:|---:|---:|---:|---:|
+| `entry` | `Lgs_edgeloop` prelude | 21,003,084 | +0.625280 s | **0.9957** | 0.43% | 5,299x |
+| `step` | `LNextEdge` | 7,779,656 | +0.230202 s | **0.9896** | 1.05% | 32,886x |
+| `trailing` | `TrailingEdge` dispatch | 13,428,012 | +0.396177 s | **0.9868** | 1.34% | 12,780x |
+| `emit` | span emit block | 7,302,239 | +0.214890 s | **0.9842** | 1.60% | 1,257x |
+| `insert` | `LContinueSearch` | 2,128,344 | +0.061982 s | **0.9740** | 2.67% | 408x |
+| `sort` | `Lsortloop*` (both) | 10,578,234 | +0.312596 s | **0.9883** | 1.18% | 2,442x |
+
+**Mean 0.9864, min 0.9740, max 0.9957, spread 2.2%.** Every delta is 408x or better over its control block's spread; trailing-control drift was +0.0000% to +0.0002% in all six pairs, so none of these is
+thermal.
+
+**Applying the mean rate to each block's real instruction count** gives the priced pools:
+
+| block | instr/run | cyc/frame | x gate |
+|---|---:|---:|---:|
+| `step` `LNextEdge` | 23,338,968 | 23,759 | **23.2** |
+| `entry` `Lgs_edgeloop` prelude | 21,003,084 | 21,381 | **20.9** |
+| `emit` span emit block | 19,820,363 | 20,177 | **19.7** |
+| `trailing` `TrailingEdge` dispatch | 13,428,012 | 13,670 | **13.4** |
+| `insert` `LContinueSearch` | 6,385,032 | 6,500 | 6.4 |
+| `sort` `Lsortloop*` | 5,289,117 | 5,384 | 5.3 |
+| **measured total** | 89,264,576 | **90,871** | **88.8** |
+| profiler `edge-scan` | | 208,581 | 203.9 |
+| **unmeasured remainder** | | **117,710** | **115.1** |
+
+**The single largest unmeasured pool in this renderer is 115x the gate**, and the census says what it is: **~34 instructions per edge of per-edge dispatch work in `R_GenerateSpans`** — the leading/trailing
+dispatch, `LInsertAndExit`, `Lnewtop`, `Lxl_done` — spread over 3,500,514 edges. It is now a bounded target rather than a residue.
+
+### Decision 3's 0.66 rate is wrong, and it was costing real candidates
+
+Decision 3 (`docs/OPTIMIZATION-PLAN.md:26-45`) says to price at 1.0 unless the removed instructions include memory operands, "in which case **0.66 is the measured rate for that mix**". **Six fresh measurements do not support any rate
+below 1.0.** The mixes span the whole range:
+
+- `entry` is half global loads (`movl C(surfaces),%ecx` x3 in six) and measured **0.9957** — the *register-only* rate.
+- `insert` is **pure memory operand**, four `et_u` loads and compares, nothing else, and measured **0.9740** — the lowest of the six, and still nowhere near 0.66.
+
+So the discount does not track "has memory operands". Re-deriving the ledger's own source figure shows where 0.66 came from: `0.030368 s x 33.445 MHz / 1,543,048 = 0.658`, but 1,543,048 is the instruction count of
+the *promoted mip-1 flat path*, not of any removed instruction set. The hoist that actually got promoted removed 712,176 instructions and measured `0.020884 s` = **0.9807**. **Actionable rule: price
+everything at 1.0.** It is the conservative direction (a higher price admits more candidates, and the timedemo is still the only thing that promotes), and six measured mixes now say 1.0 is also the *correct*
+one. Any candidate previously declined under a 0.66 assumption deserves a re-screen at 1.0.
+
+### Four probe traps, each of which cost a build-and-run cycle
+
+1. **A dead register is not a safe address — it must also be initialised.** The `insert` probe first read `et_u(%esi)` because `%esi` looked dead in the search loop. It **faulted the run**: `%esi` is dead but
+   *uninitialised* on the first pass through `LContinueSearch`, not written until the second probe's `movl et_next(%ecx),%esi`. The probe now reads `%ecx` only.
+2. **`mov mem,mem` is not encodable on x86.** The `emit` probe was first written against a `.data` scratch long; gas rejects all six lines with `too many memory references`. The block has no free register, so it
+   now borrows `%eax` across a `pushl`/`popl` pair, which is counted inside the seven.
+3. **Place a probe *before* any instruction whose flags a later branch reads.** In both sort loops `jge`/`jg` and `jne LInsertAndExit` consume the flags of the real `cmpl st_key(%esi),%eax`. The probe goes above it.
+   In the `step` loop, **drop the store**: duplicating `movl %eax,et_u(%edx)` would advance `et_u` twice and diverge the run. That is the whole reason a probe on mutating list code copies compute and never stores.
+4. **Confirm `control` against the object, not the source.** Both revisions of `r_edgea.s` were assembled with the pinned toolchain and the disassembly diffed: **377 instructions each, zero differences.** The only two
+   lines `Compare-Object` reports are objdump's own filename header. A `#ifdef` probe that leaks into `control` would be caught here and nowhere else.
+
+Also recorded: this host produces **isolated ~0.36 s timedemo outliers** (seen in four separate control blocks here and in the baseline re-measure). Every pair was analysed on medians, and each probe block's two
+non-outlying runs agree to <=0.00006 s. Any future single-run timedemo on this machine should be treated as suspect.
+
+### What is NOT closed, and what is inadmissible
+
+`edge-scan` is **re-opened**, not converged: 88.8x the gate is measured and the remaining 115x is bounded and named. `R_GenerateSpans` and `TrailingEdge` are the targets — they are now known to be worth 20.9x, 19.7x
+and 13.4x on their own, and the 53%-of-calls-emit-nothing ratio is a structural fact no previous entry had. The **bmodel 1/z sort is excluded on principle, not on price**: 66,723 calls of a ~50-instruction
+block that is ~40 x87, which is the blind axis (Decision 1). Pricing it with an integer probe would measure the integer subset and silently ignore the FP majority, so it is not probed.
+
+`renderface` (`:1575-1620`, 226,000 cy/frame = 221x the gate) is untouched and still closed for lack of a named hypothesis. Unlike `edge-scan`, a C probe prices *named statements*, so it needs the hypothesis first;
+that closure is correct and stands.
+
+**Baseline unchanged: 59.160513 s median** over three runs (59.160645 / 59.160513 / 59.523401, the third an outlier), against the recorded 59.160558 s — a 0.00008% difference, i.e. noise. Checksum `1047377823`
+on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean, 969 frames throughout. Release is unchanged in fact, not only in intent: `-EdgeScanProbe control` assembles
+instruction-for-instruction identical to the pre-probe tree.
+
+### Standing hazard found on the way: the profile reporter's JSON buffer is also over its limit
+
+The known `char text[1024]` overflow (`:454-470`) has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
+conversions — a worst case of 2,551 bytes against `char text[2048]`**. It survives on every value being shorter than ten digits (longest observed line 898). Less urgent than the 1024 case, which has only 24 bytes
+of headroom, but the same class. Both new counters were added as **their own report call**, per `:467`.
+
 ### `surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)
 
 The first promotion since the profiler was corrected. Three independently
@@ -367,6 +468,13 @@ field by adding a report call, never by growing an existing format string.** A
 stack-smashing `sprintf` in the reporter fails *after* the timedemo has completed,
 so it destroys the profile without touching the timing, and it looks like a
 harness bug rather than a source bug.
+
+**2026-10-02: the same defect exists a second time, in JSON, and is not yet
+recorded here.** The `metrics` object is one `Bench486ProfileJsonPrintf` call with a
+1,671-byte format literal and 88 `%lu` conversions — a 2,551-byte worst case against
+`char text[2048]` (`host_cmd.c:865`). Longest observed line is 898, so it is not
+close, but it is the same class and the same rule applies. Fix when a field is
+next added there.
 
 ### Harness integrity and the measured fidelity result (2026-09-30) — the gate problem is now measured, not asserted
 
@@ -1102,13 +1210,18 @@ So the harness is reliable for finding wins and unreliable for rejecting
    boundaries and unified-cache displacement. That is the only I-cache
    reference in the repository, and it has been shaping the recorded reasoning
    about why the alignment experiment failed.
-2. The pinned profile SHA-256 is **recorded, not enforced**.
+2. ~~The pinned profile SHA-256 is **recorded, not enforced**.
    `tools\timedemo-dos.ps1:439-446` computes it and `:653` writes it into the
    report, but nothing compares it to a constant — `F3948708` appears only in
    prose (`BENCHMARK-COMPARISON.md:22`, `VIDEO-DOS-VALIDATION.md:71`,
    `docs\PURE-ASSEMBLER-CANDIDATES.md`). A future change to the DOSBox-X core
    would therefore not be caught; it would silently re-baseline every entry in
-   the ledger, because the hash protects the file, not the numbers.
+   the ledger, because the hash protects the file, not the numbers.~~
+   **(Closed 2026-09-30, and the line numbers above had moved even then. The hash
+   is enforced: `timedemo-dos.ps1:548-556` compares it to `-ExpectedProfileSha256`
+   (constant at `:104`) and throws unless `-AllowGateOverride` is passed. Grep for
+   `ExpectedProfileSha256` rather than trusting any anchor in this file — several
+   have drifted.)**
 
 **Applying the rule.** Before spending a timedemo on an idea whose payoff comes
 from FPU latency, fetch boundaries, write-buffer occupancy, or 4 KB aliasing,
@@ -1547,6 +1660,20 @@ need the dead-scratch probe or real hardware, not another scope. **Do not add a
 scope to `edge-scan`; the floor arithmetic above is the reason, and it will not
 improve with more runs.**
 
+> **Superseded 2026-10-02 by the `edge-scan` dead-scratch decomposition at the top
+> of this file. The scope prohibition STANDS and the arithmetic above is still
+> correct — but it was read as licensing a permanent closure, and that reading
+> was wrong.** The floor binds a *timer scope*, and a dead-scratch probe is not
+> one: it has no measurement overhead, because it adds work and is read off the
+> whole-run timedemo delta against a 0.000049 s spread. Six probes then gave the
+> decomposition this entry says was unavailable, and it re-opened the bucket at
+> 88.8x the gate measured plus **115.1x now bounded and named**. Two of its own
+> predictions were wrong: the four micro-optimised loops are 52x the gate, not
+> most of it, and the conclusion "no strong reason to expect an unmeasured win"
+> was reasoned rather than measured. **The remedy named in the last paragraph was
+> correct and simply was not run — that is the actual failure here.** Do not
+> repeat it: an entry that says what would be needed is not a closure.
+
 ### mip-1 horizontal-flat surface blocks (2026-10-01) — **PROMOTED, 0.0513%**
 
 The first admissible win since the profiler was corrected, and the first
@@ -1938,11 +2065,22 @@ seconds median for the four-row control and 59.338650 seconds for unroll8, a
 `1047377823`; smoke and full correctness passed. Keep
 `SurfaceBlockMip0Rows=unroll4` as the release value.
 
+> **Superseded 2026-10-02: the release value is `unroll16`, not `unroll4`.** These
+> two sub-gate closures were bundled with `SurfaceBlockMip1IndexHoist=hoist` and a
+> fully-flat mip-1 body and cleared the gate at 0.0620%; see the `surf8` promotion
+> at the top of this file. `build-dos.ps1` is the authority for the current default.
+> The measurements below stand.
+
 The mip-0 sixteen-row extension also remains opt-in. Five fresh alternating
 runs measured 59.344220 seconds median for the four-row control and 59.335845
 seconds for unroll16, a 0.0141% gain below the gate. All ten runs completed
 969 frames with checksum `1047377823`; smoke and full correctness passed. Keep
 `SurfaceBlockMip0Rows=unroll4` as the release value.
+
+> **Superseded 2026-10-02: the release value is `unroll16`.** As above. Note this
+> makes the `unroll8` entry immediately above obsolete as a *candidate* — it is a
+> strictly worse variant of a change that is already promoted, so there is nothing
+> left to bundle it with.
 
 ### Pre-surface-block-loop control and PROFILE486 baseline (2026-09-28)
 
@@ -3565,9 +3703,14 @@ The helper is intentionally small; it does not rewrite the larger alias path.
 1. Reproduce the current `-O3` default three-run `demo1` timedemo
    (15.484108 FPS median, checksum `4154140932`,
    `out\dos-timedemo-20260915-211623`) before further edits.
-   `timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
+   ~~`timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
    `build-dos.ps1 -Benchmark` first after source changes, then
-   `-SkipBuild` for the timedemo.
+   `-SkipBuild` for the timedemo.~~
+   **(2026-10-02: stale, struck through. The runner now fingerprints all 163
+   sources plus the resolved selectors and rebuilds on a mismatch, or throws
+   under `-SkipBuild` — `timedemo-dos.ps1:319-405`. Verified twice in one session
+   this pass. See `:489`. `-Clean` on `build-dos.ps1` remains sound advice but is
+   no longer required for correctness.)**
    **DPMI note (2026-09-15):** HDPMI32 as a CWSDPMI alternative was tested
    with engine unchanged (`DPMI-HDPMI32.md`).  It runs and probes as vendor
    `HDPMI` 3.20, but every timedemo failed checksum `2955717646` vs

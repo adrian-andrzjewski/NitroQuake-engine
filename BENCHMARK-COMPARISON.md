@@ -31,11 +31,13 @@ Profile SHA-256:
 
 `F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45`
 
-This hash is recorded, not enforced: `tools\timedemo-dos.ps1` computes it and
-writes it into each report, but no code compares it to this constant. A change
-to the DOSBox-X configuration or core would therefore re-baseline every number
-here without being detected. See `ASM486-HANDOFF.md`, "What this harness can
-and cannot measure".
+This hash **is enforced**, as of the 2026-09-30 harness-integrity pass:
+`tools\timedemo-dos.ps1:548-556` compares it against
+`-ExpectedProfileSha256` and throws unless `-AllowGateOverride` is passed.
+`timedemo-dos.ps1:104` holds the constant. An earlier revision of this file
+correctly recorded it as *"recorded, not enforced"*; that is no longer true, and
+the same correction applies to `BUILD-DOS.md:187`. See `ASM486-HANDOFF.md`,
+"What this harness can and cannot measure".
 
 ## Results
 
@@ -70,9 +72,13 @@ with the surface cache at 1800 KB; the 2400 KB default measured **0.0635%
 faster** (delta 0.037636 s, about 770x the run spread), and the checksum was
 `1047377823` on all six A/B runs. See `ASM486-HANDOFF.md`, "The 1800 KB
 surface-cache wall does not exist". This build
-uses the promoted `SurfaceBlockMip0Rows=unroll4`,
-`SurfaceBlockMip0HorizontalFlat=fast`, `SurfaceBlockMip1Rows=unroll8`, and
-`SurfaceBlockMip1HorizontalFlat=fast` defaults. See
+uses the promoted `SurfaceBlockMip0Rows=unroll16`,
+`SurfaceBlockMip0HorizontalFlat=fast`, `SurfaceBlockMip1Rows=unroll8`,
+`SurfaceBlockMip1HorizontalFlat=fast`, and `SurfaceBlockMip1IndexHoist=hoist`
+defaults. `unroll16` and the index hoist were bundled with a fully-flat mip-1
+body on 2026-10-02 for 0.0620%; this line previously said `unroll4`, which was
+correct when written and is now two promotions out of date.
+`tools\build-dos.ps1:36-46` is the authority. See
 `docs/PURE-ASSEMBLER-CANDIDATES.md` for the matched samples and
 correctness evidence behind those promotions.
 

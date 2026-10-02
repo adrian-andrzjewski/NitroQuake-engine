@@ -19,9 +19,53 @@ demo1 timedemo   59.160558 s   16.379156 FPS   969 frames
 framebuffer checksum 1047377823    bench486 end checksum 2378409472
 ```
 
-Recorded in `../BENCHMARK-COMPARISON.md`. The offline-precompute axis is closed
-by measurement; `../ASM486-HANDOFF.md` holds every number behind that, plus
-each candidate that was rejected and why.
+Recorded in `../BENCHMARK-COMPARISON.md`. Re-measured 2026-10-02 at
+**59.160513 s** median over three runs — a 0.00008% difference, i.e. noise, so
+the baseline is unchanged and the 2026-10-02 work promoted nothing. The
+offline-precompute axis is closed by measurement; `../ASM486-HANDOFF.md` holds
+every number behind that, plus each candidate that was rejected and why.
+
+## The two largest unmeasured pools, and one of them is now measured
+
+The plan of record has consistently said the renderer is converged on every
+promotable axis. That remains true of every axis that had been *probed* — but
+two regions were closed for want of a measurement rather than on one, and on
+2026-10-02 the first was measured:
+
+| pool | cyc/frame | vs gate | closed because |
+|---|---:|---:|---|
+| `edge-scan` | 208,581 | 204x | *"unresolvable by this instrument, not as converged"* |
+| `renderface` | 226,000 | 221x | *"no admissible hypothesis"*; probe declined |
+
+**`edge-scan` is now decomposed, and the closure was half wrong.** Its
+justification was that a per-call timer scope costs 387 cycles against 466
+cycles of work per operation, giving 17% signal. That floor is real and still
+forbids a scope — but it does not bind a **dead-scratch probe**, which has no
+measurement overhead at all because it adds work and is read off the whole-run
+timedemo delta. Six probes gave the decomposition that was thought unavailable:
+
+```text
+measured 88.8x the gate   (6 blocks, 89,264,576 instructions/run, priced at 0.9864)
+unmeasured 115.1x         (~34 instructions per edge of per-edge dispatch)
+```
+
+The census behind it overturned two beliefs at once: the four loops carrying
+~20 logged micro-experiments are **52x the gate together, not most of the
+bucket**, and `TrailingEdge` is called 2,238,002 times to emit 1,043,177 spans —
+**53% of its calls emit nothing**, which nothing had measured.
+
+**So the largest single unmeasured pool in this renderer is 115x the gate**, and
+it is now bounded and named rather than a residue. `edge-scan` is **re-opened**,
+not converged.
+
+`renderface` is untouched and its closure **stands**: a C probe prices *named
+statements*, so unlike `edge-scan` it needs a hypothesis before it can be
+written. That is a correct closure and should not be reopened by analogy.
+
+The general lesson is recorded because this project has now made the mistake
+twice: **an entry that says what would be needed is not a closure.** The
+`edge-scan` entry named the dead-scratch probe as its own remedy and was filed as
+closed anyway.
 
 ## Decision 3 — price at the rate that matches the instruction mix
 
@@ -43,6 +87,10 @@ a clean bit-exact win that would have been declined. So:
 2. Price them at **1.0 cycle per instruction** unless the removed instructions
    include memory operands, in which case 0.66 is the measured rate for that mix.
 3. Compare against 1,022.8 cycles/frame.
+
+> **Item 2 is superseded by Decision 5 below: there is no 0.66 rate. Price
+> everything at 1.0.** The reasoning that produced it is sound and the
+> conclusion is wrong; see Decision 5 for the six measurements that overturn it.
 
 Decisions 1 and 2 below are unchanged.
 
@@ -69,6 +117,50 @@ What this does **not** license:
 - Bundling changes whose *interaction* is unverified. The three here touch
   disjoint code (mip-0 general loop, mip-1 flat row, mip-1 flat block entry), and
   the matched A/B is run on the whole bundle, not on the pieces.
+
+## Decision 5 — there is no 0.66 rate; price everything at 1.0
+
+Added 2026-10-02, from the `edge-scan` probe pass. Decision 3's instruction is
+**wrong in its conclusion and right in its reasoning**, which is the worst kind
+of error to leave standing, so it is replaced here rather than merely annotated.
+
+The 0.66 figure came from `0.030368 s x 33.445 MHz / 1,543,048 = 0.658`. But
+1,543,048 is the instruction count of the *promoted mip-1 flat path*, not of any
+set of instructions a candidate would **remove**. The hoist that actually got
+promoted removed 712,176 instructions and measured `0.020884 s` — **0.9807**.
+The divisor was the wrong quantity, so the rate was never measured.
+
+Six fresh dead-scratch probes across the whole instruction-mix range say the
+discount does not track memory operands at all:
+
+| probe mix | rate |
+|---|---:|
+| half global loads (`entry`) | 0.9957 |
+| straight-line arithmetic, `imull`/`shrl`/`addl` (prior, `:114`) | 0.9955 |
+| register-only partial moves (prior, mip-1 hoist) | 0.9810 |
+| both sort loops, loads and compares (`sort`) | 0.9883 |
+| `addl` with a memory operand (prior, Z-span probe) | 0.9955 |
+| load and step (`step`) | 0.9896 |
+| **pure memory operand, nothing else** (`insert`) | **0.9740** |
+| push/pop and five loads (`emit`) | 0.9842 |
+
+Mean **0.9864**, range 0.9740–0.9957, spread **2.2%** across eight mixes. The
+most memory-bound probe measured is 0.974, not 0.66.
+
+**So: count removed instructions, multiply by 1.0, compare against 1,022.8
+cycles/frame.** This is also the conservative direction — 1.0 is the *higher*
+price, so it admits more candidates than 0.66 would, and the timedemo remains
+the only thing that promotes anything.
+
+**Two consequences that are not optional bookkeeping:**
+
+1. **Any candidate previously declined under a 0.66 assumption must be
+   re-screened at 1.0.** The bundle path was declared partly exhausted on that
+   rate. This is arithmetic, not builds, and it is cheap.
+2. **Decision 3's general warning survives and is now better founded.** The
+   error it describes was real; it diagnosed the symptom (wrong rate) while
+   being applied to the wrong quantity. Where a rate is derived, check what the
+   denominator counts.
 
 ## Decision 1 — the acceptance gate is the timedemo, not a cost model
 
@@ -120,10 +212,28 @@ Two more closed on the same rule in 2026-10-02, from counters rather than
 estimates: the **mip-2** and **mip-3** horizontal-flat surface blocks at 0.0095%
 and 0.0006%, and the **fully-flat per-block index hoist** at 0.0080%. The
 remaining item on that axis, the **mip-1 flat-row index hoist**, was built and
-measured at **0.0353%** — real, bit-exact, reproducible, and **below the gate**,
-so it is rejected. Together with the unit-stride span premise (0 pixels of a
-400,000-pixel requirement) that closes `texture-spans` on the admissible axis
-by measurement as well.
+measured at **0.0353%** — real, bit-exact, reproducible, and below the gate *on
+its own*, so it was rejected in isolation and then **promoted at 0.0620% as part
+of the Decision 4 bundle**. An earlier revision of this paragraph still read
+"so it is rejected" without the qualifier; that was stale. Together with the
+unit-stride span premise (0 pixels of a 400,000-pixel requirement) that closes
+`texture-spans` on the admissible axis by measurement as well.
+
+### The re-openable closures
+
+Decision 4 has no list in the ledger yet, which is a gap: the plan asserts one
+exists and it did not. Here it is, as of 2026-10-02. Every entry is bit-exact,
+independently priced, and below the gate — so none is dead, only ungated.
+
+| closure | price | state |
+|---|---:|---|
+| `SurfaceBlockMip0Rows=unroll8` | 0.0094% | **obsolete** — a strictly worse variant of the promoted `unroll16`; nothing to bundle with |
+| `GibTrailHorizontalIntegration=skipzero` | 0.0119% | **live.** Selector already plumbed into all four runners; a default flip, no code. Needs ~0.038% more to clear the gate alone |
+| mip-2 horizontal-flat block | 0.0064% claimed | **blocked on a bug**, not on price — it rendered checksum `3278041384` and the cause was never found |
+| mip-3 horizontal-flat block | 0.0006% | closed on price; would need a 80x partner |
+
+Only `skipzero` is worth acting on, and on its own it does not clear. This is
+the honest reason the bundle path is exhausted rather than merely untried.
 
 Two probes measured the last two, and both are worth copying rather than
 reinventing:
@@ -134,8 +244,17 @@ reinventing:
   neutralise the inputs to make the work disappear: forcing `z = 1.0f` to remove
   the divides removes what the divides produce, which broke the water and
   faulted the run.
-- **After any source edit, force a rebuild.** `../tools/timedemo-dos.ps1:272`
-  only builds when the benchmark executable is absent, and that path is keyed
-  by selector profile alone, so an edit is silently ignored and the previous
-  binary is measured. This produced a false negative here. See the warning in
-  `../BUILD-DOS.md`.
+  **Two refinements from the 2026-10-02 `edge-scan` pass, both learned by faulting
+  a run first.** A dead register is not a safe address — it must also be
+  *initialised*; `%esi` looked dead in `R_InsertNewEdges`' search loop but is not
+  written until the second probe, and reading through it crashed the timedemo.
+  And on mutating code, duplicate the compute and **never the store**.
+- **After any source edit, force a rebuild — or rather, you no longer have to.**
+  ~~`../tools/timedemo-dos.ps1:272` only builds when the benchmark executable is
+  absent, and that path is keyed by selector profile alone, so an edit is
+  silently ignored and the previous binary is measured.~~
+  **(Corrected: the runner now fingerprints all 163 sources plus the resolved
+  selectors and rebuilds on a mismatch, or throws under `-SkipBuild` —
+  `timedemo-dos.ps1:319-405`. Verified twice in one session. Passing `-Clean` to
+  `build-dos.ps1` remains sound advice but is no longer required for
+  correctness.)**

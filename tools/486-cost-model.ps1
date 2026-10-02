@@ -17,7 +17,7 @@
     published-latency estimate, not a measurement taken by this project.
 
 .NOTES
-    The linked executable is stripped by the build (build-dos.ps1:489 passes
+    The linked executable is stripped by the build (build-dos.ps1:522 passes
     -s), so per-function attribution is impossible from the image. Linked-image
     facts are therefore exact but coarse (.text total, x87 total); per-path x87
     accounting is done against the assembler sources, where labels and line
@@ -316,7 +316,7 @@ foreach ($line in $disasmLines) {
 # ---------------------------------------------------------------------------
 # Section 1b - per-object x87 accounting from the retained .obj files.
 #
-# The linked image is stripped (build-dos.ps1:489 passes -s), so objdump -d on
+# The linked image is stripped (build-dos.ps1:522 passes -s), so objdump -d on
 # it reports no symbols and every function is anonymous. The objects are
 # retained next to the executable, and an unstripped .obj disassembles with
 # its symbol table intact, which is what makes per-function attribution

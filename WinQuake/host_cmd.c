@@ -166,6 +166,18 @@ unsigned long bench486_edge_insert_calls;
 unsigned long bench486_edge_remove_calls;
 unsigned long bench486_edge_step_calls;
 unsigned long bench486_span_flushes;
+// Loop iterations behind those calls.  Three of the four edge routines walk
+// a list, so a probe priced per call would be sized wrong by the walk length;
+// these are the denominator for sizing the edge-scan dead-scratch probes.
+unsigned long bench486_edge_insert_iters;
+unsigned long bench486_edge_remove_iters;
+unsigned long bench486_edge_step_iters;
+unsigned long bench486_edge_pushback_iters;
+unsigned long bench486_edge_sort_iters;
+unsigned long bench486_edge_emit_blocks;
+unsigned long bench486_edge_genspans_edges;
+unsigned long bench486_edge_bmodel_zsort;
+unsigned long bench486_edge_trailing_calls;
 unsigned long bench486_surface_span_count;
 unsigned long bench486_surface_span_pixels;
 unsigned long bench486_surface_span_segments;
@@ -1166,6 +1178,14 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_hull_check_calls);
 
 	Bench486ProfileJsonPrintf (file_handle,
+			"  \"edge_iters\": {\"insert\": %lu, \"remove\": %lu, \"step\": %lu, \"pushback\": %lu, \"sort\": %lu, \"emit\": %lu, \"genspans\": %lu, \"bmodel_zsort\": %lu, \"trailing\": %lu},\n",
+			bench486_edge_insert_iters, bench486_edge_remove_iters,
+			bench486_edge_step_iters, bench486_edge_pushback_iters,
+			bench486_edge_sort_iters, bench486_edge_emit_blocks,
+			bench486_edge_genspans_edges, bench486_edge_bmodel_zsort,
+			bench486_edge_trailing_calls);
+
+	Bench486ProfileJsonPrintf (file_handle,
 			"  \"metrics\": {\n"
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
@@ -1351,6 +1371,15 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_edge_remove_calls = 0;
 	bench486_edge_step_calls = 0;
 	bench486_span_flushes = 0;
+	bench486_edge_insert_iters = 0;
+	bench486_edge_remove_iters = 0;
+	bench486_edge_step_iters = 0;
+	bench486_edge_pushback_iters = 0;
+	bench486_edge_sort_iters = 0;
+	bench486_edge_emit_blocks = 0;
+	bench486_edge_genspans_edges = 0;
+	bench486_edge_bmodel_zsort = 0;
+	bench486_edge_trailing_calls = 0;
 	bench486_surface_span_count = 0;
 	bench486_surface_span_pixels = 0;
 	bench486_surface_span_segments = 0;
@@ -1532,6 +1561,19 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_scanlines, bench486_edge_insert_calls,
 			bench486_edge_remove_calls, bench486_edge_step_calls,
 			bench486_span_flushes);
+	Bench486ProfileReportText (report_handle, text);
+	// Its own report call, not another field in the block above.  The
+	// profile-work sprintf above targets char text[1024] and is already at
+	// its limit; see the note in this function.
+	sprintf (text,
+			"edge-iters insert %lu remove %lu step %lu pushback %lu "
+			"sort %lu emit %lu genspans %lu bmodel-zsort %lu "
+			"trailing %lu\n",
+			bench486_edge_insert_iters, bench486_edge_remove_iters,
+			bench486_edge_step_iters, bench486_edge_pushback_iters,
+			bench486_edge_sort_iters, bench486_edge_emit_blocks,
+			bench486_edge_genspans_edges, bench486_edge_bmodel_zsort,
+			bench486_edge_trailing_calls);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
 			"profile-work renderface-calls %lu renderface-emitted %lu "
