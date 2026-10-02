@@ -32,6 +32,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 sb_v:		.long	0
 
+#ifdef PROFILE486
+	// sb_flat_dh holds the light byte as of the current mip-1 horizontal-flat
+	// row's head; the row end compares against it.  See the macro comment.
+	.extern	bench486_profile_frame_active
+	.extern	bench486_surf8_flat_rows
+	.extern	bench486_surf8_flat_dh_moved
+sb_flat_dh:
+	.byte	0
+#endif
+
 	.text
 
 	.p2align 4,,15
@@ -818,7 +828,24 @@ LSkip_mip1:
 // afterwards instead of two adds per texel. Source byte order, the %eax
 // packing, the rorl $16 word swap and both colormap lookups per texel are
 // byte-for-byte the general path, so the rendered output is identical.
+//
+// The four `movb %dh,%bh' / `movb %dh,%ch' pairs below are NOT redundant, and
+// they were measured rather than argued.  %dh is invariant across a row's eight
+// texels (bench486_surf8_flat_dh_moved reads 0 of 118,712 rows), so hoisting
+// them to the top of the row is valid -- and worth 6 instructions per row,
+// 0.0353% of frame, which is real but under the 0.05% gate.  Hoisting them to
+// the top of the *unrolled block* instead is wrong: each row's trailing
+// `addl %ebp,%edx' moves the light to the next scanline, so rows b..h would all
+// use row a's light byte.  That variant renders checksum 3165952421.  See
+// ASM486-HANDOFF.md, "mip-1 flat-row index hoist".
 .macro SURF8_MIP1_FLAT_ROW suffix
+#ifdef PROFILE486
+	// Premise counter for the hoist idea above: the light byte as of this
+	// row's head, compared again before the row's own trailing step.  Both
+	// ends must be inside the macro -- sampling once per unrolled block
+	// reports every row with a non-zero vertical step as a false positive.
+	movb	%dh,sb_flat_dh
+#endif
 	movb	6(%esi),%cl
 	movb	%dh,%bh
 	movb	7(%esi),%bl
@@ -857,6 +884,18 @@ LSkip_mip1:
 	movl	%eax,(%edi)
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz	LSurf8Mip1DhSkipped\suffix\()
+	cmpb	%dh,sb_flat_dh
+	jne	LSurf8Mip1DhMoved\suffix\()
+	incl	C(bench486_surf8_flat_rows)
+	jmp	LSurf8Mip1DhSkipped\suffix\()
+LSurf8Mip1DhMoved\suffix\():
+	incl	C(bench486_surf8_flat_dh_moved)
+	incl	C(bench486_surf8_flat_rows)
+LSurf8Mip1DhSkipped\suffix\():
+#endif
 	addl	%ebp,%edx
 .endm
 

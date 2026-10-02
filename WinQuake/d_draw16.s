@@ -47,6 +47,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern C(bench486_texture_final_exact)
 	.extern C(bench486_texture_full_row_eligible)
 	.extern C(bench486_texture_full_row_fast)
+	.extern C(bench486_span_segments)
+	.extern C(bench486_span_unit_stride_segments)
+	.extern C(bench486_span_unit_stride_pixels)
 #endif
 
 //----------------------------------------------------------------------
@@ -439,6 +442,7 @@ LSpan16RowCrossFallback:
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
 	jz		LProfileZeroStatsDone
+	incl	C(bench486_span_segments)
 	testl	%ecx,%ecx
 	jnz		LProfileZeroNoTDeltaZero
 	incl	C(bench486_texture_full_tdelta_zero)
@@ -454,6 +458,20 @@ LProfileZeroNoTZero:
 	cmpl	$1,%edx
 	jne		LProfileZeroNoSOne
 	incl	C(bench486_texture_full_sone)
+	// Unit-stride premise.  A sixteen-wide segment whose t step has no whole
+	// texel component, whose s step is exactly one texel, and whose s step
+	// has no fractional part, advances the source by exactly one byte per
+	// sample with no carry: the per-pixel `addl %ebp,%ebx' /
+	// `adcl advancetable+4,%esi' pair collapses to `addl $1,%esi'.  Counted
+	// here, before the DDA is built, and weighted by pixels, because a
+	// segment count on its own cannot be priced.
+	cmpl	$0,%eax
+	jne	LProfileZeroNoUnitStride
+	testl	$0xfffff,%ebp
+	jnz	LProfileZeroNoUnitStride
+	incl	C(bench486_span_unit_stride_segments)
+	addl	$16,C(bench486_span_unit_stride_pixels)
+LProfileZeroNoUnitStride:
 LProfileZeroNoSOne:
 	testl	$0xfffff,%ebp
 	jnz		LProfileZeroNoSFracZero
@@ -483,6 +501,7 @@ LNonZeroSetup:
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
 	jz		LProfileNonZeroStatsDone
+	incl	C(bench486_span_segments)
 	testl	%ecx,%ecx
 	jnz		LProfileNonZeroNoTDeltaZero
 	incl	C(bench486_texture_full_tdelta_zero)
