@@ -618,6 +618,27 @@ Lv_loop_mip1:
 	jne	LSurfaceBlockMip1NotHorizontalFlat
 	cmpl	%ecx,%ebx
 	jne	LSurfaceBlockMip1NotHorizontalFlat
+#ifdef ASM486_SURF8_MIP1_INDEX_HOIST
+	// All four corners equal makes lightrightstep zero, so %edx never moves
+	// and %dh is the same for all eight rows: form the index registers once
+	// for the whole block and drop the eight no-op light steps.  Tested first
+	// because 11,327 of the 14,837 flat blocks are fully flat, and the test
+	// costs two instructions per block *column* (4,901 calls per run), not per
+	// row, so the miss is free.
+	//
+	// This test MUST come before the `xorl %reg,%reg' below, which clears
+	// %ecx for loop addressing: after it, `cmpl $0,%ecx' is always true, every
+	// flat block takes the fully-flat body, and the framebuffer comes out as
+	// checksum 3165952421.  This is the same failure as hoisting the index
+	// bytes to block granularity, and the same checksum.
+	cmpl	$0,%ecx
+	jne	LSurfaceBlockMip1NotFullyFlat
+	xorl	%ebx,%ebx		// colormap indexes start at zero
+	xorl	%ecx,%ecx
+	call	LSurf8Mip1FullyFlat
+	jmp	LSurfaceBlockMip1Done
+LSurfaceBlockMip1NotFullyFlat:
+#endif
 	movl	%ecx,%ebp		// constant per-row vertical step
 	xorl	%ebx,%ebx		// colormap indexes start at zero
 	xorl	%ecx,%ecx
@@ -822,6 +843,26 @@ LSkip_mip1:
 	ret
 
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
+// ASM486_SURF8_MIP1_INDEX_HOIST replaces the four `movb %dh,%bh' / `movb %dh,%ch'
+// pairs in the flat row with one pair at the top of the row.  Six instructions
+// per row, 0.0353% of frame, measured.
+//
+// It must be per ROW, not per unrolled block.  The row's own trailing
+// `addl %ebp,%edx' advances the light to the next scanline, so %dh is invariant
+// across a row's eight texels and varies *between* the block's eight rows.  A
+// head at the top of the unrolled block gives rows b..h row a's light byte and
+// renders checksum 3165952421.  The premise is measured rather than assumed:
+// bench486_surf8_flat_dh_moved reads 0 of 118,712 rows.
+//
+// `control' is the original body, kept for a matched A/B.
+#ifdef ASM486_SURF8_MIP1_INDEX_HOIST
+#define SURF8_MIP1_FLAT_INDEX_HIGH
+#define SURF8_MIP1_FLAT_INDEX_LOW
+#else
+#define SURF8_MIP1_FLAT_INDEX_HIGH movb	%dh,%bh
+#define SURF8_MIP1_FLAT_INDEX_LOW	 movb	%dh,%ch
+#endif
+
 // Flat-row body for the mip-1 block: the general SURF8_MIP1_ROW with every
 // per-texel light update removed. %edx already holds this row's light and
 // %ebp the constant per-row step, so eight texels need one `addl %ebp,%edx'
@@ -838,27 +879,26 @@ LSkip_mip1:
 // `addl %ebp,%edx' moves the light to the next scanline, so rows b..h would all
 // use row a's light byte.  That variant renders checksum 3165952421.  See
 // ASM486-HANDOFF.md, "mip-1 flat-row index hoist".
-.macro SURF8_MIP1_FLAT_ROW suffix
-#ifdef PROFILE486
-	// Premise counter for the hoist idea above: the light byte as of this
-	// row's head, compared again before the row's own trailing step.  Both
-	// ends must be inside the macro -- sampling once per unrolled block
-	// reports every row with a non-zero vertical step as a false positive.
-	movb	%dh,sb_flat_dh
-#endif
+// The eight texels of one fully-flat row: no head, because the caller emits the
+// index bytes once for the whole block, and no trailing `addl %ebp,%edx',
+// because all four corners are equal so lightrightstep is zero and %edx never
+// moves.  Upper-case suffixes keep its patch labels disjoint from the
+// horizontal-flat body below.
+//
+// This is a separate macro rather than a shared one with the row below: gas does
+// not substitute macro parameters through a nested expansion, so a wrapper that
+// called a shared texel macro would emit the literal label `.LLBPatchm1fsuffix_0'
+// and collide with itself.
+.macro SURF8_MIP1_FULLY_FLAT_ROW suffix
 	movb	6(%esi),%cl
-	movb	%dh,%bh
 	movb	7(%esi),%bl
-	movb	%dh,%ch
 	movb	0x12345678(%ebx),%ah
 .LLBPatchm1f\suffix\()_0:
 	movb	5(%esi),%bl
 	movb	0x12345678(%ecx),%al
 .LLBPatchm1f\suffix\()_1:
 	movb	4(%esi),%cl
-	movb	%dh,%bh
 	rorl	$16,%eax
-	movb	%dh,%ch
 	movb	0x12345678(%ebx),%ah
 .LLBPatchm1f\suffix\()_2:
 	movb	3(%esi),%bl
@@ -866,17 +906,71 @@ LSkip_mip1:
 .LLBPatchm1f\suffix\()_3:
 	movb	2(%esi),%cl
 	movl	%eax,4(%edi)
-	movb	%dh,%bh
-	movb	%dh,%ch
 	movb	0x12345678(%ebx),%ah
 .LLBPatchm1f\suffix\()_4:
 	movb	1(%esi),%bl
 	movb	0x12345678(%ecx),%al
 .LLBPatchm1f\suffix\()_5:
 	movb	(%esi),%cl
-	movb	%dh,%bh
 	rorl	$16,%eax
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_6:
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_7:
+	movl	%eax,(%edi)
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+.endm
+
+// The eight texels of one flat row, with no prologue and no epilogue, so the
+// horizontal-flat and fully-flat bodies can share them.  `suffix' becomes both
+// the macro argument and the patch-label suffix, so the two bodies must be
+// invoked with disjoint suffix sets (lower case here, upper case below).
+
+// One horizontal-flat row: per-row head (under the hoist) plus the per-row
+// light step.  The premise counter compares %dh at the row head against %dh at
+// the bottom of the same row; both ends must be inside the row, because
+// sampling once per unrolled block reports every row with a non-zero vertical
+// step as a false positive.
+.macro SURF8_MIP1_FLAT_ROW suffix
+#ifdef PROFILE486
+	movb	%dh,sb_flat_dh
+#endif
+#ifdef ASM486_SURF8_MIP1_INDEX_HOIST
+	movb	%dh,%bh
 	movb	%dh,%ch
+#endif
+	movb	6(%esi),%cl
+	SURF8_MIP1_FLAT_INDEX_HIGH
+	movb	7(%esi),%bl
+	SURF8_MIP1_FLAT_INDEX_LOW
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_0:
+	movb	5(%esi),%bl
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_1:
+	movb	4(%esi),%cl
+	SURF8_MIP1_FLAT_INDEX_HIGH
+	rorl	$16,%eax
+	SURF8_MIP1_FLAT_INDEX_LOW
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_2:
+	movb	3(%esi),%bl
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_3:
+	movb	2(%esi),%cl
+	movl	%eax,4(%edi)
+	SURF8_MIP1_FLAT_INDEX_HIGH
+	SURF8_MIP1_FLAT_INDEX_LOW
+	movb	0x12345678(%ebx),%ah
+.LLBPatchm1f\suffix\()_4:
+	movb	1(%esi),%bl
+	movb	0x12345678(%ecx),%al
+.LLBPatchm1f\suffix\()_5:
+	movb	(%esi),%cl
+	SURF8_MIP1_FLAT_INDEX_HIGH
+	rorl	$16,%eax
+	SURF8_MIP1_FLAT_INDEX_LOW
 	movb	0x12345678(%ebx),%ah
 .LLBPatchm1f\suffix\()_6:
 	movb	0x12345678(%ecx),%al
@@ -898,6 +992,22 @@ LSurf8Mip1DhSkipped\suffix\():
 #endif
 	addl	%ebp,%edx
 .endm
+
+#ifdef ASM486_SURF8_MIP1_INDEX_HOIST
+	.p2align 4,,15
+LSurf8Mip1FullyFlat:
+	movb	%dh,%bh
+	movb	%dh,%ch
+	SURF8_MIP1_FULLY_FLAT_ROW A
+	SURF8_MIP1_FULLY_FLAT_ROW B
+	SURF8_MIP1_FULLY_FLAT_ROW C
+	SURF8_MIP1_FULLY_FLAT_ROW D
+	SURF8_MIP1_FULLY_FLAT_ROW E
+	SURF8_MIP1_FULLY_FLAT_ROW F
+	SURF8_MIP1_FULLY_FLAT_ROW G
+	SURF8_MIP1_FULLY_FLAT_ROW H
+	ret
+#endif
 
 	.p2align 4,,15
 LSurf8Mip1HorizontalFlat:
@@ -1549,6 +1659,74 @@ SURF8_PATCH_ROW p
 	.long	.LLBPatchm1fh_5-4
 	.long	.LLBPatchm1fh_6-4
 	.long	.LLBPatchm1fh_7-4
+#ifdef ASM486_SURF8_MIP1_INDEX_HOIST
+	// A second eight-row body for the fully-flat case, sharing the texel macro
+	// but with its own patch labels: eight rows of eight sites again.
+	.long	.LLBPatchm1fA_0-4
+	.long	.LLBPatchm1fA_1-4
+	.long	.LLBPatchm1fA_2-4
+	.long	.LLBPatchm1fA_3-4
+	.long	.LLBPatchm1fA_4-4
+	.long	.LLBPatchm1fA_5-4
+	.long	.LLBPatchm1fA_6-4
+	.long	.LLBPatchm1fA_7-4
+	.long	.LLBPatchm1fB_0-4
+	.long	.LLBPatchm1fB_1-4
+	.long	.LLBPatchm1fB_2-4
+	.long	.LLBPatchm1fB_3-4
+	.long	.LLBPatchm1fB_4-4
+	.long	.LLBPatchm1fB_5-4
+	.long	.LLBPatchm1fB_6-4
+	.long	.LLBPatchm1fB_7-4
+	.long	.LLBPatchm1fC_0-4
+	.long	.LLBPatchm1fC_1-4
+	.long	.LLBPatchm1fC_2-4
+	.long	.LLBPatchm1fC_3-4
+	.long	.LLBPatchm1fC_4-4
+	.long	.LLBPatchm1fC_5-4
+	.long	.LLBPatchm1fC_6-4
+	.long	.LLBPatchm1fC_7-4
+	.long	.LLBPatchm1fD_0-4
+	.long	.LLBPatchm1fD_1-4
+	.long	.LLBPatchm1fD_2-4
+	.long	.LLBPatchm1fD_3-4
+	.long	.LLBPatchm1fD_4-4
+	.long	.LLBPatchm1fD_5-4
+	.long	.LLBPatchm1fD_6-4
+	.long	.LLBPatchm1fD_7-4
+	.long	.LLBPatchm1fE_0-4
+	.long	.LLBPatchm1fE_1-4
+	.long	.LLBPatchm1fE_2-4
+	.long	.LLBPatchm1fE_3-4
+	.long	.LLBPatchm1fE_4-4
+	.long	.LLBPatchm1fE_5-4
+	.long	.LLBPatchm1fE_6-4
+	.long	.LLBPatchm1fE_7-4
+	.long	.LLBPatchm1fF_0-4
+	.long	.LLBPatchm1fF_1-4
+	.long	.LLBPatchm1fF_2-4
+	.long	.LLBPatchm1fF_3-4
+	.long	.LLBPatchm1fF_4-4
+	.long	.LLBPatchm1fF_5-4
+	.long	.LLBPatchm1fF_6-4
+	.long	.LLBPatchm1fF_7-4
+	.long	.LLBPatchm1fG_0-4
+	.long	.LLBPatchm1fG_1-4
+	.long	.LLBPatchm1fG_2-4
+	.long	.LLBPatchm1fG_3-4
+	.long	.LLBPatchm1fG_4-4
+	.long	.LLBPatchm1fG_5-4
+	.long	.LLBPatchm1fG_6-4
+	.long	.LLBPatchm1fG_7-4
+	.long	.LLBPatchm1fH_0-4
+	.long	.LLBPatchm1fH_1-4
+	.long	.LLBPatchm1fH_2-4
+	.long	.LLBPatchm1fH_3-4
+	.long	.LLBPatchm1fH_4-4
+	.long	.LLBPatchm1fH_5-4
+	.long	.LLBPatchm1fH_6-4
+	.long	.LLBPatchm1fH_7-4
+#endif
 #endif
 
 	.text
@@ -1582,6 +1760,11 @@ C(R_Surf8Patch):
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	// Eight rows of eight colormap sites each.
+	addl	$64,%ecx
+#endif
+#ifdef ASM486_SURF8_MIP1_INDEX_HOIST
+	// A second eight-row body for the fully-flat case, sharing the texel
+	// macro but with its own patch labels: eight rows of eight sites again.
 	addl	$64,%ecx
 #endif
 LPatchLoop8:

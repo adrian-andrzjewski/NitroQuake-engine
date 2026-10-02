@@ -15,7 +15,7 @@ disagree, the plan file wins.
 ## Current state
 
 ```text
-demo1 timedemo   59.197262 s   16.369000 FPS   969 frames
+demo1 timedemo   59.160558 s   16.379156 FPS   969 frames
 framebuffer checksum 1047377823    bench486 end checksum 2378409472
 ```
 
@@ -45,6 +45,30 @@ a clean bit-exact win that would have been declined. So:
 3. Compare against 1,022.8 cycles/frame.
 
 Decisions 1 and 2 below are unchanged.
+
+## Decision 4 — bundle sub-gate wins, because the gate is on the total
+
+Added 2026-10-02, the same day as Decision 3 and the reason the previous pass
+found nothing. The promotion gate is a delta from the current baseline, so a
+change worth 0.035% can never be promoted **on its own** no matter how clean it
+is. Three such changes, each independently priced and each bit-exact, are worth
+0.062% together and clear the gate.
+
+The `surf8` promotion is the worked example: `SurfaceBlockMip0Rows=unroll16`
+(0.0132%), `SurfaceBlockMip1IndexHoist=hoist` (0.0353%), and a fully-flat
+variant of the same path (0.0126%). Predicted 0.036716 s from the instruction
+model, measured 0.036689 s — 0.07% error, with all three components validated
+bit-exact against the framebuffer checksum.
+
+What this does **not** license:
+
+- Bundling anything that is not independently priced. The rule is still
+  Decision 2: every component must survive the prize screen on its own.
+- Bundling to hide a marginal win. The bundle cleared by 24%, and each component
+  is a genuine instruction removal rather than a scheduling accident.
+- Bundling changes whose *interaction* is unverified. The three here touch
+  disjoint code (mip-0 general loop, mip-1 flat row, mip-1 flat block entry), and
+  the matched A/B is run on the whole bundle, not on the pieces.
 
 ## Decision 1 — the acceptance gate is the timedemo, not a cost model
 

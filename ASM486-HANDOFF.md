@@ -9,6 +9,87 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### `surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)
+
+The first promotion since the profiler was corrected. Three independently
+priced, individually sub-gate changes were bundled, because **the gate is on the
+total delta, not on any one change** — three changes worth 0.035%, 0.014% and
+0.013% cannot be promoted one at a time and are worth 0.062% together.
+
+| component | what it removes | instructions/run | predicted |
+|---|---|---:|---:|
+| `SurfaceBlockMip0Rows=unroll16` | the mip-0 row-loop branch, 16 rows per iteration instead of 4 | — | 0.0132% (measured on its own today) |
+| `SurfaceBlockMip1IndexHoist=hoist` | 6 of the 8 per-texel `%dh` byte moves in the mip-1 flat row | 712,176 | 0.0353% (measured on its own) |
+| ...and its fully-flat body | a second mip-1 flat body for blocks with all four corners equal: the index bytes are formed once per **block** instead of once per row, and the eight no-op `addl %ebp,%edx` steps go | 11,327 × 22 = 249,194 | 0.0126% |
+| **total** | | | **0.0611%** |
+
+Three alternating pairs, control first, both from one tree, release defaults
+against `-SurfaceBlockMip0Rows unroll16 -SurfaceBlockMip1IndexHoist hoist`:
+
+```text
+control: 59.656695 / 59.197208 / 59.197235 s, median 59.197235
+bundle:  59.160588 / 59.160522 / 59.160546 s, median 59.160546
+delta   -0.036689 s = 0.06198% faster;  969 frames and checksum 1047377823 on all six
+```
+
+The first control run is the isolated-outlier pattern recorded elsewhere in this
+file; the other two controls spread 0.000027 s, so the delta is 1,359x the clean
+spread, and every bundle run beat every control run including the outlier.
+`bench486` correctness PASS with end checksum `2378409472`, DOS smoke clean.
+
+**Predicted 0.036716 s from the instruction model against 0.036689 s measured —
+0.07% error.** The prediction summed the two previously measured components at
+their measured rates and the new one at the 1.0 cycle rate, so
+`docs/OPTIMIZATION-PLAN.md` Decision 3 now has three agreeing data points.
+
+**Promoted default re-measures at 59.160558 s median** (59.160558 / 59.160577 /
+59.160502), 16.379156 FPS, checksum `1047377823` on all three, with `bench486`
+PASS and smoke clean. **New baseline 59.160558 s / 16.379156 FPS**, from
+59.197264 s / 16.369000.
+
+**Three traps, each of which cost a build-and-run cycle. All three are
+generalisable, and two of them are the reason this entry is long.**
+
+1. *The fully-flat test must come **before** `xorl %ecx,%ecx`.* It was written
+   after, next to the call it selects, so `cmpl $0,%ecx` tested a register that
+   had just been zeroed, was **always true**, and every horizontal-flat block
+   took the fully-flat body. That renders **checksum `3165952421`** — the same
+   value, and the same class of error, as hoisting the index bytes to block
+   granularity. `lightrightstep` is the value the test needs, so the test belongs
+   with the other two that read the pre-clobber register state.
+2. *gas does not substitute macro parameters through a nested expansion.* The
+   first attempt factored the eight texels into a shared `SURF8_MIP1_FLAT_TEXELS`
+   macro called from two wrappers; gas emitted the literal label
+   `.LLBPatchm1fsuffix_0` eight times and the assembler rejected it as already
+   defined. Two independent single-level macros with disjoint label suffixes
+   (lower case for the horizontal-flat body, upper case for fully-flat) is the
+   working shape. **Share assembly by copying it; gas macros are not C macros.**
+3. *Do not "fix" the `unroll16` patch ladder.* Counting `.long` lines in the
+   preprocessed source reads 296 for the `unroll16` configuration against a
+   ladder of 408, which looks exactly like a 112-entry overflow and was changed
+   to 216 — **and 216 faults.** The ladder was right and the counting method was
+   wrong: it agrees with the committed ladder for `unroll4` (216) and `unroll8`
+   (280) and disagrees only for `unroll16`. **Count the `0x12345678` immediates
+   in the assembled object instead** — 216 / 280 / 408 — which is the number
+   `R_Surf8Patch` actually walks. That is also the check that validated the
+   fully-flat body's own `+64`, at 472 immediates against 328+16+64+64.
+
+**Verification before any timedemo, both of which earned their keep.** `control`
+was confirmed to reproduce the previous release path **instruction for
+instruction** — 1,273 instructions, zero differences, 216 colormap immediates —
+by assembling both revisions with the real toolchain and diffing the objects,
+not by preprocessing (which reports the new macro's definition text as 32
+"differences"). And the ladder was checked against the object before building.
+
+**One candidate was built and abandoned in the same pass.** The mip-2
+horizontal-flat block (worth 0.0064%, five instructions per row over 3,930
+blocks) was written, verified to add exactly four colormap immediates to the
+object, and then removed: it rendered checksum `3278041384` and the cause was not
+found. It is the same shape as mip-0's and mip-1's flat rows, which are both
+promoted, so the bug is in the mip-2 block's own setup rather than in the idea —
+but an unresolved regression is not a candidate, and 0.0064% does not justify
+shipping one. `R_DrawSurfaceBlock8_mip2` still uses its general loop.
+
 ### The Z-span integer probe, measured and retired (2026-10-02) — the harness charges 1.0 cycles per instruction, and the x87 axis stays inadmissible
 
 An uncommitted `-ZSpanIntProbe` switch was in the tree at the start of this
@@ -110,7 +191,14 @@ matches its own instruction mix, or the screening is wrong by 50%** — and at
 0.029% the decision would have been to not build something that turned out to be
 a clean, bit-exact, reproducible win.
 
-### mip-1 flat-row index hoist (2026-10-02) — **0.0353%, bit-exact, below the gate, rejected**
+### mip-1 flat-row index hoist (2026-10-02) — **0.0353% alone; promoted at 0.0620% as part of a bundle**
+
+> **Superseded by the entry above.** This change was measured on its own first,
+> at 0.0353% — real, bit-exact, reproducible, and **below the 0.05% gate, so on
+> its own it is not promotable.** It was later bundled with `unroll16` and a
+> fully-flat variant of the same path, and the bundle cleared the gate at
+> **0.0620%** and is now the release default. The measurements below stand; the
+> conclusion "rejected" applies only to the isolated change.
 
 Candidate C from the entry above: `SURF8_MIP1_FLAT_ROW` re-forms the two
 colormap index registers with four `movb %dh,%bh` / `movb %dh,%ch` pairs per
@@ -134,10 +222,12 @@ delta   -0.020890 s = 0.03529% faster;  969 frames and checksum 1047377823 on al
 ```
 
 Every candidate run beat every control run and the delta is 271x the control
-spread, so the effect is real and not noise. **It is below the 0.05% gate, so it
-is not promotable.** The selector, its suffix, its define and its plumbing have
-been removed from all four runners; `surf8.s`'s release path is back to
-byte-identical with `b99a7ea`.
+spread, so the effect is real and not noise. **It is below the 0.05% gate on its
+own, so it was not promotable on its own.** The selector was withdrawn, the
+release path restored to byte-identical with `b99a7ea`, and the change re-applied
+later as one component of a bundle that does clear the gate — see the entry at
+the top of this section. The selector is back, and `-SurfaceBlockMip1IndexHoist
+control` now reproduces exactly the body measured here.
 
 **The calibration got a second, independent confirmation.** 712,176 instructions
 for 0.020890 s is 2.9335e-8 s each, or **0.981 cycles per instruction** — against

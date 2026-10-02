@@ -21,14 +21,17 @@ param(
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
-    [string]$SurfaceBlockMip0Rows = 'unroll4',
+    [string]$SurfaceBlockMip0Rows = 'unroll16',
     [ValidateSet('control', 'fast')]
     [string]$SurfaceBlockMip0HorizontalFlat = 'fast',
     [ValidateSet('control', 'unroll8')]
     [string]$SurfaceBlockMip1Rows = 'unroll8',
     [ValidateSet('control', 'fast')]
     [string]$SurfaceBlockMip1HorizontalFlat = 'fast',
-    [ValidateSet('control', 'local')]
+    # Hoist the mip-1 flat row's colormap-index byte moves to the top of the
+    # row.  Only has an effect when the flat path is on.
+    [ValidateSet('control', 'hoist')]
+    [string]$SurfaceBlockMip1IndexHoist = 'hoist',
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
@@ -76,6 +79,7 @@ elseif ($SurfaceBlockMip0Rows -eq 'unroll16') { $profileSuffixParts += 'surf0row
 if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf0hflat' }
 if ($SurfaceBlockMip1Rows -eq 'unroll8') { $profileSuffixParts += 'surf1rows8' }
 if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf1hflat' }
+if ($SurfaceBlockMip1IndexHoist -eq 'hoist') { $profileSuffixParts += 'surf1hflatidxhoist' }
 if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
 $profileSuffixParts += 'lightmapstylesasm'
@@ -118,6 +122,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
+            SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
         BspFrameCountImplementation = $BspFrameCountImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }
@@ -268,6 +273,7 @@ $result = [ordered]@{
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     bspFrameCountImplementation = $BspFrameCountImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
+    surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     timeoutSeconds = $TimeoutSeconds
 }

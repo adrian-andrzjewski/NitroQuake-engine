@@ -34,14 +34,17 @@ param(
     [ValidateSet('control', 'unroll8')]
     [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
-    [string]$SurfaceBlockMip0Rows = 'unroll4',
+    [string]$SurfaceBlockMip0Rows = 'unroll16',
     [ValidateSet('control', 'fast')]
     [string]$SurfaceBlockMip0HorizontalFlat = 'fast',
     [ValidateSet('control', 'unroll8')]
     [string]$SurfaceBlockMip1Rows = 'unroll8',
     [ValidateSet('control', 'fast')]
     [string]$SurfaceBlockMip1HorizontalFlat = 'fast',
-    [ValidateSet('c', 'asm')]
+    # Hoist the mip-1 flat row's colormap-index byte moves to the top of the
+    # row.  Only has an effect when the flat path is on.
+    [ValidateSet('control', 'hoist')]
+    [string]$SurfaceBlockMip1IndexHoist = 'hoist',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -219,6 +222,9 @@ if ($SurfaceBlockMip1Rows -eq 'unroll8') {
 if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
     $profileSuffixParts += 'surf1hflat'
 }
+if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
+    $profileSuffixParts += 'surf1hflatidxhoist'
+}
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
@@ -301,7 +307,7 @@ $selectorState = @(
     $TextureSpanRowPath, $TextureSpanLoadOrder, $TextureSpanAddressing,
     $AliasSpanAddressing, $ZSpanNegativeUnroll, $SurfaceBlockMip0Rows,
     $SurfaceBlockMip0HorizontalFlat, $SurfaceBlockMip1Rows,
-    $SurfaceBlockMip1HorizontalFlat,
+    $SurfaceBlockMip1HorizontalFlat, $SurfaceBlockMip1IndexHoist,
     $AliasProjectImplementation, $AliasBBoxProjectImplementation,
     $AliasTransformFinalImplementation, $AliasPrepareImplementation,
     $AliasMatrixCompositionImplementation, $TextureAnimationImplementation,
@@ -368,6 +374,7 @@ if ((-not $executableExists) -or $staleBuild) {
         SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
         SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
+            SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         AliasTransformFinalImplementation = $AliasTransformFinalImplementation
@@ -824,6 +831,7 @@ $result = [ordered]@{
     surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
+    surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation

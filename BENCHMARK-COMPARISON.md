@@ -41,17 +41,28 @@ and cannot measure".
 
 | Version | Executable | Runs | Time | FPS | Frames | Checksum | Evidence |
 | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
-| Current project build | `out\dos-memasm-zneg4-surf0rows4-surf0hflat-surf1rows8-surf1hflat-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.197264 s** median | **16.369000** | 969 each | `1047377823` each | `out\dos-timedemo-20261001-184634` |
+| Current project build | `out\dos-memasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.160558 s** median | **16.379156** | 969 each | `1047377823` each | `out\dos-timedemo-20261002-181621` |
 | Previous build (mip-1 flat off) | same path, `-SurfaceBlockMip1HorizontalFlat control` | 3 | 59.227632 s median | 16.360597 | 969 each | `1047377823` each | `out\dos-timedemo-20261001-184432` |
 | Previous build (1800 KB surface cache) | same path, previous binary | 3 | 59.264965 s median | 16.350301 | 969 each | `1047377823` each | `out\dos-timedemo-20260929-175705` |
 | 486quake optimization project | `tools\486quake.exe` | 1 | ~68.2 s | ~14.2 | 969 | Not emitted | On-screen timedemo result |
 | Original Quake | `tools\QUAKE.EXE` | 1 | ~72.4 s | ~13.4 | 969 | Not emitted | On-screen timedemo result |
 
-The current-build samples were 59.197260 s, 59.197266 s and 59.197264 s, with
-the same framebuffer checksum on every run and a spread of 0.000006 s. The
-second row is the same source with the promoted mip-1 horizontal-flat selector
-set to `control`, measured as three alternating control/candidate pairs:
-0.030368 s, **0.0513% faster**, about 353x the 0.000086 s control spread, with
+The current-build samples were 59.160558 s, 59.160577 s and 59.160502 s, with
+the same framebuffer checksum on every run and a spread of 0.000075 s. This row
+is the `surf8` flat-axis promotion: `SurfaceBlockMip0Rows=unroll16` and
+`SurfaceBlockMip1IndexHoist=hoist`, three components worth 0.0132%, 0.0353% and
+0.0126% individually, bundled because the gate applies to the total delta. The
+matched A/B measured **0.06198% faster** (delta 0.036689 s, 1,359x the clean
+control spread, every candidate run faster than every control run), against a
+predicted 0.036716 s from the instruction model — 0.07% error. `bench486`
+correctness PASS with end checksum `2378409472` and DOS smoke clean. See
+`ASM486-HANDOFF.md`, "`surf8` flat axis: three measured wins bundled and
+**PROMOTED, 0.0620%**".
+
+The row below it, 59.227632 s, is the same source with
+`SurfaceBlockMip1HorizontalFlat` set to `control`, measured as three alternating
+control/candidate pairs: 0.030368 s, **0.0513% faster**, about 353x the
+0.000086 s control spread, with
 every candidate run faster than every control run. That is the
 `SurfaceBlockMip1HorizontalFlat=fast` promotion; see `ASM486-HANDOFF.md`,
 "mip-1 horizontal-flat surface blocks". The 1800 KB row is the same selector set
