@@ -47,7 +47,7 @@ param(
     [string]$SurfaceBlockMip1IndexHoist = 'hoist',
     # Dead-scratch probe over one edge-scan block; measurement only, never a
     # candidate.  See build-dos.ps1 for what the probe actually duplicates.
-    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort')]
+    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]

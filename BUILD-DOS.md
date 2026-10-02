@@ -420,9 +420,11 @@ exists because a candidate died on a measured premise. See
 | `genspans` | 3,500,514 | per-edge entries, 3,612/frame. **This is what re-targeted the bucket**: the four micro-optimised loops are 52x the gate together against a 204x bucket |
 | `emit` / `trailing` | 1,043,177 / 2,238,002 | span emits against `TrailingEdge` calls, i.e. **53% of calls emit nothing**, previously unmeasured |
 | `bmodel-zsort` | 66,723 | bounds the ~50-instruction x87 bmodel 1/z sort, which is inadmissible on the blind axis and so is deliberately *not* probed |
+| `edge-dispatch`: `leading`, `bmodel-leading`, `bmodel-trailing`, `insert-exit`, `newtop`, `xldone`, `lastspan`, `reset-iters` | 2,465,503 / 193,294 / 1,035,010 / 2,465,403 / 1,213,416 / 100 / 147,440 / 227,501 | which dispatch path each of the 3,500,514 edges takes. The accounting closes exactly: leading-only 1,262,511 + both 1,202,992 + trailing-only 1,035,010 = 3,500,513, and `LInsertAndExit`'s shortfall of 100 against `Lgs_leading` is exactly `xldone` |
 
-Reported on its own line rather than appended to the big block, per the
-`char text[1024]` rule below.
+Reported on their own lines rather than appended to the big block, per the
+`char text[1024]` rule below. Together these took `edge-scan` from "cannot be
+decomposed" to **78% accounted, 159.2x the gate across sixteen named blocks**.
 
 The measured breakdown (frame total 67.946126 s, attribution only — not a
 release timing claim) is `alias-raster` 7.384299 s (10.87%), `alias-transform`
@@ -517,7 +519,8 @@ One switch prices **one block** of `r_edgea.s`. It duplicates a fixed,
 side-effect-free instruction sequence at that block's inner point and discards
 the result, so the timedemo delta divided by the known probe instruction count
 gives this harness's cycles-per-instruction for that mix. Default `control`.
-Values: `control`, `entry`, `step`, `trailing`, `emit`, `insert`, `sort`.
+Values: `control`, `entry`, `step`, `trailing`, `emit`, `insert`, `sort`,
+`newtop`, `leadin`, `insertexit`.
 
 **This is instrumentation, not a candidate.** A probe build is strictly slower by
 construction; nothing here can ever be promoted. `control` was verified to
@@ -540,15 +543,22 @@ Rules that are not obvious, each learned by faulting or mis-measuring a run:
 - **Put the probe before any instruction whose flags a later branch reads.** Both
   sort loops' back-edge and exit branch consume the flags of the real
   `cmpl st_key(%esi),%eax`.
+- **A dead register is not enough — it must also be initialised, and already
+  dereferenceable, at that exact instruction.** Three distinct failures here,
+  none the same mistake: `%esi` in `R_InsertNewEdges`' search loop is dead but
+  *uninitialised* on the first pass; `%edi` at `Lgs_leading` is dead but still a
+  16-bit surface *index*, not a pointer, two instructions before it becomes one;
+  and `mov mem,mem` is not encodable at all, which is how the `emit` block came
+  to borrow `%eax` across a `pushl`/`popl`.
 - **Price with a trailing control run.** This host throws isolated ~0.36 s
   outliers; every pair must be read on medians, and a trailing control catches
-  drift.
+  drift. One of the nine control blocks had its *first* run be the outlier,
+  which is why the raw three-run spread understates the signal ratio.
 
-Results, the census they rest on, and the 0.9864 mean rate are in
-`ASM486-HANDOFF.md`, "edge-scan decomposed by dead-scratch probe". The
-`PROFILE486` iteration counters the probes are sized against
-(`edge-iters insert/remove/step/pushback/sort/emit/genspans/bmodel-zsort/trailing`)
-are retained and cost nothing in release builds.
+Results, the census they rest on, and the 0.98657 mean rate over nine mixes are
+in `ASM486-HANDOFF.md`, "edge-scan decomposed by dead-scratch probe". The
+`PROFILE486` iteration and dispatch counters the probes are sized against are
+retained and cost nothing in release builds.
 
 ### Latest PROFILE486 and texture-span STOSW experiment (2026-09-29)
 

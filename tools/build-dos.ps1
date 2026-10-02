@@ -49,7 +49,7 @@ param(
     # discards the result, so the timedemo delta prices those instructions.
     # Never a candidate: the probe only measures.  'control' is the release
     # path and must assemble instruction-for-instruction identically.
-    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort')]
+    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]

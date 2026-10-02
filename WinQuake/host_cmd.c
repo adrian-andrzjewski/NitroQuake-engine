@@ -178,6 +178,14 @@ unsigned long bench486_edge_emit_blocks;
 unsigned long bench486_edge_genspans_edges;
 unsigned long bench486_edge_bmodel_zsort;
 unsigned long bench486_edge_trailing_calls;
+unsigned long bench486_edge_leading;
+unsigned long bench486_edge_bmodel_leading;
+unsigned long bench486_edge_bmodel_trailing;
+unsigned long bench486_edge_insert_exit;
+unsigned long bench486_edge_newtop;
+unsigned long bench486_edge_xldone;
+unsigned long bench486_edge_lastspan;
+unsigned long bench486_edge_reset_iters;
 unsigned long bench486_surface_span_count;
 unsigned long bench486_surface_span_pixels;
 unsigned long bench486_surface_span_segments;
@@ -1186,6 +1194,13 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_edge_trailing_calls);
 
 	Bench486ProfileJsonPrintf (file_handle,
+			"  \"edge_dispatch\": {\"leading\": %lu, \"bmodel_leading\": %lu, \"bmodel_trailing\": %lu, \"insert_exit\": %lu, \"newtop\": %lu, \"xldone\": %lu, \"lastspan\": %lu, \"reset_iters\": %lu},\n",
+			bench486_edge_leading, bench486_edge_bmodel_leading,
+			bench486_edge_bmodel_trailing, bench486_edge_insert_exit,
+			bench486_edge_newtop, bench486_edge_xldone,
+			bench486_edge_lastspan, bench486_edge_reset_iters);
+
+	Bench486ProfileJsonPrintf (file_handle,
 			"  \"metrics\": {\n"
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
@@ -1380,6 +1395,14 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_edge_genspans_edges = 0;
 	bench486_edge_bmodel_zsort = 0;
 	bench486_edge_trailing_calls = 0;
+	bench486_edge_leading = 0;
+	bench486_edge_bmodel_leading = 0;
+	bench486_edge_bmodel_trailing = 0;
+	bench486_edge_insert_exit = 0;
+	bench486_edge_newtop = 0;
+	bench486_edge_xldone = 0;
+	bench486_edge_lastspan = 0;
+	bench486_edge_reset_iters = 0;
 	bench486_surface_span_count = 0;
 	bench486_surface_span_pixels = 0;
 	bench486_surface_span_segments = 0;
@@ -1574,6 +1597,17 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_edge_sort_iters, bench486_edge_emit_blocks,
 			bench486_edge_genspans_edges, bench486_edge_bmodel_zsort,
 			bench486_edge_trailing_calls);
+	Bench486ProfileReportText (report_handle, text);
+	// Per-edge dispatch census.  Its own report call for the same reason as
+	// the line above.
+	sprintf (text,
+			"edge-dispatch leading %lu bmodel-leading %lu bmodel-trailing %lu "
+			"insert-exit %lu newtop %lu xldone %lu lastspan %lu "
+			"reset-iters %lu\n",
+			bench486_edge_leading, bench486_edge_bmodel_leading,
+			bench486_edge_bmodel_trailing, bench486_edge_insert_exit,
+			bench486_edge_newtop, bench486_edge_xldone,
+			bench486_edge_lastspan, bench486_edge_reset_iters);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
 			"profile-work renderface-calls %lu renderface-emitted %lu "

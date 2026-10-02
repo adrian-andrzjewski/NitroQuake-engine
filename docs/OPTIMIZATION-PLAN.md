@@ -42,11 +42,14 @@ justification was that a per-call timer scope costs 387 cycles against 466
 cycles of work per operation, giving 17% signal. That floor is real and still
 forbids a scope — but it does not bind a **dead-scratch probe**, which has no
 measurement overhead at all because it adds work and is read off the whole-run
-timedemo delta. Six probes gave the decomposition that was thought unavailable:
+timedemo delta. **Nine** probes gave the decomposition that was thought
+unavailable:
 
 ```text
-measured 88.8x the gate   (6 blocks, 89,264,576 instructions/run, priced at 0.9864)
-unmeasured 115.1x         (~34 instructions per edge of per-edge dispatch)
+edge-scan, 78% accounted          159.2x the gate  (16 named blocks)
+  measured by their own probe      88.8x -> 141.3x as the map grew
+  statically priced with the       17.9x   measured 0.98657 mean rate
+  residual (scope overhead,        44.8x   R_RecursiveTriangle, call entry)
 ```
 
 The census behind it overturned two beliefs at once: the four loops carrying
@@ -54,9 +57,13 @@ The census behind it overturned two beliefs at once: the four loops carrying
 bucket**, and `TrailingEdge` is called 2,238,002 times to emit 1,043,177 spans —
 **53% of its calls emit nothing**, which nothing had measured.
 
-**So the largest single unmeasured pool in this renderer is 115x the gate**, and
-it is now bounded and named rather than a residue. `edge-scan` is **re-opened**,
-not converged.
+**So `edge-scan` is no longer an unknown.** It is sixteen named blocks, largest
+23.2x the gate, smallest 0.9x. That is a different object from "8% of frame,
+cannot be decomposed", and it is what the twenty rejected micro-experiments
+never had. It is **not** a licence to build: read against the prohibition list,
+every block above 5x is hand-tuned assembly that has already absorbed the
+recorded micro-optimisations, and the three largest per-edge blocks are
+structurally minimal.
 
 `renderface` is untouched and its closure **stands**: a C probe prices *named
 statements*, so unlike `edge-scan` it needs a hypothesis before it can be
@@ -154,13 +161,22 @@ the only thing that promotes anything.
 
 **Two consequences that are not optional bookkeeping:**
 
-1. **Any candidate previously declined under a 0.66 assumption must be
-   re-screened at 1.0.** The bundle path was declared partly exhausted on that
-   rate. This is arithmetic, not builds, and it is cheap.
+1. **The re-screen came back clean — verify, don't assume.** Recomputing every
+   "closed on price" candidate at 1.0 reproduces its recorded figure exactly
+   (A 0.0095%, B 0.0006%, D 0.0080%). The 0.66 was applied to precisely one
+   candidate, C, in the screening table's first draft, and was corrected inside
+   that same pass. **No recorded candidate price is wrong, and the bundle path's
+   exhaustion does not rest on the bad rate** — it rests on measured figures for
+   `GibTrail` (0.0119%) and `Turbulent8` (0.0344%), and on A/B/D being 5-83x
+   under the gate at the *correct* rate. An earlier revision of this entry
+   claimed the bad rate "was costing real candidates"; that overstated it, and
+   the ledger entry records the correction.
 2. **Decision 3's general warning survives and is now better founded.** The
    error it describes was real; it diagnosed the symptom (wrong rate) while
-   being applied to the wrong quantity. Where a rate is derived, check what the
-   denominator counts.
+   being applied to the wrong quantity. What 0.66 actually cost was *standing
+   guidance* — any future screening taking Decision 3 at face value would
+   under-price by up to 50%. Where a rate is derived, check what the denominator
+   counts.
 
 ## Decision 1 — the acceptance gate is the timedemo, not a cost model
 

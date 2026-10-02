@@ -11,9 +11,9 @@ and run details remain in `BUILD-DOS.md`.
 
 ### `edge-scan` decomposed by dead-scratch probe (2026-10-02) — six probes, a fifth and sixth rate calibration, and **the closure above was half wrong**
 
-`edge-scan` was closed at `:1622-1649` as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
+`edge-scan` was closed at `:1729-1756` as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
 zero measurement overhead — it *adds* work and is read off the whole-run timedemo delta against a 0.000049 s spread — so the per-routine decomposition the floor forbade is available by a different route. The ledger
-named this remedy itself (`:1647`) and never ran it. It has now been run, and the result re-opens the bucket.
+named this remedy itself (`:1754`) and never ran it. It has now been run, and the result re-opens the bucket.
 
 **Method.** A loop-iteration census first (`-Instrumentation`, one run), because the existing counters count *calls* and three of the four edge routines walk a list, so a probe priced per call would be sized wrong by
 the walk length. Then one dead-scratch probe per block, duplicating a fixed side-effect-free sequence and discarding the result. Three runs per variant plus a trailing control for drift; checksum `1047377823`
@@ -45,7 +45,7 @@ Each delta is the probe run's median minus the control block's median; the instr
 | `sort` | `Lsortloop*` (both) | 10,578,234 | +0.312596 s | **0.9883** | 1.18% | 2,442x |
 
 **Mean 0.9864, min 0.9740, max 0.9957, spread 2.2%.** Every delta is 408x or better over its control block's spread; trailing-control drift was +0.0000% to +0.0002% in all six pairs, so none of these is
-thermal.
+thermal. *(Six probes here; the second pass below takes it to nine and the mean to 0.98657 over a 2.20% spread.)*
 
 **Applying the mean rate to each block's real instruction count** gives the priced pools:
 
@@ -64,7 +64,10 @@ thermal.
 **The single largest unmeasured pool in this renderer is 115x the gate**, and the census says what it is: **~34 instructions per edge of per-edge dispatch work in `R_GenerateSpans`** — the leading/trailing
 dispatch, `LInsertAndExit`, `Lnewtop`, `Lxl_done` — spread over 3,500,514 edges. It is now a bounded target rather than a residue.
 
-### Decision 3's 0.66 rate is wrong, and it was costing real candidates
+> **Resolved later the same day by the second pass below.** That remainder is measured, not merely bounded: `Lnewtop` 18.1x, `Lgs_leading` 17.2x, `LInsertAndExit` 12.3x, and the rest smaller. The
+> `edge-scan` bucket is now **78% accounted for at 159.2x of the profiler's 203.9x**. Read the map there, not the estimate here.
+
+### Decision 3's 0.66 rate is wrong — the risk was prospective, not realised
 
 Decision 3 (`docs/OPTIMIZATION-PLAN.md:26-45`) says to price at 1.0 unless the removed instructions include memory operands, "in which case **0.66 is the measured rate for that mix**". **Six fresh measurements do not support any rate
 below 1.0.** The mixes span the whole range:
@@ -75,7 +78,22 @@ below 1.0.** The mixes span the whole range:
 So the discount does not track "has memory operands". Re-deriving the ledger's own source figure shows where 0.66 came from: `0.030368 s x 33.445 MHz / 1,543,048 = 0.658`, but 1,543,048 is the instruction count of
 the *promoted mip-1 flat path*, not of any removed instruction set. The hoist that actually got promoted removed 712,176 instructions and measured `0.020884 s` = **0.9807**. **Actionable rule: price
 everything at 1.0.** It is the conservative direction (a higher price admits more candidates, and the timedemo is still the only thing that promotes), and six measured mixes now say 1.0 is also the *correct*
-one. Any candidate previously declined under a 0.66 assumption deserves a re-screen at 1.0.
+one.
+
+**Correction to this entry's own first claim, made after checking rather than assuming. It was not costing past candidates.** The re-screen is pure arithmetic and it comes back clean:
+
+| candidate | instr | at 1.0 | at 0.66 | ledger recorded |
+|---|---:|---:|---:|---:|
+| A mip-2 h-flat block | 188,640 | **0.0095%** | 0.0063% | 0.0095% |
+| B mip-3 h-flat block | 11,820 | **0.0006%** | 0.0004% | 0.0006% |
+| D fully-flat `%dh` hoist | 158,578 | **0.0080%** | 0.0053% | 0.0080% |
+
+Every recorded figure is the **1.0** column. The 0.66 was applied to exactly one candidate — C, in the screening table's first draft — and was caught and corrected inside that same pass (`:284-293`), which is why C reads 0.0360% there rather
+than 0.029%. So no recorded candidate price is wrong, and the bundle path's exhaustion does **not** rest on the bad rate: it rests on measured figures for `GibTrail` (0.0119%) and `Turbulent8` (0.0344%) and on
+A/B/D being 5-83x under the gate at the correct rate.
+
+**What the error actually cost is standing guidance.** Decision 3 told the next pass to price memory-operand mixes at 0.66, and six measurements now say that is wrong by up to 50%. Any *future* screening that took
+the prose at face value would under-price by that factor. That is the whole damage, and it is why Decision 3 was replaced rather than merely annotated.
 
 ### Four probe traps, each of which cost a build-and-run cycle
 
@@ -97,18 +115,95 @@ non-outlying runs agree to <=0.00006 s. Any future single-run timedemo on this m
 and 13.4x on their own, and the 53%-of-calls-emit-nothing ratio is a structural fact no previous entry had. The **bmodel 1/z sort is excluded on principle, not on price**: 66,723 calls of a ~50-instruction
 block that is ~40 x87, which is the blind axis (Decision 1). Pricing it with an integer probe would measure the integer subset and silently ignore the FP majority, so it is not probed.
 
-`renderface` (`:1575-1620`, 226,000 cy/frame = 221x the gate) is untouched and still closed for lack of a named hypothesis. Unlike `edge-scan`, a C probe prices *named statements*, so it needs the hypothesis first;
+`renderface` (`:1682-1726`, 226,000 cy/frame = 221x the gate) is untouched and still closed for lack of a named hypothesis. Unlike `edge-scan`, a C probe prices *named statements*, so it needs the hypothesis first;
 that closure is correct and stands.
 
 **Baseline unchanged: 59.160513 s median** over three runs (59.160645 / 59.160513 / 59.523401, the third an outlier), against the recorded 59.160558 s — a 0.00008% difference, i.e. noise. Checksum `1047377823`
 on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean, 969 frames throughout. Release is unchanged in fact, not only in intent: `-EdgeScanProbe control` assembles
 instruction-for-instruction identical to the pre-probe tree.
 
+### The per-edge dispatch remainder, decomposed (2026-10-02, second pass) — `edge-scan` is now 78% mapped and the "115x unmeasured" is closed
+
+The entry above left **115.1x the gate unmeasured**, identified only as "~34 instructions per edge of per-edge dispatch in `R_GenerateSpans`". That is now measured. Eight more counters name which path each of the
+3,500,514 edges takes, and the dispatch accounting **closes exactly**:
+
+```text
+leading-only 1,262,511 + both 1,202,992 + trailing-only 1,035,010 = 3,500,513 = genspans
+```
+
+`Lgs_leading` (2,465,503) minus the 1,202,992 "both" cases accounts for every leading edge, and `LInsertAndExit` (2,465,403) is reached once per leading edge — the shortfall of 100 is exactly
+`xldone`, the inverted-bmodel exit. Three more probes priced the largest blocks:
+
+| probe | block | probe instrs | delta | **rate** | vs 1.0 pred | delta/spread |
+|---|---|---:|---:|---:|---:|---:|
+| `newtop` | `Lnewtop` span fill | 7,280,496 | +0.214485 s | **0.9856** | 1.3% | 4,663x |
+| `leadin` | `Lgs_leading` dispatch | 14,793,018 | +0.436852 s | **0.9878** | 1.2% | 9,928x |
+| `insertexit` | `LInsertAndExit` | 14,792,418 | +0.436770 s | **0.9876** | 1.2% | ~29,000x |
+
+The `insertexit` control block's **first run was the isolated outlier** this file records elsewhere (59.430366 against 59.160562 / 59.160577); the other two agree to 0.000015 s, so the ratio is
+~29,000x against the clean spread, not the 2x the raw three-run spread prints. Median, never mean.
+
+**Nine probes, nine mixes, mean rate 0.98657, range 0.9740–0.9957, spread 2.20%.**
+
+### The complete `edge-scan` map — 78% of the bucket accounted for
+
+| block | src | instr/run | cyc/frame | x gate |
+|---|---|---:|---:|---:|
+| `step` `LNextEdge` loop | M | 23,338,968 | 23,762 | **23.2** |
+| `entry` `Lgs_edgeloop` prelude | M | 21,003,084 | 21,384 | **20.9** |
+| `emit` span emit block | M | 19,820,363 | 20,180 | **19.7** |
+| `newtop` `Lnewtop` span fill | M | 18,201,240 | 18,531 | **18.1** |
+| `leadin` `Lgs_leading` dispatch | M | 17,258,521 | 17,571 | **17.2** |
+| `trailing` `TrailingEdge` dispatch | M | 13,428,012 | 13,671 | **13.4** |
+| `insertexit` `LInsertAndExit` | M | 12,327,015 | 12,550 | **12.3** |
+| `nextedge` `Lgs_nextedge` advance | S | 10,501,539 | 10,692 | 10.5 |
+| `insert` `LContinueSearch` | M | 6,385,032 | 6,501 | 6.4 |
+| `sort` `Lsortloop*` | M | 5,289,117 | 5,385 | 5.3 |
+| `"both"` `call TrailingEdge` | S | 2,405,984 | 2,450 | 2.4 |
+| `trailpush` `Lgs_trailing` | S | 2,070,020 | 2,108 | 2.1 |
+| `lastspan` `Lgs_lastspan` | S | 2,064,160 | 2,102 | 2.1 |
+| `bmodellead` `Lbmodel_leading` | S | 1,546,352 | 1,574 | 1.5 |
+| `resetspan` `Lgs_resetspanstate` | S | 910,004 | 927 | 0.9 |
+| bmodel 1/z sort (40 of 50 are x87) | S | 3,332,200 | 3,393 | 3.3 *(inadmissible)* |
+| **total accounted** | | | **162,780** | **159.2** |
+| profiler `edge-scan` | | | 208,581 | 203.9 |
+| **residual** | | | **45,801** | **44.8** |
+
+`M` = measured by its own probe. `S` = priced with the measured 0.98657 mean rate against a static instruction count, which is weaker evidence and labelled as such. The 44.8x residual is
+`edge-scan` scope overhead, `R_RecursiveTriangle`, call entry/exit, and the error in the per-block instruction estimates.
+
+**So `edge-scan` is no longer an unknown at all.** It is sixteen named blocks, the largest 23.2x the gate and the smallest 0.9x, with 78% of it measured and the rest statically priced. That is a
+different object from "8% of frame, cannot be decomposed", and it is what the twenty rejected micro-experiments never had.
+
+### A fifth probe trap, and it is a different failure from the other four
+
+The `leadin` probe first sat at the `Lgs_leading` label and **faulted the run**. `%edi` is a 16-bit surface *index* there, not a pointer — `shrl $16-SURF_T_SHIFT,%edi` and `addl %eax,%edi` two instructions later are
+what make it one — so `st_spanstate(%edi)` was a wild read. The probe moved to `LPatch2`.
+
+That makes three distinct "the register looked free" failures, and they are not the same mistake: **dead but uninitialised** (`%esi` in `LContinueSearch`), **dead but not yet a pointer** (`%edi` at
+`Lgs_leading`), and **`mov mem,mem` is not encodable** (the `emit` block). The general rule they share: a probe may only read through a register that is dead **and** initialised **and** already
+dereferenceable at that exact instruction. The full list is now five, and it is at the top of this file because every one cost a build-and-run cycle.
+
+### What this does and does not license
+
+It licenses saying where the time is. It does **not** license a candidate. Read the map against the prohibition list and the honest reading is discouraging: every block above 5x the gate is hand-tuned
+assembly that has already absorbed the micro-optimisations this file records, and the three largest per-edge blocks are structurally minimal — `Lgs_nextedge` is three instructions (advance, compare
+sentinel, branch) and nothing can come out of it; `LInsertAndExit` is four stores and one load and all five are load-bearing for a doubly-linked list; `Lgs_leading`'s `st_insubmodel` load and test is
+the bmodel dispatch and 92% of edges take the not-bmodel side of it.
+
+The one structural observation the map makes available, offered as a lead and **not** as a candidate: **`Lnewtop` and `TrailingEdge`'s emit block are two copies of the same six-field span fill**,
+running 1,213,416 and 1,043,177 times respectively for 37.8x the gate between them. Unifying them is a code-size argument, not an instruction-removal one, so under Decision 2 it has no price yet. It would
+need a source-level hypothesis before a probe could be aimed at it — the same discipline that keeps `renderface` correctly closed.
+
+**Baseline unchanged: 59.160594 s median** over three runs (59.160642 / 59.160538 / 59.160594, spread 0.000104 s, no outlier this time), against the recorded 59.160558 s — a 0.00006% difference.
+Checksum `1047377823` on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean, 969 frames throughout. `-EdgeScanProbe control` assembles instruction-for-instruction
+identical to the pre-probe tree: 377 instructions, zero disassembly differences, and each probe value adds exactly the 6 instructions it claims.
+
 ### Standing hazard found on the way: the profile reporter's JSON buffer is also over its limit
 
-The known `char text[1024]` overflow (`:454-470`) has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
+The known `char text[1024]` overflow (`:549-565`) has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
 conversions — a worst case of 2,551 bytes against `char text[2048]`**. It survives on every value being shorter than ten digits (longest observed line 898). Less urgent than the 1024 case, which has only 24 bytes
-of headroom, but the same class. Both new counters were added as **their own report call**, per `:467`.
+of headroom, but the same class. Both new counters were added as **their own report call**, per `:562`.
 
 ### `surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)
 

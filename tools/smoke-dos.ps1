@@ -33,7 +33,7 @@ param(
     [ValidateSet('control', 'hoist')]
     [string]$SurfaceBlockMip1IndexHoist = 'hoist',
     # Dead-scratch probe over one edge-scan block; measurement only.
-    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort')]
+    [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('control', 'skipzero')]

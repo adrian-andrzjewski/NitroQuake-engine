@@ -47,6 +47,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern	C(bench486_edge_genspans_edges)
 	.extern	C(bench486_edge_bmodel_zsort)
 	.extern	C(bench486_edge_trailing_calls)
+	// Per-edge dispatch census.  The six loop counters above account for only
+	// 88.8x the gate against a 204x bucket, so the remainder is per-edge
+	// dispatch rather than per-iteration work.  These name which dispatch
+	// path each of the 3,500,514 edges takes.  `incl` on a global touches no
+	// register and no flag, so these are safe at any instruction boundary.
+	.extern	C(bench486_edge_leading)
+	.extern	C(bench486_edge_bmodel_leading)
+	.extern	C(bench486_edge_bmodel_trailing)
+	.extern	C(bench486_edge_insert_exit)
+	.extern	C(bench486_edge_newtop)
+	.extern	C(bench486_edge_xldone)
+	.extern	C(bench486_edge_lastspan)
+	.extern	C(bench486_edge_reset_iters)
 #endif
 
 	.data
@@ -416,6 +429,9 @@ LInverted:
 
 // trailing edge only
 Lgs_trailing:
+#ifdef PROFILE486
+	incl	C(bench486_edge_bmodel_trailing)
+#endif
 	pushl	$Lgs_nextedge
 	jmp		TrailingEdge
 
@@ -490,10 +506,27 @@ Lgs_edgeloop:
 // ---------------------------------------------------------------
 
 Lgs_leading:
+#ifdef PROFILE486
+	incl	C(bench486_edge_leading)
+#endif
 	shrl	$16-SURF_T_SHIFT,%edi
 	// %eax still holds surfaces: loaded at Lgs_edgeloop, and reloaded after
 	// TrailingEdge when both edges are present.  Skip a dead third load.
 	addl	%eax,%edi
+#ifdef EDGE_SCAN_PROBE_LEADIN
+	// Dead-scratch probe, 6 instructions, at LPatch2 rather than at
+	// Lgs_leading.  The first version sat at the label and faulted the run:
+	// %edi is a 16-bit surface INDEX there, not a pointer -- the two
+	// instructions above are what turn it into one -- so `st_spanstate(%edi)'
+	// was a wild read.  Dead register, invalid address: a third variant of
+	// the same trap, after dead-but-uninitialised (%esi) and mov-mem-mem.
+	movl	st_spanstate(%edi),%edx
+	movl	st_insubmodel(%edi),%ecx
+	movl	st_spanstate(%edi),%edx
+	movl	st_insubmodel(%edi),%ecx
+	movl	st_spanstate(%edi),%edx
+	movl	st_insubmodel(%edi),%ecx
+#endif
 	movl	0x12345678,%esi		// surf2 = surfaces[1].next;
 LPatch2:
 	movl	st_spanstate(%edi),%edx
@@ -550,6 +583,9 @@ incl	C(bench486_edge_sort_iters)
 // handle a leading bmodel edge
 	.p2align 4,,15
 Lbmodel_leading:
+#ifdef PROFILE486
+	incl	C(bench486_edge_bmodel_leading)
+#endif
 
 // don't start a span if this is an inverted span, with the end edge preceding
 // the start edge (that is, we've already seen the end edge)
@@ -696,9 +732,25 @@ Lnewtop_fpop2:
 	// Former "reload sorting key" into %eax was dead: Lnewtop overwrites %eax.
 
 Lnewtop:
+#ifdef PROFILE486
+	incl	C(bench486_edge_newtop)
+#endif
 	movl	et_u(%ebx),%eax
 	shrl	$20,%eax				// iu = integral pixel u
 	movl	%eax,st_last_u(%edi)	// surf->last_u = iu;
+#ifdef EDGE_SCAN_PROBE_NEWTOP
+	// Dead-scratch probe, 6 instructions.  Duplicates the iu computation and
+	// the last_u load into %edx/%ecx, both dead on every path into Lnewtop
+	// (Lgs_leading, Lbmodel_leading and Lnewtop_fpop2 each overwrite %eax
+	// here and leave %edx/%ecx as leftovers).  Read-only: the store to
+	// st_last_u is NOT duplicated, per the never-duplicate-a-store rule.
+	movl	et_u(%ebx),%edx
+	shrl	$20,%edx
+	movl	st_last_u(%edi),%ecx
+	movl	et_u(%ebx),%edx
+	shrl	$20,%edx
+	movl	st_last_u(%edi),%ecx
+#endif
 // Memory cmpl last_u (dead preload on LInsertAndExit); load into %edx only on emit.
 	cmpl	st_last_u(%esi),%eax
 	jle		LInsertAndExit			// iu <= surf->last_u, so nothing to emit
@@ -716,6 +768,24 @@ Lnewtop:
 	addl	$(espan_t_size),%ebp
 
 LInsertAndExit:
+#ifdef PROFILE486
+	incl	C(bench486_edge_insert_exit)
+#endif
+#ifdef EDGE_SCAN_PROBE_INSERTEXIT
+	// Dead-scratch probe, 6 instructions.  Duplicates the st_prev load and
+	// the st_next read into %eax/%ecx.  All three of %eax/%ecx/%edx are dead
+	// on entry from every path in -- Lsortloopnb's jmp leaves %eax holding
+	// the sort key, Lnewtop's fall-through leaves it holding iu, and the FP
+	// paths leave key -- and the real code overwrites %eax at its second
+	// instruction.  This block is four stores and one load; the probe
+	// duplicates only the load and a read, never a store.
+	movl	st_prev(%esi),%eax
+	movl	st_next(%edi),%ecx
+	movl	st_prev(%esi),%eax
+	movl	st_next(%edi),%ecx
+	movl	st_prev(%esi),%eax
+	movl	st_next(%edi),%ecx
+#endif
 // insert before surf2
 	movl	%esi,st_next(%edi)		// surf->next = surf2;
 	movl	st_prev(%esi),%eax
@@ -738,6 +808,9 @@ Lgs_nextedge:
 
 // clean up at the right edge
 Lgs_lastspan:
+#ifdef PROFILE486
+	incl	C(bench486_edge_lastspan)
+#endif
 
 // now that we've reached the right edge of the screen, we're done with any
 // unfinished surfaces, so emit a span for whatever's on top
@@ -760,6 +833,9 @@ LPatch3:
 
 // reset spanstate for all surfaces in the surface stack
 Lgs_resetspanstate:
+#ifdef PROFILE486
+	incl	C(bench486_edge_reset_iters)
+#endif
 	movl	%ecx,st_spanstate(%esi)
 	movl	st_next(%esi),%esi
 	cmpl	$0x12345678,%esi		// &surfaces[1]
@@ -781,6 +857,9 @@ LPatch4:
 // ---------------------------------------------------------------
 	.p2align 4,,15
 Lxl_done:
+#ifdef PROFILE486
+	incl	C(bench486_edge_xldone)
+#endif
 	incl	%edx
 	movl	%edx,st_spanstate(%edi)
 
