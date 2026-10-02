@@ -508,6 +508,47 @@ levels. The world-BSP `local` frame-count candidate remains unpromoted because
 its median was 0.046250% slower than control. This pass changes no visual
 quality, resolution, presentation, scene, or timing behavior.
 
+### `-RenderFaceProbe` — the same switch for C, and two C-only traps (2026-10-02)
+
+```powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -RenderFaceProbe prologue
+.\tools\timedemo-dos.ps1 -NoBootstrap -Runs 1 -NoFpsStats -RenderFaceProbe prologue
+```
+
+Same idea over `R_RenderFace`'s C scaffolding. Values `control`, `prologue`,
+`edgeval`. Measurement only; `control` compiles `R_RenderFace` to 1,651
+instructions, identical to the pre-probe object.
+
+**Two traps that produce a silently wrong number rather than an error:**
+
+- **`-O3` deletes a probe that writes to a dead local.** The store is provably
+  dead, the "probe" compiles to nothing, and the timedemo reports a clean zero
+  delta — which reads as "this code is free" when it means "this measurement
+  measures nothing". The duplicated arithmetic must accumulate into an
+  **external** global that something reports (`bench486_rf_probe_sink`); its
+  value then doubles as the execution count, so an elided probe reports 0
+  instead of lying.
+- **Compare assembled probe against assembled `control`, and expect the compiler
+  to fold part of your duplicate.** `prologue` attempted 12 instructions and
+  added 11; `edgeval` attempted 14 and added **7**, because `-O3` CSE'd half the
+  duplicate against the real code. That shortfall is not a broken probe — it is
+  the compiler reporting that the block has no redundant work left, which is
+  usually the answer. Take the instruction count from `objdump`, never from the
+  source.
+
+**And read the object before writing the probe at all.** The obvious candidate in
+this function — the `edge_p - r_edges` computed twice per edge across 29 sites —
+is already CSE'd by `-O3`; `objdump -dr` shows both loads hoisted and one
+duplicated `sub`, so the entire prize is ~0.9x the gate. That was settled by one
+disassembly instead of a build-and-run cycle.
+
+**Measured rates here, which matter more than the closure:** `prologue` gives
+**0.5439** cycles per instruction and `edgeval` gives **1.1917**, against nine
+assembly loops measuring 0.9740–0.9957. The rate is a dependency property, not a
+constant — independent instructions issue into idle slots and cost less than a
+cycle, serialised ones cost more. See `ASM486-HANDOFF.md`, "the 1.0 cycle rate
+is not a constant".
+
 ### `-EdgeScanProbe` — dead-scratch measurement switch, never a candidate (2026-10-02)
 
 ```powershell

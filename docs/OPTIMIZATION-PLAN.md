@@ -65,14 +65,38 @@ every block above 5x is hand-tuned assembly that has already absorbed the
 recorded micro-optimisations, and the three largest per-edge blocks are
 structurally minimal.
 
-`renderface` is untouched and its closure **stands**: a C probe prices *named
-statements*, so unlike `edge-scan` it needs a hypothesis before it can be
-written. That is a correct closure and should not be reopened by analogy.
+`renderface` is **priced and closed**. It was the second-largest pool at 221x the
+gate, closed for *"no admissible hypothesis"*. Two C dead-scratch probes give
+**~15.8x the gate** of priced C scaffolding — per-edge cache validation ~11.5x,
+per-call prologue ~4.3x — against the **70-90x** the old entry estimated. **That
+estimate was high by 4-5x**, and the remainder of the 221x is the
+`R_ClipEdge`/`R_EmitCachedEdge` calls, which is essential x87 edge emit and
+inadmissible under Decision 1.
+
+Three things killed the candidates before a line was written:
+
+- **Read the object first.** The obvious prize — the double `edge_p - r_edges`
+  across 29 sites — is **already CSE'd by `-O3`**. `objdump -dr` shows both
+  loads hoisted and a single duplicated `sub`, so the whole candidate is 0.9x
+  the gate. One disassembly, no build.
+- **The two hoists a reader would try next are logged as reverted**, with
+  measurements.
+- **`-O3` deletes a C probe that writes to a dead local.** It compiles to
+  nothing and reports a clean zero. A C probe must accumulate into a reported
+  external global.
 
 The general lesson is recorded because this project has now made the mistake
 twice: **an entry that says what would be needed is not a closure.** The
 `edge-scan` entry named the dead-scratch probe as its own remedy and was filed as
 closed anyway.
+
+**Where the renderer actually stands.** Both unmeasured mega-pools are now
+measured. `edge-scan` is 78% mapped at 159.2x of 203.9x; `renderface` prices at
+15.8x of 221x. Every remaining block above 5x on either is hand-tuned assembly
+that has absorbed the recorded micro-optimisations, or is structurally minimal.
+That is a stronger and better-evidenced convergence claim than the one this plan
+started from — but it is still a claim that no candidate *exists*, not a
+measurement that none does.
 
 ## Decision 3 — price at the rate that matches the instruction mix
 
@@ -158,6 +182,25 @@ most memory-bound probe measured is 0.974, not 0.66.
 cycles/frame.** This is also the conservative direction — 1.0 is the *higher*
 price, so it admits more candidates than 0.66 would, and the timedemo remains
 the only thing that promotes anything.
+
+> **Amended the same evening: 1.0 is right for assembly and carries roughly ±40%
+> error for C, in both directions.** Eleven probes now exist, and they do not
+> agree with each other across languages:
+
+> | mix | measured rate |
+> |---|---:|
+> | nine assembly loops, serial dependency chains | 0.9740 – 0.9957 (mean 0.9866) |
+> | straight-line C, instructions independent of surrounding work | **0.5439** |
+> | C in a loop, probe sink a loop-carried dependency | **1.1917** |
+
+> The rate is a **dependency property, not a constant**. Independent instructions
+> issue into slots that were already idle and cost *less* than a cycle;
+> serialised ones cost *more*. Since every candidate this project has screened
+> is assembly, 1.0 remains the right screening number **for assembly** — but a
+> static estimate on a *C* mix can overstate the prize by nearly half or
+> understate it by a fifth, and must be measured before it is trusted. No price
+> already recorded in this file was computed on a C mix, so nothing is wrong;
+> what was wrong was assuming the error bar was zero.
 
 **Two consequences that are not optional bookkeeping:**
 

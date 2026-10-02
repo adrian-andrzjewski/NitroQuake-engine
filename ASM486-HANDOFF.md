@@ -11,9 +11,9 @@ and run details remain in `BUILD-DOS.md`.
 
 ### `edge-scan` decomposed by dead-scratch probe (2026-10-02) — six probes, a fifth and sixth rate calibration, and **the closure above was half wrong**
 
-`edge-scan` was closed at `:1729-1756` as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
+`edge-scan` was closed at `:1801-1828` as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
 zero measurement overhead — it *adds* work and is read off the whole-run timedemo delta against a 0.000049 s spread — so the per-routine decomposition the floor forbade is available by a different route. The ledger
-named this remedy itself (`:1754`) and never ran it. It has now been run, and the result re-opens the bucket.
+named this remedy itself (`:1826`) and never ran it. It has now been run, and the result re-opens the bucket.
 
 **Method.** A loop-iteration census first (`-Instrumentation`, one run), because the existing counters count *calls* and three of the four edge routines walk a list, so a probe priced per call would be sized wrong by
 the walk length. Then one dead-scratch probe per block, duplicating a fixed side-effect-free sequence and discarding the result. Three runs per variant plus a trailing control for drift; checksum `1047377823`
@@ -115,7 +115,7 @@ non-outlying runs agree to <=0.00006 s. Any future single-run timedemo on this m
 and 13.4x on their own, and the 53%-of-calls-emit-nothing ratio is a structural fact no previous entry had. The **bmodel 1/z sort is excluded on principle, not on price**: 66,723 calls of a ~50-instruction
 block that is ~40 x87, which is the blind axis (Decision 1). Pricing it with an integer probe would measure the integer subset and silently ignore the FP majority, so it is not probed.
 
-`renderface` (`:1682-1726`, 226,000 cy/frame = 221x the gate) is untouched and still closed for lack of a named hypothesis. Unlike `edge-scan`, a C probe prices *named statements*, so it needs the hypothesis first;
+`renderface` (`:1743-1787`, 226,000 cy/frame = 221x the gate) is untouched and still closed for lack of a named hypothesis. Unlike `edge-scan`, a C probe prices *named statements*, so it needs the hypothesis first;
 that closure is correct and stands.
 
 **Baseline unchanged: 59.160513 s median** over three runs (59.160645 / 59.160513 / 59.523401, the third an outlier), against the recorded 59.160558 s — a 0.00008% difference, i.e. noise. Checksum `1047377823`
@@ -199,11 +199,72 @@ need a source-level hypothesis before a probe could be aimed at it — the same 
 Checksum `1047377823` on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean, 969 frames throughout. `-EdgeScanProbe control` assembles instruction-for-instruction
 identical to the pre-probe tree: 377 instructions, zero disassembly differences, and each probe value adds exactly the 6 instructions it claims.
 
+### `renderface` priced (2026-10-02) — **CLOSED with a price**, and the 1.0 cycle rate is not a constant
+
+The second-largest pool at 226,000 cy/frame (221x the gate) was closed at `:1743` for *"large pool, but the x87 in it is essential work; no probe built"*, with the honest note *"a price was notobtained and none is claimed."* It has now been priced, and two results came out of it — one expected, one that corrects this project's screening method.
+
+**First, the free kill.** The obvious hypothesis was the double `edge_p - r_edges`: the cache-validation test computes it, and the clip branch then recomputes it into `cacheoffset`, 29 times over. Reading `r_draw.o` with relocations settles it without a build:
+
+```text
+2ae: mov    _edge_p,%edx      <- loaded ONCE
+2b4: mov    _r_edges,%esi     <- loaded ONCE
+2ba: mov    %edx,%edi
+2bc: sub    %esi,%edi         <- validation
+2c0: jae    2d0
+2d0: sub    %esi,%edx         <- store: the ONLY duplication
+```
+
+GCC has already hoisted both loads. The entire prize is **one `sub`** per clipped edge, about 0.9x the gate. **Read the object before writing the probe** — this cost one `objdump -dr` instead of a build-and-run cycle. The two hoists one would try next, `currententity->model` and `r_pcurrentvertbase`, are already recorded as tried and reverted at `:3744` and `:3748`.
+
+**Then the probes.** `-RenderFaceProbe control|prologue|edgeval`, three runs per variant plus trailing control, checksum on every run:
+
+| probe | block | count | added instrs | delta | rate |
+|---|---|---:|---:|---:|---:|
+| `prologue` | per-call clip chain + state init | 215,720 | 11 | +0.038590 s (0.0652%) | **0.5439** |
+| `edgeval` | per-edge cache validation, general loop | 684,731 | 7 | +0.170782 s (0.2887%) | **1.1917** |
+
+`renderface-general-edges` is 684,731 of 1,077,059 — the general loop covers 63.6% of edges, the unrolled 3- and 4-edge blocks take the rest, which is why the probe is priced per general-loop edge and not scaled.
+
+### The rate is a dependency property, not a constant — this is the important result
+
+Nine assembly probes (the `edge-scan` pass) spanned nine mixes and landed **0.9740-0.9957, mean 0.9866**. Two C probes, same harness, same timedemo, give **0.5439** and **1.1917** — a factor of 2.2 between them.
+
+The three groups are not the same measurement:
+
+- **0.9866 (nine assembly probes): tight loops whose every instruction depends on the previous one.** Each removed instruction removes a cycle of latency. This is the rate the project's candidates are screened at, and it is the right number for assembly.
+- **0.5439 (`prologue`): straight-line C whose instructions are independent of the surrounding work.** They issue into slots that were already idle, so removing one costs *less* than a cycle.
+- **1.1917 (`edgeval`): a loop whose sink increment is a loop-carried dependency on one global.** Serialised across iterations, so each costs *more* than a cycle.
+
+**So Decision 5's "price everything at 1.0" is right for assembly and carries roughly ±40% error for C — in both directions.** A static C estimate at 1.0 can overstate the prize by nearly half, or understate it by a fifth, depending on whether the candidate sits in independent straight-line code or a serialised loop. Nothing in this file's static estimates was computed on a C mix, so no recorded price is wrong, but the method's error bar for C is now known and was previously assumed to be zero.
+
+### What the price does to `renderface`
+
+Priced with the rate that matches each mix:
+
+| block | instructions | rate | cyc/frame | x gate |
+|---|---:|---:|---:|---:|
+| per-edge cache validation, general loop | ~14 x 684,731 | 1.1917 | ~11,800 | **11.5** |
+| per-call prologue | ~36 x 215,720 | 0.5439 | ~4,360 | **4.3** |
+| **priced C scaffolding** | | | **~16,200** | **~15.8** |
+| the entry estimated at `:1751` | | | 70,000-90,000 | 70-90 |
+| `renderface` total | | | 226,000 | 221 |
+
+**The "30-40% of the bucket, 70,000-90,000 cycles/frame" estimate was high by 4-5x.** Two reasons, both checkable: `probe: only 7 of the 14 instructions survived, because GCC CSE'd half my duplicate against the real code — which is direct evidence that the block has little redundant work left, and the remainder of the 221x is the `R_ClipEdge` / `R_EmitCachedEdge` calls, which is the essential x87 edge emit and inadmissible under Decision 1.
+
+**`renderface` is therefore closed by price, not by argument.** Do not re-open it. The per-call prologue is 4.3x and the per-edge validation 11.5x; both are ordinary C state setup and cache-validity tests that the code genuinely needs, `-O3` has already taken the available common-subexpression wins, and the two hoists a reader would reach for first are logged as reverted.
+
+### Two probe mechanics specific to C, both of which would have produced a silently wrong number
+
+1. **`-O3` deletes a probe that writes to a dead local.** The store is provably dead, so the "probe" compiles to nothing and measures zero while appearing to run. A C probe must accumulate into an **external** global that something reports — `bench486_rf_probe_sink`. The sink's value doubles as the execution count, so a probe that got elided reports 0 instead of lying.
+2. **Compare the assembled probe against assembled `control`, and expect the compiler to fold part of your duplicate.** `prologue` attempted 12 and added 11; `edgeval` attempted 14 and added 7. The shortfall is not a bug in the probe, it is the compiler telling you the block was already shared — which is itself the answer, and is why the count must come from `objdump` and not from the source.
+
+**Baseline unchanged: 59.160535 s median** over three runs (59.160577 / 59.160535 / 59.160503, spread 0.000074 s), against the recorded 59.160558 s — 0.00004%, noise. Checksum `1047377823` on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean. `-RenderFaceProbe control` compiles to **1,651 instructions in `R_RenderFace`, identical to the pre-probe object**.
+
 ### Standing hazard found on the way: the profile reporter's JSON buffer is also over its limit
 
-The known `char text[1024]` overflow (`:549-565`) has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
+The known `char text[1024]` overflow (`:610-626`) has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
 conversions — a worst case of 2,551 bytes against `char text[2048]`**. It survives on every value being shorter than ten digits (longest observed line 898). Less urgent than the 1024 case, which has only 24 bytes
-of headroom, but the same class. Both new counters were added as **their own report call**, per `:562`.
+of headroom, but the same class. Both new counters were added as **their own report call**, per `:623`.
 
 ### `surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)
 
@@ -1725,6 +1786,17 @@ the "another C-to-ASM port without a new source-level hypothesis" that
 `:2985-2992` warns against. If a hypothesis for the clip-plane link chain or
 the cache-validation sequence appears later, the counters above are already in
 the tree to test its premise for free.
+
+> **Superseded 2026-10-02 — the probe was built and the pool is now priced. The closure
+> still stands, but it rests on a measurement rather than on "no hypothesis".** Two C
+> dead-scratch probes over the prologue and the per-edge cache validation give **~15.8x
+> the gate** of priced C scaffolding, against the 70-90x estimated above — **the estimate
+> was high by 4-5x**. Read the new `renderface` priced entry at the top of this file. Two
+> findings from it are worth more than the closure: the redundant `edge_p - r_edges` was
+> already CSE'd by `-O3` (the whole prize is one `sub`, 0.9x, and reading `objdump -dr`
+> found that before any build), and **the 1.0 cycle rate is a dependency property, not a
+> constant** — nine assembly loops measure 0.974-0.996, one straight-line C mix 0.5439,
+> one serialised C mix 1.1917. Do not re-open `renderface`.
 
 ### `edge-scan` cannot be decomposed (2026-10-01) — the arithmetic forbids it, do not retry
 

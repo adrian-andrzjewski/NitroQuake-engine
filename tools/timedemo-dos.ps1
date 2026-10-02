@@ -49,6 +49,11 @@ param(
     # candidate.  See build-dos.ps1 for what the probe actually duplicates.
     [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
+    # Dead-scratch probe over one block of R_RenderFace's C scaffolding.
+    # $-O3 deletes a dead store, so the probe accumulates into a reported
+    # global instead. Measurement only, never a candidate.
+    [ValidateSet('control', 'prologue', 'edgeval')]
+    [string]$RenderFaceProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -232,6 +237,9 @@ if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
 if ($EdgeScanProbe -ne 'control') {
     $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
 }
+if ($RenderFaceProbe -ne 'control') {
+    $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
+}
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
@@ -316,6 +324,7 @@ $selectorState = @(
     $SurfaceBlockMip0HorizontalFlat, $SurfaceBlockMip1Rows,
     $SurfaceBlockMip1HorizontalFlat, $SurfaceBlockMip1IndexHoist,
     $EdgeScanProbe,
+    $RenderFaceProbe,
     $AliasProjectImplementation, $AliasBBoxProjectImplementation,
     $AliasTransformFinalImplementation, $AliasPrepareImplementation,
     $AliasMatrixCompositionImplementation, $TextureAnimationImplementation,
@@ -384,6 +393,7 @@ if ((-not $executableExists) -or $staleBuild) {
         SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
             SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
             EdgeScanProbe = $EdgeScanProbe
+            RenderFaceProbe = $RenderFaceProbe
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         AliasTransformFinalImplementation = $AliasTransformFinalImplementation
@@ -842,6 +852,7 @@ $result = [ordered]@{
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
         edgeScanProbe = $EdgeScanProbe
+        renderFaceProbe = $RenderFaceProbe
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation

@@ -206,6 +206,12 @@ extern unsigned long bench486_edge_newtop;
 extern unsigned long bench486_edge_xldone;
 extern unsigned long bench486_edge_lastspan;
 extern unsigned long bench486_edge_reset_iters;
+extern unsigned long bench486_renderface_calls;
+extern unsigned long bench486_renderface_general_edges;
+extern unsigned long bench486_renderface_emitted;
+#ifdef ASM486_RENDERFACE_PROBE
+extern unsigned long bench486_rf_probe_sink;
+#endif
 extern unsigned long bench486_surface_span_count;
 extern unsigned long bench486_surface_span_pixels;
 extern unsigned long bench486_surface_span_segments;

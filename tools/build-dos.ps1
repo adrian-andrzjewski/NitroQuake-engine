@@ -51,6 +51,11 @@ param(
     # path and must assemble instruction-for-instruction identically.
     [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
+    # Dead-scratch probe over one block of R_RenderFace's C scaffolding.
+    # $-O3 deletes a dead store, so the probe accumulates into a reported
+    # global instead. Measurement only, never a candidate.
+    [ValidateSet('control', 'prologue', 'edgeval')]
+    [string]$RenderFaceProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -217,6 +222,9 @@ if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
 }
 if ($EdgeScanProbe -ne 'control') {
     $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
+}
+if ($RenderFaceProbe -ne 'control') {
+    $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
 }
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
@@ -502,6 +510,10 @@ try {
         # -x assembler-with-cpp, so the define is the only reliable selector.
         $asmFlags += ('-DEDGE_SCAN_PROBE_' + $EdgeScanProbe.ToUpperInvariant())
     }
+    if ($RenderFaceProbe -ne 'control') {
+        $cFlags += '-DASM486_RENDERFACE_PROBE'
+        $cFlags += ('-DASM486_RENDERFACE_PROBE_' + $RenderFaceProbe.ToUpperInvariant())
+    }
     if ($AliasProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_PROJECT'
     }
@@ -571,6 +583,7 @@ try {
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
         surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
         edgeScanProbe = $EdgeScanProbe
+        renderFaceProbe = $RenderFaceProbe
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation

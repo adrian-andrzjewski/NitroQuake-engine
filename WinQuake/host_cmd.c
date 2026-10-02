@@ -108,6 +108,7 @@ unsigned long bench486_texture_final_lengths[17];
 // granularity; they exist to decide where a coarse scope is worth adding
 // rather than to time anything.
 unsigned long bench486_renderface_calls;
+unsigned long bench486_renderface_general_edges;
 unsigned long bench486_renderface_emitted;
 unsigned long bench486_clipedge_calls;
 unsigned long bench486_emitcachededge_calls;
@@ -1331,6 +1332,7 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_span_buckets[3] = 0;
 	bench486_texture_span_buckets[4] = 0;
 	bench486_renderface_calls = 0;
+	bench486_renderface_general_edges = 0;
 	bench486_renderface_emitted = 0;
 	bench486_renderface_edge_setups = 0;
 	bench486_renderface_early_surfs = 0;
@@ -1608,6 +1610,19 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_edge_bmodel_trailing, bench486_edge_insert_exit,
 			bench486_edge_newtop, bench486_edge_xldone,
 			bench486_edge_lastspan, bench486_edge_reset_iters);
+	Bench486ProfileReportText (report_handle, text);
+#ifdef ASM486_RENDERFACE_PROBE
+	// The sink's own value doubles as the probe's execution count, which is
+	// how a C probe proves it survived -O3: a deleted store would report 0.
+	{
+		extern unsigned long bench486_rf_probe_sink;
+		sprintf (text, "renderface-probe sink %lu\n", bench486_rf_probe_sink);
+		Bench486ProfileReportText (report_handle, text);
+	}
+#endif
+	sprintf (text,
+			"profile-work renderface-general-edges %lu\n",
+			bench486_renderface_general_edges);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
 			"profile-work renderface-calls %lu renderface-emitted %lu "

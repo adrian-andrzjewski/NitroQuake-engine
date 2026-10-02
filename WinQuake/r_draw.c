@@ -32,6 +32,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 unsigned int	cacheoffset;
 
+#ifdef ASM486_RENDERFACE_PROBE
+// Dead-scratch probe sink for R_RenderFace.  A C probe cannot write to a dead
+// local and expect -O3 to keep it: the store is provably dead and gets
+// deleted, which silently turns the probe into a no-op that measures nothing.
+// So the duplicated arithmetic is accumulated into this external global, which
+// host_cmd.c reports.  That makes the sink's own load/add/store part of the
+// measured instruction count -- it is counted, not hidden -- and it is the
+// reason a C probe needs an execution count as well as a delta.
+unsigned long	bench486_rf_probe_sink;
+#endif
+
 int			c_faceclip;					// number of faces clipped
 
 zpointdesc_t	r_zpointdesc;
@@ -494,6 +505,24 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	}
 
 	c_faceclip++;
+
+#if defined(ASM486_RENDERFACE_PROBE) && defined(ASM486_RENDERFACE_PROBE_PROLOGUE)
+	// Dead-scratch probe, 12 instructions.  Recomputes the four clipflags
+	// tests and the three clipplane address deltas that the chain below
+	// materialises, and folds them into the sink.  Nothing here is stored to
+	// a live object, so the chain that follows is untouched.  Placed AFTER
+	// c_faceclip++ so the early-outs above are not perturbed, and before the
+	// chain so the sink is reached on every surviving call.
+	bench486_rf_probe_sink +=
+		  (unsigned long)(clipflags & 8) + (unsigned long)(clipflags & 4)
+		+ (unsigned long)(clipflags & 2) + (unsigned long)(clipflags & 1)
+		+ (unsigned long)((unsigned char *)&view_clipplanes[3]
+			- (unsigned char *)&view_clipplanes[0])
+		+ (unsigned long)((unsigned char *)&view_clipplanes[2]
+			- (unsigned char *)&view_clipplanes[0])
+		+ (unsigned long)((unsigned char *)&view_clipplanes[1]
+			- (unsigned char *)&view_clipplanes[0]);
+#endif
 
 // set up clip planes (same 3..0 / 0x08..0x01 order as the original loop)
 	pclip = NULL;
@@ -1134,11 +1163,34 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	{
 		for (i=0 ; i<fa->numedges ; i++)
 		{
+#ifdef PROFILE486
+			extern unsigned long bench486_renderface_general_edges;
+			if (bench486_profile_frame_active)
+				bench486_renderface_general_edges++;
+#endif
 			lindex = psurfedges[i];
 
 			if (lindex > 0)
 			{
 				r_pedge = &pedges[lindex];
+
+#ifdef ASM486_RENDERFACE_PROBE_EDGEVAL
+				// Dead-scratch probe, 14 instructions.  Recomputes the two
+				// quantities every edge site tests -- the cache offset
+				// (edge_p - r_edges) and the edge's own cachededgeoffset --
+				// plus both vertex indices, and folds them into the sink.
+				// Read-only, so the cache-validation chain below is
+				// unperturbed.  Instrumented in the general loop only, which
+				// is why bench486_renderface_general_edges is counted
+				// alongside it: the price is per general-loop edge and has to
+				// be scaled by that counter, not by the 1,077,059 total,
+				// because the 29 unrolled sites bypass this code.
+				bench486_rf_probe_sink +=
+					  ((unsigned long)edge_p - (unsigned long)r_edges)
+					+ (unsigned long)r_pedge->cachededgeoffset
+					+ (unsigned long)r_pedge->v[0]
+					+ (unsigned long)r_pedge->v[1];
+#endif
 
 			// if the edge is cached, we can just reuse the edge
 				if (!insubmodel)

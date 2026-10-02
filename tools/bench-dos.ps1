@@ -47,6 +47,11 @@ param(
     # Dead-scratch probe over one edge-scan block; measurement only.
     [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
+    # Dead-scratch probe over one block of R_RenderFace's C scaffolding.
+    # $-O3 deletes a dead store, so the probe accumulates into a reported
+    # global instead. Measurement only, never a candidate.
+    [ValidateSet('control', 'prologue', 'edgeval')]
+    [string]$RenderFaceProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -208,6 +213,9 @@ if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
 if ($EdgeScanProbe -ne 'control') {
     $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
 }
+if ($RenderFaceProbe -ne 'control') {
+    $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
+}
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
@@ -300,6 +308,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
         SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
         EdgeScanProbe = $EdgeScanProbe
+        RenderFaceProbe = $RenderFaceProbe
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         AliasTransformFinalImplementation = $AliasTransformFinalImplementation

@@ -35,6 +35,11 @@ param(
     # Dead-scratch probe over one edge-scan block; measurement only.
     [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
+    # Dead-scratch probe over one block of R_RenderFace's C scaffolding.
+    # $-O3 deletes a dead store, so the probe accumulates into a reported
+    # global instead. Measurement only, never a candidate.
+    [ValidateSet('control', 'prologue', 'edgeval')]
+    [string]$RenderFaceProbe = 'control',
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
@@ -84,6 +89,7 @@ if ($SurfaceBlockMip1Rows -eq 'unroll8') { $profileSuffixParts += 'surf1rows8' }
 if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf1hflat' }
 if ($SurfaceBlockMip1IndexHoist -eq 'hoist') { $profileSuffixParts += 'surf1hflatidxhoist' }
 if ($EdgeScanProbe -ne 'control') { $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe) }
+if ($RenderFaceProbe -ne 'control') { $profileSuffixParts += ('rfprobe' + $RenderFaceProbe) }
 if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
 $profileSuffixParts += 'aliasmatrixspecial'
 $profileSuffixParts += 'lightmapstylesasm'
@@ -128,6 +134,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
         SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
             SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
             EdgeScanProbe = $EdgeScanProbe
+            RenderFaceProbe = $RenderFaceProbe
         BspFrameCountImplementation = $BspFrameCountImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }
