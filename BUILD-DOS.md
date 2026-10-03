@@ -618,6 +618,20 @@ constant — independent instructions issue into idle slots and cost less than a
 cycle, serialised ones cost more. See `ASM486-HANDOFF.md`, "the 1.0 cycle rate
 is not a constant".
 
+**And a dead-scratch probe prices the cost of ADDING work, not the value of REMOVING
+it (2026-10-03).** A twelfth probe settled this by direct contradiction: four
+instructions of one shape added to the span16 per-segment setup cost +0.4112% at
+**0.988 cycles each**, and four instructions of the *same* shape removed from the
+*same* path — the clamp fusion, 0.206% predicted — measured **0.0000%**. So a region
+can charge full price for work added and nothing for work removed, and every probe in
+this file up to that point measured the addition. **A model-priced rejection is not
+evidence that a candidate is slow, it is evidence that nobody built it**; the error
+is one-way. **Take the added-instruction count from `objdump`, never from the source**,
+and count any `.p2align` padding the insertion moved as part of the probe — a
+five-instruction probe at the per-segment clamp cost 17, because the function's
+`.p2align 4,,15` blocks re-padded downstream. See `ASM486-HANDOFF.md`, "The clamp
+fusion is measured at 0.0000%".
+
 ### `-EdgeScanProbe` — dead-scratch measurement switch, never a candidate (2026-10-02)
 
 ```powershell

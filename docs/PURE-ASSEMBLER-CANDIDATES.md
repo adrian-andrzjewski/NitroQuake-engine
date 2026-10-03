@@ -60,18 +60,35 @@ paid for in instruction count, memory traffic, or arithmetic.
 >   instructions of that setup cost 0.6186% of frame, so the ~23-instruction
 >   integer setup is **2.37% of frame, 47x the promotion gate**.
 >
->   No candidate yet. Four reductions are recorded dead in `ASM486-HANDOFF.md`, and
->   the most promising is the clamp fusion — nominally 0.206% and 4.1x the gate,
->   which would clear on its own — which fails only because the scratch-register
->   copy costs exactly what the fusion saves. **That one is worth revisiting if a
->   register can be freed elsewhere first.**
+>   No candidate yet. Four reductions are recorded dead in `ASM486-HANDOFF.md`.
 >
-> **This changes what this table is for.** The table above lists candidate *areas*
+> ### 2026-10-03, later — the clamp fusion was built, and it measured **0.0000%**
+>
+> The most promising of those four was the clamp fusion, nominally 0.206% and 4.1x
+> the gate. The rejection said it fails because the scratch-register copy costs what
+> the fusion saves, "worth revisiting if a register can be freed elsewhere first."
+> **That was wrong by one instruction** — `leal -4096(%ebp),%eax` computes into the
+> scratch register directly — so the candidate was buildable, and was built. It then
+> measured **0.0000%**: at least 4,118,036 instructions removed, 0.206% predicted, 12
+> microseconds gained, checksum-clean.
+>
+> **And the probe that explains it corrects the pricing rule for the whole file.**
+> Four instructions of the identical shape *added* to the identical path cost
+> +0.4112% at 0.988 cycles each. Every probe behind every number in the table below
+> measured the cost of *adding* work; none measured what a *removal* is worth, and a
+> region can charge full price for one and nothing for the other. So **the
+> `edge-scan` and `renderface` prices above are additions-side prices**, they remain
+> the right way to decide where to look, and **they must not be used to close
+> anything.** The `texture-spans` setup is dependency-bound and is not reachable by
+> instruction removal at all — only by shortening its loop-carried carry chain,
+> which is a different question with no hypothesis yet.
+>
+> **This changes what this table is for.** The table below lists candidate *areas*
 > for assembler conversion. After 2026-10-03 the best-evidenced optimisation target
-> in the renderer is not on it, and is not a conversion at all — it is ~23
-> instructions of existing hand-written DDA assembly in `d_draw16.s` that may or
-> may not contain removable work. **Read the `texture-spans` entry in
-> `ASM486-HANDOFF.md` before choosing anything from this table.**
+> in the renderer is not on it, and is not a conversion at all — it is the
+> loop-carried dependency chain of existing hand-written DDA assembly in
+> `d_draw16.s`. **Read the `texture-spans` entries in `ASM486-HANDOFF.md` before
+> choosing anything from this table.**
 
 ## Candidate areas
 

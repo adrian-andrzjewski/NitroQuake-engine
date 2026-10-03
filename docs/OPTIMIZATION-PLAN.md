@@ -226,6 +226,47 @@ the only thing that promotes anything.
 > already recorded in this file was computed on a C mix, so nothing is wrong;
 > what was wrong was assuming the error bar was zero.
 
+> **Amended 2026-10-03, and this one is not a ±40% error bar — it breaks the rule for removals.**
+> A twelfth probe was run against the `texture-spans` clamp-fusion candidate, and it separates two
+> things this entry had merged:
+>
+> | what was measured | measured rate |
+> |---|---:|
+> | **cost of ADDING** instructions, eleven assembly loops | 0.9740 – 0.9957 (mean 0.9866) |
+> | **cost of ADDING**, the clamp shape, a twelfth probe | **0.9880** |
+> | **value of REMOVING** them, same shape, same path, same run | **0.0000** |
+> | straight-line C, instructions independent of surrounding work | 0.5439 |
+> | C in a loop, probe sink a loop-carried dependency | 1.1917 |
+>
+> The candidate removed at least 4,118,036 instructions — 4.1x the gate, 0.206% predicted — from the span16
+> per-segment setup and measured **−0.000012 s**, i.e. nothing, at 0.3x the run spread, checksum-clean
+> and verified compiled into the linked executable. A probe adding four instructions of the *identical*
+> shape into the *identical* path was charged **0.988 cycles each** at 4,268x the clean spread. **All
+> eleven prior probes, and this one, measured the cost of adding work. Not one measured what a removal
+> is worth.**
+>
+> **Decision 5 is therefore narrowed, not overturned.** 1.0 remains the right number for
+> *screening* a candidate against — it is the higher price, it admits more candidates, and the
+> timedemo is still the only thing that promotes. But it is a validated statement about **added**
+> work, and **the span16 setup is now a measured counter-example for removals**: a region can charge
+> 0.988 per instruction added and 0.000 per instruction removed, because it is dependency-bound
+> rather than throughput-bound.
+>
+> **The error is one-way, which is the actionable part.** It has only ever been shown to
+> *over*-price, by at least 4.1x here. So **a model-priced rejection is not evidence that a candidate
+> is slow — it is evidence that nobody has built it.** The single validated removal prediction in the
+> repository is the mip-1 flat-row index hoist (0.036% predicted, 0.0353% measured, 2% error), in a
+> region that happened to be throughput-bound. The `unroll16` and fully-flat promotions were measured
+> directly and are unaffected.
+>
+> **Operationally: do not close a pool on an instruction count.** Closing requires an A/B, or a
+> structural argument that does not rest on the count. Candidates that a model rejected on price are
+> only correctly closed if the model cannot plausibly be wrong by the needed factor — the `surf8`
+> screen (0.0006%–0.0126%) and the four dead texture-span reductions need a ~600x overstatement to
+> reach the gate and remain closed. The large model-priced pools whose regions have never had a
+> removal measured in them — `renderface`'s C scaffolding at 15.8x, the `edge-scan` map's biggest
+> blocks — are the ones worth an A/B.
+
 **Two consequences that are not optional bookkeeping:**
 
 1. **The re-screen came back clean — verify, don't assume.** Recomputing every
