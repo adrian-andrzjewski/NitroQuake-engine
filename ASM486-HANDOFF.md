@@ -3950,6 +3950,95 @@ temporaries for each dot product, while ASM expands them once into scratch
 storage and reuses them with x87 arithmetic.  The call boundary is shared.
 The helper is intentionally small; it does not rewrite the larger alias path.
 
+## Convergence statement (2026-10-03) — ten regions closed by proof, and the three ways a region closes
+
+Added after nine passes over the renderer. **No region of this codebase is now open for instruction
+removal**, and the reason is not exhaustion. Each of the ten regions below was closed by one of three
+mechanisms, and all three are recorded with the measurement or the derivation that establishes it.
+
+| region | share of frame | how it closed |
+|---|---:|---|
+| `edge-scan` | 8.27% | 78% mapped into sixteen blocks; every one load-bearing |
+| general + flat surface-block rows | 6.85% | **minimal** — 6-for-6 and 3-for-3, proved from the flat row |
+| `z-spans` pixel loop | 6.37% | **minimal** (3 per pixel, the 486 floor) **and** 1.24 cy/instr, so dependency-bound |
+| `z-spans` per-scanline prologue | 2.72% | all seven registers live at `LFSpanLoop` |
+| `texture-spans` per-segment setup | 2.37% | **latency-bound**: 0.988 cy/instr added, ~0.0 removed |
+| `alias-glue` scope | 2.29% | 62% of its reported self time was the profiler's own clock |
+| `alias-glue` C step block | 0.275% | **minimal** — 63 instructions, every one accounted for |
+| `renderface` C scaffolding | ~2% | priced at 15.8x the gate; remainder is essential x87 |
+| surface-cache remainder | 0.67% | 1,152 tryalloc scans, **0** evictions |
+| `R_BuildLightMap` | 0.06% | its hoist is worth 0.04x the gate |
+
+**The three closures, and which one to expect.**
+
+1. **Minimal.** Every instruction has a distinct consumer. Two of these were proved by reading a
+   *sibling* body rather than the code in question: `SURF8_MIP1_FLAT_ROW` contains no light adds and
+   still carries both index-byte writes, which is what shows the general row's pair is required; and
+   the disassembly of `d_polyse.c` shows `-O3` already folds the `+1`/`+2` extras into `%edx`/`%edi`
+   and keeps `working_lstepx` in `%ebp`, so the source's apparent redundant computation does not
+   exist. **Read the object. The source lies about what was removed.**
+2. **Latency-bound.** The region charges ~1.0 cycle per instruction *added* and ~0.0 *removed*,
+   because its carried dependency is longer than its instruction count can hide. This is measured,
+   not argued: a 4,118,036-instruction candidate at 4.1x the gate returned **0.0000%** while a probe
+   of the identical shape added into the identical path was charged 0.988.
+3. **Architecturally forced.** Either all seven registers are live at the point in question, or —
+   the sharper form, found in `D_PolysetScanLeftEdge` — **x86 has no `add mem,mem`**, so the three
+   accumulators that live on the stack cost a `movl C(x),%eax` plus `addl %eax,(%esp)` where a
+   register destination would fold the load into the add. Hoisting them needs a register that does
+   not exist, and the same wall is already recorded for the span16 `emit` block.
+
+**The single priced item that remains** is the C/ASM interface in the alias path: fifteen `d_*`
+globals written by `d_polyse.c` and read by `D_PolysetScanLeftEdge` and `D_PolysetDrawSpans8`, 15
+stores and 15 loads per triangle, **0.066% of frame each way — 1.3x the gate on its own**. It is not
+built, for two independent reasons: only seven of the fifteen are even candidates (the other eight
+are base values the ASM genuinely needs), and removing the round trip is a calling-convention change
+across `d_polyse.c` and two assembly files that the prohibition list gates behind a source-level
+hypothesis. **A probe is a price, not a hypothesis.**
+
+**What the 0.05% gate has and has not been.** It has never been what stood in the way. Every region
+above 2% was either minimal, latency-bound, or architecturally forced, and the one region that *did*
+clear the gate by a model price — the span16 clamp fusion — paid **nothing**. The binding constraint
+in this renderer is instruction-level structure, and the productive move in all nine passes was to
+read the compiled form before writing code.
+
+### The methodological result, which outlives any single entry
+
+**1.0 cycle per instruction prices _added_ work.** Twelve dead-scratch probes now exist; all twelve
+measured the cost of *adding* a duplicated sequence and timing the whole-run delta. **Not one
+measured what a _removed_ instruction is worth**, and the one region where both were measured charges
+0.988 for additions and ~0.0 for removals. The rule that replaces it:
+
+> **Never close a pool on an instruction count.** A model-priced rejection is not evidence that a
+> candidate is slow; it is evidence that nobody built it. The error is one-way and always
+> over-pricing.
+
+Two corollaries that cost real time to find:
+
+- **Subtract the instrument.** `alias-glue` reads 6.01% of frame and is **2.29%**; its 513,271
+  `instr_reads` are exactly its three child scopes' `ENTER` reads plus its own `LEAVE`, and at 193.3
+  cycles per `Sys_FloatTime` that is 2.9665 s of clock inside a 4.7927 s self time. The profiler's
+  own note says to do this. It is 62% of the node.
+- **A C probe prices the instructions it duplicated, not the block.** The alias-glue probe added 39
+  instructions to a block that compiles to 63, and reported 0.1703% against the block's true 0.275%.
+  Its C rate of **0.9319** also corrects the project's use of 0.5439 as "the C rate": that figure came
+  from code whose instructions issue into already-idle slots, and straight-line C whose stores feed
+  three assembly helpers lands near the serialised end.
+
+### What is not claimed
+
+That no optimisation exists. Two of the ten closures were *strengthened* this week from "no candidate
+found" to "no candidate can exist here", which is a better claim — but it is still a claim about
+instruction removal. The three axes the project calls inadmissible remain real and unpromotable
+without hardware this repository does not have: the Z-span x87 prologue, code layout and unified-cache
+displacement, and 4 KB page aliasing.
+
+### Where the remaining prizes actually are
+
+Not in this renderer, on this harness. The honest options are a machine that can run the
+inadmissible axes, or accepting that DOSBox-X prices instruction throughput and nothing else. Nine
+passes produced no speedup and a complete map; a tenth pass over the same ten regions would produce
+the same map.
+
 ## Current baseline and evidence
 
 - Historical pre-experiment reference: 69.234885 s / 13.995834 FPS median.
