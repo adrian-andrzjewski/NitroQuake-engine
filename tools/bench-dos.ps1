@@ -204,15 +204,77 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
     throw "Required DOSBox-X executable is missing: '$dosbox'."
 }
 
-if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
+# Fingerprint the sources and the selector set, exactly as timedemo-dos.ps1 does,
+# and rebuild when they have moved.  This runner used to rebuild only when the
+# executable was *missing*, which meant an existing qbench.exe was benchmarked
+# indefinitely no matter how many sources had changed -- so a correctness FAIL
+# could be reported against a binary that no longer matched the tree.  That is
+# not hypothetical: it is how an i386 bsp-clip failure survived a source fix and
+# was re-observed three times before the stale binary was noticed.
+$sourceRoot = Join-Path $repoRoot 'WinQuake'
+$selectorState = (@(
+        $OptimizationProfile, $TextureAxisCacheEntries, $TextureAxisImplementation,
+        $SurfaceCacheImplementation, $MipLevelImplementation, $TurbulentImplementation,
+        $MemoryImplementation, $TextureSpanStores, $TextureSpanTailStores,
+        $TextureSpanRowPath, $TextureSpanLoadOrder, $TextureSpanAddressing,
+        $AliasSpanAddressing, $ZSpanNegativeUnroll, $SurfaceBlockMip0Rows,
+        $SurfaceBlockMip0HorizontalFlat, $SurfaceBlockMip1Rows,
+        $SurfaceBlockMip1HorizontalFlat, $SurfaceBlockMip1IndexHoist,
+        $EdgeScanProbe, $SpanSetupProbe, $RenderFaceProbe, $AliasGlueProbe,
+        $AliasProjectImplementation, $AliasBBoxProjectImplementation,
+        $AliasTransformFinalImplementation, $AliasPrepareImplementation,
+        $AliasMatrixCompositionImplementation, $TextureAnimationImplementation,
+        $LightMapNormalizeImplementation, $LightMapStylesImplementation,
+        $FusedLightMapImplementation, $DynamicLightImplementation,
+        $BspPlaneDotImplementation, $BspClipImplementation,
+        $BspFrameCountImplementation, $GibTrailHorizontalIntegration
+    ) -join '|')
+$buildInputs = @(
+    Get-ChildItem -LiteralPath $sourceRoot -Include '*.c', '*.s', '*.h' -File -Recurse |
+        Sort-Object FullName |
+        ForEach-Object { "$($_.FullName.Substring($sourceRoot.Length))=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" }
+)
+$buildInputs += "selectors=$selectorState"
+$fingerprintHasher = [Security.Cryptography.SHA256]::Create()
+try {
+    $sourceFingerprint = ([BitConverter]::ToString(
+            $fingerprintHasher.ComputeHash(
+                [Text.Encoding]::UTF8.GetBytes($buildInputs -join "`n")))).Replace('-', '')
+}
+finally {
+    $fingerprintHasher.Dispose()
+}
+$fingerprintPath = Join-Path (Split-Path -Parent $benchmarkExe) 'qbench.sources.sha256'
+$executableExists = Test-Path -LiteralPath $benchmarkExe -PathType Leaf
+$staleBuild = $false
+if ($executableExists) {
+    if (-not (Test-Path -LiteralPath $fingerprintPath -PathType Leaf)) {
+        # Pre-fingerprint binary: its provenance is unknowable, so rebuild it.
+        $staleBuild = $true
+    }
+    else {
+        $staleBuild = ((Get-Content -LiteralPath $fingerprintPath -Raw).Trim() -ne $sourceFingerprint)
+    }
+}
+if ((-not $executableExists) -or $staleBuild) {
     if ($SkipBuild) {
+        if ($staleBuild) {
+            throw "Benchmark executable '$benchmarkExe' is stale with respect to the current sources (fingerprint $sourceFingerprint). Rerun without -SkipBuild to rebuild."
+        }
         throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
     }
 
+    if ($staleBuild) {
+        Write-Host ("Benchmark build is stale (fingerprint {0}); rebuilding." -f $sourceFingerprint.Substring(0, 12))
+    }
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
     }
     & $build @buildParams
+    if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
+        throw "Required benchmark executable is missing: '$benchmarkExe'."
+    }
+    Set-Content -LiteralPath $fingerprintPath -Value $sourceFingerprint -Encoding ASCII -NoNewline
 }
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
