@@ -61,13 +61,14 @@ correctness PASS with end checksum `2378409472` and DOS smoke clean. See
 `ASM486-HANDOFF.md`, "`surf8` flat axis: three measured wins bundled and
 **PROMOTED, 0.0620%**".
 
-**The row above was re-verified four more times on 2026-10-02 and the baseline
-has not moved.** Eleven dead-scratch probes were run that day across
-`-EdgeScanProbe` and `-RenderFaceProbe`; each pair re-measured the control, which
-is what a probe is priced against. Those control medians were 59.160585,
-59.160560, 59.160577, 59.160532, 59.160566, 59.160577, 59.160605, 59.160535 and
-the release re-measure closed at **59.160535 s** — every one inside 0.0001% of
-the recorded 59.160558 s. Nothing was promoted that day, so this row is
+**The row above was re-verified five more times on 2026-10-02 and 2026-10-03 and
+the baseline has not moved.** Twelve dead-scratch probes were run across
+`-EdgeScanProbe`, `-RenderFaceProbe` and `-SpanSetupProbe`; each pair re-measured
+the control, which is what a probe is priced against. Those control medians were
+59.160585, 59.160560, 59.160577, 59.160532, 59.160566, 59.160577, 59.160605,
+59.160535, 59.160541, 59.160577, 59.160569 and the release re-measures closed at
+**59.160535 s**, **59.160569 s** and **59.160545 s** — every one inside 0.0001% of
+the recorded 59.160558 s. Nothing was promoted on either day, so this row is
 unchanged and remains the current project build.
 
 `tools\probe-ab.ps1` is the runner those pairs used: three control runs, three

@@ -47,6 +47,32 @@ paid for in instruction count, memory traffic, or arithmetic.
 > has been carried out and returned nothing. **Read the two map entries in
 > `ASM486-HANDOFF.md` before choosing anything from this table.**
 
+> ### 2026-10-03 — and a third region, which is now the largest open pool
+>
+> The two above were the *last two unexamined* closures, not the only ones left
+> on an argument. A twelfth probe re-opened the biggest bucket in the renderer:
+>
+> - **`texture-spans`** is the largest pool in the renderer at ~24% of frame, and
+>   it was closed on the claim that its per-segment setup is *"dominated by two x87
+>   stores — a blind axis"*. **That is measured false.** `d_draw16.s` carries 125
+>   x87 instructions out of 619, and they are in the entry divide, the
+>   `LNotLastSegment` advance and the tail path — **none in the setup**. Six
+>   instructions of that setup cost 0.6186% of frame, so the ~23-instruction
+>   integer setup is **2.37% of frame, 47x the promotion gate**.
+>
+>   No candidate yet. Four reductions are recorded dead in `ASM486-HANDOFF.md`, and
+>   the most promising is the clamp fusion — nominally 0.206% and 4.1x the gate,
+>   which would clear on its own — which fails only because the scratch-register
+>   copy costs exactly what the fusion saves. **That one is worth revisiting if a
+>   register can be freed elsewhere first.**
+>
+> **This changes what this table is for.** The table above lists candidate *areas*
+> for assembler conversion. After 2026-10-03 the best-evidenced optimisation target
+> in the renderer is not on it, and is not a conversion at all — it is ~23
+> instructions of existing hand-written DDA assembly in `d_draw16.s` that may or
+> may not contain removable work. **Read the `texture-spans` entry in
+> `ASM486-HANDOFF.md` before choosing anything from this table.**
+
 ## Candidate areas
 
 The lightmap-combination candidate is now implemented as the selectable
