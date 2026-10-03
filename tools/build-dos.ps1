@@ -17,6 +17,17 @@ param(
     # be golden-pinned without the guard having to re-implement the profile
     # suffix arithmetic.
     [switch]$DumpFlags,
+    # Blocking ISA gate.  On by default: the build audits its own objects after
+    # the link and throws if an above-target instruction count regresses against
+    # tools\golden\isa-baseline.json, if a new above-target encoding appears, or
+    # if any instruction is unclassified.  -SkipIsaAudit downgrades this to the
+    # report-only mode tools\isa-audit.ps1 already supports, which is for
+    # quantifying a residual and is never a promotion path.
+    [switch]$SkipIsaAudit,
+    # Ratchet the ISA baseline down to whatever this build just produced.  Read
+    # the diff afterwards: --record on a release gate can hide a regression, so
+    # the recorded figures must be checked against the ones you meant to change.
+    [switch]$RecordIsaBaseline,
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
@@ -391,6 +402,33 @@ $asmSources = @($allAsmSources | Where-Object {
 		$_.Name -ne 'asm486_experiments.s'
 })
 $allSources = @($cSources + $asmSources)
+
+# The inventory pin.  The expected counts come from the golden manifest for this
+# target rather than from literals here, so there is one place to edit when a
+# source is legitimately added or removed instead of four: this script, the two
+# manifests, and tools\test-build-dos.py.  The pin itself is unchanged -- a
+# source file appearing or disappearing without the manifest being updated still
+# fails the build, which is the point of the guard.
+#
+# -DumpFlags stays pure and does NOT read the manifest: tools\test-build-dos.py
+# drives it and then compares its output against the manifest, so having it read
+# the manifest for its own expectations would make the comparison circular.  The
+# manifest's counts are read only on a real build, and test-build-dos.py keeps
+# its own literal pin, so the invariant is still enforced independently.
+$expectedAllCSourceCount = 83
+$expectedStandaloneCSourceCount = 82
+$expectedAllAssemblySourceCount = 21
+if (-not $DumpFlags) {
+    $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
+    if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {
+        throw "Golden flag manifest not found: '$goldenFlagsPath'. It carries the expected source counts for target '$CpuTarget'."
+    }
+    $goldenFlags = Get-Content -LiteralPath $goldenFlagsPath -Raw | ConvertFrom-Json
+    $expectedAllCSourceCount = [int]$goldenFlags.cSourceCount
+    $expectedStandaloneCSourceCount = [int]$goldenFlags.standaloneCSourceCount
+    $expectedAllAssemblySourceCount = [int]$goldenFlags.allAssemblySourceCount
+}
+
 $expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm' -or
 	$TextureAxisImplementation -eq 'asm' -or $SurfaceCacheImplementation -eq 'asm' -or
 	$MipLevelImplementation -eq 'asm' -or $TextureAnimationImplementation -eq 'asm' -or
@@ -399,11 +437,14 @@ $expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm
 	$FusedLightMapImplementation -eq 'asm' -or
 	$DynamicLightImplementation -eq 'asm' -or
 	$BspPlaneDotImplementation -eq 'asm' -or
-	$BspClipImplementation -eq 'asm' -or $AliasBBoxProjectImplementation -eq 'asm' -or
-	$AliasTransformFinalImplementation -eq 'asm') { 21 } else { 20 }
-if (($allCSources.Count -ne 83) -or ($cSources.Count -ne 82) -or
-	($allAsmSources.Count -ne 21) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {
-    throw "Expected 83 retained C sources (82 standalone), 21 total assembly sources, and $expectedAssemblySourceCount active assembly sources, found $($allCSources.Count) C ($($cSources.Count) standalone), $($allAsmSources.Count) total assembly, and $($asmSources.Count) active assembly."
+		$BspClipImplementation -eq 'asm' -or $AliasBBoxProjectImplementation -eq 'asm' -or
+		$AliasTransformFinalImplementation -eq 'asm') { $expectedAllAssemblySourceCount } else { $expectedAllAssemblySourceCount - 1 }
+if (($allCSources.Count -ne $expectedAllCSourceCount) -or ($cSources.Count -ne $expectedStandaloneCSourceCount) -or
+	($allAsmSources.Count -ne $expectedAllAssemblySourceCount) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {
+    throw ("Expected {1} retained C sources ({2} standalone), {3} total assembly sources, and {4} active assembly sources, found {5} C ({6} standalone), {7} total assembly, and {8} active assembly. If this change is intended, update {9} and re-record tools\test-build-dos.py." -f
+        $CpuTarget, $expectedAllCSourceCount, $expectedStandaloneCSourceCount, $expectedAllAssemblySourceCount,
+        $expectedAssemblySourceCount, $allCSources.Count, $cSources.Count, $allAsmSources.Count, $asmSources.Count,
+        ('tools\golden\build-flags-{0}.json' -f $CpuTarget))
 }
 
 $objectNames = @($allSources | ForEach-Object { $_.BaseName + '.obj' })
@@ -662,6 +703,161 @@ try {
     }
     if ($format -notmatch 'coff-go32') {
         throw ("The linked file does not report the expected COFF/GO32 format:" + [Environment]::NewLine + $format)
+    }
+
+    # --- Blocking ISA gate -------------------------------------------------
+    # The nominal target is a claim this tree does not yet honour: the shipped
+    # executable carries 161 `0f af` (imul r32,r/m32, Pentium) and would fault
+    # on real hardware.  Until the multiply-elimination work reaches zero, the
+    # gate is a ratchet -- it refuses to let the count go up -- rather than an
+    # absolute pass, because an absolute pass would be red on day one and would
+    # simply be switched off.  Hard rules (unclassified, and any non-exempt p6)
+    # are absolute from the first build.  See tools\golden\isa-baseline.json.
+    $isaBaselinePath = Join-Path $PSScriptRoot 'golden\isa-baseline.json'
+    $isaAuditScript = Join-Path $PSScriptRoot 'isa-audit.ps1'
+    $isaReportPath = Join-Path $outputRoot 'isa-audit.json'
+
+    $isaExemptions = @('crc.obj:_crctable')
+    # Audit exactly the objects this build produced.  A build recompiles sources
+    # in place, so an object directory also holds objects left behind by selector
+    # sets that are no longer active; auditing the directory would make the count
+    # depend on build history rather than on the current sources, which made the
+    # i386 figure oscillate between 1027 and 1029 across identical builds.
+    $isaObjectNames = @($objects | ForEach-Object { Split-Path -Leaf $_ })
+
+    if ($SkipIsaAudit) {
+        Write-Host 'ISA audit: SKIPPED (-SkipIsaAudit) -- this build is not a promotion candidate.'
+    }
+    else {
+        & $isaAuditScript -BuildRoot $outputRoot -ObjectRoot $objectRoot `
+            -ExeName $executableName -MaxIsa $CpuTarget -SkipExecutable `
+            -ObjectNames $isaObjectNames `
+            -OutputJson $isaReportPath -Exempt $isaExemptions
+        if (-not (Test-Path -LiteralPath $isaReportPath -PathType Leaf)) {
+            throw "isa-audit.ps1 did not write a report to '$isaReportPath'; the ISA gate cannot be evaluated."
+        }
+    }
+
+    if ((-not $SkipIsaAudit) -or $RecordIsaBaseline) {
+        $isaReport = Get-Content -LiteralPath $isaReportPath -Raw | ConvertFrom-Json
+        $isaBaseline = Get-Content -LiteralPath $isaBaselinePath -Raw | ConvertFrom-Json
+        # Key on the variant as well as the target.  -Benchmark compiles the
+        # ~4335-line bench harness in host_cmd.c and -Instrumentation compiles
+        # the PROFILE486 counters, so those builds are strictly larger code sets
+        # with their own instruction mix: the i486 release build has 170
+        # above-target instructions and its -Benchmark sibling has 173.  One
+        # figure per target would have made every bench run trip the gate.
+        $isaVariantKey = '{0}/{1}' -f $CpuTarget, $executableName
+        $isaTarget = $isaBaseline.targets.PSObject.Properties[$isaVariantKey]
+
+        # Normalise the report's "encoding (isa)" strings into a plain count map.
+        $isaFound = [ordered]@{}
+        foreach ($entry in @($isaReport.violationEncodings)) {
+            $isaFound[$entry.encoding] = [int]$entry.count
+        }
+        $isaFoundTotal = [int](($isaFound.Values | Measure-Object -Sum).Sum)
+
+        # Encodings that are string data decoded as instructions.  DJGPP emits
+        # string literals into .text, so objdump reads them as code; 62 and 63 are
+        # the two opcodes this tree's message text decodes into ("ad" -> bound,
+        # "ck " -> arpl, and so on).  They are excluded from enforcement, not
+        # hidden: they still print, and their count still tracks the message
+        # strings rather than any instruction.  They cannot be exempted by symbol
+        # the way crc.obj:_crctable is, because they appear in ~50 objects.  This
+        # is the same defect tools\isa-audit-source.py avoids at source level, and
+        # it cannot affect the i486 variants because arpl and bound are i486
+        # instructions.  See noiseEncodings in tools\golden\isa-baseline.json.
+        $isaNoise = @('62', '63')
+        $isaNoiseSeen = @($isaFound.Keys | Where-Object { $isaNoise -contains ($_ -split ' ')[0] })
+        $isaNoiseTotal = [int](($isaNoiseSeen | ForEach-Object { $isaFound[$_] } | Measure-Object -Sum).Sum)
+        $isaEnforced = New-Object System.Collections.Generic.List[string]
+        foreach ($key in $isaFound.Keys) {
+            if ($isaNoise -notcontains ($key -split ' ')[0]) {
+                $isaEnforced.Add($key)
+            }
+        }
+        $isaEnforcedTotal = $isaFoundTotal - $isaNoiseTotal
+
+        if ($RecordIsaBaseline) {
+            if ($null -eq $isaTarget) {
+                throw "Cannot record an ISA baseline for variant '$isaVariantKey': it is absent from $isaBaselinePath. Add the variant first."
+            }
+            $recorded = [ordered]@{}
+            foreach ($key in $isaEnforced) { $recorded[$key] = $isaFound[$key] }
+            $isaTarget.Value.encodings = $recorded
+            $isaTarget.Value.totalAbove = $isaEnforcedTotal
+            $isaTarget.Value.recorded = (Get-Date).ToString('yyyy-MM-dd')
+            $isaBaseline | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $isaBaselinePath -Encoding ASCII
+            Write-Host ("ISA baseline recorded for {0}: {1} enforced above-{2} instruction(s) (+{3} string-data decode, not enforced)." -f
+                $isaVariantKey, $isaEnforcedTotal, $CpuTarget, $isaNoiseTotal)
+            Write-Host ('  diff {0} and confirm every changed figure is one you intended to change.' -f $isaBaselinePath)
+        }
+        elseif ($null -eq $isaTarget) {
+            throw (("No ISA baseline recorded for variant '{0}'. The gate fails closed: record one with" -f $isaVariantKey) +
+            ' -RecordIsaBaseline, or read tools\golden\isa-baseline.json.')
+        }
+        else {
+            $isaFailures = New-Object System.Collections.Generic.List[string]
+
+            if ([int]$isaReport.unclassifiedCount -ne 0) {
+                $isaFailures.Add(("unclassified instructions: {0} (must be 0; an unclassified instruction never passes)" -f $isaReport.unclassifiedCount))
+            }
+
+            # p6 is MMX/SSE/3DNow and is never acceptable in this tree, so it is
+            # absolute rather than ratcheted -- but the CRC table's exemption is
+            # what keeps it out of the violation list, so it is counted here too.
+            $isaP6 = [int]$isaReport.isaTotals.p6
+            $isaP6Exempt = [int]$isaReport.exemptedCount
+            if (($isaP6 - $isaP6Exempt) -gt 0) {
+                $isaFailures.Add(("non-exempt p6 (MMX/SSE) instructions: {0} (must be 0)" -f ($isaP6 - $isaP6Exempt)))
+            }
+
+            $isaRecorded = $isaTarget.Value.encodings
+            # Noise was computed above, before the record branch, so both paths
+            # compare the same enforced set.
+            foreach ($key in $isaEnforced) {
+                $recordedCount = 0
+                if ($null -ne $isaRecorded -and ($isaRecorded.PSObject.Properties.Name -contains $key)) {
+                    $recordedCount = [int]$isaRecorded.$key
+                }
+                if ($isaFound[$key] -gt $recordedCount) {
+                    $isaFailures.Add(("encoding '{0}': {1} above baseline {2}" -f $key, $isaFound[$key], $recordedCount))
+                }
+            }
+            $isaRemoved = @()
+            if ($null -ne $isaRecorded) {
+                foreach ($key in $isaRecorded.PSObject.Properties.Name) {
+                    if (-not ($isaFound.Keys -contains $key)) {
+                        $isaRemoved += $key
+                    }
+                }
+            }
+
+            $isaProgress = if ($null -ne $isaTarget.Value.totalAbove -and [int]$isaTarget.Value.totalAbove -gt 0) {
+                'baseline {0}, now {1}' -f $isaTarget.Value.totalAbove, $isaEnforcedTotal
+            }
+            else {
+                '{0}' -f $isaEnforcedTotal
+            }
+            Write-Host ('ISA gate {0}: {1} enforced above-{2} instruction(s) [{3}], {4} unclassified, {5} exempt, {6} not enforced.' -f
+                $(if ($isaFailures.Count -eq 0) { 'PASS' } else { 'FAIL' }),
+                $isaEnforcedTotal, $CpuTarget, $isaProgress, $isaReport.unclassifiedCount, $isaReport.exemptedCount, $isaNoiseTotal)
+            if ($isaNoiseSeen.Count -gt 0) {
+                Write-Host ('  not enforced, string data decoded as code: {0} ({1} instruction(s))' -f
+                    ($isaNoiseSeen -join ', '),
+                    (($isaNoiseSeen | ForEach-Object { $isaFound[$_] }) | Measure-Object -Sum).Sum)
+            }
+
+            if ($isaRemoved.Count -gt 0) {
+                Write-Host ('  cleared since the baseline: {0} -- ratchet with -RecordIsaBaseline.' -f ($isaRemoved -join ', '))
+            }
+            if ($isaFailures.Count -gt 0) {
+                Write-Host ('  {0}' -f ($isaFailures -join [Environment]::NewLine + '  '))
+                throw (("ISA gate failed for variant '{0}'. The nominal target is a ratchet, not yet an absolute pass:" -f $isaVariantKey) +
+                ' an above-target instruction count regressed. See tools\golden\isa-baseline.json and the' +
+                " 'A separate i386 codepath exists' entry in ASM486-HANDOFF.md.")
+            }
+        }
     }
 
     $version = ((& $compiler --version | Select-Object -First 1).ToString()).Trim()

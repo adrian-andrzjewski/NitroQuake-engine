@@ -1,0 +1,83 @@
+{
+  "schema": "nitroquake-isa-ratchet-baseline/2",
+  "note": "Blocking ISA gate baseline for build-dos.ps1. The build fails when an above-target instruction count EXCEEDS the figure recorded for its variant, when any above-target encoding appears that is not recorded, or when any instruction is unclassified. It does not fail while a count is still at or below its recorded figure, because the tree does not yet execute on its nominal target: see ASM486-HANDOFF.md, 'A separate i386 codepath exists, and the shipped 486 binary needs a Pentium'. Ratchet these numbers down as the multiply-elimination work lands; the end state is all-zero.",
+  "variantKey": "<cpuTarget>/<executableName>, where executableName is quake.exe (release), qbench.exe (-Benchmark), or qprof.exe (-Instrumentation). One figure per target is not enough: -Benchmark compiles the ~4335-line bench harness in host_cmd.c and -Instrumentation compiles the PROFILE486 counters, so those are strictly larger code sets with their own instruction mix.",
+  "hardRules": {
+    "unclassifiedMustBeZero": true,
+    "p6MustBeZero": true,
+    "exemptions": [
+      "crc.obj:_crctable"
+    ],
+    "exemptionReason": "The CRC constant table lives in .text and disassembles as if it were instructions; its single decoded byte pattern is a p6 MMX opcode. It is data, not code, and is the only exemption in the tree."
+  },
+  "buildDeterminism": "GCC 12.2.0 emits 165103 or 165105 total instructions for the i386 object set across identical rebuilds of identical source, so the raw instruction total is not reproducible. The i486 object set is stable at 168463. The per-encoding above-target counts are reproducible once the 62/63 string-data decode is excluded, which is what the gate compares. Two further reasons the audit is given an explicit -ObjectNames list rather than a directory: an object directory accumulates objects from selector sets that are no longer active (asm486_experiments.s when every implementation selector is 'c', net_comx.c which is #included rather than compiled), which made the count depend on build history; and sweeping every obj* subdirectory audited 206 objects instead of 103 by double-counting obj/ and obj-bench/.",
+  "scopeNote": "These are object-level figures from tools\\isa-audit.ps1, which disassembles the real objects and counts every inlined copy separately, so they are the right numbers for a gate. The source-level figures from tools\\isa-audit-source.py count one hit per source construct and are the right numbers for a rewrite checklist. The two are not expected to agree -- object level sees more, because an inlined function is counted at every call site -- but once the string-data decode is excluded they land close: this file records 305 enforced above-i386 against the 307 that ASM486-HANDOFF.md cites from the source-level tool. That agreement is the evidence that the 62/63 exclusion is sound rather than convenient.",
+  "targets": {
+    "i486/quake.exe": {
+      "recorded": "2026-10-03",
+      "objectDirectory": "obj",
+      "encodings": {
+        "0f af (i586)": 161,
+        "0f 32 (i586)": 2,
+        "0f 30 (i586)": 4,
+        "0f 0b (i586)": 3
+      },
+      "totalAbove": 170
+    },
+    "i486/qbench.exe": {
+      "recorded": "2026-10-03",
+      "objectDirectory": "obj-bench",
+      "encodings": {
+        "0f af (i586)": 164,
+        "0f 32 (i586)": 2,
+        "0f 30 (i586)": 4,
+        "0f 0b (i586)": 3
+      },
+      "totalAbove": 173
+    },
+    "i486/qprof.exe": {
+      "recorded": "2026-10-03",
+      "objectDirectory": "obj-bench-profile",
+      "encodings": {
+        "0f af (i586)": 168,
+        "0f 32 (i586)": 2,
+        "0f 30 (i586)": 4,
+        "0f 0b (i586)": 3
+      },
+      "totalAbove": 177
+    },
+    "i386/quake.exe": {
+      "recorded": "2026-10-03",
+      "objectDirectory": "obj",
+      "encodings": {
+        "0f 95 (i486)": 53,
+        "0f 94 (i486)": 53,
+        "0f af (i586)": 161,
+        "0f 00 (i486)": 8,
+        "f7 (i486)": 1,
+        "0f 93 (i486)": 6,
+        "0f 0b (i586)": 3,
+        "0f 9c (i486)": 3,
+        "0f 9f (i486)": 11,
+        "0f 9e (i486)": 3,
+        "0f 0f (i486)": 1,
+        "0f ac (i486)": 1,
+        "0f 9d (i486)": 1
+      },
+      "totalAbove": 305
+    }
+  },
+  "noiseEncodings": {
+    "note": "62 (bound) and 63 (arpl) are string literals, not instructions. DJGPP emits string data into .text, so objdump decodes it as code: 62 61 64 is 'ad', 63 6b 20 is 'ck ', 65 63 74 00 is 'ect' plus a NUL. They appear across ~50 objects and cannot be exempted by symbol the way crc.obj:_crctable is. The gate excludes them from enforcement and prints them instead, because they are the only two buckets whose count tracks message text rather than instructions. This is the same defect tools\\isa-audit-source.py was written to avoid, at source level. It does not affect the i486 variants at all, because arpl and bound are i486 instructions: only the i386 gate sees them.",
+    "encodings": [
+      "62",
+      "63"
+    ]
+  },
+  "encodingMeanings": {
+    "0f af": "imul r32, r/m32 -- the only two-register general multiply x86 has, and a Pentium instruction. No 386-safe mnemonic spelling exists, so it can only be removed by strength reduction, never by respelling. This is the whole of the multiply-elimination work.",
+    "0f 0b": "ud2 -- emitted by GCC as a cold-block trap.",
+    "0f 30": "wrmsr -- dosasm.s StartMSRInterval/EndMSRInterval, dead code driving MSR 0x11 (Pentium Pro / Cyrix-6x86). Deletable.",
+    "0f 32": "rdmsr -- same dead dosasm.s pair."
+  }
+}

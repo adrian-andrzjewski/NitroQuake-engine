@@ -27,6 +27,23 @@
 .PARAMETER ExeName
     Linked executable to audit.  Defaults to quake.exe.
 
+.PARAMETER ObjectRoot
+    Audit exactly this object directory instead of every obj* subdirectory of
+    -BuildRoot.  A build root normally holds obj/, obj-bench/ and
+    obj-bench-profile/ at once, so the default sweep double-counts and mixes
+    objects from different selector sets.  That is harmless for a report and
+    wrong for a gate: pass the objectRoot the build actually produced.
+
+.PARAMETER ObjectNames
+    Audit only these object file names (e.g. surf8.obj, math.obj), resolved
+    inside each object directory.  A build recompiles its sources in place, so
+    an object directory also accumulates objects from selector sets that are no
+    longer active -- asm486_experiments.s when every implementation selector is
+    'c', net_comx.c which is #included rather than compiled.  Those are stale,
+    and auditing a directory therefore audits them too, which makes the count
+    depend on build history rather than on the current sources.  Naming the
+    objects removes that.
+
 .PARAMETER MaxIsa
     Highest ISA level the caller is willing to accept.  Violations are counted
     and reported either way; see -FailOnViolation for whether they also fail.
@@ -67,6 +84,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$BuildRoot,
     [string]$ExeName = 'quake.exe',
+
+    [string]$ObjectRoot,
+    [string[]]$ObjectNames = @(),
     [ValidateSet('i386', 'i486', 'i586', 'p6')]
     [string]$MaxIsa = 'i486',
     [string]$OutputJson,
@@ -169,12 +189,31 @@ for ($i = 0xC8; $i -le 0xCF; $i++) {
     $twoByteIsa[('0f{0:x2}' -f $i)] = 'i486'
 }
 
-$objectDirectories = @(Get-ChildItem -LiteralPath $BuildRoot -Directory -Filter 'obj*' -ErrorAction SilentlyContinue)
+$objectDirectories = if ([string]::IsNullOrWhiteSpace($ObjectRoot)) {
+    @(Get-ChildItem -LiteralPath $BuildRoot -Directory -Filter 'obj*' -ErrorAction SilentlyContinue)
+}
+else {
+    if (-not (Test-Path -LiteralPath $ObjectRoot -PathType Container)) {
+        throw "Object root not found: '$ObjectRoot'."
+    }
+    @(Get-Item -LiteralPath (Resolve-Path -LiteralPath $ObjectRoot).Path)
+}
+$objectNameFilter = if ($ObjectNames.Count -gt 0) { [System.Collections.Generic.HashSet[string]]::new([string[]]$ObjectNames) } else { $null }
 $targets = New-Object System.Collections.Generic.List[object]
+$missingObjects = New-Object System.Collections.Generic.List[string]
 foreach ($dir in $objectDirectories) {
     foreach ($obj in (Get-ChildItem -LiteralPath $dir.FullName -Filter '*.obj' -File | Sort-Object Name)) {
+        if ($null -ne $objectNameFilter) {
+            if (-not $objectNameFilter.Contains($obj.Name)) {
+                continue
+            }
+            $missingObjects.Remove($obj.Name) | Out-Null
+        }
         $targets.Add([pscustomobject]@{ kind = 'object'; name = $obj.Name; path = $obj.FullName })
     }
+}
+if ($objectNameFilter.Count -gt 0 -and $missingObjects.Count -gt 0) {
+    throw ("Named objects were not found under '{0}': {1}" -f (($objectDirectories | ForEach-Object { $_.FullName }) -join ', '), ($missingObjects -join ', '))
 }
 $exePath = Join-Path $BuildRoot $ExeName
 if ((-not $SkipExecutable) -and (Test-Path -LiteralPath $exePath -PathType Leaf)) {
