@@ -163,6 +163,8 @@ extern unsigned long bench486_texture_final_exact;
 extern unsigned long bench486_texture_full_row_eligible;
 extern unsigned long bench486_texture_full_row_fast;
 extern unsigned long bench486_span_segments;
+extern unsigned long bench486_zspan_pixels;
+extern unsigned long bench486_zspan_spans;
 extern unsigned long bench486_lm_single_texels;
 extern unsigned long bench486_lm_fused_texels;
 extern unsigned long bench486_lm_fused_maps[5];

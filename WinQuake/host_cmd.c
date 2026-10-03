@@ -139,6 +139,8 @@ unsigned long bench486_span_segments;
 // Lightmap build populations. The single-style path uses a 256-entry table and
 // the multi-style path the fused asm loop; they have very different per-texel
 // costs, so rebuild_seconds alone cannot price either.
+unsigned long bench486_zspan_pixels;
+unsigned long bench486_zspan_spans;
 unsigned long bench486_lm_single_texels;
 unsigned long bench486_lm_fused_texels;
 unsigned long bench486_lm_fused_maps[5];
@@ -1368,6 +1370,8 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_full_row_eligible = 0;
 	bench486_texture_full_row_fast = 0;
 	bench486_span_segments = 0;
+	bench486_zspan_pixels = 0;
+	bench486_zspan_spans = 0;
 	bench486_lm_single_texels = 0;
 	bench486_lm_fused_texels = 0;
 	{
@@ -1549,6 +1553,16 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_span_segments,
 			bench486_span_unit_stride_segments,
 			bench486_span_unit_stride_pixels);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
+	// Its own report call: z-span pixel population, which is the denominator
+	// the per-pixel loop has never had.
+	sprintf (text,
+			"z-spans pixels %lu spans %lu avg %lu\n",
+			bench486_zspan_pixels, bench486_zspan_spans,
+			bench486_zspan_spans ?
+				bench486_zspan_pixels / bench486_zspan_spans : 0);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));

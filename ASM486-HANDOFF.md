@@ -9,6 +9,97 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### `z-spans` is the last unpriced region above 2%: **42,031,372 pixels, 3 instructions each, at 1.24 cycles per instruction** (2026-10-03, fifth pass)
+
+> **This closes the last region in the renderer larger than 2% of frame that nobody had priced.**
+> `z-spans` is 7.89% of frame and the only part of it ever examined was the x87 prologue. It now has
+> a measured population, a counted instruction budget, and a derivation showing the budget is the
+> 486 minimum. Combined with the four closures above it, **every region above 2% of frame is now
+> closed by measurement or by proof.**
+
+#### The population
+
+Two `PROFILE486` counters at the span head, where the pixel count is already in a register:
+
+```text
+z-spans pixels 42031372 spans 1414939 avg 29
+```
+
+One instrumented `demo1` run, 969 frames, checksum `1047377823`.
+
+#### The pixel loop is 3 instructions per pixel, and 3 is the floor
+
+`LFMiddleQuad` is 51 instructions per 16 pixels (48 in the body, plus `addl $32,%edi`, `subl $4,%ecx`
+and `jnz`), i.e. **3.19 per pixel** with the unroll dispatch outside the loop. The body is a
+five-instruction pack of two pixels:
+
+```text
+movl	%edx,%eax ; addl %ebx,%edx ; shrl $16,%eax ; shldl $16,%edx,%eax ; rorl $16,%eax ; movl %eax,(%edi)
+```
+
+producing `dword = (A >> 16) | ((A + izistep) >> 16) << 16`. Both `A` and `A + izistep` are needed
+simultaneously, so the `movl` copy is forced; `shrd` — which would merge in the opposite direction in
+**one** instruction and delete the `rorl` — does not exist on a 486. So the pack is `movl` + `shrl` +
+`shldl` + `rorl`, plus one `addl` and one store per pixel: **3, and no fewer.**
+
+The obvious restructure was tried on paper and is *worse*: keeping two accumulators (`%eax` for even
+pixels, `%edx` for odd, each advanced by `2*izistep`) removes the copy but needs a separate
+`addl $8,%edi` per pair, giving 4 per pixel against the current 3. The 16-pixel unroll is what makes
+the current form cheap, by amortising the destination advance over 16 pixels.
+
+#### And it runs at 1.24 cycles per instruction, so removal would pay nothing anyway
+
+```text
+z-spans self 6.303 s = 7.89% of frame -> 4.671 s release = 156.2M cycles
+42,031,372 pixels   ->   3.72 cycles/pixel
+3 counted instructions/pixel -> 1.24 cycles per instruction
+```
+
+**1.24 is the worst ratio measured anywhere in this renderer.** Every other hot region lands at or
+below 1.0 — the block rows at 0.77, the span16 setup at 0.988. This one is *above* it, which means
+the loop is dependency-bound on the `%edx` accumulator: `addl %ebx,%edx` must retire before
+`shldl %edx,%eax` can read it, and that chain is longer than the instruction count can hide. So the
+region has **no slack at all** and a removed instruction would buy approximately zero — the same
+result the span16 per-segment setup gave, reached here by the opposite route. There it was 1.0 for
+additions and 0.0 for removals; here it is 1.24 for everything.
+
+**This is the second region in the session to close on dependency structure rather than on minimality,
+and together they say the harness's slack is concentrated in the block drawers (0.77) and absent from
+the interpolating fills (1.0–1.24).**
+
+#### The per-span prologue is 2.72% of frame and has nowhere to put a register
+
+The ~38 scalar instructions at each span head — the `d_zistepu`/`d_ziorigin`/`d_sdivzstep*` reloads,
+the `%eax`/`%edx`/`%edi`/`%ecx` setup, and the 8-instruction dword-alignment prefix — are
+38 x 1,414,939 = **53.8M instructions = 1.61 s = 2.72% of frame**, and no part of them has ever been
+priced. They cannot be hoisted into registers: at `LFSpanLoop` **all seven general registers are
+live** — `%ebp` is the span cursor, `%ebx` the `izistep` loaded once per *call*, `%edi` the
+destination, `%esi` and `%ecx` the span fields, `%edx` the z accumulator, `%eax` the pack scratch —
+and the x87 stack is a separate eight-slot resource this loop cannot draw integer registers from.
+That is the same wall the span16 `emit` block hit and the same one the block-row prologue hit. **The
+globals must be reloaded per span because there is no register to hold them.**
+
+#### The bucket now resolves completely
+
+| region | share of frame | cyc/instr | disposition |
+|---|---:|---:|---|
+| `texture-spans` setup | 2.37% | 0.988 | latency-bound; 4.1x-gate candidate measured **0.0000%** |
+| general + flat block rows | 6.85% | 0.77 | **minimal**, 6-for-6 and 3-for-3, proven from the flat row |
+| `z-spans` pixel loop | 6.37% | **1.24** | **minimal** (3/pixel) and dependency-bound |
+| `z-spans` per-span prologue | 2.72% | — | all 7 registers live; x87 remainder inadmissible |
+| `renderface` C scaffolding | ~2% | 0.54 / 1.19 | priced; remainder is essential x87 edge emit |
+| `edge-scan` | 8.27% | ~1.0 | 78% mapped, sixteen named blocks, all load-bearing |
+| `R_BuildLightMap` | 0.06% | — | hoist worth 0.04x the gate |
+| surface-cache non-draw remainder | 0.67% | — | 1,152 tryalloc scans, **0** evictions |
+
+**Every region above 2% of frame is now closed, and not one of them on price alone.** Three closed by
+minimality proof, two by dependency structure, one by a fresh counter, one by a measured 0.0000%. The
+0.05% gate has not been the binding constraint in any of them — instruction-level structure has, and
+in the two 6%+ regions it turned out to be a *proof* rather than a search.
+
+Verification: two `PROFILE486`-guarded counters added, no release cost. Instrumented run 969 frames,
+checksum `1047377823`. Baseline unchanged at **59.160558 s / 16.379156 FPS**; `d_draw16.s` still 619
+instructions.
 ### `R_BuildLightMap` is **0.06% of frame, not 7.5%** — and a real loop-invariant hoist in it is worth **0.04x the gate** (2026-10-03, fourth pass)
 
 > **This is a premise-falsification, and it falsifies an error made earlier in the same session.**

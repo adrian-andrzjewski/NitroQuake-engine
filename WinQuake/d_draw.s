@@ -27,6 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_draw.h"
 #include "d_ifacea.h"
 
+#ifdef PROFILE486
+	.extern C(bench486_zspan_pixels)
+	.extern C(bench486_zspan_spans)
+#endif
+
 #if	id386
 
 //----------------------------------------------------------------------
@@ -826,10 +831,19 @@ LFSpanLoop:
 // clamp if z is nearer than 2 (1/z > 0.5)
 	fcoms	float_point5
 	leal	(%edi,%edx,2),%edi
-	movl	espan_t_count(%ebp),%ecx
+movl	espan_t_count(%ebp),%ecx
 	fnstsw	%ax
 	testb	$0x45,%ah
 	jz		LClamp
+#ifdef PROFILE486
+	// Z-span population.  z-spans is 7.90% of frame and the only part of it
+	// ever priced was the x87 prologue, so the per-pixel loop has never had a
+	// denominator.  One accumulation at the span head, where the span's pixel
+	// count is already in a register, so this is exact and costs nothing in
+	// release.
+	addl	%ecx,C(bench486_zspan_pixels)
+	incl	C(bench486_zspan_spans)
+#endif
 
 	fmuls	Float2ToThe31nd
 	fistpl	izi			// note: we are relying on FP exceptions being turned
