@@ -5,6 +5,7 @@ param(
     [switch]$NoBootstrap,
     [string]$ToolRoot,
     [string]$DataRoot,
+    [ValidateSet('i486', 'i386')]
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
@@ -161,155 +162,108 @@ if ($TextureSpanStores -eq 'stosw' -and
 }
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-$profileSuffixParts = @()
-if ($OptimizationProfile -eq 'baseline') {
-    $profileSuffixParts += 'baseline'
-}
-if ($TextureAxisCacheEntries -ne 256) {
-    $profileSuffixParts += "cache$TextureAxisCacheEntries"
-}
-if ($MemoryImplementation -eq 'asm') {
-    $profileSuffixParts += 'memasm'
-}
-if ($TextureAxisImplementation -eq 'asm') {
-    $profileSuffixParts += 'axisasm'
-}
-if ($SurfaceCacheImplementation -eq 'asm') {
-    $profileSuffixParts += 'surfaceasm'
-}
-if ($MipLevelImplementation -eq 'asm') {
-    $profileSuffixParts += 'mipasm'
-}
-if ($TurbulentImplementation -eq 'c') {
-    $profileSuffixParts += 'turbc'
-}
-elseif ($TurbulentImplementation -eq 'asm') {
-    $profileSuffixParts += 'turbasm'
-}
-if ($TextureSpanStores -eq 'byte') {
-    $profileSuffixParts += 'spanbyte'
-}
-elseif ($TextureSpanStores -eq 'dword') {
-    $profileSuffixParts += 'spandword'
-}
-elseif ($TextureSpanStores -eq 'loop') {
-    $profileSuffixParts += 'spanloop'
-}
-elseif ($TextureSpanStores -eq 'stosw') {
-    $profileSuffixParts += 'spanstosw'
-}
-if ($TextureSpanTailStores -eq 'word') {
-    $profileSuffixParts += 'spantailword'
-}
-if ($TextureSpanRowPath -eq 'norowcross') {
-    $profileSuffixParts += 'spannorow'
-}
-if ($TextureSpanLoadOrder -eq 'loadfirst') {
-    $profileSuffixParts += 'spanloadfirst'
-}
-if ($TextureSpanAddressing -eq 'branch') {
-    $profileSuffixParts += 'spanaddrbranch'
-}
-if ($AliasSpanAddressing -eq 'branch') {
-    $profileSuffixParts += 'aliasspanaddrbranch'
-}
-if ($ZSpanNegativeUnroll -eq 'unroll8') {
-    $profileSuffixParts += 'zneg8'
-}
-else {
-    $profileSuffixParts += 'zneg4'
-}
-if ($SurfaceBlockMip0Rows -eq 'unroll4') {
-    $profileSuffixParts += 'surf0rows4'
-}
-elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
-    $profileSuffixParts += 'surf0rows8'
-}
-elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
-    $profileSuffixParts += 'surf0rows16'
-}
-if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
-    $profileSuffixParts += 'surf0hflat'
-}
-if ($SurfaceBlockMip1Rows -eq 'unroll8') {
-    $profileSuffixParts += 'surf1rows8'
-}
-if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
-    $profileSuffixParts += 'surf1hflat'
-}
-if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
-    $profileSuffixParts += 'surf1hflatidxhoist'
-}
-if ($EdgeScanProbe -ne 'control') {
-    $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
-}
-if ($SpanSetupProbe -ne 'control') {
-    $profileSuffixParts += ('spansetup' + $SpanSetupProbe)
-}
-if ($RenderFaceProbe -ne 'control') {
-    $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
-}
-if ($AliasGlueProbe -ne 'control') {
-    $profileSuffixParts += ('agprobe' + $AliasGlueProbe)
-}
-if ($AliasProjectImplementation -eq 'c') {
-    $profileSuffixParts += 'aliasc'
-}
-if ($AliasBBoxProjectImplementation -eq 'c') {
-    $profileSuffixParts += 'aliasbboxc'
-}
-if ($AliasTransformFinalImplementation -eq 'c') {
-    $profileSuffixParts += 'aliastransformc'
-}
-if ($AliasPrepareImplementation -eq 'local') {
-    $profileSuffixParts += 'aliaslocal'
-}
-if ($AliasMatrixCompositionImplementation -eq 'special') {
-    $profileSuffixParts += 'aliasmatrixspecial'
-}
-if ($TextureAnimationImplementation -eq 'c') {
-    $profileSuffixParts += 'textureanimc'
-}
-if ($LightMapNormalizeImplementation -eq 'c') {
-    $profileSuffixParts += 'lightmapc'
-}
-if ($LightMapStylesImplementation -eq 'asm') {
-    $profileSuffixParts += 'lightmapstylesasm'
-}
-if ($FusedLightMapImplementation -eq 'asm') {
-    $profileSuffixParts += 'fusedlightmapasm'
-}
-if ($DynamicLightImplementation -eq 'asm') {
-    $profileSuffixParts += 'dlightasm'
-}
-if ($BspPlaneDotImplementation -eq 'asm') {
-    $profileSuffixParts += 'bspdotasm'
-}
-if ($BspClipImplementation -eq 'asm') {
-    $profileSuffixParts += 'bspclipasm'
-}
-if ($BspFrameCountImplementation -eq 'local') {
-    $profileSuffixParts += 'bspframecache'
-}
-if ($GibTrailHorizontalIntegration -eq 'skipzero') {
-    $profileSuffixParts += 'gibskipzero'
-}
-if ($Instrumentation) {
-    $profileSuffixParts += 'profile'
-}
-$profileSuffix = if ($profileSuffixParts.Count) {
-    '-' + ($profileSuffixParts -join '-')
-}
-else {
-    ''
-}
-$executableName = if ($Instrumentation) { 'qprof.exe' } else { 'qbench.exe' }
-$benchmarkExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\' + $executableName)
+$buildParams = @{
+
+        Benchmark = $true
+
+        OptimizationProfile = $OptimizationProfile
+
+        TextureAxisCacheEntries = $TextureAxisCacheEntries
+
+        TextureAxisImplementation = $TextureAxisImplementation
+
+        SurfaceCacheImplementation = $SurfaceCacheImplementation
+
+        MipLevelImplementation = $MipLevelImplementation
+
+        MemoryImplementation = $MemoryImplementation
+
+        TurbulentImplementation = $TurbulentImplementation
+
+        TextureSpanStores = $TextureSpanStores
+
+        TextureSpanTailStores = $TextureSpanTailStores
+
+        TextureSpanRowPath = $TextureSpanRowPath
+
+        TextureSpanLoadOrder = $TextureSpanLoadOrder
+
+        TextureSpanAddressing = $TextureSpanAddressing
+
+        AliasSpanAddressing = $AliasSpanAddressing
+
+        ZSpanNegativeUnroll = $ZSpanNegativeUnroll
+
+        SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+
+        SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
+
+        SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
+
+        SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
+
+            SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
+
+            EdgeScanProbe = $EdgeScanProbe
+
+            SpanSetupProbe = $SpanSetupProbe
+
+            RenderFaceProbe = $RenderFaceProbe
+
+            AliasGlueProbe = $AliasGlueProbe
+
+        AliasProjectImplementation = $AliasProjectImplementation
+
+        AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
+
+        AliasTransformFinalImplementation = $AliasTransformFinalImplementation
+
+        AliasPrepareImplementation = $AliasPrepareImplementation
+
+        AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
+
+        TextureAnimationImplementation = $TextureAnimationImplementation
+
+        LightMapNormalizeImplementation = $LightMapNormalizeImplementation
+
+        LightMapStylesImplementation = $LightMapStylesImplementation
+
+        FusedLightMapImplementation = $FusedLightMapImplementation
+
+        DynamicLightImplementation = $DynamicLightImplementation
+
+        BspPlaneDotImplementation = $BspPlaneDotImplementation
+
+        BspClipImplementation = $BspClipImplementation
+
+        BspFrameCountImplementation = $BspFrameCountImplementation
+
+        GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
+
+        ToolRoot = $ToolRoot
+
+    }
+
+$build = Join-Path $PSScriptRoot 'build-dos.ps1'
+$bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
+
+# Ask the builder where the output lands instead of recomputing the profile
+# suffix here.  This runner used to carry its own copy of that arithmetic, and so
+# did smoke-dos.ps1 and bench-dos.ps1; three copies of one rule is a standing
+# invitation for a runner to look for an executable the builder never wrote.
+# The builder is the only place that knows.
+$resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+$buildRoot = $resolved.outputRoot
+$benchmarkExe = $resolved.executable
+
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
 $dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
 $profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
-$bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
-$build = Join-Path $PSScriptRoot 'build-dos.ps1'
+
+# The staged executable name follows the builder's resolution too: -Benchmark
+# gives qbench.exe and -Instrumentation gives qprof.exe, and duplicating that
+# rule here is what let the two sides drift apart.
+$executableName = [IO.Path]::GetFileName($resolved.executable)
 
 if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
     if ($NoBootstrap) {
@@ -385,47 +339,7 @@ if ((-not $executableExists) -or $staleBuild) {
     }
 
     Write-Host ("Benchmark build is stale (fingerprint {0}); rebuilding." -f $sourceFingerprint.Substring(0, 12))
-    $buildParams = @{
-        Benchmark = $true
-        OptimizationProfile = $OptimizationProfile
-        TextureAxisCacheEntries = $TextureAxisCacheEntries
-        TextureAxisImplementation = $TextureAxisImplementation
-        SurfaceCacheImplementation = $SurfaceCacheImplementation
-        MipLevelImplementation = $MipLevelImplementation
-        MemoryImplementation = $MemoryImplementation
-        TurbulentImplementation = $TurbulentImplementation
-        TextureSpanStores = $TextureSpanStores
-        TextureSpanTailStores = $TextureSpanTailStores
-        TextureSpanRowPath = $TextureSpanRowPath
-        TextureSpanLoadOrder = $TextureSpanLoadOrder
-        TextureSpanAddressing = $TextureSpanAddressing
-        AliasSpanAddressing = $AliasSpanAddressing
-        ZSpanNegativeUnroll = $ZSpanNegativeUnroll
-        SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
-        SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
-        SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
-        SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
-            SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
-            EdgeScanProbe = $EdgeScanProbe
-            SpanSetupProbe = $SpanSetupProbe
-            RenderFaceProbe = $RenderFaceProbe
-            AliasGlueProbe = $AliasGlueProbe
-        AliasProjectImplementation = $AliasProjectImplementation
-        AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
-        AliasTransformFinalImplementation = $AliasTransformFinalImplementation
-        AliasPrepareImplementation = $AliasPrepareImplementation
-        AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
-        TextureAnimationImplementation = $TextureAnimationImplementation
-        LightMapNormalizeImplementation = $LightMapNormalizeImplementation
-        LightMapStylesImplementation = $LightMapStylesImplementation
-        FusedLightMapImplementation = $FusedLightMapImplementation
-        DynamicLightImplementation = $DynamicLightImplementation
-        BspPlaneDotImplementation = $BspPlaneDotImplementation
-        BspClipImplementation = $BspClipImplementation
-        BspFrameCountImplementation = $BspFrameCountImplementation
-        GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
-        ToolRoot = $ToolRoot
-    }
+    
     if ($Instrumentation) {
         $buildParams['Instrumentation'] = $true
     }
@@ -554,6 +468,7 @@ $runtimeConfig = [regex]::Replace(
 if ($runtimeConfig -eq $profileText) {
     throw "Could not replace the autoexec section in '$profilePath'."
 }
+
 $configPath = Join-Path $stagingRoot 'dosbox-x-timedemo.conf'
 $runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
 

@@ -4,12 +4,20 @@ param(
     [switch]$NoBootstrap,
     [string]$ToolRoot,
     [string]$DataRoot,
+    [ValidateSet('i486', 'i386')]
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet('c', 'asm')]
     [string]$MemoryImplementation = 'asm',
     [ValidateSet('control', 'local')]
     [string]$AliasPrepareImplementation = 'control',
+    # 'asm' to match build-dos.ps1, bench-dos.ps1 and timedemo-dos.ps1.  This
+    # used to be 'c', and because this runner computed the profile suffix itself
+    # it then looked for out\dos-memasm-...-fusedlightmapasm\quake.exe while the
+    # release build lives in out\dos-memasm-...-fusedlightmapasm-dlightasm\.
+    # So `smoke-dos.ps1 -SkipBuild` was not testing the release binary at all.
+    # The runner now asks the builder for its output path, which is what made the
+    # divergence visible.
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'asm',
     [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
@@ -76,39 +84,41 @@ if ($TextureSpanStores -eq 'stosw' -and
 }
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-$profileSuffixParts = @()
-if ($OptimizationProfile -eq 'baseline') { $profileSuffixParts += 'baseline' }
-if ($MemoryImplementation -eq 'asm') { $profileSuffixParts += 'memasm' }
-if ($TextureSpanStores -eq 'byte') { $profileSuffixParts += 'spanbyte' }
-elseif ($TextureSpanStores -eq 'dword') { $profileSuffixParts += 'spandword' }
-elseif ($TextureSpanStores -eq 'loop') { $profileSuffixParts += 'spanloop' }
-elseif ($TextureSpanStores -eq 'stosw') { $profileSuffixParts += 'spanstosw' }
-if ($TextureSpanLoadOrder -eq 'loadfirst') { $profileSuffixParts += 'spanloadfirst' }
-if ($TextureSpanAddressing -eq 'branch') { $profileSuffixParts += 'spanaddrbranch' }
-if ($AliasSpanAddressing -eq 'branch') { $profileSuffixParts += 'aliasspanaddrbranch' }
-$profileSuffixParts += 'zneg4'
-if ($SurfaceBlockMip0Rows -eq 'unroll4') { $profileSuffixParts += 'surf0rows4' }
-elseif ($SurfaceBlockMip0Rows -eq 'unroll8') { $profileSuffixParts += 'surf0rows8' }
-elseif ($SurfaceBlockMip0Rows -eq 'unroll16') { $profileSuffixParts += 'surf0rows16' }
-if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf0hflat' }
-if ($SurfaceBlockMip1Rows -eq 'unroll8') { $profileSuffixParts += 'surf1rows8' }
-if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') { $profileSuffixParts += 'surf1hflat' }
-if ($SurfaceBlockMip1IndexHoist -eq 'hoist') { $profileSuffixParts += 'surf1hflatidxhoist' }
-if ($EdgeScanProbe -ne 'control') { $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe) }
-if ($RenderFaceProbe -ne 'control') { $profileSuffixParts += ('rfprobe' + $RenderFaceProbe) }
-if ($AliasPrepareImplementation -eq 'local') { $profileSuffixParts += 'aliaslocal' }
-$profileSuffixParts += 'aliasmatrixspecial'
-$profileSuffixParts += 'lightmapstylesasm'
-$profileSuffixParts += 'fusedlightmapasm'
-if ($DynamicLightImplementation -eq 'asm') { $profileSuffixParts += 'dlightasm' }
-if ($BspFrameCountImplementation -eq 'local') { $profileSuffixParts += 'bspframecache' }
-if ($GibTrailHorizontalIntegration -eq 'skipzero') { $profileSuffixParts += 'gibskipzero' }
-$profileSuffix = if ($profileSuffixParts.Count) { '-' + ($profileSuffixParts -join '-') } else { '' }
-$djgppExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\quake.exe')
+$build = Join-Path $PSScriptRoot 'build-dos.ps1'
+$buildParams = @{
+    ToolRoot = $ToolRoot
+    OptimizationProfile = $OptimizationProfile
+    MemoryImplementation = $MemoryImplementation
+    AliasPrepareImplementation = $AliasPrepareImplementation
+    DynamicLightImplementation = $DynamicLightImplementation
+    TextureSpanStores = $TextureSpanStores
+    TextureSpanLoadOrder = $TextureSpanLoadOrder
+    TextureSpanAddressing = $TextureSpanAddressing
+    AliasSpanAddressing = $AliasSpanAddressing
+    SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
+    SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
+    SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
+    SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
+    SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
+    EdgeScanProbe = $EdgeScanProbe
+    SpanSetupProbe = $SpanSetupProbe
+    RenderFaceProbe = $RenderFaceProbe
+    AliasGlueProbe = $AliasGlueProbe
+    BspFrameCountImplementation = $BspFrameCountImplementation
+    GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
+}
+
+# Ask the builder where the output lands instead of recomputing the profile
+# suffix here.  This runner used to carry its own copy of that arithmetic, and
+# so did bench-dos.ps1 and timedemo-dos.ps1; three copies of one rule is a
+# standing invitation for a runner to look for an executable the builder never
+# wrote.  The builder is the only place that knows.
+$resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+$buildRoot = $resolved.outputRoot
+$djgppExe = $resolved.executable
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
 $dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
 $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
-$build = Join-Path $PSScriptRoot 'build-dos.ps1'
 
 if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
     if ($NoBootstrap) {
@@ -123,28 +133,6 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
 if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     if ($SkipBuild) {
         throw "DOS executable not found at '$djgppExe'. Run build-dos.ps1 first or omit -SkipBuild."
-    }
-    $buildParams = @{
-        ToolRoot = $ToolRoot
-        OptimizationProfile = $OptimizationProfile
-        MemoryImplementation = $MemoryImplementation
-        AliasPrepareImplementation = $AliasPrepareImplementation
-        DynamicLightImplementation = $DynamicLightImplementation
-        TextureSpanStores = $TextureSpanStores
-        TextureSpanLoadOrder = $TextureSpanLoadOrder
-        TextureSpanAddressing = $TextureSpanAddressing
-        AliasSpanAddressing = $AliasSpanAddressing
-        SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
-        SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
-        SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
-        SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
-            SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
-            EdgeScanProbe = $EdgeScanProbe
-        SpanSetupProbe = $SpanSetupProbe
-            RenderFaceProbe = $RenderFaceProbe
-            AliasGlueProbe = $AliasGlueProbe
-        BspFrameCountImplementation = $BspFrameCountImplementation
-        GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
@@ -208,9 +196,13 @@ echo 0 > \quake\smoke.exi
 exit
 '@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
+# One DOSBox-X profile serves both targets; the CPU model is forced in the
+# staged copy below rather than duplicated into a second 118 KB file.  Note that
+# gating -- so this only makes the run representative.  The object-level ISA
+# audit is the real i386 gate.
 $profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
 if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
-    throw "486 DOSBox-X profile is missing: '$profilePath'."
+    throw "DOSBox-X profile is missing: '$profilePath'."
 }
 $profileText = Get-Content -LiteralPath $profilePath -Raw
 $mountPath = $stagingRoot.Replace('"', '""')

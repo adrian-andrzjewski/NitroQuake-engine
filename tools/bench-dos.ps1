@@ -4,6 +4,7 @@ param(
     [switch]$NoBootstrap,
     [string]$ToolRoot,
     [string]$DataRoot,
+    [ValidateSet('i486', 'i386')]
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
@@ -137,168 +138,9 @@ if ($TextureSpanStores -eq 'stosw' -and
 }
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-$profileSuffixParts = @()
-if ($OptimizationProfile -eq 'baseline') {
-    $profileSuffixParts += 'baseline'
-}
-if ($TextureAxisCacheEntries -ne 256) {
-    $profileSuffixParts += "cache$TextureAxisCacheEntries"
-}
-if ($MemoryImplementation -eq 'asm') {
-    $profileSuffixParts += 'memasm'
-}
-if ($TextureAxisImplementation -eq 'asm') {
-    $profileSuffixParts += 'axisasm'
-}
-if ($SurfaceCacheImplementation -eq 'asm') {
-    $profileSuffixParts += 'surfaceasm'
-}
-if ($MipLevelImplementation -eq 'asm') {
-    $profileSuffixParts += 'mipasm'
-}
-if ($TurbulentImplementation -eq 'c') {
-    $profileSuffixParts += 'turbc'
-}
-elseif ($TurbulentImplementation -eq 'asm') {
-    $profileSuffixParts += 'turbasm'
-}
-if ($TextureSpanStores -eq 'byte') {
-    $profileSuffixParts += 'spanbyte'
-}
-elseif ($TextureSpanStores -eq 'dword') {
-    $profileSuffixParts += 'spandword'
-}
-elseif ($TextureSpanStores -eq 'loop') {
-    $profileSuffixParts += 'spanloop'
-}
-elseif ($TextureSpanStores -eq 'stosw') {
-    $profileSuffixParts += 'spanstosw'
-}
-if ($TextureSpanTailStores -eq 'word') {
-    $profileSuffixParts += 'spantailword'
-}
-if ($TextureSpanRowPath -eq 'norowcross') {
-    $profileSuffixParts += 'spannorow'
-}
-if ($TextureSpanLoadOrder -eq 'loadfirst') {
-    $profileSuffixParts += 'spanloadfirst'
-}
-if ($TextureSpanAddressing -eq 'branch') {
-    $profileSuffixParts += 'spanaddrbranch'
-}
-if ($AliasSpanAddressing -eq 'branch') {
-    $profileSuffixParts += 'aliasspanaddrbranch'
-}
-if ($ZSpanNegativeUnroll -eq 'unroll8') {
-    $profileSuffixParts += 'zneg8'
-}
-else {
-    $profileSuffixParts += 'zneg4'
-}
-if ($SurfaceBlockMip0Rows -eq 'unroll4') {
-    $profileSuffixParts += 'surf0rows4'
-}
-elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
-    $profileSuffixParts += 'surf0rows8'
-}
-elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
-    $profileSuffixParts += 'surf0rows16'
-}
-if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
-    $profileSuffixParts += 'surf0hflat'
-}
-if ($SurfaceBlockMip1Rows -eq 'unroll8') {
-    $profileSuffixParts += 'surf1rows8'
-}
-if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
-    $profileSuffixParts += 'surf1hflat'
-}
-if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
-    $profileSuffixParts += 'surf1hflatidxhoist'
-}
-if ($EdgeScanProbe -ne 'control') {
-    $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
-}
-if ($SpanSetupProbe -ne 'control') {
-    $profileSuffixParts += ('spansetup' + $SpanSetupProbe)
-}
-if ($RenderFaceProbe -ne 'control') {
-    $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
-}
-if ($AliasGlueProbe -ne 'control') {
-    $profileSuffixParts += ('agprobe' + $AliasGlueProbe)
-}
-if ($AliasProjectImplementation -eq 'c') {
-    $profileSuffixParts += 'aliasc'
-}
-if ($AliasBBoxProjectImplementation -eq 'c') {
-    $profileSuffixParts += 'aliasbboxc'
-}
-if ($AliasTransformFinalImplementation -eq 'c') {
-    $profileSuffixParts += 'aliastransformc'
-}
-if ($AliasPrepareImplementation -eq 'local') {
-$profileSuffixParts += 'aliaslocal'
-}
-if ($AliasMatrixCompositionImplementation -eq 'special') {
-    $profileSuffixParts += 'aliasmatrixspecial'
-}
-if ($TextureAnimationImplementation -eq 'c') {
-    $profileSuffixParts += 'textureanimc'
-}
-if ($LightMapNormalizeImplementation -eq 'c') {
-    $profileSuffixParts += 'lightmapc'
-}
-if ($LightMapStylesImplementation -eq 'asm') {
-    $profileSuffixParts += 'lightmapstylesasm'
-}
-if ($FusedLightMapImplementation -eq 'asm') {
-    $profileSuffixParts += 'fusedlightmapasm'
-}
-if ($DynamicLightImplementation -eq 'asm') {
-    $profileSuffixParts += 'dlightasm'
-}
-if ($BspPlaneDotImplementation -eq 'asm') {
-    $profileSuffixParts += 'bspdotasm'
-}
-if ($BspClipImplementation -eq 'asm') {
-    $profileSuffixParts += 'bspclipasm'
-}
-if ($BspFrameCountImplementation -eq 'local') {
-    $profileSuffixParts += 'bspframecache'
-}
-if ($GibTrailHorizontalIntegration -eq 'skipzero') {
-    $profileSuffixParts += 'gibskipzero'
-}
-$profileSuffix = if ($profileSuffixParts.Count) {
-    '-' + ($profileSuffixParts -join '-')
-}
-else {
-    ''
-}
-$benchmarkExe = Join-Path $repoRoot ('out\dos' + $profileSuffix + '\qbench.exe')
-$dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
-$dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
-$profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
-$bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
-
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    if ($NoBootstrap) {
-        throw "DOSBox-X not found at '$dosbox'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
-    }
-    & $bootstrap -ToolRoot $ToolRoot
-}
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    throw "Required DOSBox-X executable is missing: '$dosbox'."
-}
-
-if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
-    if ($SkipBuild) {
-        throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
-    }
-
-    $buildParams = @{
+$bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
+$buildParams = @{
         Benchmark = $true
         OptimizationProfile = $OptimizationProfile
         TextureAxisCacheEntries = $TextureAxisCacheEntries
@@ -339,6 +181,34 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
         ToolRoot = $ToolRoot
     }
+
+# Ask the builder where the output lands instead of recomputing the profile
+# suffix here.  This runner used to carry its own copy of that arithmetic, and so
+# did smoke-dos.ps1 and timedemo-dos.ps1; three copies of one rule is a standing
+# invitation for a runner to look for an executable the builder never wrote.
+# The builder is the only place that knows.
+$resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+$buildRoot = $resolved.outputRoot
+$benchmarkExe = $resolved.executable
+$dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
+$dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
+$profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
+
+if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
+    if ($NoBootstrap) {
+        throw "DOSBox-X not found at '$dosbox'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
+    }
+    & $bootstrap -ToolRoot $ToolRoot
+}
+if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
+    throw "Required DOSBox-X executable is missing: '$dosbox'."
+}
+
+if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
+    if ($SkipBuild) {
+        throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
+    }
+
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
     }
@@ -348,7 +218,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
 }
 if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
-    throw "486 DOSBox-X profile is missing: '$profilePath'."
+    throw "DOSBox-X profile is missing: '$profilePath'."
 }
 if (-not (Test-Path -LiteralPath $DataRoot -PathType Container)) {
     throw "Game data directory '$DataRoot' does not exist. Put legally obtained data there or pass -DataRoot."
@@ -437,6 +307,7 @@ $runtimeConfig = [regex]::Replace(
 if ($runtimeConfig -eq $profileText) {
     throw "Could not replace the autoexec section in '$profilePath'."
 }
+
 $configPath = Join-Path $stagingRoot 'dosbox-x-bench.conf'
 $runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
 

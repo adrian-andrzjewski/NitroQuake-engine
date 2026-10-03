@@ -4,6 +4,12 @@ param(
     [switch]$Benchmark,
     [switch]$Instrumentation,
     [switch]$NoBootstrap,
+    # Print the resolved flag lists and output paths as JSON and exit without
+    # compiling.  Exists so that the runners -- and any guard -- can ask the
+    # builder where its output lands instead of each recomputing the profile
+    # suffix.  It is a pure inspection of this script's own arithmetic, so it
+    # must not require a bootstrapped toolchain.
+    [switch]$DumpFlags,
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
@@ -133,16 +139,18 @@ $compiler = Join-Path $djgppRoot ($toolManifest.djgpp.compiler -replace '/', [IO
 $objdump = Join-Path $djgppRoot ($toolManifest.djgpp.objdump -replace '/', [IO.Path]::DirectorySeparatorChar)
 $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
 
-if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
-    if ($NoBootstrap) {
-        throw "DJGPP compiler not found at '$compiler'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
+if (-not $DumpFlags) {
+    if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
+        if ($NoBootstrap) {
+            throw "DJGPP compiler not found at '$compiler'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
+        }
+        & $bootstrap -ToolRoot $ToolRoot
     }
-    & $bootstrap -ToolRoot $ToolRoot
-}
 
-foreach ($requiredPath in @($compiler, $objdump)) {
-    if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
-        throw "Required DJGPP tool is missing: '$requiredPath'."
+    foreach ($requiredPath in @($compiler, $objdump)) {
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "Required DJGPP tool is missing: '$requiredPath'."
+        }
     }
 }
 
@@ -536,6 +544,32 @@ try {
     if ($AliasProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_PROJECT'
     }
+
+    if ($DumpFlags) {
+        # The link list is reported with a placeholder for the object files so
+        # that the dump does not depend on the compile loop having run.
+        [ordered]@{
+            optimizationProfile = $OptimizationProfile
+            optimizationLevel = $optimizationLevel
+            profileSuffix = $profileSuffix
+            outputRoot = $outputRoot
+            objectRoot = $objectRoot
+            executable = $executable
+            manifest = $manifestName
+            cSourceCount = $allCSources.Count
+            standaloneCSourceCount = $cSources.Count
+            includedCSources = @($includedCSources)
+            allAssemblySourceCount = $allAsmSources.Count
+            assemblySourceCount = $asmSources.Count
+            cFlags = @($cFlags)
+            asmFlags = @($asmFlags)
+            linkFlags = @($optimizationLevel, '-march=i486', '-mtune=i486', '-s', '<objects>', '-lm', '-o', $executable)
+            cSources = @($cSources.Name)
+            assemblySources = @($asmSources.Name)
+        } | ConvertTo-Json -Depth 5
+        return
+    }
+
     $objects = @()
 
     foreach ($source in $allSources) {
