@@ -417,6 +417,33 @@ LSpan16RowFastStatsDone:
 LSpan16RowCrossFallback:
 #endif
 
+#if defined(ASM486_SPAN_SETUP_PROBE_SETUP)
+	// Dead-scratch probe, 6 instructions, at the head of the per-segment
+	// setup.  Every sixteen-wide segment passes this point exactly once, so
+	// the count is the segment count (2,059,015 over the run) and no counter
+	// is needed.
+	//
+	// Duplicates the first three instructions the setup performs.  %eax and
+	// %edx are both dead on entry and are rewritten by the real code at the
+	// `movl %ecx,%eax' / `movl %ebp,%edx' pair a few lines below, and the
+	// flags `sarl' sets are dead too -- the two `subl' at s/t recompute them
+	// before anything branches.  %ebp and %ecx are the live s and t values
+	// and are only read.
+	//
+	// Why this exists: the ledger closes texture-spans on the arithmetic
+	// "220 cycles of per-segment setup per sixteen pixels", but the integer
+	// setup path (here through LSetUpCommon) is about 23 instructions and
+	// contains no x87 at all.  Those two numbers cannot both be right.  This
+	// probe measures the setup's actual price instead of reconciling it by
+	// argument.
+	movl	%ebp,%eax
+	movl	%ecx,%edx
+	sarl	$20,%eax
+	movl	%ebp,%eax
+	movl	%ecx,%edx
+	sarl	$20,%eax
+#endif
+
 #ifdef ASM486_SPAN16_NO_ROW_CROSS
 	movl	$0,jumptemp			// use the control B half
 #endif

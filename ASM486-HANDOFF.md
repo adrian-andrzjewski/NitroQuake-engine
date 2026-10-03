@@ -270,6 +270,35 @@ Priced with the rate that matches each mix:
 
 **Baseline unchanged: 59.160535 s median** over three runs (59.160577 / 59.160535 / 59.160503, spread 0.000074 s), against the recorded 59.160558 s — 0.00004%, noise. Checksum `1047377823` on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean. `-RenderFaceProbe control` compiles to **1,651 instructions in `R_RenderFace`, identical to the pre-probe object**.
 
+### The span16 per-segment setup is 2.37% of frame and contains no x87 at all — **`texture-spans` is re-opened**
+
+`texture-spans` is the largest bucket in the renderer at ~24% of frame, and it was closed on the argument that *"the time is in the setup, not the loop"* and the setup is *"dominated by two x87 stores per segment — a blind axis"*. That is the one remaining closure resting on an unexamined premise rather than a measurement, so it got probed.
+
+**The x87 claim is false for the setup path.** `d_draw16.s` carries 125 x87 instructions out of 619 (**20.2%**), and they are spread across the whole function — the entry divide, the `LNotLastSegment` advance, the tail path. The per-segment integer setup from `LSpan16RowCrossFallback` through `LSetUpCommon` contains **zero** of them.
+
+| probe | block | count | added instrs | delta | rate |
+|---|---|---:|---:|---:|---:|
+| `setup` | head of the per-segment setup | 2,059,018 | 6 | **+0.365979 s (0.6186%)** | **0.9908** |
+
+9,891x the run spread, trailing-control drift −0.000009 s, predicted 0.36917 s against 0.365979 s measured — **0.86% error**. The rate is the tenth consecutive assembly measurement inside 0.974–0.996, so Decision 5's 1.0 is confirmed on a twelfth probe.
+
+**Six instructions of setup cost 0.62% of frame.** The whole integer setup path is ~23 instructions, which scales to **2.37% of frame — 47x the promotion gate.** That is a larger pool than anything `edge-scan` or `renderface` offered, and it is integer, measurable, and admissible.
+
+### Four candidates the pool suggests, and why all four are dead
+
+Recorded so the next pass does not re-derive them:
+
+1. **Hoist `advancetable`/`tstep` out of the segment loop.** This is the *kept* 88.9 ms win in `D_PolysetDrawSpans8` (`:3025`), applied to the wrong function. Here `advancetable[0]` and `[1]` are computed from `(t - t_start)` and `(s - s_start)`, so **they change every segment by construction** and cannot be hoisted. The parallel is misleading and should not be re-tried on the strength of the other function's result.
+2. **Fuse the `s` and `t` clamps into one unsigned range check.** `(unsigned)(v - 4096) > (bb - 4096)` is 3 instructions against the current 4, and there are two clamps — nominally 2 instructions per segment, **0.206% of frame, 4.1x the gate, which would clear on its own.** It does not work: the form needs a scratch register to hold `v - 4096` because subtracting in place destroys the running accumulator. `%eax` *is* free across lines 364–432, but the `movl %ebp,%eax` that gets it there costs exactly the instruction the fusion saves. Four for four. This one is worth re-attempting only if a register can be freed elsewhere first.
+3. **Drop the `fistpl snext` / `fistpl tnext` / `movl snext,%eax` / `movl tnext,%edx` sequence at `:350-353`.** Architecturally impossible: `FIST` has no register destination on a 486, it only writes memory, so the store-then-reload is forced.
+4. **Widen the segments to amortise the setup.** The A/B halves already amortise the expensive x87 advance — `LSpan16AfterStoresA` does `LSetupNotLast2` (x87 only) and falls straight into the B stores with **no integer setup between them**. The measured 2,059,018 setup executions are the ground truth and nothing in this structure reduces them.
+
+**So: a 47x-gate pool, and no candidate.** The honest position is that the setup is ~23 necessary instructions of DDA — advance s/t, derive the two advance-table entries from the position within the span, left-justify the fractions, accumulate, and select the T carry. That is not the same as saying no candidate exists, and it is a much better place to look than anywhere else in the renderer.
+
+**Do not close `texture-spans` again on the x87 argument.** If it is re-closed, re-close it on a measurement.
+
+Verification: `-SpanSetupProbe control` assembles `d_draw16.o` to **619 instructions, zero disassembly differences** from the pre-probe object. Baseline **59.160569 s** median over three runs against the recorded 59.160558 s — 0.00002%, noise. Checksum `1047377823` on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean, 969 frames. Probe plumbing added to all four runners; default `control`.
+
 ### Standing hazard found on the way: the profile reporter's JSON buffer is also over its limit
 
 The known `char text[1024]` overflow (`:610-626`) has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
@@ -607,11 +636,22 @@ loop — 14.4 cycles per texture pixel for the whole bucket. So:
 
 **So the admissible integer work in `texture-spans` is not in the loop, and the
 part that is in the setup is dominated by two x87 stores per segment that this
-harness cannot price honestly.** `texture-spans` is closed on the admissible axis
-by measurement, not by exhaustion of ideas. A candidate here would have to remove
+harness cannot price honestly.** ~~`texture-spans` is closed on the admissible axis
+by measurement, not by exhaustion of ideas.~~ A candidate here would have to remove
 per-*segment* integer work, which is a narrower description than this file has
-given the bucket in any previous entry — and note that the one structural loop
+given the bucket in any previous entry - and note that the one structural loop
 specialisation anyone had proposed is now measured at zero population.
+
+> **The second half of that sentence is now measured FALSE, and the closure does not
+> stand.** A dead-scratch probe at the head of the per-segment setup measured the
+> setup's integer part at **2.37% of frame, 47x the gate, containing zero x87** — see
+> "the span16 per-segment setup is 2.37% of frame" at the top of this file. The 125
+> x87 instructions in `d_draw16.s` sit in the entry divide, the `LNotLastSegment`
+> advance and the tail path, **not in the setup**, so the setup was never the blind
+> axis it was closed as being. `texture-spans` is **re-opened**, and four candidate
+> reductions of that pool are recorded there with why each fails. The narrower
+> description above — remove per-*segment* integer work — was right; the closure built
+> on it was not.
 
 The counters are kept. They are free in release, they are the denominator any
 future segment-level idea needs, and `unit-stride-pixels` is a permanent guard

@@ -92,13 +92,35 @@ twice: **an entry that says what would be needed is not a closure.** The
 `edge-scan` entry named the dead-scratch probe as its own remedy and was filed as
 closed anyway.
 
-**Where the renderer actually stands.** Both unmeasured mega-pools are now
-measured. `edge-scan` is 78% mapped at 159.2x of 203.9x; `renderface` prices at
-15.8x of 221x. Every remaining block above 5x on either is hand-tuned assembly
-that has absorbed the recorded micro-optimisations, or is structurally minimal.
-That is a stronger and better-evidenced convergence claim than the one this plan
-started from — but it is still a claim that no candidate *exists*, not a
-measurement that none does.
+**Where the renderer actually stands.** The three unmeasured mega-pools are now
+measured, and the third is the largest prize found so far:
+
+| pool | before | after |
+|---|---|---|
+| `edge-scan` | "cannot be decomposed" | **78% mapped, 159.2x the gate**, sixteen named blocks |
+| `renderface` | "no admissible hypothesis" | **priced at ~15.8x the gate** of C scaffolding |
+| **`texture-spans` setup** | "dominated by x87 — a blind axis" | **2.37% of frame, 47x the gate, zero x87** |
+
+`texture-spans` was the last closure resting on an unexamined premise, and the
+premise was wrong. A dead-scratch probe at the head of the per-segment setup
+priced **six instructions at 0.6186% of frame** — the full ~23-instruction integer
+setup scales to **2.37%**, which is larger than anything `edge-scan` or
+`renderface` offered. The 125 x87 instructions in `d_draw16.s` sit in the entry
+divide, the `LNotLastSegment` advance and the tail path, **not in the setup**.
+
+**And there is still no candidate for it.** Four reductions of that pool are
+recorded with why each fails: the `advancetable` hoist is the wrong function's
+kept win and cannot apply because the table changes with position-in-span; the
+clamp fusion needs a scratch register and the copy costs what the fusion saves;
+the `fistpl`/reload pair is architecturally forced because `FIST` has no register
+destination; and segment widening is already amortised for the x87 half. The
+setup is ~23 necessary DDA instructions.
+
+**So the convergence claim is weaker than the previous three passes suggested, and
+that is the honest state.** The largest addressable-looking pool in the renderer
+has been located and quantified, and it has not yet yielded a change. `texture-spans`
+is re-opened. Read the four dead candidates before proposing a fifth — and do not
+re-close it on the x87 argument, which is now measured false.
 
 ## Decision 3 — price at the rate that matches the instruction mix
 

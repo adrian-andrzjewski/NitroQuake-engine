@@ -549,6 +549,30 @@ cost a cycle:
 | a quoted parameter name: `"-RenderFaceProbe"` | a literal string, bound positionally into `-DataRoot`, producing a nonsense DOSBox path |
 | array splatting `@('-Runs','1',...)` | loses the parameter/value pairing, so `'1'` binds to `-OptimizationProfile`. Hashtable splatting works |
 
+### `-SpanSetupProbe` — the span16 per-segment setup (2026-10-02)
+
+```powershell
+.\tools\build-dos.ps1 -Benchmark -NoBootstrap -SpanSetupProbe setup
+.\tools\timedemo-dos.ps1 -NoBootstrap -Runs 1 -NoFpsStats -SpanSetupProbe setup
+```
+
+Values `control`, `setup`. Six instructions duplicated at the head of the
+per-segment setup in `d_draw16.s`, which every sixteen-wide segment passes
+exactly once — 2,059,018 times over the run, so the count needs no counter.
+Default `control`, which assembles `d_draw16.o` to 619 instructions, identical to
+the pre-probe object.
+
+Measured **+0.365979 s (0.6186% of frame)** at 9,891x the run spread, drift
+−0.000009 s, 0.86% error against the 1.0 prediction. Six instructions of setup
+cost 0.62% of frame; the full ~23-instruction integer setup scales to **2.37%,
+47x the promotion gate**, and contains **no x87 at all** — which falsifies the
+reason `texture-spans` was closed.
+
+Unlike the C probes, no sink is needed: this is assembler, so `-O3` cannot elide
+it. `%eax` and `%edx` are dead at the insertion point and the flags `sarl` sets
+are dead too, which is the register discipline the `edge-scan` probes established.
+See `ASM486-HANDOFF.md`, "the span16 per-segment setup is 2.37% of frame".
+
 ### `-RenderFaceProbe` — the same switch for C, and two C-only traps (2026-10-02)
 
 ```powershell

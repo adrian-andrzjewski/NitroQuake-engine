@@ -51,6 +51,10 @@ param(
     # path and must assemble instruction-for-instruction identically.
     [ValidateSet('control', 'entry', 'step', 'trailing', 'emit', 'insert', 'sort', 'newtop', 'leadin', 'insertexit')]
     [string]$EdgeScanProbe = 'control',
+    # Dead-scratch probe at the head of the span16 per-segment setup.
+    # $-O3 does not touch this file; the probe is assembler.
+    [ValidateSet('control', 'setup')]
+    [string]$SpanSetupProbe = 'control',
     # Dead-scratch probe over one block of R_RenderFace's C scaffolding.
     # $-O3 deletes a dead store, so the probe accumulates into a reported
     # global instead. Measurement only, never a candidate.
@@ -222,6 +226,9 @@ if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
 }
 if ($EdgeScanProbe -ne 'control') {
     $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
+}
+if ($SpanSetupProbe -ne 'control') {
+    $profileSuffixParts += ('spansetup' + $SpanSetupProbe)
 }
 if ($RenderFaceProbe -ne 'control') {
     $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
@@ -510,6 +517,9 @@ try {
         # -x assembler-with-cpp, so the define is the only reliable selector.
         $asmFlags += ('-DEDGE_SCAN_PROBE_' + $EdgeScanProbe.ToUpperInvariant())
     }
+    if ($SpanSetupProbe -ne 'control') {
+        $asmFlags += ('-DASM486_SPAN_SETUP_PROBE_' + $SpanSetupProbe.ToUpperInvariant())
+    }
     if ($RenderFaceProbe -ne 'control') {
         $cFlags += '-DASM486_RENDERFACE_PROBE'
         $cFlags += ('-DASM486_RENDERFACE_PROBE_' + $RenderFaceProbe.ToUpperInvariant())
@@ -583,6 +593,7 @@ try {
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
         surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
         edgeScanProbe = $EdgeScanProbe
+        spanSetupProbe = $SpanSetupProbe
         renderFaceProbe = $RenderFaceProbe
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
