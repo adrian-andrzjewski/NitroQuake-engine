@@ -60,6 +60,8 @@ param(
     # global instead. Measurement only, never a candidate.
     [ValidateSet('control', 'prologue', 'edgeval')]
     [string]$RenderFaceProbe = 'control',
+    [ValidateSet('control', 'setup')]
+    [string]$AliasGlueProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -232,6 +234,9 @@ if ($SpanSetupProbe -ne 'control') {
 }
 if ($RenderFaceProbe -ne 'control') {
     $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
+}
+if ($AliasGlueProbe -ne 'control') {
+    $profileSuffixParts += ('agprobe' + $AliasGlueProbe)
 }
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
@@ -520,6 +525,10 @@ try {
     if ($SpanSetupProbe -ne 'control') {
         $asmFlags += ('-DASM486_SPAN_SETUP_PROBE_' + $SpanSetupProbe.ToUpperInvariant())
     }
+    if ($AliasGlueProbe -ne 'control') {
+        $cFlags += '-DASM486_ALIAS_GLUE_PROBE'
+        $cFlags += ('-DASM486_ALIAS_GLUE_PROBE_' + $AliasGlueProbe.ToUpperInvariant())
+    }
     if ($RenderFaceProbe -ne 'control') {
         $cFlags += '-DASM486_RENDERFACE_PROBE'
         $cFlags += ('-DASM486_RENDERFACE_PROBE_' + $RenderFaceProbe.ToUpperInvariant())
@@ -595,6 +604,7 @@ try {
         edgeScanProbe = $EdgeScanProbe
         spanSetupProbe = $SpanSetupProbe
         renderFaceProbe = $RenderFaceProbe
+        aliasGlueProbe = $AliasGlueProbe
         aliasProjectImplementation = $AliasProjectImplementation
         aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         aliasTransformFinalImplementation = $AliasTransformFinalImplementation

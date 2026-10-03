@@ -139,6 +139,10 @@ unsigned long bench486_span_segments;
 // Lightmap build populations. The single-style path uses a 256-entry table and
 // the multi-style path the fused asm loop; they have very different per-texel
 // costs, so rebuild_seconds alone cannot price either.
+// Alias-glue dead-scratch probe sink and count.  Defined by d_polyse.c, as the
+// R_RenderFace probe does, because a C probe must accumulate into an external
+// global: -O3 deletes a dead local store, so a local sink would make the probe
+// a silent no-op.  The count is what proves it survived.
 unsigned long bench486_zspan_pixels;
 unsigned long bench486_zspan_spans;
 unsigned long bench486_lm_single_texels;
@@ -1556,7 +1560,21 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));
-	// Its own report call: z-span pixel population, which is the denominator
+	#ifdef ASM486_ALIAS_GLUE_PROBE
+	extern unsigned long bench486_ag_probe_sink;
+	extern unsigned long bench486_ag_probe_count;
+	// Its own report call: the alias-glue probe's execution count and sink.
+	// The count is the probe's denominator, so a probe -O3 folded away reports
+	// 0 here instead of producing a plausible wrong number.
+	sprintf (text, "alias-glue-probe count %lu sink %lu\n",
+			bench486_ag_probe_count, bench486_ag_probe_sink);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
+	bench486_ag_probe_sink = 0;
+	bench486_ag_probe_count = 0;
+#endif
+// Its own report call: z-span pixel population, which is the denominator
 	// the per-pixel loop has never had.
 	sprintf (text,
 			"z-spans pixels %lu spans %lu avg %lu\n",

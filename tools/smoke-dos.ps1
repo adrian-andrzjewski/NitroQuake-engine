@@ -44,6 +44,8 @@ param(
     # global instead. Measurement only, never a candidate.
     [ValidateSet('control', 'prologue', 'edgeval')]
     [string]$RenderFaceProbe = 'control',
+    [ValidateSet('control', 'setup')]
+    [string]$AliasGlueProbe = 'control',
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
@@ -140,6 +142,7 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
             EdgeScanProbe = $EdgeScanProbe
         SpanSetupProbe = $SpanSetupProbe
             RenderFaceProbe = $RenderFaceProbe
+            AliasGlueProbe = $AliasGlueProbe
         BspFrameCountImplementation = $BspFrameCountImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     }

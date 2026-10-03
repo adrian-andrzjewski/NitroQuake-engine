@@ -102,6 +102,17 @@ static adivtab_t	adivtab[64*64] = {
 #include "adivtab.h"
 };
 
+#ifdef ASM486_ALIAS_GLUE_PROBE
+// Dead-scratch probe sink and execution count for the alias-glue C block.
+// Defined here rather than in host_cmd.c, exactly as bench486_rf_probe_sink is
+// in r_draw.c: a C probe cannot accumulate into a dead local, because -O3
+// deletes the store and turns the probe into a silent no-op that measures
+// zero.  An external global is the only form -O3 has to keep, and the sink's
+// own load/add/store is counted as part of the probe rather than hidden.
+unsigned long	bench486_ag_probe_sink;
+unsigned long	bench486_ag_probe_count;
+#endif
+
 byte	*skintable[MAX_LBM_HEIGHT];
 int		skinwidth;
 byte	*skinstart;
@@ -880,6 +891,42 @@ void D_RasterizeAliasPolySmooth (void)
 	#endif
 		d_lightextrastep = d_lightbasestep + working_lstepx;
 		d_ziextrastep = d_zibasestep + r_zistepx;
+
+#if defined(ASM486_ALIAS_GLUE_PROBE) && defined(ASM486_ALIAS_GLUE_PROBE_SETUP)
+	// Dead-scratch probe over the per-triangle step setup above, which is the
+	// largest single block of C in the alias path.  It recomputes the same
+	// arithmetic into locals and folds it into the sink; nothing is written to
+	// any d_* global, so the three ASM helpers that follow are untouched.
+	//
+	// -O3 deletes a dead local store, so the sink MUST be an external global
+	// that something reports -- otherwise the probe compiles to nothing and
+	// measures zero while appearing to run.  The count is a second external
+	// global, so a probe that got folded away reports 0 instead of lying.
+	// Placed after the real block so every input is live and final.
+	{
+		int		ppz = (d_zwidth + ubasestep) << 1;
+		int		ppd = screenwidth + ubasestep;
+		int		pskin = r_affinetridesc.skinwidth;
+		int		psb = r_sstepy + r_sstepx * ubasestep;
+		int		ptb = r_tstepy + r_tstepx * ubasestep;
+		int		pwl = ubasestep < 0 ? r_lstepx - 1 : r_lstepx;
+		int		psex = psb + r_sstepx;
+		int		ptex = ptb + r_tstepx;
+
+		bench486_ag_probe_sink += (unsigned long)ppz + (unsigned long)(ppz + 2)
+			+ (unsigned long)ppd + (unsigned long)(ppd + 1)
+			+ (unsigned long)(ubasestep + 1)
+			+ (unsigned long)((psb >> 16) + (ptb >> 16) * pskin)
+			+ (unsigned long)(psb << 16) + (unsigned long)(ptb << 16)
+			+ (unsigned long)(r_lstepy + pwl * ubasestep)
+			+ (unsigned long)(r_zistepy + r_zistepx * ubasestep)
+			+ (unsigned long)((psex >> 16) + (ptex >> 16) * pskin)
+			+ (unsigned long)(psex << 16) + (unsigned long)(ptex << 16)
+			+ (unsigned long)(r_lstepy + pwl * ubasestep + pwl)
+			+ (unsigned long)(r_zistepy + r_zistepx * ubasestep + r_zistepx);
+		bench486_ag_probe_count++;
+	}
+#endif
 
 		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
 		D_PolysetScanLeftEdge (initialleftheight);

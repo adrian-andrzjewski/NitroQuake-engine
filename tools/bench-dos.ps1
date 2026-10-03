@@ -56,6 +56,8 @@ param(
     # global instead. Measurement only, never a candidate.
     [ValidateSet('control', 'prologue', 'edgeval')]
     [string]$RenderFaceProbe = 'control',
+    [ValidateSet('control', 'setup')]
+    [string]$AliasGlueProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -223,6 +225,9 @@ if ($SpanSetupProbe -ne 'control') {
 if ($RenderFaceProbe -ne 'control') {
     $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
 }
+if ($AliasGlueProbe -ne 'control') {
+    $profileSuffixParts += ('agprobe' + $AliasGlueProbe)
+}
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
@@ -317,6 +322,7 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         EdgeScanProbe = $EdgeScanProbe
         SpanSetupProbe = $SpanSetupProbe
         RenderFaceProbe = $RenderFaceProbe
+        AliasGlueProbe = $AliasGlueProbe
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         AliasTransformFinalImplementation = $AliasTransformFinalImplementation

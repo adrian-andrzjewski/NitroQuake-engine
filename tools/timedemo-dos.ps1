@@ -58,6 +58,8 @@ param(
     # global instead. Measurement only, never a candidate.
     [ValidateSet('control', 'prologue', 'edgeval')]
     [string]$RenderFaceProbe = 'control',
+    [ValidateSet('control', 'setup')]
+    [string]$AliasGlueProbe = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',
@@ -247,6 +249,9 @@ if ($SpanSetupProbe -ne 'control') {
 if ($RenderFaceProbe -ne 'control') {
     $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
 }
+if ($AliasGlueProbe -ne 'control') {
+    $profileSuffixParts += ('agprobe' + $AliasGlueProbe)
+}
 if ($AliasProjectImplementation -eq 'c') {
     $profileSuffixParts += 'aliasc'
 }
@@ -333,6 +338,7 @@ $selectorState = @(
     $EdgeScanProbe,
     $SpanSetupProbe,
     $RenderFaceProbe,
+    $AliasGlueProbe,
     $AliasProjectImplementation, $AliasBBoxProjectImplementation,
     $AliasTransformFinalImplementation, $AliasPrepareImplementation,
     $AliasMatrixCompositionImplementation, $TextureAnimationImplementation,
@@ -403,6 +409,7 @@ if ((-not $executableExists) -or $staleBuild) {
             EdgeScanProbe = $EdgeScanProbe
             SpanSetupProbe = $SpanSetupProbe
             RenderFaceProbe = $RenderFaceProbe
+            AliasGlueProbe = $AliasGlueProbe
         AliasProjectImplementation = $AliasProjectImplementation
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         AliasTransformFinalImplementation = $AliasTransformFinalImplementation
@@ -863,6 +870,7 @@ $result = [ordered]@{
         edgeScanProbe = $EdgeScanProbe
         spanSetupProbe = $SpanSetupProbe
         renderFaceProbe = $RenderFaceProbe
+    aliasGlueProbe = $AliasGlueProbe
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
