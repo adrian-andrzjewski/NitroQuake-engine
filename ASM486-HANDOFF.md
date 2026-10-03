@@ -21,9 +21,9 @@ and run details remain in `BUILD-DOS.md`.
 > counted only the ones that existed when it was written, and is superseded by
 > the eleven-mix picture in the third pass.
 
-`edge-scan` was closed at `:1801-1828` as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
+`edge-scan` was closed under the heading "**`edge-scan` cannot be decomposed**" as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
 zero measurement overhead — it *adds* work and is read off the whole-run timedemo delta against a 0.000049 s spread — so the per-routine decomposition the floor forbade is available by a different route. The ledger
-named this remedy itself (`:1826`) and never ran it. It has now been run, and the result re-opens the bucket.
+named this remedy itself, in the same entry ("*need the dead-scratch probe or real hardware*") and never ran it. It has now been run, and the result re-opens the bucket.
 
 **Method.** A loop-iteration census first (`-Instrumentation`, one run), because the existing counters count *calls* and three of the four edge routines walk a list, so a probe priced per call would be sized wrong by
 the walk length. Then one dead-scratch probe per block, duplicating a fixed side-effect-free sequence and discarding the result. Three runs per variant plus a trailing control for drift; checksum `1047377823`
@@ -98,7 +98,7 @@ one.
 | B mip-3 h-flat block | 11,820 | **0.0006%** | 0.0004% | 0.0006% |
 | D fully-flat `%dh` hoist | 158,578 | **0.0080%** | 0.0053% | 0.0080% |
 
-Every recorded figure is the **1.0** column. The 0.66 was applied to exactly one candidate — C, in the screening table's first draft — and was caught and corrected inside that same pass (`:284-293`), which is why C reads 0.0360% there rather
+Every recorded figure is the **1.0** column. The 0.66 was applied to exactly one candidate — C, in the screening table's first draft — and was caught and corrected inside that same pass, which is why C reads 0.0360% there rather
 than 0.029%. So no recorded candidate price is wrong, and the bundle path's exhaustion does **not** rest on the bad rate: it rests on measured figures for `GibTrail` (0.0119%) and `Turbulent8` (0.0344%) and on
 A/B/D being 5-83x under the gate at the correct rate.
 
@@ -125,7 +125,7 @@ non-outlying runs agree to <=0.00006 s. Any future single-run timedemo on this m
 and 13.4x on their own, and the 53%-of-calls-emit-nothing ratio is a structural fact no previous entry had. The **bmodel 1/z sort is excluded on principle, not on price**: 66,723 calls of a ~50-instruction
 block that is ~40 x87, which is the blind axis (Decision 1). Pricing it with an integer probe would measure the integer subset and silently ignore the FP majority, so it is not probed.
 
-`renderface` (`:1743-1787`, 226,000 cy/frame = 221x the gate) is untouched and still closed for lack of a named hypothesis. Unlike `edge-scan`, a C probe prices *named statements*, so it needs the hypothesis first;
+`renderface` (under "**`renderface` priced by premise**", 226,000 cy/frame = 221x the gate) is untouched and still closed for lack of a named hypothesis. Unlike `edge-scan`, a C probe prices *named statements*, so it needs the hypothesis first;
 that closure is correct and stands.
 
 **Baseline unchanged: 59.160513 s median** over three runs (59.160645 / 59.160513 / 59.523401, the third an outlier), against the recorded 59.160558 s — a 0.00008% difference, i.e. noise. Checksum `1047377823`
@@ -211,7 +211,7 @@ identical to the pre-probe tree: 377 instructions, zero disassembly differences,
 
 ### `renderface` priced (2026-10-02) — **CLOSED with a price**, and the 1.0 cycle rate is not a constant
 
-The second-largest pool at 226,000 cy/frame (221x the gate) was closed at `:1743` for *"large pool, but the x87 in it is essential work; no probe built"*, with the honest note *"a price was notobtained and none is claimed."* It has now been priced, and two results came out of it — one expected, one that corrects this project's screening method.
+The second-largest pool at 226,000 cy/frame (221x the gate) was closed under "**`renderface` priced by premise**" for *"large pool, but the x87 in it is essential work; no probe built"*, with the honest note *"a price was notobtained and none is claimed."* It has now been priced, and two results came out of it — one expected, one that corrects this project's screening method.
 
 **First, the free kill.** The obvious hypothesis was the double `edge_p - r_edges`: the cache-validation test computes it, and the clip branch then recomputes it into `cacheoffset`, 29 times over. Reading `r_draw.o` with relocations settles it without a build:
 
@@ -224,7 +224,7 @@ The second-largest pool at 226,000 cy/frame (221x the gate) was closed at `:1743
 2d0: sub    %esi,%edx         <- store: the ONLY duplication
 ```
 
-GCC has already hoisted both loads. The entire prize is **one `sub`** per clipped edge, about 0.9x the gate. **Read the object before writing the probe** — this cost one `objdump -dr` instead of a build-and-run cycle. The two hoists one would try next, `currententity->model` and `r_pcurrentvertbase`, are already recorded as tried and reverted at `:3744` and `:3748`.
+GCC has already hoisted both loads. The entire prize is **one `sub`** per clipped edge, about 0.9x the gate. **Read the object before writing the probe** — this cost one `objdump -dr` instead of a build-and-run cycle. The two hoists one would try next, `currententity->model` and `r_pcurrentvertbase`, are already recorded as tried and reverted -- see the two "Do not retry hoisting" bullets under "**Priority-ordered next steps**".
 
 **Then the probes.** `-RenderFaceProbe control|prologue|edgeval`, three runs per variant plus trailing control, checksum on every run:
 
@@ -256,7 +256,7 @@ Priced with the rate that matches each mix:
 | per-edge cache validation, general loop | ~14 x 684,731 | 1.1917 | ~11,800 | **11.5** |
 | per-call prologue | ~36 x 215,720 | 0.5439 | ~4,360 | **4.3** |
 | **priced C scaffolding** | | | **~16,200** | **~15.8** |
-| the entry estimated at `:1751` | | | 70,000-90,000 | 70-90 |
+| the entry estimated at 70-90x | | | 70,000-90,000 | 70-90 |
 | `renderface` total | | | 226,000 | 221 |
 
 **The "30-40% of the bucket, 70,000-90,000 cycles/frame" estimate was high by 4-5x.** Two reasons, both checkable: `probe: only 7 of the 14 instructions survived, because GCC CSE'd half my duplicate against the real code — which is direct evidence that the block has little redundant work left, and the remainder of the 221x is the `R_ClipEdge` / `R_EmitCachedEdge` calls, which is the essential x87 edge emit and inadmissible under Decision 1.
@@ -288,9 +288,9 @@ Priced with the rate that matches each mix:
 
 Recorded so the next pass does not re-derive them:
 
-1. **Hoist `advancetable`/`tstep` out of the segment loop.** This is the *kept* 88.9 ms win in `D_PolysetDrawSpans8` (`:3025`), applied to the wrong function. Here `advancetable[0]` and `[1]` are computed from `(t - t_start)` and `(s - s_start)`, so **they change every segment by construction** and cannot be hoisted. The parallel is misleading and should not be re-tried on the strength of the other function's result.
+1. **Hoist `advancetable`/`tstep` out of the segment loop.** This is the *kept* 88.9 ms win in `D_PolysetDrawSpans8` (row "Polyset span advancetable hoist" under "**Completed experiments and decisions**"), applied to the wrong function. Here `advancetable[0]` and `[1]` are computed from `(t - t_start)` and `(s - s_start)`, so **they change every segment by construction** and cannot be hoisted. The parallel is misleading and should not be re-tried on the strength of the other function's result.
 2. **Fuse the `s` and `t` clamps into one unsigned range check.** `(unsigned)(v - 4096) > (bb - 4096)` is 3 instructions against the current 4, and there are two clamps — nominally 2 instructions per segment, **0.206% of frame, 4.1x the gate, which would clear on its own.** It does not work: the form needs a scratch register to hold `v - 4096` because subtracting in place destroys the running accumulator. `%eax` *is* free across lines 364–432, but the `movl %ebp,%eax` that gets it there costs exactly the instruction the fusion saves. Four for four. This one is worth re-attempting only if a register can be freed elsewhere first.
-3. **Drop the `fistpl snext` / `fistpl tnext` / `movl snext,%eax` / `movl tnext,%edx` sequence at `:350-353`.** Architecturally impossible: `FIST` has no register destination on a 486, it only writes memory, so the store-then-reload is forced.
+3. **Drop the `fistpl snext` / `fistpl tnext` / `movl snext,%eax` / `movl tnext,%edx` sequence in `LSpan16`/`LSpanLoop`.** Architecturally impossible: `FIST` has no register destination on a 486, it only writes memory, so the store-then-reload is forced.
 4. **Widen the segments to amortise the setup.** The A/B halves already amortise the expensive x87 advance — `LSpan16AfterStoresA` does `LSetupNotLast2` (x87 only) and falls straight into the B stores with **no integer setup between them**. The measured 2,059,018 setup executions are the ground truth and nothing in this structure reduces them.
 
 **So: a 47x-gate pool, and no candidate.** The honest position is that the setup is ~23 necessary instructions of DDA — advance s/t, derive the two advance-table entries from the position within the span, left-justify the fractions, accumulate, and select the T carry. That is not the same as saying no candidate exists, and it is a much better place to look than anywhere else in the renderer.
@@ -299,11 +299,31 @@ Recorded so the next pass does not re-derive them:
 
 Verification: `-SpanSetupProbe control` assembles `d_draw16.o` to **619 instructions, zero disassembly differences** from the pre-probe object. Baseline **59.160569 s** median over three runs against the recorded 59.160558 s — 0.00002%, noise. Checksum `1047377823` on every run, `bench486` PASS with end checksum `2378409472`, DOS smoke clean, 969 frames. Probe plumbing added to all four runners; default `control`.
 
+### Process rule (2026-10-03): **cite this file by heading, never by line number**
+
+An audit of every line-number citation in the entries added on 2026-10-02/03 found **ten of twelve wrong.** Each had been verified when written, and each was invalidated by a *later* insertion above it in this same file. This is not carelessness; it is arithmetic that cannot stay correct in a document that grows every time it is edited, and this project has now paid for it three separate ways — `8da4eb1` "re-anchor the plan of record's ledger citations", this pass, and the stale `2491-2759` range in the plan of record.
+
+**Rule: reference this file by heading text or a distinctive quoted phrase, never by `:NNNN`.** When pointing at a section, name it:
+
+> good: under "**`edge-scan` cannot be decomposed**", in the row "Polyset span
+> advancetable hoist" under "**Completed experiments and decisions**"
+>
+> bad: `ASM486-HANDOFF.md:1851`, `:3025`, `:3744`
+
+The same applies across files. `BUILD-DOS.md` and `docs/OPTIMIZATION-PLAN.md` had bare `:NNN` pointing into this ledger without even naming it, which is how a reader ends up reading a probe table when the text meant a different entry entirely. **Cross-file references must name the file and the heading.**
+
+Two further anchors that were wrong and are now right, worth recording because they are *load-bearing* rather than decorative:
+
+- **`timedemo-dos.ps1` enforces the profile-hash gate at `:576`, against `-ExpectedProfileSha256` at `:117`** — not `:548-556`/`:104` as three places claimed. The *claim* (it is enforced) was always true; only the anchors rotted. Verified by grep, not by counting.
+- **`BUILD-DOS.md` is the place to look for which scripts exist and what they enforce**, not the reverse; its own instructions now say to grep `ExpectedProfileSha256` rather than trust a line number.
+
+If a line number genuinely must appear, it is a comment in the *target file*, not in prose about it — a comment next to the code moves with the code.
+
 ### Standing hazard found on the way: the profile reporter's JSON buffer is also over its limit
 
-The known `char text[1024]` overflow (`:610-626`) has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
+The known `char text[1024]` overflow (under "**`char text[1024]` in the profile reporter**") has a twin. The `metrics` object in `Bench486WriteProfileJson` is one `Bench486ProfileJsonPrintf` call whose format literal is **1,671 bytes with 88 `%lu`
 conversions — a worst case of 2,551 bytes against `char text[2048]`**. It survives on every value being shorter than ten digits (longest observed line 898). Less urgent than the 1024 case, which has only 24 bytes
-of headroom, but the same class. Both new counters were added as **their own report call**, per `:623`.
+of headroom, but the same class. Both new counters were added as **their own report call**, per that entry's own rule.
 
 ### `surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)
 
@@ -695,19 +715,19 @@ depends on them:
 1. **The stale-binary hazard is closed.** `timedemo-dos.ps1` built only
    `if (-not (Test-Path $benchmarkExe))`, keyed on the selector profile alone,
    so a source edit was silently ignored and the previous binary measured (see
-   the warning at `:53-64`). It now hashes all 163 `.c`/`.s`/`.h` files plus the
+   the warning under "**THE TIMEDEMO RUNNER WILL NOT REBUILD AFTER A SOURCE EDIT**"). It now hashes all 163 `.c`/`.s`/`.h` files plus the
    resolved selectors into a fingerprint stored beside the executable, and
    rebuilds on mismatch. **Note there is no `-Clean` switch** — verified; the
-   documented remedy did not exist, and `:53-64` and `BUILD-DOS.md` should be
+   documented remedy did not exist, and that warning and `BUILD-DOS.md` should be
    read with that in mind.
-2. **The recorded-but-unenforced constants now fail the run** (`:746-748`).
+2. **The recorded-but-unenforced constants now fail the run** (`timedemo-dos.ps1`, grep `ExpectedProfileSha256`).
    `timedemo-dos.ps1` compares the profile SHA-256 against
    `F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45` and gates
    every run on 969 frames and framebuffer checksum `1047377823`. A wrong value
    fails the run rather than reporting a time; `-AllowGateOverride` records a
    deliberate exception and warns.
 3. **Per-function attribution is available.** The link strips with `-s`
-   (`build-dos.ps1:489`), so `:19-24` of `486-cost-model.ps1` could only report
+   (grep `-s` in `build-dos.ps1` for the line), so the header of `486-cost-model.ps1` could only report
    image totals. The build already retains 103 objects under
    `out\dos<profile>\obj-bench`, so the cost model now disassembles those and
    reports per-symbol x87 cost (new section 1b). `-s` is kept; dropping it would
@@ -1186,7 +1206,7 @@ tool is a published-latency estimate, not a measurement taken here.
   (the two `fxch` register swaps and the `fnstsw` status read carry no
   dependency). Both figures are reported by the tool; the twelve are priced.
 - **The linked executable is stripped by the build**, not by accident:
-  `build-dos.ps1:489` links with `-s`, so `objdump -t` reports *no symbols*.
+  `build-dos.ps1` links with `-s` (grep it for the line), so `objdump -t` reports *no symbols*.
   Per-function attribution is therefore impossible from the image, and the
   tool splits its work accordingly — exact image totals from the binary,
   per-path x87 accounting from the assembler sources where labels and line

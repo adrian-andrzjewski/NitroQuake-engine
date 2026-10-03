@@ -191,7 +191,7 @@ discount does not track memory operands at all:
 | probe mix | rate |
 |---|---:|
 | half global loads (`entry`) | 0.9957 |
-| straight-line arithmetic, `imull`/`shrl`/`addl` (prior, `:114`) | 0.9955 |
+| straight-line arithmetic, `imull`/`shrl`/`addl` (prior, ledger "**The Z-span integer probe**") | 0.9955 |
 | register-only partial moves (prior, mip-1 hoist) | 0.9810 |
 | both sort loops, loads and compares (`sort`) | 0.9883 |
 | `addl` with a memory operand (prior, Z-span probe) | 0.9955 |
@@ -251,8 +251,8 @@ The 0.05% DOSBox-X timedemo delta is the **sole promotion criterion**, and it
 is unchanged. An earlier draft of the plan proposed replacing it with a static
 486 cycle model; that was wrong and was reverted.
 
-The reasoning is the harness's own, recorded at `../ASM486-HANDOFF.md:728-736`
-("Applying the rule" is at `:754`):
+The reasoning is the harness's own, recorded in `../ASM486-HANDOFF.md` under
+"**What this harness can and cannot measure**" ("**Applying the rule.**" inside it):
 DOSBox-X prices x87 at ~1.04 cy/op where a 486DX spends roughly 12, and models
 neither fetch boundaries, write-buffer occupancy, nor 4 KB page aliasing. A
 measured win is therefore sound, but a measured null only proves the emulator

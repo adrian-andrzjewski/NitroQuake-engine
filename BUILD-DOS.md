@@ -185,13 +185,16 @@ Two corrections this forced. The Aff8 padding post-mortem previously blamed
 "I-cache placement"; the 486 has **no instruction cache**, only an 8 KB unified
 data cache, so the mechanism is fetch boundaries and cache displacement. And
 ~~the pinned profile SHA-256 is recorded but never enforced —
-`tools\timedemo-dos.ps1:439-446` computes it and `:653` writes it to the
+`timedemo-dos.ps1` computes it and writes it to the
 report, but no code compares it to a constant. Changing the DOSBox-X core would
 silently re-baseline the whole ledger rather than being caught.~~
-**(Corrected 2026-09-30: it is now enforced.** `timedemo-dos.ps1:548-556`
-compares it to `-ExpectedProfileSha256` (constant at `:104`) and throws unless
-`-AllowGateOverride` is passed. The line numbers above have moved again; grep for
-`ExpectedProfileSha256` rather than trusting any anchor.)
+**(Corrected 2026-09-30: it is now enforced.)** `timedemo-dos.ps1:576` compares
+it to `-ExpectedProfileSha256` (constant at `:117`) and throws unless
+`-AllowGateOverride` is passed. **Grep for `ExpectedProfileSha256` rather than
+trusting a line number here** -- all four anchors in this paragraph were wrong
+when last checked, because the scripts move. `ASM486-HANDOFF.md` repeats the
+same stale pair at its "the stale-binary hazard is closed" note and needs the
+identical fix.
 
 Resolving any of this properly needs physical 486 hardware or a cycle-accurate
 alternative; see `ASM486-HANDOFF.md` for the full record. On that evidence the
@@ -334,8 +337,9 @@ Benchmark executable '...qbench.exe' is stale with respect to the current source
 ```
 
 This replaces the earlier behaviour, documented in this file and in
-`ASM486-HANDOFF.md:763` and `:3701`, where the runner only built when the
-executable was absent. **Those two passages are stale — the `-Clean` habit below
+`ASM486-HANDOFF.md` under the headings "**the stale-binary hazard is closed**" and
+the struck-through passage at the top of "**Priority-ordered next steps**", where the
+runner only built when the executable was absent. **Those two passages are stale — the `-Clean` habit below
 is still sound advice but is no longer required for correctness.** Note that
 `-Clean` belongs to `build-dos.ps1`; `timedemo-dos.ps1` never had one and its
 control flag is `-SkipBuild`.
