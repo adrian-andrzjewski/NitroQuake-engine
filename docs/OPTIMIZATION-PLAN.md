@@ -47,9 +47,11 @@ unavailable:
 
 ```text
 edge-scan, 78% accounted          159.2x the gate  (16 named blocks)
-  measured by their own probe      88.8x -> 141.3x as the map grew
-  statically priced with the       17.9x   measured 0.98657 mean rate
-  residual (scope overhead,        44.8x   R_RecursiveTriangle, call entry)
+  measured by their own probe     136.4x    (9 blocks, 139,535 cyc/frame)
+  statically priced at 0.98657     19.4x    (6 blocks,  19,853 cyc/frame)
+  bmodel 1/z sort, inadmissible      3.3x    (66,644 calls, ~40 of 50 are x87)
+  residual                        44.8x    (scope overhead, R_RecursiveTriangle,
+                                            call entry/exit, per-block count error)
 ```
 
 The census behind it overturned two beliefs at once: the four loops carrying

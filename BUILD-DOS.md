@@ -421,6 +421,7 @@ exists because a candidate died on a measured premise. See
 | `emit` / `trailing` | 1,043,177 / 2,238,002 | span emits against `TrailingEdge` calls, i.e. **53% of calls emit nothing**, previously unmeasured |
 | `bmodel-zsort` | 66,723 | bounds the ~50-instruction x87 bmodel 1/z sort, which is inadmissible on the blind axis and so is deliberately *not* probed |
 | `edge-dispatch`: `leading`, `bmodel-leading`, `bmodel-trailing`, `insert-exit`, `newtop`, `xldone`, `lastspan`, `reset-iters` | 2,465,503 / 193,294 / 1,035,010 / 2,465,403 / 1,213,416 / 100 / 147,440 / 227,501 | which dispatch path each of the 3,500,514 edges takes. The accounting closes exactly: leading-only 1,262,511 + both 1,202,992 + trailing-only 1,035,010 = 3,500,513, and `LInsertAndExit`'s shortfall of 100 against `Lgs_leading` is exactly `xldone` |
+| `renderface-general-edges` | 684,731 | edges handled by `R_RenderFace`'s **general** loop, of 1,077,059 total — the unrolled 3- and 4-edge blocks take the other 392,328. A per-edge price must be scaled by this, not by the total, and this counter is why that is checkable rather than assumed |
 
 Reported on their own lines rather than appended to the big block, per the
 `char text[1024]` rule below. Together these took `edge-scan` from "cannot be
@@ -507,6 +508,46 @@ seconds and PROFILE486 counted 26,861 horizontal-flat blocks across mip
 levels. The world-BSP `local` frame-count candidate remains unpromoted because
 its median was 0.046250% slower than control. This pass changes no visual
 quality, resolution, presentation, scene, or timing behavior.
+
+### `tools\probe-ab.ps1` — the A/B a probe needs, and the PowerShell traps around it (2026-10-02)
+
+```powershell
+.\tools\probe-ab.ps1 -Probe newtop
+.\tools\probe-ab.ps1 -Probe prologue -Selector RenderFaceProbe
+```
+
+Runs three control runs, three probe runs and a trailing control, enforces
+checksum `1047377823` on every one, and prints medians, the delta, the
+within-block spread, the drift check and the signal ratio. Written because the
+probe method above was otherwise prose with no executable form, and because
+building the driver cost three cycles on PowerShell invocation bugs.
+
+**Do not pass `-SkipBuild`.** Every probe selector is in the profile suffix and
+the build fingerprint, so each variant rebuilds itself. That is deliberate: a
+`-SkipBuild` probe run can measure the control binary, which is the single most
+expensive mistake this project has made.
+
+The trailing control is not decoration. It is the only thing that separates a
+real delta from thermal drift, and this host produces **isolated ~0.36 s
+outliers** — one of the nine probe control blocks had its *first* run be the
+outlier, which made its raw three-run spread understate the signal ratio by
+~14,000x. Medians handle the outlier; the drift check proves there was no
+thermal component.
+
+`-Runs 1` is a smoke test only and says so in its own output: a single run has
+no spread and therefore no signal ratio.
+
+**Five PowerShell traps, all of which produce a wrong answer rather than an
+error.** They are in the script's comment block, repeated here because each one
+cost a cycle:
+
+| trap | symptom |
+|---|---|
+| `timedemo-dos.ps1` uses `Write-Host`, which writes to the information stream (6) | `2>&1` captures nothing; `*>&1` is required |
+| the build writes warnings to stderr | under `$ErrorActionPreference='Stop'` they become terminating errors and truncate the captured output, which then reads as a parity failure |
+| a function that `Write-Output`s progress *and* returns a value | returns both; the caller's `[double[]]` collects the strings and every median breaks. Use `Write-Host` |
+| a quoted parameter name: `"-RenderFaceProbe"` | a literal string, bound positionally into `-DataRoot`, producing a nonsense DOSBox path |
+| array splatting `@('-Runs','1',...)` | loses the parameter/value pairing, so `'1'` binds to `-OptimizationProfile`. Hashtable splatting works |
 
 ### `-RenderFaceProbe` — the same switch for C, and two C-only traps (2026-10-02)
 

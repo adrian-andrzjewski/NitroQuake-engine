@@ -9,7 +9,17 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
-### `edge-scan` decomposed by dead-scratch probe (2026-10-02) — six probes, a fifth and sixth rate calibration, and **the closure above was half wrong**
+### `edge-scan` decomposed by dead-scratch probe — pass 1 of 2 (2026-10-02): six probes, and **the closure below was half wrong**
+
+> **This is the first of three passes on 2026-10-02 and the numbers grow under
+> it.** Pass 1 (here) decomposed the six loop/prelude blocks at 88.8x the gate
+> and left 115x unmeasured. Pass 2, "The per-edge dispatch remainder" below,
+> measured that remainder and brought `edge-scan` to 78% mapped. A third pass
+> priced `renderface` and produced the correction that **1.0 cycles per
+> instruction is a dependency property, not a constant**. Eleven probes exist in
+> total; the "fifth and sixth rate calibration" in this entry's original heading
+> counted only the ones that existed when it was written, and is superseded by
+> the eleven-mix picture in the third pass.
 
 `edge-scan` was closed at `:1801-1828` as *"unresolvable by this instrument, not as converged"*, on the floor arithmetic that a per-call scope costs 387 cycles against 466 cycles of real work per operation. **That floor does not bind a dead-scratch probe.** A probe costs
 zero measurement overhead — it *adds* work and is read off the whole-run timedemo delta against a 0.000049 s spread — so the per-routine decomposition the floor forbade is available by a different route. The ledger
@@ -4125,6 +4135,20 @@ The helper is intentionally small; it does not rewrite the larger alias path.
    pointer.  Do not retry unrolling `R_RenderBmodelFace` clip planes.
    Do not retry hoisting `currententity->model` in `R_RenderFace`.
    Do not retry hoisting `r_pcurrentvertbase` in `R_RenderFace`.
+   2026-10-02, added after pricing the pool rather than assuming it: **do not
+   retry hoisting the duplicated `edge_p - r_edges` in `R_RenderFace`.** `-O3`
+   already CSEs both loads and leaves exactly one duplicated `sub`, so the
+   whole candidate is ~0.9x the gate -- confirmed by `objdump -dr`, no build
+   needed. **And do not re-open `renderface` as a large pool**: two C
+   dead-scratch probes price its C scaffolding at **~15.8x the gate**
+   (per-edge validation ~11.5x, per-call prologue ~4.3x) against the 70-90x the
+   entry at `:1743` estimated. The remainder of its 221x is the `R_ClipEdge` /
+   `R_EmitCachedEdge` calls, which is essential x87 edge emit and inadmissible
+   under Decision 1. See "renderface priced" at the top of this file.
+   Related and general: **do not price a C candidate by instruction count alone.**
+   The 1.0 cycle rate is a dependency property -- nine assembly loops measure
+   0.974-0.996, one straight-line C mix 0.5439 and one serialised C mix 1.1917.
+   Screen C at 1.0 if you must, then measure before believing it.
    Do not retry length-1 or POT remainder in `R_AnimateLight`.
    Do not retry skipping no-op bmodel Restore/Set CALLs with extra
    per-surface ifs.  Do not retry duplicating world surface loops to
