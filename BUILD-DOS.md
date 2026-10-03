@@ -32,6 +32,144 @@ The experimental status and next-agent continuation plan are maintained in
 `ASM486-HANDOFF.md`.  This document is the operational reference for building,
 running, benchmarking, and interpreting the results.
 
+## The i386 target, and what it is and is not
+
+`build-dos.ps1` has a `-CpuTarget i486|i386` switch.  `i486` is the default and
+the retained release profile; `i386` is a separate codepath with its own output
+tree, its own object directory, its own executable, and its own manifest.  The
+two can never collide, and `build-dos.ps1` asserts that before it compiles or
+deletes anything.
+
+```powershell
+.\tools\build-dos.ps1 -Clean -CpuTarget i386 -NoBootstrap
+.\tools\smoke-dos.ps1   -CpuTarget i386 -SkipBuild -TimeoutSeconds 90
+.\tools\bench-dos.ps1   -CpuTarget i386
+.\tools\timedemo-dos.ps1 -CpuTarget i386 -Runs 3
+```
+
+The i386 build writes to `out\dos-i386-memasm-zneg4-...`, builds with
+`-march=i386 -mtune=i386`, and additionally defines `TARGET_I386` for both the C
+and the assembly compiler.  `TARGET_I386` is the only selector that differs, and
+it is used in exactly three files.
+
+### Read this before calling it a 386 binary
+
+The i386 build is **i386 by construction and by audit of the project's own code,
+and it will nevertheless not execute on a 386.**  That is a property of the
+pinned toolchain, and it is worth stating precisely rather than in a footnote.
+
+`-march=i386` on GCC 12.2 does not produce 386-safe code.  Measured on this
+toolchain:
+
+| construct | GCC emits | assembler emits | minimum ISA |
+|---|---|---|---|
+| `a * b`, two registers | `imull %ebx,%eax` | `0F AF` `imul r32,r/m32` | **Pentium** |
+| `a > b` | `setg %al` | `0F 9F` | **i486** |
+
+`0F AF` is the only two-operand `IMUL` encoding x86 has, so GNU `as` has nothing
+to fall back on, and GCC emits that spelling regardless of `-march`.  There is no
+command-line switch that changes it: `-march=386` is not a valid spelling,
+`-Os` is worse (it adds `imull $imm`), and no `-mtune-ctrl` knob reaches
+instruction selection for `IMUL`.  This was not assumed — GCC 4.8.2, the oldest
+prebuilt in the `andrewwutw/build-djgpp` release series, was downloaded and
+probed, and it behaves identically.  A toolchain swap buys nothing, so
+`tools\dos-toolchain.json` is unchanged.
+
+The same two constructs are present in the **i486** release build.  The shipped
+`quake.exe` contains 161 `0F AF` instructions and would already fault on a real
+486.  That predates this work; it is recorded here because it is the same root
+cause, not a second problem.
+
+### What the i386 build did fix
+
+Every instruction above i486 **in this project's own assembly** is gone:
+
+| construct | files | i486 build | i386 build |
+|---|---|---:|---:|
+| `SHLD` (`0F A4`) | `d_draw.s` | 18 | **0** |
+| `BT`/`BTR` with a register bit offset (`0F A3`, `0F B3`) | `asm486_experiments.s` | 2 | **0** |
+| `RDMSR`/`WRMSR` (`0F 32`, `0F 30`) | `dosasm.s` | 6 | **0** |
+
+`dosasm.s`'s pair drives MSR `0x11` (CESR), which is a Pentium Pro / Cyrix-6x86
+register and is unusable on an i486 as well as an i386.  Nothing in the tree
+references `StartMSRInterval` or `EndMSRInterval`, so excluding them removes dead
+code and changes no behaviour.  The other two have i386 spellings that are
+bit-identical:
+
+* `d_draw.s` packs a Z-span pixel pair with `shld`/`ror`; the i386 macro computes
+  the same value as `(eax & 0xFFFF) | (edx & 0xFFFF0000)` in four instructions,
+  using `%esi`, which is dead inside the span loop.
+* `asm486_experiments.s` used a register-offset `BT`/`BTR` over a four-plane loop
+  counter; a four-entry mask table expresses both exactly and needs no scratch
+  register, which matters because all six are live there.
+
+### Measured residual for the i386 target
+
+`tools\isa-audit-source.py -CpuTarget i386` classifies the compiled instructions
+only, with zero unclassified:
+
+```text
+instructions        115677
+i386 115370  i486 131  i586 176  p6 0  unknown 0
+above i386          307
+  i586  imull (two-operand)  173      21 in our assembly, 152 from GCC
+  i486  setcc                131      all from GCC
+  i586  ud2                    3      GCC cold-block traps, unreachable
+  i486  shrdl                  1      GCC
+```
+
+`tools\isa-audit.ps1` cross-checks that at the object level.  Note that this tool
+is a **superset**: no object this toolchain produces has a `.rodata` section, so
+DJGPP puts string literals inside `.text` and a linear disassembly decodes ASCII
+as x86 (`63 6b 20` is `"ck "` and reads as `arpl`).  It is the right tool for
+"which encodings exist in this binary"; it is not the right tool for a 386 gate.
+Use `-Exempt 'crc.obj:_crctable'` and read the `unclassified` count, which is
+required to be zero.
+
+### Correctness
+
+The i386 build is verified bit-identical to the i486 release:
+
+```text
+timedemo   969 frames  framebuffer-checksum 1047377823   (both targets)
+benchmark  486 benchmark correctness PASS, end checksum 2378409472
+smoke      DOS smoke test passed
+```
+
+### Guards on the i486 build
+
+The i486 release is pinned three ways, and all three are checked by
+`python tools\test-build-dos.py` and `python tools\guard-i486-release.py`:
+
+* `tools\golden\build-flags-i486.json` — the resolved C, assembly and link flag
+  lists, the output paths, and the source inventory.  `build-dos.ps1 -DumpFlags`
+  produces them without needing a compiler, so the guard does not re-implement
+  the profile-suffix arithmetic.
+* `tools\golden\i486-release.sha256` — SHA-256 of all 103 objects and of
+  `quake.exe`.  `host.c` and `host_cmd.c` print `__DATE__`/`__TIME__`, so those
+  two objects and the executable are hashed with the timestamp replaced by a
+  same-length literal; those three entries are marked `normalized` in the file so
+  the weakening is visible.
+* The i386 codepath is entirely inside `#ifdef TARGET_I386`, so the i486 object
+  bytes cannot move.  That is what the SHA-256 pin proves, and it is checked after
+  every change to the assembly.
+
+### Two pre-existing bugs found while adding the target
+
+* `smoke-dos.ps1` defaulted `DynamicLightImplementation` to `c` while every other
+  script defaulted to `asm`.  Because each runner computed the profile suffix
+  itself, `smoke-dos.ps1 -SkipBuild` looked for
+  `out\dos-memasm-...-fusedlightmapasm\quake.exe` while the release build lives
+  in `out\dos-memasm-...-fusedlightmapasm-dlightasm\` — so it was not testing the
+  release binary.  All three runners now ask `build-dos.ps1 -DumpFlags` where the
+  output is instead of recomputing it, which is what made the divergence visible.
+* `bench-dos.ps1` rebuilt only when `qbench.exe` was *missing*, with no source
+  fingerprint, so an existing binary was benchmarked indefinitely regardless of
+  source edits.  It now uses the same `qbench.sources.sha256` fingerprint as
+  `timedemo-dos.ps1`.  This one cost real time: an i386 `bsp-clip` correctness
+  failure survived a source fix and was re-observed three times against the same
+  stale binary.
+
 ## Current 486 performance-pass closure
 
 ### Offline precomputation pass (2026-09-29) — one rejection, one cleanup, one closure

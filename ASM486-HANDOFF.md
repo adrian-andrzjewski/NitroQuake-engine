@@ -9,6 +9,122 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### A separate i386 codepath exists, and the shipped "486" binary needs a Pentium — both from one root cause (2026-10-03)
+
+> **Do not re-open this as an optimization question. It is an ISA-level fact about the pinned
+> toolchain, measured in three independent ways.** The i486 release profile is unchanged and
+> byte-pinned; the i386 target is a separate build, a separate output tree and a separate
+> manifest. Full detail and the commands are in `BUILD-DOS.md`, "The i386 target".
+
+#### The finding that reframes the name of this tree
+
+The retained `quake.exe` contains **161 `0F AF` instructions**, and `0F AF` is
+`IMUL r32, r/m32` — a **Pentium** instruction. So the "486" build has never
+actually been runnable on a 486. The cause is not our code:
+
+```text
+C source          a * b        →   GCC   imull  %ebx,%eax
+assembler         imull %ebx,%eax  →  0f af c3
+```
+
+`0F AF` is the *only* two-operand `IMUL` encoding x86 has; there is no 386-safe
+spelling for GNU `as` to fall back on. GCC emits that AT&T spelling
+independently of `-march`, which is why the earlier `-march=i386` experiment in
+this tree produced a binary that would have faulted on a 386 at its very first
+`Q_atoi`.
+
+Two claims were checked rather than assumed:
+
+- **`-march=i386` does restrict something.** At `-march=i386` GCC drops `bswap`;
+  it does not drop `imul` or `setcc`.
+- **No available toolchain fixes it.** `djgpp-mingw-gcc482-standalone.zip` (GCC
+  4.8.2, the oldest prebuilt in the `andrewwutw/build-djgpp` series) was
+  downloaded to a scratch directory and probed: identical `0f af` and `0f 9x`
+  output at `-march=i386`. `dos-toolchain.json` is therefore unchanged, because
+  swapping to a 2013 compiler would buy nothing and cost a hash pin.
+
+#### What the i386 build does fix
+
+Every instruction above i486 **in this project's own assembly**, all three of
+which were measured present in the i486 build and are now zero:
+
+| construct | file | i486 | i386 | replacement |
+|---|---|---:|---:|---|
+| `SHLD` `0F A4` | `d_draw.s` | 18 | 0 | `mov`/`and`/`and`/`or`, bit-identical, `%esi` scratch |
+| `BT`/`BTR` register form | `asm486_experiments.s` | 2 | 0 | four-entry mask table, no scratch register needed |
+| `RDMSR`/`WRMSR` | `dosasm.s` | 6 | 0 | excluded; zero callers tree-wide |
+
+`dosasm.s`'s `StartMSRInterval`/`EndMSRInterval` drive MSR `0x11` (CESR), which
+is Pentium Pro / Cyrix-6x86 — unusable on an i486 too, and dead code besides.
+
+#### Residual, measured not estimated
+
+```text
+i386 target, code-only scan (tools/isa-audit-source.py), 0 unclassified:
+  above i386   307   =  173 two-operand imul  (21 ours, 152 GCC)
+                     +  131 setcc             (all GCC)
+                     +    3 ud2               (GCC cold traps)
+                     +    1 shrdl             (GCC)
+```
+
+**The remaining 21 `imul` sites in our own assembly are the one open item**, and
+they are recorded rather than attempted, because fixing them cannot make the
+binary 386-runnable while GCC contributes 152 more:
+
+```text
+d_draw.s     L343 L417 L612 L616 L629
+d_draw16.s   L323 L526 L1604 L1609 L1622
+d_polysa.s   L1284 L1290 L1715 L1720
+d_spr8.s     L323 L393 L651 L655 L669
+snd_mixa.s   L168 L188
+```
+
+Each needs a free scratch register, and these are hand-tuned loops with no spare
+one. Per the standing rule in this file, the move is to read the object before
+writing code — and to price it first, which has not been done.
+
+#### Two bugs found on the way, both pre-existing
+
+- **`smoke-dos.ps1` was not testing the release binary.** It defaulted
+  `DynamicLightImplementation` to `c` while `build-dos.ps1`, `bench-dos.ps1` and
+  `timedemo-dos.ps1` all default to `asm`, and because each runner computed the
+  profile suffix itself, `smoke-dos.ps1 -SkipBuild` resolved to a directory the
+  builder never wrote. Every pass ever reported by the documented smoke command
+  was for a different binary. All three runners now ask `build-dos.ps1
+  -DumpFlags` for the output path.
+- **`bench-dos.ps1` could benchmark a stale binary indefinitely.** It rebuilt only
+  when `qbench.exe` was missing, with no source fingerprint, unlike
+  `timedemo-dos.ps1`. It now carries the same `qbench.sources.sha256` fingerprint.
+  This cost real time: an i386 `bsp-clip` correctness failure survived its source
+  fix and was re-observed three times against the same stale `qbench.exe`.
+
+The `bsp-clip` failure itself was genuine and is worth keeping: the first i386
+spelling of the `BT` replacement branched on CF after `TEST`, which always
+clears CF, so every plane was skipped and the clip mask came back `15`. The
+correct form tests the mask against the flags and branches on ZF.
+
+#### Verification
+
+i486 (unchanged, and now pinned):
+
+```text
+timedemo   3 runs, 969 frames each, checksum 1047377823
+           59.160560 / 59.160541 / 59.160535 s   (baseline 59.160558)
+benchmark  486 benchmark correctness PASS, end checksum 2378409472
+smoke      passed
+SHA-256    tools/guard-i486-release.py PASS over 103 objects + quake.exe
+flags      tools/test-build-dos.py PASS
+```
+
+i386:
+
+```text
+timedemo   969 frames, checksum 1047377823      (bit-identical to i486)
+benchmark  486 benchmark correctness PASS, end checksum 2378409472
+smoke      passed, with the emulated CPU forced to cputype = 386
+audits     0 unclassified; 0 instructions above i486 in our own assembly
+```
+
 ### The alias-glue block is **63 instructions, minimal, and 5.5x the gate** — closed from its own disassembly (2026-10-03, eighth pass)
 
 > **This closes the region the seventh pass opened.** The probe gave it a price; this pass read the
@@ -5222,6 +5338,16 @@ Use a local, legally obtained `id1` directory containing `pak0.pak`:
 .\tools\smoke-dos.ps1 -SkipBuild `
   -TimeoutSeconds 90
 .\tools\timedemo-dos.ps1 -Runs 3
+```
+
+The same three runners take `-CpuTarget i386` for the separate i386 build; see
+`BUILD-DOS.md`, "The i386 target". Run the i486 guards after any change to the
+build script or to hand-written assembly:
+
+```powershell
+python tools\test-build-dos.py
+python tools\guard-i486-release.py
+.\tools\isa-audit-source.py -CpuTarget i386
 ```
 
 For the direct C/ASM transform A/B, build each selected benchmark executable
