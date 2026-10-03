@@ -6,6 +6,7 @@ param(
     [string]$ToolRoot,
     [string]$DataRoot,
     [ValidateSet('i486', 'i386')]
+    [string]$CpuTarget = 'i486',
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
@@ -165,6 +166,7 @@ $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain
 $buildParams = @{
 
         Benchmark = $true
+        CpuTarget = $CpuTarget
 
         OptimizationProfile = $OptimizationProfile
 
@@ -469,6 +471,20 @@ if ($runtimeConfig -eq $profileText) {
     throw "Could not replace the autoexec section in '$profilePath'."
 }
 
+# Follow the build target's CPU model.  The base profile uses a fixed cycle count
+# so timings stay comparable; only the emulated CPU changes.  DOSBox-X's cputype
+# does not enforce instruction-set gating, so the ISA audit remains the gate.
+if ($CpuTarget -ne 'i486') {
+    $cpuModel = $CpuTarget -replace '^i', ''
+    $forcedConfig = [regex]::Replace(
+        $runtimeConfig,
+        '(?m)^cputype\s*=\s*\S+',
+        "cputype            = $cpuModel")
+    if ($forcedConfig -eq $runtimeConfig) {
+        throw "Could not set the DOSBox-X cputype to '$cpuModel' in '$profilePath'."
+    }
+    $runtimeConfig = $forcedConfig
+}
 $configPath = Join-Path $stagingRoot 'dosbox-x-timedemo.conf'
 $runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
 

@@ -4,11 +4,18 @@ param(
     [switch]$Benchmark,
     [switch]$Instrumentation,
     [switch]$NoBootstrap,
+    # Minimum CPU the build targets.  i486 is the default and the retained
+    # release profile; i386 is a separate, separately-audited codepath whose
+    # object directory and executable never share the i486 output tree.  The
+    # i486 path must stay byte-identical: -CpuTarget i486 resolves to the same
+    # -march/-mtune pair, the same suffix, and the same output paths as before
+    # this parameter existed.  See tools\test-build-dos.py.
+    [ValidateSet('i486', 'i386')]
+    [string]$CpuTarget = 'i486',
     # Print the resolved flag lists and output paths as JSON and exit without
-    # compiling.  Exists so that the runners -- and any guard -- can ask the
-    # builder where its output lands instead of each recomputing the profile
-    # suffix.  It is a pure inspection of this script's own arithmetic, so it
-    # must not require a bootstrapped toolchain.
+    # compiling.  tools\test-build-dos.py drives this so the i486 flag lists can
+    # be golden-pinned without the guard having to re-implement the profile
+    # suffix arithmetic.
     [switch]$DumpFlags,
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
@@ -139,6 +146,9 @@ $compiler = Join-Path $djgppRoot ($toolManifest.djgpp.compiler -replace '/', [IO
 $objdump = Join-Path $djgppRoot ($toolManifest.djgpp.objdump -replace '/', [IO.Path]::DirectorySeparatorChar)
 $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
 
+# -DumpFlags is a pure inspection of this script's own arithmetic, so it must
+# not depend on a bootstrapped toolchain.  tools\test-build-dos.py relies on
+# that: the i486 flag lists are golden-pinned without a compiler installed.
 if (-not $DumpFlags) {
     if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
         if ($NoBootstrap) {
@@ -156,6 +166,14 @@ if (-not $DumpFlags) {
 
 $sourceRoot = Join-Path $repoRoot 'WinQuake'
 $profileSuffixParts = @()
+# The architecture token is emitted only when the target is not the retained
+# i486 release profile, so every i486 output directory keeps the exact name it
+# has always had.  The token is `i386`, not the `march386` used by the reverted
+# 2026-10-03 experiment, so a stale directory from that experiment can never be
+# mistaken for -- or silently reused as -- a build of this target.
+if ($CpuTarget -eq 'i386') {
+    $profileSuffixParts += 'i386'
+}
 if ($OptimizationProfile -eq 'baseline') {
     $profileSuffixParts += 'baseline'
 }
@@ -310,6 +328,33 @@ $executableName = if ($Instrumentation) { 'qprof.exe' } elseif ($Benchmark) { 'q
 $executable = Join-Path $outputRoot $executableName
 $manifestName = if ($Benchmark) { 'build-manifest-bench.json' } else { 'build-manifest.json' }
 
+# The two targets must never resolve to the same output tree, because -Clean
+# removes the directory it is handed.  They cannot collide by construction: the
+# only difference between the targets is the leading arch token, so the i386 root
+# is always the i486 root with `i386` inserted.  The assertion below states that
+# invariant explicitly, and covers the case where the rest of the selector set is
+# empty and the suffix degenerates to a bare `dos`.
+$archToken = 'i386'
+# The selector set for the *other* target is this one with the arch token
+# removed, and only if the arch token was actually prepended -- for i486 the
+# first token is the memory implementation, not the architecture.
+$selectorPartsForOtherTarget = @($profileSuffixParts)
+if (($CpuTarget -eq 'i386') -and $selectorPartsForOtherTarget.Count -gt 0 -and
+    ($selectorPartsForOtherTarget[0] -eq $archToken)) {
+    $selectorPartsForOtherTarget = @($selectorPartsForOtherTarget | Select-Object -Skip 1)
+}
+$otherSuffixBody = if ($selectorPartsForOtherTarget.Count) { '-' + ($selectorPartsForOtherTarget -join '-') } else { '' }
+$i486RootForThisSelectorSet = Join-Path $repoRoot ('out\dos' + $otherSuffixBody)
+$i386RootForThisSelectorSet = Join-Path $repoRoot ('out\dos-' + $archToken + $otherSuffixBody)
+if ($CpuTarget -eq 'i386') {
+    if (($outputRoot -ne $i386RootForThisSelectorSet) -or ($i486RootForThisSelectorSet -eq $i386RootForThisSelectorSet)) {
+        throw "The i386 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet'). Refusing to build, because -Clean removes the directory it is given."
+    }
+}
+elseif ($outputRoot -ne $i486RootForThisSelectorSet) {
+    throw "The i486 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet')."
+}
+
 if ($Clean -and (Test-Path -LiteralPath $outputRoot)) {
 	if ($Benchmark) {
 		foreach ($benchmarkPath in @($objectRoot, $executable,
@@ -377,11 +422,16 @@ try {
     $env:PATH = (Join-Path $djgppRoot 'bin') + ';' + (Join-Path $djgppRoot 'i586-pc-msdosdjgpp\bin') + ';' + $oldPath
 
     $optimizationLevel = if ($OptimizationProfile -eq 'aggressive') { '-O3' } else { '-O2' }
+    # For i486 these are the exact strings the build has always used; the
+    # parameterised form exists only so that the two targets cannot drift apart
+    # in any other respect.
+    $marchFlag = "-march=$CpuTarget"
+    $mtuneFlag = "-mtune=$CpuTarget"
     $cFlags = @(
         "-I$sourceRoot",
         $optimizationLevel,
-        '-march=i486',
-        '-mtune=i486',
+        $marchFlag,
+        $mtuneFlag,
         '-falign-loops=8',
         '-falign-jumps=16',
         '-falign-functions=8',
@@ -458,14 +508,17 @@ try {
     $asmFlags = @(
         "-I$sourceRoot",
         $optimizationLevel,
-        '-march=i486',
-        '-mtune=i486',
+        $marchFlag,
+        $mtuneFlag,
         '-falign-loops=16',
         '-falign-jumps=16',
         '-falign-functions=16',
         '-x',
         'assembler-with-cpp'
     )
+    if ($CpuTarget -eq 'i386') {
+        $asmFlags += '-DTARGET_I386'
+    }
     if ($Instrumentation) {
         $asmFlags += '-DPROFILE486'
     }
@@ -544,11 +597,20 @@ try {
     if ($AliasProjectImplementation -eq 'asm') {
         $cFlags += '-DASM486_ALIAS_PROJECT'
     }
+    if ($CpuTarget -eq 'i386') {
+        # Selects the i386 variants in the hand-written assembly.  Defined for
+        # the C sources too so that a single spelling works in both languages
+        # under -x assembler-with-cpp.
+        $cFlags += '-DTARGET_I386'
+    }
 
     if ($DumpFlags) {
         # The link list is reported with a placeholder for the object files so
         # that the dump does not depend on the compile loop having run.
         [ordered]@{
+            cpuTarget = $CpuTarget
+            march = $marchFlag
+            mtune = $mtuneFlag
             optimizationProfile = $OptimizationProfile
             optimizationLevel = $optimizationLevel
             profileSuffix = $profileSuffix
@@ -563,7 +625,7 @@ try {
             assemblySourceCount = $asmSources.Count
             cFlags = @($cFlags)
             asmFlags = @($asmFlags)
-            linkFlags = @($optimizationLevel, '-march=i486', '-mtune=i486', '-s', '<objects>', '-lm', '-o', $executable)
+            linkFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s', '<objects>', '-lm', '-o', $executable)
             cSources = @($cSources.Name)
             assemblySources = @($asmSources.Name)
         } | ConvertTo-Json -Depth 5
@@ -584,7 +646,7 @@ try {
     }
 
     Write-Host "Linking $executableName"
-    $linkFlags = @($optimizationLevel, '-march=i486', '-mtune=i486', '-s') + $objects + @('-lm', '-o', $executable)
+    $linkFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s') + $objects + @('-lm', '-o', $executable)
     & $compiler @linkFlags
     if ($LASTEXITCODE -ne 0) {
         throw "DJGPP link failed with exit code $LASTEXITCODE."
@@ -611,6 +673,9 @@ try {
     $manifest = [ordered]@{
         compiler = $version
         target = $toolManifest.djgpp.target
+        cpuTarget = $CpuTarget
+        march = $marchFlag
+        mtune = $mtuneFlag
         cSourceCount = $allCSources.Count
         standaloneCSourceCount = $cSources.Count
         includedCSourceCount = $includedCSources.Count
@@ -664,8 +729,7 @@ try {
     $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $outputRoot $manifestName) -Encoding ASCII
 
     Write-Host "Built $executable"
-    Write-Host "C sources: $($allCSources.Count) retained, $($cSources.Count) standalone; assembly sources: $($asmSources.Count)"
-} finally {
+    Write-Host "C sources: $($allCSources.Count) retained, $($cSources.Count) standalone; assembly sources: $($asmSources.Count)"} finally {
     $env:DJDIR = $oldDjdir
     $env:GCC_EXEC_PREFIX = $oldGccExecPrefix
     $env:PATH = $oldPath

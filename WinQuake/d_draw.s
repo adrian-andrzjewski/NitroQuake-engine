@@ -34,6 +34,45 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #if	id386
 
+#ifdef TARGET_I386
+// Z-pair packing for the i386 target.
+//
+// The 486 build packs two 16-bit Z values into one dword with
+//
+//	shldl $16,%edx,%eax		// %eax = (%eax << 16) | (%edx >> 16)
+//	rorl  $16,%eax			// swap the halves back into pixel order
+//
+// which, given that %eax holds a masked high word and %edx holds the running
+// 1/z sample, computes exactly
+//
+//	%eax = (%eax & 0x0000FFFF) | (%edx & 0xFFFF0000)
+//
+// SHLD is an i486 instruction and does not exist on a 386, so the i386 build
+// computes the same value directly.  %esi is the scratch: inside the span loop
+// it is written once to preserve the pixel count (see LFMiddle/LFNegMiddle),
+// read once at the LFLast/LFNegLast odd-pixel test, and restored before return.
+// Nothing in between touches it, so it is free for exactly this purpose.
+//
+// The two spellings must stay bit-identical; the i386 timedemo framebuffer
+// checksum is what checks it, and it is why the mask goes on %eax rather than on
+// the freshly loaded %edx.
+//
+// This is a gas .macro rather than a cpp macro because the preprocessor splices
+// continuation lines before it substitutes, which would fold the body onto one
+// line.
+	.macro	ZPACK16
+	movl	%edx,%esi		// scratch = the 1/z sample
+	andl	$0xFFFF0000,%esi	// keep its high word
+	andl	$0x0000FFFF,%eax	// keep the previous high word
+	orl	%esi,%eax		// assemble the pixel pair
+	.endm
+#else
+	.macro	ZPACK16
+	shldl	$16,%edx,%eax
+	rorl	$16,%eax
+	.endm
+#endif
+
 //----------------------------------------------------------------------
 // 8-bpp horizontal span drawing code for polygons, with no transparency.
 //
@@ -881,8 +920,7 @@ LFMiddle:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
 	addl	$4,%edi
@@ -900,8 +938,7 @@ LFMiddleSingle:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
 	// The second pair uses the previous pair's high word and the current
@@ -909,8 +946,7 @@ LFMiddleSingle:
 	// advance the cursor after the store so the next iteration sees the same
 	// sample as the original schedule.
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,4(%edi)
 	addl	%ebx,%edx
 	addl	$8,%edi
@@ -926,26 +962,22 @@ LFMiddlePair:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,4(%edi)
 	addl	%ebx,%edx
 
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,8(%edi)
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,12(%edi)
 	addl	%ebx,%edx
 	addl	$16,%edi
@@ -957,52 +989,44 @@ LFMiddleQuad:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,4(%edi)
 	addl	%ebx,%edx
 
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,8(%edi)
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,12(%edi)
 	addl	%ebx,%edx
 
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,16(%edi)
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,20(%edi)
 	addl	%ebx,%edx
 
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,24(%edi)
 	addl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,28(%edi)
 	addl	%ebx,%edx
 	addl	$32,%edi
@@ -1089,8 +1113,7 @@ LFNegMiddle:
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
 	addl	$4,%edi
@@ -1107,13 +1130,11 @@ LFNegMiddleSingle:
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,4(%edi)
 	subl	%ebx,%edx
 	addl	$8,%edi
@@ -1125,26 +1146,22 @@ LFNegMiddleUnrolled:
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,4(%edi)
 	subl	%ebx,%edx
 
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,8(%edi)
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,12(%edi)
 	subl	%ebx,%edx
 	addl	$16,%edi
@@ -1157,16 +1174,14 @@ LFNegMiddleControl:
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
 
 	movl	%edx,%eax
 	subl	%ebx,%edx
 	shrl	$16,%eax
-	shldl	$16,%edx,%eax
-	rorl	$16,%eax
+	ZPACK16
 	movl	%eax,4(%edi)
 	subl	%ebx,%edx
 	addl	$8,%edi

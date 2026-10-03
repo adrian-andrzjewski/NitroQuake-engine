@@ -5,6 +5,7 @@ param(
     [string]$ToolRoot,
     [string]$DataRoot,
     [ValidateSet('i486', 'i386')]
+    [string]$CpuTarget = 'i486',
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet(64, 128, 256)]
@@ -142,6 +143,7 @@ $build = Join-Path $PSScriptRoot 'build-dos.ps1'
 $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
 $buildParams = @{
         Benchmark = $true
+        CpuTarget = $CpuTarget
         OptimizationProfile = $OptimizationProfile
         TextureAxisCacheEntries = $TextureAxisCacheEntries
         TextureAxisImplementation = $TextureAxisImplementation
@@ -235,6 +237,7 @@ $buildInputs = @(
         ForEach-Object { "$($_.FullName.Substring($sourceRoot.Length))=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" }
 )
 $buildInputs += "selectors=$selectorState"
+$buildInputs += "cpuTarget=$CpuTarget"
 $fingerprintHasher = [Security.Cryptography.SHA256]::Create()
 try {
     $sourceFingerprint = ([BitConverter]::ToString(
@@ -370,6 +373,20 @@ if ($runtimeConfig -eq $profileText) {
     throw "Could not replace the autoexec section in '$profilePath'."
 }
 
+# Follow the build target's CPU model.  The base profile uses a fixed cycle count
+# so timings stay comparable; only the emulated CPU changes.  DOSBox-X's cputype
+# does not enforce instruction-set gating, so the ISA audit remains the gate.
+if ($CpuTarget -ne 'i486') {
+    $cpuModel = $CpuTarget -replace '^i', ''
+    $forcedConfig = [regex]::Replace(
+        $runtimeConfig,
+        '(?m)^cputype\s*=\s*\S+',
+        "cputype            = $cpuModel")
+    if ($forcedConfig -eq $runtimeConfig) {
+        throw "Could not set the DOSBox-X cputype to '$cpuModel' in '$profilePath'."
+    }
+    $runtimeConfig = $forcedConfig
+}
 $configPath = Join-Path $stagingRoot 'dosbox-x-bench.conf'
 $runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
 

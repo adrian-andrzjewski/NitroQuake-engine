@@ -4,6 +4,13 @@
 fpenv:	.long	0, 0, 0, 0, 0, 0, 0, 0
 
 .text
+#ifndef TARGET_I386
+// These two routines drive MSR 0x11, the CESR, through RDMSR/WRMSR.  Both are
+// Pentium-class instructions, and the CESR is a Pentium Pro / Cyrix-6x86
+// register, so this pair is unusable on an i486 as well as on an i386.  They are
+// also unreachable: nothing in WinQuake references StartMSRInterval or
+// EndMSRInterval, so excluding them from the i386 build removes dead code and
+// changes no behaviour.  Retained in full for the i486 build.
 .globl	C(StartMSRInterval)
 C(StartMSRInterval):
 	movl	$0x11,%ecx	// read the CESR
@@ -43,6 +50,7 @@ C(EndMSRInterval):
 	.byte	0x32		// RDMSR
 
 	ret					// lower 32 bits of count in %eax
+#endif
 
 #if 0
 	.data

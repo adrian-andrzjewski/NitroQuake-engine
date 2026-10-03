@@ -5,6 +5,7 @@ param(
     [string]$ToolRoot,
     [string]$DataRoot,
     [ValidateSet('i486', 'i386')]
+    [string]$CpuTarget = 'i486',
     [ValidateSet('baseline', 'aggressive')]
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet('c', 'asm')]
@@ -87,6 +88,7 @@ $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
 $buildParams = @{
     ToolRoot = $ToolRoot
+    CpuTarget = $CpuTarget
     OptimizationProfile = $OptimizationProfile
     MemoryImplementation = $MemoryImplementation
     AliasPrepareImplementation = $AliasPrepareImplementation
@@ -198,6 +200,7 @@ exit
 
 # One DOSBox-X profile serves both targets; the CPU model is forced in the
 # staged copy below rather than duplicated into a second 118 KB file.  Note that
+# DOSBox-X's cputype changes cycle costs -- it does not enforce instruction-set
 # gating -- so this only makes the run representative.  The object-level ISA
 # audit is the real i386 gate.
 $profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
@@ -220,6 +223,19 @@ $runtimeConfig = [regex]::Replace(
     [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $autoexec })
 if ($runtimeConfig -eq $profileText) {
     throw "Could not replace the autoexec section in '$profilePath'."
+}
+# Follow the build target's CPU model.  The base profile uses a fixed cycle count
+# so timings stay comparable; only the emulated CPU changes.
+if ($CpuTarget -ne 'i486') {
+    $cpuModel = $CpuTarget -replace '^i', ''
+    $forcedConfig = [regex]::Replace(
+        $runtimeConfig,
+        '(?m)^cputype\s*=\s*\S+',
+        "cputype            = $cpuModel")
+    if ($forcedConfig -eq $runtimeConfig) {
+        throw "Could not set the DOSBox-X cputype to '$cpuModel' in '$profilePath'."
+    }
+    $runtimeConfig = $forcedConfig
 }
 $configPath = Join-Path $stagingRoot 'dosbox-x.conf'
 $runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII

@@ -20,6 +20,21 @@ Lalias_transform_coords:
 Lalias_transform_temp:
 	.long	0
 
+#ifdef TARGET_I386
+	.p2align 4,,15
+// i386 replacements for the i486 register-form BT and BTR in
+// R_RecursiveWorldNodeClip_asm486.
+//
+// BT r/m32,r32 and BTR r/m32,r32 do not exist on a 386; only the immediate form
+// (0F BA) does.  The bit index there is the frustum plane loop counter, which
+// runs 0..3 and exits at 4, so a four-entry mask table expresses both
+// operations exactly -- and, unlike a ROLL through CL, it needs no scratch
+// register, which matters because all six registers are live in that loop.
+// Emitted only for the i386 build so the i486 object keeps its current .data.
+Lplane_bit_masks:
+	.long	1, 2, 4, 8
+#endif
+
 	.text
 	.p2align 4,,15
 
@@ -755,8 +770,16 @@ C(R_RecursiveWorldNodeClip_asm486):
 	leal	C(view_clipplanes),%edi	// first clipplane
 
 .Lbsp_clip_plane:
+#ifdef TARGET_I386
+	// BT leaves the tested bit in CF; TEST leaves the *equality* in ZF and
+	// always clears CF.  So the "bit not set" branch has to be jz, not jnc.
+	movl	Lplane_bit_masks(,%ebx,4),%eax
+	testl	%eax,%ecx
+	jz	.Lbsp_clip_next
+#else
 	btl	%ebx,%ecx
 	jnc	.Lbsp_clip_next
+#endif
 	movl	(%esi),%eax			// pindex
 
 	// DotProduct(rejectpt, plane->normal) - plane->dist.
@@ -801,7 +824,13 @@ C(R_RecursiveWorldNodeClip_asm486):
 	jnz	.Lbsp_clip_accept_done
 	testb	$1,%ah			// C0: d < 0
 	jnz	.Lbsp_clip_accept_done
+#ifdef TARGET_I386
+	movl	Lplane_bit_masks(,%ebx,4),%eax
+	notl	%eax
+	andl	%eax,%ecx			// node is entirely on screen
+#else
 	btrl	%ebx,%ecx			// node is entirely on screen
+#endif
 .Lbsp_clip_accept_done:
 	fstp	%st(0)
 	jmp	.Lbsp_clip_next

@@ -1,0 +1,432 @@
+#!/usr/bin/env python3
+"""Code-only ISA scan: what minimum CPU does the *compiled instructions* need?
+
+Why this exists separately from `isa-audit.ps1`
+-----------------------------------------------
+The object-level audit disassembles whole `.text` sections.  That is the right
+way to ask "which encodings exist in this binary", and for the retained i486
+release it gives a clean, actionable answer.  It cannot answer the i386
+question, and the reason is specific to this toolchain:
+
+    no object produced by this build has a `.rodata` section.
+
+DJGPP's GCC puts string literals and jump tables inside `.text`, so a linear
+disassembly of the section decodes ASCII as x86.  `63 6b 20` -- "ck " -- reads as
+`arpl`, `62 61 64` -- "bad" -- reads as `bound`.  On the i486 audit those land
+below the threshold and are harmless; on an i386 gate they are 722 phantom
+violations out of 1027.
+
+So the two tools measure different things on purpose:
+
+* `isa-audit.ps1`  -- encodings present in the built objects.  A superset.  Use
+  it to catch an instruction appearing anywhere at all.
+* this tool        -- ISA of executed instructions only, read from the compiler's
+  own assembly output, where a `.string` directive is visibly a directive and an
+  instruction is visibly an instruction.  No data/code ambiguity.
+
+Both are needed.  A clean result from this tool is the claim "the code we
+compile needs no more than X"; a clean result from the other is the claim "no
+newer encoding has appeared anywhere in the binary".
+
+How it works
+------------
+It does not duplicate the build's flag list.  It asks `build-dos.ps1 -DumpFlags`
+for the exact `cFlags` this target compiles with, runs the compiler to `.s`, and
+classifies each instruction line.  The assembly half is preprocessed with the
+same `asmFlags` and classified the same way.
+
+Mnemonic classification
+-----------------------
+Instructions are classified by mnemonic, not by byte, because at this stage a
+line is known to be an instruction.  The two cases that matter most, and both
+are traps:
+
+* `imull %ebx,%eax`  -- two operands, neither an immediate.  This is
+  `IMUL r32, r/m32`, opcode 0F AF, which is **Pentium**.  GNU as has no other
+  two-operand encoding to fall back on.
+* `imull $10,%eax`   -- one operand.  This is `F7 /5`, one-operand IMUL, which is
+  an i286 instruction and perfectly fine on a 386.
+
+An unrecognised mnemonic is reported as `unknown` and counts against the gate.
+The table is a floor, not a ceiling: it must be extended rather than bypassed.
+
+Usage
+-----
+    python tools/isa-audit-source.py -CpuTarget i386
+    python tools/isa-audit-source.py -CpuTarget i386 -FailOnViolation
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
+SOURCE_ROOT = os.path.join(REPO_ROOT, "WinQuake")
+
+ISA_RANK = {"i386": 0, "i486": 1, "i586": 2, "p6": 3, "unknown": 99}
+
+# Mnemonics that exist only from the i486 upwards.
+I486_MNEMONICS = {
+    "set",            # the bare SETcc form
+    "bswap",
+    "shld", "shldl", "shldw",
+    "shrd", "shrdl", "shrdw",
+    "xadd", "xaddl", "xaddw", "xaddb",
+    "cmpxchg", "cmpxchgl", "cmpxchgw", "cmpxchgb",
+    "lldt", "ltr", "clts", "wbinvd", "bound", "arpl",
+    "verr", "verw",   # 386; kept here only so it is never silently 486+ below
+}
+
+# Mnemonics that exist only from the Pentium upwards.
+I586_MNEMONICS = {
+    "popcnt", "popcntl", "popcntw",
+    "cmpxchg8b", "cmpxchg16b",
+    "rdmsr", "wrmsr", "rdtsc", "rdts", "rdpmc",
+    "cpuid",
+    "movnti", "movntil", "movntps", "movntpd",
+    "fxsave", "fxrstor", "ldmxcsr", "stmxcsr", "emms",
+    "ud2",             # the formal trap instruction; added with the Pentium
+}
+
+# Anything mentioning one of these is P6 or newer.
+P6_SUBSTRINGS = (
+    "movss", "movsd", "movaps", "movapd", "movups", "movupd", "movdqa", "movdqu",
+    "movdqa32", "movdqu8", "movdqa16", "movdqu16", "movq", "movlps", "movhps",
+    "addss", "addsd", "addps", "addpd", "subss", "subsd", "subps", "subpd",
+    "mulss", "mulsd", "mulps", "mulpd", "divss", "divsd", "divps", "divpd",
+    "cvtsi2ss", "cvtsi2sd", "cvtss2si", "cvtsd2si", "cvtt", "cvttss",
+    "punpck", "packss", "padd", "psub", "pmul", "pand", "por", "pxor", "pcmpeq",
+    "pxor", "psll", "psrl", "psra", "emms", "movmskps", "shufps", "unpck",
+    "fxsave", "fxrstor", "ldmxcsr", "stmxcsr",
+)
+
+# x87 P6 comparisons.  Note that FCOMI is DA/DB register form only; the byte-level
+# tool handles that discrimination, here we go by what the compiler spelled.
+P6_X87 = {"fcomi", "fcomip", "fucomi", "fucomip", "fisttp", "fisttpl", "fisttps"}
+
+# x87.  No non-x87 x86 mnemonic begins with `f`, so a leading `f` means x87 --
+# except for the handful of P6/SSE additions, which are named explicitly above.
+# Getting this wrong is not hypothetical: the first version of this table
+# treated the whole D8..DF byte range as potentially-P6 and reported 17 phantom
+# FCOMIs that were really FILD m64int.
+X87 = re.compile(r"^f[a-z0-9]{1,10}$")
+
+# Everything a 386 can execute.  This is a whitelist, not a blacklist: a
+# mnemonic that is not listed here and not positively identified as newer is
+# reported as `unknown` and counts against the gate, so the table has to be
+# extended deliberately rather than widened by accident.
+I386_SAFE = {
+    # data movement
+    "mov", "movb", "movw", "movl", "movq", "movsb", "movsw", "movsl",
+    "movzbw", "movzwl", "movzbl", "movsbw", "movsbl", "movswl", "movzbq", "movzwq",
+    "movswq", "lea", "leal", "leaw",
+    "xchg",           # register form only; the memory form is i486
+    "push", "pushl", "pushw", "pushb", "pushfl", "pushfw",
+    "pop", "popl", "popw", "popb", "popfl", "popfw",
+    "lods", "lodsl", "lodsw", "lodsb", "lodb",
+    "stos", "stosl", "stosw", "stosb",
+    "scas", "scasl", "scasw", "scasb",
+    "cmps", "cmpsl", "cmpsw", "cmpsb",
+    "movnti",         # placeholder, corrected below
+    # arithmetic
+    "add", "addb", "addw", "addl", "addq",
+    "adc", "adcb", "adcw", "adcl", "adcq",
+    "sub", "subb", "subw", "subl", "subq",
+    "sbb", "sbbb", "sbbw", "sbbl", "sbbq",
+    "cmp", "cmpb", "cmpw", "cmpl", "cmpq",
+    "neg", "negb", "negw", "negl", "negq",
+    "inc", "incb", "incw", "incl", "incq",
+    "dec", "decb", "decw", "decl", "decq",
+    "mul", "mulb", "mulw", "mull", "mulq",
+    "div", "divb", "divw", "divl", "divq",
+    "idiv", "idivb", "idivw", "idivl", "idivq",
+    "daa", "das", "aaa", "aas", "aam", "aad",
+    # logical
+    "and", "andb", "andw", "andl", "andq",
+    "or", "orb", "orw", "orl", "orl", "orq",
+    "xor", "xorb", "xorw", "xorl", "xorq",
+    "not", "notb", "notw", "notl", "notq",
+    # shifts and rotates
+    "shl", "shlb", "shlw", "shll", "shlq",
+    "sal", "salb", "salw", "sall", "salq",
+    "shr", "shrb", "shrw", "shrl", "shrq",
+    "sar", "sarb", "sarw", "sarl", "sarq",
+    "rol", "rolb", "rolw", "roll", "rolq",
+    "ror", "rorb", "rorw", "rorl", "rorq",
+    "rcl", "rclb", "rclw", "rcll", "rclq",
+    "rcr", "rcrb", "rcrw", "rcrl", "rcrq",
+    # bit scan
+    "bsf", "bsfl", "bsfw", "bsfq", "bsr", "bsrl", "bsrw", "bsrq",
+    # test
+    "test", "testb", "testw", "testl", "testq",
+    # control flow
+    "jmp", "jmpl", "call", "calll", "ret", "retl", "retq", "retw",
+    "leave", "leaveq", "loop", "loopl", "loope", "loopne", "loopz", "loopnz",
+    "jcxz", "jecxz", "jrcxz", "enter",
+    "int", "int3", "into", "iret", "iretl", "iretd", "iretq",
+    "nop", "hlt", "wait", "pause",
+    # flags
+    "cld", "std", "clc", "stc", "cmc", "sahf", "lahf",
+    "pushf", "pushfl", "popf", "popfl", "salc",
+    # prefixes spelled on their own line
+    "rep", "repe", "repz", "repne", "repnz", "lock", "data16", "addr32",
+    # segment registers
+    "pushfs", "pushgs", "popfs", "popgs", "pushes", "pushds", "popes", "popds",
+    # sign extension: CBW/CWDE/CDQ (and their AX/DX short spellings)
+    "cbw", "cwde", "cdq", "cwd", "cwde", "cltd", "cwtl", "cqto", "cqo", "cltq",
+    # port I/O and string I/O
+    "in", "inb", "inw", "ind", "inl",
+    "out", "outb", "outw", "outd", "outl",
+    "ins", "insb", "insw", "insl", "insd",
+    "outs", "outsb", "outsw", "outsl", "outsd",
+}
+I386_SAFE.discard("movnti")   # i586; listed only to be removed from the whitelist
+
+# x86 conditional branches: jz/je/jne/jb/jnb/... plus the near/far jcc forms.
+JCC = re.compile(r"^j[a-z]{1,3}$")
+
+
+def classify(mnemonic: str, operands: str) -> str:
+    """Return the minimum ISA level for one instruction mnemonic."""
+    if not mnemonic:
+        return "unknown"
+    m = mnemonic
+
+    # --- imul, whose AT&T spelling is the whole problem ---------------------
+    if m in ("imul", "imull", "imulq", "imulw", "imulb"):
+        parts = [p.strip() for p in operands.split(",") if p.strip()]
+        if len(parts) >= 3:
+            # imul $imm, %src, %dst  ->  0F 6B.  Pentium.
+            return "i586"
+        if len(parts) == 2:
+            if parts[0].startswith("$"):
+                # imul $imm, %dst  ->  0F 69.  i486.
+                return "i486"
+            # imul %src, %dst  ->  0F AF.  Pentium.  GNU as has no other
+            # two-operand encoding, so this cannot be avoided at source level;
+            # it is the residual that decides whether an i386 build can run.
+            return "i586"
+        # imul %r/m  ->  F7 /5, one operand.  i286.
+        return "i386"
+
+    # --- setcc / cmovcc -----------------------------------------------------
+    if re.match(r"^set[a-z]{1,3}$", m):
+        return "i486"
+    if re.match(r"^cmov[a-z]{1,2}$", m):
+        return "i486"
+
+    # --- bit test with a register bit offset -------------------------------
+    if m in ("bt", "bts", "btr", "btc"):
+        # 0F BA (immediate bit offset) is i386; the register-offset form
+        # 0F A3/AB/B3/BB is i486.
+        return "i386" if operands.strip().startswith("$") else "i486"
+
+    # --- positively newer, checked before the x87 rule so `fxsave` is not
+    #     mistaken for x87 and `fcomi` for a 387 comparison.
+    if m in I486_MNEMONICS:
+        return "i486"
+    if m in I586_MNEMONICS:
+        return "i586"
+    if m in P6_X87:
+        return "p6"
+    if any(token in m for token in P6_SUBSTRINGS):
+        return "p6"
+
+    if JCC.match(m):
+        return "i386"
+    if X87.match(m):
+        return "i386"
+    if m in I386_SAFE:
+        return "i386"
+
+    # Strip one size suffix and retry; `movsl` -> `movs` and friends.
+    for suffix in ("ll", "l", "w", "b", "q"):
+        if m.endswith(suffix) and len(m) > len(suffix):
+            return classify(m[: -len(suffix)], operands)
+
+    return "unknown"
+
+
+DIRECTIVE = re.compile(r"^\s*[.\w$@%]")
+LABEL_ONLY = re.compile(r"^\s*([A-Za-z_$.][\w$.]*)\s*:")
+INSTRUCTION = re.compile(r"^\s*([a-z][a-z0-9]*)\b\s*(.*)$")
+
+
+def iter_instructions(text: str):
+    """Yield (line_number, mnemonic, operands) for instruction lines only.
+
+    The distinction that matters: a `.string "bad"` line is data, and its bytes
+    are not instructions, so it is skipped.  A `movl 4(%esp),%eax` line is code.
+    """
+    for number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        # Block comments (gas under -x assembler-with-cpp has few, but be safe).
+        if stripped.startswith("/*") or stripped.startswith("*"):
+            continue
+        if stripped.startswith("."):
+            continue
+        if LABEL_ONLY.match(stripped):
+            continue
+        match = INSTRUCTION.match(line)
+        if not match:
+            continue
+        yield number, match.group(1), match.group(2).split("//")[0].strip()
+
+
+def build_flags(cpu_target: str) -> dict:
+    completed = subprocess.run(
+        ["pwsh", "-NoProfile", "-File", os.path.join(TOOLS_DIR, "build-dos.ps1"),
+         "-DumpFlags", "-CpuTarget", cpu_target],
+        capture_output=True, text=True,
+    )
+    if completed.returncode != 0:
+        raise SystemExit("build-dos.ps1 -DumpFlags failed:\n%s" % completed.stderr.strip())
+    return json.loads(completed.stdout)
+
+
+def toolchain_env() -> dict:
+    tool_root = os.path.join(
+        os.environ["LOCALAPPDATA"], "486quake", "tools"
+    )
+    with open(os.path.join(TOOLS_DIR, "dos-toolchain.json"), "r", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    djgpp = os.path.join(tool_root, manifest["djgpp"]["installDirectory"])
+    env = dict(os.environ)
+    env["DJDIR"] = os.path.join(djgpp, "i586-pc-msdosdjgpp")
+    # The trailing separator matters: build-dos.ps1 sets GCC_EXEC_PREFIX the
+    # same way, and without it the driver looks for 'cc1' rather than
+    # 'lib/gcc/<version>/cc1'.
+    env["GCC_EXEC_PREFIX"] = os.path.join(djgpp, "lib", "gcc") + os.sep
+    env["PATH"] = os.pathsep.join(
+        [os.path.join(djgpp, "bin"),
+         os.path.join(djgpp, "i586-pc-msdosdjgpp", "bin"),
+         env["PATH"]]
+    )
+    return env, os.path.join(djgpp, *manifest["djgpp"]["compiler"].split("/"))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("-CpuTarget", default="i386", choices=["i386", "i486"])
+    parser.add_argument("-MaxIsa", default=None, choices=["i386", "i486", "i586", "p6"])
+    parser.add_argument("-OutputJson", default=None)
+    parser.add_argument("-FailOnViolation", action="store_true")
+    args = parser.parse_args()
+
+    max_isa = args.MaxIsa or args.CpuTarget
+    max_rank = ISA_RANK[max_isa]
+
+    flags = build_flags(args.CpuTarget)
+    env, compiler = toolchain_env()
+
+    totals = {"i386": 0, "i486": 0, "i586": 0, "p6": 0, "unknown": 0}
+    violations: dict[tuple, dict] = {}
+    unknown: dict[tuple, dict] = {}
+
+    def record(bucket: dict, path: str, line: int, mnemonic: str, isa: str, operands: str):
+        key = (path, mnemonic, isa)
+        if key in bucket:
+            bucket[key]["count"] += 1
+        else:
+            bucket[key] = {
+                "file": path, "line": line, "mnemonic": mnemonic,
+                "required": isa, "count": 1, "example": operands,
+            }
+
+    # --- C half: ask the compiler for assembly ----------------------------
+    for name in flags["cSources"]:
+        source = os.path.join(SOURCE_ROOT, name)
+        completed = subprocess.run(
+            [compiler, *flags["cFlags"], "-S", "-o", "-", source],
+            capture_output=True, text=True, env=env,
+        )
+        if completed.returncode != 0:
+            raise SystemExit("compiling %s to assembly failed:\n%s" % (name, completed.stderr.strip()))
+        for line, mnemonic, operands in iter_instructions(completed.stdout):
+            isa = classify(mnemonic, operands)
+            totals[isa] += 1
+            if ISA_RANK[isa] > max_rank:
+                record(violations, name, line, mnemonic, isa, operands)
+            if isa == "unknown":
+                record(unknown, name, line, mnemonic, isa, operands)
+
+    # --- assembly half: preprocess with the build's asmFlags ---------------
+    for name in flags["assemblySources"]:
+        source = os.path.join(SOURCE_ROOT, name)
+        completed = subprocess.run(
+            [compiler, *flags["asmFlags"], "-E", source],
+            capture_output=True, text=True, env=env,
+        )
+        if completed.returncode != 0:
+            raise SystemExit("preprocessing %s failed:\n%s" % (name, completed.stderr.strip()))
+        for line, mnemonic, operands in iter_instructions(completed.stdout):
+            isa = classify(mnemonic, operands)
+            totals[isa] += 1
+            if ISA_RANK[isa] > max_rank:
+                record(violations, name, line, mnemonic, isa, operands)
+            if isa == "unknown":
+                record(unknown, name, line, mnemonic, isa, operands)
+
+    report = {
+        "schema": 1,
+        "cpuTarget": args.CpuTarget,
+        "maxIsa": max_isa,
+        "cSourceCount": len(flags["cSources"]),
+        "assemblySourceCount": len(flags["assemblySources"]),
+        "instructionCount": sum(totals.values()),
+        "isaTotals": totals,
+        "violationCount": sum(row["count"] for row in violations.values()),
+        "unclassifiedCount": sum(row["count"] for row in unknown.values()),
+        "result": "PASS" if not violations and not unknown else (
+            "INCOMPLETE" if not violations else "FAIL"),
+        "violations": sorted(violations.values(), key=lambda r: (r["required"], r["file"], r["line"])),
+        "unclassified": sorted(unknown.values(), key=lambda r: (r["file"], r["line"])),
+    }
+
+    output = args.OutputJson or os.path.join(
+        REPO_ROOT, "out", "isa-source-%s.json" % args.CpuTarget)
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    with open(output, "w", encoding="ascii") as handle:
+        json.dump(report, handle, indent=2)
+
+    print("ISA source scan: %s" % report["result"])
+    print("  target              %s (max %s)" % (args.CpuTarget, max_isa))
+    print("  sources             %d C + %d assembly"
+          % (report["cSourceCount"], report["assemblySourceCount"]))
+    print("  instructions        %d" % report["instructionCount"])
+    print("  i386 %d  i486 %d  i586 %d  p6 %d  unknown %d"
+          % (totals["i386"], totals["i486"], totals["i586"], totals["p6"], totals["unknown"]))
+    print("  above %s          %d" % (max_isa, report["violationCount"]))
+    print("  unclassified        %d" % report["unclassifiedCount"])
+    print("  report              %s" % os.path.relpath(output, REPO_ROOT))
+
+    if report["unclassifiedCount"]:
+        print("\nUnclassified mnemonics -- extend the table, do not bypass it:")
+        for row in report["unclassified"][:40]:
+            print("  %-24s:%-6d %-10s %s"
+                  % (row["file"], row["line"], row["mnemonic"], row["example"]))
+    if report["violationCount"]:
+        print("\nAbove %s:" % max_isa)
+        for row in report["violations"][:60]:
+            print("  %-24s:%-6d %-6s %-10s x%d"
+                  % (row["file"], row["line"], row["required"], row["mnemonic"], row["count"]))
+        if len(report["violations"]) > 60:
+            print("  ... %d more in the report" % (len(report["violations"]) - 60))
+
+    if args.FailOnViolation and (report["violationCount"] or report["unclassifiedCount"]):
+        print("\nFAILED: the compiled code for %s needs more than %s."
+              % (args.CpuTarget, max_isa))
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
