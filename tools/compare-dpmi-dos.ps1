@@ -27,8 +27,13 @@ function Invoke-DpmiTimedemo {
         [string]$HdpmiExtraArgs = ''
     )
 
+    # SkipBuild is deliberately not forced on.  timedemo-dos.ps1 rebuilds only
+    # when the source fingerprint is stale, so leaving it off costs nothing on the
+    # second host and avoids the failure where -SkipBuild throws because no
+    # fingerprint file exists yet.  Both hosts must measure the same binary, and
+    # nothing here changes the sources between them, so at most one rebuild
+    # happens across the pair.
     $args = @{
-        SkipBuild = $true
         Runs = $Runs
         TimeoutSeconds = $TimeoutSeconds
         DpmiHost = $DpmiHost
@@ -108,9 +113,14 @@ if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $common.ToolRoot = $ToolRoot
 
 if (-not $SkipBuild) {
     $build = Join-Path $PSScriptRoot 'build-dos.ps1'
-    $buildArgs = @('-Benchmark')
-    if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $buildArgs += @('-ToolRoot', $ToolRoot) }
-    if ($NoBootstrap) { $buildArgs += '-NoBootstrap' }
+    # A hashtable splat, not an array of strings.  Array splatting binds
+    # POSITIONALLY when the target is a PowerShell script, so the previous
+    # @('-Benchmark') did not set the Benchmark switch -- '-Benchmark' was taken
+    # as a positional value and failed the CpuTarget ValidateSet, which meant this
+    # script could not run at all.
+    $buildArgs = @{ Benchmark = $true }
+    if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $buildArgs.ToolRoot = $ToolRoot }
+    if ($NoBootstrap) { $buildArgs.NoBootstrap = $true }
     Write-Host 'Ensuring qbench.exe is built once for both DPMI hosts...'
     & $build @buildArgs
 }
@@ -174,11 +184,31 @@ if ($null -ne $cws.medianFps -and $null -ne $hdpmi.medianFps -and $cws.medianFps
         $noiseFloor = [math]::Max([double]$cwsSpread.range, [double]$hdpmiSpread.range)
     }
 
+    # The expected checksum is taken from the timedemo run's own parityGate
+    # record, not from a constant here.  This script used to hardcode 4154140932,
+    # which was the superseded generation's framebuffer checksum, so every
+    # invocation since the checksum moved to 1047377823 reported
+    # cwsdpmi_unexpected_checksum.  Duplicating the constant is what made it
+    # stale; timedemo-dos.ps1 already enforces the real gate and records what it
+    # enforced, so there is nothing to keep in sync here.
     $verdict = 'inconclusive'
-    $knownGoodChecksum = '4154140932'
     $cwsChecksum = Get-ChecksumFromResult $cws
     $hdpmiChecksum = Get-ChecksumFromResult $hdpmi
-    if ($hdpmiChecksum -ne $knownGoodChecksum) {
+    $knownGoodChecksum = $null
+    foreach ($candidate in @($hdpmi, $cws)) {
+        $gate = $null
+        if ($null -ne $candidate -and ($candidate.PSObject.Properties.Name -contains 'parityGate')) {
+            $gate = $candidate.parityGate
+        }
+        if ($null -ne $gate -and ($gate.PSObject.Properties.Name -contains 'expectedChecksum')) {
+            $knownGoodChecksum = $gate.expectedChecksum
+            break
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($knownGoodChecksum)) {
+        $verdict = 'unknown_expected_checksum'
+    }
+    elseif ($hdpmiChecksum -ne $knownGoodChecksum) {
         $verdict = 'hdpmi32_incompatible_checksum'
     }
     elseif ($cwsChecksum -ne $knownGoodChecksum) {
