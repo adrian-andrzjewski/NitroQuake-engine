@@ -31,6 +31,22 @@ x87 latency, fetch boundaries, write-buffer occupancy, or 4 KB aliasing, so a
 measured null for those is weak evidence. Optimization effort belongs with ideas
 paid for in instruction count, memory traffic, or arithmetic.
 
+> **Both of those regions were decomposed on 2026-10-02, and the answer was no.**
+> Eleven dead-scratch probes priced them:
+>
+> - **`edge-scan`** is now **78% mapped, 159.2x the gate** against the profiler's
+>   203.9x, as sixteen named blocks. The largest, `LNextEdge`, is 23.2x; the
+>   smallest 0.9x. The four loops this file previously called "the edge routines"
+>   turned out to be only 52x of a 204x bucket — most of the bucket was
+>   per-edge dispatch that had never been looked at.
+> - **`renderface`** is **priced at ~15.8x the gate** of C scaffolding, not the
+>   70-90x an earlier estimate suggested. Its remainder is `R_ClipEdge` /
+>   `R_EmitCachedEdge`, which is the essential x87 edge emit.
+>
+> So the "consider only a measured inner loop" advice in the Face/edge row below
+> has been carried out and returned nothing. **Read the two map entries in
+> `ASM486-HANDOFF.md` before choosing anything from this table.**
+
 ## Candidate areas
 
 The lightmap-combination candidate is now implemented as the selectable
@@ -44,7 +60,7 @@ preserving focused and end-to-end timedemo validation.
 | Alias setup | `WinQuake/r_alias.c:R_AliasPreparePoints`, alias clipping, gradient setup | Medium/high | Operate on compact vertex/clip arrays with explicit counts. Preserve the existing projection and clipping conventions exactly. |
 | Surface-cache checks | `WinQuake/d_surf.c:D_CacheSurface`, `WinQuake/r_surf.c:R_DlightContributes` | Medium | Convert only the small predicates or copy/check loops; leave cache allocation and policy in C. |
 | BSP traversal | `WinQuake/r_bsp.c:R_RecursiveWorldNode` | Possible, low priority | Keep the recursive walk in C. Specialized plane-dot and clip-flag helpers are better assembler seams. |
-| Face/edge setup | `WinQuake/r_bsp.c:R_RenderFace`, `R_RenderBmodelFace` | Possible, risky | Consider only a measured inner loop; the surrounding pointer and clipping state should remain in C. |
+| Face/edge setup | `WinQuake/r_bsp.c:R_RenderFace`, `R_RenderBmodelFace` | **Closed by measurement** | **Measured 2026-10-02: ~15.8x the gate, and `-O3` has already taken the available CSE.** The duplicated `edge_p - r_edges` across 29 sites is one `sub` (0.9x); the two obvious hoists are logged as reverted. Do not retry. |
 
 ### 1. `R_BuildLightMap`
 
@@ -226,9 +242,15 @@ root, and `demo1` timedemo:
 The candidate is 0.0094% faster by median, below the 0.05% promotion gate.
 Every run completed 969 frames with checksum `1047377823`. The candidate
 passed DOS smoke and full `bench486` correctness (`486 benchmark correctness
-PASS`, end checksum `2378409472`), but the release default stays at mip-0
+PASS`, end checksum `2378409472`), ~~but the release default stays at mip-0
 unroll4. `-SurfaceBlockMip0Rows unroll8` remains available for further A/B
-work.
+work.~~
+**(Superseded 2026-10-02: the release default is `unroll16`, and `unroll8` is
+obsolete as a candidate** — it is a strictly worse variant of a change that was
+subsequently promoted, so there is nothing left to bundle it with.
+`SurfaceBlockMip0Rows=unroll16` cleared the gate at 0.0620% inside the `surf8`
+bundle with `SurfaceBlockMip1IndexHoist=hoist` and a fully-flat mip-1 body. The
+measurements below stand. `tools\build-dos.ps1:36` is the authority.
 
 The measured binaries were 791,040-byte control SHA-256
 `C5EEA1917851E674BC3DC5716B4EA7DBDB231DAD8EFF7CD095FF879BB2E4A098` and
@@ -264,9 +286,13 @@ The candidate is 0.008375 seconds (0.0141%) faster by median, below the
 0.05% promotion gate. Every run completed all 969 frames with the exact
 framebuffer checksum. Candidate smoke exited cleanly (DOSBox-X and Quake exit
 codes `0`), and the full `bench486` correctness suite reported
-`486 benchmark correctness PASS` with end checksum `2378409472`. The release
+`486 benchmark correctness PASS` with end checksum `2378409472`. ~~The release
 default remains `SurfaceBlockMip0Rows=unroll4`; `unroll16` remains selectable
-for further matched A/B runs.
+for further matched A/B runs.~~
+**(Superseded 2026-10-02: `unroll16` IS the release default**, promoted at
+0.0620% inside the `surf8` bundle. This entry is the measurement that made it
+promotable. See `ASM486-HANDOFF.md`, "`surf8` flat axis: three measured wins
+bundled and **PROMOTED, 0.0620%**".)
 
 The control `qbench.exe` was 791,040 bytes with SHA-256
 `38286C3720BFD4F7F65CD57E268015E8E4DA2490DBFB5D94864F37356080B82C`; the
