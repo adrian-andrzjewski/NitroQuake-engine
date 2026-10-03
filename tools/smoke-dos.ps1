@@ -11,7 +11,7 @@ param(
     [ValidateSet('control', 'local')]
     [string]$AliasPrepareImplementation = 'control',
     [ValidateSet('c', 'asm')]
-    [string]$DynamicLightImplementation = 'c',
+    [string]$DynamicLightImplementation = 'asm',
     [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
     [string]$TextureSpanStores = 'word',
     [ValidateSet('control', 'loadfirst')]
