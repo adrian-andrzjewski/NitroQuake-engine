@@ -9,6 +9,83 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### `alias-glue` reads 6.01% of frame and is **2.29%** — 62% of it is the profiler measuring itself (2026-10-03, sixth pass)
+
+> **This closes the last region above 2%, and it reconciles a discrepancy the ledger has carried for
+> three days.** The profile tree reports `alias-glue` self time as 4.792709 s, 6.01% of frame. The
+> ledger says the C glue is 1.83 s. **Both are right, and the arithmetic that separates them is exact
+> and was sitting in the profiler's own documentation.**
+
+#### The arithmetic, which reproduces the reported figure to the instruction
+
+The profiler states its own rule: *"Each scope charges one ENTER read to its parent and one LEAVE read
+to its own self time. A node's instr_reads is that floor; subtract it from self_seconds before
+quoting any per-call cost."* `alias-glue` is the parent of three live child scopes and is itself a
+scope, so its self time carries:
+
+```text
+CALCGRADIENTS    124,754 ENTER reads charged to alias-glue
+SCAN_LEFT_EDGE   109,925 ENTER reads charged to alias-glue
+DRAW_SPANS       153,838 ENTER reads charged to alias-glue
+its own LEAVE    124,754
+                --------
+                513,271     and the tree reports instr_reads = 513,271   <- exact
+```
+
+At the measured 193.3-cycle `Sys_FloatTime` read:
+
+```text
+513,271 x 193.3 cy / 33.445 MHz = 2.9665 s of timer-read overhead
+4.792709 s reported self       - 2.9665 s                   = 1.8262 s
+```
+
+**1.8262 s against the ledger's recorded 1.83 s.** The 2026-10-01 entry that withdrew the
+"253–304 cycles per call" figure as 62–76% profiler overhead was right, and the corrected 1.83 s it
+left behind is the real number. The tree's 6.01% is the same number with the clock added back.
+
+**So the C glue is 1.826 s, 2.29% of frame, 362.8 cycles per triangle** over 124,754 calls — and
+the withdrawn 253–304 figure was an *under*count of the real cost because it was measured on a
+sub-block, not the whole scope.
+
+#### Why it stays closed
+
+2.29% is below anything a C-to-assembler port could return, and the prohibition is not stylistic:
+`D_RasterizeAliasPolySmooth`'s body is edge-pointer setup, the `initialleftheight == 1` single-span
+fast path, the `D_PolysetSetUpForLineScan` call, and a per-scanline step loop that writes eight fields
+per span into the span package. Its four named sub-blocks cannot be priced per call at all — the
+per-call scopes were **removed** for exactly that reason, because at 100k–260k calls each they cost
+more in `Sys_FloatTime` than they measured. That is a correct decision and it is also the reason this
+region has never had a number: **the only honest instrument for it is a dead-scratch probe, and a
+C probe needs `-O3` to be defeated** (it deletes a dead local store, so the probe must accumulate into
+a reported external global). That is a two-hour experiment for a region already under the gate.
+
+#### The bucket, and the session's complete result
+
+| region | share of frame | cyc/instr | closed by |
+|---|---:|---:|---|
+| general + flat surface-block rows | 6.85% | 0.77 | minimality proof (6-for-6, 3-for-3) |
+| `z-spans` pixel loop | 6.37% | **1.24** | minimality proof + dependency structure |
+| `edge-scan` | 8.27% | ~1.0 | 78% mapped, sixteen load-bearing blocks |
+| `z-spans` per-span prologue | 2.72% | — | all seven registers live at `LFSpanLoop` |
+| **`alias-glue` C** | **2.29%** | — | this entry: 62% of it was the clock |
+| `texture-spans` setup | 2.37% | 0.988 | latency-bound; 4.1x candidate measured **0.0000%** |
+| `renderface` C scaffolding | ~2% | 0.54 / 1.19 | priced; remainder is essential x87 |
+| `R_BuildLightMap` | 0.06% | — | hoist worth 0.04x the gate |
+| surface-cache remainder | 0.67% | — | 1,152 tryalloc scans, **0** evictions |
+
+**Every region in the renderer is now closed, and the whole session produced one methodological
+result rather than a speedup: 1.0 cycle per instruction prices *added* work, and this entry is the
+second independent demonstration of why that matters — here the same code is 6.01% or 2.29% of frame
+depending only on whether you subtract the clock, and the profiler's own note told you to.**
+
+The standing rule for the next pass, and it is the one this session kept re-learning: **before
+pricing anything, subtract the instrument.** `instr_reads` x 193.3 cycles is not a footnote, it is
+62% of this node.
+
+Verification: no code built, no timedemo run, no counter added — this entry is arithmetic over
+figures already in the tree, and both inputs (`instr 513271` and the three child call counts) are
+independently reported. Baseline unchanged at **59.160558 s / 16.379156 FPS**; `d_draw16.s` still 619
+instructions.
 ### `z-spans` is the last unpriced region above 2%: **42,031,372 pixels, 3 instructions each, at 1.24 cycles per instruction** (2026-10-03, fifth pass)
 
 > **This closes the last region in the renderer larger than 2% of frame that nobody had priced.**
