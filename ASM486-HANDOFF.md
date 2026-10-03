@@ -9,6 +9,117 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### The alias-glue block is **63 instructions, minimal, and 5.5x the gate** — closed from its own disassembly (2026-10-03, eighth pass)
+
+> **This closes the region the seventh pass opened.** The probe gave it a price; this pass read the
+> compiled object and found every instruction accounted for, the same standard applied to the
+> surface-block rows. It is the last region in the renderer, and the smallest instruction-level
+> proof in the set.
+
+#### The hypothesis, and it died in one read
+
+The obvious candidate was duplication: the block computes fifteen step values immediately after
+`D_PolysetSetUpForLineScan` has run, so maybe it was recomputing what that function had just stored.
+**It is not** — `D_PolysetSetUpForLineScan` sets exactly four globals (`errorterm`, `ubasestep`,
+`erroradjustup`, `erroradjustdown`) and touches none of the fifteen. One read of the function killed
+it, which is the cheapest possible closure and the argument for checking before building.
+
+#### The object, and it is already factored
+
+`objdump` of the release `d_polyse.obj`, from the `ubasestep` load after the call to the
+`d_ziextrastep` store:
+
+```text
+3b0: mov  ubasestep,%eax          ; 3 loads total: ubasestep, d_zwidth, screenwidth
+3b5: mov  d_zwidth,%edx
+3bb: add  %eax,%edx
+3bd: add  %edx,%edx
+3bf: mov  %edx,d_pzbasestep       ; 15 stores total, one per d_* global
+3c5: add  $0x2,%edx
+3c8: mov  %edx,d_pzextrastep      ;   GCC kept %edx and folded the +2 into it
+3ce: mov  screenwidth,%edi
+3d4: add  %eax,%edi
+3d6: mov  %edi,d_pdestbasestep
+3dc: inc  %edi
+3dd: mov  %edi,d_pdestextrastep   ;   ... and the +1 into %edi
+3e6: mov  r_lstepx,%ebp           ; working_lstepx lives in a register, not a global
+3ec: test %eax,%eax
+3ee: js   ...                     ; 1 branch: the ubasestep < 0 bias
+3f8: lea  0x1(%eax),%ecx
+3fb: mov  %ecx,d_countextrastep
+```
+
+**63 instructions: 15 stores, 3 loads, 32 arithmetic, 1 branch, 1 stack adjust.** Two things are
+already done that a source reading would not show:
+
+- **`d_pzextrastep` and `d_pdestextrastep` cost one `add`/`inc` each, not a reload.** `-O3` keeps the
+  base in `%edx`/`%edi` and folds the `+2`/`+1` into the register, so the source's apparent second
+  computation of `d_pzbasestep` and `d_pdestbasestep` never happens.
+- **`working_lstepx` is never stored.** The `ubasestep < 0` bias is resolved into `%ebp` and consumed
+  from there, so a value that reads like a global in the source is one load and one branch.
+
+**Every one of the 63 has a distinct consumer.** The 15 stores are forced by the interface — each of
+the fifteen `d_*` values is read by `D_PolysetScanLeftEdge` from `.data` — and the 32 arithmetic
+operations are what producing fifteen distinct values costs once GCC has factored them. There is
+nothing to remove, and this is the first closure in the session derived from the compiled form rather
+than from the source.
+
+#### The corrected price
+
+The seventh pass priced the *probe*, which duplicated the arithmetic but not the stores. Scaling to
+the whole block:
+
+```text
+63 x 92,715 = 5,841,045 instructions, at the measured C rate 0.9319
+= 5,443,270 cycles = 0.163 s = 0.275% of frame = 5,617 cycles/frame = 5.49x the gate
+```
+
+So the block is **5.5x the gate, not 3.4x** — the probe priced 39 of the 63 instructions, and the
+arithmetic it duplicated was the cheap part. The 15 interface stores alone are 0.066% of frame, 1.3x
+the gate; the matching fifteen loads the ASM performs are the same size again, but they are paid
+inside `D_PolysetScanLeftEdge` and are not visible here.
+
+**Correcting the seventh pass in its own favour.** It reported the block at 0.1703% and stopped
+there. The block is 0.275%. The error was conservative, and the lesson is the one the probe entry
+already carries: a C probe prices the instructions it duplicated, and a probe that folds part of the
+duplicate — 15 attempted expressions became 39 instructions, against 63 in the block — is not the
+same thing as the block. **Price the object, not the probe.**
+
+#### What remains, and it is exactly one thing
+
+The fifteen values crossing the C/ASM boundary as memory. Fifteen stores here, fifteen loads there,
+0.066% of frame each way, plus the register pressure that prevents either side from holding them.
+It is a real cost and it is above the gate on its own.
+
+It is also a C-to-ASM interface change spanning `d_polyse.c` and two assembly files, where the ASM
+half's calling-convention contract is what its loop addressing relies on. The prohibition list gates
+that behind a source-level hypothesis, **a probe is a price and not a hypothesis**, and eight passes
+have now shown that the productive move in this renderer is to read the object before writing code.
+So it is recorded as the project's one remaining priced, above-gate, structurally-addressable item,
+with its size, and not built.
+
+#### The session's complete map
+
+| region | share | how it closed |
+|---|---:|---|
+| `edge-scan` | 8.27% | 78% mapped, sixteen load-bearing blocks |
+| general + flat surface-block rows | 6.85% | minimality proof, 6-for-6 and 3-for-3 |
+| `z-spans` pixel loop | 6.37% | minimality proof **and** 1.24 cy/instr dependency |
+| `z-spans` per-span prologue | 2.72% | all seven registers live at `LFSpanLoop` |
+| `texture-spans` setup | 2.37% | latency-bound; 4.1x candidate measured **0.0000%** |
+| `alias-glue` C block | **0.275%** | **this entry: 63 instructions, minimal** |
+| `alias-glue` scope | 2.29% | 62% of its reported self time was the clock |
+| `renderface` C scaffolding | ~2% | priced; remainder is essential x87 |
+| surface-cache remainder | 0.67% | 1,152 tryalloc scans, **0** evictions |
+| `R_BuildLightMap` | 0.06% | hoist worth 0.04x the gate |
+
+**Eight passes, ten regions, every one closed by measurement, by counter, or by proof — and not one
+by exhaustion.** The single remaining priced item is an interface change, and the gate has never been
+what stood in the way.
+
+Verification: no code changed, no timedemo run. Both figures come from the release object and from
+counters already in the tree. Baseline unchanged at **59.160558 s / 16.379156 FPS**; `d_draw16.s`
+still 619 instructions.
 ### The alias-glue C block is **0.1703% of frame, 3.4x the gate** — the first price that region has ever had, at a C rate of **0.932** (2026-10-03, seventh pass)
 
 > **This is a price, and it is above the gate.** Every previous entry in this session closed a
@@ -67,6 +178,11 @@ delta / spread : 1,158x          checksum 1047377823 on all seven runs
 
 The count is **92,715 of 124,754 triangles**; the other 32,039 take the `initialleftheight == 1`
 single-span fast path, which is why the block is not simply the glue's call count.
+
+> **SUPERSEDED on its price by the entry above: the block is 0.275% of frame, 5.5x the gate, not
+> 3.4x.** The probe priced 39 of the block's 63 instructions -- the arithmetic it duplicated, which is
+> the cheap part -- so its figure was conservative. **A C probe prices the instructions it duplicated,
+> not the block.** The 0.9319 C rate and the 92,715 execution count below both stand.
 
 #### What it says, and it is a correction
 
