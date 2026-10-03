@@ -9,6 +9,116 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### The general surface-block path is **6.85% of frame at 0.77 cycles per instruction**, and one instruction per texel is worth **31x the gate** (2026-10-03, second pass of the day)
+
+> **This is a price, not a candidate.** Nothing was built. It is the first region found this
+> project-wide whose *instruction* budget is large, whose per-instruction charge is **below** the
+> nominal 1.0, and where the prize calculation clears the gate by a factor that makes instruction
+> arithmetic — not the 0.05% gate — the binding constraint. Read it as the map that says where to
+> spend the next pass, not as a closure and not as a win.
+
+#### The measurement, and it is counters rather than arithmetic
+
+Everything below comes from `surface_cache.mip_seconds` and `surface_cache.blocks_per_mip` in
+`PROFILE.JSN`, both of which are measured counters, against `blocks_per_mip` minus
+`horizontal_flat_per_mip` to isolate the general path and the real block footprint per mip
+(16x16, 8x8, 4x4, 2x2):
+
+| mip | blocks | horizontal-flat | general | general texels | cycles/texel |
+|---|---:|---:|---:|---:|---:|
+| 0 | 93,991 | 7,160 | 86,831 | 22,228,736 | **5.46** |
+| 1 | 142,928 | 14,857 | 128,071 | 8,196,544 | **6.65** |
+| 2 | 44,445 | 3,930 | 40,515 | 648,240 | **10.06** |
+| 3 | 7,364 | 591 | 6,773 | 27,092 | **19.71** |
+| **total** | 288,728 | 26,538 | **262,190** | **31,100,612** | — |
+
+`mip_seconds` sums to 5.471 s of the 79.839 s instrumented run; rescaled to the release baseline
+that is **4.055 s, 6.85% of frame**. So this is a **larger** admissible pool than the span16
+per-segment setup the previous entry closed.
+
+**The per-instruction charge is the interesting number.** Counting the mip-0 general row
+(`SURF8_MIP0_ROW`) gives 12 instructions per two texels — two texel loads, two colormap lookups,
+`movb %dh,%bh` and `movb %dh,%ch`, and four `addl %ebp,%edx` — plus a 17-instruction row prologue
+and epilogue over 16 texels, i.e. **~7.06 instructions per texel** against a measured **5.46
+cycles: 0.77 cycles per instruction.** The region is executing its instructions *below* the
+nominal charge, which is the signature of instruction-level slack rather than a saturated
+dependency chain.
+
+#### What that makes one instruction worth
+
+```text
+31,100,612 instructions  /  33.445 MHz  =  0.9299 s  =  1.572% of frame  =  31.4x the 0.05% gate
+```
+
+**One instruction removed per general texel is 31x the gate.** mip-0 alone — 22,228,736 general
+texels — is **1.12% of frame, 22x the gate.** For comparison, the entire span16 per-segment setup
+was 47x the gate on paper and delivered 0.0000%, and the clamp fusion needed 4 instructions per
+texel to reach 4.1x. Here the barrier is not the gate at all; it is finding an instruction that is
+provably removable without disturbing a dependency. **That inverts the economics of this region
+relative to everything else in the renderer.**
+
+#### The flat specialisations are complete — this is new, and it closes the last idea here
+
+`r_surf.c` already counts the two flatness predicates, and reading them settles whether a third
+case exists. `horizontal_flat_blocks` counts `light_tl == light_tr && light_bl == light_br`; the
+fully-flat subset additionally requires `light_tl == light_bl`. In `SURF8_MIP1_ROW` the per-texel
+light work is `%edx += %ebp` twice, where `%edx` is the interpolated light and `%ebp` is
+`lightdelta = (lightleft - lightright) & 0xFFFFF`, so:
+
+- **horizontal flat** means `lightleft == lightright` with matching vertical steps, so `lightdelta`
+  is 0 and both `addl %ebp,%edx` per texel are no-ops. **Implemented** (mip-0 and mip-1, promoted).
+- **fully flat** additionally makes the light constant across rows, so the index bytes can be
+  formed once per *block*. **Implemented** (promoted, bundled).
+- **a vertical-flat-only block** — `light_tl == light_bl && light_tr == light_br` with
+  `light_tl != light_tr`, i.e. `lightleftstep == lightrightstep == 0` but `lightdelta != 0` — was
+  the one candidate this pass generated, and **it is not a zero-work case.** Both vertical steps
+  being zero leaves the left-to-right ramp across the row intact, so `%ebp != 0` and the per-texel
+  light update is *real work*. The `vertical_flat_blocks` counter reads 24,130, and there is
+  nothing to remove for it.
+
+**So the two flat paths are the only zero-work cases that exist, and both are shipped.** That is
+why candidates A/B/D and the vertical-flat idea all fail, and it is a stronger statement than the
+ledger's previous "no candidate found": the specialisations are *complete*, not merely exhausted.
+
+#### Where the fat actually is, and the barrier
+
+mip-2 and mip-3 run at **10.06 and 19.71 cycles per texel** against mip-0's 5.46 — because their
+rows are 4 and 2 texels wide against a ~17-instruction row prologue, so a third of the mip-2 body
+and two thirds of the mip-3 body is per-row overhead. They are also only 0.26% of frame combined,
+so the *relative* fat is there and the *absolute* prize is in mip-0 and mip-1.
+
+The candidate this pass identified and did **not** build: `movb %dh,%bh` and `movb %dh,%ch` write
+the same byte of the two index registers `%ebx` and `%ecx` on every texel. One index register
+instead of two removes exactly one instruction per texel — **11x the gate on mip-1, 22x on mip-0** —
+but it serialises the texel load and the colormap load onto one register, replacing four
+independent load pairs per two texels with two dependent pairs. That trades instruction count for
+memory-level parallelism, which is exactly the axis this project cannot adjudicate: DOSBox-X does
+not model load latency, so a harness win there would be uninterpretable as a 486 win. **On this
+project's own admission rule, a candidate whose payoff is partly load-latency is inadmissible**,
+and it is not built on that basis.
+
+The mip-0/mip-1 row prologues carry a second, safer candidate: `movl %ebp,C(lightdelta)` /
+`sarl $4,%ebp` at the row head and `movl C(lightdelta),%ebp` / `addl C(lightdeltastep),%ebp` at
+the tail are a matched round trip through memory whose only purpose is to let the tail's add
+happen in the block domain while the body consumes the shifted value. Over 86,831 mip-0 general
+blocks x 16 rows that pair is 2,778,592 instructions = **0.14% of frame, 2.8x the gate** on its
+own, and it needs no dependency change at all — only a second register to hold the unshifted step,
+or the elimination of the round trip. **This is the first candidate in a long while whose barrier
+is register allocation rather than a blind axis, and it is where the next pass should start.**
+
+#### What is not claimed
+
+The 0.77 figure is a region rate, and **the previous entry is the standing warning against
+over-reading it**: the span16 setup charges ~1.0 per instruction *added* and ~0.0 *removed*, so a
+sub-1.0 region rate is not by itself evidence that a removal pays. The removal probes above have
+been additions probes; **no probe in this repository has yet measured what a removal is worth in
+this region**, and that is the one measurement that would convert this entry from a price into a
+candidate. Until it exists, treat 31x the gate as the size of the opportunity and the removal
+question as unanswered.
+
+Verification: no code was built and no timedemo was run for this entry. `d_draw16.s` remains 619
+instructions, both repositories are code-clean, and the baseline is unchanged at **59.160558 s /
+16.379156 FPS**.
 ### The clamp fusion is measured at **0.0000%**, and the probe that explains it says **1.0 cycle per instruction measures added work, not removed work** (2026-10-03)
 
 > **This supersedes the pricing rule everywhere it is used, in one direction only.**
