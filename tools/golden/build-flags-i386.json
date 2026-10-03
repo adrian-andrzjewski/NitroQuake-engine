@@ -17,7 +17,7 @@
   "allAssemblySourceCount": 21,
   "assemblySourceCount": 21,
   "cFlags": [
-    "-I<repo>\\WinQuake",
+    "-I<repo>\\src",
     "-O3",
     "-march=i386",
     "-mtune=i386",
@@ -46,7 +46,7 @@
     "-DTARGET_I386"
   ],
   "asmFlags": [
-    "-I<repo>\\WinQuake",
+    "-I<repo>\\src",
     "-O3",
     "-march=i386",
     "-mtune=i386",

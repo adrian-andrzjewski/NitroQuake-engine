@@ -1,4 +1,4 @@
-# Building the MS-DOS WinQuake software renderer on Windows
+# Building the NitroQuake MS-DOS software renderer on Windows
 
 ## Text-mode startup summary
 
@@ -24,7 +24,7 @@ Host-side focused checks: `python tools/test-sysinfo-dos.py` and
 `python tools/test-video-dos.py`. These do not replace emulator or physical-machine
 visual/input checks, or the existing benchmark acceptance gates.
 
-This checkout builds the retained WinQuake MS-DOS/software-renderer source
+This checkout builds the retained NitroQuake MS-DOS/software-renderer source
 directly from Windows 10.  The compiler is a Windows-hosted DJGPP cross
 toolchain; DOSBox-X is used only to run the resulting DOS executable.
 
@@ -343,7 +343,7 @@ frames and framebuffer checksum `1047377823` reproduced on every run.
 
 ### Z-span x87 prologue (2026-09-29) — measured at 0.71%, not worth porting
 
-The per-span prologue at `WinQuake\d_draw.s:812-838` runs nine serialized x87
+The per-span prologue at `src\d_draw.s:812-838` runs nine serialized x87
 instructions to compute the initial 1/z, amortized over only 30.7 pixels on
 average. An instruction count suggested roughly 7.8% of the frame. It was
 measured by duplicating the identical prologue into dead scratch and timing the
@@ -413,7 +413,7 @@ Release parity is unchanged at 969 frames and checksum `1047377823`.
 
 `alias-raster` is further split into `alias-calcgradients`,
 `alias-linescan-setup`, `alias-scan-left-edge`, and `alias-draw-spans`. The
-EN/LEAVE pairs live in `WinQuake\d_polyse.c` inside
+EN/LEAVE pairs live in `src\d_polyse.c` inside
 `D_RasterizeAliasPolySmooth` and wrap each call individually, because the
 calls sit in non-uniform branches. Same build and run commands as above;
 confirm `executable` ends in `qprof.exe` before trusting the profile tree.
@@ -463,7 +463,7 @@ profile tree:
 > `PROFILE.JSN`. `486-cost-model.ps1` accepts either shape; this tool does not.
 
 **The timedemo runner now rebuilds after a source edit — this hazard is closed.**
-The runner hashes every `*.c`/`*.s`/`*.h` under `WinQuake` plus the resolved
+The runner hashes every `*.c`/`*.s`/`*.h` under `src` plus the resolved
 selector set into `out\dos<suffix>\qbench.sources.sha256` and compares on every
 invocation (`tools\timedemo-dos.ps1:319-405`). On a mismatch it rebuilds, or with
 `-SkipBuild` it **throws** rather than measuring a stale binary:
@@ -578,7 +578,7 @@ consequences for the next optimization pass.
 ### Aff8 16-byte code-alignment experiment (2026-09-29) — rejected and reverted
 
 `-Aff8LoopAlignment aligned` defined `ASM486_AFF8_ALIGN` in
-`WinQuake\d_polysa.s`, enabling an `AFF8_ALIGN` macro (`.p2align 4,,15`)
+`src\d_polysa.s`, enabling an `AFF8_ALIGN` macro (`.p2align 4,,15`)
 before the five hot Aff8 labels `LDrawLoop`, `LDraw16`, `LAff8LastGroup`,
 `LNextSpan`, and `LExactlyOneLong`. Only instruction addresses changed; the
 store pattern, sampling order, and fixed-point DDA were untouched.
@@ -960,7 +960,7 @@ out\dos\quake.exe
 ~~~
 
 The default normal build uses all 83 C files and 21 preprocessed x86 assembly
-files in WinQuake.  Its `aggressive` profile is `-O3 -march=i486` with the
+files in src.  Its `aggressive` profile is `-O3 -march=i486` with the
 measured ASM paths enabled for alias projection, alias bounding-box projection,
 clipped alias transform/lighting, texture animation, and lightmap
 normalization; the turbulent loop uses the measured `stosb` variant.  The
@@ -1653,7 +1653,7 @@ $mount = (Resolve-Path '.\out\dos-smoke').Path.Replace('\', '/')
 
 ### Current seeded A/B reference
 
-For current PROFILE486 work, WinQuake/cl_demo.c seeds srand(1) when a timedemo
+For current PROFILE486 work, src/cl_demo.c seeds srand(1) when a timedemo
 begins. This stabilizes random entity animation phases for performance
 comparisons. The resulting current-worktree framebuffer checksum is
 1047377823; the older 4154140932 value in historical experiment records is not
@@ -1668,13 +1668,13 @@ repeatably and preserves the current checksum.
 
 ### Cross-version comparison (2026-09-28)
 
-The current project build was also compared with the supplied `486quake.exe`
+The current project build was also compared with the supplied `NitroQuake.exe`
 optimization project and original `QUAKE.EXE` under the same DOSBox-X profile,
 data set, `demo1` workload, and 969-frame timedemo. The current build measured
 **16.310912 FPS** (59.408082 seconds median across three runs), compared with
-approximately **14.2 FPS** for `486quake.exe` and **13.4 FPS** for the original.
+approximately **14.2 FPS** for `NitroQuake.exe` and **13.4 FPS** for the original.
 The current build was approximately 21.9% faster than the original and 14.8%
-faster than `486quake.exe`.
+faster than `NitroQuake.exe`.
 
 The detailed comparison, executable hashes, and evidence limitations are in
 [`BENCHMARK-COMPARISON.md`](BENCHMARK-COMPARISON.md). The two supplied
@@ -2306,7 +2306,7 @@ previous ASM-default `-O2` baseline.
 
 After the profiling pass identified texture spans as the largest self-time
 consumer, the 16-pixel drawer received two narrow 486-targeted changes in
-`WinQuake\d_draw16.s`: the initial row address uses a memory-source multiply,
+`src\d_draw16.s`: the initial row address uses a memory-source multiply,
 and the common zero-row-step setup adds `cachewidth` directly from memory.
 Both preserve the original fixed-point arithmetic and leave the inner sampling
 loop unchanged.

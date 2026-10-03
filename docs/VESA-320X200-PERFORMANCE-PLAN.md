@@ -12,13 +12,13 @@ standard VGA path as the control and default.
 
 ## Current implementation
 
-- `vid_mode` defaults to mode `0` in `WinQuake/vid_dos.c`.
+- `vid_mode` defaults to mode `0` in `src/vid_dos.c`.
 - VGA mode `0` is 320x200 standard VGA, packed 8-bit pixels. It enters BIOS
   mode `13h`, renders through a conventional-memory backbuffer, and copies
   changed rectangles to `A0000h`.
 - The VGA mode list also contains Mode X-style planar modes; these are not the
   VESA candidate.
-- `WinQuake/vid_ext.c` optionally enumerates VBE 2.0 modes. A VESA mode may be
+- `src/vid_ext.c` optionally enumerates VBE 2.0 modes. A VESA mode may be
   banked or linear. For a multi-page linear mode, the existing path can render
   into the mapped page and flip pages; a single-page path still performs a
   screen copy.

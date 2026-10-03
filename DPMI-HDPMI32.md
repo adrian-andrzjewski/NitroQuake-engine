@@ -22,7 +22,7 @@ benefit over the project's vendored **CWSDPMI** on the pinned DOSBox-X
 
 ### CWSDPMI (control)
 
-- Stage `WinQuake\cwsdpmi.exe` beside `qbench.exe`.
+- Stage `src\cwsdpmi.exe` beside `qbench.exe`.
 - DJGPP GO32 stub auto-loads `CWSDPMI.EXE` when no DPMI host is resident.
 - SHA-256: `0A890815DF6CBDC052915A856C16944CEDEC825267E7B6E453C351A0CDC695F2`
 - Result: `out\dos-timedemo-20260915-084120\timedemo-result.json`

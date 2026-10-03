@@ -297,10 +297,10 @@ int main(void) {
 }
 '''
 
-ext = (ROOT / "WinQuake/vid_ext.c").read_text()
+ext = (ROOT / "src/vid_ext.c").read_text()
 ext = re.sub(r'^#include (?!"vid_vesa.h").*$', '', ext, flags=re.M)
-dos = (ROOT / "WinQuake/vid_dos.c").read_text()
-vga = (ROOT / "WinQuake/vid_vga.c").read_text()
+dos = (ROOT / "src/vid_dos.c").read_text()
+vga = (ROOT / "src/vid_vga.c").read_text()
 source = (prefix + function(vga, "VGA_BeginDirectRect") + function(vga, "VGA_EndDirectRect")
           + function(vga, "VGA_SwapBuffersCopy")
           + ext + function(dos, "VID_SetMode") + function(dos, "VID_SetPalette")
@@ -310,6 +310,6 @@ with tempfile.TemporaryDirectory(prefix="quake-video-") as tmp:
     exe = Path(tmp) / "video.exe"
     cfile.write_text(source)
     subprocess.run(["gcc", "-std=c99", "-O2", "-Wall", "-Wextra",
-                    "-Wno-misleading-indentation", "-I", str(ROOT / "WinQuake"),
+                    "-Wno-misleading-indentation", "-I", str(ROOT / "src"),
                     str(cfile), "-o", str(exe)], check=True)
     subprocess.run([str(exe)], check=True)

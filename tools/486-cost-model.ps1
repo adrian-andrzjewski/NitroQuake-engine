@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Static 486DX cost model for the DOS WinQuake renderer.
+    Static 486DX cost model for the NitroQuake DOS renderer.
 
 .DESCRIPTION
     Prices three axes that the pinned DOSBox-X harness cannot see:
@@ -66,7 +66,7 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
-    $SourceRoot = Join-Path $repoRoot 'WinQuake'
+    $SourceRoot = Join-Path $repoRoot 'src'
 }
 
 # Relative inputs resolve against the repository root, not the caller's

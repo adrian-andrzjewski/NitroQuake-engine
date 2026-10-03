@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-src = (ROOT / 'WinQuake/sys_dos.c').read_text()
+src = (ROOT / 'src/sys_dos.c').read_text()
 start = src.index('#ifndef BENCH486\n/* IRQ 9')
 end = src.index('void Sys_SendKeyEvents', start)
 prefix = r'''
@@ -58,7 +58,7 @@ int main(int argc,char **argv) {
  puts("RESUMED");return 0;
 }
 '''
-vid = (ROOT / 'WinQuake/vid_dos.c').read_text()
+vid = (ROOT / 'src/vid_dos.c').read_text()
 init = vid[vid.index('void    VID_Init'):vid.index('VID_GetModePtr')]
 assert init.index('VID_InitExtra ();') < init.index('VID_ReportSystem ();') < init.index('VID_SetMode (')
 assert src.index('dos_registerintr(9, TrapKey)') < src.index('Host_Init(&quakeparms)')

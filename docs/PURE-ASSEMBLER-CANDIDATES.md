@@ -1,7 +1,7 @@
 # Pure-Assembler Conversion Candidates
 
 Date: 2026-09-28, updated 2026-09-29
-Scope: i486 DOS WinQuake software renderer
+Scope: i486 DOS NitroQuake software renderer
 
 ## Conclusion
 
@@ -98,12 +98,12 @@ preserving focused and end-to-end timedemo validation.
 
 | Area | Location | Feasibility | Recommended boundary |
 |---|---|---:|---|
-| Lightmap combination | `WinQuake/r_surf.c:R_BuildLightMap` | High | Keep surface bounds and light-style selection in C. Move the per-texel style-combination loop to assembler. |
-| Dynamic-light accumulation | `WinQuake/r_surf.c:R_AddDynamicLights` | High | Keep light projection and floating-point setup in C. Move the fixed/integer sample traversal and accumulation loop to assembler. |
-| Alias setup | `WinQuake/r_alias.c:R_AliasPreparePoints`, alias clipping, gradient setup | Medium/high | Operate on compact vertex/clip arrays with explicit counts. Preserve the existing projection and clipping conventions exactly. |
-| Surface-cache checks | `WinQuake/d_surf.c:D_CacheSurface`, `WinQuake/r_surf.c:R_DlightContributes` | Medium | Convert only the small predicates or copy/check loops; leave cache allocation and policy in C. |
-| BSP traversal | `WinQuake/r_bsp.c:R_RecursiveWorldNode` | Possible, low priority | Keep the recursive walk in C. Specialized plane-dot and clip-flag helpers are better assembler seams. |
-| Face/edge setup | `WinQuake/r_bsp.c:R_RenderFace`, `R_RenderBmodelFace` | **Closed by measurement** | **Measured 2026-10-02: ~15.8x the gate, and `-O3` has already taken the available CSE.** The duplicated `edge_p - r_edges` across 29 sites is one `sub` (0.9x); the two obvious hoists are logged as reverted. Do not retry. |
+| Lightmap combination | `src/r_surf.c:R_BuildLightMap` | High | Keep surface bounds and light-style selection in C. Move the per-texel style-combination loop to assembler. |
+| Dynamic-light accumulation | `src/r_surf.c:R_AddDynamicLights` | High | Keep light projection and floating-point setup in C. Move the fixed/integer sample traversal and accumulation loop to assembler. |
+| Alias setup | `src/r_alias.c:R_AliasPreparePoints`, alias clipping, gradient setup | Medium/high | Operate on compact vertex/clip arrays with explicit counts. Preserve the existing projection and clipping conventions exactly. |
+| Surface-cache checks | `src/d_surf.c:D_CacheSurface`, `src/r_surf.c:R_DlightContributes` | Medium | Convert only the small predicates or copy/check loops; leave cache allocation and policy in C. |
+| BSP traversal | `src/r_bsp.c:R_RecursiveWorldNode` | Possible, low priority | Keep the recursive walk in C. Specialized plane-dot and clip-flag helpers are better assembler seams. |
+| Face/edge setup | `src/r_bsp.c:R_RenderFace`, `R_RenderBmodelFace` | **Closed by measurement** | **Measured 2026-10-02: ~15.8x the gate, and `-O3` has already taken the available CSE.** The duplicated `edge_p - r_edges` across 29 sites is one `sub` (0.9x); the two obvious hoists are logged as reverted. Do not retry. |
 
 ### 1. `R_BuildLightMap`
 
@@ -164,10 +164,10 @@ bounded copy loop, not from translating the whole function line for line.
 The checkout already contains substantial assembler for the hottest low-level
 paths, including:
 
-- ordinary texture spans in `WinQuake/d_draw16.s`;
-- Z spans in `WinQuake/d_draw.s`;
-- alias span and raster loops in `WinQuake/d_polysa.s`;
-- alias projection and clipped-transform helpers in `WinQuake/r_aliasa.s`;
+- ordinary texture spans in `src/d_draw16.s`;
+- Z spans in `src/d_draw.s`;
+- alias span and raster loops in `src/d_polysa.s`;
+- alias projection and clipped-transform helpers in `src/r_aliasa.s`;
 - turbulent span stores and related scan helpers;
 - memory, surface-cache, texture-animation, lightmap-normalization, and BSP
   micro-helpers in the existing 486 support sources.

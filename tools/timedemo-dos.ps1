@@ -282,7 +282,7 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
 # executable existed, so a timedemo could report the previous binary's time; it
 # produced a real false negative in this project. Hash the sources and the
 # resolved selectors instead, and rebuild whenever they differ.
-$sourceRoot = Join-Path $repoRoot 'WinQuake'
+$sourceRoot = Join-Path $repoRoot 'src'
 $selectorState = @(
     $OptimizationProfile, $TextureAxisCacheEntries, $TextureAxisImplementation,
     $SurfaceCacheImplementation, $MipLevelImplementation, $MemoryImplementation,
@@ -380,7 +380,7 @@ $fpsStatsEnabled = [bool]($FpsStats -and -not $NoFpsStats)
 $fpsStatsOptions = if ($fpsStatsEnabled) { ' -fpsstats' } else { '' }
 New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
-$cwsdpmiSource = Join-Path $repoRoot 'WinQuake\cwsdpmi.exe'
+$cwsdpmiSource = Join-Path $repoRoot 'src\cwsdpmi.exe'
 $hdpmiDir = Join-Path $PSScriptRoot 'thirdparty\hdpmi'
 $hdpmiSource = Join-Path $hdpmiDir 'HDPMI32.EXE'
 $dpmiProbeSource = Join-Path $hdpmiDir 'DPMI.EXE'

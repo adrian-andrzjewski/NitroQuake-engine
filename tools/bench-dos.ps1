@@ -213,7 +213,7 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
 # could be reported against a binary that no longer matched the tree.  That is
 # not hypothetical: it is how an i386 bsp-clip failure survived a source fix and
 # was re-observed three times before the stale binary was noticed.
-$sourceRoot = Join-Path $repoRoot 'WinQuake'
+$sourceRoot = Join-Path $repoRoot 'src'
 $selectorState = (@(
         $OptimizationProfile, $TextureAxisCacheEntries, $TextureAxisImplementation,
         $SurfaceCacheImplementation, $MipLevelImplementation, $TurbulentImplementation,
@@ -303,7 +303,7 @@ $stagedData = Join-Path $quakeRoot 'id1'
 New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
 Copy-Item -LiteralPath $benchmarkExe -Destination (Join-Path $quakeRoot 'qbench.exe')
-Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe')
+Copy-Item -LiteralPath (Join-Path $repoRoot 'src\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe')
 
 # Hardlink the paks instead of copying ~50 MB per run. Same volume as the
 # repository is required because NTFS hardlinks cannot span volumes.

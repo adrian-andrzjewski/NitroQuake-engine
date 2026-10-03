@@ -164,7 +164,7 @@ if (-not $DumpFlags) {
     }
 }
 
-$sourceRoot = Join-Path $repoRoot 'WinQuake'
+$sourceRoot = Join-Path $repoRoot 'src'
 $profileSuffixParts = @()
 # The architecture token is emitted only when the target is not the retained
 # i486 release profile, so every i486 output directory keeps the exact name it

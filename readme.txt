@@ -1,6 +1,6 @@
 
-This working tree contains the MS-DOS WinQuake engine and software renderer
-subset of the original source release.  The QuakeWorld, QuakeC, Windows,
+This working tree contains the MS-DOS engine and software renderer subset of
+the original source release, in `src/`.  The QuakeWorld, QuakeC, Windows,
 Linux, Sun, and OpenGL-only sources have been removed from this checkout.
 
 The original unfiltered source tree is preserved locally at the

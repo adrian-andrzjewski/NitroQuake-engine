@@ -1,6 +1,6 @@
 # 486 ASM experiment handoff
 
-This checkout is a DOS WinQuake/software-renderer preservation project.  The
+This checkout is the NitroQuake DOS software-renderer preservation project.  The
 purpose of the ASM work is experimental: compare small hand-written 486 paths
 with the original C under the same DJGPP build and DOSBox-X workload, then
 promote only changes that preserve the exact framebuffer and win the complete
@@ -1681,7 +1681,7 @@ depends on them:
    reports per-symbol x87 cost (new section 1b). `-s` is kept; dropping it would
    perturb an already non-reproducible image.
 
-**Four in-engine probes** (`WinQuake\host_cmd.c`, `-benchfidelity`, dispatched
+**Four in-engine probes** (`src\host_cmd.c`, `-benchfidelity`, dispatched
 via `+bench486`) whose 486 costs are known, used to judge whether an emulator
 prices them at all:
 
@@ -2573,7 +2573,7 @@ timedemo A/B on any 486 interlock claim.
 The unattributed `alias-raster` self time is split into `alias-edge-setup`,
 `alias-span-package`, and `alias-step-math`, wrapping the cursor-init blocks,
 the single-row span-package emits, and the two duplicated base/extra step
-blocks in `WinQuake\d_polyse.c`. From
+blocks in `src\d_polyse.c`. From
 `out\dos-timedemo-20260929-100501\timedemo-result.json` (frame total
 84.627456 s, attribution only), in total cycles per call:
 
@@ -2971,9 +2971,9 @@ after this level. Workload counters held: `alias-models` 5470,
 `alias-raster` is now split into its four children:
 `alias-calcgradients`, `alias-linescan-setup`, `alias-scan-left-edge`, and
 `alias-draw-spans`. The enum entries go after `BENCH486_PROFILE_ALIAS_RASTER`
-in `WinQuake\quakedef.h`, the matching names after `"alias-raster"` in
-`WinQuake\host_cmd.c` (the two lists must stay in identical order), and the
-ENTER/LEAVE pairs are in `WinQuake\d_polyse.c` inside
+in `src\quakedef.h`, the matching names after `"alias-raster"` in
+`src\host_cmd.c` (the two lists must stay in identical order), and the
+ENTER/LEAVE pairs are in `src\d_polyse.c` inside
 `D_RasterizeAliasPolySmooth`, wrapping each call individually. The two
 right-edge `linescan-setup` calls have no matching `ScanLeftEdge`; they exist
 only to set `ubastep`/`erroradjust*` for the `D_PolysetDrawSpans8` right-edge
@@ -3021,8 +3021,8 @@ attribution evidence only and must not be compared to release timings.
 
 The alias-model bucket is no longer a single flat bracket. `BENCH486_PROFILE_ALIAS_SETUP`,
 `BENCH486_PROFILE_ALIAS_TRANSFORM`, and `BENCH486_PROFILE_ALIAS_RASTER` were added to
-`WinQuake\quakedef.h` (immediately after `ALIAS_MODEL`) and to the name table in
-`WinQuake\host_cmd.c`. `WinQuake\r_alias.c` wraps three sub-regions of
+`src\quakedef.h` (immediately after `ALIAS_MODEL`) and to the name table in
+`src\host_cmd.c`. `src\r_alias.c` wraps three sub-regions of
 `R_AliasDrawModel` and its two prepare helpers: the once-per-model setup
 (`R_AliasSetupSkin` through `ziscale`, `r_alias.c:917-949`), the per-vertex
 transform/project loop (in both `R_AliasPrepareUnclippedPoints` and
@@ -3054,9 +3054,9 @@ both of which had prior rejected experiments in the ledger — could not have
 moved the needle.
 
 The remaining alias cost is the pixel work itself: `D_PolysetDrawSpans8` and
-`D_PolysetScanLeftEdge` in `WinQuake\d_polysa.s`, plus the three still-C helpers
+`D_PolysetScanLeftEdge` in `src\d_polysa.s`, plus the three still-C helpers
 they call, `D_PolysetSetEdgeTable`, `D_RasterizeAliasPolySmooth`, and
-`D_PolysetSetUpForLineScan` in `WinQuake\d_polyse.c`. Because the pixel loops
+`D_PolysetSetUpForLineScan` in `src\d_polyse.c`. Because the pixel loops
 in `d_polysa.s` are already heavily mined and the alignment experiment showed
 the loop body resists rearrangement, the remaining C-to-ASM surface in the
 alias raster path is the only unexhausted avenue, and it is now the
@@ -3082,7 +3082,7 @@ The Aff8 pixel loop had no alignment directives at all.
 
 **The experiment code has since been reverted.** The temporary
 `-Aff8LoopAlignment control|aligned` selector, its `ASM486_AFF8_ALIGN` define
-in `WinQuake\d_polysa.s`, and the `AFF8_ALIGN` macro sites have all been
+in `src\d_polysa.s`, and the `AFF8_ALIGN` macro sites have all been
 removed, along with the selector plumbing in `build-dos.ps1`, `bench-dos.ps1`,
 `timedemo-dos.ps1`, and `smoke-dos.ps1`. The tree is back to its pre-experiment
 state and this section is preserved as a record of the measurement. The
@@ -3683,7 +3683,7 @@ VectorNormalize in DropPunchAngle passed the correctness harness and retained
 versus the 16.283870 FPS baseline, an insignificant 0.000020 FPS difference.
 It was reverted as measurement noise. Do not promote either experiment.
 
-The nested repository is the Git boundary: `D:\Project\486quake\quake`.
+The nested repository is the Git boundary: `workspace\quake`.
 The current source uses the `aggressive` profile (`-O3 -march=i486`) and the
 repository-owned `tools\dosbox-x-486-high.conf` profile (`cputype=486`, fixed
 33445 cycles, DOSBox-X 2026.08.31, 16 MB).  The current default selections are:
@@ -5299,11 +5299,11 @@ the same map.
 ## Current implementation result
 
 The current pass keeps the dynamic-light S-axis accumulator, the
-`currententity`-keyed face Z-gradient cache, and changes `WinQuake/r_bsp.c`
+`currententity`-keyed face Z-gradient cache, and changes `src/r_bsp.c`
 to test a node's `visframe` before `CONTENTS_SOLID`, while both world-node
 surface loops test `visframe` before the backface flag.  Predicate semantics
 and recursion are unchanged.  In
-`WinQuake/d_draw.s`, spans whose fixed-point `izistep` is zero now reuse the
+`src/d_draw.s`, spans whose fixed-point `izistep` is zero now reuse the
 same initial-Z/clamp calculation and fill the 16-bit depth words with
 `rep stosw`; the normal positive/negative gradient paths are unchanged.  The
 five-run node-order-plus-zero-step sample was `61.556987`, `61.556783`,
@@ -5311,7 +5311,7 @@ five-run node-order-plus-zero-step sample was `61.556987`, `61.556783`,
 checksum `4154140932` each run), for a median `61.556783 s / 15.741564 FPS`
 versus the committed zero-step baseline `61.559877 s / 15.740772 FPS`.  The full
 `bench-dos.ps1` run reported `486 benchmark correctness PASS` with harness
-checksum `2378409472`, and the smoke test passed.  In `WinQuake/d_polysa.s`,
+checksum `2378409472`, and the smoke test passed.  In `src/d_polysa.s`,
 the subdivided alias backface cull now uses the same 32-bit integer determinant
 as `D_DrawNonSubdiv`, avoiding the x87 round trip for integer screen
 coordinates.  The three-run candidate sample was `61.878873`, `61.496626`,
@@ -5366,6 +5366,6 @@ and run the focused command with the matching selector:
 
 The relevant source entry points are
 `R_AliasTransformFinalVert` and
-`R_AliasTransformFinalVert_asm486` in `WinQuake\r_alias.c` and
-`WinQuake\asm486_experiments.s`.  Use `WinQuake\host_cmd.c` for the focused
+`R_AliasTransformFinalVert_asm486` in `src\r_alias.c` and
+`src\asm486_experiments.s`.  Use `src\host_cmd.c` for the focused
 benchmark harness and `tools\profile-report.ps1` for profile JSON.

@@ -1,6 +1,6 @@
 # Quake DOS benchmark comparison
 
-Measured on 2026-09-29 to compare the current 486quake build with the supplied
+Measured on 2026-09-29 to compare the current NitroQuake build with the supplied
 optimized and original DOS executables. This document is intended as the source
 record for a later README benchmark section.
 
@@ -10,7 +10,7 @@ record for a later README benchmark section.
 - Profile: `tools/dosbox-x-486-high.conf`, fixed 33445 cycles, 486 CPU profile.
 - Workload: Quake `demo1`, with sound, joystick, mouse, and CD audio disabled.
 - Game data: `C:\Program Files (x86)\Steam\steamapps\common\Quake\id1`.
-- DPMI host: `WinQuake\cwsdpmi.exe`.
+- DPMI host: `src\cwsdpmi.exe`.
 - Each valid run completed 969 frames.
 - The current build was measured with three runs and the median is reported.
 - The supplied executables were measured with one run each because they display
@@ -46,7 +46,7 @@ the same correction applies to `BUILD-DOS.md:187`. See `ASM486-HANDOFF.md`,
 | Current project build | `out\dos-memasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\qbench.exe` | 3 | **59.160558 s** median | **16.379156** | 969 each | `1047377823` each | `out\dos-timedemo-20261002-181621` |
 | Previous build (mip-1 flat off) | same path, `-SurfaceBlockMip1HorizontalFlat control` | 3 | 59.227632 s median | 16.360597 | 969 each | `1047377823` each | `out\dos-timedemo-20261001-184432` |
 | Previous build (1800 KB surface cache) | same path, previous binary | 3 | 59.264965 s median | 16.350301 | 969 each | `1047377823` each | `out\dos-timedemo-20260929-175705` |
-| 486quake optimization project | `tools\486quake.exe` | 1 | ~68.2 s | ~14.2 | 969 | Not emitted | On-screen timedemo result |
+| NitroQuake optimization project | `tools\NitroQuake.exe` | 1 | ~68.2 s | ~14.2 | 969 | Not emitted | On-screen timedemo result |
 | Original Quake | `tools\QUAKE.EXE` | 1 | ~72.4 s | ~13.4 | 969 | Not emitted | On-screen timedemo result |
 
 The current-build samples were 59.160558 s, 59.160577 s and 59.160502 s, with
@@ -104,8 +104,8 @@ correctness evidence behind those promotions.
 Using the rounded on-screen values for the two supplied executables:
 
 - Current project build is approximately **18.3% faster** than the original.
-- `486quake.exe` is approximately **5.8% faster** than the original.
-- Current project build is approximately **13.4% faster** than `486quake.exe`.
+- `NitroQuake.exe` is approximately **5.8% faster** than the original.
+- Current project build is approximately **13.4% faster** than `NitroQuake.exe`.
 
 These percentages are comparative DOSBox-X results. They are not a claim about
 timing on physical 486 hardware. The emulator does not model 486 costs in the
@@ -122,12 +122,12 @@ file hash:
 | Artifact | Identity | Value |
 | --- | --- | --- |
 | `qbench.exe` (this build's output) | framebuffer checksum, 969 frames | `1047377823` |
-| `tools\486quake.exe` (supplied) | SHA-256, 834,560 bytes | `CF461CFA0FEA989AA1E2E834B6D5482B7C64F3279BD7BE56C52F92752FFF429E` |
+| `tools\NitroQuake.exe` (supplied) | SHA-256, 834,560 bytes | `CF461CFA0FEA989AA1E2E834B6D5482B7C64F3279BD7BE56C52F92752FFF429E` |
 | `tools\QUAKE.EXE` (supplied) | SHA-256, 409,600 bytes | `E0A1936400CA56E94D44D585097BD9E490035FCFB6E7D806D7E879F423928642` |
 | `tools\dosbox-x-486-high.conf` (profile) | SHA-256 | `F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45` |
 
 `qbench.exe` deliberately has **no SHA-256 recorded here**. It embeds
-`__TIME__`/`__DATE__` in a startup banner (`WinQuake\host.c:912`), so it is not
+`__TIME__`/`__DATE__` in a startup banner (`src\host.c:912`), so it is not
 byte-reproducible: six stamp bytes differ between any two builds of identical
 source, and any hash would describe one incidental build rather than the code.
 Recording a checksum and not a hash is the accurate choice, not a
@@ -135,5 +135,5 @@ provisional one. The framebuffer checksum is the stable identity of the
 build's output: it must be `1047377823` on every run for the build to be
 considered correct.
 
-`tools\QUAKE.EXE` and `tools\486quake.exe` are untracked supplied inputs and
+`tools\QUAKE.EXE` and `tools\NitroQuake.exe` are untracked supplied inputs and
 were not modified; their hashes are stable and are recorded for provenance.

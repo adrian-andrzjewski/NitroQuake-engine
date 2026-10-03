@@ -1,5 +1,5 @@
 /*
- * Host-native build of the four 486 fidelity probes from WinQuake/host_cmd.c.
+ * Host-native build of the four 486 fidelity probes from src/host_cmd.c.
  *
  * Purpose: validate the PROBES, not the emulator. The DOSBox-X run scored 0/4,
  * and that result is only meaningful if the probes are sound. Running them on

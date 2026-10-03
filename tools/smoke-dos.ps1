@@ -166,7 +166,7 @@ New-Item -ItemType Directory -Path $quakeRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
 
 Copy-Item -LiteralPath $djgppExe -Destination (Join-Path $quakeRoot 'quake.exe') -Force
-Copy-Item -LiteralPath (Join-Path $repoRoot 'WinQuake\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'src\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
 # Stage only PAK files, as hardlinks. Steam id1 also contains configs, saves,
 # and autoexec lines that can prevent +quit from returning under the 486 cycle
 # cap. Hardlinking needs the same volume as the repository because NTFS

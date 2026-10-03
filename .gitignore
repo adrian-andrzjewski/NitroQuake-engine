@@ -6,7 +6,7 @@
 /tools/.cache/
 
 # Supplied benchmark baselines, hash-pinned in BENCHMARK-COMPARISON.md.
-/tools/486quake.exe
+/tools/NitroQuake.exe
 /tools/QUAKE.EXE
 
 # Legacy/compiler intermediates.

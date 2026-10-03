@@ -17,7 +17,7 @@
   "allAssemblySourceCount": 21,
   "assemblySourceCount": 21,
   "cFlags": [
-    "-I<repo>\\WinQuake",
+    "-I<repo>\\src",
     "-O3",
     "-march=i486",
     "-mtune=i486",
@@ -45,7 +45,7 @@
     "-DASM486_ALIAS_PROJECT"
   ],
   "asmFlags": [
-    "-I<repo>\\WinQuake",
+    "-I<repo>\\src",
     "-O3",
     "-march=i486",
     "-mtune=i486",

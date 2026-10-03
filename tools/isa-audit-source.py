@@ -67,7 +67,7 @@ import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
-SOURCE_ROOT = os.path.join(REPO_ROOT, "WinQuake")
+SOURCE_ROOT = os.path.join(REPO_ROOT, "src")
 
 ISA_RANK = {"i386": 0, "i486": 1, "i586": 2, "p6": 3, "unknown": 99}
 
