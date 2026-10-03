@@ -9,6 +9,115 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### The 161 `imul r32,r/m32` sites are **not** strength-reducible — three approaches refuted by measurement (2026-10-03)
+
+This supersedes the arithmetic-reduction half of the entry above. That entry correctly
+established that the shipped executable carries **161 `0F AF`** instructions and that
+`0F AF` is a Pentium encoding, and that it "can only be removed by strength reduction".
+**The second half is wrong, and three separate attempts to apply it all failed.** Do not
+re-derive any of them.
+
+**The measurement that settles it.** Classifying all 161 sites by the *multiplier* operand,
+using `tools\isa-audit.ps1` (which anchors on instruction boundaries rather than grepping,
+so it does not misread a displacement as a literal):
+
+| multiplier form | sites |
+|---|---:|
+| register x register | ~112 |
+| memory / relocated global | ~49 |
+| **immediate — the safe one-operand `F7 /5` encoding** | **0** |
+
+There is also no cheap case hiding elsewhere: the same object set already contains **814**
+`imul $imm,%reg` forms, which GCC emits whenever the multiplier is a compile-time constant.
+It has no such option when both operands are live. `0F AF` is the only two-register 32-bit
+`IMUL` encoding x86 has, so a product of two runtime values has no shorter 486-legal form.
+
+**Refuted approach 1 — `cachewidth` as a power of two.** `d_draw.s:343`,
+`d_draw16.s:323`, `d_spr8.s:323` and five siblings compute `(tfrac >> 16) * cachewidth`,
+which looks like a shift if `cachewidth` is a power of two. It is not:
+`cachewidth = surface->extents[0] >> miplevel` (`d_surf.c:431`) and
+`cachewidth = pspriteframe->width` (`d_sprite.c:427`), both arbitrary. The tree's own
+instrumentation counter gates on `!(cachewidth & 15)` (`d_edge.c:636`), i.e. **multiples of
+16**, which is the opposite of a power of two. No power-of-two assumption exists anywhere.
+
+**Refuted approach 2 — pre-scaling `reciprocal_table`.** `d_draw.s:612,616` and four
+siblings compute `sstep = (snext - s) * reciprocal_table[spancount]`. Multiplying by a
+16.16 reciprocal *is* the division; the multiplier is a function of a runtime span length,
+so it cannot become a shift. Pre-scaling the table by the axis scale removes the separate
+scale multiply but leaves this one.
+
+**Refuted approach 3 — `* sizeof` sites as free shift conversions.** An objdump sweep
+appears to find 23 sites with a literal multiplier, which reads as `x * 16` and therefore
+as `x << 4`. Those are **unrelocated COFF displacements**: `0f af 0d 10 00 00 00` is an
+**eight**-byte instruction multiplying by a global whose link-time address is `0x10`, and
+objdump prints the unrelocated value, so the displacement reads as the literal `0x10`.
+Count only sites the audit reports, and check the instruction length before believing an
+operand is a constant. After that correction the count of genuinely constant multipliers
+is **zero**.
+
+**What the largest cluster actually is.** `_D_RasterizeAliasPolySmooth` carries 14 of the
+161 — the single largest concentration, in a function the convergence statement already
+records as *minimal* at 63 instructions. The shape is
+`sar $0x10,%edi` / `imul %edi,%eax`, i.e. `(vtemp >> 16) * alias_scale`: a per-vertex scale
+where both operands are runtime. The block appears twice because GCC inlined it twice.
+
+**The only remaining path, and its price.** A hand-written shift-add expansion, ~11
+instructions for a 32-bit low product, or an `__asm__` equivalent. GCC will not emit it
+and `-march=i486` does not suppress `0F AF` (verified above against two GCC versions).
+Split by cost:
+
+- **~130 in init, asset-load and per-frame-trivial code** — free in *performance* terms,
+  since they execute a handful of times per run, but a large diff across ~50 files in
+  which every sequence must be an exactly-correct 32-bit low product, and in which
+  surrounding register pressure may get worse.
+- **~30 in the inner loop** — prohibitive. The three `texture_segments` multiply sites
+  execute **3,513,485 times per run**; naive shift-add there prices at roughly **+10 s**
+  on a 59.16 s baseline. The span-length histogram is spread near-uniformly over 1..16, so
+  a dispatch onto compile-time constants — which *would* be free, since `imul $imm` is
+  `F7 /5` — would need ~16 specialisations and cost more than it saves.
+
+**Recommendation: do not attempt it.** The state is now *enforced and visible* rather than
+open: `build-dos.ps1` runs the audit on its own objects after every link and throws on a
+regression against `tools/golden/isa-baseline.json`, so no new above-target instruction can
+enter the tree unnoticed. That is a durable outcome. Spending a large unverifiable diff to
+convert a pinned 161 to zero buys a property the harness cannot measure, and risks the
+8 KB unified cache, which is the one axis that is real on a 486 and invisible here.
+
+Per-enforcement figures, all four verified deterministic across repeated builds:
+
+| variant | enforced above-target | string-data decode (not enforced) |
+|---|---:|---:|
+| `i486/quake.exe` | 170 (`0f af` 161, `0f 30` 4, `0f 32` 2, `0f 0b` 3) | 0 |
+| `i486/qbench.exe` | 173 (`0f af` 164) | 0 |
+| `i486/qprof.exe` | 177 (`0f af` 168) | 0 |
+| `i386/quake.exe` | 305 | 722 |
+
+Three implementation notes that cost real time and will recur:
+
+1. **Baseline per variant, not per target.** `-Benchmark` compiles the ~4335-line bench
+   harness and `-Instrumentation` the PROFILE486 counters, so those are strictly larger
+   code sets. One figure per target made every `bench-dos` run fail the gate.
+2. **Audit a named object list, not a directory.** A build recompiles in place, so an
+   object directory accumulates objects from selector sets that are no longer active
+   (`asm486_experiments.s` when every implementation selector is `c`; `net_comx.c`, which is
+   `#include`d rather than compiled). Sweeping the directory audits those too, and sweeping
+   every `obj*` subdirectory counted **206** objects instead of 103 by double-counting
+   `obj/` and `obj-bench/`.
+3. **`62` and `63` are string literals, not instructions.** DJGPP emits string data into
+   `.text`; `62 61 64` is `"ad"`, `63 6b 20` is `"ck "`, `65 63 74 00` is `"ect\0"`. They
+   appear across ~50 objects, so `crc.obj:_crctable`-style symbol exemption cannot reach
+   them. After excluding them the object-level gate reports **305** above-i386 against the
+   **307** that `isa-audit-source.py` reports at source level — two independent methods
+   agreeing within 2, which is the evidence the exclusion is sound rather than convenient.
+
+New tooling: `tools\run-tests.ps1` runs all eight gates in one command, ordered
+cheapest-first, and includes `test-sysinfo-dos.py` and `test-video-dos.py`, which the
+checklist in "Starting commands" had omitted. `tools\compare-dpmi-dos.ps1` was
+non-functional and now runs: it forced `SkipBuild` (which throws when no fingerprint file
+exists), compared against the superseded checksum `4154140932`, and splatted
+`@('-Benchmark')` — array splatting binds *positionally* for a PowerShell script, so
+`-Benchmark` was taken as a positional value and failed the `CpuTarget` ValidateSet.
+
 ### A separate i386 codepath exists, and the shipped "486" binary needs a Pentium — both from one root cause (2026-10-03)
 
 > **Do not re-open this as an optimization question. It is an ISA-level fact about the pinned
