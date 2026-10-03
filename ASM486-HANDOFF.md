@@ -9,6 +9,77 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Correction: the general block row is **minimal, and that is derivable** — the 31x gate is not reachable by removal (2026-10-03, third pass of the day)
+
+> **This closes the lead the previous entry ends on.** That entry priced the general surface-block
+> path at 6.85% of frame and pointed the next pass at its row prologue. Both of its suggestions are
+> now closed, and not by a failed search — by a derivation that accounts for every instruction in the
+> row. Read this before spending anything on `SURF8_MIP0_ROW`/`SURF8_MIP1_ROW` again.
+
+**The candidate was the two index-byte writes.** `movb %dh,%bh` and `movb %dh,%ch` appear once per
+texel in both general rows, they write the *same* byte into two *different* index registers, and a
+single-index-register rewrite removes exactly one instruction per texel — **8.3x the gate on mip-1,
+22x on mip-0.** That was the plan. It is impossible, and the flat row says why.
+
+**The general row's six instructions per texel are:** one texel load, one colormap load, **two**
+`addl %ebp,%edx`, and **two** `movb %dh,%Xh`. The two adds advance the interpolated light twice per
+texel while the light *byte* is consumed once per output, so `%dh` takes **two distinct values per
+texel** — and each index register needs the byte for the state at which its own lookup happens. The
+rewrite fails in both directions:
+
+- **Keep two light bytes** (sample `%dh` after each add, as the code does) and one register cannot
+  hold both, because r7's lookup needs the byte from before the first add and r6's from between the
+  two adds.
+- **Keep the add count** (two per texel, which the row's fixed-point ramp requires) and both lookups
+  then see the *same* `%dh`, which is not what the current code computes. That is a different
+  rendering, not a faster one.
+
+**`SURF8_MIP1_FLAT_ROW` is the proof, and it is already in the tree.** It contains **no
+`addl %ebp,%edx` at all** — the light is constant across a flat row — and it *still* carries both
+`movb %dh,%bh` and `movb %dh,%ch` (once per row, under the promoted hoist). So the pair is not a
+redundancy artefact of the general path: **one byte-write per index register is invariant**, because
+`%ebx` and `%ecx` remain two distinct registers holding two distinct texel bytes. In the flat row
+`%dh` never changes, so one write each per row suffices; in the general row `%dh` changes once per
+add, so each register needs one write per add, and there are two adds per texel. `SURF8_MIP0_
+HORIZONTAL_FLAT_ROW` agrees exactly: its entire per-row light cost is the same two writes.
+
+**So the general row is 6-for-6 minimal**, and so is the flat row at 3-for-3. The earlier statement
+that the flat specialisations are *complete* extends to the general path itself: there is no
+instruction in either row that is not carrying a distinct value to a distinct consumer. That is a
+much stronger position than "no candidate was found", and it is the second time in two days that a
+promising pool has turned out to be closed by structure rather than by price — the first being the
+span16 per-segment setup, which is latency-bound, and this one, which is minimal.
+
+**The row prologue is closed for a second, independent reason.** `movl %ebp,C(lightdelta)` /
+`sarl $4,%ebp` at the head and `movl C(lightdelta),%ebp` / `addl C(lightdeltastep),%ebp` at the tail
+(2,778,592 instructions on mip-0, 0.14% of frame, 2.8x the gate) is a matched round trip whose sole
+purpose is to let the tail's add happen in the block domain while the body consumes the shifted
+value. It cannot be elided by keeping `%ebp` in one domain, because the shift is destructive and
+**all seven general registers are live across the body** — `%eax` accumulates results, `%ebx`/`%ecx`
+are the two index registers, `%edx` the interpolated light, `%ebp` the step, `%esi`/`%edi` the
+source and destination cursors. Removing it needs a register this row does not have, which is the
+same wall the ledger records for the span16 `emit` block ("the block has no free register").
+
+**What survives, and it is the useful part.** The 31.4x figure was never wrong as an *opportunity
+size*; it is wrong as a *reachability*. The honest summary of this renderer is now two-part and both
+halves are measured:
+
+| region | share | why it is closed |
+|---|---:|---|
+| span16 per-segment setup | 2.37% | latency-bound: charges 0.988/instr added, ~0.0 removed (4.1x-gate candidate measured 0.0000%) |
+| general + flat block rows | 6.85% | **minimal**: 6-for-6 and 3-for-3, every instruction has a distinct consumer |
+| `renderface`, `edge-scan`, alias | ~25% | priced and mapped; x87 remainder inadmissible |
+
+And the standing methodological correction is unchanged and now has a second illustration: **a
+large instruction budget is not an opportunity unless the instructions are removable.** This region
+has 31.1M texels' worth of budget and zero removable instructions in it, and it took a derivation
+rather than 150 experiments to establish that. The gate was never the binding constraint anywhere in
+this renderer; **instruction-level structure was, and it has now been shown minimal in the last two
+places anyone had a hypothesis for.**
+
+Verification: no code was built, no timedemo was run, no probe was added. Both repositories are
+code-clean, `d_draw16.s` remains 619 instructions, and the baseline is unchanged at **59.160558 s /
+16.379156 FPS**.
 ### The general surface-block path is **6.85% of frame at 0.77 cycles per instruction**, and one instruction per texel is worth **31x the gate** (2026-10-03, second pass of the day)
 
 > **This is a price, not a candidate.** Nothing was built. It is the first region found this
