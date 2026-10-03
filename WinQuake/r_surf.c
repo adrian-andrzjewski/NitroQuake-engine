@@ -561,6 +561,12 @@ void R_BuildLightMap (void)
 					lightmap_single_inverse_scale = inverse_scale;
 					lightmap_single_table_valid = true;
 				}
+#ifdef PROFILE486
+				// Texel population of the single-style table path, so the fused
+				// multi-style loop below can be priced against a measured
+				// denominator rather than inferred from rebuild_seconds.
+				bench486_lm_single_texels += size;
+#endif
 				for (i=0 ; i<size ; i++)
 				{
 					blocklights[i] = lightmap_single_table[lightmap[i]];
@@ -570,6 +576,10 @@ void R_BuildLightMap (void)
 
 			maps = surf->styles[2] == 255 ? 2 :
 					surf->styles[3] == 255 ? 3 : 4;
+#ifdef PROFILE486
+			bench486_lm_fused_texels += size;
+			bench486_lm_fused_maps[maps > 4 ? 4 : maps] += size;
+#endif
 #if defined(ASM486_FUSED_LIGHTMAP)
 			R_BuildLightMapFusedNoDlights_asm486 (blocklights, lightmap,
 					size, maps, scale, r_drawsurf.lightadj);
@@ -802,6 +812,9 @@ void R_DrawSurface (void)
 	double			bench486_surface_stage_start;
 	double			bench486_surface_stage_elapsed;
 	int				bench486_surface_profile_active;
+unsigned long	bench486_lm_single_texels;
+unsigned long	bench486_lm_fused_texels;
+unsigned long	bench486_lm_fused_maps[5];
 	int				bench486_light_v;
 	unsigned		*bench486_light_top;
 	unsigned		*bench486_light_bottom;

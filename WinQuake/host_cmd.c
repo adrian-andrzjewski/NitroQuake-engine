@@ -136,6 +136,12 @@ unsigned long bench486_texture_full_row_fast;
 // no fractional part, so the source advances one byte per sample with no
 // carry. Only the pixel count can be priced.
 unsigned long bench486_span_segments;
+// Lightmap build populations. The single-style path uses a 256-entry table and
+// the multi-style path the fused asm loop; they have very different per-texel
+// costs, so rebuild_seconds alone cannot price either.
+unsigned long bench486_lm_single_texels;
+unsigned long bench486_lm_fused_texels;
+unsigned long bench486_lm_fused_maps[5];
 unsigned long bench486_span_unit_stride_segments;
 unsigned long bench486_span_unit_stride_pixels;
 // Does the light byte %dh hold still across the eight texels of an mip-1
@@ -1362,6 +1368,12 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_full_row_eligible = 0;
 	bench486_texture_full_row_fast = 0;
 	bench486_span_segments = 0;
+	bench486_lm_single_texels = 0;
+	bench486_lm_fused_texels = 0;
+	{
+		int lm_i;
+		for (lm_i = 0; lm_i < 5; lm_i++) bench486_lm_fused_maps[lm_i] = 0;
+	}
 	bench486_span_unit_stride_segments = 0;
 	bench486_span_unit_stride_pixels = 0;
 	bench486_surf8_flat_rows = 0;
@@ -1537,6 +1549,16 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_span_segments,
 			bench486_span_unit_stride_segments,
 			bench486_span_unit_stride_pixels);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, Q_strlen(text));
+	// Its own report call, per the same buffer reason as the block above:
+	// lightmap build populations, split by path.
+	sprintf (text,
+			"lightmap-texels single %lu fused %lu maps2 %lu maps3 %lu maps4 %lu\n",
+			bench486_lm_single_texels, bench486_lm_fused_texels,
+			bench486_lm_fused_maps[2], bench486_lm_fused_maps[3],
+			bench486_lm_fused_maps[4]);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));

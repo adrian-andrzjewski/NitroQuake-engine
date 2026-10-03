@@ -9,6 +9,98 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### `R_BuildLightMap` is **0.06% of frame, not 7.5%** — and a real loop-invariant hoist in it is worth **0.04x the gate** (2026-10-03, fourth pass)
+
+> **This is a premise-falsification, and it falsifies an error made earlier in the same session.**
+> The previous three entries all worked from measured counters, which is the right discipline, and
+> this one still managed to misattribute 7.5% of frame to the wrong function. The counter that
+> settles it is now in the tree, so the next pass does not have to.
+
+#### The error, stated plainly
+
+`surface_cache.rebuild_seconds` reads 6.353 s, **7.96% of frame**, and for most of this session I
+treated that as `R_BuildLightMap`. It is not. `bench486_surface_cache_rebuild_start` is stamped in
+`D_CacheSurface` **after** the cache-validity check, and `rebuild_seconds` is read at function exit,
+so it spans the *entire* miss: allocation, eviction, `R_BuildLightMap`, and the
+`(*pblockdrawer)()` draw into the fresh cache blocks. Decomposed against the counters that nest
+inside it:
+
+```text
+rebuild_seconds      6.353 s   the whole D_CacheSurface miss
+  draw_seconds       6.173 s     nested inside it
+    block_seconds    5.471 s     R_DrawSurfaceBlock -- proven minimal earlier today
+  lightmap_seconds   0.351 s     R_BuildLightMapStyles, the dynamic-light path
+  remainder           0.180 s     allocation, eviction, mipmap upload
+```
+
+**So 86% of `rebuild_seconds` is the block drawer this file already proved 6-for-6 minimal, and the
+lightmap build is `lightmap_seconds` — 0.44% of frame at most.**
+
+#### The counters that say so
+
+Three were added for this pass (`bench486_lm_single_texels`, `bench486_lm_fused_texels`,
+`bench486_lm_fused_maps[5]`, reported as their own `lightmap-texels` line per the buffer rule) and
+one instrumented run settled it:
+
+```text
+lightmap-texels single 168206 fused 9372 maps2 9372 maps3 0 maps4 0
+```
+
+**177,578 lightmap texels across the whole run**, and the fused multi-style loop executes **9,372**
+times — all of them `maps == 2`. `maps3` and `maps4` are **zero**: this workload never lights a
+surface with three or four active styles.
+
+#### The candidate this killed, and it was a real one
+
+`R_BuildLightMapFusedNoDlights_asm486` reloads **four loop-invariants from the stack on every
+texel** — `scale` from `48(%esp)`, the `255*256` constant as an immediate, the trip count from
+`40(%esp)`, and the plane pointer from `0(%esp)` — in a hand-written loop that a `-O3` C compiler
+would have hoisted. That is a genuine defect: **the hand-written assembly is worse than the C
+reference it replaced**, and the fix is textbook (fold `scale` and `255*256` into one hoisted
+constant, and replace `incl`/`cmpl mem`/`jb` with `decl`/`jnz`). The single-table path is already
+3 instructions per texel and cannot be improved.
+
+It is also worth nothing:
+
+```text
+4 hoisted instructions x 9,372 executions = 37,488 instructions = 0.0011 s = 0.0019% = 0.04x the gate
+3 instructions x 168,206 single-table texels = 504,618 instructions = 0.0255% = 0.51x the gate
+```
+
+**0.04x the gate — a factor of 25 under it.** Removing *every* instruction the fused loop could
+possibly shed does not reach the promotion threshold, because the loop runs four orders of magnitude
+fewer times than the arithmetic assumed. The C-vs-assembly regression is real and is worth fixing on
+correctness-and-cleanliness grounds; it is not a performance candidate, ever.
+
+#### What this pass actually establishes
+
+The surface-cache bucket resolves completely, and none of it is addressable:
+
+| component | share of frame | disposition |
+|---|---:|---|
+| `R_DrawSurfaceBlock` | 6.85% | **minimal**, proven by derivation — see the general block row entry |
+| `R_BuildLightMapStyles` (dlight) | 0.44% | below gate as a whole |
+| `R_BuildLightMap` fill | **0.06%** | 0.04x–0.51x the gate; defect real but unmeasurable here |
+| allocation / eviction / mipmap | 0.23% | 1,152 tryalloc scans, 113 moves, 0 evictions |
+
+**A third region has now closed this session, and this is the first one closed by a fresh counter
+rather than by a failed search or an argument.** The method is the one the project already prescribes
+— count the operations a change would remove, then compare against 1,022.8 cycles/frame — applied to
+a candidate that was *about* to be built. Building it would have consumed a selector, four runners'
+plumbing, and two timedemo pairs to measure 0.0019%.
+
+**The generalisable trap, and it is worth naming because it nearly cost a build.** `rebuild_seconds`,
+`draw_seconds` and `block_seconds` are all named `*_seconds` and all sit in the same JSON object, and
+only one of them means what its name suggests at the granularity a reader assumes. `block_seconds`
+is per-`R_DrawSurfaceBlock`-**call**; `mip_seconds` inside it is summed per **call** but its
+`mip_blocks` divisor is `r_numhblocks * r_numvblocks`, i.e. per **block**. Reading those two as
+mutually consistent gets the per-texel figure right and the attribution wrong. **Before pricing
+anything in this bucket, read the scope of the `Sys_FloatTime` pair that produces the number** — in
+`d_surf.c` the rebuild clock starts after the validity check, not at the rebuild.
+
+Verification: three `PROFILE486`-guarded counters added (no release cost, no code-size cost); one
+instrumented `demo1` run, **969 frames, checksum `1047377823`**, `maps2 9372 maps3 0 maps4 0`.
+Baseline unchanged at **59.160558 s / 16.379156 FPS**; `d_draw16.s` still 619 instructions.
 ### Correction: the general block row is **minimal, and that is derivable** — the 31x gate is not reachable by removal (2026-10-03, third pass of the day)
 
 > **This closes the lead the previous entry ends on.** That entry priced the general surface-block
@@ -80,6 +172,13 @@ places anyone had a hypothesis for.**
 Verification: no code was built, no timedemo was run, no probe was added. Both repositories are
 code-clean, `d_draw16.s` remains 619 instructions, and the baseline is unchanged at **59.160558 s /
 16.379156 FPS**.
+> **A correction to the 6.85% attribution below, from the pass after this one.** `block_seconds` is
+> `R_DrawSurfaceBlock`'s *own* cost and that 6.85% figure is right, but it sits inside
+> `surface_cache.rebuild_seconds`'s 7.96% — and `rebuild_seconds` is **not** `R_BuildLightMap`. It
+> is stamped in `D_CacheSurface` *after* the validity check, so it spans the whole miss: allocation,
+> lightmap build, and the block draw. 86% of it is this drawer. See "`R_BuildLightMap` is 0.06% of
+> frame, not 7.5%".
+
 ### The general surface-block path is **6.85% of frame at 0.77 cycles per instruction**, and one instruction per texel is worth **31x the gate** (2026-10-03, second pass of the day)
 
 > **This is a price, not a candidate.** Nothing was built. It is the first region found this
