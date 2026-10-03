@@ -14,6 +14,14 @@
 
     Order and why:
 
+      0. doc-structure-check.ps1  pure text analysis over docs/; no compiler
+                                and no emulator, so it is the cheapest gate
+                                and the only one that judges the documents the
+                                other gates are described by. It enforces the
+                                ledger's own rule -- cite by heading, never by
+                                ":NNNN" -- after an audit found ten of twelve
+                                such citations wrong, each invalidated by a
+                                later insertion above it.
       1. test-build-dos.py      pure build-configuration arithmetic; needs no
                                 compiler, so it fails fastest and it is what
                                 decides whether the other gates are testing the
@@ -151,6 +159,8 @@ if ($null -eq $pwshExe) { $pwshExe = (Get-Command powershell) }
 $nb = if ($NoBootstrap) { @('-NoBootstrap') } else { @() }
 
 # ---- 1-3: host-only tests.  No compiler, no emulator, seconds each. --------
+Invoke-Gate -Name 'doc-structure-check (citations, links, ledger index)' -Kind 'host' `
+    -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/doc-structure-check.ps1') | Out-Null
 Invoke-Gate -Name 'test-build-dos (flag/suffix golden pins)' -Kind 'host' -Command @('python', 'tools/test-build-dos.py') | Out-Null
 Invoke-Gate -Name 'test-sysinfo-dos (sys_dos report path)' -Kind 'host' -Command @('python', 'tools/test-sysinfo-dos.py') | Out-Null
 Invoke-Gate -Name 'test-video-dos (vid_ext + vid_vga/vid_dos)' -Kind 'host' -Command @('python', 'tools/test-video-dos.py') | Out-Null

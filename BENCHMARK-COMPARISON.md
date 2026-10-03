@@ -36,8 +36,9 @@ This hash **is enforced**, as of the 2026-09-30 harness-integrity pass:
 `-ExpectedProfileSha256` and throws unless `-AllowGateOverride` is passed.
 `timedemo-dos.ps1:104` holds the constant. An earlier revision of this file
 correctly recorded it as *"recorded, not enforced"*; that is no longer true, and
-the same correction applies to `BUILD-DOS.md:187`. See `ASM486-HANDOFF.md`,
-"What this harness can and cannot measure".
+the same correction applies to `BUILD-DOS.md`, which now says to grep
+`ExpectedProfileSha256` rather than trust a line number. See
+`docs/ledger/2026-09-29-harness-and-cost-model.md`, under "What this harness can and cannot measure".
 
 ## Results
 
@@ -58,7 +59,7 @@ matched A/B measured **0.06198% faster** (delta 0.036689 s, 1,359x the clean
 control spread, every candidate run faster than every control run), against a
 predicted 0.036716 s from the instruction model — 0.07% error. `bench486`
 correctness PASS with end checksum `2378409472` and DOS smoke clean. See
-`ASM486-HANDOFF.md`, "`surf8` flat axis: three measured wins bundled and
+`docs/ledger/2026-10-02-surf8-bundle-and-promotion.md`, under "`surf8` flat axis: three measured wins bundled and
 **PROMOTED, 0.0620%**".
 
 **The row above was re-verified five more times on 2026-10-02 and 2026-10-03 and
@@ -83,11 +84,11 @@ The row below it, 59.227632 s, is the same source with
 control/candidate pairs: 0.030368 s, **0.0513% faster**, about 353x the
 0.000086 s control spread, with
 every candidate run faster than every control run. That is the
-`SurfaceBlockMip1HorizontalFlat=fast` promotion; see `ASM486-HANDOFF.md`,
+`SurfaceBlockMip1HorizontalFlat=fast` promotion; see `docs/ledger/2026-10-01-attribution-corrections.md`,
 "mip-1 horizontal-flat surface blocks". The 1800 KB row is the same selector set
 with the surface cache at 1800 KB; the 2400 KB default measured **0.0635%
 faster** (delta 0.037636 s, about 770x the run spread), and the checksum was
-`1047377823` on all six A/B runs. See `ASM486-HANDOFF.md`, "The 1800 KB
+`1047377823` on all six A/B runs. See `docs/ledger/2026-09-30-harness-fidelity-and-sourcing.md`, under "The 1800 KB
 surface-cache wall does not exist". This build
 uses the promoted `SurfaceBlockMip0Rows=unroll16`,
 `SurfaceBlockMip0HorizontalFlat=fast`, `SurfaceBlockMip1Rows=unroll8`,

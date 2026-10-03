@@ -510,7 +510,8 @@ $results = @()
 
 # The profile hash protects the file, not the numbers behind it. Compare it
 # against the pinned constant so a changed DOSBox-X core or configuration cannot
-# silently re-baseline the ledger (ASM486-HANDOFF.md:746-748).
+# silently re-baseline the ledger -- see docs\ledger\2026-10-03-region-pricing-sweep.md,
+# under "Correction: the general block row is minimal".
 if ($profileHash -ne $ExpectedProfileSha256) {
     if (-not $AllowGateOverride) {
         throw ("DOSBox-X profile SHA-256 mismatch.`n  expected {0}`n  actual   {1}`n" +

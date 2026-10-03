@@ -19,14 +19,14 @@ per-call figures behind it (253-304 cycles/call) were measured with a profiler
 whose own timer reads cost ~193 cycles, so 62-76% of each number was the clock.
 Re-measured with the scope amortized to one per triangle, the C glue costs
 1.83 s, a 3.1x overstatement — still thin, but now measured rather than assumed.
-See `ASM486-HANDOFF.md`, "Alias attribution corrected".
+See `ledger/2026-10-01-attribution-corrections.md`, under "Alias attribution corrected".
 
 The two large regions that measurement *does* trust, and that had never been
 decomposed, are `world-bsp` (10.2% of frame, `R_RecursiveWorldNode` plus the
 ~800-line `R_RenderFace`, `R_ClipEdge` and `R_EmitCachedEdge`) and `edge-scan`
 (8.0%, 1,373 cycles per scanline). Further work should not be chosen from this
 list. Before spending a timedemo on any 486-specific idea, read "What this
-harness can and cannot measure" in `ASM486-HANDOFF.md`: DOSBox-X does not model
+harness can and cannot measure" in `ledger/2026-09-29-harness-and-cost-model.md`: DOSBox-X does not model
 x87 latency, fetch boundaries, write-buffer occupancy, or 4 KB aliasing, so a
 measured null for those is weak evidence. Optimization effort belongs with ideas
 paid for in instruction count, memory traffic, or arithmetic.
@@ -45,7 +45,7 @@ paid for in instruction count, memory traffic, or arithmetic.
 >
 > So the "consider only a measured inner loop" advice in the Face/edge row below
 > has been carried out and returned nothing. **Read the two map entries in
-> `ASM486-HANDOFF.md` before choosing anything from this table.**
+> `../ASM486-HANDOFF.md` and `ledger/INDEX.md` before choosing anything from this table.**
 
 > ### 2026-10-03 — and a third region, which is now the largest open pool
 >
@@ -60,7 +60,7 @@ paid for in instruction count, memory traffic, or arithmetic.
 >   instructions of that setup cost 0.6186% of frame, so the ~23-instruction
 >   integer setup is **2.37% of frame, 47x the promotion gate**.
 >
->   No candidate yet. Four reductions are recorded dead in `ASM486-HANDOFF.md`.
+>   No candidate yet. Four reductions are recorded dead in `ledger/INDEX.md`.
 >
 > ### 2026-10-03, later — the clamp fusion was built, and it measured **0.0000%**
 >
@@ -87,7 +87,7 @@ paid for in instruction count, memory traffic, or arithmetic.
 > for assembler conversion. After 2026-10-03 the best-evidenced optimisation target
 > in the renderer is not on it, and is not a conversion at all — it is the
 > loop-carried dependency chain of existing hand-written DDA assembly in
-> `d_draw16.s`. **Read the `texture-spans` entries in `ASM486-HANDOFF.md` before
+> `d_draw16.s`. **Read the `texture-spans` entries in `ledger/INDEX.md` before
 > choosing anything from this table.**
 
 ## Candidate areas
@@ -334,7 +334,7 @@ default remains `SurfaceBlockMip0Rows=unroll4`; `unroll16` remains selectable
 for further matched A/B runs.~~
 **(Superseded 2026-10-02: `unroll16` IS the release default**, promoted at
 0.0620% inside the `surf8` bundle. This entry is the measurement that made it
-promotable. See `ASM486-HANDOFF.md`, "`surf8` flat axis: three measured wins
+promotable. See `ledger/2026-10-02-surf8-bundle-and-promotion.md`, under "`surf8` flat axis: three measured wins
 bundled and **PROMOTED, 0.0620%**".)
 
 The control `qbench.exe` was 791,040 bytes with SHA-256

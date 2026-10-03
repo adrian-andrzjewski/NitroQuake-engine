@@ -22,7 +22,7 @@ framebuffer checksum 1047377823    bench486 end checksum 2378409472
 Recorded in `../BENCHMARK-COMPARISON.md`. Re-measured 2026-10-02 at
 **59.160513 s** median over three runs — a 0.00008% difference, i.e. noise, so
 the baseline is unchanged and the 2026-10-02 work promoted nothing. The
-offline-precompute axis is closed by measurement; `../ASM486-HANDOFF.md` holds
+offline-precompute axis is closed by measurement; `ledger/INDEX.md` holds
 every number behind that, plus each candidate that was rejected and why.
 
 ## The two largest unmeasured pools, and one of them is now measured
@@ -129,7 +129,7 @@ direction. DOSBox-X's dynamic core charges **1.0 cycle per removed
 instruction**, measured two independent ways that agree to 1.5%: a dead-scratch
 probe of 24 straight-line integer ops (`imull`/`shrl`/`addl`) at 0.9956, and a
 promoted hoist of register-only partial moves at 0.981. Both are recorded in
-`../ASM486-HANDOFF.md`.
+`ledger/INDEX.md`.
 
 The mip-1 flat-path promotion implies a *different* rate, 0.66 cycles per
 instruction, because its 13 instructions per row include two global loads and a
@@ -292,7 +292,7 @@ The 0.05% DOSBox-X timedemo delta is the **sole promotion criterion**, and it
 is unchanged. An earlier draft of the plan proposed replacing it with a static
 486 cycle model; that was wrong and was reverted.
 
-The reasoning is the harness's own, recorded in `../ASM486-HANDOFF.md` under
+The reasoning is the harness's own, recorded in `ledger/2026-09-29-harness-and-cost-model.md` under
 "**What this harness can and cannot measure**" ("**Applying the rule.**" inside it):
 DOSBox-X prices x87 at ~1.04 cy/op where a 486DX spends roughly 12, and models
 neither fetch boundaries, write-buffer occupancy, nor 4 KB page aliasing. A
