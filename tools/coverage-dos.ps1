@@ -81,20 +81,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
-
-if ([string]::IsNullOrWhiteSpace($ToolRoot)) {
-    $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
-    if ([string]::IsNullOrWhiteSpace($localAppData)) {
-        throw 'Could not determine the Windows local application-data directory.'
-    }
-    $ToolRoot = Join-Path $localAppData '486quake\tools'
-}
-$ToolRoot = [IO.Path]::GetFullPath($ToolRoot)
-if ([string]::IsNullOrWhiteSpace($DataRoot)) {
-    $DataRoot = Join-Path $repoRoot 'testdata\id1'
-}
-$DataRoot = [IO.Path]::GetFullPath($DataRoot)
+. (Join-Path $PSScriptRoot 'common.ps1')
+$toolManifest = Read-ToolchainManifest -ToolsDirectory $PSScriptRoot
+$ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
+$DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
 $buildParams = @{ CpuTarget = $CpuTarget }
@@ -111,7 +101,6 @@ $releaseExe = $resolved.executable
 # anything if it was reached in the binary under test, so a stale binary
 # invalidates the result. Hashing is shared with the other three runners via
 # tools\common.ps1.
-. (Join-Path $PSScriptRoot 'common.ps1')
 $sourceFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $resolved
 $freshness = Get-BuildFreshness -Executable $releaseExe -Fingerprint $sourceFingerprint
 if ((-not $SkipBuild) -or $freshness.Stale) {
@@ -134,51 +123,17 @@ if (-not (Test-Path -LiteralPath $releaseExe -PathType Leaf)) {
 # The build's ISA gate prints to stdout; -DumpFlags above is a pure inspection and
 # must stay quiet, so nothing else is echoed here.
 
-# The executable name comes from the manifest, as it does in smoke-dos.ps1,
-# bench-dos.ps1 and timedemo-dos.ps1. This runner used to hardcode 'dosbox-x.exe'
-# beside installDirectory, so a manifest that named the binary differently -- or a
-# build that shipped it in a subdirectory -- would break here alone.
-$dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
-$dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
-$profileTemplate = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
-if (-not (Test-Path -LiteralPath $profileTemplate -PathType Leaf)) {
-    throw "DOSBox-X profile is missing: '$profileTemplate'."
-}
-# Bootstrap on demand, like the other three runners. Without this, -NoBootstrap
-# meant something different here than everywhere else: a fresh machine got a bare
-# "required tool is missing" naming no way to fix it.
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
-    if ($NoBootstrap) {
-        throw "DOSBox-X not found at '$dosbox'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
-    }
-    & $bootstrap -ToolRoot $ToolRoot
-}
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    throw "Required DOSBox-X executable is missing: '$dosbox'."
-}
-if (-not (Test-Path -LiteralPath $DataRoot -PathType Container)) {
-    throw "Game data directory '$DataRoot' does not exist."
-}
-$pakFiles = @(Get-ChildItem -LiteralPath $DataRoot -Filter 'pak*.pak' -File)
-if ($pakFiles.Count -eq 0) {
-    throw "'$DataRoot' must contain pak0.pak."
-}
-if ([IO.Path]::GetPathRoot($DataRoot) -ne [IO.Path]::GetPathRoot($repoRoot)) {
-    throw 'Game data must be on the same volume as the repository so staging can hardlink it.'
-}
+$dosbox = Resolve-DosboxExecutable -Manifest $toolManifest -ToolRoot $ToolRoot `
+    -ToolsDirectory $PSScriptRoot -NoBootstrap:$NoBootstrap
 
 $stamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
-$stagingRoot = Join-Path $repoRoot ('out\dos-coverage-{0}-{1}' -f $Scenario, $stamp)
-$quakeRoot = Join-Path $stagingRoot 'quake'
-$stagedData = Join-Path $quakeRoot 'id1'
-New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
-
-Copy-Item -LiteralPath $releaseExe -Destination (Join-Path $quakeRoot 'quake.exe') -Force
-Copy-Item -LiteralPath (Join-Path $repoRoot 'src\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
-foreach ($pak in $pakFiles) {
-    New-Item -ItemType HardLink -Path (Join-Path $stagedData $pak.Name) -Value $pak.FullName -Force | Out-Null
-}
+$staging = New-QuakeStaging -RepoRoot $repoRoot `
+    -StagingRoot (Join-Path $repoRoot ('out\dos-coverage-{0}-{1}' -f $Scenario, $stamp)) `
+    -Executable $releaseExe -StagedExecutableName 'quake.exe' -DataRoot $DataRoot `
+    -OnExistingStaging Throw -StageDpmiHost
+$stagingRoot = $staging.StagingRoot
+$quakeRoot = $staging.QuakeRoot
+$stagedData = $staging.StagedData
 
 # The scenario commands go in id1\autoexec.cfg, NOT in '+' arguments. quake.rc runs
 #     exec default.cfg / exec config.cfg / exec autoexec.cfg / stuffcmds / startdemos
@@ -217,59 +172,20 @@ if not errorlevel 1 echo 0 > \quake\coverage.exi
 exit
 "@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
-$profileText = Get-Content -LiteralPath $profileTemplate -Raw
-$mountPath = $stagingRoot.Replace('"', '""')
-$autoexec = (@"
-[autoexec]
-mount c "$mountPath"
-c:
-cd \quake
-call coverage.bat
-exit
-"@).TrimEnd() + [Environment]::NewLine
-$runtimeConfig = [regex]::Replace(
-    $profileText,
-    '(?ms)^\[autoexec\]\s*.*?(?=^\[devices\])',
-    [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $autoexec })
-if ($runtimeConfig -eq $profileText) {
-    throw "Could not replace the autoexec section in '$profileTemplate'."
-}
-if ($CpuTarget -ne 'i486') {
-    $forced = [regex]::Replace($runtimeConfig, '(?m)^cputype\s*=\s*\S+', ('cputype            = ' + ($CpuTarget -replace '^i', '')))
-    if ($forced -eq $runtimeConfig) {
-        throw "Could not set the DOSBox-X cputype for target '$CpuTarget'."
-    }
-    $runtimeConfig = $forced
-}
-$configPath = Join-Path $stagingRoot 'dosbox-x.conf'
-$runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
+$configPath = New-DosboxRuntimeConfig -ProfileTemplate (Get-DosboxProfilePath -ToolsDirectory $PSScriptRoot) `
+    -StagingRoot $stagingRoot -BatchName 'coverage.bat' -CpuTarget $CpuTarget -ConfigName 'dosbox-x.conf'
 
 Write-Host ("Coverage scenario '{0}': map e1m1 + connect local + {1} frame(s)" -f $Scenario, $Frames)
 Write-Host ("Staging: {0}" -f $stagingRoot)
 
-$processInfo = New-Object System.Diagnostics.ProcessStartInfo
-$processInfo.FileName = $dosbox
-$processInfo.Arguments = '-exit -conf "' + $configPath + '"'
-$processInfo.WorkingDirectory = Split-Path -Parent $dosbox
-$processInfo.UseShellExecute = $false
-$processInfo.CreateNoWindow = $true
-
-$process = New-Object System.Diagnostics.Process
-$process.StartInfo = $processInfo
-$timedOut = $false
-try {
-    if (-not $process.Start()) { throw 'DOSBox-X failed to start.' }
-    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-        $process.Kill()
-        $timedOut = $true
-    }
-}
-finally {
-    $process.Dispose()
-}
+# A timeout is not fatal here, unlike in the other three runners: this gate still
+# has to write a result document recording that the scenario did not complete.
+$run = Invoke-DosboxProcess -Dosbox $dosbox -ConfigPath $configPath `
+    -TimeoutSeconds $TimeoutSeconds -Description "DOSBox-X coverage scenario '$Scenario'"
+$timedOut = $run.TimedOut
+$dosboxExit = $run.ExitCode
 
 $markerPath = Join-Path $quakeRoot 'coverage.exi'
-$dosboxExit = if ($timedOut) { $null } else { $process.ExitCode }
 $quakeExit = $null
 if (Test-Path -LiteralPath $markerPath -PathType Leaf) {
     $raw = (Get-Content -LiteralPath $markerPath -Raw).Trim()

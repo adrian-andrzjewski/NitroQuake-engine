@@ -128,18 +128,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-if ([string]::IsNullOrWhiteSpace($ToolRoot)) {
-    $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
-    if ([string]::IsNullOrWhiteSpace($localAppData)) {
-        throw 'Could not determine the Windows local application-data directory.'
-    }
-    $ToolRoot = Join-Path $localAppData '486quake\tools'
-}
-$ToolRoot = [IO.Path]::GetFullPath($ToolRoot)
-if ([string]::IsNullOrWhiteSpace($DataRoot)) {
-    $DataRoot = Join-Path $repoRoot 'testdata\id1'
-}
-$DataRoot = [IO.Path]::GetFullPath($DataRoot)
+. (Join-Path $PSScriptRoot 'common.ps1')
+$ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
+$DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 if ($TimeoutSeconds -lt 30) {
     throw 'TimeoutSeconds must be at least 30 seconds.'
 }
@@ -162,7 +153,7 @@ if ($TextureSpanStores -eq 'stosw' -and
 	throw 'The stosw texture-span store path requires control load order, addressing, and row path.'
 }
 
-$toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
+$toolManifest = Read-ToolchainManifest -ToolsDirectory $PSScriptRoot
 $buildParams = @{
     Benchmark                            = $true
     CpuTarget                            = $CpuTarget
@@ -207,7 +198,6 @@ $buildParams = @{
 }
 
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
-$bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
 
 # Ask the builder where the output lands instead of recomputing the profile
 # suffix here.  This runner used to carry its own copy of that arithmetic, and so
@@ -217,24 +207,16 @@ $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
 $benchmarkExe = $resolved.executable
 
-$dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
-$dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
-$profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
+$dosbox = Resolve-DosboxExecutable -Manifest $toolManifest -ToolRoot $ToolRoot `
+    -ToolsDirectory $PSScriptRoot -NoBootstrap:$NoBootstrap
+# Still needed by name below: the parity gate hashes this file, and the result
+# document records which profile produced the numbers.
+$profilePath = Get-DosboxProfilePath -ToolsDirectory $PSScriptRoot
 
 # The staged executable name follows the builder's resolution too: -Benchmark
 # gives qbench.exe and -Instrumentation gives qprof.exe, and duplicating that
 # rule here is what let the two sides drift apart.
 $executableName = [IO.Path]::GetFileName($resolved.executable)
-
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    if ($NoBootstrap) {
-        throw "DOSBox-X not found at '$dosbox'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
-    }
-    & $bootstrap -ToolRoot $ToolRoot
-}
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    throw "Required DOSBox-X executable is missing: '$dosbox'."
-}
 
 # The previous gate here was `if (-not (Test-Path $benchmarkExe))`, keyed on the
 # selector profile alone. That silently ignored every source edit once the
@@ -248,8 +230,7 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
 # both build -Benchmark into the same directory, and their two hand-written
 # selector lists had drifted in order, so a fixed fingerprint filename would have
 # had them overwrite each other's record and rebuild each other's binary on
-# alternating runs.
-. (Join-Path $PSScriptRoot 'common.ps1')
+# alternating runs. (common.ps1 is dot-sourced once, at the top.)
 $sourceFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $resolved
 
 $freshness = Get-BuildFreshness -Executable $benchmarkExe -Fingerprint $sourceFingerprint
@@ -280,28 +261,21 @@ if ((-not $executableExists) -or $staleBuild) {
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
 }
-if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
-    throw "486 DOSBox-X profile is missing: '$profilePath'."
-}
-if (-not (Test-Path -LiteralPath $DataRoot -PathType Container)) {
-    throw "Game data directory '$DataRoot' does not exist. Put legally obtained data there or pass -DataRoot."
-}
-$pak0 = Get-ChildItem -LiteralPath $DataRoot -Filter 'pak0.pak' -File | Select-Object -First 1
-if ($null -eq $pak0) {
-    throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not included in Git."
-}
 
-$dpmiSuffix = if ($DpmiHost -eq 'cwsdpmi') { '' } else { '-hdpmi32' }
-$runName = 'dos-timedemo' + $dpmiSuffix + '-' + (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss')
-$stagingRoot = Join-Path (Join-Path $repoRoot 'out') $runName
-if (Test-Path -LiteralPath $stagingRoot) {
-    throw "Timedemo staging path already exists; refusing to overwrite '$stagingRoot'."
-}
-$quakeRoot = Join-Path $stagingRoot 'quake'
-$stagedData = Join-Path $quakeRoot 'id1'
 $fpsStatsEnabled = [bool]($FpsStats -and -not $NoFpsStats)
 $fpsStatsOptions = if ($fpsStatsEnabled) { ' -fpsstats' } else { '' }
-New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
+
+$dpmiSuffix = if ($DpmiHost -eq 'cwsdpmi') { '' } else { '-hdpmi32' }
+# The DPMI host is NOT staged here: this runner chooses between cwsdpmi and
+# HDPMI32, and for HDPMI32 it must leave cwsdpmi.exe out so the DJGPP GO32 stub
+# does not auto-load it. Its own block below stages the right one.
+$staging = New-QuakeStaging -RepoRoot $repoRoot `
+    -StagingRoot (Join-Path (Join-Path $repoRoot 'out') ('dos-timedemo' + $dpmiSuffix + '-' + (Get-Date).ToUniversalTime().ToString('yyyyMMdd-HHmmss'))) `
+    -Executable $benchmarkExe -StagedExecutableName $executableName -DataRoot $DataRoot `
+    -OnExistingStaging Throw
+$stagingRoot = $staging.StagingRoot
+$quakeRoot = $staging.QuakeRoot
+$stagedData = $staging.StagedData
 
 $cwsdpmiSource = Join-Path $repoRoot 'src\cwsdpmi.exe'
 $hdpmiDir = Join-Path $PSScriptRoot 'thirdparty\hdpmi'
@@ -311,17 +285,6 @@ $dpmiHostPath = $null
 $dpmiHostSha256 = $null
 $hdpmiLoadLine = ''
 $dpmiProbeLines = @()
-
-Copy-Item -LiteralPath $benchmarkExe -Destination (Join-Path $quakeRoot $executableName)
-
-# Hardlink the paks instead of copying ~50 MB per run. Same volume as the
-# repository is required because NTFS hardlinks cannot span volumes.
-if ([IO.Path]::GetPathRoot($DataRoot) -ne [IO.Path]::GetPathRoot($repoRoot)) {
-    throw "Game data must be on the same volume as the repository so staging can hardlink it instead of copying 50 MB per run. Copy pak*.pak to '$(Join-Path $repoRoot 'testdata\id1')' and drop -DataRoot. See BUILD-DOS.md."
-}
-foreach ($pak in Get-ChildItem -LiteralPath $DataRoot -Filter 'pak*.pak' -File) {
-    New-Item -ItemType HardLink -Path (Join-Path $stagedData $pak.Name) -Value $pak.FullName -Force | Out-Null
-}
 
 if ($DpmiHost -eq 'cwsdpmi') {
     if (-not (Test-Path -LiteralPath $cwsdpmiSource -PathType Leaf)) {
@@ -376,49 +339,8 @@ $loadBlock$probeBlock$executableName -basedir \quake -timedemoexit$fpsStatsOptio
 exit
 "@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
-$profileText = Get-Content -LiteralPath $profilePath -Raw
-$mountPath = $stagingRoot.Replace('"', '""')
-$autoexec = (@"
-[autoexec]
-mount c "$mountPath"
-c:
-cd \quake
-call timedemo.bat
-exit
-"@).TrimEnd() + [Environment]::NewLine
-$runtimeConfig = [regex]::Replace(
-    $profileText,
-    '(?ms)^\[autoexec\]\s*.*?(?=^\[devices\])',
-    [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $autoexec })
-if ($runtimeConfig -eq $profileText) {
-    throw "Could not replace the autoexec section in '$profilePath'."
-}
-
-# Follow the build target's CPU model.  The base profile uses a fixed cycle count
-# so timings stay comparable; only the emulated CPU changes.  DOSBox-X's cputype
-# does not enforce instruction-set gating, so the ISA audit remains the gate.
-if ($CpuTarget -ne 'i486') {
-    $cpuModel = $CpuTarget -replace '^i', ''
-    $forcedConfig = [regex]::Replace(
-        $runtimeConfig,
-        '(?m)^cputype\s*=\s*\S+',
-        "cputype            = $cpuModel")
-    if ($forcedConfig -eq $runtimeConfig) {
-        throw "Could not set the DOSBox-X cputype to '$cpuModel' in '$profilePath'."
-    }
-    $runtimeConfig = $forcedConfig
-}
-$configPath = Join-Path $stagingRoot 'dosbox-x-timedemo.conf'
-$runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
-
-function ConvertTo-ProcessArgument {
-    param([Parameter(Mandatory = $true)][string]$Value)
-
-    if ($Value -notmatch '[\s"]') {
-        return $Value
-    }
-    return '"' + $Value.Replace('"', '\"') + '"'
-}
+$configPath = New-DosboxRuntimeConfig -ProfileTemplate $profilePath `
+    -StagingRoot $stagingRoot -BatchName 'timedemo.bat' -CpuTarget $CpuTarget -ConfigName 'dosbox-x-timedemo.conf'
 
 $sha256 = [Security.Cryptography.SHA256]::Create()
 try {
@@ -468,29 +390,12 @@ for ($run = 1; $run -le $Runs; $run++) {
         Remove-Item -LiteralPath $profileJsonPath -Force
     }
 
-    $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $processInfo.FileName = $dosbox
-    $processInfo.Arguments = '-conf ' + (ConvertTo-ProcessArgument $configPath) + ' -exit'
-    $processInfo.WorkingDirectory = Split-Path -Parent $dosbox
-    $processInfo.UseShellExecute = $false
-    $processInfo.CreateNoWindow = $true
-
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $processInfo
-    try {
-        Write-Host "Launching DOSBox-X 486 timedemo run $run/$Runs"
-        if (-not $process.Start()) {
-            throw 'DOSBox-X failed to start.'
-        }
-        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-            $process.Kill()
-            throw "DOSBox-X timedemo exceeded $TimeoutSeconds seconds."
-        }
-        $dosboxExit = $process.ExitCode
+    $dosboxRun = Invoke-DosboxProcess -Dosbox $dosbox -ConfigPath $configPath `
+        -TimeoutSeconds $TimeoutSeconds -Description "DOSBox-X 486 timedemo run $run/$Runs"
+    if ($dosboxRun.TimedOut) {
+        throw "DOSBox-X timedemo exceeded $TimeoutSeconds seconds."
     }
-    finally {
-        $process.Dispose()
-    }
+    $dosboxExit = $dosboxRun.ExitCode
 
     if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
         throw "DOSBox-X exited with code $dosboxExit but Quake did not produce '$reportPath'."

@@ -65,18 +65,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-if ([string]::IsNullOrWhiteSpace($ToolRoot)) {
-    $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
-    if ([string]::IsNullOrWhiteSpace($localAppData)) {
-        throw 'Could not determine the Windows local application-data directory.'
-    }
-    $ToolRoot = Join-Path $localAppData '486quake\tools'
-}
-$ToolRoot = [IO.Path]::GetFullPath($ToolRoot)
-if ([string]::IsNullOrWhiteSpace($DataRoot)) {
-    $DataRoot = Join-Path $repoRoot 'testdata\id1'
-}
-$DataRoot = [IO.Path]::GetFullPath($DataRoot)
+. (Join-Path $PSScriptRoot 'common.ps1')
+$ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
+$DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 
 if ($TextureSpanStores -eq 'stosw' -and
 		($TextureSpanLoadOrder -ne 'control' -or
@@ -84,7 +75,7 @@ if ($TextureSpanStores -eq 'stosw' -and
 	throw 'The stosw texture-span store path requires control load order and addressing.'
 }
 
-$toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
+$toolManifest = Read-ToolchainManifest -ToolsDirectory $PSScriptRoot
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
 $buildParams = @{
     ToolRoot = $ToolRoot
@@ -117,19 +108,8 @@ $buildParams = @{
 # wrote.  The builder is the only place that knows.
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
 $djgppExe = $resolved.executable
-$dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
-$dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
-$bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
-
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    if ($NoBootstrap) {
-        throw "DOSBox-X not found at '$dosbox'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
-    }
-    & $bootstrap -ToolRoot $ToolRoot
-}
-if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
-    throw "Required DOSBox-X executable is missing: '$dosbox'."
-}
+$dosbox = Resolve-DosboxExecutable -Manifest $toolManifest -ToolRoot $ToolRoot `
+    -ToolsDirectory $PSScriptRoot -NoBootstrap:$NoBootstrap
 
 # Rebuild when the executable is missing OR when it no longer matches the tree.
 # This runner used to test only for existence, so an existing quake.exe was
@@ -137,7 +117,6 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
 # defect bench-dos.ps1 had already fixed for itself, and the reason a correctness
 # failure there could once be reported against a stale binary. The hashing is
 # shared with the other three runners via tools\common.ps1.
-. (Join-Path $PSScriptRoot 'common.ps1')
 $sourceFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $resolved
 $freshness = Get-BuildFreshness -Executable $djgppExe -Fingerprint $sourceFingerprint
 if ((-not $freshness.Exists) -or $freshness.Stale) {
@@ -163,42 +142,20 @@ if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     throw "Required DOS executable is missing: '$djgppExe'."
 }
 
-if (-not (Test-Path -LiteralPath $DataRoot -PathType Container)) {
-    throw "Game data directory '$DataRoot' does not exist. Put legally obtained data there or pass -DataRoot."
-}
-$pak0 = Get-ChildItem -LiteralPath $DataRoot -Filter 'pak0.pak' -File | Select-Object -First 1
-if ($null -eq $pak0) {
-    throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not included in Git."
-}
 if ($TimeoutSeconds -lt 5) {
     throw 'TimeoutSeconds must be at least 5 seconds.'
 }
 
-$stagingRoot = Join-Path $repoRoot 'out\dos-smoke'
-if (Test-Path -LiteralPath $stagingRoot) {
-    Remove-Item -LiteralPath $stagingRoot -Recurse -Force
-}
-$quakeRoot = Join-Path $stagingRoot 'quake'
-$stagedData = Join-Path $quakeRoot 'id1'
-New-Item -ItemType Directory -Path $quakeRoot -Force | Out-Null
-New-Item -ItemType Directory -Path $stagedData -Force | Out-Null
-
-Copy-Item -LiteralPath $djgppExe -Destination (Join-Path $quakeRoot 'quake.exe') -Force
-Copy-Item -LiteralPath (Join-Path $repoRoot 'src\cwsdpmi.exe') -Destination (Join-Path $quakeRoot 'cwsdpmi.exe') -Force
-# Stage only PAK files, as hardlinks. Steam id1 also contains configs, saves,
-# and autoexec lines that can prevent +quit from returning under the 486 cycle
-# cap. Hardlinking needs the same volume as the repository because NTFS
-# hardlinks cannot span volumes.
-$pakFiles = @(Get-ChildItem -LiteralPath $DataRoot -Filter 'pak*.pak' -File)
-if ($pakFiles.Count -eq 0) {
-    throw "'$DataRoot' must contain pak0.pak. Game data is intentionally not included in Git."
-}
-if ([IO.Path]::GetPathRoot($DataRoot) -ne [IO.Path]::GetPathRoot($repoRoot)) {
-    throw "Game data must be on the same volume as the repository so staging can hardlink it instead of copying 50 MB per run. Copy pak*.pak to '$(Join-Path $repoRoot 'testdata\id1')' and drop -DataRoot. See BUILD-DOS.md."
-}
-foreach ($pak in $pakFiles) {
-    New-Item -ItemType HardLink -Path (Join-Path $stagedData $pak.Name) -Value $pak.FullName -Force | Out-Null
-}
+# This runner's staging directory has a fixed name, so it is overwritten rather
+# than refused.  The data-root and pak checks, the same-volume check and the
+# hardlinking are in New-QuakeStaging; the ordering note on hardlinks and Steam's
+# extra files is on that function.
+$staging = New-QuakeStaging -RepoRoot $repoRoot -StagingRoot (Join-Path $repoRoot 'out\dos-smoke') `
+    -Executable $djgppExe -StagedExecutableName 'quake.exe' -DataRoot $DataRoot `
+    -OnExistingStaging Overwrite -StageDpmiHost
+$stagingRoot = $staging.StagingRoot
+$quakeRoot = $staging.QuakeRoot
+$stagedData = $staging.StagedData
 
 # quake.rc runs startdemos after stuffcmds in some layouts; a local autoexec
 # quits during Host_Init's first Cbuf_Execute so smoke never plays demo1.
@@ -216,79 +173,17 @@ echo 0 > \quake\smoke.exi
 exit
 '@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
-# One DOSBox-X profile serves both targets; the CPU model is forced in the
-# staged copy below rather than duplicated into a second 118 KB file.  Note that
-# DOSBox-X's cputype changes cycle costs -- it does not enforce instruction-set
-# gating -- so this only makes the run representative.  The object-level ISA
-# audit is the real i386 gate.
-$profilePath = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
-if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
-    throw "DOSBox-X profile is missing: '$profilePath'."
-}
-$profileText = Get-Content -LiteralPath $profilePath -Raw
-$mountPath = $stagingRoot.Replace('"', '""')
-$autoexec = (@"
-[autoexec]
-mount c "$mountPath"
-c:
-cd \quake
-call smoke.bat
-exit
-"@).TrimEnd() + [Environment]::NewLine
-$runtimeConfig = [regex]::Replace(
-    $profileText,
-    '(?ms)^\[autoexec\]\s*.*?(?=^\[devices\])',
-    [System.Text.RegularExpressions.MatchEvaluator]{ param($match) $autoexec })
-if ($runtimeConfig -eq $profileText) {
-    throw "Could not replace the autoexec section in '$profilePath'."
-}
-# Follow the build target's CPU model.  The base profile uses a fixed cycle count
-# so timings stay comparable; only the emulated CPU changes.
-if ($CpuTarget -ne 'i486') {
-    $cpuModel = $CpuTarget -replace '^i', ''
-    $forcedConfig = [regex]::Replace(
-        $runtimeConfig,
-        '(?m)^cputype\s*=\s*\S+',
-        "cputype            = $cpuModel")
-    if ($forcedConfig -eq $runtimeConfig) {
-        throw "Could not set the DOSBox-X cputype to '$cpuModel' in '$profilePath'."
-    }
-    $runtimeConfig = $forcedConfig
-}
-$configPath = Join-Path $stagingRoot 'dosbox-x.conf'
-$runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
+# One DOSBox-X profile serves every runner and both CPU targets; the runtime copy
+# differs only in its [autoexec] and, for a non-i486 build, its cputype.
+$configPath = New-DosboxRuntimeConfig -ProfileTemplate (Get-DosboxProfilePath -ToolsDirectory $PSScriptRoot) `
+    -StagingRoot $stagingRoot -BatchName 'smoke.bat' -CpuTarget $CpuTarget -ConfigName 'dosbox-x.conf'
 
-function ConvertTo-ProcessArgument {
-    param([Parameter(Mandatory = $true)][string]$Value)
-
-    if ($Value -notmatch '[\s"]') {
-        return $Value
-    }
-    return '"' + $Value.Replace('"', '\"') + '"'
+$run = Invoke-DosboxProcess -Dosbox $dosbox -ConfigPath $configPath `
+    -TimeoutSeconds $TimeoutSeconds -Description 'DOSBox-X smoke test'
+if ($run.TimedOut) {
+    throw "DOSBox-X smoke test exceeded $TimeoutSeconds seconds."
 }
-
-$processInfo = New-Object System.Diagnostics.ProcessStartInfo
-$processInfo.FileName = $dosbox
-$processInfo.Arguments = '-conf ' + (ConvertTo-ProcessArgument $configPath) + ' -exit'
-$processInfo.WorkingDirectory = Split-Path -Parent $dosbox
-$processInfo.UseShellExecute = $false
-$processInfo.CreateNoWindow = $true
-
-$process = New-Object System.Diagnostics.Process
-$process.StartInfo = $processInfo
-try {
-    Write-Host 'Launching DOSBox-X smoke test'
-    if (-not $process.Start()) {
-        throw 'DOSBox-X failed to start.'
-    }
-    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-        $process.Kill()
-        throw "DOSBox-X smoke test exceeded $TimeoutSeconds seconds."
-    }
-    $dosboxExit = $process.ExitCode
-} finally {
-    $process.Dispose()
-}
+$dosboxExit = $run.ExitCode
 
 $exitMarker = Join-Path $quakeRoot 'smoke.exi'
 if (-not (Test-Path -LiteralPath $exitMarker -PathType Leaf)) {
