@@ -132,14 +132,33 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
     throw "Required DOSBox-X executable is missing: '$dosbox'."
 }
 
-if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
+# Rebuild when the executable is missing OR when it no longer matches the tree.
+# This runner used to test only for existence, so an existing quake.exe was
+# smoke-tested indefinitely no matter how many sources had changed -- the same
+# defect bench-dos.ps1 had already fixed for itself, and the reason a correctness
+# failure there could once be reported against a stale binary. The hashing is
+# shared with the other three runners via tools\common.ps1.
+. (Join-Path $PSScriptRoot 'common.ps1')
+$sourceFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $resolved
+$freshness = Get-BuildFreshness -Executable $djgppExe -Fingerprint $sourceFingerprint
+if ((-not $freshness.Exists) -or $freshness.Stale) {
     if ($SkipBuild) {
+        if ($freshness.Stale) {
+            throw "DOS executable '$djgppExe' is stale with respect to the current sources (fingerprint $sourceFingerprint). Rerun without -SkipBuild to rebuild."
+        }
         throw "DOS executable not found at '$djgppExe'. Run build-dos.ps1 first or omit -SkipBuild."
+    }
+    if ($freshness.Stale) {
+        Write-Host ("Release build is stale (fingerprint {0}); rebuilding." -f $freshness.FingerprintPrefix)
     }
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
     }
     & $build @buildParams
+    if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
+        throw "Required DOS executable is missing: '$djgppExe'."
+    }
+    Set-BuildFingerprint -Executable $djgppExe -Fingerprint $sourceFingerprint
 }
 if (-not (Test-Path -LiteralPath $djgppExe -PathType Leaf)) {
     throw "Required DOS executable is missing: '$djgppExe'."

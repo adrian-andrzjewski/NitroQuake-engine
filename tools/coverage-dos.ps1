@@ -85,11 +85,16 @@ $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain
 
 if ([string]::IsNullOrWhiteSpace($ToolRoot)) {
     $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
+    if ([string]::IsNullOrWhiteSpace($localAppData)) {
+        throw 'Could not determine the Windows local application-data directory.'
+    }
     $ToolRoot = Join-Path $localAppData '486quake\tools'
 }
+$ToolRoot = [IO.Path]::GetFullPath($ToolRoot)
 if ([string]::IsNullOrWhiteSpace($DataRoot)) {
     $DataRoot = Join-Path $repoRoot 'testdata\id1'
 }
+$DataRoot = [IO.Path]::GetFullPath($DataRoot)
 
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
 $buildParams = @{ CpuTarget = $CpuTarget }
@@ -99,8 +104,28 @@ if ($NoBootstrap) { $buildParams.NoBootstrap = $true }
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
 $releaseExe = $resolved.executable
 
-if (-not $SkipBuild) {
+# Rebuild when the executable is missing OR when it no longer matches the tree.
+# This runner used to test only for existence, so an existing quake.exe was
+# coverage-tested indefinitely however many sources had changed. The claim this
+# gate makes -- that world.c, sv_* and pr_* were reached -- is only worth
+# anything if it was reached in the binary under test, so a stale binary
+# invalidates the result. Hashing is shared with the other three runners via
+# tools\common.ps1.
+. (Join-Path $PSScriptRoot 'common.ps1')
+$sourceFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $resolved
+$freshness = Get-BuildFreshness -Executable $releaseExe -Fingerprint $sourceFingerprint
+if ((-not $SkipBuild) -or $freshness.Stale) {
+    if ($SkipBuild -and $freshness.Stale) {
+        throw "DOS executable '$releaseExe' is stale with respect to the current sources (fingerprint $sourceFingerprint). Rerun without -SkipBuild to rebuild."
+    }
+    if ($freshness.Stale) {
+        Write-Host ("Release build is stale (fingerprint {0}); rebuilding." -f $freshness.FingerprintPrefix)
+    }
     & $build @buildParams
+    if (-not (Test-Path -LiteralPath $releaseExe -PathType Leaf)) {
+        throw "Required DOS executable is missing: '$releaseExe'."
+    }
+    Set-BuildFingerprint -Executable $releaseExe -Fingerprint $sourceFingerprint
 }
 if (-not (Test-Path -LiteralPath $releaseExe -PathType Leaf)) {
     throw "Required DOS executable is missing: '$releaseExe'."
@@ -109,12 +134,28 @@ if (-not (Test-Path -LiteralPath $releaseExe -PathType Leaf)) {
 # The build's ISA gate prints to stdout; -DumpFlags above is a pure inspection and
 # must stay quiet, so nothing else is echoed here.
 
-$djgppExe = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory 'dosbox-x.exe'
+# The executable name comes from the manifest, as it does in smoke-dos.ps1,
+# bench-dos.ps1 and timedemo-dos.ps1. This runner used to hardcode 'dosbox-x.exe'
+# beside installDirectory, so a manifest that named the binary differently -- or a
+# build that shipped it in a subdirectory -- would break here alone.
+$dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
+$dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)
 $profileTemplate = Join-Path $PSScriptRoot 'dosbox-x-486-high.conf'
-foreach ($required in @($djgppExe, $profileTemplate)) {
-    if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
-        throw "Required tool is missing: '$required'. Run bootstrap-dos.ps1 or pass -ToolRoot."
+if (-not (Test-Path -LiteralPath $profileTemplate -PathType Leaf)) {
+    throw "DOSBox-X profile is missing: '$profileTemplate'."
+}
+# Bootstrap on demand, like the other three runners. Without this, -NoBootstrap
+# meant something different here than everywhere else: a fresh machine got a bare
+# "required tool is missing" naming no way to fix it.
+if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
+    $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
+    if ($NoBootstrap) {
+        throw "DOSBox-X not found at '$dosbox'. Run bootstrap-dos.ps1 first or omit -NoBootstrap."
     }
+    & $bootstrap -ToolRoot $ToolRoot
+}
+if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
+    throw "Required DOSBox-X executable is missing: '$dosbox'."
 }
 if (-not (Test-Path -LiteralPath $DataRoot -PathType Container)) {
     throw "Game data directory '$DataRoot' does not exist."
@@ -207,9 +248,9 @@ Write-Host ("Coverage scenario '{0}': map e1m1 + connect local + {1} frame(s)" -
 Write-Host ("Staging: {0}" -f $stagingRoot)
 
 $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-$processInfo.FileName = $djgppExe
+$processInfo.FileName = $dosbox
 $processInfo.Arguments = '-exit -conf "' + $configPath + '"'
-$processInfo.WorkingDirectory = Split-Path -Parent $djgppExe
+$processInfo.WorkingDirectory = Split-Path -Parent $dosbox
 $processInfo.UseShellExecute = $false
 $processInfo.CreateNoWindow = $true
 

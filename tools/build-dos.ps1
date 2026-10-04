@@ -860,6 +860,32 @@ try {
         }
     }
 
+    # The build passed.  Record what it was made from, so every runner can tell
+    # whether the executable it is about to test is this build rather than an
+    # older one that happens to sit at the same path.  The builder is the only
+    # component that knows, so it is the only one that can write this: a runner
+    # invoked with -SkipBuild after somebody else's build has nothing else to
+    # check against, and "the file exists" is not evidence of anything.
+    #
+    # Placed after the ISA gate deliberately.  A build that failed the gate throws
+    # before reaching this, so a failed build never leaves a fingerprint behind
+    # claiming the tree matches.
+    . (Join-Path $PSScriptRoot 'common.ps1')
+    # The same fields -DumpFlags emits, so a runner's digest and this one are the
+    # same digest.  outputRoot and executable are included because they are part of
+    # the identity: -Benchmark and -Instrumentation change the name and the
+    # directory, and the profile suffix alone does not distinguish a release build
+    # from its bench sibling.
+    $fingerprintConfig = [pscustomobject]@{
+        outputRoot    = $outputRoot
+        profileSuffix = $profileSuffix
+        cFlags        = @($cFlags)
+        asmFlags      = @($asmFlags)
+        executable    = $executable
+    }
+    $buildFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $fingerprintConfig
+    Set-BuildFingerprint -Executable $executable -Fingerprint $buildFingerprint
+
     $version = ((& $compiler --version | Select-Object -First 1).ToString()).Trim()
     $commit = $null
     $git = Get-Command git.exe -ErrorAction SilentlyContinue

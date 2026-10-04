@@ -164,87 +164,47 @@ if ($TextureSpanStores -eq 'stosw' -and
 
 $toolManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
 $buildParams = @{
-
-        Benchmark = $true
-        CpuTarget = $CpuTarget
-
-        OptimizationProfile = $OptimizationProfile
-
-        TextureAxisCacheEntries = $TextureAxisCacheEntries
-
-        TextureAxisImplementation = $TextureAxisImplementation
-
-        SurfaceCacheImplementation = $SurfaceCacheImplementation
-
-        MipLevelImplementation = $MipLevelImplementation
-
-        MemoryImplementation = $MemoryImplementation
-
-        TurbulentImplementation = $TurbulentImplementation
-
-        TextureSpanStores = $TextureSpanStores
-
-        TextureSpanTailStores = $TextureSpanTailStores
-
-        TextureSpanRowPath = $TextureSpanRowPath
-
-        TextureSpanLoadOrder = $TextureSpanLoadOrder
-
-        TextureSpanAddressing = $TextureSpanAddressing
-
-        AliasSpanAddressing = $AliasSpanAddressing
-
-        ZSpanNegativeUnroll = $ZSpanNegativeUnroll
-
-        SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
-
-        SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
-
-        SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
-
-        SurfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
-
-            SurfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
-
-            EdgeScanProbe = $EdgeScanProbe
-
-            SpanSetupProbe = $SpanSetupProbe
-
-            RenderFaceProbe = $RenderFaceProbe
-
-            AliasGlueProbe = $AliasGlueProbe
-
-        AliasProjectImplementation = $AliasProjectImplementation
-
-        AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
-
-        AliasTransformFinalImplementation = $AliasTransformFinalImplementation
-
-        AliasPrepareImplementation = $AliasPrepareImplementation
-
-        AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
-
-        TextureAnimationImplementation = $TextureAnimationImplementation
-
-        LightMapNormalizeImplementation = $LightMapNormalizeImplementation
-
-        LightMapStylesImplementation = $LightMapStylesImplementation
-
-        FusedLightMapImplementation = $FusedLightMapImplementation
-
-        DynamicLightImplementation = $DynamicLightImplementation
-
-        BspPlaneDotImplementation = $BspPlaneDotImplementation
-
-        BspClipImplementation = $BspClipImplementation
-
-        BspFrameCountImplementation = $BspFrameCountImplementation
-
-        GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
-
-        ToolRoot = $ToolRoot
-
-    }
+    Benchmark                            = $true
+    CpuTarget                            = $CpuTarget
+    OptimizationProfile                  = $OptimizationProfile
+    TextureAxisCacheEntries              = $TextureAxisCacheEntries
+    TextureAxisImplementation            = $TextureAxisImplementation
+    SurfaceCacheImplementation           = $SurfaceCacheImplementation
+    MipLevelImplementation               = $MipLevelImplementation
+    MemoryImplementation                 = $MemoryImplementation
+    TurbulentImplementation              = $TurbulentImplementation
+    TextureSpanStores                    = $TextureSpanStores
+    TextureSpanTailStores                = $TextureSpanTailStores
+    TextureSpanRowPath                   = $TextureSpanRowPath
+    TextureSpanLoadOrder                 = $TextureSpanLoadOrder
+    TextureSpanAddressing                = $TextureSpanAddressing
+    AliasSpanAddressing                  = $AliasSpanAddressing
+    ZSpanNegativeUnroll                  = $ZSpanNegativeUnroll
+    SurfaceBlockMip0Rows                 = $SurfaceBlockMip0Rows
+    SurfaceBlockMip0HorizontalFlat       = $SurfaceBlockMip0HorizontalFlat
+    SurfaceBlockMip1Rows                 = $SurfaceBlockMip1Rows
+    SurfaceBlockMip1HorizontalFlat       = $SurfaceBlockMip1HorizontalFlat
+    SurfaceBlockMip1IndexHoist           = $SurfaceBlockMip1IndexHoist
+    EdgeScanProbe                        = $EdgeScanProbe
+    SpanSetupProbe                       = $SpanSetupProbe
+    RenderFaceProbe                      = $RenderFaceProbe
+    AliasGlueProbe                       = $AliasGlueProbe
+    AliasProjectImplementation           = $AliasProjectImplementation
+    AliasBBoxProjectImplementation       = $AliasBBoxProjectImplementation
+    AliasTransformFinalImplementation    = $AliasTransformFinalImplementation
+    AliasPrepareImplementation           = $AliasPrepareImplementation
+    AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
+    TextureAnimationImplementation       = $TextureAnimationImplementation
+    LightMapNormalizeImplementation      = $LightMapNormalizeImplementation
+    LightMapStylesImplementation         = $LightMapStylesImplementation
+    FusedLightMapImplementation          = $FusedLightMapImplementation
+    DynamicLightImplementation           = $DynamicLightImplementation
+    BspPlaneDotImplementation            = $BspPlaneDotImplementation
+    BspClipImplementation                = $BspClipImplementation
+    BspFrameCountImplementation          = $BspFrameCountImplementation
+    GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
+    ToolRoot                             = $ToolRoot
+}
 
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
 $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
@@ -282,56 +242,20 @@ if (-not (Test-Path -LiteralPath $dosbox -PathType Leaf)) {
 # executable existed, so a timedemo could report the previous binary's time; it
 # produced a real false negative in this project. Hash the sources and the
 # resolved selectors instead, and rebuild whenever they differ.
-$sourceRoot = Join-Path $repoRoot 'src'
-$selectorState = @(
-    $OptimizationProfile, $TextureAxisCacheEntries, $TextureAxisImplementation,
-    $SurfaceCacheImplementation, $MipLevelImplementation, $MemoryImplementation,
-    $TurbulentImplementation, $TextureSpanStores, $TextureSpanTailStores,
-    $TextureSpanRowPath, $TextureSpanLoadOrder, $TextureSpanAddressing,
-    $AliasSpanAddressing, $ZSpanNegativeUnroll, $SurfaceBlockMip0Rows,
-    $SurfaceBlockMip0HorizontalFlat, $SurfaceBlockMip1Rows,
-    $SurfaceBlockMip1HorizontalFlat, $SurfaceBlockMip1IndexHoist,
-    $EdgeScanProbe,
-    $SpanSetupProbe,
-    $RenderFaceProbe,
-    $AliasGlueProbe,
-    $AliasProjectImplementation, $AliasBBoxProjectImplementation,
-    $AliasTransformFinalImplementation, $AliasPrepareImplementation,
-    $AliasMatrixCompositionImplementation, $TextureAnimationImplementation,
-    $LightMapNormalizeImplementation, $LightMapStylesImplementation,
-    $FusedLightMapImplementation, $DynamicLightImplementation,
-    $BspPlaneDotImplementation, $BspClipImplementation,
-    $BspFrameCountImplementation, $GibTrailHorizontalIntegration
-) -join '|'
-$buildInputs = @(
-    Get-ChildItem -LiteralPath $sourceRoot -Include '*.c', '*.s', '*.h' -File -Recurse |
-        Sort-Object FullName |
-        ForEach-Object { "$($_.FullName.Substring($sourceRoot.Length))=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)" }
-)
-$buildInputs += "selectors=$selectorState"
-$buildInputs += "instrumentation=$([bool]$Instrumentation)"
-$fingerprintSource = $buildInputs -join "`n"
-$fingerprintHasher = [Security.Cryptography.SHA256]::Create()
-try {
-    $sourceFingerprint = ([BitConverter]::ToString(
-            $fingerprintHasher.ComputeHash(
-                [Text.Encoding]::UTF8.GetBytes($fingerprintSource)))).Replace('-', '')
-}
-finally {
-    $fingerprintHasher.Dispose()
-}
-$fingerprintPath = Join-Path (Split-Path -Parent $benchmarkExe) 'qbench.sources.sha256'
-$executableExists = Test-Path -LiteralPath $benchmarkExe -PathType Leaf
-$staleBuild = $false
-if ($executableExists) {
-    if (-not (Test-Path -LiteralPath $fingerprintPath -PathType Leaf)) {
-        # Pre-fingerprint binary: its provenance is unknowable, so rebuild it.
-        $staleBuild = $true
-    }
-    else {
-        $staleBuild = ((Get-Content -LiteralPath $fingerprintPath -Raw).Trim() -ne $sourceFingerprint)
-    }
-}
+#
+# The hashing is shared with bench-dos.ps1, smoke-dos.ps1 and coverage-dos.ps1 via
+# tools\common.ps1, and derives the configuration half from the builder's resolved
+# output rather than from a hand-kept selector list. This runner and bench-dos.ps1
+# both build -Benchmark into the same directory, and their two hand-written
+# selector lists had drifted in order, so a fixed fingerprint filename would have
+# had them overwrite each other's record and rebuild each other's binary on
+# alternating runs.
+. (Join-Path $PSScriptRoot 'common.ps1')
+$sourceFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $resolved
+
+$freshness = Get-BuildFreshness -Executable $benchmarkExe -Fingerprint $sourceFingerprint
+$executableExists = $freshness.Exists
+$staleBuild = $freshness.Stale
 if ((-not $executableExists) -or $staleBuild) {
     if ($SkipBuild) {
         if ($staleBuild) {
@@ -340,8 +264,8 @@ if ((-not $executableExists) -or $staleBuild) {
         throw "Benchmark executable not found at '$benchmarkExe'. Run build-dos.ps1 -Benchmark first or omit -SkipBuild."
     }
 
-    Write-Host ("Benchmark build is stale (fingerprint {0}); rebuilding." -f $sourceFingerprint.Substring(0, 12))
-    
+    Write-Host ("Benchmark build is stale (fingerprint {0}); rebuilding." -f $freshness.FingerprintPrefix)
+
     if ($Instrumentation) {
         $buildParams['Instrumentation'] = $true
     }
@@ -352,7 +276,7 @@ if ((-not $executableExists) -or $staleBuild) {
     if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
         throw "Required benchmark executable is missing: '$benchmarkExe'."
     }
-    Set-Content -LiteralPath $fingerprintPath -Value $sourceFingerprint -Encoding ASCII -NoNewline
+    Set-BuildFingerprint -Executable $benchmarkExe -Fingerprint $sourceFingerprint
 }
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
