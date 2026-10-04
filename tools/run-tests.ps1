@@ -33,34 +33,48 @@
       4. build-dos.ps1         compiles, and now carries the blocking ISA gate,
                                 so a build that emits a regressing above-target
                                 instruction stops here rather than at promotion.
-      5. smoke-dos.ps1         DOSBox-X startup and clean exit, both exit codes.
-      6. coverage-dos.ps1     a local single-process multiplayer game, which is the
+      5. isa-audit-source.py   the source-level ISA ratchet, and the cross-check
+                                on gate 4: same question, different measurement
+                                (compiler output rather than disassembled
+                                objects), so its agreement with gate 4 is evidence
+                                rather than a restatement.  Runs without
+                                -FailOnViolation, which is an absolute pass and
+                                stays red while the multiply-elimination work is
+                                incomplete; the ratchet is what gates.
+      6. smoke-dos.ps1         DOSBox-X startup and clean exit, both exit codes.
+      7. coverage-dos.ps1     a local single-process multiplayer game, which is the
                                 only gate that reaches sv_main/sv_phys/sv_user/sv_move,
                                 world.c, pr_exec/pr_cmds and the net socket layer.
-      7. bench-dos.ps1         bench486 correctness, including the C-versus-asm
+      8. bench-dos.ps1         bench486 correctness, including the C-versus-asm
                                 comparisons that are the only parity oracle for the
                                 assembly helpers.
-      8. timedemo-dos.ps1      the promotion gate: 969 frames, framebuffer checksum,
+      9. timedemo-dos.ps1      the promotion gate: 969 frames, framebuffer checksum,
                                 and the median the 0.05% threshold is applied to.
                                 Slowest, so it runs after bench486.
-      9. guard-i486-release.py  104 SHA-256 pins over the release objects and the
-                                executable.  Last, because it judges a finished build
-                                and any earlier gate may have changed it.
+     10. guard-i486-release.py  SHA-256 pins over the release objects and the
+                                executable.  Last, because it judges a finished
+                                build and any earlier gate may have changed it.
+                                The tool prints how many; nothing here counts them,
+                                because a hardcoded count in the runner is a
+                                second thing to keep in step with the golden.
 
     Note on what this suite does and does not assert.  bench486 checks for the
     string "486 benchmark correctness PASS" and timedemo-dos.ps1 asserts the frame
     count and checksum, but the bench end checksum 2378409472 is self-reported and
     is not compared against a constant by any script.  The timedemo itself exercises
-    no menu, no server and no sound: M_Draw returns immediately, sv.active stays
-    false so the `if (sv.active) Host_ServerFrame()` never fires, and -nosound
-    returns from S_Init before GUS_Init.  Gate 6 exists to cover the server-side
-    half of that, and it closes world.c, sv_main/sv_phys/sv_user/sv_move,
-    pr_exec/pr_cmds and the net socket layer.  What is **still** uncovered is
-    menu.c, the sound drivers (snd_dma/snd_dos/snd_gus/snd_mix/snd_mem) and
-    cd_audio.c -- see ASM486-HANDOFF.md.
+    no menu and no sound: M_Draw returns immediately, and -nosound returns from
+    S_Init before GUS_Init.  Gate 7 exists to cover the server-side half, and it
+    closes world.c, sv_main/sv_phys/sv_user/sv_move, pr_exec/pr_cmds and the net
+    socket layer.
+
+    What is **still** uncovered is menu.c, the sound drivers
+    (snd_dma/snd_dos/snd_gus/snd_mix/snd_mem) and cd_audio.c.  That list is kept in
+    ASM486-HANDOFF.md, under "Coverage gates still missing" -- not here, because a
+    checklist in this file's tail drifts from the code it describes, and this one
+    had already gone stale.
 
 .PARAMETER SkipSlow
-    Omit the timedemo (gate 8).  Use for a quick inner-loop check; the result is
+    Omit the timedemo (gate 9).  Use for a quick inner-loop check; the result is
     not a promotion result, because the timedemo is the promotion criterion.
 
 .PARAMETER Runs
@@ -188,24 +202,44 @@ Invoke-Gate -Name 'test-video-dos (vid_ext + vid_vga/vid_dos)' -Kind 'host' -Com
 Invoke-Gate -Name "build-dos ($CpuTarget; includes the blocking ISA gate)" -Kind 'build' `
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/build-dos.ps1', '-CpuTarget', $CpuTarget) + $nb) | Out-Null
 
-# ---- 5: smoke. ------------------------------------------------------------
-Invoke-Gate -Name 'smoke-dos (DOSBox-X startup + clean exit)' -Kind 'dos' `
+# ---- 5: the source-level ISA cross-check -----------------------------------
+# The gate above counts instructions in the real objects. This one counts them in
+# the compiler's own output, which is a genuinely different measurement: the object
+# tool sees every inlined copy, this one sees one hit per source construct. That
+# independence is the point -- tools\golden\isa-baseline.json records that the two
+# landing close together is the evidence its 62/63 string-data exclusion is sound --
+# so an unregistered cross-check is not a cross-check.
+#
+# It was unregistered, which is the same defect run-tests.ps1's own .DESCRIPTION
+# records about the six-command checklist this runner replaced.
+#
+# Run WITHOUT -FailOnViolation. That flag is an absolute pass and stays red for as
+# long as the multiply-elimination work is incomplete; the ratchet is what gates,
+# mirroring the object-level gate. Roughly 20 s, host-only, no emulator.
+#
+# No -NoBootstrap is passed: this tool never installs the toolchain, it only needs
+# it present, and it has no such switch. Appending one made argparse exit 2.
+Invoke-Gate -Name 'isa-audit-source (source-level ISA ratchet, cross-check)' -Kind 'host' -TimeoutSeconds 600 `
+    -Command @('python', 'tools/isa-audit-source.py', '-CpuTarget', $CpuTarget) | Out-Null
+
+# ---- 6: smoke. ------------------------------------------------------------
+Invoke-Gate -Name 'smoke-dos (DOSBox-X startup + clean exit)' -Kind 'dos' -TimeoutSeconds 300 `
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/smoke-dos.ps1', '-TimeoutSeconds', '90') + $nb) | Out-Null
 
-# ---- 6: coverage of the paths the parity gate cannot see. ------------------
+# ---- 7: coverage of the paths the parity gate cannot see. ------------------
 # Cheap (seconds) and it is the only gate that executes the server, the collision
 # code, the Quake bytecode builtins and the net socket layer.
-Invoke-Gate -Name 'coverage-dos (localmp: server/world/pr/net reachable)' -Kind 'dos' `
+Invoke-Gate -Name 'coverage-dos (localmp: server/world/pr/net reachable)' -Kind 'dos' -TimeoutSeconds 600 `
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/coverage-dos.ps1', '-CpuTarget', $CpuTarget, '-SkipBuild') + $nb) | Out-Null
 
-# ---- 7: bench486 correctness. ---------------------------------------------
+# ---- 8: bench486 correctness. ---------------------------------------------
 # The gate-level -TimeoutSeconds is a watchdog above the runner's own 600 s, not a
 # second limit on the benchmark: it exists so a wedged DOSBox-X or a child that
 # never returns cannot hold the suite open indefinitely. Same idea on the timedemo.
 Invoke-Gate -Name 'bench-dos (bench486 PASS, C-vs-asm parity)' -Kind 'dos' -TimeoutSeconds 900 `
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/bench-dos.ps1', '-TimeoutSeconds', '600') + $nb) | Out-Null
 
-# ---- 8: the promotion gate. ----------------------------------------------
+# ---- 9: the promotion gate. ----------------------------------------------
 if ($SkipSlow) {
     $results.Add([pscustomobject]@{
             gate    = 'timedemo (969 frames, checksum, median)'
@@ -222,10 +256,10 @@ else {
         -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/timedemo-dos.ps1', '-Runs', "$Runs", '-NoFpsStats') + $nb) | Out-Null
 }
 
-# ---- 9: release artefact pins.  Last: it judges a finished build. ---------
+# ---- 10: release artefact pins.  Last: it judges a finished build. --------
 if ($SkipReleaseGuard) {
     $results.Add([pscustomobject]@{
-            gate    = 'guard-i486-release (104 artefact hashes)'
+            gate    = 'guard-i486-release'
             kind    = 'repo'
             exit    = '-'
             seconds = 0
@@ -233,7 +267,7 @@ if ($SkipReleaseGuard) {
         })
 }
 else {
-    Invoke-Gate -Name 'guard-i486-release (104 artefact hashes)' -Kind 'repo' `
+    Invoke-Gate -Name 'guard-i486-release' -Kind 'repo' `
         -Command @('python', 'tools/guard-i486-release.py') | Out-Null
 }
 
@@ -259,17 +293,14 @@ if ($failed.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host '  Coverage gates still missing (2026-10-03):' -ForegroundColor Yellow
-Write-Host '    - menu.c (2607 lines): no gate ever opens a menu; M_Draw returns at' -ForegroundColor Yellow
-Write-Host '      menu.c:2944 because m_state is m_none and key_dest is never key_menu.' -ForegroundColor Yellow
-Write-Host '    - the sound path: snd_dma/snd_dos/snd_gus/snd_mix/snd_mem and cd_audio.' -ForegroundColor Yellow
-Write-Host '      -nosound returns from S_Init at snd_dma.c:167 before GUS_Init, and' -ForegroundColor Yellow
-Write-Host '      -nocdaudio returns from CDAudio_Init, so none of it executes.' -ForegroundColor Yellow
-Write-Host '    - measured coverage counts: coverage-dos proves the server, world.c,' -ForegroundColor Yellow
-Write-Host '      pr_exec/pr_cmds and net paths were TAKEN, not how much of them ran.' -ForegroundColor Yellow
-Write-Host '      A count needs a counter on the metrics path (host_cmd.c:178 / 1219).' -ForegroundColor Yellow
-Write-Host '    - bench486 asserts only the PASS string; its end checksum 2378409472 is' -ForegroundColor Yellow
-Write-Host '      self-reported and compared by no script.' -ForegroundColor Yellow
+# The list of what the suite still does not cover lives in ASM486-HANDOFF.md, under
+# "Coverage gates still missing".  It used to be printed here, and that was wrong
+# twice over: a checklist maintained in a script's tail drifts from the code it
+# describes, and this one had already gone stale -- it was dated and cited the
+# source by line number, which is the exact form docs\INDEX.md's citation rule
+# exists to prevent.
+Write-Host '  Coverage gaps are tracked in ASM486-HANDOFF.md, under' -ForegroundColor Yellow
+Write-Host '  "Coverage gates still missing".' -ForegroundColor Yellow
 
 Set-Location $pushLocation
 

@@ -1,0 +1,32 @@
+{
+  "schema": "nitroquake-isa-source-ratchet-baseline/1",
+  "note": "Source-level ISA ratchet for tools/isa-audit-source.py. Unlike tools/golden/isa-baseline.json these are figures from the compiler's own output rather than from disassembled objects, so they count one hit per source construct instead of one per inlined copy and are expected to land near, not on, the object-level numbers. Compare the two as a cross-check: agreement is the evidence that isa-audit.ps1's 62/63 string-data exclusion is sound rather than convenient. The end state is all zeros.",
+  "absoluteRules": {
+    "unclassifiedMustBeZero": true,
+    "p6MustBeZero": true
+  },
+  "targets": {
+    "i486": {
+      "recorded": "2026-10-04",
+      "isaTotals": {
+        "i386": 118686,
+        "i486": 130,
+        "i586": 176,
+        "p6": 0,
+        "unknown": 0
+      },
+      "aboveTarget": 176
+    },
+    "i386": {
+      "recorded": "2026-10-04",
+      "isaTotals": {
+        "i386": 115370,
+        "i486": 131,
+        "i586": 176,
+        "p6": 0,
+        "unknown": 0
+      },
+      "aboveTarget": 307
+    }
+  }
+}

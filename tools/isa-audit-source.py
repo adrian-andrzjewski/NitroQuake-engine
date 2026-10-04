@@ -64,6 +64,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
@@ -393,6 +394,95 @@ def toolchain_env(tool_root: str) -> tuple:
     return env, compiler
 
 
+def load_baseline(path: str) -> dict:
+    if not os.path.isfile(path):
+        raise SystemExit(
+            "missing ISA source baseline %s; run with --record once the figures are "
+            "known to be right" % path
+        )
+    with open(path, "r", encoding="ascii") as handle:
+        return json.load(handle)
+
+
+def record_baseline(path: str, cpu_target: str, totals: dict, above: int) -> None:
+    """Write the figures this target just produced.
+
+    The end state is all zeros. This exists so the multiply-elimination work can be
+    shown to be reducing the count rather than merely being asserted to have done so,
+    and so a count that goes UP is a build failure rather than a line in a report
+    nobody diffs.
+    """
+    baseline = load_baseline_or_empty(path)
+    baseline["targets"][cpu_target] = {
+        "recorded": time.strftime("%Y-%m-%d"),
+        "isaTotals": {k: totals[k] for k in ("i386", "i486", "i586", "p6", "unknown")},
+        "aboveTarget": above,
+    }
+    with open(path, "w", encoding="ascii", newline="\n") as handle:
+        json.dump(baseline, handle, indent=2, sort_keys=False)
+        handle.write("\n")
+
+
+def load_baseline_or_empty(path: str) -> dict:
+    if os.path.isfile(path):
+        return load_baseline(path)
+    return {
+        "schema": "nitroquake-isa-source-ratchet-baseline/1",
+        "note": (
+            "Source-level ISA ratchet for tools/isa-audit-source.py. Unlike "
+            "tools/golden/isa-baseline.json these are figures from the compiler's "
+            "own output rather than from disassembled objects, so they count one hit "
+            "per source construct instead of one per inlined copy and are expected to "
+            "land near, not on, the object-level numbers. Compare the two as a "
+            "cross-check: agreement is the evidence that isa-audit.ps1's 62/63 "
+            "string-data exclusion is sound rather than convenient. The end state is "
+            "all zeros."
+        ),
+        "absoluteRules": {
+            "unclassifiedMustBeZero": True,
+            "p6MustBeZero": True,
+        },
+        "targets": {},
+    }
+
+
+def check_against_baseline(baseline: dict, cpu_target: str, totals: dict, above: int) -> list:
+    """Return the list of gate failures; empty means the ratchet holds."""
+    problems = []
+    # Absolute rules. An unclassified instruction never passes, and p6 is never
+    # acceptable in this tree at all.
+    if totals["unknown"]:
+        problems.append(
+            "unclassified instructions: %d (must be 0; a gap in the mnemonic table "
+            "is not a pass)" % totals["unknown"]
+        )
+    if totals["p6"]:
+        problems.append(
+            "p6 (MMX/SSE/3DNow) instructions: %d (must be 0)" % totals["p6"]
+        )
+
+    recorded = baseline.get("targets", {}).get(cpu_target)
+    if recorded is None:
+        problems.append(
+            "no baseline recorded for target %r; the gate fails closed. Record one "
+            "with --record." % cpu_target
+        )
+        return problems
+
+    # Ratchet on each ISA bucket separately as well as on the total, so a change
+    # that trades 3 i486 for 5 i586 cannot hide inside an unchanged sum.
+    for key in ("i486", "i586"):
+        want = recorded.get("isaTotals", {}).get(key)
+        if want is not None and totals[key] > want:
+            problems.append("%s: %d above baseline %d" % (key, totals[key], want))
+    want_above = recorded.get("aboveTarget")
+    if want_above is not None and above > want_above:
+        problems.append(
+            "above-target total: %d above baseline %d" % (above, want_above)
+        )
+    return problems
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-CpuTarget", default="i386", choices=["i386", "i486"])
@@ -401,6 +491,10 @@ def main() -> int:
                         help="toolchain directory; defaults to %%LOCALAPPDATA%%\\486quake\\tools")
     parser.add_argument("-OutputJson", default=None)
     parser.add_argument("-FailOnViolation", action="store_true")
+    parser.add_argument("-Baseline", default=None,
+                        help="ratchet baseline; defaults to tools/golden/isa-source-baseline.json")
+    parser.add_argument("--record", action="store_true",
+                        help="re-record the ratchet baseline for this target")
     args = parser.parse_args()
 
     max_isa = args.MaxIsa or args.CpuTarget
@@ -523,6 +617,48 @@ def main() -> int:
     if args.FailOnViolation and (report["violationCount"] or report["unclassifiedCount"]):
         print("\nFAILED: the compiled code for %s needs more than %s."
               % (args.CpuTarget, max_isa))
+        return 1
+
+    # --- the ratchet --------------------------------------------------------
+    # -FailOnViolation is an absolute pass and is therefore red for as long as the
+    # multiply-elimination work is incomplete, which is the documented state of this
+    # tree. So the gate that can actually fail is a ratchet, mirroring
+    # tools\golden\isa-baseline.json for the object-level tool: two absolute rules
+    # (unclassified and p6 must be zero) plus per-ISA counts that may not rise.
+    #
+    # Run this and not -FailOnViolation; the two answer different questions, and
+    # only one of them is a gate.
+    baseline_path = args.Baseline or os.path.join(
+        TOOLS_DIR, "golden", "isa-source-baseline.json")
+
+    if args.record:
+        record_baseline(baseline_path, args.CpuTarget, totals, report["violationCount"])
+        print("\nISA source baseline recorded for %s: %d above-%s instruction(s)."
+              % (args.CpuTarget, report["violationCount"], max_isa))
+        print("  %s" % os.path.relpath(baseline_path, REPO_ROOT))
+        print("  diff it and confirm every changed figure is one you meant to change.")
+        return 0
+
+    try:
+        baseline = load_baseline(baseline_path)
+    except SystemExit as exc:
+        print("\n%s" % exc)
+        return 1
+
+    problems = check_against_baseline(baseline, args.CpuTarget, totals, report["violationCount"])
+    recorded = baseline.get("targets", {}).get(args.CpuTarget, {})
+    want_above = recorded.get("aboveTarget")
+    progress = ("baseline %s, now %d" % (want_above, report["violationCount"])
+                if want_above is not None else "no baseline")
+    print("  ratchet          %s  [%s]" % (
+        "PASS" if not problems else "FAIL", progress))
+    if problems:
+        print("")
+        for problem in problems:
+            print("  %s" % problem)
+        print("\nThe source-level ISA count moved the wrong way, or an absolute rule "
+              "was broken. This is a ratchet, not an absolute pass: see %s."
+              % os.path.relpath(baseline_path, REPO_ROOT))
         return 1
     return 0
 

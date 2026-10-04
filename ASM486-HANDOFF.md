@@ -1577,3 +1577,35 @@ are indexed there instead:
 - `docs/ledger/2026-09-29-offline-precomputation-pass.md`
 - `docs/ledger/microbenchmark-results.md`
 
+## Coverage gates still missing
+
+What `tools\run-tests.ps1` does **not** reach. This list was printed at the end of
+the runner until 2026-10-04, which is the wrong place for it twice over: a
+checklist kept in a script's tail drifts from the code it describes, and that copy
+had already gone stale — it was dated and cited the source by line number, the
+exact form the citation rule above exists to prevent. The runner now prints a
+pointer to this heading instead.
+
+**No gate ever opens a menu.** `M_Draw` returns immediately because `m_state` is
+`m_none` and `key_dest` is never `key_menu`, so the whole of `menu.c` is
+unexecuted by any gate in the tree.
+
+**The sound path does not execute at all.** `-nosound` returns from `S_Init`
+before `GUS_Init`, and `-nocdaudio` returns from `CDAudio_Init`, so `snd_dma`,
+`snd_dos`, `snd_gus`, `snd_mix`, `snd_mem` and `cd_audio` are all unreached.
+
+**Coverage is smoke-grade, not measured.** `coverage-dos.ps1` proves the server,
+`world.c`, `pr_exec`/`pr_cmds` and the net paths were *taken* — a clean exit means
+`CL_Connect` did not take its `Host_Error` path — not how much of them ran. A
+count needs a counter on the metrics path in `src\host_cmd.c`, and the mechanism
+already exists there, which the `-Instrumentation` build's report block uses. Note
+the standing hazard recorded under "Standing hazard found on the way": the
+reporter's `char text[1024]` is already at its limit, so a new field means a new
+report call, never a longer format string.
+
+**The bench end checksum is self-reported.** `bench-dos.ps1` asserts only that
+`486 benchmark correctness PASS` appears. The bench harness's own end checksum
+`2378409472` is printed by the binary under test and compared by no script, so a
+binary that computed a different answer and said PASS would pass. The timedemo
+does not have this problem: its checksum is compared against the pinned constant.
+
