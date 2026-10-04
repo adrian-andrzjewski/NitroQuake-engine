@@ -557,3 +557,44 @@ function New-QuakeStaging {
         PakFiles    = @($pakFiles)
     }
 }
+function Get-TextFileHash {
+    <#
+    .SYNOPSIS
+        SHA-256 of a text file, with its line endings normalised to LF.
+
+    .DESCRIPTION
+        For pinning a text file's CONTENT rather than its representation.
+
+        This exists because the timedemo promotion gate hashed
+        tools\dosbox-x-486-high.conf as it sat on disk, and that made the gate
+        depend on the machine's git configuration rather than on the repository.
+        There is no .gitattributes in this tree and core.autocrlf is not recorded
+        anywhere, so the committed blob is LF and a Windows checkout with
+        core.autocrlf=true rewrites it to CRLF. The pinned constant was the hash
+        of the CRLF form, so the gate passed here and would have failed on any
+        checkout with core.autocrlf=false -- including Linux, and including a
+        Windows clone made after someone set core.autocrlf=input.
+
+        Normalising to LF before hashing pins what the file says rather than which
+        platform checked it out. It does weaken the pin slightly: a change confined
+        to line endings now passes. That is the right trade, because a CRLF/LF
+        difference cannot change what DOSBox-X does with the file, and the frames,
+        checksum and median gates below still catch any behavioural change.
+
+        tools\guard-i486-release.py does the same normalisation for __TIME__ and
+        __DATE__, for the same reason: the thing being pinned is not the clock.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $bytes = [IO.File]::ReadAllBytes($Path)
+    $text = [Text.Encoding]::ASCII.GetString($bytes) -replace "`r`n", "`n"
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString(
+                $hasher.ComputeHash([Text.Encoding]::ASCII.GetBytes($text)))).Replace('-', '')
+    }
+    finally {
+        $hasher.Dispose()
+    }
+}

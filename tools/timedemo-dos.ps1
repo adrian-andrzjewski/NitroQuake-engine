@@ -118,7 +118,11 @@ param(
     # compared, so a changed emulator core or profile would silently re-baseline
     # every number in the ledger. They are now enforced; a mismatch fails the run.
     # Pass -AllowGateOverride to record a deliberate exception, which is logged.
-    [string]$ExpectedProfileSha256 = 'F3948708A493A0AD3B7D167230065CAF3827CD16DD350E83C6B547E48DDD8E45',
+    #
+    # This constant is the hash of the profile with its line endings NORMALISED to
+    # LF, not of the bytes on disk. See Get-TextFileHash below: hashing the working
+    # copy made the promotion gate depend on the machine's git configuration.
+    [string]$ExpectedProfileSha256 = '74C9AFF673AB7990BAE76170B6F235E363BE4901E3DA77AFBA4076E2DF5961B1',
     [int]$ExpectedFrames = 969,
     [int]$ExpectedChecksum = 1047377823,
     [switch]$AllowGateOverride
@@ -342,21 +346,17 @@ exit
 $configPath = New-DosboxRuntimeConfig -ProfileTemplate $profilePath `
     -StagingRoot $stagingRoot -BatchName 'timedemo.bat' -CpuTarget $CpuTarget -ConfigName 'dosbox-x-timedemo.conf'
 
-$sha256 = [Security.Cryptography.SHA256]::Create()
-try {
-	$profileHash = ([BitConverter]::ToString(
-			$sha256.ComputeHash([IO.File]::ReadAllBytes($profilePath)))).Replace('-', '')
-}
-finally {
-	$sha256.Dispose()
-}
+$profileHash = Get-TextFileHash -Path $profilePath
+
 $culture = [Globalization.CultureInfo]::InvariantCulture
 $results = @()
 
-# The profile hash protects the file, not the numbers behind it. Compare it
-# against the pinned constant so a changed DOSBox-X core or configuration cannot
-# silently re-baseline the ledger -- see docs\ledger\2026-10-03-region-pricing-sweep.md,
-# under "Correction: the general block row is minimal".
+# The profile hash protects the file's content, not its line endings and not the
+# numbers behind it. Compare it against the pinned constant so a changed DOSBox-X
+# core or configuration cannot silently re-baseline the ledger -- see
+# docs\ledger\2026-10-03-region-pricing-sweep.md, under "Correction: the general
+# block row is minimal". Get-TextFileHash normalises line endings first, so this
+# gate no longer depends on the machine's git configuration.
 if ($profileHash -ne $ExpectedProfileSha256) {
     if (-not $AllowGateOverride) {
         throw ("DOSBox-X profile SHA-256 mismatch.`n  expected {0}`n  actual   {1}`n" +
