@@ -80,7 +80,10 @@ I486_MNEMONICS = {
     "xadd", "xaddl", "xaddw", "xaddb",
     "cmpxchg", "cmpxchgl", "cmpxchgw", "cmpxchgb",
     "lldt", "ltr", "clts", "wbinvd", "bound", "arpl",
-    "verr", "verw",   # 386; kept here only so it is never silently 486+ below
+    # verr and verw used to sit here with the comment "386; kept here only so it is
+    # never silently 486+ below", which says the opposite of what the entry does:
+    # listing them here is what makes them i486, so an i386 gate would report a
+    # phantom violation for a 386 instruction. They are in I386_SAFE now.
 }
 
 # Mnemonics that exist only from the Pentium upwards.
@@ -94,15 +97,26 @@ I586_MNEMONICS = {
     "ud2",             # the formal trap instruction; added with the Pentium
 }
 
-# Anything mentioning one of these is P6 or newer.
+# Anything containing one of these is P6 or newer.
+#
+# `movq` used to be in this tuple as well as in I386_SAFE, and because this test
+# runs before the I386_SAFE lookup, every `movq` classified as p6. `movq` is the
+# ordinary 386 quadword move; the MMX register move spells the same, but this build
+# never enables MMX (-mmmx appears nowhere in the flag lists) and the real MMX and
+# SSE spellings -- movd, packss, pxor, movdqa -- are all still named here. So
+# `movq` is a 386 instruction and has been removed from this tuple.
+#
+# _assert_no_shadowed_mnemonics below makes that class of mistake impossible to
+# reintroduce silently: any name in both this tuple and I386_SAFE is a table bug,
+# because whichever test runs first wins.
 P6_SUBSTRINGS = (
     "movss", "movsd", "movaps", "movapd", "movups", "movupd", "movdqa", "movdqu",
-    "movdqa32", "movdqu8", "movdqa16", "movdqu16", "movq", "movlps", "movhps",
+    "movdqa32", "movdqu8", "movdqa16", "movdqu16", "movlps", "movhps",
     "addss", "addsd", "addps", "addpd", "subss", "subsd", "subps", "subpd",
     "mulss", "mulsd", "mulps", "mulpd", "divss", "divsd", "divps", "divpd",
     "cvtsi2ss", "cvtsi2sd", "cvtss2si", "cvtsd2si", "cvtt", "cvttss",
     "punpck", "packss", "padd", "psub", "pmul", "pand", "por", "pxor", "pcmpeq",
-    "pxor", "psll", "psrl", "psra", "emms", "movmskps", "shufps", "unpck",
+    "psll", "psrl", "psra", "emms", "movmskps", "shufps", "unpck",
     "fxsave", "fxrstor", "ldmxcsr", "stmxcsr",
 )
 
@@ -124,16 +138,21 @@ X87 = re.compile(r"^f[a-z0-9]{1,10}$")
 I386_SAFE = {
     # data movement
     "mov", "movb", "movw", "movl", "movq", "movsb", "movsw", "movsl",
-    "movzbw", "movzwl", "movzbl", "movsbw", "movsbl", "movswl", "movzbq", "movzwq",
-    "movswq", "lea", "leal", "leaw",
+    # movzbq, movzwq and movswq were listed here. They are the sign/zero-extend-
+    # to-64-bit forms: long mode only, so calling them i386 was a false claim. They
+    # resolve to i386 anyway through the suffix-strip retry below, so removing them
+    # changes no count and removes the wrong assertion.
+    "movzbw", "movzwl", "movzbl", "movsbw", "movsbl", "movswl",
+    "lea", "leal", "leaw",
     "xchg",           # register form only; the memory form is i486
     "push", "pushl", "pushw", "pushb", "pushfl", "pushfw",
     "pop", "popl", "popw", "popb", "popfl", "popfw",
-    "lods", "lodsl", "lodsw", "lodsb", "lodb",
+    "lods", "lodsl", "lodsw", "lodsb",
     "stos", "stosl", "stosw", "stosb",
     "scas", "scasl", "scasw", "scasb",
     "cmps", "cmpsl", "cmpsw", "cmpsb",
-    "movnti",         # placeholder, corrected below
+    # verr and verw are 386 and belong here, not in I486_MNEMONICS.
+    "verr", "verw",
     # arithmetic
     "add", "addb", "addw", "addl", "addq",
     "adc", "adcb", "adcw", "adcl", "adcq",
@@ -179,17 +198,53 @@ I386_SAFE = {
     # segment registers
     "pushfs", "pushgs", "popfs", "popgs", "pushes", "pushds", "popes", "popds",
     # sign extension: CBW/CWDE/CDQ (and their AX/DX short spellings)
-    "cbw", "cwde", "cdq", "cwd", "cwde", "cltd", "cwtl", "cqto", "cqo", "cltq",
+    "cbw", "cwde", "cdq", "cwd", "cltd", "cwtl", "cqto", "cqo", "cltq",
     # port I/O and string I/O
     "in", "inb", "inw", "ind", "inl",
     "out", "outb", "outw", "outd", "outl",
     "ins", "insb", "insw", "insl", "insd",
     "outs", "outsb", "outsw", "outsl", "outsd",
 }
-I386_SAFE.discard("movnti")   # i586; listed only to be removed from the whitelist
 
 # x86 conditional branches: jz/je/jne/jb/jnb/... plus the near/far jcc forms.
 JCC = re.compile(r"^j[a-z]{1,3}$")
+
+
+def _assert_no_shadowed_mnemonics() -> None:
+    """Fail at import if a mnemonic's classification is decided by test order.
+
+    classify() tries the exact-match tables first and the P6 substring test before
+    I386_SAFE, so a name present in both I386_SAFE and P6_SUBSTRINGS is silently
+    reported as p6 no matter what I386_SAFE says. That is not a hypothetical: movq
+    was in both, and every movq was classified p6 until it was removed from the
+    substring tuple.
+
+    The same shape of mistake applies to the exact tables, which are checked in a
+    fixed order, so a name in two of those is equally arbitrary. Both are checked
+    here rather than left to review.
+    """
+    problems = []
+    shadowed = sorted(set(I386_SAFE) & set(P6_SUBSTRINGS))
+    for name in shadowed:
+        problems.append(
+            "%r is in both I386_SAFE and P6_SUBSTRINGS; P6 wins, so the i386 entry is dead" % name
+        )
+    for earlier, later in (
+        (I386_SAFE, I486_MNEMONICS), (I386_SAFE, I586_MNEMONICS),
+        (I486_MNEMONICS, I586_MNEMONICS), (I486_MNEMONICS, P6_X87),
+        (I586_MNEMONICS, P6_X87),
+    ):
+        for name in sorted(set(earlier) & set(later)):
+            problems.append("%r is in two exact-match tables" % name)
+    if problems:
+        raise AssertionError(
+            "isa-audit-source.py: the mnemonic tables contradict each other:\n  "
+            + "\n  ".join(problems)
+            + "\nA mnemonic's classification must follow from one table only."
+        )
+
+
+_assert_no_shadowed_mnemonics()
 
 
 def classify(mnemonic: str, operands: str) -> str:
@@ -292,31 +347,58 @@ def build_flags(cpu_target: str) -> dict:
     return json.loads(completed.stdout)
 
 
-def toolchain_env() -> dict:
-    tool_root = os.path.join(
-        os.environ["LOCALAPPDATA"], "486quake", "tools"
-    )
-    with open(os.path.join(TOOLS_DIR, "dos-toolchain.json"), "r", encoding="utf-8") as handle:
+def toolchain_env(tool_root: str) -> tuple:
+    """Return (environment, compiler path) for driving the DJGPP compiler.
+
+    Mirrors build-dos.ps1's own environment: DJDIR, GCC_EXEC_PREFIX with its
+    trailing separator, and the two bin directories ahead of PATH.  The trailing
+    separator matters -- without it the driver looks for 'cc1' rather than
+    'lib/gcc/<version>/cc1' -- which is why this duplicates the PowerShell rather
+    than guessing.
+
+    -ToolRoot is honoured because every other tool in this directory takes it, and
+    a caller with the toolchain somewhere other than %LOCALAPPDATA% could not run
+    this one at all.  os.environ['LOCALAPPDATA'] is also read defensively: it can
+    be unset, and a bare KeyError names neither the cause nor the fix.
+    """
+    if not tool_root:
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if not local_app_data:
+            raise SystemExit(
+                "LOCALAPPDATA is not set and no -ToolRoot was given. Pass -ToolRoot, "
+                "or run tools/bootstrap-dos.ps1 on a normal Windows account."
+            )
+        tool_root = os.path.join(local_app_data, "486quake", "tools")
+
+    manifest_path = os.path.join(TOOLS_DIR, "dos-toolchain.json")
+    if not os.path.isfile(manifest_path):
+        raise SystemExit("toolchain manifest not found: %s" % manifest_path)
+    with open(manifest_path, "r", encoding="ascii") as handle:
         manifest = json.load(handle)
+
     djgpp = os.path.join(tool_root, manifest["djgpp"]["installDirectory"])
     env = dict(os.environ)
     env["DJDIR"] = os.path.join(djgpp, "i586-pc-msdosdjgpp")
-    # The trailing separator matters: build-dos.ps1 sets GCC_EXEC_PREFIX the
-    # same way, and without it the driver looks for 'cc1' rather than
-    # 'lib/gcc/<version>/cc1'.
     env["GCC_EXEC_PREFIX"] = os.path.join(djgpp, "lib", "gcc") + os.sep
     env["PATH"] = os.pathsep.join(
         [os.path.join(djgpp, "bin"),
          os.path.join(djgpp, "i586-pc-msdosdjgpp", "bin"),
          env["PATH"]]
     )
-    return env, os.path.join(djgpp, *manifest["djgpp"]["compiler"].split("/"))
+    compiler = os.path.join(djgpp, *manifest["djgpp"]["compiler"].split("/"))
+    if not os.path.isfile(compiler):
+        raise SystemExit(
+            "%s does not exist. Run tools/bootstrap-dos.ps1, or pass -ToolRoot." % compiler
+        )
+    return env, compiler
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-CpuTarget", default="i386", choices=["i386", "i486"])
     parser.add_argument("-MaxIsa", default=None, choices=["i386", "i486", "i586", "p6"])
+    parser.add_argument("-ToolRoot", default=None,
+                        help="toolchain directory; defaults to %%LOCALAPPDATA%%\\486quake\\tools")
     parser.add_argument("-OutputJson", default=None)
     parser.add_argument("-FailOnViolation", action="store_true")
     args = parser.parse_args()
@@ -325,7 +407,7 @@ def main() -> int:
     max_rank = ISA_RANK[max_isa]
 
     flags = build_flags(args.CpuTarget)
-    env, compiler = toolchain_env()
+    env, compiler = toolchain_env(args.ToolRoot)
 
     totals = {"i386": 0, "i486": 0, "i586": 0, "p6": 0, "unknown": 0}
     violations: dict[tuple, dict] = {}
@@ -341,15 +423,16 @@ def main() -> int:
                 "required": isa, "count": 1, "example": operands,
             }
 
-    # --- C half: ask the compiler for assembly ----------------------------
-    for name in flags["cSources"]:
-        source = os.path.join(SOURCE_ROOT, name)
-        completed = subprocess.run(
-            [compiler, *flags["cFlags"], "-S", "-o", "-", source],
-            capture_output=True, text=True, env=env,
-        )
+    def scan(name: str, completed, env_arg, is_c: bool) -> None:
+        """Classify one compilation unit's instructions into the two buckets.
+
+        The two halves differ in what they run and in what their line numbers mean,
+        so they are one function with one flag rather than two copies of the same
+        eight lines.
+        """
         if completed.returncode != 0:
-            raise SystemExit("compiling %s to assembly failed:\n%s" % (name, completed.stderr.strip()))
+            verb = "compiling %s to assembly" % name if is_c else "preprocessing %s" % name
+            raise SystemExit("%s failed:\n%s" % (verb, completed.stderr.strip()))
         for line, mnemonic, operands in iter_instructions(completed.stdout):
             isa = classify(mnemonic, operands)
             totals[isa] += 1
@@ -358,27 +441,43 @@ def main() -> int:
             if isa == "unknown":
                 record(unknown, name, line, mnemonic, isa, operands)
 
+    # --- C half: ask the compiler for assembly ----------------------------
+    # The line numbers here index the compiler's -S output, not the C file, because
+    # that is the text being scanned. They are reported under the C file's name
+    # because that is the file a reader needs to open to find the code, but they
+    # are not lines OF that file and must not be cited as such. asmLineNumber is
+    # what they are; see the report's lineNumberKind field.
+    for name in flags["cSources"]:
+        source = os.path.join(SOURCE_ROOT, name)
+        scan(name, subprocess.run(
+            [compiler, *flags["cFlags"], "-S", "-o", "-", source],
+            capture_output=True, text=True, env=env,
+        ), env, True)
+
     # --- assembly half: preprocess with the build's asmFlags ---------------
+    # Here the line numbers really are lines of the named file's preprocessed text,
+    # which is what the reader wants to see.
     for name in flags["assemblySources"]:
         source = os.path.join(SOURCE_ROOT, name)
-        completed = subprocess.run(
+        scan(name, subprocess.run(
             [compiler, *flags["asmFlags"], "-E", source],
             capture_output=True, text=True, env=env,
-        )
-        if completed.returncode != 0:
-            raise SystemExit("preprocessing %s failed:\n%s" % (name, completed.stderr.strip()))
-        for line, mnemonic, operands in iter_instructions(completed.stdout):
-            isa = classify(mnemonic, operands)
-            totals[isa] += 1
-            if ISA_RANK[isa] > max_rank:
-                record(violations, name, line, mnemonic, isa, operands)
-            if isa == "unknown":
-                record(unknown, name, line, mnemonic, isa, operands)
+        ), env, False)
 
     report = {
         "schema": 1,
         "cpuTarget": args.CpuTarget,
         "maxIsa": max_isa,
+        # What the `line` on each row means, so no reader mistakes one for the
+        # other. For a .c row it is a line of the compiler's generated assembly,
+        # not a line of the C file; for a .s row it is a line of that file's
+        # preprocessed text. Neither is a line number that survives an edit to the
+        # file it is filed under, which is why docs/ledger/INDEX.md's rule is to
+        # cite these findings by file and heading, never by ":NNNN".
+        "lineNumberKind": {
+            ".c": "line of the compiler's -S output for that file, filed under the C file's name",
+            ".s": "line of that file's preprocessed (-E) output",
+        },
         "cSourceCount": len(flags["cSources"]),
         "assemblySourceCount": len(flags["assemblySources"]),
         "instructionCount": sum(totals.values()),
