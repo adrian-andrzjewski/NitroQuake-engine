@@ -116,20 +116,39 @@ function Invoke-Gate {
     $gateWatch = [System.Diagnostics.Stopwatch]::StartNew()
     try {
         if ($TimeoutSeconds -gt 0) {
-            $job = Start-Job -ScriptBlock { param($c, $r) Set-Location $r; & $c[0] @($c[1..($c.Count - 1)]) } -ArgumentList (,$Command) -ArgumentList $repoRoot
-            if (Wait-Job $job -Timeout $TimeoutSeconds) {
-                Receive-Job $job | Out-Host
+            # A job, not an in-process call: the only way to bound a child that
+            # wedges.  -ArgumentList takes ONE flat array whose elements become
+            # the scriptblock's parameters, so the command vector and the
+            # directory are its two elements.  Passing -ArgumentList twice is a
+            # binding error, and wrapping the command in a unary comma nests it
+            # one level too deep ($Command[0] is then the whole vector, which
+            # splats as a single joined command name), so both of those forms
+            # were broken and this branch was unreachable.  The job's last
+            # statement is the child's exit code, because a job returns values
+            # rather than setting the caller's $LASTEXITCODE.
+            $job = Start-Job -ScriptBlock {
+                param($Command, $RepoRoot)
+                Set-Location $RepoRoot
+                & $Command[0] @($Command[1..($Command.Count - 1)])
+                $LASTEXITCODE
+            } -ArgumentList @($Command, $repoRoot)
+            try {
+                if (-not (Wait-Job $job -Timeout $TimeoutSeconds)) {
+                    Stop-Job $job
+                    throw "timed out after $TimeoutSeconds s"
+                }
+                $output = @(Receive-Job $job)
+                $output | Out-Host
+                $code = if ($output.Count -gt 0) { [int]$output[-1] } else { 1 }
             }
-            else {
-                Stop-Job $job
-                throw "timed out after $TimeoutSeconds s"
+            finally {
+                Remove-Job $job -Force -ErrorAction SilentlyContinue
             }
-            Remove-Job $job -Force
         }
         else {
             & $Command[0] @($Command[1..($Command.Count - 1)]) 2>&1 | Out-Host
+            $code = $LASTEXITCODE
         }
-        $code = $LASTEXITCODE
     }
     catch {
         Write-Host ("  FAILED: {0}" -f $_.Exception.Message) -ForegroundColor Red
@@ -180,10 +199,13 @@ Invoke-Gate -Name 'coverage-dos (localmp: server/world/pr/net reachable)' -Kind 
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/coverage-dos.ps1', '-CpuTarget', $CpuTarget, '-SkipBuild') + $nb) | Out-Null
 
 # ---- 7: bench486 correctness. ---------------------------------------------
-Invoke-Gate -Name 'bench-dos (bench486 PASS, C-vs-asm parity)' -Kind 'dos' `
+# The gate-level -TimeoutSeconds is a watchdog above the runner's own 600 s, not a
+# second limit on the benchmark: it exists so a wedged DOSBox-X or a child that
+# never returns cannot hold the suite open indefinitely. Same idea on the timedemo.
+Invoke-Gate -Name 'bench-dos (bench486 PASS, C-vs-asm parity)' -Kind 'dos' -TimeoutSeconds 900 `
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/bench-dos.ps1', '-TimeoutSeconds', '600') + $nb) | Out-Null
 
-# ---- 7: the promotion gate. ----------------------------------------------
+# ---- 8: the promotion gate. ----------------------------------------------
 if ($SkipSlow) {
     $results.Add([pscustomobject]@{
             gate    = 'timedemo (969 frames, checksum, median)'
@@ -196,11 +218,11 @@ if ($SkipSlow) {
     Write-Host '  timedemo: SKIPPED (-SkipSlow) -- this run is not a promotion result.'
 }
 else {
-    Invoke-Gate -Name "timedemo ($Runs runs; 969 frames + checksum + median)" -Kind 'dos' `
+    Invoke-Gate -Name "timedemo ($Runs runs; 969 frames + checksum + median)" -Kind 'dos' -TimeoutSeconds 900 `
         -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/timedemo-dos.ps1', '-Runs', "$Runs", '-NoFpsStats') + $nb) | Out-Null
 }
 
-# ---- 8: release artefact pins.  Last: it judges a finished build. ---------
+# ---- 9: release artefact pins.  Last: it judges a finished build. ---------
 if ($SkipReleaseGuard) {
     $results.Add([pscustomobject]@{
             gate    = 'guard-i486-release (104 artefact hashes)'
