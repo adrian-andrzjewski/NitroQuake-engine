@@ -116,7 +116,6 @@ $buildParams = @{
 # standing invitation for a runner to look for an executable the builder never
 # wrote.  The builder is the only place that knows.
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
-$buildRoot = $resolved.outputRoot
 $djgppExe = $resolved.executable
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
 $dosbox = Join-Path $dosboxRoot ($toolManifest.dosboxX.executable -replace '/', [IO.Path]::DirectorySeparatorChar)

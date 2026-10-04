@@ -347,7 +347,8 @@ foreach ($target in $targets) {
                 elseif ($b1 -eq '01') {
                     # 0F 01 /1 LLDT and /2 LTR are i486; the rest (SGDT, SIDT,
                     # LGDT, LIDT, SMSW, LMSW, and the INVLPG variants) are 386.
-                    $reg = [Convert]::ToInt32($b1, 16)
+                    # Seeded i386 here and corrected from the ModRM reg field below,
+                    # once bytes[2] is in hand.
                     $isa = 'i386'
                 }
                 elseif ($b1 -eq 'ba') {

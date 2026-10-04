@@ -47,7 +47,7 @@
 .PARAMETER Scenario
     localmp (default) runs `map e1m1` + `connect local`, which covers world.c,
     sv_main/sv_phys/sv_user/sv_move, pr_exec/pr_cmds and the net socket layer.
-    frames sets how many frames to run after connecting.
+    Frames sets how many frames to run after connecting.
 
 .PARAMETER CpuTarget
     i486 (default) or i386.
@@ -60,14 +60,14 @@
     .\tools\coverage-dos.ps1 -NoBootstrap
 
 .EXAMPLE
-    .\tools\coverage-dos.ps1 -Scenario localmp -frames 32
+    .\tools\coverage-dos.ps1 -Scenario localmp -Frames 32
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('localmp')]
     [string]$Scenario = 'localmp',
     [ValidateRange(1, 256)]
-    [int]$frames = 64,
+    [int]$Frames = 64,
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [string]$DataRoot,
@@ -200,7 +200,7 @@ foreach ($pak in $pakFiles) {
 $commands = switch ($Scenario) {
     'localmp' {
         $seq = @('map e1m1', 'connect local')
-        $seq += (1..$frames | ForEach-Object { 'wait' })
+        $seq += (1..$Frames | ForEach-Object { 'wait' })
         $seq += 'quit'
         ($seq -join "`r`n") + "`r`n"
     }
@@ -244,7 +244,7 @@ if ($CpuTarget -ne 'i486') {
 $configPath = Join-Path $stagingRoot 'dosbox-x.conf'
 $runtimeConfig | Set-Content -LiteralPath $configPath -Encoding ASCII
 
-Write-Host ("Coverage scenario '{0}': map e1m1 + connect local + {1} frame(s)" -f $Scenario, $frames)
+Write-Host ("Coverage scenario '{0}': map e1m1 + connect local + {1} frame(s)" -f $Scenario, $Frames)
 Write-Host ("Staging: {0}" -f $stagingRoot)
 
 $processInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -300,7 +300,7 @@ $ok = (-not $timedOut) -and ($null -ne $quakeExit) -and ($quakeExit -eq 0)
 $report = [ordered]@{
     scenario        = $Scenario
     cpuTarget       = $CpuTarget
-    frames          = $frames
+    frames          = $Frames
     commands        = $commands
     timedOut        = $timedOut
     dosboxExit      = $dosboxExit

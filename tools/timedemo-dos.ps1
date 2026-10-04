@@ -215,7 +215,6 @@ $bootstrap = Join-Path $PSScriptRoot 'bootstrap-dos.ps1'
 # invitation for a runner to look for an executable the builder never wrote.
 # The builder is the only place that knows.
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
-$buildRoot = $resolved.outputRoot
 $benchmarkExe = $resolved.executable
 
 $dosboxRoot = Join-Path $ToolRoot $toolManifest.dosboxX.installDirectory
@@ -576,14 +575,11 @@ function Get-MedianNumber {
     return ($numbers[$middle - 1] + $numbers[$middle]) / 2.0
 }
 
-$fpsValues = @($results | ForEach-Object { [double]$_.fps } | Sort-Object)
-$middle = [int][math]::Floor($fpsValues.Count / 2)
-if (($fpsValues.Count % 2) -eq 1) {
-    $medianFps = $fpsValues[$middle]
-}
-else {
-    $medianFps = ($fpsValues[$middle - 1] + $fpsValues[$middle]) / 2.0
-}
+# The headline figure uses the same helper as the 30-odd FPS-summary fields below.
+# It used to re-implement the median inline, which meant the one number a reader
+# acts on and the same statistic in the summary block were computed by two
+# separately-edited copies of the same rule.
+$medianFps = Get-MedianNumber @($results | ForEach-Object { $_.fps })
 
 $fpsStatsRuns = @($results | Where-Object { $null -ne $_.fpsStats })
 $fpsSummary = $null
@@ -723,9 +719,9 @@ $result = [ordered]@{
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
-        edgeScanProbe = $EdgeScanProbe
-        spanSetupProbe = $SpanSetupProbe
-        renderFaceProbe = $RenderFaceProbe
+    edgeScanProbe = $EdgeScanProbe
+    spanSetupProbe = $SpanSetupProbe
+    renderFaceProbe = $RenderFaceProbe
     aliasGlueProbe = $AliasGlueProbe
     memoryImplementation = $MemoryImplementation
     aliasProjectImplementation = $AliasProjectImplementation
