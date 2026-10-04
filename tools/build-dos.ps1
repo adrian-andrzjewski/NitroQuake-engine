@@ -262,7 +262,17 @@ if ($Clean -and (Test-Path -LiteralPath $outputRoot)) {
 		Remove-Item -LiteralPath $outputRoot -Recurse -Force
 	}
 }
-New-Item -ItemType Directory -Path $objectRoot -Force | Out-Null
+# The object directory is created here rather than next to the compile loop,
+# because -Clean above needs to have removed it first.
+#
+# It is created AFTER the -DumpFlags early return, which is further down. That used
+# to be the other way round, so a "pure inspection" -- the mode
+# tools\test-build-dos.py, tools\guard-i486-release.py and tools\isa-audit-source.py
+# all call, and which the builder's own comment promises "does not depend on the
+# compile loop having run" -- created out\dos<suffix>\obj as a side effect. Four of
+# those tools can now ask what a configuration resolves to without writing anything,
+# which is also what let this whole script's flag arithmetic be pinned against a
+# golden with no compiler installed.
 
 $allCSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.c' -File | Sort-Object Name)
 $includedCSources = @('net_comx.c')
@@ -467,6 +477,11 @@ try {
         } | ConvertTo-Json -Depth 5
         return
     }
+
+    # Past this point the build touches the filesystem. Everything above -- the
+    # inventory pin, the flag arithmetic, the source lists -- is inspection, and
+    # -DumpFlags returns before any of it writes. See the note by the -Clean block.
+    New-Item -ItemType Directory -Path $objectRoot -Force | Out-Null
 
     $objects = @()
 
