@@ -167,8 +167,17 @@ $twoByteIsa = @{
     '0fbb' = 'i486'   # BTC r/m,r
     '0fc0' = 'i486'   # XADD
     '0fc1' = 'i486'   # XADD
-    '0fc6' = 'i486'   # CMPXCHG8B
-    '0fc7' = 'i486'   # CMPXCHG8B / RDRAND-ish
+    # CMPXCHG8B is a Pentium instruction, not a 486 one. Both of these entries
+    # said i486, and 0fc7 additionally carried the comment "RDRAND-ish", which is
+    # a third ISA (RDRAND is SSE4a/Bulldozer, two generations later still) --
+    # so one table row was standing in for three different levels.
+    # isa-audit-source.py already had cmpxchg8b in its i586 list; the two tools
+    # disagreed, and this one is the one wired into the build gate.
+    # Measured: neither encoding occurs in the i486 or the i386 object set, so
+    # correcting this moves no gate number.  It matters the moment the compiler
+    # emits either, which is exactly when the gate has to be right.
+    '0fc6' = 'i586'   # CMPXCHG8B
+    '0fc7' = 'i586'   # CMPXCHG8B
 }
 # MMX and SSE: 0F 10..0F 17, 0F 28..0F 2F, 0F 50..0F 77, 0F 78, 0F 79,
 # 0F 6F, 0F 7E, 0F 7F, 0F D4..0F FF.
