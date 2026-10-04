@@ -176,149 +176,32 @@ if (-not $DumpFlags) {
 }
 
 $sourceRoot = Join-Path $repoRoot 'src'
+. (Join-Path $PSScriptRoot 'selectors.ps1')
+Assert-SelectorOrdersIsConsistent
+Assert-SelectorManifestOrderIsConsistent
+
+# ---------------------------------------------------------------------------
+# The profile suffix: one pass over the selector table.
+#
+# The architecture token leads, and only for the non-default target, so every i486
+# output directory keeps the exact name it has always had. Then each selector
+# contributes its token if it has one for the resolved value. A selector whose
+# resolved value is its default simply has no entry, which is how the default build
+# keeps a short suffix.
+# ---------------------------------------------------------------------------
 $profileSuffixParts = @()
-# The architecture token is emitted only when the target is not the retained
-# i486 release profile, so every i486 output directory keeps the exact name it
-# has always had.  The token is `i386`, not the `march386` used by the reverted
-# 2026-10-03 experiment, so a stale directory from that experiment can never be
-# mistaken for -- or silently reused as -- a build of this target.
-if ($CpuTarget -eq 'i386') {
-    $profileSuffixParts += 'i386'
-}
-if ($OptimizationProfile -eq 'baseline') {
-    $profileSuffixParts += 'baseline'
-}
-if ($TextureAxisCacheEntries -ne 256) {
-    $profileSuffixParts += "cache$TextureAxisCacheEntries"
-}
-if ($MemoryImplementation -eq 'asm') {
-    $profileSuffixParts += 'memasm'
-}
-if ($TextureAxisImplementation -eq 'asm') {
-    $profileSuffixParts += 'axisasm'
-}
-if ($SurfaceCacheImplementation -eq 'asm') {
-    $profileSuffixParts += 'surfaceasm'
-}
-if ($MipLevelImplementation -eq 'asm') {
-    $profileSuffixParts += 'mipasm'
-}
-if ($TurbulentImplementation -eq 'c') {
-    $profileSuffixParts += 'turbc'
-}
-elseif ($TurbulentImplementation -eq 'asm') {
-    $profileSuffixParts += 'turbasm'
-}
-if ($TextureSpanStores -eq 'byte') {
-    $profileSuffixParts += 'spanbyte'
-}
-elseif ($TextureSpanStores -eq 'dword') {
-    $profileSuffixParts += 'spandword'
-}
-elseif ($TextureSpanStores -eq 'loop') {
-    $profileSuffixParts += 'spanloop'
-}
-elseif ($TextureSpanStores -eq 'stosw') {
-    $profileSuffixParts += 'spanstosw'
-}
-if ($TextureSpanTailStores -eq 'word') {
-    $profileSuffixParts += 'spantailword'
-}
-if ($TextureSpanRowPath -eq 'norowcross') {
-    $profileSuffixParts += 'spannorow'
-}
-if ($TextureSpanLoadOrder -eq 'loadfirst') {
-    $profileSuffixParts += 'spanloadfirst'
-}
-if ($TextureSpanAddressing -eq 'branch') {
-    $profileSuffixParts += 'spanaddrbranch'
-}
-if ($AliasSpanAddressing -eq 'branch') {
-    $profileSuffixParts += 'aliasspanaddrbranch'
-}
-if ($ZSpanNegativeUnroll -eq 'unroll8') {
-    $profileSuffixParts += 'zneg8'
-}
-else {
-    $profileSuffixParts += 'zneg4'
-}
-if ($SurfaceBlockMip0Rows -eq 'unroll4') {
-    $profileSuffixParts += 'surf0rows4'
-}
-elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
-    $profileSuffixParts += 'surf0rows8'
-}
-elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
-    $profileSuffixParts += 'surf0rows16'
-}
-if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
-    $profileSuffixParts += 'surf0hflat'
-}
-if ($SurfaceBlockMip1Rows -eq 'unroll8') {
-    $profileSuffixParts += 'surf1rows8'
-}
-if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
-    $profileSuffixParts += 'surf1hflat'
-}
-if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
-    $profileSuffixParts += 'surf1hflatidxhoist'
-}
-if ($EdgeScanProbe -ne 'control') {
-    $profileSuffixParts += ('edgescanprobe' + $EdgeScanProbe)
-}
-if ($SpanSetupProbe -ne 'control') {
-    $profileSuffixParts += ('spansetup' + $SpanSetupProbe)
-}
-if ($RenderFaceProbe -ne 'control') {
-    $profileSuffixParts += ('rfprobe' + $RenderFaceProbe)
-}
-if ($AliasGlueProbe -ne 'control') {
-    $profileSuffixParts += ('agprobe' + $AliasGlueProbe)
-}
-if ($AliasProjectImplementation -eq 'c') {
-    $profileSuffixParts += 'aliasc'
-}
-if ($AliasBBoxProjectImplementation -eq 'c') {
-    $profileSuffixParts += 'aliasbboxc'
-}
-if ($AliasTransformFinalImplementation -eq 'c') {
-    $profileSuffixParts += 'aliastransformc'
-}
-if ($AliasPrepareImplementation -eq 'local') {
-    $profileSuffixParts += 'aliaslocal'
-}
-if ($AliasMatrixCompositionImplementation -eq 'special') {
-    $profileSuffixParts += 'aliasmatrixspecial'
-}
-if ($TextureAnimationImplementation -eq 'c') {
-    $profileSuffixParts += 'textureanimc'
-}
-if ($LightMapNormalizeImplementation -eq 'c') {
-    $profileSuffixParts += 'lightmapc'
-}
-if ($LightMapStylesImplementation -eq 'asm') {
-    $profileSuffixParts += 'lightmapstylesasm'
-}
-if ($FusedLightMapImplementation -eq 'asm') {
-    $profileSuffixParts += 'fusedlightmapasm'
-}
-if ($DynamicLightImplementation -eq 'asm') {
-    $profileSuffixParts += 'dlightasm'
-}
-if ($BspPlaneDotImplementation -eq 'asm') {
-    $profileSuffixParts += 'bspdotasm'
-}
-if ($BspClipImplementation -eq 'asm') {
-    $profileSuffixParts += 'bspclipasm'
-}
-if ($BspFrameCountImplementation -eq 'local') {
-    $profileSuffixParts += 'bspframecache'
-}
-if ($GibTrailHorizontalIntegration -eq 'skipzero') {
-    $profileSuffixParts += 'gibskipzero'
-}
-if ($Instrumentation) {
-    $profileSuffixParts += 'profile'
+foreach ($name in $script:SuffixOrder) {
+    $selector = Get-SelectorEntry -Name $name
+    $value = Get-SelectorValue -Name $name
+    if ($null -ne $selector -and $selector.ContainsKey('ArchToken')) {
+        if ($selector.ArchToken.ContainsKey($value)) {
+            $profileSuffixParts += $selector.ArchToken[$value]
+        }
+        continue
+    }
+    if ($null -ne $selector -and $selector.Suffix.ContainsKey($value)) {
+        $profileSuffixParts += $selector.Suffix[$value]
+    }
 }
 $profileSuffix = if ($profileSuffixParts.Count) {
     '-' + ($profileSuffixParts -join '-')
@@ -385,22 +268,30 @@ $allCSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.c' -File | So
 $includedCSources = @('net_comx.c')
 $cSources = @($allCSources | Where-Object { $_.Name -notin $includedCSources })
 $allAsmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File | Sort-Object Name)
-$asmSources = @($allAsmSources | Where-Object {
-	$Benchmark -or $MemoryImplementation -eq 'asm' -or
-		$TextureAxisImplementation -eq 'asm' -or
-		$SurfaceCacheImplementation -eq 'asm' -or
-	$MipLevelImplementation -eq 'asm' -or
-	$TextureAnimationImplementation -eq 'asm' -or
-	$LightMapNormalizeImplementation -eq 'asm' -or
-	$LightMapStylesImplementation -eq 'asm' -or
-	$FusedLightMapImplementation -eq 'asm' -or
-	$DynamicLightImplementation -eq 'asm' -or
-	$BspPlaneDotImplementation -eq 'asm' -or
-		$BspClipImplementation -eq 'asm' -or
-		$AliasBBoxProjectImplementation -eq 'asm' -or
-		$AliasTransformFinalImplementation -eq 'asm' -or
-		$_.Name -ne 'asm486_experiments.s'
-})
+
+# Which .s files are live, from the selector table's SelectsAsm column rather than
+# from a hand-copied list of the thirteen implementation selectors. A -Benchmark
+# build compiles all of them, because the bench harness compares C against asm and
+# needs both sides present.
+$asmIsLive = $Benchmark -or (@(
+        $script:SelectorTable |
+            Where-Object { $_.SelectsAsm -and ((Get-SelectorValue -Name $_.Param) -eq 'asm') }
+    ).Count -gt 0)
+
+# Read the disjunction carefully, because it does not say what it looks like it
+# says. This is a chain of -or, and -eq binds tighter, so the original condition
+# parsed as "any implementation selector is asm, OR this file is not
+# asm486_experiments.s". The name test is therefore an extra way for a file to be
+# INCLUDED, not a way to exclude one: in the default release build every one of the
+# 21 .s files is compiled, asm486_experiments.s among them, and the inventory pin
+# below expects 21. Only when every implementation selector is 'c' and this is not a
+# -Benchmark build does the name test do any work, and then it drops that one file
+# and the expected count drops with it.
+#
+# Rewriting this as an exclusion -- "include the file unless it is
+# asm486_experiments.s" -- compiles 20 and fails the inventory pin. That is what
+# happened the first time this was table-driven, which is the pin doing its job.
+$asmSources = @($allAsmSources | Where-Object { $asmIsLive -or $_.Name -ne 'asm486_experiments.s' })
 $allSources = @($cSources + $asmSources)
 
 # The inventory pin.  The expected counts come from the golden manifest for this
@@ -429,16 +320,16 @@ if (-not $DumpFlags) {
     $expectedAllAssemblySourceCount = [int]$goldenFlags.allAssemblySourceCount
 }
 
-$expectedAssemblySourceCount = if ($Benchmark -or $MemoryImplementation -eq 'asm' -or
-	$TextureAxisImplementation -eq 'asm' -or $SurfaceCacheImplementation -eq 'asm' -or
-	$MipLevelImplementation -eq 'asm' -or $TextureAnimationImplementation -eq 'asm' -or
-	$LightMapNormalizeImplementation -eq 'asm' -or
-	$LightMapStylesImplementation -eq 'asm' -or
-	$FusedLightMapImplementation -eq 'asm' -or
-	$DynamicLightImplementation -eq 'asm' -or
-	$BspPlaneDotImplementation -eq 'asm' -or
-		$BspClipImplementation -eq 'asm' -or $AliasBBoxProjectImplementation -eq 'asm' -or
-		$AliasTransformFinalImplementation -eq 'asm') { $expectedAllAssemblySourceCount } else { $expectedAllAssemblySourceCount - 1 }
+# The expected active-assembly count is the total minus the one file that is never
+# part of a release build, and it is derived from $asmIsLive -- the same flag that
+# decided which .s files were compiled -- rather than from a fourth copy of the
+# implementation-selector list.
+$expectedAssemblySourceCount = if ($asmIsLive) {
+    $expectedAllAssemblySourceCount
+}
+else {
+    $expectedAllAssemblySourceCount - 1
+}
 if (($allCSources.Count -ne $expectedAllCSourceCount) -or ($cSources.Count -ne $expectedStandaloneCSourceCount) -or
 	($allAsmSources.Count -ne $expectedAllAssemblySourceCount) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {
     throw ("Expected {1} retained C sources ({2} standalone), {3} total assembly sources, and {4} active assembly sources, found {5} C ({6} standalone), {7} total assembly, and {8} active assembly. If this change is intended, update {9} and re-record tools\test-build-dos.py." -f
@@ -489,63 +380,38 @@ try {
     if ($Benchmark) {
         $cFlags += '-DBENCH486'
     }
-    if ($MemoryImplementation -eq 'asm') {
-        $cFlags += '-DASM486_RUNTIME_MEMOPS'
+
+    # ---------------------------------------------------------------------------
+    # Selector-driven defines, in the order each language has always emitted them.
+    #
+    # The base list above ends at -DD_TEXAXIS_CACHE_SIZE and is positional: it must
+    # stay exactly where it is, because the golden manifest compares this array
+    # element by element. Everything after it was a hand-written conditional per
+    # selector, in three interleaved blocks; it is now one pass per language over an
+    # order declared in tools\selectors.ps1.
+    #
+    # The three orders are different permutations and are declared separately,
+    # because they are not derivable from one another. Assert-SelectorOrdersIsConsistent,
+    # called at the top of this script, is what stops a selector being added to the
+    # table and to only some of the orders.
+    # ---------------------------------------------------------------------------
+    foreach ($name in $script:CDefineOrder) {
+        if ($name.StartsWith('BUILD:')) {
+            $switch = $script:BuildSwitchDefines[$name]
+            if (& $switch.Emit) {
+                $cFlags += ('-D' + $switch.Define)
+            }
+            continue
+        }
+        $selector = Get-SelectorEntry -Name $name
+        $value = Get-SelectorValue -Name $name
+        if ($selector.C.ContainsKey($value)) {
+            foreach ($define in $selector.C[$value]) {
+                $cFlags += ('-D' + $define)
+            }
+        }
     }
-    if ($TextureAxisImplementation -eq 'asm') {
-        $cFlags += '-DASM486_TEXTURE_AXIS_CACHE'
-    }
-    if ($SurfaceCacheImplementation -eq 'asm') {
-        $cFlags += '-DASM486_SURFACE_CACHE_CHECK'
-    }
-    if ($MipLevelImplementation -eq 'asm') {
-        $cFlags += '-DASM486_MIP_LEVEL'
-    }
-    if ($TextureAnimationImplementation -eq 'asm') {
-        $cFlags += '-DASM486_TEXTURE_ANIMATION'
-    }
-    if ($LightMapNormalizeImplementation -eq 'asm') {
-        $cFlags += '-DASM486_LIGHTMAP_NORMALIZE'
-    }
-    if ($LightMapStylesImplementation -eq 'asm') {
-        $cFlags += '-DASM486_LIGHTMAP_STYLES'
-    }
-    if ($FusedLightMapImplementation -eq 'asm') {
-        $cFlags += '-DASM486_FUSED_LIGHTMAP'
-    }
-    if ($DynamicLightImplementation -eq 'asm') {
-        $cFlags += '-DASM486_DYNAMIC_LIGHTS'
-    }
-    if ($BspPlaneDotImplementation -eq 'asm') {
-        $cFlags += '-DASM486_BSP_PLANE_DOT'
-    }
-    if ($BspClipImplementation -eq 'asm') {
-        $cFlags += '-DASM486_BSP_CLIP'
-    }
-    if ($BspFrameCountImplementation -eq 'local') {
-        $cFlags += '-DASM486_BSP_FRAME_COUNT'
-    }
-    if ($GibTrailHorizontalIntegration -eq 'skipzero') {
-        $cFlags += '-DASM486_GIB_TRAIL_SKIP_ZERO_XY'
-    }
-    if ($AliasBBoxProjectImplementation -eq 'asm') {
-        $cFlags += '-DASM486_ALIAS_BBOX_PROJECT'
-    }
-    if ($AliasTransformFinalImplementation -eq 'asm') {
-        $cFlags += '-DASM486_ALIAS_TRANSFORM_FINAL'
-    }
-    if ($AliasPrepareImplementation -eq 'local') {
-        $cFlags += '-DASM486_ALIAS_PREPARE_LOCAL'
-    }
-    if ($AliasMatrixCompositionImplementation -eq 'special') {
-        $cFlags += '-DASM486_ALIAS_MATRIX_COMPOSE'
-    }
-    if ($TurbulentImplementation -eq 'c') {
-        $cFlags += '-DASM486_TURBULENT_C'
-    }
-    if ($Instrumentation) {
-        $cFlags += '-DPROFILE486'
-    }
+
     $asmFlags = @(
         "-I$sourceRoot",
         $optimizationLevel,
@@ -557,92 +423,21 @@ try {
         '-x',
         'assembler-with-cpp'
     )
-    if ($CpuTarget -eq 'i386') {
-        $asmFlags += '-DTARGET_I386'
-    }
-    if ($Instrumentation) {
-        $asmFlags += '-DPROFILE486'
-    }
-    if ($TurbulentImplementation -eq 'stosb') {
-        $asmFlags += '-DASM486_TURBULENT_STOSB'
-    }
-    if ($TextureSpanStores -eq 'word') {
-        $asmFlags += '-DASM486_SPAN16_WORD_STORES'
-    }
-    elseif ($TextureSpanStores -eq 'stosw') {
-        $asmFlags += '-DASM486_SPAN16_WORD_STORES'
-        $asmFlags += '-DASM486_SPAN16_WORD_STOS'
-    }
-    elseif ($TextureSpanStores -eq 'dword') {
-        $asmFlags += '-DASM486_SPAN16_DWORD_STORES'
-    }
-    elseif ($TextureSpanStores -eq 'loop') {
-        $asmFlags += '-DASM486_SPAN16_LOOP_STOSB'
-    }
-    if ($TextureSpanRowPath -eq 'norowcross') {
-        $asmFlags += '-DASM486_SPAN16_NO_ROW_CROSS'
-    }
-    if ($TextureSpanTailStores -eq 'word') {
-        $asmFlags += '-DASM486_SPAN16_TAIL_WORD_STORES'
-    }
-    if ($TextureSpanLoadOrder -eq 'loadfirst') {
-        $asmFlags += '-DASM486_SPAN16_LOAD_FIRST'
-    }
-    if ($TextureSpanAddressing -eq 'branch') {
-        $asmFlags += '-DASM486_SPAN16_BRANCH_ADDRESS'
-    }
-    if ($AliasSpanAddressing -eq 'branch') {
-        $asmFlags += '-DASM486_ALIAS_SPAN_BRANCH_ADDRESS'
-    }
-    if ($ZSpanNegativeUnroll -eq 'unroll8') {
-        $asmFlags += '-DASM486_ZSPAN_NEG_UNROLL8'
-    }
-    if ($SurfaceBlockMip0Rows -eq 'unroll4') {
-        $asmFlags += '-DASM486_SURF8_MIP0_ROWS4'
-    }
-    elseif ($SurfaceBlockMip0Rows -eq 'unroll8') {
-        $asmFlags += '-DASM486_SURF8_MIP0_ROWS8'
-    }
-    elseif ($SurfaceBlockMip0Rows -eq 'unroll16') {
-        $asmFlags += '-DASM486_SURF8_MIP0_ROWS16'
-    }
-    if ($SurfaceBlockMip0HorizontalFlat -eq 'fast') {
-        $asmFlags += '-DASM486_SURF8_MIP0_HORIZONTAL_FLAT'
-    }
-    if ($SurfaceBlockMip1Rows -eq 'unroll8') {
-        $asmFlags += '-DASM486_SURF8_MIP1_ROWS8'
-    }
-    if ($SurfaceBlockMip1HorizontalFlat -eq 'fast') {
-        $asmFlags += '-DASM486_SURF8_MIP1_HORIZONTAL_FLAT'
-    }
-    if ($SurfaceBlockMip1IndexHoist -eq 'hoist') {
-        $asmFlags += '-DASM486_SURF8_MIP1_INDEX_HOIST'
-    }
-    if ($EdgeScanProbe -ne 'control') {
-        # Uppercased so one -D per probe value, matching the #ifdef form.
-        # gas macros are not C macros and #error is inert under
-        # -x assembler-with-cpp, so the define is the only reliable selector.
-        $asmFlags += ('-DEDGE_SCAN_PROBE_' + $EdgeScanProbe.ToUpperInvariant())
-    }
-    if ($SpanSetupProbe -ne 'control') {
-        $asmFlags += ('-DASM486_SPAN_SETUP_PROBE_' + $SpanSetupProbe.ToUpperInvariant())
-    }
-    if ($AliasGlueProbe -ne 'control') {
-        $cFlags += '-DASM486_ALIAS_GLUE_PROBE'
-        $cFlags += ('-DASM486_ALIAS_GLUE_PROBE_' + $AliasGlueProbe.ToUpperInvariant())
-    }
-    if ($RenderFaceProbe -ne 'control') {
-        $cFlags += '-DASM486_RENDERFACE_PROBE'
-        $cFlags += ('-DASM486_RENDERFACE_PROBE_' + $RenderFaceProbe.ToUpperInvariant())
-    }
-    if ($AliasProjectImplementation -eq 'asm') {
-        $cFlags += '-DASM486_ALIAS_PROJECT'
-    }
-    if ($CpuTarget -eq 'i386') {
-        # Selects the i386 variants in the hand-written assembly.  Defined for
-        # the C sources too so that a single spelling works in both languages
-        # under -x assembler-with-cpp.
-        $cFlags += '-DTARGET_I386'
+    foreach ($name in $script:AsmDefineOrder) {
+        if ($name.StartsWith('BUILD:')) {
+            $switch = $script:BuildSwitchDefines[$name]
+            if (& $switch.Emit) {
+                $asmFlags += ('-D' + $switch.Define)
+            }
+            continue
+        }
+        $selector = Get-SelectorEntry -Name $name
+        $value = Get-SelectorValue -Name $name
+        if ($selector.Asm.ContainsKey($value)) {
+            foreach ($define in $selector.Asm[$value]) {
+                $asmFlags += ('-D' + $define)
+            }
+        }
     }
 
     if ($DumpFlags) {
@@ -905,49 +700,24 @@ try {
         assemblySourceCount = $asmSources.Count
         benchmarkBuild = [bool]$Benchmark
         profileBuild = [bool]$Instrumentation
-        memoryImplementation = $MemoryImplementation
-        textureAxisImplementation = $TextureAxisImplementation
-        surfaceCacheImplementation = $SurfaceCacheImplementation
-        mipLevelImplementation = $MipLevelImplementation
-        turbulentImplementation = $TurbulentImplementation
-        textureSpanStores = $TextureSpanStores
-        textureSpanTailStores = $TextureSpanTailStores
-        textureSpanRowPath = $TextureSpanRowPath
-        textureSpanLoadOrder = $TextureSpanLoadOrder
-        textureSpanAddressing = $TextureSpanAddressing
-        aliasSpanAddressing = $AliasSpanAddressing
-        zSpanNegativeUnroll = $ZSpanNegativeUnroll
-        surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
-        surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
-        surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
-    surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
-        surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
-        edgeScanProbe = $EdgeScanProbe
-        spanSetupProbe = $SpanSetupProbe
-        renderFaceProbe = $RenderFaceProbe
-        aliasGlueProbe = $AliasGlueProbe
-        aliasProjectImplementation = $AliasProjectImplementation
-        aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
-        aliasTransformFinalImplementation = $AliasTransformFinalImplementation
-        aliasPrepareImplementation = $AliasPrepareImplementation
-        aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
-        textureAnimationImplementation = $TextureAnimationImplementation
-        lightMapNormalizeImplementation = $LightMapNormalizeImplementation
-        lightMapStylesImplementation = $LightMapStylesImplementation
-        fusedLightMapImplementation = $FusedLightMapImplementation
-        dynamicLightImplementation = $DynamicLightImplementation
-        bspPlaneDotImplementation = $BspPlaneDotImplementation
-        bspClipImplementation = $BspClipImplementation
-        bspFrameCountImplementation = $BspFrameCountImplementation
-        gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
-        optimizationProfile = $OptimizationProfile
-        optimizationLevel = $optimizationLevel
-        textureAxisCacheEntries = $TextureAxisCacheEntries
-        cSources = @($cSources.Name)
-        assemblySources = @($asmSources.Name)
-        sourceCommit = $commit
-        executable = $executable
     }
+
+    # The selector echo, in the order the manifest has always listed it. That order
+    # is SuffixOrder minus the three selectors already emitted above, which is
+    # checked rather than assumed -- a fourth hand-maintained list here is exactly
+    # what this refactor is removing.
+    foreach ($name in $script:ManifestSelectorOrder) {
+        $selector = Get-SelectorEntry -Name $name
+        $manifest[$selector.Manifest] = Get-SelectorValue -Name $name
+    }
+
+    $manifest['optimizationProfile'] = $OptimizationProfile
+    $manifest['optimizationLevel'] = $optimizationLevel
+    $manifest['textureAxisCacheEntries'] = $TextureAxisCacheEntries
+    $manifest['cSources'] = @($cSources.Name)
+    $manifest['assemblySources'] = @($asmSources.Name)
+    $manifest['sourceCommit'] = $commit
+    $manifest['executable'] = $executable
     $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $outputRoot $manifestName) -Encoding ASCII
 
     Write-Host "Built $executable"
