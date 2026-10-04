@@ -198,12 +198,26 @@ else {
     }
     @(Get-Item -LiteralPath (Resolve-Path -LiteralPath $ObjectRoot).Path)
 }
-$objectNameFilter = if ($ObjectNames.Count -gt 0) { [System.Collections.Generic.HashSet[string]]::new([string[]]$ObjectNames) } else { $null }
+# Two states, not one: "no -ObjectNames given, sweep every object" and "-ObjectNames
+# given, audit exactly those". $null was doing double duty as the off state, which
+# made line 215's `$objectNameFilter.Count` a property read on $null -- a
+# terminating error under Set-StrictMode -Version Latest, so omitting -ObjectNames
+# aborted the audit instead of widening it. A boolean carries the state and the set
+# is always a real set.
+$filterByName = ($ObjectNames.Count -gt 0)
+$objectNameFilter = [System.Collections.Generic.HashSet[string]]::new([string[]]$ObjectNames)
 $targets = New-Object System.Collections.Generic.List[object]
+# Seeded from the request, so a name that matched nothing is still reported.
+# This list used to start empty and only ever had entries removed from it, which
+# meant the check below could not fire and a typo in -ObjectNames silently
+# audited fewer objects than the caller asked for.
 $missingObjects = New-Object System.Collections.Generic.List[string]
+foreach ($requestedObject in $objectNameFilter) {
+    $missingObjects.Add($requestedObject)
+}
 foreach ($dir in $objectDirectories) {
     foreach ($obj in (Get-ChildItem -LiteralPath $dir.FullName -Filter '*.obj' -File | Sort-Object Name)) {
-        if ($null -ne $objectNameFilter) {
+        if ($filterByName) {
             if (-not $objectNameFilter.Contains($obj.Name)) {
                 continue
             }
@@ -212,7 +226,7 @@ foreach ($dir in $objectDirectories) {
         $targets.Add([pscustomobject]@{ kind = 'object'; name = $obj.Name; path = $obj.FullName })
     }
 }
-if ($objectNameFilter.Count -gt 0 -and $missingObjects.Count -gt 0) {
+if ($filterByName -and $missingObjects.Count -gt 0) {
     throw ("Named objects were not found under '{0}': {1}" -f (($objectDirectories | ForEach-Object { $_.FullName }) -join ', '), ($missingObjects -join ', '))
 }
 $exePath = Join-Path $BuildRoot $ExeName
