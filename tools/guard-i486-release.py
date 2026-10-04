@@ -46,9 +46,24 @@ GOLDEN_PATH = os.path.join(REPO_ROOT, "tools", "golden", "i486-release.sha256")
 
 # Same-length replacements, so object section sizes and offsets are untouched
 # and the normalized hash is a faithful digest of everything except the clock.
+#
+# The date pattern used to be `\d{2}-[A-Za-z]{3}-\d{4}` ("DD-Mon-YYYY"), which no C
+# compiler emits.  C spells __DATE__ as "Mmm dd yyyy" with a space-padded day, so
+# DJGPP writes `Oct  4 2026` and the substitution never fired: the calendar date
+# stayed in the digest of host.obj, host_cmd.obj and quake.exe, and the guard
+# failed on any rebuild on a different day even though it is supposed to be
+# blind to the date.  Verified across the 104 pinned artefacts -- the pattern
+# below matches exactly those three and no others, so it does not weaken the pin
+# on the other 101.
+#
+# Both halves are one pattern because they are one literal in the artefacts: the
+# two __TIME__/__DATE__ users print them from one "Exe: %s %s\n" format, so the
+# pair always appears as `<hh:mm:ss> <Mmm dd yyyy>`.  Anchoring on that is what
+# keeps the pattern from matching unrelated text in .text.  The bare time
+# pattern stays as a fallback for a lone __TIME__.
 TIMESTAMP_PATTERNS = (
+    (re.compile(rb"\d{2}:\d{2}:\d{2} [A-Z][a-z]{2} [ 0-9][0-9] \d{4}"), b"HH:MM:SS DD-MMM-YYYY"),
     (re.compile(rb"\d{2}:\d{2}:\d{2}"), b"HH:MM:SS"),
-    (re.compile(rb"\d{2}-[A-Za-z]{3}-\d{4}"), b"DD-Mon-YYYY"),
 )
 
 
