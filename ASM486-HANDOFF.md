@@ -9,7 +9,7 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
-The dated experiment log that used to sit under this heading -- 74 entries and
+The dated experiment log that used to sit under this heading -- its entries and
 3,986 lines -- now lives in [`docs/ledger/`](docs/ledger/INDEX.md), split by date
 and region. Nothing in it was reworded; see the ledger index for the entry list
 and [`docs/INDEX.md`](docs/INDEX.md) for how the documents fit together.
@@ -1568,7 +1568,7 @@ benchmark harness and `tools\profile-report.ps1` for profile JSON.
 
 Every dated measurement, rejection and correction is in
 [`docs/ledger/`](docs/ledger/INDEX.md), one file per region or day. The index
-lists all 74 entries; the process rule above is why it names
+lists every entry; the process rule above is why it names
 them by heading rather than by line number.
 
 Two results sections were removed from `BUILD-DOS.md` for the same reason and

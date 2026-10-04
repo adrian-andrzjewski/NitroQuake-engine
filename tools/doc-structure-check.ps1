@@ -131,12 +131,44 @@ if (Test-Path -LiteralPath $ledgerIndex) {
             Add-Finding 'ledger-file-unindexed' "docs/ledger/$($lf.Name)" 0 'file is not listed in INDEX.md'
         }
         # every H2 in the file is one ledger entry and must be indexed
+        $entryCount = 0
         foreach ($h in [regex]::Matches([IO.File]::ReadAllText($lf.FullName), '(?m)^## (.+)$')) {
+            $entryCount++
             $needle = $h.Groups[1].Value.Trim()
             if ($needle.Length -gt 40) { $needle = $needle.Substring(0, 40) }
             if ($indexText -notmatch [regex]::Escape($needle)) {
                 Add-Finding 'ledger-entry-unindexed' "docs/ledger/$($lf.Name)" 0 "entry not in INDEX.md: $needle"
             }
+        }
+
+        # The Files table's Entries column must be that file's heading count.
+        #
+        # Check 3 above proves every entry is *indexed*; it says nothing about the
+        # number the index prints, which is how the table came to claim 74 entries
+        # in total while six of its own per-file counts were wrong and the three
+        # sourced-from-BUILD-DOS files were listed as holding none. A count that
+        # nobody recomputes is a count that rots, and this file exists because a
+        # number nobody recomputes did.
+        $rowPattern = [regex]::Escape($lf.Name) + '\)\s*\|\s*(\d+)\s*\|'
+        $rowMatch = [regex]::Match($indexText, $rowPattern)
+        if ($rowMatch.Success) {
+            $claimed = [int]$rowMatch.Groups[1].Value
+            if ($claimed -ne $entryCount) {
+                Add-Finding 'ledger-entry-count-wrong' "docs/ledger/$($lf.Name)" 0 "INDEX.md says $claimed entries, the file has $entryCount '## ' headings"
+            }
+        }
+    }
+
+    # And the stated grand total must be the sum of the heading counts.
+    $grandTotal = 0
+    foreach ($lf in $ledgerFiles) {
+        $grandTotal += [regex]::Matches([IO.File]::ReadAllText($lf.FullName), '(?m)^## ').Count
+    }
+    $statedMatch = [regex]::Match($indexText, '\*\*(\d+)\s+(?:entries|headings)\*\*')
+    if ($statedMatch.Success) {
+        $stated = [int]$statedMatch.Groups[1].Value
+        if ($stated -ne $grandTotal) {
+            Add-Finding 'ledger-total-wrong' 'docs/ledger/INDEX.md' 0 "INDEX.md states $stated headings, the ledger holds $grandTotal across $($ledgerFiles.Count) files"
         }
     }
 }

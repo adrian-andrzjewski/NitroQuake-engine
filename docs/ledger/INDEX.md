@@ -1,7 +1,7 @@
 # Experiment ledger
 
 Every dated measurement, rejection and correction from the 486 optimization work:
-**74 entries**, all of which until 2026-10-03 sat under a single `## Current state`
+**89 headings**, all of which until 2026-10-03 sat under a single `## Current state`
 heading in `ASM486-HANDOFF.md`. The prose was moved verbatim; nothing was reworded.
 
 Read the entry by its heading, never by a line number - see the process rule in
@@ -16,18 +16,19 @@ later insertion above it.
 | [`2026-09-26-reproducibility-baseline.md`](2026-09-26-reproducibility-baseline.md) | 1 | harness / method |
 | [`2026-09-28-span-micro-experiments.md`](2026-09-28-span-micro-experiments.md) | 8 | alias |
 | [`2026-09-29-alias-and-surface-block-experiments.md`](2026-09-29-alias-and-surface-block-experiments.md) | 7 | alias |
-| [`2026-09-29-harness-and-cost-model.md`](2026-09-29-harness-and-cost-model.md) | 13 | world-bsp |
-| [`2026-09-30-harness-fidelity-and-sourcing.md`](2026-09-30-harness-fidelity-and-sourcing.md) | 6 | harness / method |
+| [`2026-09-29-harness-and-cost-model.md`](2026-09-29-harness-and-cost-model.md) | 12 | world-bsp |
+| [`2026-09-30-harness-fidelity-and-sourcing.md`](2026-09-30-harness-fidelity-and-sourcing.md) | 5 | harness / method |
 | [`2026-10-01-attribution-corrections.md`](2026-10-01-attribution-corrections.md) | 5 | alias |
-| [`2026-10-02-edge-scan-and-texture-spans.md`](2026-10-02-edge-scan-and-texture-spans.md) | 16 | harness / method |
+| [`2026-10-02-edge-scan-and-texture-spans.md`](2026-10-02-edge-scan-and-texture-spans.md) | 4 | harness / method |
 | [`2026-10-02-surf8-bundle-and-promotion.md`](2026-10-02-surf8-bundle-and-promotion.md) | 5 | renderface |
 | [`2026-10-03-alias-glue-closure.md`](2026-10-03-alias-glue-closure.md) | 3 | ISA / i386 |
 | [`2026-10-03-clamp-fusion-and-the-1.0-rate.md`](2026-10-03-clamp-fusion-and-the-1.0-rate.md) | 1 | harness / method |
 | [`2026-10-03-isa-audit-and-i386-codepath.md`](2026-10-03-isa-audit-and-i386-codepath.md) | 2 | ISA / i386 |
 | [`2026-10-03-region-pricing-sweep.md`](2026-10-03-region-pricing-sweep.md) | 4 | z-spans |
-| [`2026-09-29-offline-precomputation-pass.md`](2026-09-29-offline-precomputation-pass.md) | 0 | harness / method |
-| [`timedemo-baseline-history.md`](timedemo-baseline-history.md) | 0 | harness / method |
-| [`microbenchmark-results.md`](microbenchmark-results.md) | 0 | harness / method |
+| [`2026-10-04-toolchain-refactor.md`](2026-10-04-toolchain-refactor.md) | 10 | harness / method |
+| [`2026-09-29-offline-precomputation-pass.md`](2026-09-29-offline-precomputation-pass.md) | 2 | harness / method |
+| [`timedemo-baseline-history.md`](timedemo-baseline-history.md) | 6 | harness / method |
+| [`microbenchmark-results.md`](microbenchmark-results.md) | 14 | harness / method |
 
 ## By region
 
@@ -58,6 +59,16 @@ other axis: one row per renderer region, newest entry first.
 
 ### harness / method
 
+- `measured` [The duplication, measured](2026-10-04-toolchain-refactor.md)
+- `measured` [Four defects that were producing a wrong...](2026-10-04-toolchain-refactor.md)
+- `measured` [Two runners tested whatever binary was l...](2026-10-04-toolchain-refactor.md)
+- `measured` [The generated DOSBox config was not repr...](2026-10-04-toolchain-refactor.md)
+- `measured` [One selector, written five times](2026-10-04-toolchain-refactor.md)
+- `measured` [Six latent defects in the source-level I...](2026-10-04-toolchain-refactor.md)
+- `measured` [What is now a gate that was not](2026-10-04-toolchain-refactor.md)
+- `measured` [A checklist moved out of a script's tail](2026-10-04-toolchain-refactor.md)
+- `measured` [Result](2026-10-04-toolchain-refactor.md)
+- `measured` [Dead code, and one that was not](2026-10-04-toolchain-refactor.md)
 - `measured` [The clamp fusion is measured at **0.0000%**, and the probe that explains it says **1.0 cycle per instruct...](2026-10-03-clamp-fusion-and-the-1.0-rate.md)
 - `measured` [`edge-scan` decomposed by dead-scratch probe — pass 1 of 2 (2026-10-02): six probes, and **the closure be...](2026-10-02-edge-scan-and-texture-spans.md)
 - `measured` [The census, and what it overturned](2026-10-02-edge-scan-and-texture-spans.md)

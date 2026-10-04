@@ -150,9 +150,26 @@ The i486 release is pinned three ways, and all three are checked by
   two objects and the executable are hashed with the timestamp replaced by a
   same-length literal; those three entries are marked `normalized` in the file so
   the weakening is visible.
+* `tools\golden\isa-source-baseline.json` — the source-level ISA ratchet for
+  `tools\isa-audit-source.py`, which is gate 5 of `tools\run-tests.ps1`.  Two
+  absolute rules (unclassified must be zero, p6 must be zero) and per-ISA counts
+  that may not rise.  It exists because that tool is the cross-check on the
+  object-level gate above: the two count instructions by different means, and
+  `tools\golden\isa-baseline.json` records that their agreement is the evidence
+  its 62/63 string-data exclusion is sound rather than convenient.  Run the tool
+  *without* `-FailOnViolation`, which is an absolute pass and stays red for as long
+  as the multiply-elimination work is incomplete; the ratchet is what gates.
 * The i386 codepath is entirely inside `#ifdef TARGET_I386`, so the i486 object
   bytes cannot move.  That is what the SHA-256 pin proves, and it is checked after
   every change to the assembly.
+* `tools\dosbox-x-486-high.conf` is pinned by SHA-256 from `timedemo-dos.ps1`,
+  with line endings normalised to LF before hashing.  Hashing the file as it sits
+  on disk made that promotion gate depend on the machine's git configuration:
+  there is no `.gitattributes` in this tree, the committed blob is LF, and
+  `core.autocrlf=true` rewrites it to CRLF on checkout — so the pinned constant
+  only ever matched a Windows clone configured this way.  A checkout with
+  `core.autocrlf=false`, which includes Linux and any CI runner set up that way,
+  failed the gate on a file that had not changed.
 
 ### Two pre-existing bugs found while adding the target
 
@@ -165,10 +182,45 @@ The i486 release is pinned three ways, and all three are checked by
   output is instead of recomputing it, which is what made the divergence visible.
 * `bench-dos.ps1` rebuilt only when `qbench.exe` was *missing*, with no source
   fingerprint, so an existing binary was benchmarked indefinitely regardless of
-  source edits.  It now uses the same `qbench.sources.sha256` fingerprint as
-  `timedemo-dos.ps1`.  This one cost real time: an i386 `bsp-clip` correctness
-  failure survived a source fix and was re-observed three times against the same
-  stale binary.
+  source edits.  It now uses the same fingerprint as `timedemo-dos.ps1`.  This one
+  cost real time: an i386 `bsp-clip` correctness failure survived a source fix and
+  was re-observed three times against the same stale binary.
+
+### The fingerprint, and who records it
+
+All four runners hash the sources plus the builder's resolved configuration before
+testing an executable, and `build-dos.ps1` records that hash after a successful
+link.  Three details are load-bearing.
+
+The hash covers the resolved configuration — the profile suffix, both flag lists,
+`outputRoot` and the executable name — rather than a list of selector values.  That
+is complete by construction, so no runner has to declare forty selectors to be
+correct about them, and it cannot disagree with `tools\golden\build-flags-*.json`,
+which compares exactly those fields.
+
+The record is named after the executable (`quake.sources.sha256`,
+`qbench.sources.sha256`, `qprof.sources.sha256`).  It used to be fixed at
+`qbench.sources.sha256`, and since all four runners stage into the same output
+directory for a given selector set, the release, bench and instrumented builds
+overwrote each other's record and then rebuilt each other's binary on alternating
+runs.
+
+The builder records it, after the ISA gate.  It is the only component that knows
+what it just produced, so a runner invoked with `-SkipBuild` after somebody else's
+build has nothing else to check against — and "the file exists" is not evidence of
+anything.  A build that fails the gate throws before reaching that line, so a
+failed build never leaves a record claiming the tree matches.
+
+### `smoke-dos.ps1` and `coverage-dos.ps1` had neither
+
+Both asked only whether the executable existed, so once a release build was present
+it was tested indefinitely however many sources had changed.  For `coverage-dos.ps1`
+that is worse than a stale number: the claim the gate makes is that `world.c`,
+`sv_*`, `pr_*` and the net layer were reached, and that claim is void if it was
+reached in a different binary.  `coverage-dos.ps1` also hardcoded `dosbox-x.exe`
+where the other three read `dosboxX.executable` from `tools\dos-toolchain.json`, and
+had no bootstrap fallback — so `-NoBootstrap` meant one thing there and another
+everywhere else.
 
 ## Profiling and probe tooling
 ### Premise-measurement counters (PROFILE486 only)
