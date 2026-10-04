@@ -37,11 +37,13 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from _nq import BuildFlagsError, dump_flags  # noqa: E402
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILD_SCRIPT = os.path.join(REPO_ROOT, "tools", "build-dos.ps1")
 GOLDEN_PATH = os.path.join(REPO_ROOT, "tools", "golden", "i486-release.sha256")
 
 # Same-length replacements, so object section sizes and offsets are untouched
@@ -68,19 +70,16 @@ TIMESTAMP_PATTERNS = (
 
 
 def release_root() -> str:
-    """Ask build-dos.ps1 where the i486 release lands, rather than repeating its
-    profile-suffix arithmetic here and risking the two drifting apart."""
-    completed = subprocess.run(
-        ["pwsh", "-NoProfile", "-File", BUILD_SCRIPT, "-DumpFlags", "-CpuTarget", "i486"],
-        capture_output=True,
-        text=True,
-    )
-    if completed.returncode != 0:
-        raise SystemExit(
-            "build-dos.ps1 -DumpFlags failed with exit code %d:\n%s"
-            % (completed.returncode, completed.stderr.strip())
-        )
-    return json.loads(completed.stdout)["outputRoot"]
+    """Ask build-dos.ps1 where the i486 release lands.
+
+    Deliberately does not repeat the profile-suffix arithmetic here: three copies of
+    that rule is how smoke-dos.ps1 came to look for an executable the builder never
+    wrote. The builder is the only place that knows.
+    """
+    try:
+        return dump_flags("-CpuTarget", "i486")["outputRoot"]
+    except BuildFlagsError as error:
+        raise SystemExit(str(error)) from error
 
 
 def digest(path: str, normalize: bool) -> str:
@@ -92,27 +91,42 @@ def digest(path: str, normalize: bool) -> str:
     return hashlib.sha256(data).hexdigest().upper()
 
 
-def normalize_needed(path: str) -> bool:
+def hash_artifact(path: str) -> tuple[str, bool]:
+    """Return (sha256, was_normalized) for one artefact, reading it once.
+
+    Deciding whether to normalize requires the bytes, and so does hashing them.
+    Asking the filesystem for them separately -- which is what this did, via
+    digest(path, normalize_needed(path)) and then normalize_needed(path) again --
+    read every one of the 104 artefacts three times.
+    """
     with open(path, "rb") as handle:
         data = handle.read()
-    return any(pattern.search(data) for pattern, _ in TIMESTAMP_PATTERNS)
+    normalized = any(pattern.search(data) for pattern, _ in TIMESTAMP_PATTERNS)
+    if normalized:
+        for pattern, replacement in TIMESTAMP_PATTERNS:
+            data = pattern.sub(replacement, data)
+    return hashlib.sha256(data).hexdigest().upper(), normalized
 
 
 def collect(root: str) -> dict[str, tuple[str, bool]]:
     """Map repo-relative artefact path -> (sha256, was_normalized)."""
     object_dir = os.path.join(root, "obj")
+    if not os.path.isdir(object_dir):
+        raise SystemExit(
+            "%s does not exist. Build it first: .\\tools\\build-dos.ps1 -Clean -NoBootstrap"
+            % object_dir
+        )
     entries: dict[str, tuple[str, bool]] = {}
     for name in sorted(os.listdir(object_dir)):
         if not name.endswith(".obj"):
             continue
-        path = os.path.join(object_dir, name)
-        entries["obj/" + name] = (digest(path, normalize_needed(path)), normalize_needed(path))
+        entries["obj/" + name] = hash_artifact(os.path.join(object_dir, name))
     exe = os.path.join(root, "quake.exe")
     if not os.path.isfile(exe):
         raise SystemExit(
             "%s does not exist. Build it first: .\\tools\\build-dos.ps1 -Clean -NoBootstrap" % exe
         )
-    entries["quake.exe"] = (digest(exe, normalize_needed(exe)), normalize_needed(exe))
+    entries["quake.exe"] = hash_artifact(exe)
     return entries
 
 

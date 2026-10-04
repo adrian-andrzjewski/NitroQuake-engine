@@ -33,11 +33,13 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from _nq import BuildFlagsError, dump_flags as _dump_flags, portable  # noqa: E402
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILD_SCRIPT = os.path.join(REPO_ROOT, "tools", "build-dos.ps1")
 GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 
 # The i486 release profile suffix as it has stood since the retained build was
@@ -57,37 +59,18 @@ def fail(message: str) -> None:
 
 
 def dump_flags(*extra: str) -> dict:
-    """Run build-dos.ps1 -DumpFlags and return its JSON, with repo paths made
-    machine-independent so the golden files are portable across checkouts."""
-    command = [
-        "pwsh",
-        "-NoProfile",
-        "-File",
-        BUILD_SCRIPT,
-        "-DumpFlags",
-        *extra,
-    ]
-    completed = subprocess.run(command, capture_output=True, text=True)
-    if completed.returncode != 0:
-        fail(
-            "build-dos.ps1 -DumpFlags %s failed with exit code %d:\n%s"
-            % (" ".join(extra), completed.returncode, completed.stderr.strip())
-        )
-        return {}
+    """Resolved configuration with repo paths made checkout-portable.
+
+    A failure is recorded rather than raised, because this tool reports every way
+    it can disagree with the golden in one summary rather than stopping at the
+    first -- but a missing pwsh is recorded too, since that used to surface as a
+    FileNotFoundError from inside subprocess.
+    """
     try:
-        parsed = json.loads(completed.stdout)
-    except json.JSONDecodeError as error:
-        fail("build-dos.ps1 -DumpFlags %s did not emit JSON: %s" % (" ".join(extra), error))
+        return portable(_dump_flags(*extra))
+    except BuildFlagsError as error:
+        fail(str(error))
         return {}
-
-    def normalize(value):
-        if isinstance(value, str):
-            return value.replace(REPO_ROOT, "<repo>")
-        if isinstance(value, list):
-            return [normalize(item) for item in value]
-        return value
-
-    return {key: normalize(value) for key, value in parsed.items()}
 
 
 def load_golden(target: str) -> dict:

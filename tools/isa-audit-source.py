@@ -66,6 +66,10 @@ import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from _nq import BuildFlagsError, dump_flags  # noqa: E402
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 SOURCE_ROOT = os.path.join(REPO_ROOT, "src")
@@ -338,14 +342,11 @@ def iter_instructions(text: str):
 
 
 def build_flags(cpu_target: str) -> dict:
-    completed = subprocess.run(
-        ["pwsh", "-NoProfile", "-File", os.path.join(TOOLS_DIR, "build-dos.ps1"),
-         "-DumpFlags", "-CpuTarget", cpu_target],
-        capture_output=True, text=True,
-    )
-    if completed.returncode != 0:
-        raise SystemExit("build-dos.ps1 -DumpFlags failed:\n%s" % completed.stderr.strip())
-    return json.loads(completed.stdout)
+    """Resolved configuration for a target, as build-dos.ps1 reports it."""
+    try:
+        return dump_flags("-CpuTarget", cpu_target)
+    except BuildFlagsError as error:
+        raise SystemExit(str(error)) from error
 
 
 def toolchain_env(tool_root: str) -> tuple:
