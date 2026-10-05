@@ -78,6 +78,7 @@ float_1_point_001:		.single	1.001
 .globl C(R_EdgeCodeStart)
 C(R_EdgeCodeStart):
 
+#if !defined(ASM486_EDGE_LIST) && !defined(ASM486_EDGE_LIST_C)
 .globl C(R_InsertNewEdges)
 C(R_InsertNewEdges):
 	pushl	%edi
@@ -159,9 +160,11 @@ LDone:
 	popl	%edi
 
 	ret
+#endif /* legacy edge-list implementation */
 
 //--------------------------------------------------------------------
 
+#if !defined(ASM486_EDGE_LIST) && !defined(ASM486_EDGE_LIST_C)
 .globl C(R_RemoveEdges)
 C(R_RemoveEdges):
 	movl	4(%esp),%eax
@@ -190,12 +193,14 @@ Lre_loop:
 
 Lre_done:
 	ret
+#endif /* legacy edge-list implementation */
 
 //--------------------------------------------------------------------
 
 #define pedgelist	4+4		// note odd stack offset because of interleaving
 							// with pushes
 
+#if !defined(ASM486_EDGE_LIST) && !defined(ASM486_EDGE_LIST_C)
 .globl C(R_StepActiveU)
 C(R_StepActiveU):
 	pushl	%edi
@@ -315,6 +320,7 @@ LUDone:
 	popl	%edi
 
 	ret
+#endif /* legacy edge-list implementation */
 
 //--------------------------------------------------------------------
 

@@ -24,6 +24,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"	// FIXME: shouldn't be needed (is needed for patch
 						// right now, but that should move)
 
+#ifdef ASM486_ALIAS_PREPARE
+#include <stddef.h>
+
+typedef char alias_prepare_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char alias_prepare_finalvert_layout[
+		(offsetof(finalvert_t, v) == 0 &&
+		offsetof(finalvert_t, flags) == 24 && sizeof(finalvert_t) == 32) ? 1 : -1];
+typedef char alias_prepare_auxvert_layout[
+		(offsetof(auxvert_t, fv) == 0 && sizeof(auxvert_t) == 12) ? 1 : -1];
+typedef char alias_prepare_trivert_layout[
+		(offsetof(trivertx_t, v) == 0 &&
+		offsetof(trivertx_t, lightnormalindex) == 3 &&
+		sizeof(trivertx_t) == 4) ? 1 : -1];
+typedef char alias_prepare_stvert_layout[
+		(offsetof(stvert_t, onseam) == 0 && offsetof(stvert_t, s) == 4 &&
+		offsetof(stvert_t, t) == 8 && sizeof(stvert_t) == 12) ? 1 : -1];
+typedef char alias_prepare_refdef_layout[
+		(offsetof(refdef_t, aliasvrect) == 20 &&
+		offsetof(refdef_t, aliasvrectright) == 48 &&
+		offsetof(refdef_t, aliasvrectbottom) == 52) ? 1 : -1];
+#endif
+
 #define LIGHT_MIN	5		// lowest light value we'll allow, to avoid the
 							//  need for inner-loop light clamping
 
@@ -82,6 +104,10 @@ void R_AliasTransformVector (vec3_t in, vec3_t out);
 void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
 	trivertx_t *pverts, stvert_t *pstverts);
 void R_AliasProjectFinalVert (finalvert_t *fv, auxvert_t *av);
+#ifdef ASM486_ALIAS_PREPARE
+void R_AliasPreparePointsVertices_asm486 (finalvert_t *fv, auxvert_t *av,
+	trivertx_t *pverts, stvert_t *pstverts, int numverts);
+#endif
 
 
 /*
@@ -353,6 +379,10 @@ void R_AliasPreparePoints (void)
 	av = pauxverts;
 
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_TRANSFORM);
+#ifdef ASM486_ALIAS_PREPARE
+	R_AliasPreparePointsVertices_asm486 (fv, av, r_apverts, pstverts,
+			r_anumverts);
+#else
 #ifdef ASM486_ALIAS_PREPARE_LOCAL
 	/*
 	 * The transform/project helpers do not mutate r_apverts.  Keep only the
@@ -402,6 +432,7 @@ void R_AliasPreparePoints (void)
 				fv->flags |= ALIAS_BOTTOM_CLIP;	
 		}
 	}
+#endif
 #endif
 	BENCH486_PROFILE_LEAVE ();
 
@@ -959,4 +990,3 @@ void __attribute__((regparm(1))) R_AliasDrawModel (alight_t *plighting)
 #endif
 	BENCH486_PROFILE_LEAVE ();
 }
-

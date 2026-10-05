@@ -26,6 +26,33 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SKY_SPAN_SHIFT	5
 #define SKY_SPAN_MAX	(1 << SKY_SPAN_SHIFT)
 
+#if defined(ASM486_SKY_SPAN)
+typedef char d_sky_asm_masks_match[
+		(R_SKY_SMASK == 0x007F0000 && R_SKY_TMASK == 0x007F0000) ? 1 : -1];
+#endif
+
+#if defined(ASM486_SKY_SPAN) && defined(BENCH486)
+static void D_SkyDrawPixels_C (byte *source, byte *dest, int count,
+		fixed16_t s, fixed16_t t, fixed16_t sstep, fixed16_t tstep)
+{
+	if (count <= 0)
+		return;
+
+	do
+	{
+		*dest++ = source[((t & R_SKY_TMASK) >> 8) +
+				((s & R_SKY_SMASK) >> 16)];
+		s += sstep;
+		t += tstep;
+	} while (--count > 0);
+}
+
+void D_SkyDrawPixels_C_Bench (byte *source, byte *dest, int count,
+		fixed16_t s, fixed16_t t, fixed16_t sstep, fixed16_t tstep)
+{
+	D_SkyDrawPixels_C (source, dest, count, s, t, sstep, tstep);
+}
+#endif
 
 /*
 =================
@@ -50,6 +77,13 @@ static void D_Sky_uv_To_st (int u, int v, float sky_temp,
 	*s = (int)((skytime_offset + 6*(SKYSIZE/2-1)*end[0]) * 0x10000);
 	*t = (int)((skytime_offset + 6*(SKYSIZE/2-1)*end[1]) * 0x10000);
 }
+#if defined(ASM486_SKY_SPAN) && defined(BENCH486)
+void D_Sky_uv_To_st_C (int u, int v, float sky_temp,
+		float skytime_offset, fixed16_t *s, fixed16_t *t)
+{
+	D_Sky_uv_To_st (u, v, sky_temp, skytime_offset, s, t);
+}
+#endif
 
 
 /*
@@ -57,7 +91,12 @@ static void D_Sky_uv_To_st (int u, int v, float sky_temp,
 D_DrawSkyScans8
 =================
 */
+#if !defined(ASM486_SKY_SPAN) || defined(BENCH486)
+#if defined(ASM486_SKY_SPAN) && defined(BENCH486)
+static void D_DrawSkyScans8_C_Core (espan_t *pspan)
+#else
 void D_DrawSkyScans8 (espan_t *pspan)
+#endif
 {
 	int				count, spancount, u, v;
 	unsigned char	*pdest;
@@ -137,4 +176,14 @@ void D_DrawSkyScans8 (espan_t *pspan)
 
 	} while ((pspan = pspan->pnext) != NULL);
 }
+#endif
+
+#ifdef ASM486_SKY_SPAN
+#ifdef BENCH486
+void D_DrawSkyScans8_C_Bench (espan_t *pspan)
+{
+	D_DrawSkyScans8_C_Core (pspan);
+}
+#endif
+#endif
 

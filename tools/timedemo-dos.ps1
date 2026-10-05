@@ -16,9 +16,29 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$SurfaceCacheImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$SurfaceDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceZGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceDispatcherImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$MipLevelImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MemoryImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$FillRectImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$ZPointImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$SkySpanImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$WarpScreenImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidSurfaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$TurbulentScanImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
@@ -67,8 +87,12 @@ param(
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
-    [ValidateSet('control', 'local')]
+    [ValidateSet('control', 'local', 'asm')]
     [string]$AliasPrepareImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipZImplementation = 'c',
     [ValidateSet('c', 'special')]
     [string]$AliasMatrixCompositionImplementation = 'special',
     [ValidateSet('c', 'asm')]
@@ -82,11 +106,45 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightOrchestrationImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DlightContributesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$LightMapBuildImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$BspWalkImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderWorldImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderBmodelFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$BmodelPolygonClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidClippedSubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EdgeDrawingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScanEdgesImplementation = 'c',
+    [ValidateSet('legacy', 'c', 'asm')]
+    [string]$EdgeListMaintenanceImplementation = 'legacy',
+    [ValidateSet('c', 'asm')]
+    [string]$BackwardSpansImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EfragStoreImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EmitCachedEdgeImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderPolyImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
@@ -124,7 +182,7 @@ param(
     # copy made the promotion gate depend on the machine's git configuration.
     [string]$ExpectedProfileSha256 = '74C9AFF673AB7990BAE76170B6F235E363BE4901E3DA77AFBA4076E2DF5961B1',
     [int]$ExpectedFrames = 969,
-    [int]$ExpectedChecksum = 1047377823,
+    [uint32]$ExpectedChecksum = 1047377823,
     [switch]$AllowGateOverride
 )
 
@@ -165,8 +223,18 @@ $buildParams = @{
     TextureAxisCacheEntries              = $TextureAxisCacheEntries
     TextureAxisImplementation            = $TextureAxisImplementation
     SurfaceCacheImplementation           = $SurfaceCacheImplementation
+    SurfaceDrawImplementation            = $SurfaceDrawImplementation
+    SurfaceZGradientImplementation       = $SurfaceZGradientImplementation
+    SurfaceGradientImplementation        = $SurfaceGradientImplementation
+    SurfaceDispatcherImplementation      = $SurfaceDispatcherImplementation
     MipLevelImplementation               = $MipLevelImplementation
     MemoryImplementation                 = $MemoryImplementation
+    FillRectImplementation                = $FillRectImplementation
+    ZPointImplementation                  = $ZPointImplementation
+    SkySpanImplementation                 = $SkySpanImplementation
+    WarpScreenImplementation               = $WarpScreenImplementation
+    SolidSurfaceImplementation              = $SolidSurfaceImplementation
+    TurbulentScanImplementation             = $TurbulentScanImplementation
     TurbulentImplementation              = $TurbulentImplementation
     TextureSpanStores                    = $TextureSpanStores
     TextureSpanTailStores                = $TextureSpanTailStores
@@ -188,20 +256,46 @@ $buildParams = @{
     AliasBBoxProjectImplementation       = $AliasBBoxProjectImplementation
     AliasTransformFinalImplementation    = $AliasTransformFinalImplementation
     AliasPrepareImplementation           = $AliasPrepareImplementation
+    AliasClipImplementation              = $AliasClipImplementation
+    AliasClipZImplementation             = $AliasClipZImplementation
     AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
     TextureAnimationImplementation       = $TextureAnimationImplementation
     LightMapNormalizeImplementation      = $LightMapNormalizeImplementation
     LightMapStylesImplementation         = $LightMapStylesImplementation
     FusedLightMapImplementation          = $FusedLightMapImplementation
     DynamicLightImplementation           = $DynamicLightImplementation
+    DynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    DlightContributesImplementation      = $DlightContributesImplementation
+    LightMapBuildImplementation          = $LightMapBuildImplementation
     BspPlaneDotImplementation            = $BspPlaneDotImplementation
     BspClipImplementation                = $BspClipImplementation
     BspFrameCountImplementation          = $BspFrameCountImplementation
-    GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
+    BspWalkImplementation                = $BspWalkImplementation
+        RenderWorldImplementation            = $RenderWorldImplementation
+        RenderFaceImplementation             = $RenderFaceImplementation
+        RenderBmodelFaceImplementation       = $RenderBmodelFaceImplementation
+        BmodelPolygonClipImplementation       = $BmodelPolygonClipImplementation
+        SolidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
+        SubmodelPolygonsImplementation       = $SubmodelPolygonsImplementation
+        EdgeDrawingImplementation             = $EdgeDrawingImplementation
+        ScanEdgesImplementation               = $ScanEdgesImplementation
+        EdgeListMaintenanceImplementation     = $EdgeListMaintenanceImplementation
+        BackwardSpansImplementation            = $BackwardSpansImplementation
+        EfragStoreImplementation              = $EfragStoreImplementation
+        EmitCachedEdgeImplementation           = $EmitCachedEdgeImplementation
+        RenderPolyImplementation              = $RenderPolyImplementation
+        GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
     ToolRoot                             = $ToolRoot
 }
 
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
+
+# Resolve the same executable variant that will be used for the run. If this is
+# deferred until a stale-build rebuild, the earlier DumpFlags call points at
+# qbench.exe while -Instrumentation actually builds qprof.exe.
+if ($Instrumentation) {
+    $buildParams['Instrumentation'] = $true
+}
 
 # Ask the builder where the output lands instead of recomputing the profile
 # suffix here.  This runner used to carry its own copy of that arithmetic, and so
@@ -250,9 +344,6 @@ if ((-not $executableExists) -or $staleBuild) {
 
     Write-Host ("Benchmark build is stale (fingerprint {0}); rebuilding." -f $freshness.FingerprintPrefix)
 
-    if ($Instrumentation) {
-        $buildParams['Instrumentation'] = $true
-    }
     if ($NoBootstrap) {
         $buildParams['NoBootstrap'] = $true
     }
@@ -610,6 +701,10 @@ $result = [ordered]@{
     textureAxisCacheEntries = $TextureAxisCacheEntries
     textureAxisImplementation = $TextureAxisImplementation
     surfaceCacheImplementation = $SurfaceCacheImplementation
+    surfaceDrawImplementation = $SurfaceDrawImplementation
+    surfaceZGradientImplementation = $SurfaceZGradientImplementation
+    surfaceGradientImplementation = $SurfaceGradientImplementation
+    surfaceDispatcherImplementation = $SurfaceDispatcherImplementation
     mipLevelImplementation = $MipLevelImplementation
     turbulentImplementation = $TurbulentImplementation
     textureSpanStores = $TextureSpanStores
@@ -629,19 +724,44 @@ $result = [ordered]@{
     renderFaceProbe = $RenderFaceProbe
     aliasGlueProbe = $AliasGlueProbe
     memoryImplementation = $MemoryImplementation
+    fillRectImplementation = $FillRectImplementation
+    zPointImplementation = $ZPointImplementation
+    skySpanImplementation = $SkySpanImplementation
+    warpScreenImplementation = $WarpScreenImplementation
+    solidSurfaceImplementation = $SolidSurfaceImplementation
+    turbulentScanImplementation = $TurbulentScanImplementation
     aliasProjectImplementation = $AliasProjectImplementation
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
     aliasTransformFinalImplementation = $AliasTransformFinalImplementation
     aliasPrepareImplementation = $AliasPrepareImplementation
+    aliasClipImplementation = $AliasClipImplementation
+    aliasClipZImplementation = $AliasClipZImplementation
     aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     lightMapStylesImplementation = $LightMapStylesImplementation
     fusedLightMapImplementation = $FusedLightMapImplementation
     dynamicLightImplementation = $DynamicLightImplementation
+    dynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    dlightContributesImplementation = $DlightContributesImplementation
+    lightMapBuildImplementation = $LightMapBuildImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
     bspFrameCountImplementation = $BspFrameCountImplementation
+    bspWalkImplementation = $BspWalkImplementation
+    renderWorldImplementation = $RenderWorldImplementation
+    renderFaceImplementation = $RenderFaceImplementation
+    renderBmodelFaceImplementation = $RenderBmodelFaceImplementation
+    bmodelPolygonClipImplementation = $BmodelPolygonClipImplementation
+    solidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
+    submodelPolygonsImplementation = $SubmodelPolygonsImplementation
+    edgeDrawingImplementation = $EdgeDrawingImplementation
+    scanEdgesImplementation = $ScanEdgesImplementation
+    edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
+    backwardSpansImplementation = $BackwardSpansImplementation
+    efragStoreImplementation = $EfragStoreImplementation
+    emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
+    renderPolyImplementation = $RenderPolyImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     instrumentation = [bool]$Instrumentation
     frameFpsStats = $fpsStatsEnabled

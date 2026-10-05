@@ -37,11 +37,31 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$SurfaceCacheImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$SurfaceDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceZGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceDispatcherImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$MipLevelImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MemoryImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$FillRectImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$ZPointImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$SkySpanImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$WarpScreenImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidSurfaceImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
+    [ValidateSet('c', 'asm')]
+    [string]$TurbulentScanImplementation = 'c',
     [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
     [string]$TextureSpanStores = 'word',
     [ValidateSet('control', 'word')]
@@ -91,8 +111,12 @@ param(
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
-    [ValidateSet('control', 'local')]
+    [ValidateSet('control', 'local', 'asm')]
     [string]$AliasPrepareImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipZImplementation = 'c',
     [ValidateSet('c', 'special')]
     [string]$AliasMatrixCompositionImplementation = 'special',
     [ValidateSet('c', 'asm')]
@@ -106,11 +130,45 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightOrchestrationImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DlightContributesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$LightMapBuildImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$BspWalkImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderWorldImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderBmodelFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$BmodelPolygonClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidClippedSubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EdgeDrawingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScanEdgesImplementation = 'c',
+    [ValidateSet('legacy', 'c', 'asm')]
+    [string]$EdgeListMaintenanceImplementation = 'legacy',
+    [ValidateSet('c', 'asm')]
+    [string]$BackwardSpansImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EfragStoreImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EmitCachedEdgeImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderPolyImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [string]$ToolRoot
@@ -118,6 +176,10 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm') {
+    throw '-AliasClipZImplementation asm requires -AliasClipImplementation asm.'
+}
 
 if ($Instrumentation -and -not $Benchmark) {
     throw 'Profile builds require -Benchmark.'
@@ -211,11 +273,19 @@ else {
 }
 $outputRoot = Join-Path $repoRoot ('out\dos' + $profileSuffix)
 $objectDirectoryName = 'obj'
-if ($Benchmark) {
-    $objectDirectoryName += '-bench'
+if ($Benchmark -and $Instrumentation) {
+    # Combined selector suffixes can push object filenames beyond Windows'
+    # legacy MAX_PATH limit. Keep the instrumented benchmark objects in a
+    # compact, distinct directory while leaving release and qbench paths intact.
+    $objectDirectoryName += '-bp'
 }
-if ($Instrumentation) {
-    $objectDirectoryName += '-profile'
+else {
+    if ($Benchmark) {
+        $objectDirectoryName += '-bench'
+    }
+    if ($Instrumentation) {
+        $objectDirectoryName += '-profile'
+    }
 }
 $objectRoot = Join-Path $outputRoot $objectDirectoryName
 $executableName = if ($Instrumentation) { 'qprof.exe' } elseif ($Benchmark) { 'qbench.exe' } else { 'quake.exe' }
@@ -249,21 +319,27 @@ elseif ($outputRoot -ne $i486RootForThisSelectorSet) {
     throw "The i486 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet')."
 }
 
-if ($Clean -and (Test-Path -LiteralPath $outputRoot)) {
-	if ($Benchmark) {
-		foreach ($benchmarkPath in @($objectRoot, $executable,
-				(Join-Path $outputRoot $manifestName))) {
-			if (Test-Path -LiteralPath $benchmarkPath) {
-				Remove-Item -LiteralPath $benchmarkPath -Recurse -Force
-			}
-		}
-	}
-	else {
-		Remove-Item -LiteralPath $outputRoot -Recurse -Force
-	}
+# Keep the profile's descriptive directory while the executable path fits the
+# legacy Windows limit. If it does not, hash the complete profile directory into
+# a short sibling under out\; the manifest still records every selector value.
+if ($executable.Length -gt 259) {
+    $hashProvider = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hashInput = [System.Text.Encoding]::UTF8.GetBytes(
+            'profile-output-v1|' + $outputRoot)
+        $outputPathHash = [BitConverter]::ToString(
+            $hashProvider.ComputeHash($hashInput)).Replace('-', '').Substring(0, 16).ToLowerInvariant()
+    }
+    finally {
+        $hashProvider.Dispose()
+    }
+    $repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
+    $outputRoot = Join-Path $repoOutRoot ('profile-' + $outputPathHash)
+    $executable = Join-Path $outputRoot $executableName
 }
+
 # The object directory is created here rather than next to the compile loop,
-# because -Clean above needs to have removed it first.
+# because -Clean below needs to have removed it first.
 #
 # It is created AFTER the -DumpFlags early return, which is further down. That used
 # to be the other way round, so a "pure inspection" -- the mode
@@ -303,6 +379,61 @@ $asmIsLive = $Benchmark -or (@(
 # happened the first time this was table-driven, which is the pin doing its job.
 $asmSources = @($allAsmSources | Where-Object { $asmIsLive -or $_.Name -ne 'asm486_experiments.s' })
 $allSources = @($cSources + $asmSources)
+
+# Keep descriptive selector suffixes in the executable output path. If their
+# combined length would push an object filename past the legacy Windows MAX_PATH
+# boundary, put just the objects in a deterministic short sibling under out\.
+# The hash includes the full profile path and object class, so selector/profile
+# combinations never share stale objects. Short profiles (including the pinned
+# obj-bp instrumentation cache) retain their established objectRoot.
+$objectRoot = Join-Path $outputRoot $objectDirectoryName
+$longestObjectSource = $allSources |
+    Sort-Object -Property @{ Expression = { $_.Name.Length }; Descending = $true } |
+    Select-Object -First 1
+if ($null -ne $longestObjectSource) {
+    $longestObjectPath = Join-Path $objectRoot ($longestObjectSource.BaseName + '.obj')
+    if ($longestObjectPath.Length -gt 259) {
+        $hashProvider = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $hashInput = [System.Text.Encoding]::UTF8.GetBytes(
+                'object-root-v1|' + $outputRoot + '|' + $objectDirectoryName)
+            $objectPathHash = [BitConverter]::ToString(
+                $hashProvider.ComputeHash($hashInput)).Replace('-', '').Substring(0, 16).ToLowerInvariant()
+        }
+        finally {
+            $hashProvider.Dispose()
+        }
+        $repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
+        $objectRoot = Join-Path $repoOutRoot ('obj-' + $objectPathHash + '-' + $objectDirectoryName)
+    }
+}
+
+$repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
+$repoOutPrefix = $repoOutRoot.TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+$resolvedObjectRoot = [IO.Path]::GetFullPath($objectRoot)
+if (-not $resolvedObjectRoot.StartsWith($repoOutPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Object root '$resolvedObjectRoot' is outside the repository out directory '$repoOutRoot'."
+}
+$objectRoot = $resolvedObjectRoot
+
+if ($Clean) {
+	if ($Benchmark) {
+		foreach ($benchmarkPath in @($objectRoot, $executable,
+				(Join-Path $outputRoot $manifestName))) {
+			if (Test-Path -LiteralPath $benchmarkPath) {
+				Remove-Item -LiteralPath $benchmarkPath -Recurse -Force
+			}
+		}
+	}
+	else {
+		if (Test-Path -LiteralPath $objectRoot) {
+			Remove-Item -LiteralPath $objectRoot -Recurse -Force
+		}
+		if (Test-Path -LiteralPath $outputRoot) {
+			Remove-Item -LiteralPath $outputRoot -Recurse -Force
+		}
+	}
+}
 
 # The inventory pin.  The expected counts come from the golden manifest for this
 # target rather than from literals here, so there is one place to edit when a
@@ -449,7 +580,6 @@ try {
             }
         }
     }
-
     if ($DumpFlags) {
         # The link list is reported with a placeholder for the object files so
         # that the dump does not depend on the compile loop having run.
@@ -481,6 +611,7 @@ try {
     # Past this point the build touches the filesystem. Everything above -- the
     # inventory pin, the flag arithmetic, the source lists -- is inspection, and
     # -DumpFlags returns before any of it writes. See the note by the -Clean block.
+    New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $objectRoot -Force | Out-Null
 
     $objects = @()

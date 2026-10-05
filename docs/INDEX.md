@@ -31,7 +31,7 @@ Eight documents, one experiment ledger, and a rule about how to cite them.
 | [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) | The five governing decisions | 384 lines |
 | [`PURE-ASSEMBLER-CANDIDATES.md`](PURE-ASSEMBLER-CANDIDATES.md) | Which functions are worth hand-writing, and which are not | 359 lines |
 | [`VESA-320X200-PERFORMANCE-PLAN.md`](VESA-320X200-PERFORMANCE-PLAN.md) | VESA mode-set performance plan | 124 lines |
-| [`ledger/`](ledger/INDEX.md) | 89 ledger headings across 16 files | ~4,600 lines |
+| [`ledger/`](ledger/INDEX.md) | 131 ledger headings across 27 files | ~5,000 lines |
 
 The two documents that grew past 5,000 and 3,000 lines were split on
 2026-10-03. Nothing was reworded: the experiment log that sat under a single

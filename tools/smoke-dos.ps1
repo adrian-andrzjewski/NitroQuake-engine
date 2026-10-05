@@ -10,8 +10,38 @@ param(
     [string]$OptimizationProfile = 'aggressive',
     [ValidateSet('c', 'asm')]
     [string]$MemoryImplementation = 'asm',
-    [ValidateSet('control', 'local')]
+    [ValidateSet('c', 'asm')]
+    [string]$FillRectImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$ZPointImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$SkySpanImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$WarpScreenImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidSurfaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceCacheImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceZGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceDispatcherImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MipLevelImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$TextureAnimationImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$TurbulentScanImplementation = 'c',
+    [ValidateSet('control', 'local', 'asm')]
     [string]$AliasPrepareImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipZImplementation = 'c',
     # 'asm' to match build-dos.ps1, bench-dos.ps1 and timedemo-dos.ps1.  This
     # used to be 'c', and because this runner computed the profile suffix itself
     # it then looked for out\dos-memasm-...-fusedlightmapasm\quake.exe while the
@@ -21,6 +51,12 @@ param(
     # divergence visible.
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$DynamicLightOrchestrationImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DlightContributesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$LightMapBuildImplementation = 'c',
     [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
     [string]$TextureSpanStores = 'word',
     [ValidateSet('control', 'loadfirst')]
@@ -56,6 +92,34 @@ param(
     [ValidateSet('control', 'setup')]
     [string]$AliasGlueProbe = 'control',
     [string]$BspFrameCountImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$BspWalkImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderWorldImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderBmodelFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$BmodelPolygonClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidClippedSubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EdgeDrawingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScanEdgesImplementation = 'c',
+    [ValidateSet('legacy', 'c', 'asm')]
+    [string]$EdgeListMaintenanceImplementation = 'legacy',
+    [ValidateSet('c', 'asm')]
+    [string]$BackwardSpansImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EfragStoreImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EmitCachedEdgeImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderPolyImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [int]$TimeoutSeconds = 90
@@ -82,8 +146,26 @@ $buildParams = @{
     CpuTarget = $CpuTarget
     OptimizationProfile = $OptimizationProfile
     MemoryImplementation = $MemoryImplementation
+    FillRectImplementation = $FillRectImplementation
+    ZPointImplementation = $ZPointImplementation
+    SurfaceCacheImplementation = $SurfaceCacheImplementation
+    SurfaceDrawImplementation = $SurfaceDrawImplementation
+    SurfaceZGradientImplementation = $SurfaceZGradientImplementation
+    SurfaceGradientImplementation = $SurfaceGradientImplementation
+    SurfaceDispatcherImplementation = $SurfaceDispatcherImplementation
+    MipLevelImplementation = $MipLevelImplementation
+    TextureAnimationImplementation = $TextureAnimationImplementation
+    SkySpanImplementation = $SkySpanImplementation
+    WarpScreenImplementation = $WarpScreenImplementation
+    SolidSurfaceImplementation = $SolidSurfaceImplementation
+    TurbulentScanImplementation = $TurbulentScanImplementation
     AliasPrepareImplementation = $AliasPrepareImplementation
+    AliasClipImplementation = $AliasClipImplementation
+    AliasClipZImplementation = $AliasClipZImplementation
     DynamicLightImplementation = $DynamicLightImplementation
+    DynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    DlightContributesImplementation = $DlightContributesImplementation
+    LightMapBuildImplementation = $LightMapBuildImplementation
     TextureSpanStores = $TextureSpanStores
     TextureSpanLoadOrder = $TextureSpanLoadOrder
     TextureSpanAddressing = $TextureSpanAddressing
@@ -98,6 +180,20 @@ $buildParams = @{
     RenderFaceProbe = $RenderFaceProbe
     AliasGlueProbe = $AliasGlueProbe
     BspFrameCountImplementation = $BspFrameCountImplementation
+    BspWalkImplementation = $BspWalkImplementation
+    RenderWorldImplementation = $RenderWorldImplementation
+    RenderFaceImplementation = $RenderFaceImplementation
+    RenderBmodelFaceImplementation = $RenderBmodelFaceImplementation
+    BmodelPolygonClipImplementation = $BmodelPolygonClipImplementation
+    SolidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
+    SubmodelPolygonsImplementation = $SubmodelPolygonsImplementation
+    EdgeDrawingImplementation = $EdgeDrawingImplementation
+    ScanEdgesImplementation = $ScanEdgesImplementation
+    EdgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
+    BackwardSpansImplementation = $BackwardSpansImplementation
+    EfragStoreImplementation = $EfragStoreImplementation
+    EmitCachedEdgeImplementation = $EmitCachedEdgeImplementation
+    RenderPolyImplementation = $RenderPolyImplementation
     GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
 }
 
@@ -204,8 +300,20 @@ $result = [ordered]@{
     executable = $djgppExe
     dataRoot = $DataRoot
     dynamicLightImplementation = $DynamicLightImplementation
+    dynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    dlightContributesImplementation = $DlightContributesImplementation
+    surfaceCacheImplementation = $SurfaceCacheImplementation
+    surfaceDrawImplementation = $SurfaceDrawImplementation
+    surfaceZGradientImplementation = $SurfaceZGradientImplementation
+    surfaceGradientImplementation = $SurfaceGradientImplementation
+    surfaceDispatcherImplementation = $SurfaceDispatcherImplementation
+    mipLevelImplementation = $MipLevelImplementation
+    textureAnimationImplementation = $TextureAnimationImplementation
+    lightMapBuildImplementation = $LightMapBuildImplementation
     textureSpanStores = $TextureSpanStores
     aliasPrepareImplementation = $AliasPrepareImplementation
+    aliasClipImplementation = $AliasClipImplementation
+    aliasClipZImplementation = $AliasClipZImplementation
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
     aliasSpanAddressing = $AliasSpanAddressing
@@ -213,6 +321,20 @@ $result = [ordered]@{
     surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
     bspFrameCountImplementation = $BspFrameCountImplementation
+    bspWalkImplementation = $BspWalkImplementation
+    renderWorldImplementation = $RenderWorldImplementation
+    renderFaceImplementation = $RenderFaceImplementation
+    renderBmodelFaceImplementation = $RenderBmodelFaceImplementation
+    bmodelPolygonClipImplementation = $BmodelPolygonClipImplementation
+    solidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
+    submodelPolygonsImplementation = $SubmodelPolygonsImplementation
+    edgeDrawingImplementation = $EdgeDrawingImplementation
+    scanEdgesImplementation = $ScanEdgesImplementation
+    edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
+    backwardSpansImplementation = $BackwardSpansImplementation
+    efragStoreImplementation = $EfragStoreImplementation
+    emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
+    renderPolyImplementation = $RenderPolyImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     edgeScanProbe = $EdgeScanProbe

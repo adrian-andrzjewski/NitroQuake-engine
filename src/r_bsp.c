@@ -22,6 +22,103 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
+#if defined(ASM486_BSP_WALK) || defined(ASM486_RENDER_WORLD) || \
+	defined(ASM486_DRAW_SUBMODEL_POLYGONS) || \
+	defined(ASM486_BMODEL_POLYGON_CLIP) || \
+	defined(ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS)
+#include <stddef.h>
+#endif
+
+#ifdef ASM486_BSP_WALK
+
+typedef char bsp_walk_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char bsp_walk_node_layout[
+		(offsetof(mnode_t, contents) == 0 &&
+		offsetof(mnode_t, visframe) == 4 &&
+		offsetof(mnode_t, minmaxs) == 8 &&
+		offsetof(mnode_t, plane) == 24 &&
+		offsetof(mnode_t, children) == 28 &&
+		offsetof(mnode_t, firstsurface) == 36 &&
+		offsetof(mnode_t, numsurfaces) == 38 &&
+		sizeof(mnode_t) == 40) ? 1 : -1];
+typedef char bsp_walk_leaf_layout[
+		(offsetof(mleaf_t, efrags) == 28 &&
+		offsetof(mleaf_t, firstmarksurface) == 32 &&
+		offsetof(mleaf_t, nummarksurfaces) == 36 &&
+		offsetof(mleaf_t, key) == 40 &&
+		sizeof(mleaf_t) == 48) ? 1 : -1];
+typedef char bsp_walk_surface_layout[
+		(offsetof(msurface_t, visframe) == 0 &&
+		offsetof(msurface_t, plane) == 12 &&
+		offsetof(msurface_t, flags) == 16 &&
+		sizeof(msurface_t) == 64) ? 1 : -1];
+typedef char bsp_walk_worldmodel_offset[
+		(offsetof(client_state_t, worldmodel) == 2692) ? 1 : -1];
+typedef char bsp_walk_model_surfaces_offset[
+		(offsetof(model_t, surfaces) == 180) ? 1 : -1];
+typedef char bsp_walk_poly_layout[
+		(offsetof(btofpoly_t, clipflags) == 0 &&
+		offsetof(btofpoly_t, psurf) == 4 &&
+		sizeof(btofpoly_t) == 8) ? 1 : -1];
+#endif
+
+#ifdef ASM486_RENDER_WORLD
+typedef char render_world_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char render_world_entity_model_offset[
+		(offsetof(entity_t, model) == 132) ? 1 : -1];
+typedef char render_world_model_vertexes_offset[
+		(offsetof(model_t, vertexes) == 148) ? 1 : -1];
+typedef char render_world_model_nodes_offset[
+		(offsetof(model_t, nodes) == 164) ? 1 : -1];
+typedef char render_world_poly_layout[
+		(offsetof(btofpoly_t, clipflags) == 0 &&
+		offsetof(btofpoly_t, psurf) == 4 &&
+		sizeof(btofpoly_t) == 8 &&
+		MAX_BTOFPOLYS == 5000) ? 1 : -1];
+#endif
+
+#ifdef ASM486_DRAW_SUBMODEL_POLYGONS
+typedef char submodel_poly_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char submodel_poly_model_layout[
+		(offsetof(model_t, firstmodelsurface) == 112 &&
+		offsetof(model_t, nummodelsurfaces) == 116 &&
+		offsetof(model_t, surfaces) == 180) ? 1 : -1];
+typedef char submodel_poly_surface_layout[
+		(offsetof(msurface_t, plane) == 12 &&
+		offsetof(msurface_t, flags) == 16 &&
+		sizeof(msurface_t) == 64) ? 1 : -1];
+typedef char submodel_poly_plane_layout[
+		(offsetof(mplane_t, normal) == 0 &&
+		offsetof(mplane_t, dist) == 12) ? 1 : -1];
+typedef char submodel_poly_entity_leaf_layout[
+		(offsetof(entity_t, topnode) == 176 &&
+		offsetof(mleaf_t, key) == 40) ? 1 : -1];
+#endif
+
+#ifdef ASM486_BMODEL_POLYGON_CLIP
+typedef char bmodel_clip_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char bmodel_clip_vertex_layout[
+		(offsetof(mvertex_t, position) == 0 && sizeof(mvertex_t) == 12) ? 1 : -1];
+typedef char bmodel_clip_edge_layout[
+		(offsetof(bedge_t, v) == 0 && offsetof(bedge_t, pnext) == 8 &&
+		sizeof(bedge_t) == 12) ? 1 : -1];
+typedef char bmodel_clip_plane_layout[
+		(offsetof(mplane_t, normal) == 0 && offsetof(mplane_t, dist) == 12 &&
+		sizeof(mplane_t) == 20) ? 1 : -1];
+typedef char bmodel_clip_node_layout[
+		(offsetof(mnode_t, contents) == 0 &&
+		offsetof(mnode_t, visframe) == 4 &&
+		offsetof(mnode_t, plane) == 24 &&
+		offsetof(mnode_t, children) == 28 && sizeof(mnode_t) == 40) ? 1 : -1];
+typedef char bmodel_clip_leaf_layout[
+		(offsetof(mleaf_t, contents) == 0 &&
+		offsetof(mleaf_t, visframe) == 4 &&
+		offsetof(mleaf_t, key) == 40 && sizeof(mleaf_t) == 48) ? 1 : -1];
+typedef char bmodel_clip_surface_layout[
+		(offsetof(msurface_t, plane) == 12 &&
+		offsetof(msurface_t, flags) == 16 && sizeof(msurface_t) == 64) ? 1 : -1];
+#endif
+
 //
 // current entity info
 //
@@ -44,13 +141,48 @@ typedef enum {touchessolid, drawnode, nodrawnode} solidstate_t;
 #define MAX_BMODEL_VERTS	500			// 6K
 #define MAX_BMODEL_EDGES	1000		// 12K
 
+#if defined(ASM486_BMODEL_POLYGON_CLIP) || \
+	defined(ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS)
+mvertex_t	*pbverts;
+bedge_t		*pbedges;
+int			numbverts, numbedges;
+mvertex_t	*pfrontenter, *pfrontexit;
+qboolean		makeclippededge;
+#else
 static mvertex_t	*pbverts;
 static bedge_t		*pbedges;
 static int			numbverts, numbedges;
-
 static mvertex_t	*pfrontenter, *pfrontexit;
-
 static qboolean		makeclippededge;
+#endif
+
+#ifdef ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS
+typedef char solid_bmodel_clip_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char solid_bmodel_clip_model_layout[
+		(offsetof(model_t, firstmodelsurface) == 112 &&
+		offsetof(model_t, nummodelsurfaces) == 116 &&
+		offsetof(model_t, edges) == 156 &&
+		offsetof(model_t, surfaces) == 180 &&
+		offsetof(model_t, surfedges) == 188) ? 1 : -1];
+typedef char solid_bmodel_clip_surface_layout[
+		(offsetof(msurface_t, plane) == 12 &&
+		offsetof(msurface_t, flags) == 16 &&
+		offsetof(msurface_t, firstedge) == 20 &&
+		offsetof(msurface_t, numedges) == 24 &&
+		sizeof(msurface_t) == 64) ? 1 : -1];
+typedef char solid_bmodel_clip_plane_layout[
+		(offsetof(mplane_t, normal) == 0 &&
+		offsetof(mplane_t, dist) == 12 && sizeof(mplane_t) == 20) ? 1 : -1];
+typedef char solid_bmodel_clip_vertex_layout[
+		(offsetof(mvertex_t, position) == 0 && sizeof(mvertex_t) == 12) ? 1 : -1];
+typedef char solid_bmodel_clip_medge_layout[
+		(offsetof(medge_t, v) == 0 && sizeof(medge_t) == 8) ? 1 : -1];
+typedef char solid_bmodel_clip_bedge_layout[
+		(offsetof(bedge_t, v) == 0 && offsetof(bedge_t, pnext) == 8 &&
+		sizeof(bedge_t) == 12) ? 1 : -1];
+typedef char solid_bmodel_clip_buffer_sizes[
+		(MAX_BMODEL_VERTS == 500 && MAX_BMODEL_EDGES == 1000) ? 1 : -1];
+#endif
 
 
 //===========================================================================
@@ -197,7 +329,13 @@ void R_RotateBmodelCached (void)
 R_RecursiveClipBPoly
 ================
 */
+#if !defined(ASM486_BMODEL_POLYGON_CLIP) || defined(BENCH486)
+#ifdef ASM486_BMODEL_POLYGON_CLIP
+void R_RecursiveClipBPoly_C (bedge_t *pedges, mnode_t *pnode,
+		msurface_t *psurf)
+#else
 void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
+#endif
 {
 	bedge_t		*psideedges[2], *pnextedge, *ptedge;
 	int			i, side, lastside;
@@ -353,13 +491,30 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 				}
 				else
 				{
+#ifdef ASM486_BMODEL_POLYGON_CLIP
+					R_RecursiveClipBPoly_C (psideedges[i], pnode->children[i],
+										psurf);
+#else
 					R_RecursiveClipBPoly (psideedges[i], pnode->children[i],
 									  psurf);
+#endif
 				}
 			}
 		}
 	}
 }
+#endif
+
+#ifdef ASM486_BMODEL_POLYGON_CLIP
+void R_RecursiveClipBPoly_asm486 (bedge_t *pedges, mnode_t *pnode,
+		msurface_t *psurf);
+
+void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode,
+		msurface_t *psurf)
+{
+	R_RecursiveClipBPoly_asm486 (pedges, pnode, psurf);
+}
+#endif
 
 
 /*
@@ -367,7 +522,12 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 R_DrawSolidClippedSubmodelPolygons
 ================
 */
+#if !defined(ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS) || defined(BENCH486)
+#ifdef ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS
+void R_DrawSolidClippedSubmodelPolygons_C (model_t *pmodel)
+#else
 void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
+#endif
 {
 	int			i, j, lindex;
 	vec_t		dot;
@@ -444,6 +604,16 @@ void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 		}
 	}
 }
+#endif
+
+#ifdef ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS
+void R_DrawSolidClippedSubmodelPolygons_asm486 (model_t *pmodel);
+
+void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
+{
+	R_DrawSolidClippedSubmodelPolygons_asm486 (pmodel);
+}
+#endif
 
 
 /*
@@ -451,7 +621,12 @@ void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 R_DrawSubmodelPolygons
 ================
 */
+#if !defined(ASM486_DRAW_SUBMODEL_POLYGONS) || defined(BENCH486)
+#ifdef ASM486_DRAW_SUBMODEL_POLYGONS
+void R_DrawSubmodelPolygons_C (model_t *pmodel, int clipflags)
+#else
 void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
+#endif
 {
 	int			i;
 	vec_t		dot;
@@ -509,6 +684,50 @@ void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 		}
 	}
 }
+#endif
+
+#ifdef ASM486_DRAW_SUBMODEL_POLYGONS
+void R_DrawSubmodelPolygons_asm486 (model_t *pmodel, int clipflags);
+
+void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
+{
+	R_DrawSubmodelPolygons_asm486 (pmodel, clipflags);
+}
+
+#ifdef PROFILE486
+void R_DrawSubmodelPolygonsProfileEntry_asm486 (int numsurfaces)
+{
+	extern unsigned long bench486_submodel_calls;
+	extern unsigned long bench486_submodel_faces;
+	extern unsigned long bench486_submodel_distinct_entities;
+	extern unsigned long bench486_submodel_entity_hits;
+	extern unsigned long bench486_submodel_table_overwrites;
+	extern void *bench486_submodel_entity_table[1024];
+	unsigned int slot;
+
+	slot = ((unsigned int)(size_t)currententity >> 4) & 1023u;
+	bench486_submodel_calls++;
+	bench486_submodel_faces += numsurfaces;
+	if (bench486_submodel_entity_table[slot] == currententity)
+		bench486_submodel_entity_hits++;
+	else if (bench486_submodel_entity_table[slot] != NULL)
+		bench486_submodel_table_overwrites++;
+	else
+		bench486_submodel_distinct_entities++;
+	bench486_submodel_entity_table[slot] = currententity;
+}
+
+void R_DrawSubmodelPolygonsProfileFaceEnter_asm486 (void)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_RENDERFACE);
+}
+
+void R_DrawSubmodelPolygonsProfileFaceLeave_asm486 (void)
+{
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif
+#endif
 
 
 /*
@@ -522,7 +741,7 @@ R_RecursiveWorldNode
 #define R_BSP_FRAMECOUNT r_framecount
 #endif
 
-void __attribute__((regparm(2))) R_RecursiveWorldNode
+void __attribute__((regparm(2))) R_RecursiveWorldNode_C
 	(mnode_t *node, int clipflags)
 {
 	int			i, c, side, *pindex;
@@ -667,7 +886,7 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 			side = 1;
 
 	// recurse down the children, front side first
-		R_RecursiveWorldNode (node->children[side], clipflags);
+		R_RecursiveWorldNode_C (node->children[side], clipflags);
 
 	// draw stuff
 		c = node->numsurfaces;
@@ -756,11 +975,38 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 		}
 
 	// recurse down the back side
-		R_RecursiveWorldNode (node->children[!side], clipflags);
+		R_RecursiveWorldNode_C (node->children[!side], clipflags);
 	}
 }
 
 #undef R_BSP_FRAMECOUNT
+
+#ifdef ASM486_BSP_WALK
+void __attribute__((regparm(2))) R_RecursiveWorldNode_asm486
+	(mnode_t *node, int clipflags);
+#endif
+
+void __attribute__((regparm(2))) R_RecursiveWorldNode
+	(mnode_t *node, int clipflags)
+{
+#ifdef ASM486_BSP_WALK
+	R_RecursiveWorldNode_asm486 (node, clipflags);
+#else
+	R_RecursiveWorldNode_C (node, clipflags);
+#endif
+}
+
+#if defined(ASM486_BSP_WALK) && defined(PROFILE486)
+void R_BspProfileRenderFaceEnter_asm486 (void)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_RENDERFACE);
+}
+
+void R_BspProfileRenderFaceLeave_asm486 (void)
+{
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif
 
 #ifdef BENCH486
 
@@ -843,7 +1089,16 @@ int R_RecursiveWorldNodeClip_C (mnode_t *node, int clipflags)
 R_RenderWorld
 ================
 */
+#if defined(ASM486_RENDER_WORLD)
+void R_RenderWorld_asm486 (void);
+#endif
+
+#if !defined(ASM486_RENDER_WORLD) || defined(BENCH486)
+#ifdef ASM486_RENDER_WORLD
+void R_RenderWorld_C (void)
+#else
 void R_RenderWorld (void)
+#endif
 {
 	int			i;
 	model_t		*clmodel;
@@ -876,5 +1131,31 @@ void R_RenderWorld (void)
 			bench486_bsp_nodes - profile_bsp_start, 0);
 	BENCH486_PROFILE_LEAVE ();
 }
+#endif
+
+#ifdef ASM486_RENDER_WORLD
+void R_RenderWorld (void)
+{
+	R_RenderWorld_asm486 ();
+}
+
+#ifdef PROFILE486
+void R_RenderWorldProfileEnter_asm486 (void)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_WORLD_BSP);
+}
+
+void R_RenderWorldProfileWork_asm486 (unsigned long start)
+{
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_WORLD_BSP,
+			bench486_bsp_nodes - start, 0);
+}
+
+void R_RenderWorldProfileLeave_asm486 (void)
+{
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif
+#endif
 
 

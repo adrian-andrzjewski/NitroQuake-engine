@@ -717,6 +717,11 @@ void _Host_Frame (float time)
 	SCR_UpdateScreen ();
 	BENCH486_PROFILE_LEAVE ();
 
+#ifdef BENCH486
+	if (cls.timedemo)
+		Bench486TimedemoFrameChecksumRecord ();
+#endif
+
 	if (host_speeds.value)
 		time2 = Sys_FloatTime ();
 		

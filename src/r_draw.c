@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 #include "d_local.h"	// FIXME: shouldn't need to include this
+#include <stddef.h>
 
 #define MAXLEFTCLIPEDGES		100
 
@@ -58,7 +59,7 @@ clipplane_t	world_clipplanes[16];
 medge_t			*r_pedge;
 
 qboolean		r_leftclipped, r_rightclipped;
-static qboolean	makeleftedge, makerightedge;
+qboolean		makeleftedge, makerightedge;
 qboolean		r_nearzionly;
 
 int		sintable[SIN_BUFFER_SIZE];
@@ -378,7 +379,23 @@ void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip)
 R_EmitCachedEdge
 ================
 */
+#ifdef ASM486_EMIT_CACHED_EDGE
+typedef char r_emit_cached_edge_layout_check[
+	(offsetof(edge_t, surfs) == 16 && sizeof(((edge_t *)0)->surfs[0]) == 2 &&
+	 offsetof(edge_t, nearzi) == 24 && sizeof(edge_t) == 32) ? 1 : -1];
+typedef char r_emit_cached_edge_surface_layout_check[
+	(offsetof(surf_t, spans) == 8 && sizeof(surf_t) == 64) ? 1 : -1];
+typedef char r_emit_cached_edge_medge_layout_check[
+	(offsetof(medge_t, cachededgeoffset) == 4 && sizeof(medge_t) == 8) ? 1 : -1];
+void R_EmitCachedEdge_asm486 (void);
+#endif
+
+#if !defined(ASM486_EMIT_CACHED_EDGE) || defined(BENCH486)
+#ifdef ASM486_EMIT_CACHED_EDGE
+void R_EmitCachedEdge_C (void)
+#else
 void R_EmitCachedEdge (void)
+#endif
 {
 	edge_t		*pedge_t;
 
@@ -400,6 +417,14 @@ void R_EmitCachedEdge (void)
 
 	r_emitted = 1;
 }
+#endif
+
+#ifdef ASM486_EMIT_CACHED_EDGE
+void R_EmitCachedEdge (void)
+{
+	R_EmitCachedEdge_asm486 ();
+}
+#endif
 
 
 /*
@@ -411,7 +436,28 @@ faces on the same plane with a stable modelorg, so reuse the finished
 d_zistep values.  The miss path is the original arithmetic.
 ================
 */
+#if defined(ASM486_SURFACE_ZGRADIENTS)
+typedef char r_zgradient_surface_layout_check[
+	(offsetof(surf_t, d_ziorigin) == 44 &&
+	 offsetof(surf_t, d_zistepu) == 48 &&
+	 offsetof(surf_t, d_zistepv) == 52) ? 1 : -1];
+typedef char r_zgradient_plane_layout_check[
+	(offsetof(mplane_t, normal) == 0 && offsetof(mplane_t, dist) == 12) ? 1 : -1];
+
+int			r_zgradient_asm_cache_frame;
+mplane_t	*r_zgradient_asm_cache_plane;
+entity_t	*r_zgradient_asm_cache_entity;
+float		r_zgradient_asm_cache_zistepu;
+float		r_zgradient_asm_cache_zistepv;
+float		r_zgradient_asm_cache_ziorigin;
+#endif
+
+#if !defined(ASM486_SURFACE_ZGRADIENTS) || defined(BENCH486)
+#ifdef BENCH486
+void R_SetSurfaceZGradients_C (mplane_t *pplane)
+#else
 static void R_SetSurfaceZGradients (mplane_t *pplane)
+#endif
 {
 	static int		cache_frame;
 	static mplane_t	*cache_plane;
@@ -447,6 +493,51 @@ static void R_SetSurfaceZGradients (mplane_t *pplane)
 	surface_p->d_zistepv = cache_zistepv;
 	surface_p->d_ziorigin = cache_ziorigin;
 }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_SURFACE_ZGRADIENTS)
+#define R_SetSurfaceZGradients R_SetSurfaceZGradients_C
+#endif
+
+#ifdef ASM486_RENDER_FACE
+void R_RenderFaceGradient_asm486 (mplane_t *plane)
+{
+	R_SetSurfaceZGradients (plane);
+}
+
+typedef char r_renderface_surface_layout_check[
+	(offsetof(msurface_t, plane) == 12 &&
+	 offsetof(msurface_t, flags) == 16 &&
+	 offsetof(msurface_t, firstedge) == 20 &&
+	 offsetof(msurface_t, numedges) == 24) ? 1 : -1];
+typedef char r_renderface_medge_layout_check[
+	(offsetof(medge_t, v) == 0 &&
+	 offsetof(medge_t, cachededgeoffset) == 4 &&
+	 sizeof(medge_t) == 8) ? 1 : -1];
+typedef char r_renderface_vertex_layout_check[
+	(offsetof(mvertex_t, position) == 0 && sizeof(mvertex_t) == 12) ? 1 : -1];
+typedef char r_renderface_clipplane_layout_check[
+	(offsetof(clipplane_t, next) == 16 &&
+	 sizeof(clipplane_t) == 24) ? 1 : -1];
+typedef char r_renderface_edge_layout_check[
+	(offsetof(edge_t, surfs) == 16 &&
+	 sizeof(((edge_t *)0)->surfs[0]) == 2 &&
+	 sizeof(((edge_t *)0)->surfs) == 4 &&
+	 offsetof(edge_t, nextremove) == 20 &&
+	 offsetof(edge_t, nearzi) == 24 &&
+	 offsetof(edge_t, owner) == 28 &&
+	 sizeof(edge_t) == 32) ? 1 : -1];
+typedef char r_renderface_surf_layout_check[
+	(offsetof(surf_t, spans) == 8 &&
+	 offsetof(surf_t, key) == 12 &&
+	 offsetof(surf_t, spanstate) == 20 &&
+	 offsetof(surf_t, flags) == 24 &&
+	 offsetof(surf_t, data) == 28 &&
+	 offsetof(surf_t, entity) == 32 &&
+	 offsetof(surf_t, nearzi) == 36 &&
+	 offsetof(surf_t, insubmodel) == 40 &&
+	 sizeof(surf_t) == 64) ? 1 : -1];
+#endif
 
 
 /*
@@ -454,7 +545,14 @@ static void R_SetSurfaceZGradients (mplane_t *pplane)
 R_RenderFace
 ================
 */
+#if !defined(ASM486_RENDER_FACE) || defined(BENCH486)
+#if defined(ASM486_RENDER_FACE)
+#ifdef BENCH486
+void R_RenderFace_C (msurface_t *fa, int clipflags)
+#endif
+#else
 void R_RenderFace (msurface_t *fa, int clipflags)
+#endif
 {
 	int			i, lindex;
 	medge_t		*pedges, tedge;
@@ -1325,6 +1423,21 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 //JDC	VectorCopy (r_worldmodelorg, surface_p->modelorg);
 	surface_p++;
 }
+#endif
+
+#ifdef ASM486_RENDER_FACE
+void R_RenderFace_asm486 (msurface_t *fa, int clipflags,
+	medge_t *pedges, int *psurfedges);
+
+void R_RenderFace (msurface_t *fa, int clipflags)
+{
+	model_t *model;
+
+	model = currententity->model;
+	R_RenderFace_asm486 (fa, clipflags, model->edges,
+		model->surfedges + fa->firstedge);
+}
+#endif
 
 
 /*
@@ -1332,7 +1445,14 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 R_RenderBmodelFace
 ================
 */
+#if !defined(ASM486_RENDER_BMODEL_FACE) || defined(BENCH486)
+#if defined(ASM486_RENDER_BMODEL_FACE)
+#ifdef BENCH486
+void R_RenderBmodelFace_C (bedge_t *pedges, msurface_t *psurf)
+#endif
+#else
 void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
+#endif
 {
 	int			i;
 	unsigned	mask;
@@ -1427,6 +1547,43 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 //JDC	VectorCopy (r_worldmodelorg, surface_p->modelorg);
 	surface_p++;
 }
+#endif
+
+#ifdef ASM486_RENDER_BMODEL_FACE
+void R_RenderBmodelFaceGradient_asm486 (mplane_t *plane)
+{
+	R_SetSurfaceZGradients (plane);
+}
+
+typedef char r_bmodel_face_bedge_layout_check[
+	(offsetof(bedge_t, v) == 0 &&
+	 offsetof(bedge_t, pnext) == 8 &&
+	 sizeof(bedge_t) == 12) ? 1 : -1];
+typedef char r_bmodel_face_surface_layout_check[
+	(offsetof(msurface_t, plane) == 12 &&
+	 offsetof(msurface_t, flags) == 16 &&
+	 offsetof(msurface_t, numedges) == 24) ? 1 : -1];
+typedef char r_bmodel_face_clipplane_layout_check[
+	(offsetof(clipplane_t, next) == 16 &&
+	 sizeof(clipplane_t) == 24) ? 1 : -1];
+typedef char r_bmodel_face_surf_layout_check[
+	(offsetof(surf_t, spans) == 8 &&
+	 offsetof(surf_t, key) == 12 &&
+	 offsetof(surf_t, spanstate) == 20 &&
+	 offsetof(surf_t, flags) == 24 &&
+	 offsetof(surf_t, data) == 28 &&
+	 offsetof(surf_t, entity) == 32 &&
+	 offsetof(surf_t, nearzi) == 36 &&
+	 offsetof(surf_t, insubmodel) == 40 &&
+	 sizeof(surf_t) == 64) ? 1 : -1];
+
+void R_RenderBmodelFace_asm486 (bedge_t *pedges, msurface_t *psurf);
+
+void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
+{
+	R_RenderBmodelFace_asm486 (pedges, psurf);
+}
+#endif
 
 
 /*
@@ -1434,7 +1591,49 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 R_RenderPoly
 ================
 */
+#ifdef ASM486_RENDER_POLY
+typedef char render_poly_pointer_size_check[
+	(sizeof (void *) == 4) ? 1 : -1];
+typedef char render_poly_model_layout_check[
+	(offsetof(entity_t, model) == 132 &&
+	 offsetof(model_t, edges) == 156 &&
+	 offsetof(model_t, surfedges) == 188) ? 1 : -1];
+typedef char render_poly_surface_layout_check[
+	(offsetof(msurface_t, plane) == 12 &&
+	 offsetof(msurface_t, firstedge) == 20 &&
+	 offsetof(msurface_t, numedges) == 24 &&
+	 sizeof (msurface_t) == 64) ? 1 : -1];
+typedef char render_poly_edge_vertex_layout_check[
+	(offsetof(medge_t, v) == 0 && sizeof (medge_t) == 8 &&
+	 offsetof(mvertex_t, position) == 0 && sizeof (mvertex_t) == 12) ? 1 : -1];
+typedef char render_poly_clipplane_layout_check[
+	(offsetof(clipplane_t, normal) == 0 &&
+	 offsetof(clipplane_t, dist) == 12 &&
+	 offsetof(clipplane_t, next) == 16 &&
+	 sizeof (clipplane_t) == 24) ? 1 : -1];
+typedef char render_poly_output_layout_check[
+	(offsetof(polyvert_t, u) == 0 && offsetof(polyvert_t, v) == 4 &&
+	 offsetof(polyvert_t, zi) == 8 && offsetof(polyvert_t, s) == 12 &&
+	 offsetof(polyvert_t, t) == 16 && sizeof (polyvert_t) == 20 &&
+	 offsetof(polydesc_t, numverts) == 0 &&
+	 offsetof(polydesc_t, nearzi) == 4 &&
+	 offsetof(polydesc_t, pcurrentface) == 8 &&
+	 offsetof(polydesc_t, pverts) == 12 && sizeof (polydesc_t) == 16) ? 1 : -1];
+typedef char render_poly_refdef_layout_check[
+	(offsetof(refdef_t, fvrectx_adj) == 68 &&
+	 offsetof(refdef_t, fvrecty_adj) == 72 &&
+	 offsetof(refdef_t, fvrectright_adj) == 84 &&
+	 offsetof(refdef_t, fvrectbottom_adj) == 88) ? 1 : -1];
+
+void R_RenderPoly_asm486 (msurface_t *fa, int clipflags);
+#endif
+
+#if !defined(ASM486_RENDER_POLY) || defined(BENCH486)
+#if defined(ASM486_RENDER_POLY)
+void R_RenderPoly_C (msurface_t *fa, int clipflags)
+#else
 void R_RenderPoly (msurface_t *fa, int clipflags)
+#endif
 {
 	int			i, lindex, lnumverts, s_axis, t_axis;
 	float		dist, lastdist, lzi, scale, u, v, frac;
@@ -1487,7 +1686,7 @@ void R_RenderPoly (msurface_t *fa, int clipflags)
 		}
 	}
 
-// clip the polygon, done if not visible
+	// clip the polygon, done if not visible
 	while (pclip)
 	{
 		lastvert = lnumverts - 1;
@@ -1607,9 +1806,17 @@ void R_RenderPoly (msurface_t *fa, int clipflags)
 	r_polydesc.pcurrentface = fa;
 	r_polydesc.pverts = pverts;
 
-// draw the polygon
+	// draw the polygon
 	D_DrawPoly ();
 }
+#endif
+
+#ifdef ASM486_RENDER_POLY
+void R_RenderPoly (msurface_t *fa, int clipflags)
+{
+    R_RenderPoly_asm486 (fa, clipflags);
+}
+#endif
 
 
 /*

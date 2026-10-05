@@ -22,7 +22,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "d_local.h"
 
+#ifdef ASM486_ZPOINT
+typedef char d_zpoint_u_offset[
+		(__builtin_offsetof (zpointdesc_t, u) == 0) ? 1 : -1];
+typedef char d_zpoint_v_offset[
+		(__builtin_offsetof (zpointdesc_t, v) == 4) ? 1 : -1];
+typedef char d_zpoint_zi_offset[
+		(__builtin_offsetof (zpointdesc_t, zi) == 8) ? 1 : -1];
+typedef char d_zpoint_color_offset[
+		(__builtin_offsetof (zpointdesc_t, color) == 12) ? 1 : -1];
+#define D_DrawZPoint D_DrawZPoint_C
+#endif
 
+#if !defined(ASM486_ZPOINT) || defined(BENCH486)
 /*
 =====================
 D_DrawZPoint
@@ -44,4 +56,8 @@ void D_DrawZPoint (void)
 		*pdest = r_zpointdesc.color;
 	}
 }
+#endif
 
+#ifdef ASM486_ZPOINT
+#undef D_DrawZPoint
+#endif

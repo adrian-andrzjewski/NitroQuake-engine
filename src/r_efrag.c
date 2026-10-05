@@ -22,6 +22,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
+#ifdef ASM486_EFRAG_STORE
+#include <stddef.h>
+
+typedef char efrag_store_pointer_size_check[
+	(sizeof (void *) == 4) ? 1 : -1];
+typedef char efrag_store_efrag_layout_check[
+	(offsetof(efrag_t, leafnext) == 4 &&
+	 offsetof(efrag_t, entity) == 8 &&
+	 sizeof (efrag_t) == 16) ? 1 : -1];
+typedef char efrag_store_entity_layout_check[
+	(offsetof(entity_t, model) == 132 &&
+	 offsetof(entity_t, visframe) == 160) ? 1 : -1];
+typedef char efrag_store_model_layout_check[
+	offsetof(model_t, type) == 68 ? 1 : -1];
+
+void R_StoreEfrags_asm486 (efrag_t **ppefrag);
+#endif
+
 mnode_t	*r_pefragtopnode;
 
 
@@ -236,6 +254,12 @@ R_StoreEfrags
 // FIXME: a lot of this goes away with edge-based
 ================
 */
+#ifdef ASM486_EFRAG_STORE
+void R_StoreEfrags (efrag_t **ppefrag)
+{
+	R_StoreEfrags_asm486 (ppefrag);
+}
+#else
 void R_StoreEfrags (efrag_t **ppefrag)
 {
 	entity_t	*pent;
@@ -272,5 +296,6 @@ void R_StoreEfrags (efrag_t **ppefrag)
 		}
 	}
 }
+#endif
 
 

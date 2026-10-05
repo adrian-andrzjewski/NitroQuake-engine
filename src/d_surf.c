@@ -23,6 +23,48 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 #include "r_local.h"
 
+#ifdef ASM486_SURFACE_CACHE_CHECK
+#include <stddef.h>
+#ifdef DEBUG
+#define ASM486_SURFCACHE_TEXTURE_OFFSET 44
+#define ASM486_SURFCACHE_DATA_OFFSET 48
+#else
+#define ASM486_SURFCACHE_TEXTURE_OFFSET 40
+#define ASM486_SURFCACHE_DATA_OFFSET 44
+#endif
+typedef char surface_cache_setup_extents_layout[
+		(offsetof(msurface_t, extents) == 48) ? 1 : -1];
+typedef char surface_cache_entry_layout[
+		(offsetof(msurface_t, dlightframe) == 4 &&
+		offsetof(msurface_t, cachespots) == 28 &&
+		offsetof(msurface_t, texinfo) == 52 &&
+		offsetof(msurface_t, styles) == 56 &&
+		offsetof(mtexinfo_t, texture) == 36 &&
+		offsetof(texture_t, anim_total) == 24 &&
+		offsetof(texture_t, alternate_anims) == 40 &&
+		offsetof(entity_t, frame) == 140) ? 1 : -1];
+typedef char surface_cache_setup_drawsurf_layout[
+		(MAXLIGHTMAPS == 4 && MIPLEVELS == 4 &&
+		offsetof(msurface_t, cachespots) == 28 &&
+		offsetof(msurface_t, styles) == 56 &&
+		offsetof(drawsurf_t, lightadj) == 12 &&
+		offsetof(drawsurf_t, surf) == 8 &&
+		offsetof(drawsurf_t, texture) == 28 &&
+		sizeof(((drawsurf_t *)0)->lightadj[0]) == 4 &&
+		(offsetof(drawsurf_t, rowbytes) == 4 &&
+		offsetof(drawsurf_t, surfmip) == 32 &&
+		offsetof(drawsurf_t, surfwidth) == 36 &&
+		offsetof(drawsurf_t, surfheight) == 40 &&
+		offsetof(surfcache_t, next) == 0 &&
+		offsetof(surfcache_t, owner) == 4 &&
+		offsetof(surfcache_t, lightadj) == 8 &&
+		offsetof(surfcache_t, dlight) == 24 &&
+		offsetof(surfcache_t, size) == 28 &&
+		offsetof(surfcache_t, width) == 32 &&
+		offsetof(surfcache_t, texture) == ASM486_SURFCACHE_TEXTURE_OFFSET &&
+		offsetof(surfcache_t, data) == ASM486_SURFCACHE_DATA_OFFSET)) ? 1 : -1];
+#endif
+
 #if defined(PROFILE486) && !defined(ASM486_SURFACE_CACHE_CHECK)
 static int D_CacheSurfaceProbeDlight (msurface_t *surface)
 {
@@ -150,7 +192,12 @@ void D_FlushCaches (void)
 D_SCAlloc
 =================
 */
+#if !defined(ASM486_SURFACE_CACHE_CHECK) || defined(BENCH486)
+#ifdef ASM486_SURFACE_CACHE_CHECK
+surfcache_t     *D_SCAlloc_C (int width, int size)
+#else
 surfcache_t     *D_SCAlloc (int width, int size)
+#endif
 {
 	surfcache_t             *new;
 	qboolean                wrapped_this_time;
@@ -272,6 +319,7 @@ surfcache_t     *D_SCAlloc (int width, int size)
 #endif
 	return new;
 }
+#endif
 
 
 /*
@@ -321,15 +369,23 @@ int D_log2 (int num)
 
 //=============================================================================
 
+#if !defined(ASM486_SURFACE_CACHE_CHECK) || defined(BENCH486)
 /*
 ================
 D_CacheSurface
 ================
 */
+#ifdef ASM486_SURFACE_CACHE_CHECK
+surfcache_t *D_CacheSurface_C (msurface_t *surface, int miplevel)
+#else
 surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
+#endif
 {
 	surfcache_t     *cache;
 	texture_t	*tex;
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	int cache_created;
+#endif
 #ifdef PROFILE486
 	double			bench486_surface_cache_start;
 	double			bench486_surface_cache_rebuild_start;
@@ -360,11 +416,8 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	cache = surface->cachespots[miplevel];
 
 #ifdef ASM486_SURFACE_CACHE_CHECK
-	r_drawsurf.texture = tex;
-	r_drawsurf.lightadj[0] = d_lightstylevalue[surface->styles[0]];
-	r_drawsurf.lightadj[1] = d_lightstylevalue[surface->styles[1]];
-	r_drawsurf.lightadj[2] = d_lightstylevalue[surface->styles[2]];
-	r_drawsurf.lightadj[3] = d_lightstylevalue[surface->styles[3]];
+	D_CacheSurfaceKeys_asm486 (surface, tex, &r_drawsurf,
+			d_lightstylevalue);
 	if (D_CacheSurfaceHit_asm486 (cache, surface->dlightframe,
 			r_framecount, r_drawsurf.texture, r_drawsurf.lightadj))
 #else
@@ -416,6 +469,10 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	}
 #endif
 
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	cache_created = 0;
+#endif
+
 #ifndef ASM486_SURFACE_CACHE_CHECK
 	r_drawsurf.texture = tex;
 	r_drawsurf.lightadj[0] = d_lightstylevalue[surface->styles[0]];
@@ -427,10 +484,14 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 //
 // determine shape of surface
 //
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	D_CacheSurfaceSetup_asm486 (surface, miplevel, &r_drawsurf);
+#else
 	r_drawsurf.surfmip = miplevel;
 	r_drawsurf.surfwidth = surface->extents[0] >> miplevel;
 	r_drawsurf.rowbytes = r_drawsurf.surfwidth;
 	r_drawsurf.surfheight = surface->extents[1] >> miplevel;
+#endif
 	
 //
 // allocate memory if needed
@@ -448,29 +509,45 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 			bench486_surface_cache_alloc_seconds += Sys_FloatTime () -
 					bench486_surface_cache_alloc_start;
 #endif
+#ifdef ASM486_SURFACE_CACHE_CHECK
+		cache_created = 1;
+#else
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
+#endif
 	}
 
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	D_CacheSurfaceAttach_asm486 (surface, miplevel, cache, &r_drawsurf,
+			cache_created);
+#else
 	r_drawsurf.surfdat = (pixel_t *)cache->data;
-	
+#endif
+
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	D_CacheSurfaceStoreTags_asm486 (cache, &r_drawsurf);
+#else
 	cache->texture = r_drawsurf.texture;
 	cache->lightadj[0] = r_drawsurf.lightadj[0];
 	cache->lightadj[1] = r_drawsurf.lightadj[1];
 	cache->lightadj[2] = r_drawsurf.lightadj[2];
 	cache->lightadj[3] = r_drawsurf.lightadj[3];
+#endif
 
 //
 // draw and light the surface texture
 //
-	r_drawsurf.surf = surface;
-
-	c_surf++;
 #ifdef PROFILE486
 	if (bench486_surface_cache_profile_active)
 		bench486_surface_cache_draw_start = Sys_FloatTime ();
 #endif
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	D_CacheSurfaceDispatch_asm486 (surface, &r_drawsurf);
+#else
+	r_drawsurf.surf = surface;
+	c_surf++;
 	R_DrawSurface ();
+#endif
 #ifdef PROFILE486
 	if (bench486_surface_cache_profile_active)
 	{
@@ -482,10 +559,15 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 
 	// Sticky dlight bit only if a sample was actually lit; phantom marks
 	// must not force a rebuild next frame when the cache already matches.
+	#ifdef ASM486_SURFACE_CACHE_CHECK
+	D_CacheSurfaceSetDlight_asm486 (cache, surface->dlightframe,
+			r_framecount, r_dlight_contributed);
+	#else
 	if (surface->dlightframe == r_framecount)
 		cache->dlight = r_dlight_contributed;
 	else
 		cache->dlight = 0;
+	#endif
 
 #ifdef PROFILE486
 	if (bench486_surface_cache_profile_active)
@@ -503,6 +585,127 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 
 	return surface->cachespots[miplevel];
 }
+#endif
+
+#if defined(PROFILE486) && defined(ASM486_SURFACE_CACHE_CHECK)
+typedef struct
+{
+	double start;
+	double rebuild_start;
+	double alloc_start;
+	double draw_start;
+	int active;
+} d_cache_surface_profile_context_t;
+
+void D_CacheSurfaceProfileBegin_asm486 (void *opaque_context)
+{
+	d_cache_surface_profile_context_t *context;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	context->active = bench486_profile_frame_active;
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SURFACE_CACHE);
+	if (context->active)
+		context->start = Sys_FloatTime ();
+}
+
+void D_CacheSurfaceProfileHit_asm486 (void *opaque_context)
+{
+	d_cache_surface_profile_context_t *context;
+	double now, elapsed;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	if (context->active)
+	{
+		now = Sys_FloatTime ();
+		elapsed = now - context->start;
+		bench486_surface_cache_hits++;
+		bench486_surface_cache_hit_seconds += elapsed;
+		bench486_surface_cache_seconds += elapsed;
+	}
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void D_CacheSurfaceProfileMiss_asm486 (void *opaque_context,
+		msurface_t *surface)
+{
+	d_cache_surface_profile_context_t *context;
+	byte *style;
+	int i, immutable;
+	double now;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	if (!context->active)
+		return;
+	now = Sys_FloatTime ();
+	bench486_surface_cache_miss_check_seconds += now - context->start;
+	context->rebuild_start = now;
+	bench486_surface_cache_rebuilds++;
+	style = surface->styles;
+	immutable = 1;
+	for (i=0 ; i<MAXLIGHTMAPS ; i++, style++)
+		if (d_lightstylevalue[*style] != 256)
+			immutable = 0;
+	if (immutable)
+		bench486_surface_cache_immutable_rebuilds++;
+}
+
+void D_CacheSurfaceProfileAllocBegin_asm486 (void *opaque_context)
+{
+	d_cache_surface_profile_context_t *context;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	if (context->active)
+		context->alloc_start = Sys_FloatTime ();
+}
+
+void D_CacheSurfaceProfileAllocEnd_asm486 (void *opaque_context)
+{
+	d_cache_surface_profile_context_t *context;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	if (context->active)
+		bench486_surface_cache_alloc_seconds += Sys_FloatTime () -
+				context->alloc_start;
+}
+
+void D_CacheSurfaceProfileDrawBegin_asm486 (void *opaque_context)
+{
+	d_cache_surface_profile_context_t *context;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	if (context->active)
+		context->draw_start = Sys_FloatTime ();
+}
+
+void D_CacheSurfaceProfileDrawEnd_asm486 (void *opaque_context)
+{
+	d_cache_surface_profile_context_t *context;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	if (context->active)
+	{
+		bench486_surface_cache_draw_calls++;
+		bench486_surface_cache_draw_seconds += Sys_FloatTime () -
+				context->draw_start;
+	}
+}
+
+void D_CacheSurfaceProfileFinish_asm486 (void *opaque_context)
+{
+	d_cache_surface_profile_context_t *context;
+	double now;
+
+	context = (d_cache_surface_profile_context_t *)opaque_context;
+	if (context->active)
+	{
+		now = Sys_FloatTime ();
+		bench486_surface_cache_seconds += now - context->start;
+		bench486_surface_cache_rebuild_seconds +=
+				now - context->rebuild_start;
+	}
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif
 
 #ifdef BENCH486
 void *D_CacheSurfaceHit_C (void *cache_ptr, int surface_dlightframe,
@@ -519,6 +722,56 @@ void *D_CacheSurfaceHit_C (void *cache_ptr, int surface_dlightframe,
 			&& cache->lightadj[3] == lightadj[3])
 		return cache_ptr;
 	return NULL;
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SURFACE_CACHE_CHECK)
+void D_CacheSurfaceSetup_C (msurface_t *surface, int miplevel,
+		drawsurf_t *drawsurf)
+{
+	drawsurf->surfmip = miplevel;
+	drawsurf->surfwidth = surface->extents[0] >> miplevel;
+	drawsurf->rowbytes = drawsurf->surfwidth;
+	drawsurf->surfheight = surface->extents[1] >> miplevel;
+}
+
+void D_CacheSurfaceKeys_C (msurface_t *surface, texture_t *texture,
+		drawsurf_t *drawsurf, int *lightstylevalues)
+{
+	int i;
+
+	drawsurf->texture = texture;
+	for (i=0 ; i<MAXLIGHTMAPS ; i++)
+		drawsurf->lightadj[i] = lightstylevalues[surface->styles[i]];
+}
+
+void D_CacheSurfaceStoreTags_C (surfcache_t *cache, drawsurf_t *drawsurf)
+{
+	int i;
+
+	cache->texture = drawsurf->texture;
+	for (i=0 ; i<MAXLIGHTMAPS ; i++)
+		cache->lightadj[i] = drawsurf->lightadj[i];
+}
+
+void D_CacheSurfaceAttach_C (msurface_t *surface, int miplevel,
+		surfcache_t *cache, drawsurf_t *drawsurf, int cache_created)
+{
+	if (cache_created)
+	{
+		surface->cachespots[miplevel] = cache;
+		cache->owner = &surface->cachespots[miplevel];
+	}
+	drawsurf->surfdat = (pixel_t *)cache->data;
+}
+
+void D_CacheSurfaceSetDlight_C (surfcache_t *cache,
+		int surface_dlightframe, int frame, int contributed)
+{
+	if (surface_dlightframe == frame)
+		cache->dlight = contributed;
+	else
+		cache->dlight = 0;
 }
 #endif
 

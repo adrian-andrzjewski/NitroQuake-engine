@@ -1,7 +1,157 @@
 # Pure-Assembler Conversion Candidates
 
-Date: 2026-09-28, updated 2026-09-29
+Date: 2026-09-28, updated 2026-10-05
 Scope: i486 DOS NitroQuake software renderer
+
+> **Scope update (2026-10-04):** this document records the earlier performance
+> survey and its recommendations about which conversions are likely to improve the
+> timedemo. The current user-directed work is broader: port the full software
+> renderer and render-time dependency closure to hand-written i486 assembler while
+> retaining C references during migration. The survey is still useful for choosing
+> order and measuring performance; its recommendation against a full conversion no
+> longer limits the requested scope. Track implementation state in
+> renderer-port ledgers under `docs/ledger/`.
+
+> **Implementation update (2026-10-04):** `D_DrawSkyScans8` now has a complete
+> selectable i486 assembly path, including viewport/time setup, UV projection,
+> vector normalization, span interpolation, and pixel sampling. Direct UV and
+> framebuffer parity pass; C remains selectable. `D_WarpScreen` is also a
+> selectable full assembly entry point, including ratio setup, lookup tables,
+> time phase, and pixel copy. Table generation is slower in isolation, so C
+> remains the default. `D_DrawSolidSurface` now has a selectable assembly span
+> fill; its isolated benchmark is 5.128% faster, but the pinned demo does not
+> exercise the optional `r_drawflat` path, so C remains the default. See
+> `docs/ledger/2026-10-04-renderer-assembler-port.md`.
+
+> **Turbulent scan update (2026-10-04):** `Turbulent8` now has a selectable
+> full i486 assembly entry for phase/setup, span traversal, projection,
+> interpolation, and chunk handling. Direct parity passed across 13 span counts,
+> six phases, and four x87 rounding modes with the `stosb`, ASM, and C inner
+> loop choices.
+> C remains the default because the separate timedemo samples were not paired
+> and included an outlier; see the renderer-port ledger for the measurements.
+
+> **Dynamic-light update (2026-10-04):** `R_AddDynamicLights` now has selectable
+> i486 assembly for sparse light-bit traversal, x87 projection, surface culling,
+> and sample-helper dispatch. `R_DlightContributes` also has a selectable
+> assembly predicate using the shared projector. The 36-case projection and
+> predicate harness, 11-case lightmap harness, release smoke, ISA gate, and
+> pinned checksum passed; C remains the default. `D_CacheSurface` now has
+> assembly cache-hit, key-load, miss-path metadata, texture/style tag, rover
+> allocator, attachment, dispatch, and dynamic-light tag paths. Texture animation,
+> high-level hit/miss policy, and profile accounting remain in C at this earlier
+> helper-only stage. The complete public cache entry is covered below.
+> See the renderer-port ledger.
+
+> **Surface draw update (2026-10-04):** `R_DrawSurface` now has a selectable
+> complete i486 assembly entry. Its 40-case parity harness covers four mips,
+> POT and NPOT textures, five lightmap modes, output scratch, `blocklights`,
+> and renderer globals. Smoke, the i486 gate, and a pinned 969-frame checksum
+> passed; the single timedemo sample is not performance evidence. C remains
+> the release default. The render-time dependency closure remains open; see
+> the renderer-port ledger.
+
+> **Surface-cache entry update (2026-10-04):** `D_CacheSurface` now has a full
+> selectable i486 assembly entry for texture call guarding, cache hit/miss flow,
+> metadata setup, allocation handoff, tag writes, draw dispatch, and sticky
+> dynamic-light state. The four-mip public-entry hit harness and helper suite
+> passed. The combined cache/draw assembly selectors passed smoke and a pinned
+> 969-frame checksum; one timing sample is not a speed claim. The C entry remains
+> the release default. `R_TextureAnimation` frame resolution and PROFILE486
+> accounting still use C helpers; the remaining render-time dependency closure
+> is open.
+
+> **Texture-animation entry update (2026-10-04):** `R_TextureAnimation` now
+> has a full selectable i486 assembly entry for alternate textures, the static
+> fast path, x87 time conversion, signed phase remainder, and frame lookup. The
+> C/assembly harness passed 25 time values across primary, alternate, and static
+> paths in all four x87 rounding modes. The complete-entry microbenchmark was
+> 2.666% faster for assembly; smoke, the 168-instruction ISA gate, and a pinned
+> 969-frame checksum passed. One timedemo sample is not a performance comparison.
+> Assembly remains the selector default; the renderer dependency closure is open.
+
+> **Mip-selector entry update (2026-10-04):** the selected assembly build now
+> exports `D_MipLevelForScale` directly from the x87 threshold routine, with no
+> C forwarding entry. Eight threshold and clamp cases matched C, release smoke
+> and the pinned 969-frame checksum passed, and the ISA gate remained at 168
+> enforced above-i486 instructions. The helper microbenchmarks are mixed, so C
+> remains the release default.
+
+> **Face-depth update (2026-10-05):** `R_SetSurfaceZGradients` now has a
+> selectable i486 assembly entry with the same plane/entity/frame cache and
+> x87 operation order as the C reference. Its 32-case parity harness passed
+> across cache-key changes and all four x87 rounding modes; release smoke, the
+> 168-instruction ISA gate, and the pinned 969-frame checksum also passed. The
+> single timedemo run is not a speed comparison, so C remains the release
+> default; see the renderer-port ledger.
+
+> **Texture-gradient update (2026-10-05):** `D_CalcGradients` now has a
+> selectable i486 assembly path that owns the x87 gradient arithmetic and a
+> separate texture-axis cache. Its 20-case harness passed across mip levels,
+> cache hits and key changes, and all four x87 rounding modes. Release smoke,
+> the 168-instruction ISA gate, and the pinned 969-frame checksum passed; the
+> single timedemo sample is not a speed comparison, so C remains the default.
+> `D_DrawSurfaces` now has a selectable assembly dispatcher; the world walk has
+> since gained a selectable assembly entry, while shared callees and the
+> remaining helper closure stay open. See the ledger.
+
+> **Surface-dispatch update (2026-10-05):** `D_DrawSurfaces` now has a
+> selectable i486 assembly dispatcher for surface traversal, mip-scale setup,
+> draw-mode selection, Z-gradient loads, and brush-model/world-state changes.
+> Its release build passed smoke and the ISA gate; the pinned 969-frame timedemo
+> matched checksum `1047377823`. The 59.208935-second single sample is not
+> performance evidence, so C remains the default. Cache, gradient, mip, and
+> span-drawing helpers remain independently selectable; shared render-time
+> callees and the full dependency closure remain open.
+
+> **World-BSP update (2026-10-05):** `R_RecursiveWorldNode` now has a selectable
+> assembly walk for culling, recursion, leaf marking, BSP keys, face selection,
+> and polygon ordering. The pinned 969-frame checksum, smoke, and instrumented
+> timedemo passed. Three assembly runs were 0.856% slower than the C median, so
+> C remains the release default. `R_RenderFace`, `R_RenderBmodelFace`, and
+> `R_StoreEfrags` now also have selectable assembly entries. The combined
+> selectors passed smoke and the pinned framebuffer checksum; a single timedemo
+> sample is not a performance comparison. `R_ClipEdge` and edge
+> projection/emission already use legacy handwritten assembly under `id386`,
+> and `R_EmitCachedEdge` now has a separate selector. `R_RenderPoly` belongs to
+> the optional polygon-driver branch; normal DOS span rendering leaves
+> `r_drawpolys=0` and `D_DrawPoly()` is a no-op. See the renderer-port ledgers.
+
+> **Brush-model clipping update (2026-10-05):** `R_RecursiveClipBPoly` now has
+> a selectable i486 assembly implementation with its C reference retained.
+> The i486 build and selector contract passed; C and assembly each completed
+> the pinned 969-frame demo with checksum `1047377823`. Matched intermediate
+> captures reproduced the wall leak: the wrong x87 divide direction produced
+> off-plane vertices and 17 edge overflows. The corrected `fdivrp` path has an
+> intact wall and zero overflows. The single timings are not comparative
+> evidence; see the brush-model clipping ledger.
+
+> **Alias vertex-preparation update (2026-10-05):** `R_AliasPreparePoints` now
+> selects a hand-written i486 loop for transform dispatch, near-plane
+> classification, projection dispatch, and viewport clip flags. The control
+> and local C loops remain selectable; the triangle clipping/draw loop is still
+> C. Smoke and the selector contract passed, and C-control and assembly timedemo
+> runs both produced 969 frames with checksum `1047377823`. The single timings
+> do not justify promotion; see the renderer-port ledger.
+
+> **World-render orchestration update (2026-10-05):** `R_RenderWorld` now has
+> a selectable i486 assembly entry for render-state setup, the frame-local
+> polygon queue, BSP dispatch, and optional back-to-front polygon replay. C
+> remains the release default. The assembly run passed smoke and the pinned
+> 969-frame checksum. C and assembly frame captures were byte-identical, but
+> the user-reported live-display smear remains under investigation because a
+> buffer capture does not validate the DOSBox-X window presentation.
+
+> **Lightmap dispatcher update (2026-10-04):** `R_BuildLightMap` now has a
+> selectable full i486 assembly dispatcher, with the C dispatcher retained as
+> the release default and benchmark reference. Eleven focused scenarios passed
+> with assembly helpers and C helper variants. Both release selectors passed
+> smoke and retained the pinned 969-frame checksum; the single timing pair was
+> inconclusive. At that point `R_AddDynamicLights` orchestration was the next
+> open entry; it has since gained a selectable assembly path, followed by cache
+> miss-path work. `R_DrawSurface` now has a selectable assembly entry; current
+> next work is the remaining rendering-time dependency closure;
+> see the renderer-port ledger.
 
 ## Conclusion
 
@@ -92,53 +242,57 @@ paid for in instruction count, memory traffic, or arithmetic.
 
 ## Candidate areas
 
-The lightmap-combination candidate is now implemented as the selectable
-R_BuildLightMapStyles_asm486 helper and has been promoted after checksum-
-preserving focused and end-to-end timedemo validation.
+The lightmap-combination helper is implemented as the selectable
+`R_BuildLightMapStyles_asm486` path. The full `R_BuildLightMap` dispatcher and
+the dynamic-light orchestration and projection now have selectable assembly
+entries; their C paths remain the default pending repeatable end-to-end
+performance evidence.
 
 | Area | Location | Feasibility | Recommended boundary |
 |---|---|---:|---|
-| Lightmap combination | `src/r_surf.c:R_BuildLightMap` | High | Keep surface bounds and light-style selection in C. Move the per-texel style-combination loop to assembler. |
-| Dynamic-light accumulation | `src/r_surf.c:R_AddDynamicLights` | High | Keep light projection and floating-point setup in C. Move the fixed/integer sample traversal and accumulation loop to assembler. |
-| Alias setup | `src/r_alias.c:R_AliasPreparePoints`, alias clipping, gradient setup | Medium/high | Operate on compact vertex/clip arrays with explicit counts. Preserve the existing projection and clipping conventions exactly. |
-| Surface-cache checks | `src/d_surf.c:D_CacheSurface`, `src/r_surf.c:R_DlightContributes` | Medium | Convert only the small predicates or copy/check loops; leave cache allocation and policy in C. |
-| BSP traversal | `src/r_bsp.c:R_RecursiveWorldNode` | Possible, low priority | Keep the recursive walk in C. Specialized plane-dot and clip-flag helpers are better assembler seams. |
-| Face/edge setup | `src/r_bsp.c:R_RenderFace`, `R_RenderBmodelFace` | **Closed by measurement** | **Measured 2026-10-02: ~15.8x the gate, and `-O3` has already taken the available CSE.** The duplicated `edge_p - r_edges` across 29 sites is one `sub` (0.9x); the two obvious hoists are logged as reverted. Do not retry. |
+| Lightmap combination | `src/r_surf.c:R_BuildLightMap` | Implemented | The assembly dispatcher owns bounds, cache, path selection, dynamic-light dispatch, and normalization calls; C remains the release default. |
+| Dynamic-light accumulation | `src/r_surf.c:R_AddDynamicLights` | Implemented | Assembly owns sparse light-bit traversal, x87 projection, culling, and dispatch; the texel sample loop remains independently selectable. |
+| Alias setup | `src/r_alias.c:R_AliasPreparePoints`, `src/r_aclip.c` clipping, gradient setup | **Partial, not promoted** | `AliasPrepareImplementation=control|local|asm` selects the original C loops or an i486 clipped-vertex loop. `AliasClipImplementation=c|asm` selects the generic clip pass and triangle-level clipping orchestration; `AliasClipZImplementation=c|asm` independently selects the Z-plane intersection callback and requires `AliasClipImplementation=asm`. The Z callback passed one pinned 969-frame checksum run; C remains the default pending repeated performance and visual review. Alias gradient setup remains. Preserve projection, clipping, and triangle order exactly. |
+| Surface-cache checks | `src/d_surf.c:D_CacheSurface`, `src/r_surf.c:R_DlightContributes` | Medium | `R_DlightContributes`, the public `D_CacheSurface` hit/miss flow, cache key/setup/tag work, `D_SCAlloc`, cache attachment, draw dispatch, dynamic-light tag updates, and the `R_DrawSurface` entry have assembly paths; animation-frame resolution and PROFILE486 accounting still call C helpers. |
+| Surface dispatch | `src/d_edge.c:D_DrawSurfaces` | Implemented | The selectable assembly dispatcher owns the per-frame surface loop; cache, gradient, mip, and drawing callees remain independent selectors. The world walk has its own assembly selector; shared render callees remain open. |
+| BSP traversal | `src/r_bsp.c:R_RecursiveWorldNode` | Implemented | `BspWalkImplementation=c|asm` selects the recursive assembly walk; C remains the release default. The assembly path preserves traversal and face order, calls the selectable face renderer and efrag walk, and still calls the shared polygon renderer. |
+| World-render orchestration | `src/r_bsp.c:R_RenderWorld` | **Implemented, not promoted** | `RenderWorldImplementation=c|asm` selects the assembly setup, frame-local polygon queue, BSP dispatch, and optional polygon replay; C remains the release default. C and assembly timedemo PCX captures matched byte-for-byte. |
+| Face/edge setup | `src/r_draw.c:R_RenderFace`, `R_RenderBmodelFace`, `R_EmitCachedEdge` | **Implemented, not promoted** | Selectable i486 assembly is available for both face paths and cached-edge insertion, with C references retained. The face paths and combined BSP configuration passed the exact framebuffer checksum; `R_EmitCachedEdge` also passed the pinned checksum and instrumented call-count check. Single samples are not comparative performance evidence; C remains the release default. `R_ClipEdge` and edge projection/emission are legacy handwritten assembly under `id386`. |
+| Entity efrags | `src/r_efrag.c:R_StoreEfrags` | **Implemented, not promoted** | `EfragStoreImplementation=c|asm` selects the list walk; compile-time layout checks protect its 32-bit field offsets. Combined renderer selectors passed the pinned checksum; C remains the release default. |
+| Submodel polygon surfaces | `src/r_bsp.c:R_DrawSubmodelPolygons` | **Implemented, not promoted** | `SubmodelPolygonsImplementation=c|asm` selects the surface loop, x87 backface test, render-key update, and face dispatch. The assembly smoke and both C/ASM combined candidates passed the pinned checksum; their live captures landed at different demo times, so visual frame parity remains open. |
+| Brush-model polygon clipping | `src/r_bsp.c:R_RecursiveClipBPoly` | **Implemented, not promoted** | `BmodelPolygonClipImplementation=c|asm` selects the recursive BSP edge clipper, intersection-vertex construction, clip-boundary edges, and visible-leaf dispatch. C and assembly passed the pinned checksum; matched `demo1` captures reproduced and then cleared the wall leak, with zero edge overflows after the x87 divide fix. |
+| Edge-drawing orchestration | `src/r_main.c:R_EdgeDrawing` | **Implemented, not promoted** | `EdgeDrawingImplementation=c|asm` selects stack-buffer setup, world dispatch, scans, Z-enable, brush-entity dispatch, and update flow. C and ASM passed smoke and the pinned checksum; live captures were coherent but landed at slightly different demo states. |
+| Edge scanline loop | `src/r_edge.c:R_ScanEdges` | **Implemented, not promoted** | `ScanEdgesImplementation=c|asm` selects the aligned span buffer, row loop, edge updates, span flushes, and final draw. C and ASM passed smoke and the pinned 969-frame checksum. Single runs showed no speed gain, and matched-frame visual acceptance remains open. |
+| Active-edge maintenance | `src/r_edge.c:R_InsertNewEdges`, `R_RemoveEdges`, `R_StepActiveU` | **Implemented, not promoted** | `EdgeListMaintenanceImplementation=legacy|c|asm` preserves the original `id386` assembly as the default, exposes the true C reference, and adds replacement i486 assembly. C and ASM matched the pinned checksum, with no gain in single samples; visual acceptance remains open. |
 
 ### 1. `R_BuildLightMap`
 
-This is the cleanest remaining candidate. Once the surface dimensions,
-style values, and destination are known, the hot portion is a predictable
-per-texel integer loop. The existing normalization helper already provides an
-assembler seam; the next opportunity is the style-combination work before
-normalization.
+This was the cleanest remaining candidate when the survey was written. The
+complete dispatcher is now selectable in assembly, while its C implementation
+and each style, fused-style, dynamic-light, and normalization helper remain
+available through their own references and selectors.
 
-Keep in C:
+The C selector keeps the original full dispatcher. The assembly selector moves
+surface bounds, cache decisions, fullbright and ambient branches, helper
+selection, dynamic-light dispatch, and normalization orchestration to assembler.
+The single-style cached table and ambient clear/fill loops also run in assembly.
+Style accumulation, fused accumulation, dynamic-light sampling, and
+normalization remain independently selectable helpers. The C dispatcher is
+retained as the benchmark reference, and C remains the release default pending
+repeatable performance evidence.
 
-- surface extents and cache addressing;
-- light-style lookup and animation state;
-- dynamic-light dispatch;
-- destination selection and final store policy.
+### 2. `R_AddDynamicLights` orchestration
 
-Move to assembler:
+The sparse `dlightbits` traversal, x87 surface projection, culling, and helper
+dispatch now have a selectable i486 assembly entry. The texel sample loop
+remains independently controlled by `DynamicLightImplementation`; the C
+orchestration and projection remain available for benchmark parity.
 
-- repeated light-style accumulation;
-- clamping or saturation that is already defined by the C reference;
-- the sequential per-texel loop over `blocklights`.
-
-The assembler version must retain the C version as a reference implementation
-until framebuffer parity has been established.
-
-### 2. `R_AddDynamicLights`
-
-The floating-point light projection and surface-level decisions are poor
-targets for a wholesale rewrite. The discrete sample traversal is a much
-better target: it is repetitive, integer-heavy, and runs once per affected
-lightmap texel.
-
-The assembler helper must preserve the exact sample predicates, signed
-rounding, light-distance calculation, and accumulation order. A faster
-approximation is not an acceptable replacement for a preservation renderer.
+The assembler projection must preserve the existing dot-product order, plane
+distance, radius/minlight rejects, `ceil`-based distance limit, texture-space
+coordinates, surface-edge cull, and x87 rounding behavior. The pixel helper must
+continue to preserve the exact sample predicates, signed rounding,
+light-distance calculation, and accumulation order.
 
 ### 3. Alias preparation and clipping
 
@@ -154,10 +308,12 @@ harder.
 
 ### 4. Surface-cache helpers
 
-`D_CacheSurface` and `R_DlightContributes` contain useful small helpers, but
-their complete functions mix hot checks with cache policy and allocation. The
-best return comes from converting a predicate, tag comparison, or tightly
-bounded copy loop, not from translating the whole function line for line.
+`R_DlightContributes`, the public cache hit/miss flow, key loading, miss-path
+metadata, texture/style tag writes, the rover allocator, cache attachment, draw
+dispatch, dynamic-light tag updates, `R_DrawSurface` setup, and the full
+`R_TextureAnimation` entry now have assembly paths. PROFILE486 accounting and
+the remaining render-time dependency closure stay open; keep the C path as the
+reference while continuing those parts.
 
 ## Already covered by assembler
 
@@ -168,7 +324,9 @@ paths, including:
 - Z spans in `src/d_draw.s`;
 - alias span and raster loops in `src/d_polysa.s`;
 - alias projection and clipped-transform helpers in `src/r_aliasa.s`;
-- turbulent span stores and related scan helpers;
+- turbulent span stores and the `Turbulent8` scan setup/interpolation entry;
+- the complete `R_BuildLightMap` dispatcher around selectable light/style helpers;
+- direct assembly entries for `D_MipLevelForScale` and `R_TextureAnimation`;
 - memory, surface-cache, texture-animation, lightmap-normalization, and BSP
   micro-helpers in the existing 486 support sources.
 
@@ -181,7 +339,6 @@ the basic pixel writers.
 These areas are technically convertible but are unlikely to repay their
 complexity:
 
-- the complete `R_RecursiveWorldNode` walk;
 - complete face and brush-model setup functions;
 - file I/O, command parsing, and host/platform code;
 - code dominated by floating-point setup or calls into many unrelated
@@ -222,10 +379,12 @@ path until the improvement is repeated across matched runs.
 
 ## Practical decision
 
-If only one conversion is attempted, convert the inner lightmap-combination
-loop and leave the rest of `R_BuildLightMap` in C. If a second conversion is
-worthwhile, target the integer inner loop of `R_AddDynamicLights`. After that,
-profile alias preparation again before touching BSP traversal.
+The lightmap-combination helper, complete `R_BuildLightMap` dispatcher,
+`R_AddDynamicLights` orchestration, `R_DrawSurface` entry, `D_CacheSurface`
+entry, BSP traversal, and `R_RenderWorld` orchestration now have selectable
+assembly paths, with C references retained. Continue through the remaining
+render-time dependency closure and software-renderer code while retaining
+exact-output gates.
 
 ## Measured surface-block loop follow-up (2026-09-28)
 

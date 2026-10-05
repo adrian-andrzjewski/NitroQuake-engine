@@ -22,13 +22,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "d_local.h"
 
+#if defined(ASM486_SURFACE_GRADIENTS) || defined(ASM486_SURFACE_DISPATCH)
+int			d_gradient_miplevel;
+#define miplevel d_gradient_miplevel
+float		d_mipscale_values[4] = {1.0, 0.5, 0.25, 0.125};
+float		d_mip_xscale[4];
+float		d_mip_yscale[4];
+#else
 static int	miplevel;
 static float	d_mipscale_values[4] = {1.0, 0.5, 0.25, 0.125};
 static float	d_mip_xscale[4];
 static float	d_mip_yscale[4];
+#endif
 // 0x10000 * d_mipscale_values[] for {1.0, 0.5, 0.25, 0.125}; all exactly
 // representable, so this is the same value the loop used to recompute.
+#ifdef ASM486_SURFACE_GRADIENTS
+const float	d_mip_t16[4] = {0x10000, 0x8000, 0x4000, 0x2000};
+#else
 static const float	d_mip_t16[4] = {0x10000, 0x8000, 0x4000, 0x2000};
+#endif
 
 #ifndef D_TEXAXIS_CACHE_SIZE
 #define D_TEXAXIS_CACHE_SIZE	256
@@ -44,6 +56,63 @@ typedef struct
 } d_texaxis_cache_t;
 
 static d_texaxis_cache_t	d_texaxis_cache[D_TEXAXIS_CACHE_SIZE];
+
+#ifdef ASM486_SURFACE_GRADIENTS
+typedef char d_gradient_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char d_gradient_cache_entry_size[(sizeof(d_texaxis_cache_t) == 36) ? 1 : -1];
+typedef char d_gradient_cache_saxis_offset[
+		(__builtin_offsetof(d_texaxis_cache_t, saxis) == 12) ? 1 : -1];
+typedef char d_gradient_cache_taxis_offset[
+		(__builtin_offsetof(d_texaxis_cache_t, taxis) == 24) ? 1 : -1];
+typedef char d_gradient_surface_offsets[
+		(__builtin_offsetof(msurface_t, plane) == 12 &&
+		 __builtin_offsetof(msurface_t, texturemins) == 44 &&
+		 __builtin_offsetof(msurface_t, extents) == 48 &&
+		 __builtin_offsetof(msurface_t, texinfo) == 52) ? 1 : -1];
+typedef char d_gradient_texinfo_layout[
+		(__builtin_offsetof(mtexinfo_t, vecs) == 0 &&
+		 __builtin_offsetof(mtexinfo_t, mipadjust) == 32) ? 1 : -1];
+
+// Kept separate from the reference cache so C/ASM comparisons exercise both
+// miss and hit paths independently.
+d_texaxis_cache_t	d_texaxis_cache_asm[D_TEXAXIS_CACHE_SIZE];
+int			d_texaxis_cache_mask = D_TEXAXIS_CACHE_SIZE - 1;
+typedef char d_gradient_cache_array_size[
+		((sizeof(d_texaxis_cache_asm) / sizeof(d_texaxis_cache_asm[0])) ==
+		 D_TEXAXIS_CACHE_SIZE) ? 1 : -1];
+#endif
+
+#ifdef ASM486_SURFACE_DISPATCH
+typedef char d_dispatch_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char d_dispatch_surface_layout[
+		(sizeof(surf_t) == 64 &&
+		 __builtin_offsetof(surf_t, spans) == 8 &&
+		 __builtin_offsetof(surf_t, flags) == 24 &&
+		 __builtin_offsetof(surf_t, data) == 28 &&
+		 __builtin_offsetof(surf_t, entity) == 32 &&
+		 __builtin_offsetof(surf_t, nearzi) == 36 &&
+		 __builtin_offsetof(surf_t, insubmodel) == 40 &&
+		 __builtin_offsetof(surf_t, d_ziorigin) == 44 &&
+		 __builtin_offsetof(surf_t, d_zistepu) == 48 &&
+		 __builtin_offsetof(surf_t, d_zistepv) == 52) ? 1 : -1];
+typedef char d_dispatch_entity_origin_offset[
+		(__builtin_offsetof(entity_t, origin) == 84) ? 1 : -1];
+typedef char d_dispatch_texture_layout[
+		(__builtin_offsetof(texture_t, offsets) == 44 &&
+		 __builtin_offsetof(mtexinfo_t, mipadjust) == 32 &&
+		 __builtin_offsetof(mtexinfo_t, texture) == 36 &&
+		 __builtin_offsetof(msurface_t, texturemins) == 44 &&
+		 __builtin_offsetof(msurface_t, extents) == 48 &&
+		 __builtin_offsetof(msurface_t, texinfo) == 52) ? 1 : -1];
+typedef char d_dispatch_cache_data_offset[
+#ifdef DEBUG
+		(__builtin_offsetof(surfcache_t, data) == 48) ? 1 : -1];
+#else
+		(__builtin_offsetof(surfcache_t, data) == 44) ? 1 : -1];
+#endif
+typedef char d_dispatch_cvar_value_offset[
+		(__builtin_offsetof(cvar_t, value) == 16) ? 1 : -1];
+#endif
 
 // E0: count DISTINCT faces drawn per frame, not total draws.  A per-face
 // precompute (E3) only pays if a face is drawn more than once in a frame;
@@ -133,7 +202,11 @@ extern void			R_RotateBmodel (void);
 extern void			R_RotateBmodelCached (void);
 extern void			R_TransformFrustum (void);
 
+#if defined(ASM486_SURFACE_GRADIENTS) || defined(ASM486_SURFACE_DISPATCH)
 vec3_t		transformed_modelorg;
+#else
+static vec3_t	transformed_modelorg;
+#endif
 
 /*
 ==============
@@ -142,6 +215,7 @@ D_RestoreWorldDrawingState
 Undo a per-polygon bmodel rotation so world surfaces use base view axes.
 ==============
 */
+#if !defined(ASM486_SURFACE_DISPATCH) || defined(BENCH486)
 static void D_RestoreWorldDrawingState (entity_t **rotated,
 	vec3_t world_transformed_modelorg)
 {
@@ -184,6 +258,166 @@ static void D_SetBmodelDrawingState (entity_t **rotated, surf_t *s,
 								// make entity passed in
 	*rotated = s->entity;
 }
+#endif
+
+#if defined(ASM486_SURFACE_DISPATCH) && defined(PROFILE486)
+enum
+{
+	D_SURFACE_PROFILE_SOLID = 0,
+	D_SURFACE_PROFILE_SKY,
+	D_SURFACE_PROFILE_BACKGROUND,
+	D_SURFACE_PROFILE_TURBULENT,
+	D_SURFACE_PROFILE_TEXTURE
+};
+
+enum
+{
+	D_SPAN_PROFILE_SOLID = 0,
+	D_SPAN_PROFILE_Z,
+	D_SPAN_PROFILE_SKY,
+	D_SPAN_PROFILE_TURBULENT,
+	D_SPAN_PROFILE_TEXTURE
+};
+
+static double		d_surface_profile_start_asm486;
+static double		d_surface_span_draw_start_asm486;
+static unsigned long	d_surface_profile_count_start_asm486;
+static unsigned long	d_surface_profile_pixels_start_asm486;
+static unsigned long	d_surface_texture_span_start_asm486;
+static unsigned long	d_surface_texture_pixel_start_asm486;
+
+void D_DrawSurfacesProfileBegin_asm486 (void)
+{
+	d_surface_profile_count_start_asm486 = bench486_surface_count;
+	d_surface_profile_pixels_start_asm486 = bench486_surface_span_pixels;
+	if (bench486_profile_frame_active)
+		d_surface_profile_start_asm486 = Sys_FloatTime ();
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SURFACES);
+}
+
+void D_DrawSurfacesProfileFinish_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+	{
+		bench486_surface_seconds += Sys_FloatTime () -
+				d_surface_profile_start_asm486;
+		BENCH486_PROFILE_WORK (BENCH486_PROFILE_SURFACES,
+				bench486_surface_count - d_surface_profile_count_start_asm486,
+				bench486_surface_span_pixels -
+				d_surface_profile_pixels_start_asm486);
+	}
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void D_DrawSurfacesProfileRecordSurface_asm486 (surf_t *surface, int category)
+{
+	if (!bench486_profile_frame_active)
+		return;
+
+	bench486_surface_count++;
+	switch (category)
+	{
+	case D_SURFACE_PROFILE_SOLID:
+		bench486_surface_solid_count++;
+		D_ProfileSpans (surface->spans, false);
+		break;
+	case D_SURFACE_PROFILE_SKY:
+		bench486_surface_sky_count++;
+		D_ProfileSpans (surface->spans, false);
+		break;
+	case D_SURFACE_PROFILE_BACKGROUND:
+		bench486_surface_background_count++;
+		D_ProfileSpans (surface->spans, false);
+		break;
+	case D_SURFACE_PROFILE_TURBULENT:
+		bench486_surface_turbulent_count++;
+		D_ProfileSpans (surface->spans, false);
+		break;
+	default:
+		bench486_surface_normal_count++;
+		D_ProfileSpans (surface->spans, true);
+		break;
+	}
+}
+
+void D_DrawSurfacesProfileEnter_asm486 (int kind)
+{
+	switch (kind)
+	{
+	case D_SPAN_PROFILE_SOLID:
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SOLID_SPANS);
+		break;
+	case D_SPAN_PROFILE_Z:
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_Z_SPANS);
+		break;
+	case D_SPAN_PROFILE_SKY:
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SKY_SPANS);
+		break;
+	case D_SPAN_PROFILE_TURBULENT:
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_TURBULENT_SPANS);
+		break;
+	default:
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_TEXTURE_SPANS);
+		break;
+	}
+}
+
+void D_DrawSurfacesProfileLeave_asm486 (void)
+{
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void D_DrawSurfacesProfileWork_asm486 (int kind)
+{
+	if (kind == D_SPAN_PROFILE_SKY)
+		BENCH486_PROFILE_WORK (BENCH486_PROFILE_SKY_SPANS, 1, 0);
+	else if (kind == D_SPAN_PROFILE_TURBULENT)
+		BENCH486_PROFILE_WORK (BENCH486_PROFILE_TURBULENT_SPANS, 1, 0);
+}
+
+void D_DrawSurfacesProfileTimedStart_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		d_surface_span_draw_start_asm486 = Sys_FloatTime ();
+}
+
+void D_DrawSurfacesProfileTimedFinish_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		bench486_span_draw_seconds += Sys_FloatTime () -
+				d_surface_span_draw_start_asm486;
+}
+
+void D_DrawSurfacesProfileTextureStart_asm486 (void)
+{
+	d_surface_texture_span_start_asm486 = bench486_texture_span_count;
+	d_surface_texture_pixel_start_asm486 = bench486_texture_span_pixels;
+	D_DrawSurfacesProfileTimedStart_asm486 ();
+}
+
+void D_DrawSurfacesProfileTextureFinish_asm486 (void)
+{
+	D_DrawSurfacesProfileTimedFinish_asm486 ();
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_TEXTURE_SPANS,
+			bench486_texture_span_count -
+			d_surface_texture_span_start_asm486,
+			bench486_texture_span_pixels -
+			d_surface_texture_pixel_start_asm486);
+}
+
+void D_DrawSurfacesProfileTextureWidth_asm486 (void)
+{
+	int width;
+
+	if (!bench486_profile_frame_active)
+		return;
+	width = cachewidth;
+	if (width >= 16 && width <= 256 && !(width & 15))
+		bench486_texture_widths[width >> 4]++;
+	else
+		bench486_texture_widths[0]++;
+}
+#endif
 
 /*
 ==============
@@ -227,12 +461,9 @@ int D_MipLevelForScale (float scale)
 }
 #endif
 
-#ifdef BENCH486
+#if defined(BENCH486) && !defined(ASM486_MIP_LEVEL)
 int D_MipLevelForScale (float scale)
 {
-#ifdef ASM486_MIP_LEVEL
-	return D_MipLevelForScale_asm486 (scale);
-#else
 	int		lmiplevel;
 
 	if (scale >= d_scalemip[0] )
@@ -248,12 +479,6 @@ int D_MipLevelForScale (float scale)
 		lmiplevel = d_minmip;
 
 	return lmiplevel;
-#endif
-}
-#elif defined(ASM486_MIP_LEVEL)
-int D_MipLevelForScale (float scale)
-{
-	return D_MipLevelForScale_asm486 (scale);
 }
 #endif
 
@@ -266,6 +491,27 @@ D_DrawSolidSurface
 
 // FIXME: clean this up
 
+#ifdef ASM486_SOLID_SURFACE
+typedef char d_solidsurface_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char d_solidsurface_spans_offset[
+		(__builtin_offsetof (surf_t, spans) == 8) ? 1 : -1];
+typedef char d_solidsurface_espan_u_offset[
+		(__builtin_offsetof (espan_t, u) == 0) ? 1 : -1];
+typedef char d_solidsurface_espan_v_offset[
+		(__builtin_offsetof (espan_t, v) == 4) ? 1 : -1];
+typedef char d_solidsurface_espan_count_offset[
+		(__builtin_offsetof (espan_t, count) == 8) ? 1 : -1];
+typedef char d_solidsurface_espan_next_offset[
+		(__builtin_offsetof (espan_t, pnext) == 12) ? 1 : -1];
+typedef char d_solidsurface_pixel_size[
+		(sizeof(pixel_t) == 1) ? 1 : -1];
+#if defined(BENCH486)
+#define D_DrawSolidSurface D_DrawSolidSurface_C
+#endif
+#endif
+
+#if !defined(ASM486_SOLID_SURFACE) || defined(BENCH486)
 void D_DrawSolidSurface (surf_t *surf, int color)
 {
 	espan_t	*span;
@@ -309,6 +555,11 @@ void D_DrawSolidSurface (surf_t *surf, int color)
 		}
 	}
 }
+#endif
+
+#if defined(ASM486_SOLID_SURFACE) && defined(BENCH486)
+#undef D_DrawSolidSurface
+#endif
 
 
 /*
@@ -360,7 +611,12 @@ static d_texaxis_cache_t *D_GetTextureAxes (mtexinfo_t *texinfo)
 D_CalcGradients
 ==============
 */
+#if !defined(ASM486_SURFACE_GRADIENTS) || defined(BENCH486)
+#ifdef BENCH486
+void D_CalcGradients_C (msurface_t *pface)
+#else
 void D_CalcGradients (msurface_t *pface)
+#endif
 {
 	mplane_t	*pplane;
 	float		mipscale;
@@ -413,6 +669,56 @@ void D_CalcGradients (msurface_t *pface)
 	bbextentt = ((pface->extents[1] << 16) >> miplevel) - 1;
 	BENCH486_PROFILE_LEAVE ();
 }
+#endif
+
+#ifdef ASM486_SURFACE_GRADIENTS
+#ifdef PROFILE486
+void D_CalcGradientsProfileBegin_asm486 (msurface_t *pface)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_GRADIENTS);
+	if (bench486_profile_frame_active)
+	{
+		bench486_gradient_calls++;
+		D_NoteFaceDrawn (pface);
+	}
+}
+
+void D_CalcGradientsProfileEnd_asm486 (void)
+{
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void D_CalcGradientsProfileAxisHit_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		bench486_axis_cache_hits++;
+}
+
+void D_CalcGradientsProfileAxisMiss_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		bench486_axis_cache_misses++;
+}
+#endif
+
+void D_CalcGradients (msurface_t *pface)
+{
+	D_CalcGradients_asm486 (pface);
+}
+#elif defined(BENCH486)
+#define D_CalcGradients D_CalcGradients_C
+#endif
+
+#ifdef ASM486_SURFACE_DISPATCH
+// Keep the benchmark C reference selectable without teaching the assembler
+// build about C-only BENCH486 flags. This binding calls whichever gradient
+// implementation the build selected above.
+void D_DrawSurfacesCalcGradients_asm486 (msurface_t *pface)
+{
+	D_CalcGradients (pface);
+}
+
+#endif
 
 
 /*
@@ -420,7 +726,14 @@ void D_CalcGradients (msurface_t *pface)
 D_DrawSurfaces
 ==============
 */
-void D_DrawSurfaces (void)
+#if defined(BENCH486)
+#define D_DRAW_SURFACES_FUNCTION D_DrawSurfaces_C
+#elif !defined(ASM486_SURFACE_DISPATCH)
+#define D_DRAW_SURFACES_FUNCTION D_DrawSurfaces
+#endif
+
+#if !defined(ASM486_SURFACE_DISPATCH) || defined(BENCH486)
+void D_DRAW_SURFACES_FUNCTION (void)
 {
 	surf_t			*s;
 	msurface_t		*pface;
@@ -675,4 +988,13 @@ void D_DrawSurfaces (void)
 #endif
 	BENCH486_PROFILE_LEAVE ();
 }
+#if defined(BENCH486) && !defined(ASM486_SURFACE_DISPATCH)
+void D_DrawSurfaces (void)
+{
+	D_DrawSurfaces_C ();
+}
+#endif
+#endif
+
+#undef D_DRAW_SURFACES_FUNCTION
 

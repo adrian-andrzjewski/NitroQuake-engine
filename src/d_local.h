@@ -30,6 +30,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define R_SKY_SMASK	0x007F0000
 #define R_SKY_TMASK	0x007F0000
 
+#ifdef ASM486_SKY_SPAN
+void D_SkyDrawPixels_asm486 (byte *source, byte *dest, int count,
+		fixed16_t s, fixed16_t t, fixed16_t sstep, fixed16_t tstep);
+void D_SkyUVToST_asm486 (int u, int v, float sky_temp,
+		float skytime_offset, fixed16_t *s, fixed16_t *t);
+#ifdef BENCH486
+void D_Sky_uv_To_st_C (int u, int v, float sky_temp,
+		float skytime_offset, fixed16_t *s, fixed16_t *t);
+void D_DrawSkyScans8_C_Bench (espan_t *pspan);
+#endif
+#endif
+
+#ifdef ASM486_WARP_SCREEN
+void D_WarpBuildTables_asm486 (byte **rowptr, int *column,
+		byte *viewbase, int screenwidth, int rowcount, int colcount,
+		int h, int w, int hdenominator, int wdenominator,
+		int x_origin, float hratio, float wratio);
+void D_WarpPixels_asm486 (byte *dest, byte **rowptr, int *column,
+		int *turb, int width, int height, int rowbytes);
+#endif
+
+void D_DrawSolidSurface (surf_t *surf, int color);
+#ifdef ASM486_SOLID_SURFACE
+#ifdef BENCH486
+void D_DrawSolidSurface_C (surf_t *surf, int color);
+#endif
+#endif
+
 #define DS_SPAN_LIST_END	-128
 
 // The low-memory guard in vid_vga.c subtracts this same constant from
@@ -91,6 +119,19 @@ extern float	d_sdivzstepu, d_tdivzstepu, d_zistepu;
 extern float	d_sdivzstepv, d_tdivzstepv, d_zistepv;
 extern float	d_sdivzorigin, d_tdivzorigin, d_ziorigin;
 
+#ifdef ASM486_SURFACE_GRADIENTS
+extern int d_gradient_miplevel;
+extern float d_mipscale_values[4];
+extern float d_mip_xscale[4];
+extern float d_mip_yscale[4];
+extern vec3_t transformed_modelorg;
+extern int d_texaxis_cache_mask;
+void D_CalcGradients_asm486 (msurface_t *pface);
+#ifdef BENCH486
+void D_CalcGradients_C (msurface_t *pface);
+#endif
+#endif
+
 fixed16_t	sadjust, tadjust;
 fixed16_t	bbextents, bbextentt;
 
@@ -99,6 +140,9 @@ void D_DrawSpans8 (espan_t *pspans);
 void D_DrawSpans16 (espan_t *pspans);
 void D_DrawZSpans (espan_t *pspans);
 void Turbulent8 (espan_t *pspan);
+#if defined(ASM486_TURBULENT_SCAN) && defined(BENCH486)
+void Turbulent8_C (espan_t *pspan);
+#endif
 void D_SpriteDrawSpans (sspan_t *pspan);
 
 void D_DrawSkyScans8 (espan_t *pspan);
@@ -107,6 +151,50 @@ void D_DrawSkyScans16 (espan_t *pspan);
 void R_ShowSubDiv (void);
 void (*prealspandrawer)(void);
 surfcache_t	*D_CacheSurface (msurface_t *surface, int miplevel);
+surfcache_t	*D_SCAlloc (int width, int size);
+#ifdef ASM486_SURFACE_CACHE_CHECK
+surfcache_t *D_SCAlloc_asm486 (int width, int size);
+#ifdef BENCH486
+extern int sc_size;
+extern surfcache_t *sc_base;
+surfcache_t *D_SCAlloc_C (int width, int size);
+surfcache_t *D_CacheSurface_C (msurface_t *surface, int miplevel);
+#endif
+void D_CacheSurfaceSetup_asm486 (msurface_t *surface, int miplevel,
+		drawsurf_t *drawsurf);
+void D_CacheSurfaceKeys_asm486 (msurface_t *surface, texture_t *texture,
+		drawsurf_t *drawsurf, int *lightstylevalues);
+void D_CacheSurfaceStoreTags_asm486 (surfcache_t *cache,
+		drawsurf_t *drawsurf);
+void D_CacheSurfaceAttach_asm486 (msurface_t *surface, int miplevel,
+		surfcache_t *cache, drawsurf_t *drawsurf, int cache_created);
+void D_CacheSurfaceDispatch_asm486 (msurface_t *surface,
+		drawsurf_t *drawsurf);
+void D_CacheSurfaceSetDlight_asm486 (surfcache_t *cache,
+		int surface_dlightframe, int frame, int contributed);
+#ifdef PROFILE486
+void D_CacheSurfaceProfileBegin_asm486 (void *context);
+void D_CacheSurfaceProfileHit_asm486 (void *context);
+void D_CacheSurfaceProfileMiss_asm486 (void *context,
+		msurface_t *surface);
+void D_CacheSurfaceProfileAllocBegin_asm486 (void *context);
+void D_CacheSurfaceProfileAllocEnd_asm486 (void *context);
+void D_CacheSurfaceProfileDrawBegin_asm486 (void *context);
+void D_CacheSurfaceProfileDrawEnd_asm486 (void *context);
+void D_CacheSurfaceProfileFinish_asm486 (void *context);
+#endif
+#ifdef BENCH486
+void D_CacheSurfaceSetup_C (msurface_t *surface, int miplevel,
+		drawsurf_t *drawsurf);
+void D_CacheSurfaceKeys_C (msurface_t *surface, texture_t *texture,
+		drawsurf_t *drawsurf, int *lightstylevalues);
+void D_CacheSurfaceStoreTags_C (surfcache_t *cache, drawsurf_t *drawsurf);
+void D_CacheSurfaceAttach_C (msurface_t *surface, int miplevel,
+		surfcache_t *cache, drawsurf_t *drawsurf, int cache_created);
+void D_CacheSurfaceSetDlight_C (surfcache_t *cache,
+		int surface_dlightframe, int frame, int contributed);
+#endif
+#endif
 
 extern int D_MipLevelForScale (float scale);
 

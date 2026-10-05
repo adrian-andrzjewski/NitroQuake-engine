@@ -541,8 +541,11 @@ The default normal build uses all 83 C files and 21 preprocessed x86 assembly
 files in src.  Its `aggressive` profile is `-O3 -march=i486` with the
 measured ASM paths enabled for alias projection, alias bounding-box projection,
 clipped alias transform/lighting, texture animation, and lightmap
-normalization; the turbulent loop uses the measured `stosb` variant.  The
-remaining experimental selectors stay on their C references.  `-O2` remains
+normalization; the turbulent loop uses the measured `stosb` variant. Renderer
+entry selectors such as `-SkySpanImplementation`, `-WarpScreenImplementation`,
+`-SolidSurfaceImplementation`, and `-TurbulentScanImplementation` let C and
+assembly paths be built separately; the sky, solid-surface, and turbulent-scan
+selectors remain on C by default. `-O2` remains
 available as `-OptimizationProfile baseline` and writes to `out\dos-baseline`.  net_comx.c is
 textually included by net_ser.c, so the build compiles 82 standalone C files
 and obtains the remaining C implementation through that include.  Object files
@@ -578,7 +581,7 @@ The texture-axis cache-key probe is independently selectable with
 This switch changes only the three-key cache hit/miss probe in `D_GetTextureAxes`;
 hashing, cache misses, and axis-vector transforms remain in C.
 
-The surface-cache validity predicate is independently selectable with
+The surface-cache miss-path and allocator assembly are selectable with
 `-SurfaceCacheImplementation c|asm`:
 
 ~~~powershell
@@ -587,9 +590,33 @@ The surface-cache validity predicate is independently selectable with
 ~~~
 
 `c` is the default and shares `out\dos`; `asm` writes to
-`out\dos-surfaceasm`.  This switch changes only the fast cache-validity
-predicate in `D_CacheSurface`; texture animation, light-style loads, allocation,
-and surface generation remain in C.
+`out\dos-surfaceasm`. This switch selects the fast cache-validity predicate,
+texture/style key loads, miss-path extent setup, texture/style tag writes, and
+the `D_SCAlloc` rover allocator, cache attachment, draw dispatch, and sticky
+dynamic-light tag update. It also selects the public `D_CacheSurface` assembly
+entry, which owns the hit/miss flow and animation call guard. The C entry is
+retained as `D_CacheSurface_C` in benchmark builds. `R_TextureAnimation` uses
+its own C/assembly selector, and PROFILE486 cache accounting uses
+instrumentation-only C helpers. `R_DrawSurface` has its own selector below.
+
+The complete `R_TextureAnimation` entry is selectable with
+`-TextureAnimationImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -TextureAnimationImplementation c
+.\tools\build-dos.ps1 -TextureAnimationImplementation asm
+.\tools\bench-dos.ps1 -TextureAnimationImplementation asm -TextureAnimationOnly
+.\tools\smoke-dos.ps1 -TextureAnimationImplementation asm
+.\tools\timedemo-dos.ps1 -TextureAnimationImplementation asm -Runs 1
+~~~
+
+`asm` is the configured default. It selects alternate animation, the static
+texture fast path, x87 time conversion with truncation toward zero, signed
+phase remainder, and frame interval traversal. Benchmark builds retain
+`R_TextureAnimation_C` and `R_TextureAnimationFrame_C`; the focused animation
+harness compares 25 time values under all four x87 rounding modes and times the
+complete entry. The single pinned timedemo sample confirms checksum parity; it
+is not end-to-end performance evidence.
 
 The mip-level threshold selector is independently selectable with
 `-MipLevelImplementation c|asm`:
@@ -597,11 +624,15 @@ The mip-level threshold selector is independently selectable with
 ~~~powershell
 .\tools\build-dos.ps1 -Benchmark -MipLevelImplementation c
 .\tools\build-dos.ps1 -Benchmark -MipLevelImplementation asm
+.\tools\bench-dos.ps1 -MipLevelImplementation asm -MipLevelOnly
+.\tools\smoke-dos.ps1 -MipLevelImplementation asm
 ~~~
 
 `c` is the default and shares `out\dos`; `asm` writes to `out\dos-mipasm`.
-The ASM version uses 486 x87 comparisons for the three thresholds and preserves
-the C implementation as the reference.
+The assembly object exports the public `D_MipLevelForScale` symbol directly,
+using 486 x87 comparisons for the three thresholds and the minimum-mip clamp.
+The C selector remains complete, and benchmark builds retain
+`D_MipLevelForScale_C` as the reference.
 
 The turbulent-span store loop is independently selectable with
 `-TurbulentImplementation c|asm|stosb`:
@@ -617,6 +648,179 @@ control path, and `c` selects a callable C reference implementation.  The
 variants use separate ignored output directories (`out\dos-turbc`,
 `out\dos-turbasm`, and `out\dos`) and all keep the original portable C loop in
 the source.
+
+The `Turbulent8` scan setup and interpolation are independently selectable with
+`-TurbulentScanImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -TurbulentScanImplementation c
+.\tools\build-dos.ps1 -TurbulentScanImplementation asm
+~~~
+
+`c` is the default and retains the full C entry point. `asm` selects the
+hand-written i486 scan setup and interpolation, keeps the C reference in
+benchmark builds, and writes to the separate `out\dos-turbscan` directory.
+`TurbulentImplementation` still independently selects the inner pixel-store
+loop.
+
+The surface-level `R_BuildLightMap` dispatcher is selectable with
+`-LightMapBuildImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -LightMapBuildImplementation c
+.\tools\build-dos.ps1 -LightMapBuildImplementation asm
+.\tools\bench-dos.ps1 -LightMapBuildImplementation asm -LightMapBuildOnly
+~~~
+
+`c` is the release default. `asm` selects the hand-written i486 dispatcher and
+uses a separate `lightmapbuildasm` output suffix. Benchmark builds retain
+`R_BuildLightMap_C` as the parity reference; the existing lightmap style, fused,
+dynamic-light, and normalization selectors still choose their helpers separately.
+`-LightMapBuildOnly` runs the focused dispatcher parity harness.
+
+The sparse dynamic-light orchestration is independently selectable with
+`-DynamicLightOrchestrationImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -DynamicLightOrchestrationImplementation c
+.\tools\build-dos.ps1 -DynamicLightOrchestrationImplementation asm
+.\tools\bench-dos.ps1 -DynamicLightOrchestrationImplementation asm -LightMapBuildImplementation asm -LightMapBuildOnly
+~~~
+
+`c` is the release default. `asm` selects the hand-written sparse surface-light
+bit traversal and per-light dispatch; `DynamicLightImplementation` still
+independently chooses the texel sample loop. Assembly also owns the x87
+projection, float-to-integer conversion, and surface cull; benchmark builds keep
+the C projection and orchestration references. The focused lightmap-build harness
+includes empty and active dynamic-light cases plus direct projection comparisons.
+
+The surface-cache dynamic-light predicate is independently selectable with
+`-DlightContributesImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -DlightContributesImplementation c
+.\tools\build-dos.ps1 -DlightContributesImplementation asm
+.\tools\bench-dos.ps1 -DlightContributesImplementation asm -LightMapBuildImplementation asm -LightMapBuildOnly
+~~~
+
+`c` is the release default. `asm` selects the `R_DlightContributes` i486
+routine, which traverses sparse light bits and shares the assembly projection
+helper with `R_AddDynamicLights`. Benchmark builds retain the C predicate for
+the direct 36-case parity harness, including all four x87 rounding modes.
+
+`-SurfaceCacheImplementation c|asm` independently selects the surface-cache
+hit check, key loads, miss-path metadata, texture/style tags, allocator,
+attachment, draw dispatch, and dynamic-light tag update:
+
+~~~powershell
+.\tools\build-dos.ps1 -SurfaceCacheImplementation c
+.\tools\build-dos.ps1 -SurfaceCacheImplementation asm
+.\tools\bench-dos.ps1 -SurfaceCacheImplementation asm -SurfaceCacheOnly
+.\tools\smoke-dos.ps1 -SurfaceCacheImplementation asm
+.\tools\timedemo-dos.ps1 -SurfaceCacheImplementation asm -Runs 1
+.\tools\smoke-dos.ps1 -SurfaceCacheImplementation asm -SurfaceDrawImplementation asm
+.\tools\timedemo-dos.ps1 -SurfaceCacheImplementation asm -SurfaceDrawImplementation asm -Runs 1
+.\tools\timedemo-dos.ps1 -SurfaceCacheImplementation asm -SurfaceDrawImplementation asm -Instrumentation -Runs 1
+~~~
+
+`c` is the release default. The assembly entry stages the animated texture and
+four style values, checks the cache, fills mip/extent fields on a miss, runs the
+rover allocator when needed, attaches the block, writes tags, and dispatches
+through the selected `R_DrawSurface` entry. It also updates the sticky
+dynamic-light tag after drawing. `-SurfaceCacheOnly` checks four complete
+public-entry hits across mips 0–3, eight extent/mip setup cases, cache-tag
+parity, a seven-allocation sequence, four attachment cases, and four light-tag
+states. The combined timedemo command above exercises the full cache-miss draw
+path; its accepted result is recorded in the renderer-port ledger.
+
+With `-Instrumentation`, `timedemo-dos.ps1` resolves and stages `qprof.exe`
+before its freshness check. Combined benchmark/profile object files use the
+compact `obj-bp` directory. For long selector profiles, the builder keeps the
+descriptive output path while it fits; if an object or executable path would
+exceed 259 characters, `-DumpFlags` resolves that cache or profile to a
+deterministic hashed sibling under `out\`. `-Clean` resolves the same paths.
+
+The full surface draw setup is selectable independently with
+`-SurfaceDrawImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -SurfaceDrawImplementation c
+.\tools\build-dos.ps1 -SurfaceDrawImplementation asm
+.\tools\bench-dos.ps1 -SurfaceDrawImplementation asm -SurfaceDrawOnly
+.\tools\smoke-dos.ps1 -SurfaceDrawImplementation asm
+.\tools\timedemo-dos.ps1 -SurfaceDrawImplementation asm -Runs 1
+~~~
+
+`c` remains the release default and retains the original body as the benchmark
+reference. The assembly entry calls the selected `R_BuildLightMap`, prepares
+texture and surface state, handles both POT and NPOT wrapping, and dispatches
+directly to the existing assembly mip-0 through mip-3 surface block drawers.
+The focused harness compares complete scratch output, `blocklights`, and
+renderer globals across 40 mip, texture-shape, and lightmap combinations. The
+assembly path does not complete the render-time dependency closure; that work
+remains tracked in the renderer-port ledger.
+
+The per-face Z-gradient setup is selectable with
+`-SurfaceZGradientImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -SurfaceZGradientImplementation c
+.\tools\build-dos.ps1 -SurfaceZGradientImplementation asm
+.\tools\bench-dos.ps1 -SurfaceZGradientImplementation asm -SurfaceZGradientOnly
+.\tools\smoke-dos.ps1 -SurfaceZGradientImplementation asm
+.\tools\timedemo-dos.ps1 -SurfaceZGradientImplementation asm -Runs 1
+~~~
+
+`c` is the release default. The assembly entry preserves the plane/entity/frame
+cache, calls the existing assembly `TransformVector` routine on a miss, and
+matches the C compiler's x87 operation order, including extended-precision
+intermediates. Benchmark builds retain `R_SetSurfaceZGradients_C`; the focused
+parity command checks cache hits and key changes across all four x87 rounding
+modes. One pinned timedemo confirmed 969-frame framebuffer checksum parity; its
+single timing is not a speed comparison.
+
+`D_CalcGradients` and its texture-axis cache are selectable with
+`-SurfaceGradientImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -SurfaceGradientImplementation c
+.\tools\build-dos.ps1 -SurfaceGradientImplementation asm
+.\tools\bench-dos.ps1 -SurfaceGradientImplementation asm -SurfaceGradientOnly
+.\tools\smoke-dos.ps1 -SurfaceGradientImplementation asm
+.\tools\timedemo-dos.ps1 -SurfaceGradientImplementation asm -Runs 1
+~~~
+
+`c` remains the release default. The assembly path owns the gradient math and
+an independent texture-axis cache sized by `-TextureAxisCacheEntries`; misses
+call the existing assembly `TransformVector`. Benchmark builds retain
+`D_CalcGradients_C`. The focused parity command checked 20 combinations across
+mip levels, cache hits and key
+changes, and all four x87 rounding modes. The assembly release passed DOS smoke,
+the i486 ISA gate with 168 enforced above-i486 instructions against the 170
+baseline, and the pinned 969-frame checksum `1047377823`. Its 59.120912-second
+timedemo is one output-parity sample, not a speed comparison.
+
+The per-frame `D_DrawSurfaces` dispatcher is selectable with
+`-SurfaceDispatcherImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -SurfaceDispatcherImplementation c
+.\tools\build-dos.ps1 -SurfaceDispatcherImplementation asm
+.\tools\smoke-dos.ps1 -SurfaceDispatcherImplementation asm
+.\tools\timedemo-dos.ps1 -SurfaceDispatcherImplementation asm -Runs 1
+~~~
+
+`c` remains the release default and the benchmark reference. The assembly entry
+owns surface traversal, mip-scale table setup, draw-flat handling, sky/background/
+turbulent/textured selection, z-gradient loads, and brush-model/world-state
+switches. Compile-time layout assertions protect its `surf_t`, `entity_t`,
+`surfcache_t`, texture, and cvar offsets. Cache, gradient, mip, sky, solid,
+turbulent, texture-span, and Z-span routines remain independently selectable;
+this dispatcher stage does not close the world/BSP or render-time dependency
+closure. The release assembly build passed the ISA gate with 168 enforced
+above-i486 instructions against the 170 baseline, DOS smoke passed, and the
+pinned timedemo completed 969 frames with checksum `1047377823` in 59.208935 s.
+That single timing confirms output parity, not a speedup.
 
 The 16-pixel texture-span store loop is independently selectable with
 `-TextureSpanStores word|byte|dword|loop`:
@@ -1404,6 +1608,7 @@ The focused benchmark can select each implementation independently:
   -LightMapNormalizeImplementation asm `
   -BspPlaneDotImplementation asm `
   -BspClipImplementation asm `
+  -BspWalkImplementation asm `
   -AliasTransformFinalImplementation asm `
 .\tools\bench-dos.ps1 -TextureAxisImplementation c `
   -SurfaceCacheImplementation c `
@@ -1413,17 +1618,166 @@ The focused benchmark can select each implementation independently:
   -AliasTransformFinalImplementation c `
 ~~~
 
-Individual implementation switches can be omitted.  The defaults are C for
+Individual implementation switches can be omitted. The defaults are C for
 memory helpers, texture-axis, surface-cache, mip-level selection, BSP plane
-dot, and BSP clipping; `stosb` for turbulent spans; and ASM for alias
+dot, BSP clipping, BSP traversal, world-face and B-model face rendering, and the
+`Turbulent8` scan setup; `stosb` for turbulent spans;
+and ASM for alias
 projection, alias bounding-box projection, clipped alias transform/lighting,
-texture animation, and lightmap normalization.  Pass
-`-TurbulentImplementation asm` for the existing ASM control.  The runner
-records all twelve selections in `bench-result.json` and uses a matching output
-directory suffix.  Use `-TurbulentOnly`, `-AliasProjectOnly`,
+texture animation, and lightmap normalization; the lightmap-build dispatcher
+defaults to C. Pass
+`-TurbulentImplementation asm` for the existing ASM control. The runner
+records selector values in `bench-result.json` and uses a matching output
+directory suffix. Use `-TurbulentOnly`, `-AliasProjectOnly`,
 `-AliasBBoxProjectOnly`, `-AliasTransformFinalOnly`, `-TextureAnimationOnly`,
-`-LightMapNormalizeOnly`, `-BspPlaneDotOnly`, or `-BspClipOnly` to run only the
-corresponding focused experiment instead of the longer general matrix.
+`-LightMapNormalizeOnly`, `-LightMapBuildOnly`, `-BspPlaneDotOnly`, `-BspClipOnly`, or
+`-TurbulentScanOnly` to run only the corresponding focused experiment instead
+of the longer general matrix.
+
+The `R_RenderWorld` orchestration can be selected independently with
+`-RenderWorldImplementation asm`. The default `c` path retains the original
+orchestration as the reference; the assembly entry sets up render state and a
+frame-local polygon queue, dispatches the selected BSP walk, and replays queued
+polygons when requested. Use the same selector for build, smoke, and timedemo:
+
+~~~powershell
+.\tools\build-dos.ps1 -RenderWorldImplementation asm
+.\tools\smoke-dos.ps1 -RenderWorldImplementation asm
+.\tools\timedemo-dos.ps1 -RenderWorldImplementation asm -Runs 1
+~~~
+
+The full world-BSP walk can be selected independently with
+`-BspWalkImplementation asm`. The default `c` path retains the original C
+traversal. The assembly walk calls the existing assembly plane-dot and frustum
+clip helpers, then handles recursion, leaf marking, face ordering, and polygon
+queueing in assembly. World-face, B-model face setup, and cached-edge insertion
+have independent assembly selectors; `R_StoreEfrags` has its own selector.
+`R_ClipEdge` and edge projection/emission are handwritten in legacy
+`src/r_drawa.s` under `id386`. `R_RenderPoly` belongs to the optional
+polygon-driver branch; normal DOS span rendering leaves `r_drawpolys=0` and
+`D_DrawPoly()` is a no-op.
+Validate this selector with DOS smoke and the pinned timedemo:
+
+~~~powershell
+.\tools\build-dos.ps1 -BspWalkImplementation asm
+.\tools\smoke-dos.ps1 -BspWalkImplementation asm
+.\tools\timedemo-dos.ps1 -BspWalkImplementation asm -Runs 1
+~~~
+
+The world `R_RenderFace` path is independently selectable with
+`-RenderFaceImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -RenderFaceImplementation asm
+.\tools\smoke-dos.ps1 -RenderFaceImplementation asm
+.\tools\timedemo-dos.ps1 -RenderFaceImplementation asm -Runs 1
+~~~
+
+`c` is the default and retains `R_RenderFace_C` as the benchmark reference.
+The assembly path owns face edge traversal and surface setup while calling
+legacy `R_ClipEdge` assembly and the existing surface-gradient selector. It
+passed smoke and
+the pinned 969-frame framebuffer checksum; its current single timing sample was
+slower than the preceding C median, so it remains opt-in. `R_RenderBmodelFace`
+has an independent selector below.
+
+Brush-model face setup is selectable with
+`-RenderBmodelFaceImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -RenderBmodelFaceImplementation asm
+.\tools\smoke-dos.ps1 -RenderBmodelFaceImplementation asm
+.\tools\timedemo-dos.ps1 -RenderBmodelFaceImplementation asm -Runs 1
+~~~
+
+The default `c` path retains `R_RenderBmodelFace_C` as the benchmark
+reference. The assembly entry handles capacity checks, clip-chain setup,
+bedge-list clipping, synthetic side edges, and surface setup while sharing
+`R_ClipEdge` and the existing surface-gradient selector. The B-model selector
+uses the short `-bm` output token to keep benchmark object paths within the
+Windows path limit when combined with other render selectors. It passed smoke
+and the pinned framebuffer checksum; its single timing sample is not promotion
+evidence. The BSP walk, world-face, and B-model-face assembly paths passed a
+combined timedemo with exact framebuffer parity.
+
+Cached-edge insertion is independently selectable with
+`-EmitCachedEdgeImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -EmitCachedEdgeImplementation asm
+.\tools\smoke-dos.ps1 -EmitCachedEdgeImplementation asm
+.\tools\timedemo-dos.ps1 -EmitCachedEdgeImplementation asm -Runs 1
+~~~
+
+The default `c` path retains `R_EmitCachedEdge_C` in benchmark builds. The
+assembly entry fills the first empty 16-bit edge surface slot, updates the
+nearest-depth value, and marks the edge emitted. It passed the pinned
+969-frame checksum (`1047377823`) in regular and instrumented timedemos; the
+instrumented run counted 121,467 assembly calls. Its single `59.179677 s`
+sample is not a C/assembly comparison, so C remains the release default.
+
+Submodel surface traversal is independently selectable with
+`-SubmodelPolygonsImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -SubmodelPolygonsImplementation asm
+.\tools\smoke-dos.ps1 -SubmodelPolygonsImplementation asm
+.\tools\timedemo-dos.ps1 -SubmodelPolygonsImplementation asm -Runs 1
+~~~
+
+The C implementation remains the default reference. The assembly path walks
+the brush-model surface list, computes the plane-side test with x87, updates
+`r_currentkey`, and calls the selected `R_RenderFace`. Both the C and ASM
+combined renderer candidates passed the pinned checksum with only this selector
+changed between builds. Their single timedemo samples are not a timing
+comparison. Fixed-wait live captures landed at different demo moments, so they
+do not establish visual frame parity; see the submodel assembly ledger.
+
+Frame-level edge drawing is independently selectable with
+`-EdgeDrawingImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -EdgeDrawingImplementation asm
+.\tools\smoke-dos.ps1 -EdgeDrawingImplementation asm
+.\tools\timedemo-dos.ps1 -EdgeDrawingImplementation asm -Runs 1
+~~~
+
+The assembly entry uses aligned stack buffers when no caller edge buffer is
+provided, dispatches world rendering and edge scans, switches Z testing on for
+brush entities, and preserves the `r_dspeeds` and update flow. C and ASM passed
+smoke and the pinned framebuffer checksum. Their single timings showed no
+measured gain, so C remains the default; fixed-wait captures show coherent
+frames but do not establish exact-frame visual parity.
+
+The scanline edge loop is independently selectable with
+`-ScanEdgesImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -ScanEdgesImplementation asm
+.\tools\smoke-dos.ps1 -ScanEdgesImplementation asm
+.\tools\timedemo-dos.ps1 -ScanEdgesImplementation asm -Runs 1
+~~~
+
+The assembly entry owns aligned span-buffer setup, the scanline loop, edge
+updates, span-capacity flushes, and the final draw. It calls the existing edge
+insert/remove/step and span-draw routines. C and ASM passed smoke and the pinned
+969-frame checksum. Their single timings showed no speed gain, so C remains the
+default. A matched-frame visual comparison is still open.
+
+Active-edge maintenance has three selectable choices with
+`-EdgeListMaintenanceImplementation legacy|c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -EdgeListMaintenanceImplementation c
+.\tools\smoke-dos.ps1 -EdgeListMaintenanceImplementation asm
+.\tools\timedemo-dos.ps1 -EdgeListMaintenanceImplementation asm -Runs 1
+~~~
+
+`legacy` is the default and retains the existing `id386` routines in
+`r_edgea.s`. `c` forces the C reference routines to compile in the DOS build;
+`asm` selects the replacement assembly for edge insertion, removal, and U
+stepping. The C and ASM candidates passed the pinned framebuffer checksum, but
+single samples showed no speed gain, so keep `legacy` as the default.
 
 Compare runs using the same DOSBox-X version, profile, cycle count, executable
 mode, and data set.  The benchmark is diagnostic evidence for these routines;

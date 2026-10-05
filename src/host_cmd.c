@@ -23,6 +23,26 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef BENCH486
 #include "d_local.h"
 #include "r_local.h"
+extern void WritePCXfile (char *filename, byte *data, int width, int height,
+		int rowbytes, byte *palette);
+#ifdef ASM486_FILLRECT
+extern void D_FillRect_C (vrect_t *rect, int color);
+#endif
+#ifdef ASM486_ZPOINT
+extern void D_DrawZPoint_C (void);
+#endif
+#ifdef ASM486_SKY_SPAN
+extern void D_SkyDrawPixels_C_Bench (byte *source, byte *dest, int count,
+		fixed16_t s, fixed16_t t, fixed16_t sstep, fixed16_t tstep);
+#endif
+#ifdef ASM486_WARP_SCREEN
+extern void D_WarpTables_C_Bench (byte **rowptr, int *column,
+		byte *viewbase, int screenwidth, int rowcount, int colcount,
+		int h, int w, int hdenominator, int wdenominator,
+		int x_origin, float hratio, float wratio);
+extern void D_WarpPixels_C_Bench (byte *dest, byte **rowptr, int *column,
+		int *turb, int width, int height, int rowbytes);
+#endif
 #endif
 
 extern cvar_t	pausable;
@@ -39,6 +59,48 @@ static byte bench486_expected[4104];
 static volatile unsigned bench486_sink;
 static int bench486_report_handle;
 static int bench486_memory_failures;
+
+#ifdef ASM486_SURFACE_DRAW
+extern int lightleft, sourcesstep, blocksize, sourcetstep;
+extern int lightdelta, lightdeltastep;
+extern int lightright, lightleftstep, lightrightstep, blockdivshift;
+extern unsigned blockdivmask;
+extern void *prowdestbase;
+extern unsigned char *pbasesource;
+extern int surfrowbytes;
+extern unsigned *r_lightptr;
+extern int r_stepback, r_lightwidth, r_numhblocks, r_numvblocks;
+extern unsigned char *r_source, *r_sourcemax;
+extern unsigned blocklights[18*18];
+
+typedef union
+{
+	texture_t align;
+	byte storage[8192];
+} bench486_surface_draw_texture_t;
+
+typedef struct
+{
+	int lightleft, sourcesstep, blocksize, sourcetstep;
+	int lightdelta, lightdeltastep;
+	int lightright, lightleftstep, lightrightstep, blockdivshift;
+	unsigned blockdivmask;
+	int surfrowbytes, r_stepback, r_lightwidth;
+	int r_numhblocks, r_numvblocks;
+	unsigned *r_lightptr;
+	unsigned char *pbasesource, *r_source, *r_sourcemax;
+	int prowdest_offset;
+} bench486_surface_draw_state_t;
+
+static bench486_surface_draw_texture_t bench486_surface_draw_texture;
+static msurface_t bench486_surface_draw_surface;
+static model_t bench486_surface_draw_model;
+static byte bench486_surface_draw_samples[48];
+static byte bench486_surface_draw_c_pixels[4096];
+static byte bench486_surface_draw_asm_pixels[4096];
+static unsigned bench486_surface_draw_c_lights[18*18];
+static unsigned bench486_surface_draw_saved_lights[18*18];
+#endif
 
 #ifdef PROFILE486
 int bench486_profile_frame_active;
@@ -397,6 +459,11 @@ static unsigned long bench486_timedemo_stored_frames;
 static unsigned long bench486_timedemo_overflow_frames;
 static unsigned long bench486_timedemo_invalid_frames;
 static unsigned long bench486_timedemo_timer_reads;
+static unsigned long bench486_timedemo_frame_checksum_count;
+static unsigned long bench486_timedemo_frame_checksum_overflow;
+static int bench486_timedemo_frame_capture_index = -1;
+static qboolean bench486_timedemo_frame_checksums_enabled;
+static int bench486_timedemo_frame_checksum_handle = -1;
 static qboolean bench486_timedemo_stats_enabled;
 static qboolean bench486_timedemo_stats_active;
 static qboolean bench486_timedemo_frame_started;
@@ -459,6 +526,57 @@ void Bench486TimedemoFrameEnd (void)
 	now = Sys_FloatTime ();
 	bench486_timedemo_timer_reads++;
 	Bench486TimedemoRecordFrame (now - bench486_timedemo_frame_start);
+}
+
+void Bench486ResetTimedemoFrameChecksums (int enabled)
+{
+	int parm;
+
+	if (bench486_timedemo_frame_checksum_handle != -1)
+		Sys_FileClose (bench486_timedemo_frame_checksum_handle);
+	bench486_timedemo_frame_checksum_count = 0;
+	bench486_timedemo_frame_checksum_overflow = 0;
+	bench486_timedemo_frame_checksums_enabled = enabled != 0;
+	bench486_timedemo_frame_capture_index = -1;
+	parm = COM_CheckParm ("-framecapture");
+	if (parm && parm + 1 < com_argc)
+		bench486_timedemo_frame_capture_index = Q_atoi (com_argv[parm + 1]);
+	bench486_timedemo_frame_checksum_handle = enabled ?
+			Sys_FileOpenWrite ("framechecksums.txt") : -1;
+}
+
+void Bench486TimedemoFrameChecksumRecord (void)
+{
+	char	text[32];
+	unsigned checksum;
+	unsigned long frame;
+
+	if (!bench486_timedemo_frame_checksums_enabled)
+		return;
+
+	if (bench486_timedemo_frame_checksum_count >=
+			BENCH486_TIMEDEMO_MAX_FRAMES)
+	{
+		bench486_timedemo_frame_checksum_overflow++;
+		return;
+	}
+
+	checksum = vid.buffer ? Bench486Checksum ((byte *)vid.buffer,
+			(int)(vid.rowbytes * vid.height)) : 0;
+	frame = bench486_timedemo_frame_checksum_count++;
+	if ((int)frame == bench486_timedemo_frame_capture_index && vid.buffer &&
+			host_basepal)
+	{
+		WritePCXfile ("frame.pcx", (byte *)vid.buffer, vid.width, vid.height,
+				vid.rowbytes, host_basepal);
+		bench486_timedemo_frame_capture_index = -1;
+	}
+	if (bench486_timedemo_frame_checksum_handle != -1)
+	{
+		sprintf (text, "%lu %u\n", frame, checksum);
+		Sys_FileWrite (bench486_timedemo_frame_checksum_handle, text,
+				Q_strlen(text));
+	}
 }
 
 void Bench486FinishTimedemoStats (int timedemo_frames)
@@ -1757,6 +1875,20 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));
+
+	if (!bench486_timedemo_frame_checksums_enabled)
+		return;
+
+	if (bench486_timedemo_frame_checksum_handle == -1)
+		return;
+
+	sprintf (text, "frames %lu overflow %lu\n",
+			bench486_timedemo_frame_checksum_count,
+			bench486_timedemo_frame_checksum_overflow);
+	Sys_FileWrite (bench486_timedemo_frame_checksum_handle, text,
+			Q_strlen(text));
+	Sys_FileClose (bench486_timedemo_frame_checksum_handle);
+	bench486_timedemo_frame_checksum_handle = -1;
 }
 
 #define BENCH486_MEMORY_SAMPLES	5
@@ -1791,6 +1923,7 @@ typedef void (*bench486_turbulent_fn_t) (void);
 typedef void (*bench486_alias_project_fn_t) (finalvert_t *fv, auxvert_t *av);
 typedef texture_t *(*bench486_texture_animation_fn_t) (texture_t *base,
 		int relative);
+typedef texture_t *(*bench486_texture_animation_entry_fn_t) (texture_t *base);
 typedef void (*bench486_lightmap_normalize_fn_t) (unsigned *lights,
 		int size);
 typedef void (*bench486_lightmap_styles_fn_t) (unsigned *dest, byte *lightmap,
@@ -2121,6 +2254,205 @@ static void Bench486TurbulentCases (void)
 	Bench486TurbulentCase (64);
 }
 
+#if defined(ASM486_TURBULENT_SCAN)
+static void Bench486TurbulentScanParity (void)
+{
+	static const int span_counts[13] = {
+		1, 2, 7, 15, 16, 17, 31, 32, 33, 63, 65, 0, -1
+	};
+	static const double time_values[6] = {
+		-3.201, -0.051, 0.0, 0.04999999, 0.05, 17.999
+	};
+	espan_t spans[13];
+	pixel_t *saved_rowptrs[13];
+	pixel_t *saved_cacheblock;
+	byte *saved_pbase, *saved_pdest;
+	fixed16_t saved_s, saved_t, saved_sstep, saved_tstep;
+	int *saved_turb;
+	int saved_spancount;
+	fixed16_t saved_sadjust, saved_tadjust, saved_bbextents, saved_bbextentt;
+	float saved_sdu, saved_tdu, saved_zdu;
+	float saved_sdv, saved_tdv, saved_zdv;
+	float saved_sorigin, saved_torigin, saved_zorigin;
+	double saved_time;
+	unsigned short original_cw, test_cw, after_cw;
+	int failures, scenario, rounding, row, mismatch;
+	int expected_s, expected_t, expected_sstep, expected_tstep;
+	int expected_spancount;
+	int *expected_turb;
+	byte *expected_pdest;
+	byte *expected_pbase;
+	int scan_bytes;
+#ifdef PROFILE486
+	int saved_profile_active;
+	unsigned long saved_row_count, saved_chunks, saved_pixels;
+	double saved_seconds;
+#endif
+
+	for (row=0 ; row<13 ; row++)
+	{
+		saved_rowptrs[row] = viewspantable[row];
+		spans[row].u = 3 + (row % 5);
+		spans[row].v = row;
+		spans[row].count = span_counts[row];
+		spans[row].pnext = row == 12 ? NULL : &spans[row+1];
+	}
+	scan_bytes = 13 * 160;
+	saved_cacheblock = cacheblock;
+	saved_pbase = r_turb_pbase;
+	saved_pdest = r_turb_pdest;
+	saved_s = r_turb_s;
+	saved_t = r_turb_t;
+	saved_sstep = r_turb_sstep;
+	saved_tstep = r_turb_tstep;
+	saved_turb = r_turb_turb;
+	saved_spancount = r_turb_spancount;
+	saved_sadjust = sadjust;
+	saved_tadjust = tadjust;
+	saved_bbextents = bbextents;
+	saved_bbextentt = bbextentt;
+	saved_sdu = d_sdivzstepu;
+	saved_tdu = d_tdivzstepu;
+	saved_zdu = d_zistepu;
+	saved_sdv = d_sdivzstepv;
+	saved_tdv = d_tdivzstepv;
+	saved_zdv = d_zistepv;
+	saved_sorigin = d_sdivzorigin;
+	saved_torigin = d_tdivzorigin;
+	saved_zorigin = d_ziorigin;
+	saved_time = cl.time;
+#ifdef PROFILE486
+	saved_profile_active = bench486_profile_frame_active;
+	saved_row_count = bench486_turbulent_rows;
+	saved_chunks = bench486_turbulent_chunks;
+	saved_pixels = bench486_turbulent_pixels;
+	saved_seconds = bench486_turbulent_seconds;
+	bench486_profile_frame_active = false;
+#endif
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (original_cw));
+
+	for (row=0 ; row<4096 ; row++)
+		bench486_source[row] = (byte)((row * 29 + 11) & 0xff);
+	cacheblock = (pixel_t *)bench486_source;
+	sadjust = 2 << 16;
+	tadjust = 1 << 16;
+	bbextents = 63 << 16;
+	bbextentt = 63 << 16;
+	failures = 0;
+
+	for (scenario=0 ; scenario<6 ; scenario++)
+	{
+		cl.time = time_values[scenario];
+		d_sdivzorigin = 0.75f + scenario * 0.125f;
+		d_tdivzorigin = 1.25f - scenario * 0.0625f;
+		d_ziorigin = 0.5f + scenario * 0.03125f;
+		d_sdivzstepu = (scenario & 1) ? -0.00325f : 0.00475f;
+		d_tdivzstepu = (scenario & 1) ? 0.00275f : -0.00175f;
+		d_zistepu = 0.00125f + scenario * 0.000125f;
+		d_sdivzstepv = (scenario & 1) ? 0.00625f : 0.00375f;
+		d_tdivzstepv = (scenario & 1) ? -0.00225f : 0.00575f;
+		d_zistepv = 0.0015f + scenario * 0.00025f;
+		for (rounding=0 ; rounding<4 ; rounding++)
+		{
+			test_cw = (unsigned short)((original_cw & ~0x0c00) | (rounding << 10));
+			for (row=0 ; row<13 ; row++)
+				viewspantable[row] = (pixel_t *)(bench486_expected + row * 160);
+			memset (bench486_expected, 0xa5, scan_bytes);
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			Turbulent8_C (&spans[0]);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (after_cw));
+			expected_s = r_turb_s;
+			expected_t = r_turb_t;
+			expected_sstep = r_turb_sstep;
+			expected_tstep = r_turb_tstep;
+			expected_spancount = r_turb_spancount;
+			expected_turb = r_turb_turb;
+			expected_pdest = r_turb_pdest;
+			expected_pbase = r_turb_pbase;
+			if (after_cw != test_cw)
+			{
+				failures++;
+				bench486_memory_failures++;
+				Bench486Printf ("turbulent scan C changed x87 control word scenario %d round %d %04x/%04x\n",
+						scenario, rounding, test_cw, after_cw);
+			}
+
+			for (row=0 ; row<13 ; row++)
+				viewspantable[row] = (pixel_t *)(bench486_dest + row * 160);
+			memset (bench486_dest, 0xa5, scan_bytes);
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			Turbulent8 (&spans[0]);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (after_cw));
+			mismatch = -1;
+			for (row=0 ; row<scan_bytes ; row++)
+			{
+				if (bench486_expected[row] != bench486_dest[row])
+				{
+					mismatch = row;
+					break;
+				}
+			}
+			if (mismatch >= 0 || after_cw != test_cw ||
+					r_turb_s != expected_s || r_turb_t != expected_t ||
+					r_turb_sstep != expected_sstep || r_turb_tstep != expected_tstep ||
+					r_turb_spancount != expected_spancount ||
+					r_turb_turb != expected_turb ||
+					((unsigned long)r_turb_pdest - (unsigned long)bench486_dest) !=
+						((unsigned long)expected_pdest - (unsigned long)bench486_expected) ||
+					r_turb_pbase != expected_pbase)
+			{
+				failures++;
+				bench486_memory_failures++;
+				Bench486Printf ("turbulent scan assembly parity FAIL scenario %d round %d byte %d c %u asm %u cw %04x/%04x s %ld/%ld t %ld/%ld\n",
+						scenario, rounding, mismatch,
+						mismatch >= 0 ? bench486_expected[mismatch] : 0,
+						mismatch >= 0 ? bench486_dest[mismatch] : 0,
+						test_cw, after_cw, (long)expected_s, (long)r_turb_s,
+						(long)expected_t, (long)r_turb_t);
+			}
+		}
+	}
+
+	for (row=0 ; row<13 ; row++)
+		viewspantable[row] = saved_rowptrs[row];
+	cacheblock = saved_cacheblock;
+	r_turb_pbase = saved_pbase;
+	r_turb_pdest = saved_pdest;
+	r_turb_s = saved_s;
+	r_turb_t = saved_t;
+	r_turb_sstep = saved_sstep;
+	r_turb_tstep = saved_tstep;
+	r_turb_turb = saved_turb;
+	r_turb_spancount = saved_spancount;
+	sadjust = saved_sadjust;
+	tadjust = saved_tadjust;
+	bbextents = saved_bbextents;
+	bbextentt = saved_bbextentt;
+	d_sdivzstepu = saved_sdu;
+	d_tdivzstepu = saved_tdu;
+	d_zistepu = saved_zdu;
+	d_sdivzstepv = saved_sdv;
+	d_tdivzstepv = saved_tdv;
+	d_zistepv = saved_zdv;
+	d_sdivzorigin = saved_sorigin;
+	d_tdivzorigin = saved_torigin;
+	d_ziorigin = saved_zorigin;
+	cl.time = saved_time;
+#ifdef PROFILE486
+	bench486_profile_frame_active = saved_profile_active;
+	bench486_turbulent_rows = saved_row_count;
+	bench486_turbulent_chunks = saved_chunks;
+	bench486_turbulent_pixels = saved_pixels;
+	bench486_turbulent_seconds = saved_seconds;
+#endif
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	if (failures == 0)
+		Bench486Printf ("turbulent scan assembly parity PASS (13 lengths across six phases and four x87 rounding modes; zero mismatches)\n");
+	else
+		Bench486Printf ("turbulent scan assembly parity FAIL (%d mismatches)\n", failures);
+}
+#endif
+
 static double Bench486MeasureAliasProject (bench486_alias_project_fn_t function,
 		finalvert_t *fv, auxvert_t *av, int iterations, unsigned *checksum)
 {
@@ -2393,6 +2725,184 @@ static void Bench486TextureAnimationCases (void)
 	Bench486TextureAnimationCase ("8frame-tail", 8, 0, 14);
 	Bench486TextureAnimationCase ("8frame-wrap", 8, 7, 0);
 }
+
+#if defined(BENCH486) && defined(ASM486_TEXTURE_ANIMATION)
+static double Bench486MeasureTextureAnimationEntry (
+		bench486_texture_animation_entry_fn_t function, texture_t *base,
+		int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	texture_t *result;
+	unsigned result_sum;
+	int i;
+
+	for (i=0 ; i<BENCH486_MEMORY_WARMUP ; i++)
+		function (base);
+
+	start = Sys_FloatTime ();
+	result_sum = 0;
+	for (i=0 ; i<iterations ; i++)
+	{
+		result = function (base);
+		result_sum += (unsigned)result->anim_min;
+		result_sum += (unsigned)result->anim_max;
+	}
+	elapsed = Sys_FloatTime () - start;
+
+	*checksum = result_sum;
+	bench486_sink ^= result_sum;
+	return elapsed;
+}
+
+static void Bench486TextureAnimationEntryCases (void)
+{
+	static const double times[] = {
+		0.0, 0.099999999, 0.1, 0.199999999, 0.2,
+		0.799999999, 0.8, 0.999999999, 1.0, 1.599999999,
+		1.6, 2.399999999, 2.4, 3.199999999, 3.2,
+		3.999999999, 4.0, 7.9, 8.0,
+		-0.1, -0.9, -1.0, -1.9, -3.2, -4.1
+	};
+	static const unsigned short rounding[4] = {
+		0x0000, 0x0400, 0x0800, 0x0c00
+	};
+	texture_t primary[4], alternate[4], static_texture;
+	entity_t entity;
+	entity_t *saved_entity;
+	double saved_time, c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	unsigned short original_cw, test_cw, c_after_cw, asm_after_cw;
+	texture_t *c_result, *asm_result;
+	int i, frame, time_index, mode, sample, failures;
+
+	Q_memset (primary, 0, sizeof(primary));
+	Q_memset (alternate, 0, sizeof(alternate));
+	Q_memset (&static_texture, 0, sizeof(static_texture));
+	Q_memset (&entity, 0, sizeof(entity));
+	for (i=0 ; i<4 ; i++)
+	{
+		primary[i].anim_total = 40;
+		primary[i].anim_min = i * 10;
+		primary[i].anim_max = (i + 1) * 10;
+		primary[i].anim_next = &primary[(i + 1) & 3];
+		alternate[i].anim_total = 32;
+		alternate[i].anim_min = i * 8;
+		alternate[i].anim_max = (i + 1) * 8;
+		alternate[i].anim_next = &alternate[(i + 1) & 3];
+	}
+	primary[0].anim_min = -40;
+	alternate[0].anim_min = -32;
+	primary[0].alternate_anims = &alternate[0];
+	static_texture.alternate_anims = &alternate[0];
+
+	saved_entity = currententity;
+	saved_time = cl.time;
+	currententity = &entity;
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (original_cw));
+	failures = 0;
+	for (mode=0 ; mode<4 && !failures ; mode++)
+	{
+		test_cw = (original_cw & (unsigned short)~0x0c00) | rounding[mode];
+		for (frame=0 ; frame<2 && !failures ; frame++)
+		{
+			entity.frame = frame;
+			for (time_index=0 ; time_index<(int)(sizeof(times)/sizeof(times[0]));
+					time_index++)
+			{
+				cl.time = times[time_index];
+				__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+				c_result = R_TextureAnimation_C (&primary[0]);
+				__asm__ __volatile__ ("fnstcw %0" : "=m" (c_after_cw));
+				__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+				asm_result = R_TextureAnimation_asm486 (&primary[0]);
+				__asm__ __volatile__ ("fnstcw %0" : "=m" (asm_after_cw));
+				if (c_result != asm_result || c_after_cw != test_cw ||
+						asm_after_cw != test_cw)
+				{
+					failures++;
+					Bench486Printf ("texture-animation entry parity FAIL frame %d time %.12f rounding %d c %p asm %p cw %04x/%04x expected %04x\n",
+							frame, cl.time, mode, c_result, asm_result,
+							c_after_cw, asm_after_cw, test_cw);
+					break;
+				}
+
+				/* Also cover a static base, with and without its alternate. */
+				__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+				c_result = R_TextureAnimation_C (&static_texture);
+				__asm__ __volatile__ ("fnstcw %0" : "=m" (c_after_cw));
+				__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+				asm_result = R_TextureAnimation_asm486 (&static_texture);
+				__asm__ __volatile__ ("fnstcw %0" : "=m" (asm_after_cw));
+				if (c_result != asm_result || c_after_cw != test_cw ||
+						asm_after_cw != test_cw)
+				{
+					failures++;
+					Bench486Printf ("texture-animation static/alternate parity FAIL frame %d time %.12f rounding %d c %p asm %p cw %04x/%04x expected %04x\n",
+							frame, cl.time, mode, c_result, asm_result,
+							c_after_cw, asm_after_cw, test_cw);
+					break;
+				}
+			}
+		}
+	}
+
+	if (!failures)
+	{
+		entity.frame = 0;
+		cl.time = 3.25;
+		for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+		{
+			if ((sample & 1) == 0)
+			{
+				c_samples[sample] = Bench486MeasureTextureAnimationEntry (
+						R_TextureAnimation_C, &primary[0],
+						BENCH486_TEXTURE_ANIMATION_ITERATIONS, &c_checksum);
+				asm_samples[sample] = Bench486MeasureTextureAnimationEntry (
+						R_TextureAnimation_asm486, &primary[0],
+						BENCH486_TEXTURE_ANIMATION_ITERATIONS, &asm_checksum);
+			}
+			else
+			{
+				asm_samples[sample] = Bench486MeasureTextureAnimationEntry (
+						R_TextureAnimation_asm486, &primary[0],
+						BENCH486_TEXTURE_ANIMATION_ITERATIONS, &asm_checksum);
+				c_samples[sample] = Bench486MeasureTextureAnimationEntry (
+						R_TextureAnimation_C, &primary[0],
+						BENCH486_TEXTURE_ANIMATION_ITERATIONS, &c_checksum);
+			}
+			if (c_checksum != asm_checksum)
+			{
+				failures++;
+				Bench486Printf ("texture-animation entry timing checksum FAIL\n");
+				break;
+			}
+		}
+	}
+
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	cl.time = saved_time;
+	currententity = saved_entity;
+	if (failures)
+	{
+		bench486_memory_failures++;
+		return;
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ?
+			(c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("texture-animation entry parity PASS (%d time phases, primary and alternate animation, static fast path, four x87 rounding modes)\n",
+			(int)(sizeof(times)/sizeof(times[0])));
+	Bench486Printf ("  C median %.6f sec asm486 median %.6f sec delta %.3f percent (%d iterations, %d samples)\n",
+			c_median, asm_median, delta,
+			BENCH486_TEXTURE_ANIMATION_ITERATIONS, BENCH486_MEMORY_SAMPLES);
+}
+#endif
 
 static void Bench486SetLightMapNormalizeInput (unsigned *lights, int size,
 		int pattern)
@@ -2719,6 +3229,630 @@ static void Bench486FusedLightMapCases (void)
 			bench486_sink ^= c_checksum ^ asm_checksum;
 		}
 }
+
+#ifdef ASM486_LIGHTMAP_BUILD
+static int Bench486LightMapBuildCase (char *name, int maps, int ambient,
+		int fullbright, int has_lightdata, int has_samples, int dlight_mode,
+		int warm_cache)
+{
+	static msurface_t surface;
+	static model_t world;
+	static mplane_t plane;
+	static mtexinfo_t texinfo;
+	static byte lightmaps[MAXLIGHTMAPS * 324];
+	static byte lightdata_marker;
+	static unsigned starting_lights[324];
+	static unsigned c_result[324];
+	static unsigned c_table[256];
+	static unsigned starting_table[256];
+	unsigned c_first, c_inverse;
+	qboolean c_valid;
+	int c_dlight, size, i, map, t, inverse_scale, mismatch;
+
+	Q_memset (&surface, 0, sizeof(surface));
+	Q_memset (&world, 0, sizeof(world));
+	Q_memset (&plane, 0, sizeof(plane));
+	Q_memset (&texinfo, 0, sizeof(texinfo));
+	surface.extents[0] = 32;
+	surface.extents[1] = 16;
+	surface.dlightframe = dlight_mode ? r_framecount : r_framecount - 1;
+	surface.dlightbits = dlight_mode == 2 ? 1 : 0;
+	surface.plane = &plane;
+	surface.texinfo = &texinfo;
+	surface.samples = has_samples ? lightmaps : NULL;
+	for (map=0 ; map<MAXLIGHTMAPS ; map++)
+		surface.styles[map] = map < maps ? (byte)map : 255;
+	for (i=0 ; i<MAXLIGHTMAPS*6 ; i++)
+		lightmaps[i] = (byte)(i*37 + (i/6)*19 + 11);
+	world.lightdata = has_lightdata ? &lightdata_marker : NULL;
+	cl.worldmodel = &world;
+	plane.normal[2] = 1.0;
+	texinfo.vecs[0][0] = 1.0;
+	texinfo.vecs[1][1] = 1.0;
+	for (map=0 ; map<MAXLIGHTMAPS ; map++)
+		r_drawsurf.lightadj[map] = 47 + map*71;
+	r_drawsurf.surf = &surface;
+	r_refdef.ambientlight = ambient;
+	r_fullbright.value = (float)fullbright;
+	size = 3 * 2;
+	if (dlight_mode == 2)
+	{
+		cl_dlights[0].origin[0] = 8.0;
+		cl_dlights[0].origin[1] = 8.0;
+		cl_dlights[0].origin[2] = 0.0;
+		cl_dlights[0].radius = 64.0;
+		cl_dlights[0].minlight = 0.0;
+	}
+
+	for (i=0 ; i<324 ; i++)
+		starting_lights[i] = 0xa5a50000U | (unsigned)i;
+	Q_memcpy (blocklights, starting_lights, sizeof(starting_lights));
+	if (warm_cache)
+	{
+		unsigned first;
+		first = (unsigned)r_drawsurf.lightadj[0];
+		inverse_scale = 255*256 - (ambient << 8);
+		for (i=0 ; i<256 ; i++)
+		{
+			t = (inverse_scale - (int)(i * first)) >> (8 - VID_CBITS);
+			if (t < (1 << 6))
+				t = (1 << 6);
+			lightmap_single_table[i] = (unsigned)t;
+		}
+		lightmap_single_first = first;
+		lightmap_single_inverse_scale = inverse_scale;
+		lightmap_single_table_valid = true;
+	}
+	else
+	{
+		lightmap_single_table_valid = false;
+		lightmap_single_first = 0x13579;
+		lightmap_single_inverse_scale = -12345;
+	}
+	Q_memcpy (starting_table, lightmap_single_table,
+			sizeof(starting_table));
+	c_first = lightmap_single_first;
+	c_inverse = (unsigned)lightmap_single_inverse_scale;
+	c_valid = lightmap_single_table_valid;
+	r_dlight_contributed = 0x2468;
+
+	R_BuildLightMap_C ();
+	Q_memcpy (c_result, blocklights, sizeof(c_result));
+	Q_memcpy (c_table, lightmap_single_table, sizeof(c_table));
+	c_first = lightmap_single_first;
+	c_inverse = (unsigned)lightmap_single_inverse_scale;
+	c_valid = lightmap_single_table_valid;
+	c_dlight = r_dlight_contributed;
+
+	Q_memcpy (blocklights, starting_lights, sizeof(starting_lights));
+	Q_memcpy (lightmap_single_table, starting_table, sizeof(starting_table));
+	if (warm_cache)
+	{
+		lightmap_single_first = (unsigned)r_drawsurf.lightadj[0];
+		lightmap_single_inverse_scale = 255*256 - (ambient << 8);
+		lightmap_single_table_valid = true;
+	}
+	else
+	{
+		lightmap_single_first = 0x13579;
+		lightmap_single_inverse_scale = -12345;
+		lightmap_single_table_valid = false;
+	}
+	r_dlight_contributed = 0x2468;
+	R_BuildLightMap ();
+
+	mismatch = -1;
+	for (i=0 ; i<324 ; i++)
+		if (c_result[i] != blocklights[i])
+		{
+			mismatch = i;
+			break;
+		}
+	if (mismatch >= 0 ||
+			Q_memcmp (c_table, lightmap_single_table, sizeof(c_table)) != 0 ||
+			c_first != lightmap_single_first ||
+			c_inverse != (unsigned)lightmap_single_inverse_scale ||
+			c_valid != lightmap_single_table_valid ||
+			c_dlight != r_dlight_contributed)
+	{
+		bench486_memory_failures++;
+		if (mismatch >= 0)
+			Bench486Printf ("lightmap-build %s parity FAIL index %d c %u asm %u\n",
+					name, mismatch, c_result[mismatch], blocklights[mismatch]);
+		else
+			Bench486Printf ("lightmap-build %s state parity FAIL\n", name);
+		return 1;
+	}
+	return 0;
+}
+
+#if defined(ASM486_DYNAMIC_LIGHT_PROJECTION)
+static int Bench486DynamicLightProjectParity (void)
+{
+	static struct
+	{
+		char *name;
+		float origin[3];
+		float radius, minlight;
+		float normal[3], dist;
+		float vecs[2][4];
+		short texturemins[2];
+		int smax, tmax;
+	} cases[] = {
+		{ "center", { 8.0, 8.0, 0.0 }, 64.0, 0.0,
+			{ 0.0, 0.0, 1.0 }, 0.0,
+			{ { 1.0, 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0, 0.0 } },
+			{ 0, 0 }, 3, 2 },
+		{ "negative-fraction", { -3.75, 21.75, 2.25 }, 96.0, 1.0,
+			{ 0.0, 0.0, 1.0 }, 1.25,
+			{ { 1.0, 0.0, 0.0, 2.25 }, { 0.0, 1.0, 0.0, -3.5 } },
+			{ 5, -7 }, 4, 3 },
+		{ "outside-surface", { 63.25, 46.5, -3.0 }, 160.0, 12.0,
+			{ 0.0, 0.0, 1.0 }, -2.0,
+			{ { 1.0, 0.0, 0.0, -0.75 }, { 0.0, 1.0, 0.0, 1.5 } },
+			{ -16, 9 }, 3, 2 },
+		{ "minlight-equal", { 2.5, 4.25, 10.0 }, 20.0, 10.0,
+			{ 0.0, 0.0, 1.0 }, 0.0,
+			{ { 1.0, 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0, 0.0 } },
+			{ 0, 0 }, 2, 2 },
+		{ "minlight-reject", { 2.5, 4.25, 10.0 }, 19.0, 10.0,
+			{ 0.0, 0.0, 1.0 }, 0.0,
+			{ { 1.0, 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0, 0.0 } },
+			{ 0, 0 }, 2, 2 },
+		{ "ceil-boundary", { 17.25, -8.5, 0.0 }, 10.125, 9.99609375,
+			{ 0.0, 0.0, 1.0 }, 0.0,
+			{ { 1.0, 0.0, 0.0, 0.125 }, { 0.0, 1.0, 0.0, -0.25 } },
+			{ 1, -3 }, 2, 3 },
+		{ "tilted-plane", { 21.25, -8.75, 7.5 }, 128.0, 8.0,
+			{ 0.25, -0.5, 0.75 }, 3.125,
+			{ { 0.75, 0.125, -0.25, 5.5 },
+			  { -0.125, 0.5, 0.25, -2.75 } },
+			{ -11, 19 }, 5, 4 },
+		{ "all-lit", { 4.0, 7.0, 0.0 }, 2048.0, 0.0,
+			{ 0.0, 0.0, 1.0 }, 0.0,
+			{ { 1.0, 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0, 0.0 } },
+			{ 0, 0 }, 18, 18 },
+		{ "corner-clamp", { -16.0, -16.0, 0.0 }, 80.0, 0.5,
+			{ 0.0, 0.0, 1.0 }, 0.0,
+			{ { 1.0, 0.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0, 0.0 } },
+			{ 0, 0 }, 1, 1 }
+	};
+	static msurface_t surface;
+	static mplane_t plane;
+	static mtexinfo_t texinfo;
+	static const unsigned short rounding[4] = {
+		0x0000, 0x0400, 0x0800, 0x0c00
+	};
+	unsigned short saved_cw, test_cw;
+	float c_local0, c_local1, asm_local0, asm_local1;
+	int c_local0_int, c_local1_int, c_limit, c_irad, c_all_lit;
+	int asm_local0_int, asm_local1_int, asm_limit, asm_irad, asm_all_lit;
+	int c_result, asm_result, failures, i, mode;
+#ifdef ASM486_DLIGHT_CONTRIBUTES
+	int c_contributes, asm_contributes;
+#endif
+
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (saved_cw));
+	failures = 0;
+	for (mode=0 ; mode<4 ; mode++)
+	{
+		test_cw = (saved_cw & (unsigned short)~0x0c00) | rounding[mode];
+		__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+		for (i=0 ; i<(int)(sizeof(cases)/sizeof(cases[0])) ; i++)
+		{
+			Q_memset (&surface, 0, sizeof(surface));
+			Q_memset (&plane, 0, sizeof(plane));
+			Q_memset (&texinfo, 0, sizeof(texinfo));
+			plane.normal[0] = cases[i].normal[0];
+			plane.normal[1] = cases[i].normal[1];
+			plane.normal[2] = cases[i].normal[2];
+			plane.dist = cases[i].dist;
+			surface.plane = &plane;
+			surface.texinfo = &texinfo;
+			surface.texturemins[0] = cases[i].texturemins[0];
+			surface.texturemins[1] = cases[i].texturemins[1];
+			surface.extents[0] = (short)((cases[i].smax - 1) * 16);
+			surface.extents[1] = (short)((cases[i].tmax - 1) * 16);
+			surface.dlightbits = 1;
+			Q_memcpy (texinfo.vecs, cases[i].vecs, sizeof(texinfo.vecs));
+			cl_dlights[0].origin[0] = cases[i].origin[0];
+			cl_dlights[0].origin[1] = cases[i].origin[1];
+			cl_dlights[0].origin[2] = cases[i].origin[2];
+			cl_dlights[0].radius = cases[i].radius;
+			cl_dlights[0].minlight = cases[i].minlight;
+
+			c_local0 = 0.0;
+			c_local1 = 0.0;
+			asm_local0 = 0.0;
+			asm_local1 = 0.0;
+			c_local0_int = c_local1_int = c_limit = c_irad = c_all_lit = 0;
+			asm_local0_int = asm_local1_int = asm_limit = asm_irad =
+					asm_all_lit = 0;
+			c_result = R_AddDynamicLightProject_C (0, &surface,
+					cases[i].smax, cases[i].tmax, &c_local0, &c_local1,
+					&c_local0_int, &c_local1_int, &c_limit, &c_irad,
+					&c_all_lit);
+			asm_result = R_AddDynamicLightProject_asm486 (0, &surface,
+					cases[i].smax, cases[i].tmax, &asm_local0, &asm_local1,
+					&asm_local0_int, &asm_local1_int, &asm_limit, &asm_irad,
+					&asm_all_lit);
+#ifdef ASM486_DLIGHT_CONTRIBUTES
+			c_contributes = R_DlightContributes_C (&surface);
+			asm_contributes = R_DlightContributes_asm486 (&surface);
+#endif
+			if (c_result != asm_result ||
+					Q_memcmp (&c_local0, &asm_local0, sizeof(c_local0)) != 0 ||
+					Q_memcmp (&c_local1, &asm_local1, sizeof(c_local1)) != 0 ||
+					c_local0_int != asm_local0_int ||
+					c_local1_int != asm_local1_int || c_limit != asm_limit ||
+					c_irad != asm_irad || c_all_lit != asm_all_lit
+#ifdef ASM486_DLIGHT_CONTRIBUTES
+					|| c_contributes != asm_contributes
+#endif
+					)
+			{
+				failures++;
+				Bench486Printf ("dlight-project parity FAIL %s round %d c %d asm %d",
+						cases[i].name, mode, c_result, asm_result);
+#ifdef ASM486_DLIGHT_CONTRIBUTES
+				Bench486Printf (" contributes %d/%d", c_contributes,
+						asm_contributes);
+#endif
+				Bench486Printf ("\n");
+			}
+		}
+	}
+	__asm__ __volatile__ ("fldcw %0" : : "m" (saved_cw));
+	Bench486Printf ("dynamic-light projection parity %s (%d cases)\n",
+			failures ? "FAIL" : "PASS", 4 * (int)(sizeof(cases)/sizeof(cases[0])));
+	if (failures)
+		bench486_memory_failures += failures;
+	return failures;
+}
+#endif
+
+static void Bench486LightMapBuildParity (void)
+{
+	drawsurf_t saved_drawsurf;
+	model_t *saved_worldmodel;
+	dlight_t saved_dlight;
+	unsigned saved_blocklights[324];
+	unsigned saved_lightmap_table[256];
+	unsigned saved_lightmap_first;
+	int saved_lightmap_inverse, saved_ambient, saved_frame;
+	int saved_dlight_contributed;
+	qboolean saved_lightmap_valid;
+	float saved_fullbright;
+	int failures, i;
+#ifdef PROFILE486
+	unsigned long saved_single_texels, saved_fused_texels;
+	unsigned long saved_fused_maps[5];
+#endif
+
+	saved_drawsurf = r_drawsurf;
+	saved_worldmodel = cl.worldmodel;
+	saved_dlight = cl_dlights[0];
+	Q_memcpy (saved_blocklights, blocklights, sizeof(saved_blocklights));
+	Q_memcpy (saved_lightmap_table, lightmap_single_table,
+			sizeof(saved_lightmap_table));
+	saved_lightmap_first = lightmap_single_first;
+	saved_lightmap_inverse = lightmap_single_inverse_scale;
+	saved_lightmap_valid = lightmap_single_table_valid;
+	saved_ambient = r_refdef.ambientlight;
+	saved_fullbright = r_fullbright.value;
+	saved_frame = r_framecount;
+	saved_dlight_contributed = r_dlight_contributed;
+#ifdef PROFILE486
+	saved_single_texels = bench486_lm_single_texels;
+	saved_fused_texels = bench486_lm_fused_texels;
+	for (i=0 ; i<5 ; i++)
+		saved_fused_maps[i] = bench486_lm_fused_maps[i];
+#endif
+	r_framecount = saved_frame + 100;
+	cl.worldmodel = NULL;
+	failures = 0;
+	failures += Bench486LightMapBuildCase ("fullbright-positive", 1, 24,
+			1, 1, 1, 0, 0);
+	failures += Bench486LightMapBuildCase ("fullbright-negative", 2, 24,
+			-1, 1, 1, 0, 0);
+	failures += Bench486LightMapBuildCase ("no-lightdata", 1, 24,
+			0, 0, 1, 0, 0);
+	failures += Bench486LightMapBuildCase ("ambient-no-samples", 0, 36,
+			0, 1, 0, 0, 0);
+	failures += Bench486LightMapBuildCase ("single-style-cold", 1, 36,
+			0, 1, 1, 0, 0);
+	failures += Bench486LightMapBuildCase ("single-style-warm", 1, 36,
+			0, 1, 1, 0, 1);
+	failures += Bench486LightMapBuildCase ("no-dlight-2-style", 2, 16,
+			0, 1, 1, 0, 0);
+	failures += Bench486LightMapBuildCase ("no-dlight-3-style", 3, 16,
+			0, 1, 1, 0, 0);
+	failures += Bench486LightMapBuildCase ("no-dlight-4-style", 4, 16,
+			0, 1, 1, 0, 0);
+	failures += Bench486LightMapBuildCase ("active-empty-dlights", 2, 16,
+			0, 1, 1, 1, 0);
+	failures += Bench486LightMapBuildCase ("active-real-dlight", 1, 16,
+			0, 1, 1, 2, 0);
+#ifdef ASM486_DYNAMIC_LIGHT_PROJECTION
+	failures += Bench486DynamicLightProjectParity ();
+#endif
+
+	r_drawsurf = saved_drawsurf;
+	cl.worldmodel = saved_worldmodel;
+	cl_dlights[0] = saved_dlight;
+	Q_memcpy (blocklights, saved_blocklights, sizeof(saved_blocklights));
+	Q_memcpy (lightmap_single_table, saved_lightmap_table,
+			sizeof(saved_lightmap_table));
+	lightmap_single_first = saved_lightmap_first;
+	lightmap_single_inverse_scale = saved_lightmap_inverse;
+	lightmap_single_table_valid = saved_lightmap_valid;
+	r_refdef.ambientlight = saved_ambient;
+	r_fullbright.value = saved_fullbright;
+	r_framecount = saved_frame;
+	r_dlight_contributed = saved_dlight_contributed;
+#ifdef PROFILE486
+	bench486_lm_single_texels = saved_single_texels;
+	bench486_lm_fused_texels = saved_fused_texels;
+	for (i=0 ; i<5 ; i++)
+		bench486_lm_fused_maps[i] = saved_fused_maps[i];
+#else
+	(void)i;
+#endif
+	Bench486Printf ("lightmap-build dispatcher parity %s (%d scenarios)\n",
+			failures ? "FAIL" : "PASS", 11);
+}
+#endif
+
+#ifdef ASM486_SURFACE_DRAW
+static void Bench486CaptureSurfaceDrawState (
+		bench486_surface_draw_state_t *state, byte *pixels)
+{
+	Q_memset (state, 0, sizeof(*state));
+	state->lightleft = lightleft;
+	state->sourcesstep = sourcesstep;
+	state->blocksize = blocksize;
+	state->sourcetstep = sourcetstep;
+	state->lightdelta = lightdelta;
+	state->lightdeltastep = lightdeltastep;
+	state->lightright = lightright;
+	state->lightleftstep = lightleftstep;
+	state->lightrightstep = lightrightstep;
+	state->blockdivshift = blockdivshift;
+	state->blockdivmask = blockdivmask;
+	state->surfrowbytes = surfrowbytes;
+	state->r_stepback = r_stepback;
+	state->r_lightwidth = r_lightwidth;
+	state->r_numhblocks = r_numhblocks;
+	state->r_numvblocks = r_numvblocks;
+	state->r_lightptr = r_lightptr;
+	state->pbasesource = pbasesource;
+	state->r_source = r_source;
+	state->r_sourcemax = r_sourcemax;
+	state->prowdest_offset = (byte *)prowdestbase - pixels;
+}
+
+static void Bench486SurfaceDrawParity (void)
+{
+	static char *mode_names[5] = {
+		"fullbright", "no-lightdata", "ambient", "one-style", "four-style"
+	};
+	drawsurf_t saved_drawsurf;
+	model_t *saved_worldmodel;
+	float saved_fullbright;
+	int saved_frame, saved_ambient, saved_contributed;
+	int saved_profile_active;
+	bench486_surface_draw_state_t c_state, asm_state;
+	texture_t *texture;
+	byte *texture_bytes;
+	int texture_width, texture_height, cursor, mip_width, mip_height;
+	int texture_kind, mip, mode, x, y, i, output_size, case_index, failures;
+	byte *texture_row;
+	int saved_lightleft, saved_sourcesstep, saved_blocksize, saved_sourcetstep;
+	int saved_lightdelta, saved_lightdeltastep;
+	int saved_lightright, saved_lightleftstep, saved_lightrightstep;
+	int saved_blockdivshift, saved_surfrowbytes, saved_stepback;
+	int saved_lightwidth, saved_numhblocks, saved_numvblocks;
+	unsigned saved_blockdivmask;
+	void *saved_prowdestbase;
+	byte *saved_pbasesource, *saved_source, *saved_sourcemax;
+	unsigned *saved_lightptr;
+
+	saved_drawsurf = r_drawsurf;
+	saved_worldmodel = cl.worldmodel;
+	saved_fullbright = r_fullbright.value;
+	saved_frame = r_framecount;
+	saved_ambient = r_refdef.ambientlight;
+	saved_contributed = r_dlight_contributed;
+	saved_lightleft = lightleft;
+	saved_sourcesstep = sourcesstep;
+	saved_blocksize = blocksize;
+	saved_sourcetstep = sourcetstep;
+	saved_lightdelta = lightdelta;
+	saved_lightdeltastep = lightdeltastep;
+	saved_lightright = lightright;
+	saved_lightleftstep = lightleftstep;
+	saved_lightrightstep = lightrightstep;
+	saved_blockdivshift = blockdivshift;
+	saved_blockdivmask = blockdivmask;
+	saved_prowdestbase = prowdestbase;
+	saved_pbasesource = pbasesource;
+	saved_surfrowbytes = surfrowbytes;
+	saved_lightptr = r_lightptr;
+	saved_stepback = r_stepback;
+	saved_lightwidth = r_lightwidth;
+	saved_numhblocks = r_numhblocks;
+	saved_numvblocks = r_numvblocks;
+	saved_source = r_source;
+	saved_sourcemax = r_sourcemax;
+#ifdef PROFILE486
+	saved_profile_active = bench486_profile_frame_active;
+	bench486_profile_frame_active = false;
+#else
+	saved_profile_active = 0;
+#endif
+	Q_memcpy (bench486_surface_draw_saved_lights, blocklights,
+			sizeof(bench486_surface_draw_saved_lights));
+
+	failures = 0;
+	case_index = 0;
+	for (texture_kind=0 ; texture_kind<2 ; texture_kind++)
+	{
+		texture_width = texture_kind ? 60 : 64;
+		texture_height = texture_kind ? 44 : 64;
+		Q_memset (&bench486_surface_draw_texture, 0,
+				sizeof(bench486_surface_draw_texture));
+		texture = &bench486_surface_draw_texture.align;
+		texture_bytes = bench486_surface_draw_texture.storage;
+		texture->width = texture_width;
+		texture->height = texture_height;
+		cursor = sizeof(texture_t);
+		for (mip=0 ; mip<4 ; mip++)
+		{
+			mip_width = texture_width >> mip;
+			mip_height = texture_height >> mip;
+			texture->offsets[mip] = cursor;
+			texture_row = texture_bytes + cursor;
+			for (y=0 ; y<mip_height ; y++)
+			{
+				for (x=0 ; x<mip_width ; x++)
+				{
+					texture_row[x] =
+							(byte)(x*17 + y*31 + mip*43 + texture_kind*59);
+				}
+				texture_row += mip_width;
+				cursor += mip_width;
+			}
+		}
+
+		for (mip=0 ; mip<4 ; mip++)
+		{
+			for (mode=0 ; mode<5 ; mode++)
+			{
+				Q_memset (&bench486_surface_draw_surface, 0,
+						sizeof(bench486_surface_draw_surface));
+				bench486_surface_draw_surface.extents[0] = 48;
+				bench486_surface_draw_surface.extents[1] = 32;
+				bench486_surface_draw_surface.texturemins[0] =
+						((mip + texture_kind) & 1) ? -17 : 137;
+				bench486_surface_draw_surface.texturemins[1] =
+						((mip + mode) & 1) ? -29 : 91;
+				bench486_surface_draw_surface.dlightframe = saved_frame;
+				for (i=0 ; i<MAXLIGHTMAPS ; i++)
+					bench486_surface_draw_surface.styles[i] = 255;
+				for (i=0 ; i<(int)sizeof(bench486_surface_draw_samples) ; i++)
+					bench486_surface_draw_samples[i] = (byte)(i*23 + mode*41 + 7);
+
+				Q_memset (&bench486_surface_draw_model, 0,
+						sizeof(bench486_surface_draw_model));
+				if (mode >= 2)
+					bench486_surface_draw_model.lightdata =
+							bench486_surface_draw_samples;
+				cl.worldmodel = &bench486_surface_draw_model;
+				r_framecount = saved_frame + 1;
+				bench486_surface_draw_surface.dlightframe = r_framecount - 1;
+				r_refdef.ambientlight = 17;
+				r_fullbright.value = mode == 0 ? 1.0 : 0.0;
+				bench486_surface_draw_surface.samples = NULL;
+				if (mode == 3)
+				{
+					bench486_surface_draw_surface.styles[0] = 0;
+					bench486_surface_draw_surface.samples =
+							bench486_surface_draw_samples;
+				}
+				else if (mode == 4)
+				{
+					for (i=0 ; i<MAXLIGHTMAPS ; i++)
+						bench486_surface_draw_surface.styles[i] = i;
+					bench486_surface_draw_surface.samples =
+							bench486_surface_draw_samples;
+				}
+
+				r_drawsurf.surf = &bench486_surface_draw_surface;
+				r_drawsurf.texture = texture;
+				r_drawsurf.surfmip = mip;
+				r_drawsurf.surfwidth = 48 >> mip;
+				r_drawsurf.surfheight = 32 >> mip;
+				r_drawsurf.rowbytes = r_drawsurf.surfwidth;
+				for (i=0 ; i<MAXLIGHTMAPS ; i++)
+					r_drawsurf.lightadj[i] = 61 + i*47;
+				output_size = 1536;
+				for (i=0 ; i<mip+mip ; i++)
+					output_size >>= 1;
+				Q_memset (bench486_surface_draw_c_pixels, 0xa5,
+						sizeof(bench486_surface_draw_c_pixels));
+				Q_memset (bench486_surface_draw_asm_pixels, 0xa5,
+						sizeof(bench486_surface_draw_asm_pixels));
+				Q_memset (blocklights, 0x5a, sizeof(bench486_surface_draw_saved_lights));
+				r_drawsurf.surfdat = (pixel_t *)bench486_surface_draw_c_pixels;
+				R_DrawSurface_C ();
+				Q_memcpy (bench486_surface_draw_c_lights, blocklights,
+						sizeof(bench486_surface_draw_c_lights));
+				Bench486CaptureSurfaceDrawState (&c_state,
+						bench486_surface_draw_c_pixels);
+
+				Q_memset (blocklights, 0x5a, sizeof(bench486_surface_draw_saved_lights));
+				r_drawsurf.surfdat = (pixel_t *)bench486_surface_draw_asm_pixels;
+				R_DrawSurface ();
+				Bench486CaptureSurfaceDrawState (&asm_state,
+						bench486_surface_draw_asm_pixels);
+				if (Q_memcmp (bench486_surface_draw_c_pixels,
+						bench486_surface_draw_asm_pixels,
+						sizeof(bench486_surface_draw_c_pixels)) != 0 ||
+						Q_memcmp (bench486_surface_draw_c_lights, blocklights,
+						sizeof(bench486_surface_draw_c_lights)) != 0 ||
+						Q_memcmp (&c_state, &asm_state, sizeof(c_state)) != 0)
+				{
+					failures++;
+					Bench486Printf ("surface-draw parity FAIL texture %s mip %d light %s\n",
+							texture_kind ? "nonpot" : "pot", mip,
+							mode_names[mode]);
+				}
+				else
+					bench486_sink += bench486_surface_draw_c_pixels[
+							case_index % output_size];
+				case_index++;
+			}
+		}
+	}
+
+	r_drawsurf = saved_drawsurf;
+	cl.worldmodel = saved_worldmodel;
+	r_fullbright.value = saved_fullbright;
+	r_framecount = saved_frame;
+	r_refdef.ambientlight = saved_ambient;
+	r_dlight_contributed = saved_contributed;
+	lightleft = saved_lightleft;
+	sourcesstep = saved_sourcesstep;
+	blocksize = saved_blocksize;
+	sourcetstep = saved_sourcetstep;
+	lightdelta = saved_lightdelta;
+	lightdeltastep = saved_lightdeltastep;
+	lightright = saved_lightright;
+	lightleftstep = saved_lightleftstep;
+	lightrightstep = saved_lightrightstep;
+	blockdivshift = saved_blockdivshift;
+	blockdivmask = saved_blockdivmask;
+	prowdestbase = saved_prowdestbase;
+	pbasesource = saved_pbasesource;
+	surfrowbytes = saved_surfrowbytes;
+	r_lightptr = saved_lightptr;
+	r_stepback = saved_stepback;
+	r_lightwidth = saved_lightwidth;
+	r_numhblocks = saved_numhblocks;
+	r_numvblocks = saved_numvblocks;
+	r_source = saved_source;
+	r_sourcemax = saved_sourcemax;
+	Q_memcpy (blocklights, bench486_surface_draw_saved_lights,
+			sizeof(bench486_surface_draw_saved_lights));
+#ifdef PROFILE486
+	bench486_profile_frame_active = saved_profile_active;
+#endif
+	if (failures)
+		bench486_memory_failures += failures;
+	Bench486Printf ("surface-draw parity %s (%d cases: four mips, two texture shapes, five light modes)\n",
+			failures ? "FAIL" : "PASS", case_index);
+}
+#endif
 
 static double Bench486MeasureBspPlaneDot (bench486_bsp_plane_dot_fn_t function,
 		mplane_t *plane, int iterations, unsigned *checksum)
@@ -3674,6 +4808,352 @@ static void Bench486SurfaceCacheCase (void)
 	cache.dlight = 0;
 }
 
+#ifdef ASM486_SURFACE_CACHE_CHECK
+static void Bench486InitSurfaceAllocator (byte *memory,
+		surfcache_t **slots)
+{
+	surfcache_t *first, *second, *third;
+
+	Q_memset (memory, 0, 4096);
+	first = (surfcache_t *)memory;
+	second = (surfcache_t *)(memory + 512);
+	third = (surfcache_t *)(memory + 1280);
+	first->next = second;
+	first->owner = &slots[0];
+	first->size = 512;
+	first->width = 64;
+	second->next = third;
+	second->owner = &slots[1];
+	second->size = 768;
+	second->width = 32;
+	third->next = NULL;
+	third->owner = &slots[2];
+	third->size = 2812;
+	third->width = 16;
+	slots[0] = first;
+	slots[1] = second;
+	slots[2] = third;
+	slots[3] = NULL;
+
+	sc_size = 4092;
+	sc_base = first;
+	sc_rover = first;
+	d_initial_rover = third;
+	d_roverwrapped = false;
+	r_cache_thrash = false;
+}
+
+static void Bench486SurfaceAllocatorParity (void)
+{
+	static union
+	{
+		unsigned long align;
+		byte bytes[4096];
+	} arena, expected;
+	static int widths[7] = { 64, 32, 16, 16, 8, 16, 16 };
+	static int payloads[7] = { 100, 400, 700, 2000, 900, 800, 1300 };
+	surfcache_t *slots[4], *expected_slots[4], *allocated;
+	surfcache_t *saved_base, *saved_rover, *saved_initial_rover;
+	int saved_size, saved_roverwrapped, saved_cache_thrash;
+	int offsets[7], expected_offsets[7];
+	int expected_rover, expected_roverwrapped, expected_cache_thrash;
+	int i, failures;
+#ifdef PROFILE486
+	int saved_profile_active;
+#endif
+
+	saved_size = sc_size;
+	saved_base = sc_base;
+	saved_rover = sc_rover;
+	saved_initial_rover = d_initial_rover;
+	saved_roverwrapped = d_roverwrapped;
+	saved_cache_thrash = r_cache_thrash;
+#ifdef PROFILE486
+	saved_profile_active = bench486_profile_frame_active;
+	bench486_profile_frame_active = false;
+#endif
+	failures = 0;
+	Bench486InitSurfaceAllocator (arena.bytes, slots);
+	for (i=0 ; i<7 ; i++)
+	{
+		allocated = D_SCAlloc_C (widths[i], payloads[i]);
+		if (!allocated)
+		{
+			failures++;
+			break;
+		}
+		offsets[i] = (int)((byte *)allocated - arena.bytes);
+		slots[i & 3] = allocated;
+		allocated->owner = &slots[i & 3];
+	}
+	Q_memcpy (expected.bytes, arena.bytes, sizeof(arena.bytes));
+	for (i=0 ; i<4 ; i++)
+		expected_slots[i] = slots[i];
+	for (i=0 ; i<7 ; i++)
+		expected_offsets[i] = offsets[i];
+	expected_rover = (int)((byte *)sc_rover - arena.bytes);
+	expected_roverwrapped = d_roverwrapped;
+	expected_cache_thrash = r_cache_thrash;
+
+	Bench486InitSurfaceAllocator (arena.bytes, slots);
+	for (i=0 ; i<7 ; i++)
+	{
+		allocated = D_SCAlloc (widths[i], payloads[i]);
+		if (!allocated)
+		{
+			failures++;
+			break;
+		}
+		offsets[i] = (int)((byte *)allocated - arena.bytes);
+		slots[i & 3] = allocated;
+		allocated->owner = &slots[i & 3];
+	}
+	if (Q_memcmp (expected.bytes, arena.bytes, sizeof(arena.bytes)) != 0 ||
+		(int)((byte *)sc_rover - arena.bytes) != expected_rover ||
+		d_roverwrapped != expected_roverwrapped ||
+		r_cache_thrash != expected_cache_thrash)
+		failures++;
+	for (i=0 ; i<7 ; i++)
+		if (offsets[i] != expected_offsets[i])
+			failures++;
+	for (i=0 ; i<4 ; i++)
+		if (slots[i] != expected_slots[i])
+			failures++;
+
+	sc_size = saved_size;
+	sc_base = saved_base;
+	sc_rover = saved_rover;
+	d_initial_rover = saved_initial_rover;
+	d_roverwrapped = saved_roverwrapped;
+	r_cache_thrash = saved_cache_thrash;
+#ifdef PROFILE486
+	bench486_profile_frame_active = saved_profile_active;
+#endif
+	Bench486Printf ("surface-cache allocator parity %s (7 allocations)\n",
+			failures ? "FAIL" : "PASS");
+	bench486_memory_failures += failures;
+}
+
+static void Bench486SurfaceAttachTagParity (void)
+{
+	msurface_t c_surface, asm_surface;
+	surfcache_t c_cache[4], asm_cache[4];
+	drawsurf_t c_drawsurf, asm_drawsurf;
+	surfcache_t **c_owner, **asm_owner;
+	int i, scenario, surface_frame, frame, contributed, failures;
+
+	Q_memset (&c_surface, 0, sizeof(c_surface));
+	Q_memset (&asm_surface, 0, sizeof(asm_surface));
+	Q_memset (c_cache, 0x6b, sizeof(c_cache));
+	Q_memset (asm_cache, 0x6b, sizeof(asm_cache));
+	Q_memset (&c_drawsurf, 0x5a, sizeof(c_drawsurf));
+	Q_memset (&asm_drawsurf, 0x5a, sizeof(asm_drawsurf));
+	failures = 0;
+
+	for (i=0 ; i<MIPLEVELS ; i++)
+	{
+		D_CacheSurfaceAttach_C (&c_surface, i, &c_cache[i],
+				&c_drawsurf, 1);
+		D_CacheSurfaceAttach_asm486 (&asm_surface, i, &asm_cache[i],
+				&asm_drawsurf, 1);
+		if (c_surface.cachespots[i] != &c_cache[i] ||
+			asm_surface.cachespots[i] != &asm_cache[i] ||
+			c_cache[i].owner != &c_surface.cachespots[i] ||
+			asm_cache[i].owner != &asm_surface.cachespots[i] ||
+			c_drawsurf.surfdat != (pixel_t *)c_cache[i].data ||
+			asm_drawsurf.surfdat != (pixel_t *)asm_cache[i].data ||
+			Q_memcmp ((byte *)&c_drawsurf + sizeof(void *),
+				(byte *)&asm_drawsurf + sizeof(void *),
+				sizeof(c_drawsurf) - sizeof(void *)) != 0 ||
+			Q_memcmp (&c_cache[i], &asm_cache[i], 4) != 0 ||
+			Q_memcmp ((byte *)&c_cache[i] + 8,
+				(byte *)&asm_cache[i] + 8,
+				sizeof(c_cache[i]) - 8) != 0)
+			failures++;
+	}
+
+	// Reused blocks keep their current owner slot while surfdat is refreshed.
+	c_owner = c_cache[0].owner;
+	asm_owner = asm_cache[0].owner;
+	D_CacheSurfaceAttach_C (&c_surface, 0, &c_cache[0], &c_drawsurf, 0);
+	D_CacheSurfaceAttach_asm486 (&asm_surface, 0, &asm_cache[0],
+			&asm_drawsurf, 0);
+	if (c_cache[0].owner != c_owner || asm_cache[0].owner != asm_owner ||
+		c_surface.cachespots[0] != &c_cache[0] ||
+		asm_surface.cachespots[0] != &asm_cache[0] ||
+		c_drawsurf.surfdat != (pixel_t *)c_cache[0].data ||
+		asm_drawsurf.surfdat != (pixel_t *)asm_cache[0].data)
+		failures++;
+
+	for (scenario=0 ; scenario<4 ; scenario++)
+	{
+		surface_frame = (scenario < 2) ? 17 : 16;
+		frame = 17;
+		contributed = scenario & 1;
+		c_cache[0].dlight = 0x55;
+		asm_cache[0].dlight = 0x55;
+		D_CacheSurfaceSetDlight_C (&c_cache[0], surface_frame, frame,
+				contributed);
+		D_CacheSurfaceSetDlight_asm486 (&asm_cache[0], surface_frame, frame,
+				contributed);
+		if (c_cache[0].dlight != asm_cache[0].dlight ||
+			c_cache[0].dlight != ((surface_frame == frame) ? contributed : 0))
+			failures++;
+	}
+
+	Bench486Printf ("surface-cache attach/tag parity %s (4 mips, 4 dlight states)\n",
+			failures ? "FAIL" : "PASS");
+	bench486_memory_failures += failures;
+}
+
+static void Bench486SurfaceCacheSetupCase (void)
+{
+	static struct
+	{
+		short s_extent;
+		short t_extent;
+		int mip;
+	} cases[] = {
+		{ 0, 0, 0 }, { 16, 32, 1 }, { 17, 31, 2 }, { 255, 127, 3 },
+		{ 320, 200, 0 }, { 1023, 511, 1 }, { 2047, 1023, 2 },
+		{ 4095, 2047, 3 }
+	};
+	msurface_t surface;
+	drawsurf_t c_drawsurf, asm_drawsurf;
+	surfcache_t c_cache, asm_cache;
+	texture_t texture;
+	int lightstylevalues[256];
+	int i, failures;
+
+	failures = 0;
+	Q_memset (&texture, 0, sizeof(texture));
+	for (i=0 ; i<256 ; i++)
+		lightstylevalues[i] = i*37 - 12345;
+	for (i=0 ; i<(int)(sizeof(cases)/sizeof(cases[0])) ; i++)
+	{
+		Q_memset (&surface, 0, sizeof(surface));
+		Q_memset (&c_drawsurf, 0x5a, sizeof(c_drawsurf));
+		Q_memset (&asm_drawsurf, 0x5a, sizeof(asm_drawsurf));
+		surface.extents[0] = cases[i].s_extent;
+		surface.extents[1] = cases[i].t_extent;
+		surface.styles[0] = (byte)(i*31);
+		surface.styles[1] = (byte)(i*47 + 1);
+		surface.styles[2] = (byte)(i*59 + 2);
+		surface.styles[3] = (byte)(i*71 + 3);
+		D_CacheSurfaceSetup_C (&surface, cases[i].mip, &c_drawsurf);
+		D_CacheSurfaceSetup_asm486 (&surface, cases[i].mip, &asm_drawsurf);
+		D_CacheSurfaceKeys_C (&surface, &texture, &c_drawsurf,
+				lightstylevalues);
+		D_CacheSurfaceKeys_asm486 (&surface, &texture, &asm_drawsurf,
+				lightstylevalues);
+		if (Q_memcmp (&c_drawsurf, &asm_drawsurf, sizeof(c_drawsurf)) != 0)
+		{
+			failures++;
+			Bench486Printf ("surface-cache setup parity FAIL case %d\n", i);
+		}
+	}
+	Bench486Printf ("surface-cache setup/key parity %s (%d cases)\n",
+			failures ? "FAIL" : "PASS",
+			(int)(sizeof(cases)/sizeof(cases[0])));
+	Q_memset (&c_cache, 0x3c, sizeof(c_cache));
+	Q_memset (&asm_cache, 0x3c, sizeof(asm_cache));
+	D_CacheSurfaceStoreTags_C (&c_cache, &c_drawsurf);
+	D_CacheSurfaceStoreTags_asm486 (&asm_cache, &asm_drawsurf);
+	if (Q_memcmp (&c_cache, &asm_cache, sizeof(c_cache)) != 0)
+	{
+		failures++;
+		Bench486Printf ("surface-cache tag parity FAIL\n");
+	}
+	Bench486Printf ("surface-cache tag parity %s\n",
+			failures ? "FAIL" : "PASS");
+	bench486_memory_failures += failures;
+}
+
+static void Bench486SurfaceCacheEntryParity (void)
+{
+	entity_t entity;
+	entity_t *saved_entity;
+	msurface_t surface, saved_surface;
+	mtexinfo_t texinfo;
+	texture_t texture;
+	surfcache_t caches[MIPLEVELS], saved_caches[MIPLEVELS];
+	drawsurf_t c_drawsurf, saved_drawsurf;
+	int saved_lightstyles[256];
+	int saved_frame, saved_csurf;
+	int mip, i, failures;
+	void *c_result, *asm_result;
+#ifdef PROFILE486
+	int saved_profile_active;
+#endif
+
+	saved_entity = currententity;
+	saved_frame = r_framecount;
+	saved_csurf = c_surf;
+	Q_memcpy (saved_lightstyles, d_lightstylevalue,
+			sizeof(saved_lightstyles));
+	Q_memcpy (&saved_drawsurf, &r_drawsurf, sizeof(saved_drawsurf));
+#ifdef PROFILE486
+	saved_profile_active = bench486_profile_frame_active;
+	bench486_profile_frame_active = false;
+#endif
+
+	Q_memset (&entity, 0, sizeof(entity));
+	Q_memset (&surface, 0, sizeof(surface));
+	Q_memset (&texinfo, 0, sizeof(texinfo));
+	Q_memset (&texture, 0, sizeof(texture));
+	Q_memset (caches, 0, sizeof(caches));
+	currententity = &entity;
+	entity.frame = 0;
+	texture.anim_total = 0;
+	texture.alternate_anims = NULL;
+	texinfo.texture = &texture;
+	surface.texinfo = &texinfo;
+	surface.dlightframe = 90;
+	r_framecount = 91;
+	for (i=0 ; i<256 ; i++)
+		d_lightstylevalue[i] = 256 + i;
+	for (i=0 ; i<MAXLIGHTMAPS ; i++)
+		surface.styles[i] = i;
+	for (mip=0 ; mip<MIPLEVELS ; mip++)
+	{
+		caches[mip].dlight = 0;
+		caches[mip].texture = &texture;
+		for (i=0 ; i<MAXLIGHTMAPS ; i++)
+			caches[mip].lightadj[i] = d_lightstylevalue[i];
+		surface.cachespots[mip] = &caches[mip];
+	}
+	saved_surface = surface;
+	Q_memcpy (saved_caches, caches, sizeof(caches));
+	failures = 0;
+	for (mip=0 ; mip<MIPLEVELS ; mip++)
+	{
+		Q_memset (&r_drawsurf, 0x5a, sizeof(r_drawsurf));
+		c_result = D_CacheSurface_C (&surface, mip);
+		Q_memcpy (&c_drawsurf, &r_drawsurf, sizeof(c_drawsurf));
+		Q_memset (&r_drawsurf, 0x5a, sizeof(r_drawsurf));
+		asm_result = D_CacheSurface (&surface, mip);
+		if (c_result != &caches[mip] || asm_result != &caches[mip] ||
+			Q_memcmp (&c_drawsurf, &r_drawsurf, sizeof(c_drawsurf)) != 0 ||
+			Q_memcmp (&surface, &saved_surface, sizeof(surface)) != 0 ||
+			Q_memcmp (caches, saved_caches, sizeof(caches)) != 0)
+			failures++;
+	}
+
+	Q_memcpy (d_lightstylevalue, saved_lightstyles,
+			sizeof(saved_lightstyles));
+	Q_memcpy (&r_drawsurf, &saved_drawsurf, sizeof(saved_drawsurf));
+	currententity = saved_entity;
+	r_framecount = saved_frame;
+	c_surf = saved_csurf;
+#ifdef PROFILE486
+	bench486_profile_frame_active = saved_profile_active;
+#endif
+	Bench486Printf ("surface-cache entry parity %s (%d mip cache hits)\n",
+			failures ? "FAIL" : "PASS", MIPLEVELS);
+	bench486_memory_failures += failures;
+}
+#endif
+
 static double Bench486MeasureMip (bench486_mip_fn_t function, float scale,
 		int iterations, unsigned *checksum)
 {
@@ -3701,17 +5181,19 @@ static void Bench486MipCase (char *name, float scale)
 	double asm_samples[BENCH486_MEMORY_SAMPLES];
 	double c_median, asm_median, delta;
 	unsigned expected, c_checksum, asm_checksum;
-	int c_result, asm_result;
+	int c_result, asm_result, public_result;
 	int sample;
 
 	expected = (unsigned)D_MipLevelForScale_C (scale);
 	c_result = D_MipLevelForScale_C (scale);
 	asm_result = D_MipLevelForScale_asm486 (scale);
-	if ((unsigned)c_result != expected || (unsigned)asm_result != expected)
+	public_result = D_MipLevelForScale (scale);
+	if ((unsigned)c_result != expected || (unsigned)asm_result != expected ||
+			(unsigned)public_result != expected)
 	{
 		bench486_memory_failures++;
-		Bench486Printf ("mip %s correctness FAIL scale %.6f expected %u c %d asm %d\n",
-				name, scale, expected, c_result, asm_result);
+		Bench486Printf ("mip %s correctness FAIL scale %.6f expected %u c %d asm-helper %d public %d\n",
+				name, scale, expected, c_result, asm_result, public_result);
 		return;
 	}
 
@@ -3792,6 +5274,320 @@ static void Bench486MipCases (void)
 	d_minmip = saved_minmip;
 }
 
+#ifdef ASM486_SURFACE_ZGRADIENTS
+static void Bench486SurfaceZGradientCases (void)
+{
+	static mplane_t planes[3];
+	static entity_t entities[2];
+	static surf_t c_surface, asm_surface;
+	static const int plane_indices[8] = { 0, 0, 1, 1, 1, 2, 2, 2 };
+	static const int frame_offsets[8] = { 0, 0, 0, 1, 1, 1, 2, 2 };
+	static const int entity_indices[8] = { 0, 0, 0, 0, 1, 1, 1, 1 };
+	float saved_modelorg[3], saved_vright[3], saved_vup[3], saved_vpn[3];
+	float saved_xscaleinv, saved_yscaleinv, saved_xcenter, saved_ycenter;
+	entity_t *saved_entity;
+	surf_t *saved_surface;
+	int saved_frame;
+	unsigned short original_cw, test_cw, c_after_cw, asm_after_cw;
+	int mode, step, failures, cases;
+
+	saved_entity = currententity;
+	saved_surface = surface_p;
+	saved_frame = r_framecount;
+	Q_memcpy (saved_modelorg, modelorg, sizeof(saved_modelorg));
+	Q_memcpy (saved_vright, vright, sizeof(saved_vright));
+	Q_memcpy (saved_vup, vup, sizeof(saved_vup));
+	Q_memcpy (saved_vpn, vpn, sizeof(saved_vpn));
+	saved_xscaleinv = xscaleinv;
+	saved_yscaleinv = yscaleinv;
+	saved_xcenter = xcenter;
+	saved_ycenter = ycenter;
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (original_cw));
+
+	Q_memset (planes, 0, sizeof(planes));
+	Q_memset (entities, 0, sizeof(entities));
+	planes[0].normal[0] = 0.25f;
+	planes[0].normal[1] = -0.5f;
+	planes[0].normal[2] = 1.25f;
+	planes[0].dist = 5.5f;
+	planes[1].normal[0] = -0.75f;
+	planes[1].normal[1] = 0.125f;
+	planes[1].normal[2] = 0.625f;
+	planes[1].dist = 4.25f;
+	planes[2].normal[0] = 1.5f;
+	planes[2].normal[1] = 0.375f;
+	planes[2].normal[2] = -0.25f;
+	planes[2].dist = 6.75f;
+
+	failures = 0;
+	cases = 0;
+	for (mode=0 ; mode<4 && !failures ; mode++)
+	{
+		test_cw = (original_cw & (unsigned short)~0x0c00) |
+				(unsigned short)(mode << 10);
+		r_zgradient_asm_cache_frame = 0;
+		r_zgradient_asm_cache_plane = NULL;
+		r_zgradient_asm_cache_entity = NULL;
+		r_zgradient_asm_cache_zistepu = 0.0f;
+		r_zgradient_asm_cache_zistepv = 0.0f;
+		r_zgradient_asm_cache_ziorigin = 0.0f;
+
+		for (step=0 ; step<8 && !failures ; step++)
+		{
+			/* Same plane/entity/frame at step 1 must hit even though the plane
+			 * contents and the other inputs changed after step 0. */
+			if (step == 1)
+			{
+				planes[0].normal[0] = -1.125f;
+				planes[0].normal[1] = 0.875f;
+				planes[0].normal[2] = 0.25f;
+				planes[0].dist = 9.125f;
+			}
+
+			currententity = &entities[entity_indices[step]];
+			r_framecount = 0x13570000 + mode * 16 + frame_offsets[step];
+			modelorg[0] = 0.125f * (step + 1);
+			modelorg[1] = -0.1875f * (step + 2);
+			modelorg[2] = 0.3125f * (step + 3);
+			vright[0] = 0.75f - 0.03125f * step;
+			vright[1] = -0.25f + 0.015625f * step;
+			vright[2] = 0.125f + 0.0078125f * step;
+			vup[0] = -0.125f + 0.01171875f * step;
+			vup[1] = 0.875f - 0.0234375f * step;
+			vup[2] = 0.25f + 0.01953125f * step;
+			vpn[0] = 0.1875f + 0.015625f * step;
+			vpn[1] = -0.3125f + 0.0078125f * step;
+			vpn[2] = 0.9375f - 0.02734375f * step;
+			xscaleinv = 0.625f + 0.03125f * step;
+			yscaleinv = 0.8125f - 0.015625f * step;
+			xcenter = 160.25f + 0.125f * step;
+			ycenter = 99.75f - 0.1875f * step;
+
+			Q_memset (&c_surface, 0xa5, sizeof(c_surface));
+			surface_p = &c_surface;
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			R_SetSurfaceZGradients_C (&planes[plane_indices[step]]);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (c_after_cw));
+
+			Q_memset (&asm_surface, 0xa5, sizeof(asm_surface));
+			surface_p = &asm_surface;
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			R_SetSurfaceZGradients_asm486 (&planes[plane_indices[step]]);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (asm_after_cw));
+			cases++;
+
+			if (Q_memcmp (&c_surface, &asm_surface, sizeof(c_surface)) != 0 ||
+					c_after_cw != test_cw || asm_after_cw != test_cw)
+			{
+				failures++;
+				Bench486Printf ("z-gradient parity FAIL rounding %d case %d c %.9g %.9g %.9g asm %.9g %.9g %.9g cw %04x/%04x expected %04x\n",
+						mode, step, c_surface.d_ziorigin, c_surface.d_zistepu,
+						c_surface.d_zistepv, asm_surface.d_ziorigin,
+						asm_surface.d_zistepu, asm_surface.d_zistepv,
+						c_after_cw, asm_after_cw, test_cw);
+			}
+		}
+	}
+
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	surface_p = saved_surface;
+	currententity = saved_entity;
+	r_framecount = saved_frame;
+	Q_memcpy (modelorg, saved_modelorg, sizeof(saved_modelorg));
+	Q_memcpy (vright, saved_vright, sizeof(saved_vright));
+	Q_memcpy (vup, saved_vup, sizeof(saved_vup));
+	Q_memcpy (vpn, saved_vpn, sizeof(saved_vpn));
+	xscaleinv = saved_xscaleinv;
+	yscaleinv = saved_yscaleinv;
+	xcenter = saved_xcenter;
+	ycenter = saved_ycenter;
+	bench486_memory_failures += failures;
+	Bench486Printf ("surface Z-gradient parity %s (%d plane/cache/rounding cases; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", cases, failures);
+}
+#endif
+
+#ifdef ASM486_SURFACE_GRADIENTS
+typedef struct
+{
+	float	steps_and_origins[6];
+	fixed16_t	texture_bounds[4];
+} bench486_surface_gradient_result_t;
+
+extern byte d_texaxis_cache_asm[];
+
+static void Bench486CaptureSurfaceGradients (
+	bench486_surface_gradient_result_t *result)
+{
+	Q_memset (result, 0, sizeof(*result));
+	result->steps_and_origins[0] = d_sdivzstepu;
+	result->steps_and_origins[1] = d_tdivzstepu;
+	result->steps_and_origins[2] = d_sdivzstepv;
+	result->steps_and_origins[3] = d_tdivzstepv;
+	result->steps_and_origins[4] = d_sdivzorigin;
+	result->steps_and_origins[5] = d_tdivzorigin;
+	result->texture_bounds[0] = sadjust;
+	result->texture_bounds[1] = tadjust;
+	result->texture_bounds[2] = bbextents;
+	result->texture_bounds[3] = bbextentt;
+}
+
+static void Bench486SurfaceGradientCases (void)
+{
+	static mtexinfo_t texinfos[2];
+	static msurface_t faces[2];
+	static entity_t entities[2];
+	float saved_transformed_modelorg[3];
+	float saved_vright[3], saved_vup[3], saved_vpn[3];
+	float saved_mip_xscale[4], saved_mip_yscale[4];
+	float saved_xscaleinv, saved_yscaleinv, saved_xcenter, saved_ycenter;
+	entity_t *saved_entity;
+	int saved_frame, saved_mip;
+	unsigned short original_cw, test_cw, c_after_cw, asm_after_cw;
+	int mode, step, axis, mip, failures, cases, texinfo_index;
+	bench486_surface_gradient_result_t c_result, asm_result;
+
+	saved_entity = currententity;
+	saved_frame = r_framecount;
+	saved_mip = d_gradient_miplevel;
+	Q_memcpy (saved_transformed_modelorg, transformed_modelorg,
+			sizeof(saved_transformed_modelorg));
+	Q_memcpy (saved_vright, vright, sizeof(saved_vright));
+	Q_memcpy (saved_vup, vup, sizeof(saved_vup));
+	Q_memcpy (saved_vpn, vpn, sizeof(saved_vpn));
+	Q_memcpy (saved_mip_xscale, d_mip_xscale, sizeof(saved_mip_xscale));
+	Q_memcpy (saved_mip_yscale, d_mip_yscale, sizeof(saved_mip_yscale));
+	saved_xscaleinv = xscaleinv;
+	saved_yscaleinv = yscaleinv;
+	saved_xcenter = xcenter;
+	saved_ycenter = ycenter;
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (original_cw));
+
+	Q_memset (texinfos, 0, sizeof(texinfos));
+	Q_memset (faces, 0, sizeof(faces));
+	Q_memset (entities, 0, sizeof(entities));
+	for (axis=0 ; axis<2 ; axis++)
+	{
+		faces[axis].texinfo = &texinfos[axis];
+		faces[axis].texturemins[0] = (short)(-37 + axis * 19);
+		faces[axis].texturemins[1] = (short)(53 - axis * 29);
+		faces[axis].extents[0] = (short)(257 + axis * 131);
+		faces[axis].extents[1] = (short)(511 - axis * 73);
+	}
+
+	Q_memset (d_texaxis_cache_asm, 0, (d_texaxis_cache_mask + 1) * 36);
+	failures = 0;
+	cases = 0;
+	for (mode=0 ; mode<4 && !failures ; mode++)
+	{
+		test_cw = (original_cw & (unsigned short)~0x0c00) |
+				(unsigned short)(mode << 10);
+		Q_memset (d_texaxis_cache_asm, 0, (d_texaxis_cache_mask + 1) * 36);
+
+		for (step=0 ; step<5 && !failures ; step++)
+		{
+			texinfo_index = step == 4 ? 1 : 0;
+			mip = step & 3;
+			d_gradient_miplevel = mip;
+			xscaleinv = 0.625f + mode * 0.046875f;
+			yscaleinv = 0.8125f - mode * 0.03125f;
+			for (axis=0 ; axis<4 ; axis++)
+			{
+				d_mip_xscale[axis] = xscaleinv * d_mipscale_values[axis];
+				d_mip_yscale[axis] = yscaleinv * d_mipscale_values[axis];
+			}
+			xcenter = 159.75f + step * 0.1875f;
+			ycenter = 101.125f - step * 0.21875f;
+			for (axis=0 ; axis<3 ; axis++)
+			{
+				vright[axis] = 0.75f - axis * 0.21875f +
+						mode * 0.0078125f + step * 0.00390625f;
+				vup[axis] = -0.125f + axis * 0.328125f -
+						mode * 0.00390625f + step * 0.005859375f;
+				vpn[axis] = 0.1875f + axis * 0.2421875f +
+						mode * 0.005859375f - step * 0.0078125f;
+				transformed_modelorg[axis] = 0.09375f * (axis + 2) -
+						mode * 0.015625f + step * 0.0234375f;
+			}
+			for (axis=0 ; axis<4 ; axis++)
+			{
+				texinfos[texinfo_index].vecs[0][axis] =
+						0.1171875f * (axis + 1) - step * 0.00390625f;
+				texinfos[texinfo_index].vecs[1][axis] =
+						-0.0859375f * (axis + 2) + mode * 0.005859375f;
+			}
+			if (step == 1)
+			{
+				/* Same keys as step 0: both implementations must reuse axes. */
+				texinfos[0].vecs[0][0] += 4.0f;
+				texinfos[0].vecs[1][1] -= 3.0f;
+			}
+			currententity = &entities[step == 2 ? 1 : 0];
+			r_framecount = 0x23510000 + mode * 16 + (step >= 3 ? 1 : 0);
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			D_CalcGradients_C (&faces[texinfo_index]);
+			Bench486CaptureSurfaceGradients (&c_result);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (c_after_cw));
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			D_CalcGradients_asm486 (&faces[texinfo_index]);
+			Bench486CaptureSurfaceGradients (&asm_result);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (asm_after_cw));
+			cases++;
+
+			if (Q_memcmp (&c_result, &asm_result, sizeof(c_result)) != 0 ||
+					c_after_cw != test_cw || asm_after_cw != test_cw)
+			{
+				failures++;
+				Bench486Printf ("surface-gradient parity FAIL rounding %d case %d mip %d\n",
+						mode, step, mip);
+				Bench486Printf ("  C steps %.10g %.10g %.10g %.10g origins %.10g %.10g bounds %ld %ld %ld %ld\n",
+						c_result.steps_and_origins[0],
+						c_result.steps_and_origins[1],
+						c_result.steps_and_origins[2],
+						c_result.steps_and_origins[3],
+						c_result.steps_and_origins[4],
+						c_result.steps_and_origins[5],
+						(long)c_result.texture_bounds[0],
+						(long)c_result.texture_bounds[1],
+						(long)c_result.texture_bounds[2],
+						(long)c_result.texture_bounds[3]);
+				Bench486Printf ("ASM steps %.10g %.10g %.10g %.10g origins %.10g %.10g bounds %ld %ld %ld %ld cw %04x/%04x expected %04x\n",
+						asm_result.steps_and_origins[0],
+						asm_result.steps_and_origins[1],
+						asm_result.steps_and_origins[2],
+						asm_result.steps_and_origins[3],
+						asm_result.steps_and_origins[4],
+						asm_result.steps_and_origins[5],
+						(long)asm_result.texture_bounds[0],
+						(long)asm_result.texture_bounds[1],
+						(long)asm_result.texture_bounds[2],
+						(long)asm_result.texture_bounds[3],
+						c_after_cw, asm_after_cw, test_cw);
+			}
+		}
+	}
+
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	currententity = saved_entity;
+	r_framecount = saved_frame;
+	d_gradient_miplevel = saved_mip;
+	Q_memcpy (transformed_modelorg, saved_transformed_modelorg,
+			sizeof(saved_transformed_modelorg));
+	Q_memcpy (vright, saved_vright, sizeof(saved_vright));
+	Q_memcpy (vup, saved_vup, sizeof(saved_vup));
+	Q_memcpy (vpn, saved_vpn, sizeof(saved_vpn));
+	Q_memcpy (d_mip_xscale, saved_mip_xscale, sizeof(saved_mip_xscale));
+	Q_memcpy (d_mip_yscale, saved_mip_yscale, sizeof(saved_mip_yscale));
+	xscaleinv = saved_xscaleinv;
+	yscaleinv = saved_yscaleinv;
+	xcenter = saved_xcenter;
+	ycenter = saved_ycenter;
+	bench486_memory_failures += failures;
+	Bench486Printf ("surface-gradient parity %s (%d cache/mip/rounding cases; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", cases, failures);
+}
+#endif
+
 static void Bench486LineCase (char *name, int iterations,
 		fixed8_t startu, fixed8_t startv, fixed8_t endu, fixed8_t endv)
 {
@@ -3814,18 +5610,283 @@ static void Bench486LineCase (char *name, int iterations,
 			name, iterations, elapsed, rate, checksum);
 }
 
+#ifdef ASM486_FILLRECT
+typedef void (*bench486_fillrect_fn_t) (vrect_t *rect, int color);
+
+static double Bench486MeasureFillRect (bench486_fillrect_fn_t function,
+		vrect_t *rect, unsigned bytes, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	Q_memset (vid.buffer, 0xa5, (int)bytes);
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (rect, i);
+	elapsed = Sys_FloatTime () - start;
+	*checksum = Bench486Checksum ((byte *)vid.buffer, (int)bytes);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+#endif
+
+#ifdef ASM486_ZPOINT
+static void Bench486ZPointCases (void)
+{
+	static short test_zbuffer[1024];
+	static byte test_viewbuffer[1024];
+	static float depths[9] = {
+		0.0, 0.1, 0.5, 0.99999, 1.0, -1.0, -0.1, 0.25, 0.25
+	};
+	static short initial_depths[9] = {
+		0, 4000, 16384, 32767, 32767, -1, 0, 9000, 8192
+	};
+	static int colors[9] = {
+		0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99
+	};
+	int original_scantable[16];
+	short *original_zspantable[16];
+	unsigned short original_cw, test_cw, after_cw;
+	short *original_pzbuffer;
+	pixel_t *original_viewbuffer;
+	unsigned int original_zwidth;
+	zpointdesc_t original_desc;
+	int test, rounding, failures, row;
+
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (original_cw));
+	original_desc = r_zpointdesc;
+	original_pzbuffer = d_pzbuffer;
+	original_viewbuffer = d_viewbuffer;
+	original_zwidth = d_zwidth;
+	for (row=0 ; row<16 ; row++)
+	{
+		original_scantable[row] = d_scantable[row];
+		original_zspantable[row] = zspantable[row];
+		d_scantable[row] = row * 64;
+		zspantable[row] = test_zbuffer + row * 64;
+	}
+	d_pzbuffer = test_zbuffer;
+	d_viewbuffer = (pixel_t *)test_viewbuffer;
+	d_zwidth = 64;
+	failures = 0;
+	for (rounding=0 ; rounding<4 ; rounding++)
+	{
+		test_cw = (original_cw & ~0x0c00) | (rounding << 10);
+		for (test=0 ; test<9 ; test++)
+		{
+			short *pz;
+			byte *pdest;
+			short c_z, asm_z, old_z;
+			byte c_pixel, asm_pixel, old_pixel;
+			int u, v;
+
+			u = 2 + test;
+			v = 2 + test;
+
+			r_zpointdesc.u = u;
+			r_zpointdesc.v = v;
+			r_zpointdesc.zi = depths[test];
+			r_zpointdesc.color = colors[test];
+			pz = zspantable[v] + u;
+			pdest = (byte *)d_viewbuffer + d_scantable[v] + u;
+			old_z = *pz;
+			old_pixel = *pdest;
+
+			*pz = initial_depths[test];
+			*pdest = 0xa5;
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			D_DrawZPoint_C ();
+			c_z = *pz;
+			c_pixel = *pdest;
+
+			*pz = initial_depths[test];
+			*pdest = 0xa5;
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			D_DrawZPoint ();
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (after_cw));
+			asm_z = *pz;
+			asm_pixel = *pdest;
+
+			*pz = old_z;
+			*pdest = old_pixel;
+			if (c_z != asm_z || c_pixel != asm_pixel || after_cw != test_cw)
+			{
+				failures++;
+				bench486_memory_failures++;
+				Bench486Printf ("zpoint parity FAIL round %d case %d c %d/%u asm %d/%u cw %04x/%04x\n",
+						rounding, test, c_z, c_pixel, asm_z, asm_pixel,
+						test_cw, after_cw);
+			}
+		}
+	}
+
+	r_zpointdesc = original_desc;
+	d_pzbuffer = original_pzbuffer;
+	d_viewbuffer = original_viewbuffer;
+	d_zwidth = original_zwidth;
+	for (row=0 ; row<16 ; row++)
+	{
+		d_scantable[row] = original_scantable[row];
+		zspantable[row] = original_zspantable[row];
+	}
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	Bench486Printf ("zpoint assembly parity %s (36 cases, four x87 rounding modes; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", failures);
+}
+#endif
+
 static void Bench486FillCase (void)
 {
 	vrect_t	rect;
 	int		i;
 	double		start, elapsed, rate;
 	unsigned	checksum;
+#ifdef ASM486_FILLRECT
+	unsigned	bytes;
+#endif
 
 	if (!vid.buffer)
 	{
 		Bench486Printf ("fill-rect skipped: no video buffer\n");
 		return;
 	}
+
+#ifdef ASM486_FILLRECT
+	// Compare the selected assembly renderer with the retained C oracle over
+	// clipping, byte rows, aligned dword rows, and the large-row path.
+	{
+		static int colors[8] = { 0, 1, 0x35, 0x7f, 0xa2, 0xfe, 0x10, 0xff };
+		unsigned c_checksum, asm_checksum;
+		volatile unsigned row_bytes_total;
+		int test, aligned_x, parity_failures, rows;
+
+		row_bytes_total = 0;
+		for (rows=0 ; rows<(int)vid.height ; rows++)
+			row_bytes_total += vid.rowbytes;
+		bytes = row_bytes_total;
+		parity_failures = 0;
+		for (test=0 ; test<8 ; test++)
+		{
+			rect.x = 0;
+			rect.y = 0;
+			rect.width = 8;
+			rect.height = 4;
+			switch (test)
+			{
+			case 0:
+				rect.width = vid.width;
+				rect.height = vid.height;
+				break;
+			case 1:
+				rect.x = -3;
+				rect.y = -2;
+				rect.width = 19;
+				rect.height = 13;
+				break;
+			case 2:
+				rect.x = (int)vid.width - 7;
+				rect.y = (int)vid.height - 5;
+				rect.width = 16;
+				rect.height = 12;
+				break;
+			case 3:
+				aligned_x = (-(int)(unsigned long)vid.buffer) & 3;
+				rect.x = aligned_x;
+				rect.width = 8;
+				rect.height = 5;
+				break;
+			case 4:
+				rect.x = 1;
+				rect.y = 2;
+				rect.width = 3;
+				rect.height = 5;
+				break;
+			case 5:
+				rect.width = 16;
+				rect.height = 3;
+				break;
+			case 6:
+				rect.x = (int)vid.width + 2;
+				break;
+			case 7:
+				rect.y = (int)vid.height + 1;
+				break;
+			}
+			rect.pnext = NULL;
+			Q_memset (vid.buffer, 0xa5, bytes);
+			D_FillRect_C (&rect, colors[test]);
+			c_checksum = Bench486Checksum ((byte *)vid.buffer, bytes);
+			Q_memset (vid.buffer, 0xa5, bytes);
+			D_FillRect (&rect, colors[test]);
+			asm_checksum = Bench486Checksum ((byte *)vid.buffer, bytes);
+			if (c_checksum != asm_checksum)
+			{
+				parity_failures++;
+				bench486_memory_failures++;
+				Bench486Printf ("fill-rect assembly parity FAIL case %d c %u asm %u\n",
+						test, c_checksum, asm_checksum);
+			}
+		}
+		Bench486Printf ("fill-rect assembly parity %s (8 cases)\n",
+				parity_failures ? "FAIL" : "PASS");
+	}
+
+	{
+		double c_samples[BENCH486_MEMORY_SAMPLES];
+		double asm_samples[BENCH486_MEMORY_SAMPLES];
+		double c_median, asm_median, delta;
+		unsigned c_checksum, asm_checksum;
+		int sample, i, iterations;
+
+		rect.x = 0;
+		rect.y = 0;
+		rect.width = vid.width;
+		rect.height = vid.height;
+		rect.pnext = NULL;
+		iterations = 256;
+		for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+		{
+			if (sample & 1)
+			{
+				asm_samples[sample] = Bench486MeasureFillRect (D_FillRect,
+						&rect, bytes, iterations, &asm_checksum);
+				c_samples[sample] = Bench486MeasureFillRect (D_FillRect_C,
+						&rect, bytes, iterations, &c_checksum);
+			}
+			else
+			{
+				c_samples[sample] = Bench486MeasureFillRect (D_FillRect_C,
+						&rect, bytes, iterations, &c_checksum);
+				asm_samples[sample] = Bench486MeasureFillRect (D_FillRect,
+						&rect, bytes, iterations, &asm_checksum);
+			}
+		}
+		Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+		Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+		c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+		asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+		delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("fill-rect full-screen checksum FAIL c %u asm %u\n",
+					c_checksum, asm_checksum);
+		}
+		Bench486Printf ("fill-rect full-screen %ux%u %d iterations %d samples\n",
+			vid.width, vid.height, iterations, BENCH486_MEMORY_SAMPLES);
+		Bench486Printf ("  c median %.6f sec checksum %u samples",
+			c_median, c_checksum);
+		for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+			Bench486Printf (" %.6f", c_samples[i]);
+		Bench486Printf ("\n");
+		Bench486Printf ("  asm median %.6f sec checksum %u samples",
+			asm_median, asm_checksum);
+		for (i=0 ; i<BENCH486_MEMORY_SAMPLES ; i++)
+			Bench486Printf (" %.6f", asm_samples[i]);
+		Bench486Printf ("\n  asm-vs-c median %.3f percent\n", delta);
+		return;
+	}
+#endif
 
 	rect.x = 0;
 	rect.y = 0;
@@ -4087,6 +6148,793 @@ static void Bench486FidelityCases (void)
 	Bench486FidelityAlias (64);
 }
 
+#ifdef ASM486_SKY_SPAN
+typedef void (*bench486_sky_span_fn_t) (byte *source, byte *dest, int count,
+		fixed16_t s, fixed16_t t, fixed16_t sstep, fixed16_t tstep);
+
+static double Bench486MeasureSkySpan (bench486_sky_span_fn_t function,
+		byte *source, byte *dest, int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (source, dest, 32, 0x003f8000, 0x005a4000,
+				0x00018000, -0x0000c000);
+	elapsed = Sys_FloatTime () - start;
+	*checksum = Bench486Checksum (dest, 32);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static void Bench486SkySpanCases (void)
+{
+	static byte source[32768];
+	static byte c_dest[32];
+	static byte asm_dest[32];
+	static const fixed16_t cases[][4] = {
+		{ 0, 0, 0, 0 },
+		{ 0x007f0000, 0x007f0000, 0x00010000, 0x00ff0000 },
+		{ 0x007e8000, 0x007e0000, 0x00018000, -0x00018000 },
+		{ -1, 0x00400000, 0x00010000, 0x00018000 },
+		{ 0x007f0000, 0x007f0000, -0x00010000, -0x00010000 },
+		{ 0x00800000, 0x00800000, -0x00018000, 0x00020000 },
+		{ 0x12345678, -123456789, 0x00008000, -0x00004000 },
+		{ -0x007f0000, -0x007f0000, 0x00010000, 0x00010000 }
+	};
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int count, test, pixel, i, sample, failures, case_count, iterations;
+
+	for (i=0 ; i<(int)sizeof(source) ; i++)
+		source[i] = (byte)(i * 37 + i / 17 + 11);
+
+	failures = 0;
+	case_count = 0;
+	for (count=1 ; count<=32 ; count++)
+	{
+		for (test=0 ; test<(int)(sizeof(cases)/sizeof(cases[0])); test++)
+		{
+			int s, t, sstep, tstep;
+
+			s = cases[test][0];
+			t = cases[test][1];
+			sstep = cases[test][2];
+			tstep = cases[test][3];
+			Q_memset (c_dest, 0xa5, sizeof(c_dest));
+			Q_memset (asm_dest, 0xa5, sizeof(asm_dest));
+			D_SkyDrawPixels_C_Bench (source, c_dest, count, s, t,
+					sstep, tstep);
+			D_SkyDrawPixels_asm486 (source, asm_dest, count, s, t,
+					sstep, tstep);
+			for (pixel=0 ; pixel<count ; pixel++)
+			{
+				if (c_dest[pixel] != asm_dest[pixel])
+				{
+					failures++;
+					bench486_memory_failures++;
+					Bench486Printf ("sky-span parity FAIL count %d case %d pixel %d c %u asm %u\n",
+							count, test, pixel, c_dest[pixel],
+							asm_dest[pixel]);
+					break;
+				}
+			}
+			case_count++;
+		}
+	}
+	Bench486Printf ("sky-span assembly parity %s (%d cases; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", case_count, failures);
+	if (failures)
+		return;
+
+	iterations = 15000;
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureSkySpan (
+					D_SkyDrawPixels_C_Bench, source, c_dest,
+					iterations, &c_checksum);
+			asm_samples[sample] = Bench486MeasureSkySpan (
+					D_SkyDrawPixels_asm486, source, asm_dest,
+					iterations, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureSkySpan (
+					D_SkyDrawPixels_asm486, source, asm_dest,
+					iterations, &asm_checksum);
+			c_samples[sample] = Bench486MeasureSkySpan (
+					D_SkyDrawPixels_C_Bench, source, c_dest,
+					iterations, &c_checksum);
+		}
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("sky-span timing checksum FAIL sample %d c %u asm %u\n",
+					sample, c_checksum, asm_checksum);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("sky-span timing %d pixels/call %d iterations %d samples %d\n",
+			32, iterations, BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			c_median, c_samples[0], c_samples[1], c_samples[2],
+			c_samples[3], c_samples[4]);
+	Bench486Printf ("  asm486 median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			asm_median, asm_samples[0], asm_samples[1], asm_samples[2],
+			asm_samples[3], asm_samples[4]);
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+
+static void Bench486SkyScanCases (void)
+{
+	static byte source[32768];
+	static byte c_buffer[320 * 200];
+	static byte asm_buffer[320 * 200];
+	static const int starts[6] = { 3, 12, 50, 90, 140, 230 };
+	static const int rows[6] = { 10, 22, 40, 60, 80, 100 };
+	static const int lengths[6] = { 1, 2, 31, 32, 33, 65 };
+	static const int coords[8][2] = {
+		{ 0, 0 }, { 159, 99 }, { 319, 199 }, { 160, 100 },
+		{ 12, 178 }, { 287, 15 }, { -7, 40 }, { 327, 210 }
+	};
+	espan_t spans[6];
+	byte *saved_viewbuffer;
+	byte *saved_skysource;
+	float saved_vpn[3], saved_vright[3], saved_vup[3];
+	float saved_skytime, saved_skyspeed, skytime_offset;
+	fixed16_t c_s, c_t, asm_s, asm_t;
+	unsigned saved_vid_width, saved_vid_height;
+	int saved_screenwidth, saved_vrect_width, saved_vrect_height;
+	unsigned short original_cw, test_cw;
+	int i, test, mode, pixel, coord, failures, cases, uv_cases;
+
+	saved_viewbuffer = d_viewbuffer;
+	saved_skysource = r_skysource;
+	saved_screenwidth = screenwidth;
+	saved_vid_width = vid.width;
+	saved_vid_height = vid.height;
+	saved_vrect_width = r_refdef.vrect.width;
+	saved_vrect_height = r_refdef.vrect.height;
+	saved_skytime = skytime;
+	saved_skyspeed = skyspeed;
+	Q_memcpy (saved_vpn, vpn, sizeof(saved_vpn));
+	Q_memcpy (saved_vright, vright, sizeof(saved_vright));
+	Q_memcpy (saved_vup, vup, sizeof(saved_vup));
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (original_cw));
+
+	for (i=0 ; i<(int)sizeof(source) ; i++)
+		source[i] = (byte)(i * 37 + i / 17 + 11);
+	for (i=0 ; i<6 ; i++)
+	{
+		spans[i].u = starts[i];
+		spans[i].v = rows[i];
+		spans[i].count = lengths[i];
+		spans[i].pnext = i < 5 ? &spans[i+1] : NULL;
+	}
+
+	screenwidth = 320;
+	vid.width = 320;
+	vid.height = 200;
+	r_refdef.vrect.width = 320;
+	r_refdef.vrect.height = 200;
+	r_skysource = source;
+	failures = 0;
+	cases = 0;
+	uv_cases = 0;
+
+	for (test=0 ; test<8 && !failures ; test++)
+	{
+		vpn[0] = 0.20f + test * 0.013f;
+		vpn[1] = -0.35f + test * 0.009f;
+		vpn[2] = 0.88f - test * 0.007f;
+		vright[0] = 0.91f - test * 0.005f;
+		vright[1] = 0.11f + test * 0.004f;
+		vright[2] = -0.08f + test * 0.003f;
+		vup[0] = -0.12f + test * 0.002f;
+		vup[1] = 0.89f - test * 0.006f;
+		vup[2] = 0.21f + test * 0.005f;
+		skytime = 0.037f * (test + 1);
+		skyspeed = 1.25f + 0.125f * test;
+
+		for (mode=0 ; mode<4 && !failures ; mode++)
+		{
+			test_cw = (original_cw & (unsigned short)~0x0c00) |
+					(unsigned short)(mode << 10);
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			skytime_offset = skytime * skyspeed;
+			for (coord=0 ; coord<8 ; coord++)
+			{
+				D_Sky_uv_To_st_C (coords[coord][0], coords[coord][1],
+						320.0f, skytime_offset, &c_s, &c_t);
+				D_SkyUVToST_asm486 (coords[coord][0], coords[coord][1],
+						320.0f, skytime_offset, &asm_s, &asm_t);
+				if (c_s != asm_s || c_t != asm_t)
+				{
+					failures++;
+					Bench486Printf ("sky UV parity FAIL test %d mode %d coord %d C %d,%d asm %d,%d\n",
+							test, mode, coord, c_s, c_t, asm_s, asm_t);
+					break;
+				}
+				uv_cases++;
+			}
+			if (failures)
+				break;
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (test_cw));
+			if (test_cw != (unsigned short)((original_cw &
+					(unsigned short)~0x0c00) | (unsigned short)(mode << 10)))
+			{
+				failures++;
+				Bench486Printf ("sky UV helper control-word changed in mode %d\n", mode);
+				break;
+			}
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			for (pixel=0 ; pixel<(int)sizeof(c_buffer) ; pixel++)
+			{
+				c_buffer[pixel] = (byte)0xa5;
+				asm_buffer[pixel] = (byte)0xa5;
+			}
+			d_viewbuffer = c_buffer;
+			D_DrawSkyScans8_C_Bench (spans);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (test_cw));
+			if (test_cw != (unsigned short)((original_cw &
+					(unsigned short)~0x0c00) | (unsigned short)(mode << 10)))
+			{
+				failures++;
+				Bench486Printf ("sky-scan C control-word changed in mode %d\n", mode);
+				break;
+			}
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			d_viewbuffer = asm_buffer;
+			D_DrawSkyScans8 (spans);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (test_cw));
+			if (test_cw != (unsigned short)((original_cw &
+					(unsigned short)~0x0c00) | (unsigned short)(mode << 10)))
+			{
+				failures++;
+				Bench486Printf ("sky-scan assembly control-word changed in mode %d\n", mode);
+				break;
+			}
+			for (pixel=0 ; pixel<(int)sizeof(c_buffer) ; pixel++)
+			{
+				if (c_buffer[pixel] != asm_buffer[pixel])
+				{
+					failures++;
+					Bench486Printf ("sky-scan parity FAIL test %d mode %d byte %d c %u asm %u\n",
+							test, mode, pixel, c_buffer[pixel], asm_buffer[pixel]);
+					break;
+				}
+			}
+			cases++;
+		}
+	}
+
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	d_viewbuffer = saved_viewbuffer;
+	r_skysource = saved_skysource;
+	screenwidth = saved_screenwidth;
+	vid.width = saved_vid_width;
+	vid.height = saved_vid_height;
+	r_refdef.vrect.width = saved_vrect_width;
+	r_refdef.vrect.height = saved_vrect_height;
+	skytime = saved_skytime;
+	skyspeed = saved_skyspeed;
+	Q_memcpy (vpn, saved_vpn, sizeof(saved_vpn));
+	Q_memcpy (vright, saved_vright, sizeof(saved_vright));
+	Q_memcpy (vup, saved_vup, sizeof(saved_vup));
+	bench486_memory_failures += failures;
+	Bench486Printf ("sky UV projection parity %s (%d coordinate/rounding cases; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", uv_cases, failures);
+	Bench486Printf ("sky-scan full routine parity %s (%d viewport/rounding cases; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", cases, failures);
+}
+#endif
+
+#ifdef ASM486_WARP_SCREEN
+typedef void (*bench486_warp_tables_fn_t) (byte **rowptr, int *column,
+		byte *viewbase, int screenwidth, int rowcount, int colcount,
+		int h, int w, int hdenominator, int wdenominator,
+		int x_origin, float hratio, float wratio);
+
+static unsigned Bench486WarpTablesChecksum (byte **rowptr, int *column,
+		int count)
+{
+	return Bench486Checksum ((byte *)rowptr,	count * sizeof(rowptr[0])) ^
+			Bench486Checksum ((byte *)column, count * sizeof(column[0]));
+}
+
+static double Bench486MeasureWarpTables (bench486_warp_tables_fn_t function,
+		byte **rowptr, int *column, byte *viewbase, int screenwidth,
+		int rowcount, int colcount, int h, int w, int hdenominator,
+		int wdenominator, int x_origin, float hratio, float wratio,
+		int iterations, unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (rowptr, column, viewbase, screenwidth, rowcount, colcount,
+				h, w, hdenominator, wdenominator, x_origin, hratio, wratio);
+	elapsed = Sys_FloatTime () - start;
+	*checksum = Bench486WarpTablesChecksum (rowptr, column, 512);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static int Bench486WarpTablesCases (byte *source)
+{
+	static byte *c_rows[512];
+	static byte *asm_rows[512];
+	static int c_columns[512];
+	static int asm_columns[512];
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned short original_cw, test_cw, c_after_cw, asm_after_cw;
+	unsigned c_checksum, asm_checksum;
+	int test, rounding, i, screen_w, screen_h, w, h;
+	int rowcount, colcount, x_origin, failures, cases;
+	int sample, iterations;
+	float hratio, wratio;
+	byte *viewbase;
+
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (original_cw));
+	failures = 0;
+	cases = 0;
+	for (test=0 ; test<256 ; test++)
+	{
+		screen_w = 16 + (test * 37) % 85;
+		screen_h = 16 + (test * 61) % 85;
+		w = 16 + (test * 43) % 85;
+		h = 16 + (test * 59) % 85;
+		rowcount = screen_h + 6;
+		colcount = screen_w + 6;
+		x_origin = (test % 31) - 15;
+		viewbase = source + (test % 32) * 512;
+
+		for (rounding=0 ; rounding<4 ; rounding++)
+		{
+			test_cw = (original_cw & ~0x0c00) | (rounding << 10);
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			hratio = h / (float)screen_h;
+			wratio = w / (float)screen_w;
+
+			for (i=0 ; i<512 ; i++)
+			{
+				c_rows[i] = (byte *)source;
+				asm_rows[i] = (byte *)source;
+				c_columns[i] = 0x5a5a5a5a;
+				asm_columns[i] = 0x5a5a5a5a;
+			}
+			D_WarpTables_C_Bench (c_rows, c_columns, viewbase, 320,
+					rowcount, colcount, h, w, h+6, w+6,
+					x_origin, hratio, wratio);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (c_after_cw));
+
+			__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+			D_WarpBuildTables_asm486 (asm_rows, asm_columns, viewbase, 320,
+					rowcount, colcount, h, w, h+6, w+6,
+					x_origin, hratio, wratio);
+			__asm__ __volatile__ ("fnstcw %0" : "=m" (asm_after_cw));
+			cases++;
+
+			if (c_after_cw != test_cw || asm_after_cw != test_cw)
+			{
+				failures++;
+				bench486_memory_failures++;
+				Bench486Printf ("warp-table x87 control-word FAIL case %d mode %d c 0x%x asm 0x%x expected 0x%x\n",
+						test, rounding, c_after_cw, asm_after_cw, test_cw);
+			}
+			for (i=0 ; i<512 ; i++)
+			{
+				if (c_rows[i] != asm_rows[i] ||
+						c_columns[i] != asm_columns[i])
+				{
+					failures++;
+					bench486_memory_failures++;
+					Bench486Printf ("warp-table parity FAIL case %d mode %d index %d row c 0x%lx asm 0x%lx column c %d asm %d\n",
+							test, rounding, i, (unsigned long)c_rows[i],
+							(unsigned long)asm_rows[i],
+							c_columns[i], asm_columns[i]);
+					break;
+				}
+			}
+		}
+		if (failures)
+			break;
+	}
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	Bench486Printf ("warp-screen table parity %s (%d cases; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", cases, failures);
+	if (failures)
+		return 0;
+
+	rowcount = 206;
+	colcount = 326;
+	h = 200;
+	w = 320;
+	viewbase = source;
+	hratio = h / 200.0;
+	wratio = w / 320.0;
+	iterations = 20;
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureWarpTables (
+					D_WarpTables_C_Bench, c_rows, c_columns, viewbase,
+					320, rowcount, colcount, h, w, h+6, w+6, 0,
+					hratio, wratio, iterations, &c_checksum);
+			asm_samples[sample] = Bench486MeasureWarpTables (
+					D_WarpBuildTables_asm486, asm_rows, asm_columns,
+					viewbase, 320, rowcount, colcount, h, w, h+6, w+6,
+					0, hratio, wratio, iterations, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureWarpTables (
+					D_WarpBuildTables_asm486, asm_rows, asm_columns,
+					viewbase, 320, rowcount, colcount, h, w, h+6, w+6,
+					0, hratio, wratio, iterations, &asm_checksum);
+			c_samples[sample] = Bench486MeasureWarpTables (
+					D_WarpTables_C_Bench, c_rows, c_columns, viewbase,
+					320, rowcount, colcount, h, w, h+6, w+6, 0,
+					hratio, wratio, iterations, &c_checksum);
+		}
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("warp-table timing checksum FAIL sample %d c %u asm %u\n",
+					sample, c_checksum, asm_checksum);
+			return 0;
+		}
+	}
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("warp-screen table timing %dx%d %d iterations %d samples\n",
+			320, 200, iterations, BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			c_median, c_samples[0], c_samples[1], c_samples[2],
+			c_samples[3], c_samples[4]);
+	Bench486Printf ("  asm486 median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			asm_median, asm_samples[0], asm_samples[1], asm_samples[2],
+			asm_samples[3], asm_samples[4]);
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+	return 1;
+}
+
+typedef void (*bench486_warp_pixels_fn_t) (byte *dest, byte **rowptr,
+		int *column, int *turb, int width, int height, int rowbytes);
+
+static double Bench486MeasureWarpPixels (bench486_warp_pixels_fn_t function,
+		byte *dest, byte **rowptr, int *column, int *turb,
+		int width, int height, int rowbytes, int iterations,
+		unsigned *checksum)
+{
+	double start, elapsed;
+	int i;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (dest, rowptr, column, turb, width, height, rowbytes);
+	elapsed = Sys_FloatTime () - start;
+	*checksum = Bench486Checksum (dest, height * rowbytes);
+	bench486_sink ^= *checksum;
+	return elapsed;
+}
+
+static void Bench486WarpScreenCases (void)
+{
+	static byte source[256 * 512];
+	static byte c_dest[80 * 16];
+	static byte asm_dest[80 * 16];
+	static byte *rowptr[256];
+	static int column[1024];
+	static int turb[512];
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int i, width, height, rowbytes, failures, case_count;
+	int sample, iterations;
+
+	for (i=0 ; i<(int)sizeof(source) ; i++)
+		source[i] = (byte)(i * 29 + i / 31 + 7);
+	for (i=0 ; i<256 ; i++)
+		rowptr[i] = source + i * 512;
+	for (i=0 ; i<1024 ; i++)
+		column[i] = (i * 19 + 11) & 511;
+	for (i=0 ; i<512 ; i++)
+		turb[i] = (i * 7 + 3) & 15;
+
+	if (!Bench486WarpTablesCases (source))
+		return;
+
+	failures = 0;
+	case_count = 0;
+	rowbytes = 80;
+	for (width=1 ; width<=64 ; width++)
+	{
+		for (height=1 ; height<=16 ; height++)
+		{
+			Q_memset (c_dest, 0xa5, sizeof(c_dest));
+			Q_memset (asm_dest, 0xa5, sizeof(asm_dest));
+			D_WarpPixels_C_Bench (c_dest, rowptr, column, turb,
+					width, height, rowbytes);
+			D_WarpPixels_asm486 (asm_dest, rowptr, column, turb,
+					width, height, rowbytes);
+			for (i=0 ; i<(int)sizeof(c_dest) ; i++)
+			{
+				if (c_dest[i] != asm_dest[i])
+				{
+					failures++;
+					bench486_memory_failures++;
+					Bench486Printf ("warp-screen parity FAIL width %d height %d byte %d c %u asm %u\n",
+							width, height, i, c_dest[i], asm_dest[i]);
+					break;
+				}
+			}
+			case_count++;
+		}
+	}
+	Bench486Printf ("warp-screen assembly parity %s (%d cases; %d mismatches)\n",
+			failures ? "FAIL" : "PASS", case_count, failures);
+	if (failures)
+		return;
+
+	iterations = 20;
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureWarpPixels (
+					D_WarpPixels_C_Bench, source, rowptr, column,
+					turb, 320, 200, 320, iterations, &c_checksum);
+			asm_samples[sample] = Bench486MeasureWarpPixels (
+					D_WarpPixels_asm486, source, rowptr, column,
+					turb, 320, 200, 320, iterations, &asm_checksum);
+		}
+		else
+		{
+			asm_samples[sample] = Bench486MeasureWarpPixels (
+					D_WarpPixels_asm486, source, rowptr, column,
+					turb, 320, 200, 320, iterations, &asm_checksum);
+			c_samples[sample] = Bench486MeasureWarpPixels (
+					D_WarpPixels_C_Bench, source, rowptr, column,
+					turb, 320, 200, 320, iterations, &c_checksum);
+		}
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("warp-screen timing checksum FAIL sample %d c %u asm %u\n",
+					sample, c_checksum, asm_checksum);
+			return;
+		}
+	}
+
+	Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+	Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+	c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+	asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+	delta = c_median > 0.0 ? (c_median - asm_median) / c_median * 100.0 : 0.0;
+	Bench486Printf ("warp-screen timing 320x200 %d iterations %d samples %d\n",
+			iterations, BENCH486_MEMORY_SAMPLES);
+	Bench486Printf ("  c median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			c_median, c_samples[0], c_samples[1], c_samples[2],
+			c_samples[3], c_samples[4]);
+	Bench486Printf ("  asm486 median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+			asm_median, asm_samples[0], asm_samples[1], asm_samples[2],
+			asm_samples[3], asm_samples[4]);
+	Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+}
+#endif
+
+#ifdef ASM486_SOLID_SURFACE
+#define BENCH486_SOLID_SURFACE_ROWS 8
+#define BENCH486_SOLID_SURFACE_WIDTH 128
+#define BENCH486_SOLID_SURFACE_SPANS 12
+#define BENCH486_SOLID_SURFACE_ITERATIONS 100000
+
+typedef void (*bench486_solid_surface_fn_t)(surf_t *surf, int color);
+
+static double Bench486MeasureSolidSurface (bench486_solid_surface_fn_t function,
+		surf_t *surface, int color, byte *buffer, int iterations,
+		unsigned *checksum)
+{
+	double start, elapsed;
+	unsigned sum;
+	int i;
+
+	start = Sys_FloatTime ();
+	for (i=0 ; i<iterations ; i++)
+		function (surface, color);
+	elapsed = Sys_FloatTime () - start;
+	sum = 0;
+	for (i=0 ; i<BENCH486_SOLID_SURFACE_ROWS * BENCH486_SOLID_SURFACE_WIDTH;
+			i += 17)
+		sum += buffer[i];
+	*checksum = sum;
+	bench486_sink ^= sum;
+	return elapsed;
+}
+
+static void Bench486SolidSurfaceCases (void)
+{
+	static byte c_pixels[BENCH486_SOLID_SURFACE_ROWS *
+			BENCH486_SOLID_SURFACE_WIDTH];
+	static byte asm_pixels[BENCH486_SOLID_SURFACE_ROWS *
+			BENCH486_SOLID_SURFACE_WIDTH];
+	static pixel_t *saved_rows[BENCH486_SOLID_SURFACE_ROWS];
+	static espan_t spans[BENCH486_SOLID_SURFACE_SPANS];
+	static surf_t surface;
+	static int starts[BENCH486_SOLID_SURFACE_SPANS] =
+			{1, 4, 10, 18, 26, 33, 45, 51, 60, 64, 89, 117};
+	static int counts[BENCH486_SOLID_SURFACE_SPANS] =
+			{1, 2, 7, 8, 9, 15, 16, 17, 31, 64, 0, -1};
+	static int colors[4] = {0, 1, 0x123456ab, -1};
+	double c_samples[BENCH486_MEMORY_SAMPLES];
+	double asm_samples[BENCH486_MEMORY_SAMPLES];
+	double c_median, asm_median, delta;
+	unsigned c_checksum, asm_checksum;
+	int i, row, color_index, sample, mismatch;
+
+	for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+	{
+		saved_rows[row] = viewspantable[row];
+		viewspantable[row] = (pixel_t *)c_pixels +
+				row * BENCH486_SOLID_SURFACE_WIDTH;
+	}
+	for (i=0 ; i<BENCH486_SOLID_SURFACE_SPANS ; i++)
+	{
+		spans[i].u = starts[i];
+		spans[i].v = i % BENCH486_SOLID_SURFACE_ROWS;
+		spans[i].count = counts[i];
+		spans[i].pnext = i + 1 < BENCH486_SOLID_SURFACE_SPANS ?
+				&spans[i + 1] : NULL;
+	}
+	surface.spans = spans;
+
+	mismatch = 0;
+	for (color_index=0 ; color_index<4 ; color_index++)
+	{
+		for (i=0 ; i<sizeof(c_pixels) ; i++)
+			c_pixels[i] = (byte)(i * 37 + color_index * 19 + 0x53);
+		Q_memcpy (asm_pixels, c_pixels, sizeof(c_pixels));
+		for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+			viewspantable[row] = (pixel_t *)c_pixels +
+					row * BENCH486_SOLID_SURFACE_WIDTH;
+		D_DrawSolidSurface_C (&surface, colors[color_index]);
+		for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+			viewspantable[row] = (pixel_t *)asm_pixels +
+					row * BENCH486_SOLID_SURFACE_WIDTH;
+		D_DrawSolidSurface (&surface, colors[color_index]);
+		if (Q_memcmp (c_pixels, asm_pixels, sizeof(c_pixels)) != 0)
+		{
+			bench486_memory_failures++;
+			mismatch++;
+			Bench486Printf ("solid-surface span parity FAIL color case %d\n",
+					color_index);
+		}
+	}
+	Bench486Printf ("solid-surface span parity %s (48 span operations; %d mismatches)\n",
+			mismatch ? "FAIL" : "PASS", mismatch);
+
+	for (i=0 ; i<sizeof(c_pixels) ; i++)
+	{
+		c_pixels[i] = (byte)(i * 11 + 0x31);
+		asm_pixels[i] = c_pixels[i];
+	}
+	for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+		viewspantable[row] = (pixel_t *)c_pixels +
+				row * BENCH486_SOLID_SURFACE_WIDTH;
+	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
+	{
+		if ((sample & 1) == 0)
+		{
+			c_samples[sample] = Bench486MeasureSolidSurface (
+					D_DrawSolidSurface_C, &surface, 0x5a,
+					c_pixels, BENCH486_SOLID_SURFACE_ITERATIONS,
+					&c_checksum);
+			for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+				viewspantable[row] = (pixel_t *)asm_pixels +
+						row * BENCH486_SOLID_SURFACE_WIDTH;
+			asm_samples[sample] = Bench486MeasureSolidSurface (
+					D_DrawSolidSurface, &surface, 0x5a,
+					asm_pixels, BENCH486_SOLID_SURFACE_ITERATIONS,
+					&asm_checksum);
+		}
+		else
+		{
+			for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+				viewspantable[row] = (pixel_t *)asm_pixels +
+						row * BENCH486_SOLID_SURFACE_WIDTH;
+			asm_samples[sample] = Bench486MeasureSolidSurface (
+					D_DrawSolidSurface, &surface, 0x5a,
+					asm_pixels, BENCH486_SOLID_SURFACE_ITERATIONS,
+					&asm_checksum);
+			for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+				viewspantable[row] = (pixel_t *)c_pixels +
+						row * BENCH486_SOLID_SURFACE_WIDTH;
+			c_samples[sample] = Bench486MeasureSolidSurface (
+					D_DrawSolidSurface_C, &surface, 0x5a,
+					c_pixels, BENCH486_SOLID_SURFACE_ITERATIONS,
+					&c_checksum);
+		}
+		if (c_checksum != asm_checksum)
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("solid-surface timing checksum FAIL sample %d\n",
+					sample);
+			break;
+		}
+	}
+
+	mismatch = Q_memcmp (c_pixels, asm_pixels, sizeof(c_pixels)) != 0;
+	if (mismatch)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("solid-surface timing framebuffer FAIL\n");
+	}
+	else if (!bench486_memory_failures)
+	{
+		Bench486SortSamples (c_samples, BENCH486_MEMORY_SAMPLES);
+		Bench486SortSamples (asm_samples, BENCH486_MEMORY_SAMPLES);
+		c_median = c_samples[BENCH486_MEMORY_SAMPLES / 2];
+		asm_median = asm_samples[BENCH486_MEMORY_SAMPLES / 2];
+		delta = c_median > 0.0 ?
+				(c_median - asm_median) / c_median * 100.0 : 0.0;
+		Bench486Printf ("solid-surface timing %d calls/sample (%d spans)\n",
+				BENCH486_SOLID_SURFACE_ITERATIONS,
+				BENCH486_SOLID_SURFACE_SPANS);
+		Bench486Printf ("  c median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+				c_median, c_samples[0], c_samples[1], c_samples[2],
+				c_samples[3], c_samples[4]);
+		Bench486Printf ("  asm486 median %.6f sec samples %.6f %.6f %.6f %.6f %.6f\n",
+				asm_median, asm_samples[0], asm_samples[1], asm_samples[2],
+				asm_samples[3], asm_samples[4]);
+		Bench486Printf ("  asm486-vs-c median %.3f percent\n", delta);
+	}
+
+	for (row=0 ; row<BENCH486_SOLID_SURFACE_ROWS ; row++)
+		viewspantable[row] = saved_rows[row];
+}
+#endif
+
+static void Bench486RenderPolys_f (void)
+{
+	int requested;
+
+	if (Cmd_Argc () != 2)
+	{
+		Con_Printf ("usage: bench486_renderpolys 0|1\n");
+		return;
+	}
+
+	requested = (Q_atoi (Cmd_Argv (1)) != 0);
+	r_drawpolys = false;
+	if (requested)
+	{
+		Con_Printf ("bench486_renderpolys: unavailable in the DOS span renderer; keeping edge scanning enabled\n");
+		return;
+	}
+
+	Con_Printf ("bench486_renderpolys: 0\n");
+}
+
 static void Bench486_f (void)
 {
 	bench486_report_handle = Sys_FileOpenWrite ("bench486.txt");
@@ -4094,6 +6942,102 @@ static void Bench486_f (void)
 		Con_Printf ("bench486: could not create bench486.txt\n");
 
 	Bench486Printf ("486 benchmark begin\n");
+	if (COM_CheckParm ("-benchsolidsurface"))
+	{
+#ifdef ASM486_SOLID_SURFACE
+		Bench486SolidSurfaceCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("solid-surface requires -SolidSurfaceImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchwarpscreen"))
+	{
+#ifdef ASM486_WARP_SCREEN
+		Bench486WarpScreenCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("warp-screen requires -WarpScreenImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchskyspan"))
+	{
+#ifdef ASM486_SKY_SPAN
+		Bench486SkySpanCases ();
+		Bench486SkyScanCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("sky-span requires -SkySpanImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchzpoint"))
+	{
+#ifdef ASM486_ZPOINT
+		Bench486ZPointCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("zpoint requires -ZPointImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchfillrect"))
+	{
+		Bench486FillCase ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchfidelity"))
 	{
 		Bench486Printf ("fidelity probes establish whether this emulator prices 486\n");
@@ -4162,11 +7106,68 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchmip"))
+	{
+		Bench486Printf ("mip-level entry experiment compares C and 486 x87 paths\n");
+		Bench486MipCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#ifdef ASM486_SURFACE_ZGRADIENTS
+	if (COM_CheckParm ("-benchzgradient"))
+	{
+		Bench486Printf ("surface Z-gradient experiment compares the C cache path\n");
+		Bench486Printf ("with the 486 x87 assembly entry across cache keys and rounding modes\n");
+		Bench486SurfaceZGradientCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
+	#ifdef ASM486_SURFACE_GRADIENTS
+	if (COM_CheckParm ("-benchsurfacegradients"))
+	{
+		Bench486Printf ("surface-gradient experiment compares C and 486 x87 assembly\n");
+		Bench486Printf ("with independent texture-axis caches across mip levels and rounding modes\n");
+		Bench486SurfaceGradientCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	#endif
 	if (COM_CheckParm ("-benchtextureanimation"))
 	{
 		Bench486Printf ("texture-animation experiment compares the C frame loop\n");
 		Bench486Printf ("with a register-only 486 pointer/branch loop\n");
 		Bench486TextureAnimationCases ();
+#ifdef ASM486_TEXTURE_ANIMATION
+		Bench486TextureAnimationEntryCases ();
+#endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
@@ -4229,6 +7230,66 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+#ifdef ASM486_LIGHTMAP_BUILD
+	if (COM_CheckParm ("-benchlightmapbuild"))
+	{
+		Bench486Printf ("lightmap-build experiment compares the C dispatcher\n");
+		Bench486Printf ("with the 486 assembly dispatcher and selected helpers\n");
+		Bench486LightMapBuildParity ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	if (COM_CheckParm ("-benchsurfacecache"))
+	{
+		Bench486Printf ("surface-cache experiment compares C and assembly fast paths\n");
+		Bench486SurfaceCacheCase ();
+		Bench486SurfaceCacheSetupCase ();
+		Bench486SurfaceCacheEntryParity ();
+		Bench486SurfaceAllocatorParity ();
+		Bench486SurfaceAttachTagParity ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
+#ifdef ASM486_SURFACE_DRAW
+	if (COM_CheckParm ("-benchsurfacedraw"))
+	{
+		Bench486Printf ("surface-draw experiment compares the full C setup and\n");
+		Bench486Printf ("i486 assembly entry across mip, wrap, and lightmap cases\n");
+		Bench486SurfaceDrawParity ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
 	if (COM_CheckParm ("-benchbspplanedot"))
 	{
 		Bench486Printf ("bsp-plane-dot experiment compares the C switch\n");
@@ -4280,6 +7341,25 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+#ifdef ASM486_TURBULENT_SCAN
+	if (COM_CheckParm ("-benchturbulentscan"))
+	{
+		Bench486Printf ("turbulent-scan experiment compares full C setup/interpolation\n");
+		Bench486Printf ("with the i486 assembly entry and selected shared pixel loop\n");
+		Bench486TurbulentScanParity ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
 	Bench486Printf ("memory experiment compares existing C helpers with\n");
 	Bench486Printf ("separate forward-copy and byte-fill 486 assembly paths\n");
 	Bench486MemoryCase ("copy-1", 1, 250000, false, 0, 0);
@@ -4307,15 +7387,25 @@ static void Bench486_f (void)
 	Bench486Printf ("surface-cache experiment compares the C cache-validity predicate\n");
 	Bench486Printf ("with the isolated 486 assembly fast-hit/miss predicate\n");
 	Bench486SurfaceCacheCase ();
+#ifdef ASM486_SURFACE_CACHE_CHECK
+	Bench486SurfaceCacheSetupCase ();
+	Bench486SurfaceCacheEntryParity ();
+#endif
 	Bench486Printf ("mip-level experiment compares the C threshold selector with\n");
 	Bench486Printf ("the isolated 486 x87 threshold selector\n");
 	Bench486MipCases ();
 	Bench486Printf ("turbulent-span experiment compares the C inner loop with\n");
 	Bench486Printf ("the current and optional STOSB 486 sequential-store loop\n");
 	Bench486TurbulentCases ();
+#ifdef ASM486_TURBULENT_SCAN
+	Bench486TurbulentScanParity ();
+#endif
 	Bench486Printf ("texture-animation experiment compares the C frame loop with\n");
 	Bench486Printf ("the register-only 486 pointer/branch loop\n");
 	Bench486TextureAnimationCases ();
+#ifdef ASM486_TEXTURE_ANIMATION
+	Bench486TextureAnimationEntryCases ();
+#endif
 	Bench486Printf ("lightmap-normalize experiment compares the C loop with\n");
 	Bench486Printf ("the register-based 486 pointer/count loop\n");
 	Bench486LightMapNormalizeCases ();
@@ -6255,5 +9345,6 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("mcache", Mod_Print);
 #ifdef BENCH486
 	Cmd_AddCommand ("bench486", Bench486_f);
+	Cmd_AddCommand ("bench486_renderpolys", Bench486RenderPolys_f);
 #endif
 }

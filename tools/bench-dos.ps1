@@ -2,6 +2,9 @@
 param(
     [switch]$SkipBuild,
     [switch]$NoBootstrap,
+    # Parity-only reference builds can contain C multiply sequences above i486.
+    # Keep the release ISA gate enabled; this is only for explicit C-helper A/Bs.
+    [switch]$SkipIsaAudit,
     [string]$ToolRoot,
     [string]$DataRoot,
     [ValidateSet('i486', 'i386')]
@@ -15,11 +18,31 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$SurfaceCacheImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$SurfaceDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceZGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SurfaceDispatcherImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$MipLevelImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MemoryImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$FillRectImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$ZPointImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$SkySpanImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$WarpScreenImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidSurfaceImplementation = 'c',
     [ValidateSet('c', 'asm', 'stosb')]
     [string]$TurbulentImplementation = 'stosb',
+    [ValidateSet('c', 'asm')]
+    [string]$TurbulentScanImplementation = 'c',
     [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
     [string]$TextureSpanStores = 'word',
     [ValidateSet('control', 'word')]
@@ -65,8 +88,12 @@ param(
     [string]$AliasBBoxProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
-    [ValidateSet('control', 'local')]
+    [ValidateSet('control', 'local', 'asm')]
     [string]$AliasPrepareImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasClipZImplementation = 'c',
     [ValidateSet('c', 'special')]
     [string]$AliasMatrixCompositionImplementation = 'special',
     [ValidateSet('c', 'asm')]
@@ -80,21 +107,67 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightOrchestrationImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DlightContributesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$LightMapBuildImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$BspPlaneDotImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
     [ValidateSet('control', 'local')]
     [string]$BspFrameCountImplementation = 'control',
+    [ValidateSet('c', 'asm')]
+    [string]$BspWalkImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderWorldImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderBmodelFaceImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$BmodelPolygonClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SolidClippedSubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EdgeDrawingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScanEdgesImplementation = 'c',
+    [ValidateSet('legacy', 'c', 'asm')]
+    [string]$EdgeListMaintenanceImplementation = 'legacy',
+    [ValidateSet('c', 'asm')]
+    [string]$BackwardSpansImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EfragStoreImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EmitCachedEdgeImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderPolyImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
+    [switch]$FillRectOnly,
+    [switch]$ZPointOnly,
+    [switch]$SkySpanOnly,
+    [switch]$WarpScreenOnly,
+    [switch]$SolidSurfaceOnly,
     [switch]$TurbulentOnly,
+    [switch]$TurbulentScanOnly,
     [switch]$AliasProjectOnly,
     [switch]$AliasBBoxProjectOnly,
     [switch]$AliasTransformFinalOnly,
+    [switch]$MipLevelOnly,
     [switch]$TextureAnimationOnly,
     [switch]$LightMapNormalizeOnly,
     [switch]$LightMapStylesOnly,
     [switch]$FusedLightMapOnly,
+    [switch]$LightMapBuildOnly,
+    [switch]$SurfaceCacheOnly,
+    [switch]$SurfaceDrawOnly,
+    [switch]$SurfaceZGradientOnly,
+    [switch]$SurfaceGradientOnly,
     [switch]$BspPlaneDotOnly,
     [switch]$BspClipOnly,
     [int]$TimeoutSeconds = 600
@@ -109,6 +182,18 @@ $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
 $DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 if ($TimeoutSeconds -lt 10) {
     throw 'TimeoutSeconds must be at least 10 seconds.'
+}
+if ($SurfaceCacheOnly -and $SurfaceCacheImplementation -ne 'asm') {
+    throw '-SurfaceCacheOnly requires -SurfaceCacheImplementation asm.'
+}
+if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
+    throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
+}
+if ($SurfaceZGradientOnly -and $SurfaceZGradientImplementation -ne 'asm') {
+    throw '-SurfaceZGradientOnly requires -SurfaceZGradientImplementation asm.'
+}
+if ($SurfaceGradientOnly -and $SurfaceGradientImplementation -ne 'asm') {
+    throw '-SurfaceGradientOnly requires -SurfaceGradientImplementation asm.'
 }
 if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
     throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
@@ -138,9 +223,19 @@ $buildParams = @{
         TextureAxisCacheEntries = $TextureAxisCacheEntries
         TextureAxisImplementation = $TextureAxisImplementation
         SurfaceCacheImplementation = $SurfaceCacheImplementation
+        SurfaceDrawImplementation = $SurfaceDrawImplementation
+        SurfaceZGradientImplementation = $SurfaceZGradientImplementation
+        SurfaceGradientImplementation = $SurfaceGradientImplementation
+        SurfaceDispatcherImplementation = $SurfaceDispatcherImplementation
         MipLevelImplementation = $MipLevelImplementation
         MemoryImplementation = $MemoryImplementation
+        FillRectImplementation = $FillRectImplementation
+        ZPointImplementation = $ZPointImplementation
+        SkySpanImplementation = $SkySpanImplementation
+        WarpScreenImplementation = $WarpScreenImplementation
+        SolidSurfaceImplementation = $SolidSurfaceImplementation
         TurbulentImplementation = $TurbulentImplementation
+        TurbulentScanImplementation = $TurbulentScanImplementation
         TextureSpanStores = $TextureSpanStores
         TextureSpanTailStores = $TextureSpanTailStores
         TextureSpanRowPath = $TextureSpanRowPath
@@ -161,18 +256,41 @@ $buildParams = @{
         AliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
         AliasTransformFinalImplementation = $AliasTransformFinalImplementation
         AliasPrepareImplementation = $AliasPrepareImplementation
+        AliasClipImplementation = $AliasClipImplementation
+        AliasClipZImplementation = $AliasClipZImplementation
         AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
         TextureAnimationImplementation = $TextureAnimationImplementation
         LightMapNormalizeImplementation = $LightMapNormalizeImplementation
         LightMapStylesImplementation = $LightMapStylesImplementation
         FusedLightMapImplementation = $FusedLightMapImplementation
         DynamicLightImplementation = $DynamicLightImplementation
+        DynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+        DlightContributesImplementation = $DlightContributesImplementation
+        LightMapBuildImplementation = $LightMapBuildImplementation
         BspPlaneDotImplementation = $BspPlaneDotImplementation
         BspClipImplementation = $BspClipImplementation
         BspFrameCountImplementation = $BspFrameCountImplementation
+        BspWalkImplementation = $BspWalkImplementation
+        RenderWorldImplementation = $RenderWorldImplementation
+        RenderFaceImplementation = $RenderFaceImplementation
+        RenderBmodelFaceImplementation = $RenderBmodelFaceImplementation
+        BmodelPolygonClipImplementation = $BmodelPolygonClipImplementation
+        SolidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
+        SubmodelPolygonsImplementation = $SubmodelPolygonsImplementation
+        EdgeDrawingImplementation = $EdgeDrawingImplementation
+        ScanEdgesImplementation = $ScanEdgesImplementation
+        EdgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
+        BackwardSpansImplementation = $BackwardSpansImplementation
+        EfragStoreImplementation = $EfragStoreImplementation
+        EmitCachedEdgeImplementation = $EmitCachedEdgeImplementation
+        RenderPolyImplementation = $RenderPolyImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
         ToolRoot = $ToolRoot
     }
+
+if ($SkipIsaAudit) {
+    $buildParams['SkipIsaAudit'] = $true
+}
 
 # Ask the builder where the output lands instead of recomputing the profile
 # suffix here.  This runner used to carry its own copy of that arithmetic, and so
@@ -238,6 +356,21 @@ $stagedData = $staging.StagedData
 $benchCommand = if ($AliasProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
 }
+elseif ($FillRectOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfillrect -benchexit'
+}
+elseif ($ZPointOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchzpoint -benchexit'
+}
+elseif ($SkySpanOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchskyspan -benchexit'
+}
+elseif ($WarpScreenOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchwarpscreen -benchexit'
+}
+elseif ($SolidSurfaceOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsolidsurface -benchexit'
+}
 elseif ($AliasBBoxProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasbboxproject -benchexit'
 }
@@ -253,17 +386,38 @@ elseif ($LightMapStylesOnly) {
 elseif ($FusedLightMapOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfusedlightmap -benchexit'
 }
+elseif ($LightMapBuildOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapbuild -benchexit'
+}
+elseif ($SurfaceCacheOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacecache -benchexit'
+}
+elseif ($SurfaceDrawOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacedraw -benchexit'
+}
+elseif ($SurfaceZGradientOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchzgradient -benchexit'
+}
+elseif ($SurfaceGradientOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacegradients -benchexit'
+}
 elseif ($BspClipOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchbspclip -benchexit'
 }
 elseif ($BspPlaneDotOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchbspplanedot -benchexit'
 }
+elseif ($MipLevelOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchmip -benchexit'
+}
 elseif ($TextureAnimationOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchtextureanimation -benchexit'
 }
 elseif ($TurbulentOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchturbulent -benchexit'
+}
+elseif ($TurbulentScanOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchturbulentscan -benchexit'
 }
 else {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchexit'
@@ -308,9 +462,20 @@ $result = [ordered]@{
     textureAxisCacheEntries = $TextureAxisCacheEntries
     textureAxisImplementation = $TextureAxisImplementation
     surfaceCacheImplementation = $SurfaceCacheImplementation
+    surfaceDrawImplementation = $SurfaceDrawImplementation
+    surfaceZGradientImplementation = $SurfaceZGradientImplementation
+    surfaceGradientImplementation = $SurfaceGradientImplementation
+    surfaceDispatcherImplementation = $SurfaceDispatcherImplementation
     mipLevelImplementation = $MipLevelImplementation
     memoryImplementation = $MemoryImplementation
+    fillRectImplementation = $FillRectImplementation
+    zPointImplementation = $ZPointImplementation
+    skySpanImplementation = $SkySpanImplementation
+    warpScreenImplementation = $WarpScreenImplementation
+    solidSurfaceImplementation = $SolidSurfaceImplementation
+    solidSurfaceOnly = [bool]$SolidSurfaceOnly
     turbulentImplementation = $TurbulentImplementation
+    turbulentScanImplementation = $TurbulentScanImplementation
     textureSpanStores = $TextureSpanStores
     textureSpanTailStores = $TextureSpanTailStores
     textureSpanRowPath = $TextureSpanRowPath
@@ -328,15 +493,34 @@ $result = [ordered]@{
     aliasBBoxProjectImplementation = $AliasBBoxProjectImplementation
     aliasTransformFinalImplementation = $AliasTransformFinalImplementation
     aliasPrepareImplementation = $AliasPrepareImplementation
+    aliasClipImplementation = $AliasClipImplementation
+    aliasClipZImplementation = $AliasClipZImplementation
     aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     lightMapStylesImplementation = $LightMapStylesImplementation
     fusedLightMapImplementation = $FusedLightMapImplementation
     dynamicLightImplementation = $DynamicLightImplementation
+    dynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    dlightContributesImplementation = $DlightContributesImplementation
+    lightMapBuildImplementation = $LightMapBuildImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
     bspFrameCountImplementation = $BspFrameCountImplementation
+    bspWalkImplementation = $BspWalkImplementation
+    renderWorldImplementation = $RenderWorldImplementation
+    renderFaceImplementation = $RenderFaceImplementation
+    renderBmodelFaceImplementation = $RenderBmodelFaceImplementation
+    bmodelPolygonClipImplementation = $BmodelPolygonClipImplementation
+    solidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
+    submodelPolygonsImplementation = $SubmodelPolygonsImplementation
+    edgeDrawingImplementation = $EdgeDrawingImplementation
+    scanEdgesImplementation = $ScanEdgesImplementation
+    edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
+    backwardSpansImplementation = $BackwardSpansImplementation
+    efragStoreImplementation = $EfragStoreImplementation
+    emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
+    renderPolyImplementation = $RenderPolyImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     turbulentOnly = [bool]$TurbulentOnly
     aliasProjectOnly = [bool]$AliasProjectOnly
@@ -346,7 +530,13 @@ $result = [ordered]@{
     lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly
     lightMapStylesOnly = [bool]$LightMapStylesOnly
     fusedLightMapOnly = [bool]$FusedLightMapOnly
+    lightMapBuildOnly = [bool]$LightMapBuildOnly
+    surfaceCacheOnly = [bool]$SurfaceCacheOnly
+    surfaceDrawOnly = [bool]$SurfaceDrawOnly
+    surfaceZGradientOnly = [bool]$SurfaceZGradientOnly
+    surfaceGradientOnly = [bool]$SurfaceGradientOnly
     bspPlaneDotOnly = [bool]$BspPlaneDotOnly
+    mipLevelOnly = [bool]$MipLevelOnly
     bspClipOnly = [bool]$BspClipOnly
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot

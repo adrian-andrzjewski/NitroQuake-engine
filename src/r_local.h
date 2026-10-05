@@ -103,6 +103,33 @@ extern	clipplane_t	view_clipplanes[4];
 //=============================================================================
 
 void R_RenderWorld (void);
+#ifdef ASM486_RENDER_WORLD
+void R_RenderWorld_asm486 (void);
+#ifdef BENCH486
+void R_RenderWorld_C (void);
+#endif
+#ifdef PROFILE486
+void R_RenderWorldProfileEnter_asm486 (void);
+void R_RenderWorldProfileWork_asm486 (unsigned long start);
+void R_RenderWorldProfileLeave_asm486 (void);
+#endif
+#endif
+
+void R_EdgeDrawing (void);
+#ifdef ASM486_EDGE_DRAWING
+void R_EdgeDrawing_asm486 (void);
+#ifdef BENCH486
+void R_EdgeDrawing_C (void);
+#endif
+#ifdef PROFILE486
+void R_EdgeDrawingProfileEnter_asm486 (void);
+void R_EdgeDrawingProfileLeave_asm486 (void);
+void R_EdgeDrawingProfileWorldStart_asm486 (void);
+void R_EdgeDrawingProfileWorldEnd_asm486 (void);
+void R_EdgeDrawingProfileBrushEnter_asm486 (void);
+void R_EdgeDrawingProfileBrushLeave_asm486 (void);
+#endif
+#endif
 
 //=============================================================================
 
@@ -135,18 +162,100 @@ extern	vec3_t			r_worldmodelorg;
 
 void R_DrawSprite (void);
 void R_RenderFace (msurface_t *fa, int clipflags);
+#ifdef ASM486_RENDER_FACE
+void R_RenderFace_asm486 (msurface_t *fa, int clipflags,
+	medge_t *pedges, int *psurfedges);
+void R_RenderFaceGradient_asm486 (mplane_t *plane);
+#ifdef BENCH486
+void R_RenderFace_C (msurface_t *fa, int clipflags);
+#endif
+#endif
 void R_RenderPoly (msurface_t *fa, int clipflags);
+#ifdef ASM486_RENDER_POLY
+void R_RenderPoly_asm486 (msurface_t *fa, int clipflags);
+#ifdef BENCH486
+void R_RenderPoly_C (msurface_t *fa, int clipflags);
+#endif
+#endif
 void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf);
+#ifdef ASM486_RENDER_BMODEL_FACE
+void R_RenderBmodelFace_asm486 (bedge_t *pedges, msurface_t *psurf);
+void R_RenderBmodelFaceGradient_asm486 (mplane_t *plane);
+#ifdef BENCH486
+void R_RenderBmodelFace_C (bedge_t *pedges, msurface_t *psurf);
+#endif
+#endif
 void R_TransformPlane (mplane_t *p, float *normal, float *dist);
 void R_TransformFrustum (void);
 void R_SetSkyFrame (void);
 void R_DrawSurfaceBlock16 (void);
 void R_DrawSurfaceBlock8 (void);
+void R_BuildLightMap (void);
+#if defined(ASM486_SURFACE_ZGRADIENTS)
+void R_SetSurfaceZGradients (mplane_t *plane);
+#endif
+#if defined(BENCH486) && defined(ASM486_SURFACE_ZGRADIENTS)
+void R_SetSurfaceZGradients_C (mplane_t *plane);
+void R_SetSurfaceZGradients_asm486 (mplane_t *plane);
+extern int r_zgradient_asm_cache_frame;
+extern mplane_t *r_zgradient_asm_cache_plane;
+extern entity_t *r_zgradient_asm_cache_entity;
+extern float r_zgradient_asm_cache_zistepu;
+extern float r_zgradient_asm_cache_zistepv;
+extern float r_zgradient_asm_cache_ziorigin;
+#endif
+#if defined(ASM486_SURFACE_DRAW) && defined(BENCH486)
+void R_DrawSurface_C (void);
+#endif
+#if defined(ASM486_SURFACE_DRAW) && defined(PROFILE486)
+void R_DrawSurfaceProfileBegin_asm486_C (void);
+void R_DrawSurfaceProfileAfterLightmap_asm486_C (void);
+void R_DrawSurfaceProfileCountBlocks_asm486_C (void);
+void R_DrawSurfaceProfileStartBlocks_asm486_C (void);
+void R_DrawSurfaceProfileFinish_asm486_C (void);
+#endif
 texture_t *R_TextureAnimation (texture_t *base);
 texture_t *R_TextureAnimationFrame_C (texture_t *base, int relative);
+#ifdef BENCH486
+texture_t *R_TextureAnimation_C (texture_t *base);
+#endif
 void R_BuildLightMapNormalize_C (unsigned *lights, int size);
 void R_AddDynamicLights_C (void);
+void R_AddDynamicLights (void);
 int R_DlightContributes (msurface_t *surf);
+#ifdef ASM486_DYNAMIC_LIGHT_PROJECTION
+#ifdef BENCH486
+int R_AddDynamicLightProject_C (int lnum, msurface_t *surf, int smax,
+	int tmax, float *local0, float *local1, int *local0_int,
+	int *local1_int, int *idist_limit, int *irad, int *all_lit);
+#endif
+int R_AddDynamicLightProject_asm486 (int lnum, msurface_t *surf, int smax,
+	int tmax, float *local0, float *local1, int *local0_int,
+	int *local1_int, int *idist_limit, int *irad, int *all_lit);
+#endif
+#ifdef ASM486_DYNAMIC_LIGHT_ORCHESTRATION
+int R_AddDynamicLightSamples_C (unsigned *lights, int smax, int tmax,
+	float local0, float local1, int idist_limit, int irad);
+#ifdef BENCH486
+void R_AddDynamicLightsOrchestration_C (void);
+#endif
+#endif
+#ifdef ASM486_DLIGHT_CONTRIBUTES
+int R_DlightContributes_asm486 (msurface_t *surf);
+#ifdef BENCH486
+int R_DlightContributes_C (msurface_t *surf);
+#endif
+#endif
+#if defined(BENCH486) && defined(ASM486_LIGHTMAP_BUILD)
+void R_BuildLightMap_C (void);
+#endif
+#ifdef ASM486_LIGHTMAP_BUILD
+extern unsigned blocklights[18*18];
+extern unsigned lightmap_single_table[256];
+extern unsigned lightmap_single_first;
+extern int lightmap_single_inverse_scale;
+extern qboolean lightmap_single_table_valid;
+#endif
 #ifdef BENCH486
 double R_RecursiveWorldNodePlaneDot_C (mplane_t *plane);
 int R_RecursiveWorldNodeClip_C (mnode_t *node, int clipflags);
@@ -156,6 +265,7 @@ void R_AliasTransformFinalVert_C (finalvert_t *fv, auxvert_t *av,
 	trivertx_t *pverts, stvert_t *pstverts);
 #endif
 #if id386
+texture_t *R_TextureAnimation_asm486 (texture_t *base);
 texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
 void R_BuildLightMapNormalize_asm486 (unsigned *lights, int size);
 int R_AddDynamicLightSamples_asm486 (unsigned *blocklights, int smax,
@@ -183,7 +293,32 @@ void R_GenSkyTile16 (void *pdest);
 void R_Surf8Patch (void);
 void R_Surf16Patch (void);
 void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags);
+#ifdef ASM486_DRAW_SUBMODEL_POLYGONS
+void R_DrawSubmodelPolygons_asm486 (model_t *pmodel, int clipflags);
+#ifdef BENCH486
+void R_DrawSubmodelPolygons_C (model_t *pmodel, int clipflags);
+#endif
+#ifdef PROFILE486
+void R_DrawSubmodelPolygonsProfileEntry_asm486 (int numsurfaces);
+void R_DrawSubmodelPolygonsProfileFaceEnter_asm486 (void);
+void R_DrawSubmodelPolygonsProfileFaceLeave_asm486 (void);
+#endif
+#endif
+#ifdef ASM486_BMODEL_POLYGON_CLIP
+void R_RecursiveClipBPoly_asm486 (bedge_t *pedges, mnode_t *pnode,
+		msurface_t *psurf);
+#ifdef BENCH486
+void R_RecursiveClipBPoly_C (bedge_t *pedges, mnode_t *pnode,
+		msurface_t *psurf);
+#endif
+#endif
 void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel);
+#ifdef ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS
+void R_DrawSolidClippedSubmodelPolygons_asm486 (model_t *pmodel);
+#ifdef BENCH486
+void R_DrawSolidClippedSubmodelPolygons_C (model_t *pmodel);
+#endif
+#endif
 
 void R_AddPolygonEdges (emitpoint_t *pverts, int numverts, int miplevel);
 surf_t *R_GetSurf (void);
@@ -199,10 +334,43 @@ void R_AliasProjectFinalVert_asm486 (finalvert_t *fv, auxvert_t *av);
 #endif
 void R_BeginEdgeFrame (void);
 void R_ScanEdges (void);
+#ifdef ASM486_SCAN_EDGES
+void R_ScanEdges_asm486 (void);
+#ifdef BENCH486
+void R_ScanEdges_C (void);
+#endif
+#ifdef PROFILE486
+void R_ScanEdgesProfileBegin_asm486 (double *start);
+void R_ScanEdgesProfileEnd_asm486 (double *start,
+		unsigned long scanline_start);
+#endif
+#endif
 void D_DrawSurfaces (void);
 void R_InsertNewEdges (edge_t *edgestoadd, edge_t *edgelist);
 void R_StepActiveU (edge_t *pedge);
 void R_RemoveEdges (edge_t *pedge);
+#ifdef ASM486_EDGE_LIST
+void R_InsertNewEdges_asm486 (edge_t *edgestoadd, edge_t *edgelist);
+void R_RemoveEdges_asm486 (edge_t *pedge);
+void R_StepActiveU_asm486 (edge_t *pedge);
+#ifdef BENCH486
+void R_InsertNewEdges_C (edge_t *edgestoadd, edge_t *edgelist);
+void R_RemoveEdges_C (edge_t *pedge);
+void R_StepActiveU_C (edge_t *pedge);
+#endif
+#endif
+#ifdef ASM486_BACKWARD_SPANS
+void R_CleanupSpan_asm486 (void);
+void R_LeadingEdgeBackwards_asm486 (edge_t *edge);
+void R_TrailingEdge_asm486 (surf_t *surf, edge_t *edge);
+void R_GenerateSpansBackward_asm486 (void);
+#ifdef BENCH486
+void R_CleanupSpan_C (void);
+void R_LeadingEdgeBackwards_C (edge_t *edge);
+void R_TrailingEdge_C (surf_t *surf, edge_t *edge);
+void R_GenerateSpansBackward_C (void);
+#endif
+#endif
 
 extern void R_Surf8Start (void);
 extern void R_Surf8End (void);
@@ -351,6 +519,13 @@ void R_SetupFrame (void);
 void R_AliasSetViewMatrix (void);
 void R_cshift_f (void);
 void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1);
+void R_EmitCachedEdge (void);
+#ifdef ASM486_EMIT_CACHED_EDGE
+void R_EmitCachedEdge_asm486 (void);
+#ifdef BENCH486
+void R_EmitCachedEdge_C (void);
+#endif
+#endif
 void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip);
 void R_SplitEntityOnNode2 (mnode_t *node);
 void R_MarkLights (dlight_t *light, int bit, mnode_t *node);

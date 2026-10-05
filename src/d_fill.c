@@ -21,7 +21,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+#ifdef ASM486_FILLRECT
+typedef char d_fillrect_vid_buffer_offset[
+		(__builtin_offsetof (viddef_t, buffer) == 0) ? 1 : -1];
+typedef char d_fillrect_vid_rowbytes_offset[
+		(__builtin_offsetof (viddef_t, rowbytes) == 16) ? 1 : -1];
+typedef char d_fillrect_vid_width_offset[
+		(__builtin_offsetof (viddef_t, width) == 20) ? 1 : -1];
+typedef char d_fillrect_vid_height_offset[
+		(__builtin_offsetof (viddef_t, height) == 24) ? 1 : -1];
+#define D_FillRect D_FillRect_C
+#endif
 
+#if !defined(ASM486_FILLRECT) || defined(BENCH486)
 /*
 ================
 D_FillRect
@@ -99,4 +111,9 @@ void D_FillRect (vrect_t *rect, int color)
 		}
 	}
 }
+#endif
+
+#ifdef ASM486_FILLRECT
+#undef D_FillRect
+#endif
 

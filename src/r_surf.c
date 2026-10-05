@@ -22,6 +22,98 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
+#ifdef ASM486_TEXTURE_ANIMATION
+#include <stddef.h>
+
+typedef char texture_animation_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char texture_animation_texture_layout[
+		(offsetof(texture_t, anim_total) == 24 &&
+		offsetof(texture_t, anim_min) == 28 &&
+		offsetof(texture_t, anim_max) == 32 &&
+		offsetof(texture_t, anim_next) == 36 &&
+		offsetof(texture_t, alternate_anims) == 40) ? 1 : -1];
+typedef char texture_animation_entity_frame_offset[
+		(offsetof(entity_t, frame) == 140) ? 1 : -1];
+typedef char texture_animation_client_time_offset[
+		(offsetof(client_state_t, time) == 572) ? 1 : -1];
+#endif
+
+#ifdef ASM486_SURFACE_DRAW
+#include <stddef.h>
+
+typedef char surface_draw_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char surface_draw_drawsurf_layout[
+		(offsetof(drawsurf_t, surfdat) == 0 &&
+		offsetof(drawsurf_t, rowbytes) == 4 &&
+		offsetof(drawsurf_t, surf) == 8 &&
+		offsetof(drawsurf_t, texture) == 28 &&
+		offsetof(drawsurf_t, surfmip) == 32 &&
+		offsetof(drawsurf_t, surfwidth) == 36 &&
+		offsetof(drawsurf_t, surfheight) == 40) ? 1 : -1];
+typedef char surface_draw_texture_layout[
+		(offsetof(texture_t, width) == 16 &&
+		offsetof(texture_t, height) == 20 &&
+		offsetof(texture_t, offsets) == 44 &&
+		sizeof(texture_t) == 60) ? 1 : -1];
+typedef char surface_draw_surface_layout[
+		(offsetof(msurface_t, texturemins) == 44 &&
+		offsetof(msurface_t, extents) == 48) ? 1 : -1];
+#endif
+
+#ifdef ASM486_LIGHTMAP_BUILD
+#include <stddef.h>
+
+typedef char lightmap_build_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char lightmap_build_drawsurf_surf_offset[
+		(offsetof(drawsurf_t, surf) == 8) ? 1 : -1];
+typedef char lightmap_build_drawsurf_lightadj_offset[
+		(offsetof(drawsurf_t, lightadj) == 12) ? 1 : -1];
+typedef char lightmap_build_surface_dlightframe_offset[
+		(offsetof(msurface_t, dlightframe) == 4) ? 1 : -1];
+typedef char lightmap_build_surface_extents_offset[
+		(offsetof(msurface_t, extents) == 48) ? 1 : -1];
+typedef char lightmap_build_surface_styles_offset[
+		(offsetof(msurface_t, styles) == 56) ? 1 : -1];
+typedef char lightmap_build_surface_samples_offset[
+		(offsetof(msurface_t, samples) == 60) ? 1 : -1];
+typedef char lightmap_build_client_worldmodel_offset[
+		(offsetof(client_state_t, worldmodel) == 2692) ? 1 : -1];
+typedef char lightmap_build_model_lightdata_offset[
+		(offsetof(model_t, lightdata) == 380) ? 1 : -1];
+typedef char lightmap_build_refdef_ambient_offset[
+		(offsetof(refdef_t, ambientlight) == 144) ? 1 : -1];
+typedef char lightmap_build_cvar_value_offset[
+		(offsetof(cvar_t, value) == 16) ? 1 : -1];
+typedef char lightmap_build_lightmap_constants[
+		(MAXLIGHTMAPS == 4 && VID_CBITS == 6 && MIPLEVELS == 4) ? 1 : -1];
+#endif
+
+#ifdef ASM486_DYNAMIC_LIGHT_PROJECTION
+#include <stddef.h>
+
+typedef char dynamic_light_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char dynamic_light_drawsurf_surf_offset[
+		(offsetof(drawsurf_t, surf) == 8) ? 1 : -1];
+typedef char dynamic_light_surface_dlightbits_offset[
+		(offsetof(msurface_t, dlightbits) == 8) ? 1 : -1];
+typedef char dynamic_light_surface_extents_offset[
+		(offsetof(msurface_t, extents) == 48) ? 1 : -1];
+typedef char dynamic_light_surface_plane_offset[
+		(offsetof(msurface_t, plane) == 12) ? 1 : -1];
+typedef char dynamic_light_surface_texturemins_offset[
+		(offsetof(msurface_t, texturemins) == 44) ? 1 : -1];
+typedef char dynamic_light_surface_texinfo_offset[
+		(offsetof(msurface_t, texinfo) == 52) ? 1 : -1];
+typedef char dynamic_light_plane_dist_offset[
+		(offsetof(mplane_t, dist) == 12) ? 1 : -1];
+typedef char dynamic_light_texinfo_vecs_offset[
+		(offsetof(mtexinfo_t, vecs) == 0) ? 1 : -1];
+typedef char dynamic_light_dlight_layout[
+		(offsetof(dlight_t, radius) == 12 &&
+		offsetof(dlight_t, minlight) == 24 &&
+		sizeof(dlight_t) == 32) ? 1 : -1];
+#endif
+
 drawsurf_t	r_drawsurf;
 
 int			r_dlight_contributed;
@@ -54,10 +146,17 @@ static void	(*surfmiptable[4])(void) = {
 
 
 unsigned		blocklights[18*18];
+#ifdef ASM486_LIGHTMAP_BUILD
+unsigned		lightmap_single_table[256];
+unsigned		lightmap_single_first;
+int				lightmap_single_inverse_scale;
+qboolean		lightmap_single_table_valid;
+#else
 static unsigned	lightmap_single_table[256];
 static unsigned	lightmap_single_first;
 static int		lightmap_single_inverse_scale;
 static qboolean	lightmap_single_table_valid;
+#endif
 
 /*
 ===============
@@ -173,6 +272,132 @@ void R_AddDynamicLights_C (void)
 	}
 }
 
+#ifdef ASM486_DYNAMIC_LIGHT_PROJECTION
+#ifdef BENCH486
+/*
+===============
+R_AddDynamicLightProject_C
+
+Keep the x87 projection and float-to-int conversions in a small C helper while
+the surrounding per-light orchestration moves to assembly. The returned float
+and integer coordinates let the independently selected C and ASM sample loops
+keep their original inputs.
+===============
+*/
+int R_AddDynamicLightProject_C (int lnum, msurface_t *surf, int smax, int tmax,
+		float *local0, float *local1, int *local0_int, int *local1_int,
+		int *idist_limit, int *irad, int *all_lit)
+{
+	float planedist, rad, fmin;
+	vec3_t impact, local;
+	int fmin_scaled, sd, td, idist, t;
+	dlight_t *dl;
+	mtexinfo_t *tex;
+
+	dl = &cl_dlights[lnum];
+	tex = surf->texinfo;
+	rad = dl->radius;
+	planedist = DotProduct (dl->origin, surf->plane->normal) -
+			surf->plane->dist;
+	rad -= fabs (planedist);
+	if (rad < dl->minlight)
+		return 0;
+	fmin = rad - dl->minlight;
+	*irad = (int)(rad * 256);
+	fmin_scaled = (int)ceil (fmin * 256);
+	*idist_limit = (fmin_scaled + 255) >> 8;
+
+	impact[0] = dl->origin[0] - surf->plane->normal[0]*planedist;
+	impact[1] = dl->origin[1] - surf->plane->normal[1]*planedist;
+	impact[2] = dl->origin[2] - surf->plane->normal[2]*planedist;
+	local[0] = DotProduct (impact, tex->vecs[0]) + tex->vecs[0][3];
+	local[1] = DotProduct (impact, tex->vecs[1]) + tex->vecs[1][3];
+	local[0] -= surf->texturemins[0];
+	local[1] -= surf->texturemins[1];
+	*local0 = local[0];
+	*local1 = local[1];
+	*local0_int = (int)local[0];
+	*local1_int = (int)local[1];
+
+	sd = *local0_int;
+	if (sd < 0)
+		sd = -sd;
+	t = *local0_int - (smax - 1)*16;
+	if (t < 0)
+		t = -t;
+	if (t > sd)
+		sd = t;
+	td = *local1_int;
+	if (td < 0)
+		td = -td;
+	t = *local1_int - (tmax - 1)*16;
+	if (t < 0)
+		t = -t;
+	if (t > td)
+		td = t;
+	if (sd > td)
+		idist = sd + (td>>1);
+	else
+		idist = td + (sd>>1);
+	*all_lit = (idist < *idist_limit);
+	return 1;
+}
+#endif
+#endif
+
+#ifdef ASM486_DYNAMIC_LIGHT_ORCHESTRATION
+/* C sample-loop reference used only when assembly owns the outer dlight loop. */
+int R_AddDynamicLightSamples_C (unsigned *lights, int smax, int tmax,
+		float local0, float local1, int idist_limit, int irad)
+{
+	unsigned *bl;
+	int contributed, sd, td, idist, s, t;
+
+	contributed = 0;
+	for (t=0 ; t<tmax ; t++)
+	{
+		td = local1 - t*16;
+		if (td < 0)
+			td = -td;
+		sd = local0;
+		bl = lights + t * smax;
+		for (s=0 ; s+3<smax ; s+=4)
+		{
+#define LIGHTMAP_DLIGHT_SAMPLE(index) \
+			if (sd < 0) idist = -sd; else idist = sd; \
+			sd -= 16; \
+			if (idist > td) idist += (td>>1); \
+			else idist = td + (idist>>1); \
+			if (idist < idist_limit) \
+			{ bl[index] += (unsigned)(irad - (idist << 8)); contributed = 1; }
+			LIGHTMAP_DLIGHT_SAMPLE (s)
+			LIGHTMAP_DLIGHT_SAMPLE (s+1)
+			LIGHTMAP_DLIGHT_SAMPLE (s+2)
+			LIGHTMAP_DLIGHT_SAMPLE (s+3)
+#undef LIGHTMAP_DLIGHT_SAMPLE
+		}
+		for ( ; s<smax ; s++)
+		{
+			if (sd < 0)
+				idist = -sd;
+			else
+				idist = sd;
+			sd -= 16;
+			if (idist > td)
+				idist += (td>>1);
+			else
+				idist = td + (idist>>1);
+			if (idist < idist_limit)
+			{
+				bl[s] += (unsigned)(irad - (idist << 8));
+				contributed = 1;
+			}
+		}
+	}
+	return contributed;
+}
+#endif
+
 /*
 ===============
 R_AddDynamicLights
@@ -182,7 +407,12 @@ an integer and walk `blocklights` with a row pointer so the 486 inner loop
 does not store through a reused float or IMUL the lightmap index.
 ===============
 */
+#if !defined(ASM486_DYNAMIC_LIGHT_ORCHESTRATION) || defined(BENCH486)
+#ifdef ASM486_DYNAMIC_LIGHT_ORCHESTRATION
+void R_AddDynamicLightsOrchestration_C (void)
+#else
 void R_AddDynamicLights (void)
+#endif
 {
 	msurface_t *surf;
 	int			lnum;
@@ -352,6 +582,7 @@ void R_AddDynamicLights (void)
 	}
 	r_dlight_contributed = contributed;
 }
+#endif
 
 /*
 ===============
@@ -410,7 +641,12 @@ any sample would add light.  Used by D_CacheSurface to skip phantom-mark
 rebuilds without changing lit output.
 ===============
 */
+#if !defined(ASM486_DLIGHT_CONTRIBUTES) || defined(BENCH486)
+#ifdef ASM486_DLIGHT_CONTRIBUTES
+int R_DlightContributes_C (msurface_t *surf)
+#else
 int R_DlightContributes (msurface_t *surf)
+#endif
 {
 	int			lnum;
 	int			sd, td, idist;
@@ -491,6 +727,7 @@ int R_DlightContributes (msurface_t *surf)
 
 	return 0;
 }
+#endif
 
 /*
 ===============
@@ -499,7 +736,12 @@ R_BuildLightMap
 Combine and scale multiple lightmaps into the 8.8 format in blocklights
 ===============
 */
+#if !defined(ASM486_LIGHTMAP_BUILD) || defined(BENCH486)
+#ifdef ASM486_LIGHTMAP_BUILD
+void R_BuildLightMap_C (void)
+#else
 void R_BuildLightMap (void)
+#endif
 {
 	int			smax, tmax;
 	int			i, size;
@@ -725,7 +967,11 @@ void R_BuildLightMap (void)
 	if (surf->dlightframe == r_framecount)
 	{
 		r_dlight_contributed = 0;
+#if defined(BENCH486) && defined(ASM486_DYNAMIC_LIGHT_ORCHESTRATION)
+		R_AddDynamicLightsOrchestration_C ();
+#else
 		R_AddDynamicLights ();
+#endif
 	}
 
 // bound, invert, and shift
@@ -735,6 +981,7 @@ void R_BuildLightMap (void)
 	R_BuildLightMapNormalize_C (blocklights, size);
 #endif
 }
+#endif
 
 
 /*
@@ -765,12 +1012,13 @@ texture_t *R_TextureAnimationFrame_C (texture_t *base, int relative)
 
 /*
 ===============
-R_TextureAnimation
+R_TextureAnimation_C
 
-Returns the proper texture for a given time and base texture
+Reference wrapper for animation selection and time conversion.
 ===============
 */
-texture_t *R_TextureAnimation (texture_t *base)
+#if !defined(ASM486_TEXTURE_ANIMATION) || !id386 || defined(BENCH486)
+static texture_t *R_TextureAnimation_C_Impl (texture_t *base)
 {
 	int		reletive;
 
@@ -785,12 +1033,114 @@ texture_t *R_TextureAnimation (texture_t *base)
 
 	reletive = (int)(cl.time*10) % base->anim_total;
 
-#if defined(ASM486_TEXTURE_ANIMATION) && id386
-	return R_TextureAnimationFrame_asm486 (base, reletive);
-#else
 	return R_TextureAnimationFrame_C (base, reletive);
+}
+#endif
+
+#ifdef BENCH486
+texture_t *R_TextureAnimation_C (texture_t *base)
+{
+	return R_TextureAnimation_C_Impl (base);
+}
+#endif
+
+/*
+===============
+R_TextureAnimation
+
+Returns the proper texture for a given time and base texture.
+===============
+*/
+texture_t *R_TextureAnimation (texture_t *base)
+{
+#if defined(ASM486_TEXTURE_ANIMATION) && id386
+	return R_TextureAnimation_asm486 (base);
+#else
+	return R_TextureAnimation_C_Impl (base);
 #endif
 }
+
+#if defined(ASM486_SURFACE_DRAW) && defined(PROFILE486)
+static double r_drawsurface_asm_profile_stage_start;
+static int r_drawsurface_asm_profile_active;
+
+void R_DrawSurfaceProfileBegin_asm486_C (void)
+{
+	r_drawsurface_asm_profile_active = bench486_profile_frame_active;
+	if (r_drawsurface_asm_profile_active)
+		r_drawsurface_asm_profile_stage_start = Sys_FloatTime ();
+}
+
+void R_DrawSurfaceProfileAfterLightmap_asm486_C (void)
+{
+	if (r_drawsurface_asm_profile_active)
+		bench486_surface_cache_lightmap_seconds += Sys_FloatTime () -
+				r_drawsurface_asm_profile_stage_start;
+}
+
+void R_DrawSurfaceProfileCountBlocks_asm486_C (void)
+{
+	int mip, u, v;
+	unsigned *top, *bottom;
+	unsigned tl, tr, bl, br;
+
+	if (!r_drawsurface_asm_profile_active)
+		return;
+
+	mip = r_drawsurf.surfmip & 3;
+	top = blocklights;
+	for (v=0 ; v<r_numvblocks ; v++)
+	{
+		bottom = top + r_lightwidth;
+		for (u=0 ; u<r_numhblocks ; u++)
+		{
+			bench486_surface_cache_mip_blocks[mip]++;
+			tl = top[u];
+			tr = top[u+1];
+			bl = bottom[u];
+			br = bottom[u+1];
+			bench486_surface_cache_mip_blocks_flat[mip]++;
+			if (tl == tr && bl == br)
+			{
+				bench486_surface_cache_horizontal_flat_blocks++;
+				bench486_surface_cache_horizontal_flat_per_mip[mip]++;
+			}
+			if (tl == bl && tr == br)
+				bench486_surface_cache_vertical_flat_blocks++;
+			if (tl == tr && tl == bl && tl == br)
+			{
+				bench486_surface_cache_flat_blocks++;
+				bench486_surface_cache_flat_blocks_per_mip[mip]++;
+			}
+		}
+		top = bottom;
+	}
+}
+
+void R_DrawSurfaceProfileStartBlocks_asm486_C (void)
+{
+	if (r_drawsurface_asm_profile_active)
+		r_drawsurface_asm_profile_stage_start = Sys_FloatTime ();
+}
+
+void R_DrawSurfaceProfileFinish_asm486_C (void)
+{
+	double elapsed;
+	int mip;
+
+	if (!r_drawsurface_asm_profile_active)
+		return;
+
+	elapsed = Sys_FloatTime () - r_drawsurface_asm_profile_stage_start;
+	bench486_surface_cache_block_seconds += elapsed;
+	if (r_drawsurf.surfmip >= 0 && r_drawsurf.surfmip < 4)
+	{
+		mip = r_drawsurf.surfmip;
+		bench486_surface_cache_mip_calls[mip]++;
+		bench486_surface_cache_mip_seconds[mip] += elapsed;
+	}
+}
+#endif
 
 
 /*
@@ -798,7 +1148,12 @@ texture_t *R_TextureAnimation (texture_t *base)
 R_DrawSurface
 ===============
 */
+#if !defined(ASM486_SURFACE_DRAW) || defined(BENCH486)
+#ifdef ASM486_SURFACE_DRAW
+void R_DrawSurface_C (void)
+#else
 void R_DrawSurface (void)
+#endif
 {
 	unsigned char	*basetptr;
 	int				smax, tmax, twidth;
@@ -1085,6 +1440,7 @@ unsigned long	bench486_lm_fused_maps[5];
 	}
 #endif
 }
+#endif
 
 
 //=============================================================================

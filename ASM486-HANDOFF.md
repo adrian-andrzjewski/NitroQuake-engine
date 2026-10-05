@@ -22,9 +22,85 @@ For the state of the work rather than its history, read these three, in order:
   build measures.
 - **Priority-ordered next steps** below -- what is still open, and why.
 
-The newest entry in the ledger is
-`docs/ledger/2026-10-03-isa-audit-and-i386-codepath.md`, "The 161 `imul r32,r/m32`
-sites are not strength-reducible".
+The newest entries in the ledger are
+[`docs/ledger/2026-10-05-edge-list-maintenance-assembly-port.md`](docs/ledger/2026-10-05-edge-list-maintenance-assembly-port.md),
+which records the selectable edge-list maintenance implementations,
+[`docs/ledger/2026-10-05-scan-edges-assembly-port.md`](docs/ledger/2026-10-05-scan-edges-assembly-port.md),
+which records the selectable assembly conversion of `R_ScanEdges`,
+[`docs/ledger/2026-10-05-edge-drawing-assembly-port.md`](docs/ledger/2026-10-05-edge-drawing-assembly-port.md),
+which records the selectable assembly conversion of `R_EdgeDrawing`,
+[`docs/ledger/2026-10-05-submodel-polygons-assembly-port.md`](docs/ledger/2026-10-05-submodel-polygons-assembly-port.md),
+which records the selectable assembly conversion of `R_DrawSubmodelPolygons`,
+[`docs/ledger/2026-10-05-efrag-store-assembly-port.md`](docs/ledger/2026-10-05-efrag-store-assembly-port.md),
+which records the selectable assembly conversion of `R_StoreEfrags`,
+[`docs/ledger/2026-10-05-bmodel-face-assembly-port.md`](docs/ledger/2026-10-05-bmodel-face-assembly-port.md),
+which records the selectable assembly conversion of `R_RenderBmodelFace`,
+[`docs/ledger/2026-10-05-renderface-assembly-port.md`](docs/ledger/2026-10-05-renderface-assembly-port.md),
+which records the selectable assembly conversion of world `R_RenderFace`, and
+[`docs/ledger/2026-10-05-world-bsp-assembly-port.md`](docs/ledger/2026-10-05-world-bsp-assembly-port.md),
+which records the recursive world-BSP walk. Earlier renderer stages are in
+[`docs/ledger/2026-10-04-renderer-assembler-port.md`](docs/ledger/2026-10-04-renderer-assembler-port.md).
+This port is ongoing; the performance convergence statement below does not mark
+the renderer conversion complete.
+
+The latest stages add selectable i486 assembly entries for
+`R_EdgeDrawing`, `R_DrawSubmodelPolygons`, `R_RenderBmodelFace`, world
+`R_RenderFace`, and `R_StoreEfrags`, with C
+implementations retained as references. The face paths share `R_ClipEdge` and
+the existing gradient selector. The combined BSP-walk, world-face, B-model,
+and efrag-store assembly selectors passed smoke and the pinned 969-frame
+timedemo with checksum `1047377823`; the single sample was `59.807619 s`, not
+an alternating comparison, so C remains the release default. The submodel ASM
+candidate passed smoke and the same pinned checksum in `58.258137 s`; the
+matching C candidate with the same other selectors passed in `59.170319 s`.
+Those are single samples, so C remains the release default. Live captures for
+the submodel comparison landed at different demo moments and are not visual
+parity evidence. The supplied page-fault screenshot still cannot be mapped to
+an exact staged binary. The earlier
+three-run assembly BSP-walk result passed the same checksum but was 0.8555%
+slower than C. The edge-drawing ASM entry passed smoke and the pinned checksum
+in `59.171652 s`; the C reference passed in `59.170319 s`. These single samples
+show no speed gain. Live captures showed coherent images without trails but
+landed at different moving-entity states. Brush-entity polygon clipping,
+`R_RenderPoly`, `R_ClipEdge`, and the broader render-time closure remain open.
+`R_ScanEdges` now has a selectable assembly loop: both C and ASM
+passed smoke and the 969-frame checksum `1047377823`; single timings were
+`59.170256 s` and `59.171266 s`, respectively, so C remains the default. A
+matched-frame visual comparison is still open. The reported page fault and
+frame smear are not root-caused; the mounted faulting executable is unknown.
+Active-edge maintenance now has `legacy|c|asm` choices. `legacy` preserves the
+original `id386` assembly as the build default; explicit C and replacement ASM
+both passed the pinned checksum (`1047377823`), with single samples of
+`59.216375 s` and `59.334247 s`. The replacement showed no speed gain, so keep
+the legacy path as default.
+
+`AliasClipImplementation=c|asm` now selects both the generic polygon clip pass
+and i486 `R_AliasClipTriangle` orchestration. The selector contract and DOS
+smoke passed; the release ISA count is 168 against 170 baseline, and the
+benchmark count is 172 against 173. Three C and three assembly timedemos each
+passed 969 frames with checksum `1047377823`. These runs were grouped by
+selector, so they do not establish a performance gain; keep C as default. The
+new triangle-orchestration revision has not had a matched-frame visual capture.
+The user's latest screenshot still does not map to a running or identified
+staged executable, so the reported clipping and vertex artifacts remain open.
+
+`AliasClipZImplementation=c|asm` now independently selects the Z-plane
+intersection callback and requires `AliasClipImplementation=asm`. The first
+callback attempt failed to produce a timedemo report; object inspection showed
+the assembly source had not received `ASM486_ALIAS_PROJECT`, so it called the C
+projector despite the assembly project selector. After adding that assembler
+define, the assembly callback passed release smoke, the i486 ISA gate, and one
+969-frame timedemo with checksum `1047377823`. Its single timing was slower than
+the C callback sample, so C remains the default. Visual acceptance is still
+open.
+
+The i486 release hash pin includes deliberate renderer-port changes. In the
+`Turbulent8` stage, `D_DrawTurbulent8Span_asm486` changed its post-decrement
+branch from `jnz` to signed `jg`, matching the C loop's `--count > 0` condition
+for zero and negative counts. The pin has since been re-recorded for reviewed
+renderer-port stages, including the public `R_TextureAnimation` assembly entry.
+The C `D_WarpScreen` and `D_DrawSkyScans8` default bodies remain emitted
+directly from their original C entries.
 
 ## Process rules
 
@@ -100,13 +176,14 @@ physical 486 variants.
 | Turbulent stores | Existing ASM 20.6--28.8% faster than C; `stosb` tied it in isolation | `stosb` 0.086207% faster than existing ASM | `stosb` default |
 | Alias projection (`R_AliasProjectFinalVert`) | 7.316--7.317% faster | 0.017696% faster | ASM default |
 | Texture animation (`R_TextureAnimationFrame`) | 1.052--31.999% faster | 0.009406% faster | ASM default |
+| Texture animation entry (`R_TextureAnimation`) | 2.666% faster than C over 500,000 calls | One exact-checksum run; no timing comparison | ASM default; full-entry port |
 | Lightmap normalization (`R_BuildLightMap`) | 9.447--9.969% faster | 0.0275% faster | ASM default |
 | Alias bbox projection (`R_AliasCheckBBox`) | 16.667--20.120% faster | 0.0264% faster | ASM default |
 | Clipped alias transform (`R_AliasTransformFinalVert`) | 20.000--25.218% faster | 0.150883% faster | ASM default |
 | Memory helpers (`Q_memset`/`Q_memcpy`) | About 4.6--64.4% faster by case | ~0.019% faster end-to-end on current 486 timedemo; checksum pass | **ASM default**; C reference |
 | Texture-axis predicate (`D_GetTextureAxes`) | 0.000% to -0.002% | Not promoted | C default |
 | Surface-cache predicate (`D_CacheSurface`) | 3.846--5.000% faster | 0.030% slower | C default |
-| Mip selector (`D_MipLevelForScale`) | Mixed: -8.697% to +7.143% | 0.0092% slower | C default |
+| Mip selector (`D_MipLevelForScale`) | Mixed: -8.697% to +7.143%; public ASM symbol | Single exact-checksum run; no timing comparison | C default |
 | BSP plane dot (`R_RecursiveWorldNode`) | Mixed: -13.334% to +21.052% | 0.0367% slower | C default |
 | BSP clipping (`R_RecursiveWorldNode`) | Mixed: -4.651% to +55.931% | 0.2749% slower | C default |
 | Span16 dword stores (`d_draw16.s`) | Checksum pass | Median 68.958760 s vs 68.958817 s (noise) | `byte` default; `dword` opt-in |

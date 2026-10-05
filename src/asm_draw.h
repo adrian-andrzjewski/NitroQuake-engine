@@ -42,6 +42,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define espan_t_pnext	12
 #define espan_t_size    16
 
+// refdef_t/r_refdef layout, pinned by r_edge.c for R_ScanEdges assembly.
+#define rd_vrect_x                  0
+#define rd_vrect_y                  4
+#define rd_vrect_width              8
+#define rd_vrect_height             12
+
 // sspan_t structure
 // !!! if this is changed, it must be changed in d_local.h too !!!
 #define sspan_t_u    	0
@@ -140,6 +146,54 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define rd_viewangles				124
 #define rd_ambientlight				136
 #define rd_size						140
+
+// R_BuildLightMap assembly entry layout. These offsets are checked against
+// offsetof() in r_surf.c whenever ASM486_LIGHTMAP_BUILD is selected.
+#define lm_drawsurf_surf			8
+#define lm_drawsurf_lightadj		12
+#define lm_surface_dlightframe		4
+#define lm_surface_extents			48
+#define lm_surface_styles			56
+#define lm_surface_samples			60
+#define lm_client_worldmodel		2692
+#define lm_model_lightdata			380
+#define lm_refdef_ambientlight		144
+#define lm_cvar_value				16
+
+// R_AddDynamicLights assembly orchestration layout, checked with offsetof()
+// whenever ASM486_DYNAMIC_LIGHT_ORCHESTRATION is selected.
+#define dl_drawsurf_surf 8
+#define dl_surface_dlightbits 8
+#define dl_surface_extents 48
+
+// R_DrawSurface assembly entry layout. Checked against offsetof() in r_surf.c
+// whenever ASM486_SURFACE_DRAW is selected.
+#define sd_drawsurf_surfdat 0
+#define sd_drawsurf_rowbytes 4
+#define sd_drawsurf_surf 8
+#define sd_drawsurf_texture 28
+#define sd_drawsurf_surfmip 32
+#define sd_drawsurf_surfwidth 36
+#define sd_drawsurf_surfheight 40
+#define sd_texture_width 16
+#define sd_texture_height 20
+#define sd_texture_offsets 44
+#define sd_surface_texturemins 44
+#define sd_surface_extents 48
+
+// D_CacheSurface assembly entry layout. d_surf.c checks all C offsets.
+#define cs_surface_dlightframe 4
+#define cs_surface_cachespots 28
+#define cs_surface_texinfo 52
+#define cs_surface_styles 56
+#define cs_texinfo_texture 36
+#define cs_texture_anim_total 24
+#define cs_texture_anim_min 28
+#define cs_texture_anim_max 32
+#define cs_texture_anim_next 36
+#define cs_texture_alternate_anims 40
+#define cs_entity_frame 140
+#define cs_cl_time 572
 
 // mtriangle_t structure
 // !!! if this is changed, it must be changed in model.h too !!!

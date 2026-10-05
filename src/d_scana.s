@@ -82,7 +82,7 @@ Llp:
 	decl	%ebx
 	movb	%dl,-1(%edi)
 #endif
-	jnz		Llp
+	jg		Llp
 
 	movl	%edi,C(r_turb_pdest)
 
@@ -93,4 +93,3 @@ Llp:
 	ret
 
 #endif	// id386
-

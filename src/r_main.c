@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_main.c
 
+#include <stddef.h>
+
 #include "quakedef.h"
 #include "r_local.h"
 
@@ -875,7 +877,27 @@ void R_DrawBEntitiesOnList (void)
 R_EdgeDrawing
 ================
 */
+#if defined(ASM486_EDGE_DRAWING)
+typedef char r_edgedrawing_edge_size_must_be_32[
+	(sizeof(edge_t) == 32) ? 1 : -1];
+typedef char r_edgedrawing_surf_size_must_be_64[
+	(sizeof(surf_t) == 64) ? 1 : -1];
+typedef char r_edgedrawing_cache_size_must_be_32[
+	(CACHE_SIZE == 32) ? 1 : -1];
+typedef char r_edgedrawing_num_edges_must_be_2400[
+	(NUMSTACKEDGES == 2400) ? 1 : -1];
+typedef char r_edgedrawing_num_surfaces_must_be_800[
+	(NUMSTACKSURFACES == 800) ? 1 : -1];
+typedef char r_edgedrawing_cvar_value_offset_must_be_16[
+	(offsetof(cvar_t, value) == 16) ? 1 : -1];
+#endif
+
+#if !defined(ASM486_EDGE_DRAWING) || defined(BENCH486)
+#ifdef ASM486_EDGE_DRAWING
+void R_EdgeDrawing_C (void)
+#else
 void R_EdgeDrawing (void)
+#endif
 {
 	edge_t	ledges[NUMSTACKEDGES +
 				((CACHE_SIZE - 1) / sizeof(edge_t)) + 1];
@@ -960,6 +982,55 @@ void R_EdgeDrawing (void)
 		R_ScanEdges ();
 	BENCH486_PROFILE_LEAVE ();
 }
+#endif
+
+#ifdef ASM486_EDGE_DRAWING
+void R_EdgeDrawing_asm486 (void);
+
+void R_EdgeDrawing (void)
+{
+	R_EdgeDrawing_asm486 ();
+}
+
+#ifdef PROFILE486
+static double bench486_edgedrawing_world_start;
+
+void R_EdgeDrawingProfileEnter_asm486 (void)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_EDGE_DRAWING);
+}
+
+void R_EdgeDrawingProfileLeave_asm486 (void)
+{
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void R_EdgeDrawingProfileWorldStart_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		bench486_edgedrawing_world_start = Sys_FloatTime ();
+}
+
+void R_EdgeDrawingProfileWorldEnd_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		bench486_world_seconds += Sys_FloatTime () -
+			bench486_edgedrawing_world_start;
+}
+
+void R_EdgeDrawingProfileBrushEnter_asm486 (void)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_BRUSH_ENTITIES);
+}
+
+void R_EdgeDrawingProfileBrushLeave_asm486 (void)
+{
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_BRUSH_ENTITIES,
+			(unsigned long)cl_numvisedicts, 0);
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif
+#endif
 
 
 /*

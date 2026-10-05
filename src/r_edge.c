@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include <stddef.h>
 
 #if 0
 // FIXME
@@ -56,7 +57,11 @@ int	current_iv;
 
 int	edge_head_u_shift20, edge_tail_u_shift20;
 
+#ifdef ASM486_SCAN_EDGES
+void (*pdrawfunc)(void);
+#else
 static void (*pdrawfunc)(void);
+#endif
 
 edge_t	edge_head;
 edge_t	edge_tail;
@@ -158,7 +163,7 @@ void R_BeginEdgeFrame (void)
 }
 
 
-#if	!id386
+#if	!id386 || defined(BENCH486) || defined(ASM486_EDGE_LIST_C)
 
 /*
 ==============
@@ -170,7 +175,12 @@ sentinel at the end (actually, this is the active edge table starting at
 edge_head.next).
 ==============
 */
+#if !defined(ASM486_EDGE_LIST) || defined(BENCH486) || defined(ASM486_EDGE_LIST_C)
+#if defined(ASM486_EDGE_LIST) || (defined(BENCH486) && !defined(ASM486_EDGE_LIST_C))
+void R_InsertNewEdges_C (edge_t *edgestoadd, edge_t *edgelist)
+#else
 void R_InsertNewEdges (edge_t *edgestoadd, edge_t *edgelist)
+#endif
 {
 	edge_t	*next_edge;
 
@@ -200,18 +210,33 @@ addedge:
 		edgelist->prev = edgestoadd;
 	} while ((edgestoadd = next_edge) != NULL);
 }
+#endif
 
-#endif	// !id386
+#endif	// !id386 || BENCH486 || ASM486_EDGE_LIST_C
+
+#ifdef ASM486_EDGE_LIST
+void R_InsertNewEdges_asm486 (edge_t *edgestoadd, edge_t *edgelist);
+
+void R_InsertNewEdges (edge_t *edgestoadd, edge_t *edgelist)
+{
+	R_InsertNewEdges_asm486 (edgestoadd, edgelist);
+}
+#endif
 	
 
-#if	!id386
+#if	!id386 || defined(BENCH486) || defined(ASM486_EDGE_LIST_C)
 
 /*
 ==============
 R_RemoveEdges
 ==============
 */
+#if !defined(ASM486_EDGE_LIST) || defined(BENCH486) || defined(ASM486_EDGE_LIST_C)
+#if defined(ASM486_EDGE_LIST) || (defined(BENCH486) && !defined(ASM486_EDGE_LIST_C))
+void R_RemoveEdges_C (edge_t *pedge)
+#else
 void R_RemoveEdges (edge_t *pedge)
+#endif
 {
 
 	do
@@ -220,18 +245,33 @@ void R_RemoveEdges (edge_t *pedge)
 		pedge->prev->next = pedge->next;
 	} while ((pedge = pedge->nextremove) != NULL);
 }
+#endif
 
-#endif	// !id386
+#endif	// !id386 || BENCH486 || ASM486_EDGE_LIST_C
+
+#ifdef ASM486_EDGE_LIST
+void R_RemoveEdges_asm486 (edge_t *pedge);
+
+void R_RemoveEdges (edge_t *pedge)
+{
+	R_RemoveEdges_asm486 (pedge);
+}
+#endif
 
 
-#if	!id386
+#if	!id386 || defined(BENCH486) || defined(ASM486_EDGE_LIST_C)
 
 /*
 ==============
 R_StepActiveU
 ==============
 */
+#if !defined(ASM486_EDGE_LIST) || defined(BENCH486) || defined(ASM486_EDGE_LIST_C)
+#if defined(ASM486_EDGE_LIST) || (defined(BENCH486) && !defined(ASM486_EDGE_LIST_C))
+void R_StepActiveU_C (edge_t *pedge)
+#else
 void R_StepActiveU (edge_t *pedge)
+#endif
 {
 	edge_t		*pnext_edge, *pwedge;
 
@@ -290,8 +330,18 @@ pushback:
 			return;
 	}
 }
+#endif
 
-#endif	// !id386
+#endif	// !id386 || BENCH486 || ASM486_EDGE_LIST_C
+
+#ifdef ASM486_EDGE_LIST
+void R_StepActiveU_asm486 (edge_t *pedge);
+
+void R_StepActiveU (edge_t *pedge)
+{
+	R_StepActiveU_asm486 (pedge);
+}
+#endif
 
 
 /*
@@ -299,7 +349,12 @@ pushback:
 R_CleanupSpan
 ==============
 */
-void R_CleanupSpan ()
+#if !defined(ASM486_BACKWARD_SPANS) || defined(BENCH486)
+#ifdef ASM486_BACKWARD_SPANS
+void R_CleanupSpan_C (void)
+#else
+void R_CleanupSpan (void)
+#endif
 {
 	surf_t	*surf;
 	int		iu;
@@ -326,6 +381,16 @@ void R_CleanupSpan ()
 		surf = surf->next;
 	} while (surf != &surfaces[1]);
 }
+#endif
+
+#ifdef ASM486_BACKWARD_SPANS
+void R_CleanupSpan_asm486 (void);
+
+void R_CleanupSpan (void)
+{
+	R_CleanupSpan_asm486 ();
+}
+#endif
 
 
 /*
@@ -333,7 +398,12 @@ void R_CleanupSpan ()
 R_LeadingEdgeBackwards
 ==============
 */
+#if !defined(ASM486_BACKWARD_SPANS) || defined(BENCH486)
+#ifdef ASM486_BACKWARD_SPANS
+void R_LeadingEdgeBackwards_C (edge_t *edge)
+#else
 void R_LeadingEdgeBackwards (edge_t *edge)
+#endif
 {
 	espan_t			*span;
 	surf_t			*surf, *surf2;
@@ -406,6 +476,16 @@ gotposition:
 		surf2->prev = surf;
 	}
 }
+#endif
+
+#ifdef ASM486_BACKWARD_SPANS
+void R_LeadingEdgeBackwards_asm486 (edge_t *edge);
+
+void R_LeadingEdgeBackwards (edge_t *edge)
+{
+	R_LeadingEdgeBackwards_asm486 (edge);
+}
+#endif
 
 
 /*
@@ -413,7 +493,12 @@ gotposition:
 R_TrailingEdge
 ==============
 */
+#if !defined(ASM486_BACKWARD_SPANS) || defined(BENCH486)
+#ifdef ASM486_BACKWARD_SPANS
+void R_TrailingEdge_C (surf_t *surf, edge_t *edge)
+#else
 void R_TrailingEdge (surf_t *surf, edge_t *edge)
+#endif
 {
 	espan_t			*span;
 	int				iu;
@@ -448,6 +533,16 @@ void R_TrailingEdge (surf_t *surf, edge_t *edge)
 		surf->next->prev = surf->prev;
 	}
 }
+#endif
+
+#ifdef ASM486_BACKWARD_SPANS
+void R_TrailingEdge_asm486 (surf_t *surf, edge_t *edge);
+
+void R_TrailingEdge (surf_t *surf, edge_t *edge)
+{
+	R_TrailingEdge_asm486 (surf, edge);
+}
+#endif
 
 
 #if	!id386
@@ -624,7 +719,12 @@ void R_GenerateSpans (void)
 R_GenerateSpansBackward
 ==============
 */
+#if !defined(ASM486_BACKWARD_SPANS) || defined(BENCH486)
+#ifdef ASM486_BACKWARD_SPANS
+void R_GenerateSpansBackward_C (void)
+#else
 void R_GenerateSpansBackward (void)
+#endif
 {
 	edge_t			*edge;
 
@@ -636,16 +736,42 @@ void R_GenerateSpansBackward (void)
 
 // generate spans
 	for (edge=edge_head.next ; edge != &edge_tail; edge=edge->next)
-	{			
+	{
 		if (edge->surfs[0])
+		{
+#ifdef ASM486_BACKWARD_SPANS
+			R_TrailingEdge_C (&surfaces[edge->surfs[0]], edge);
+#else
 			R_TrailingEdge (&surfaces[edge->surfs[0]], edge);
+#endif
+		}
 
 		if (edge->surfs[1])
+		{
+#ifdef ASM486_BACKWARD_SPANS
+			R_LeadingEdgeBackwards_C (edge);
+#else
 			R_LeadingEdgeBackwards (edge);
+#endif
+		}
 	}
 
+#ifdef ASM486_BACKWARD_SPANS
+	R_CleanupSpan_C ();
+#else
 	R_CleanupSpan ();
+#endif
 }
+#endif
+
+#ifdef ASM486_BACKWARD_SPANS
+void R_GenerateSpansBackward_asm486 (void);
+
+void R_GenerateSpansBackward (void)
+{
+	R_GenerateSpansBackward_asm486 ();
+}
+#endif
 
 
 /*
@@ -660,7 +786,12 @@ Output:
 Each surface has a linked list of its visible spans
 ==============
 */
+#if !defined(ASM486_SCAN_EDGES) || defined(BENCH486)
+#ifdef ASM486_SCAN_EDGES
+void R_ScanEdges_C (void)
+#else
 void R_ScanEdges (void)
+#endif
 {
 	int		iv, bottom;
 	byte	basespans[MAXSPANS*sizeof(espan_t)+CACHE_SIZE];
@@ -827,5 +958,81 @@ void R_ScanEdges (void)
 			bench486_scanlines - profile_scanline_start, 0);
 	BENCH486_PROFILE_LEAVE ();
 }
+#endif
 
+#ifdef ASM486_SCAN_EDGES
+typedef char r_scan_edges_espan_size_must_be_16[
+	(sizeof(espan_t) == 16) ? 1 : -1];
+typedef char r_scan_edges_edge_size_must_be_32[
+	(sizeof(edge_t) == 32) ? 1 : -1];
+typedef char r_scan_edges_surf_size_must_be_64[
+	(sizeof(surf_t) == 64) ? 1 : -1];
+typedef char r_scan_edges_cache_size_must_be_32[
+	(CACHE_SIZE == 32) ? 1 : -1];
+typedef char r_scan_edges_max_spans_must_be_3000[
+	(MAXSPANS == 3000) ? 1 : -1];
+typedef char r_scan_edges_refdef_vrectright_offset_must_be_40[
+	(offsetof(refdef_t, vrectright) == 40) ? 1 : -1];
+typedef char r_scan_edges_refdef_vrectbottom_offset_must_be_44[
+	(offsetof(refdef_t, vrectbottom) == 44) ? 1 : -1];
+typedef char r_scan_edges_refdef_vrect_width_offset_must_be_8[
+	(offsetof(refdef_t, vrect.width) == 8) ? 1 : -1];
 
+void R_ScanEdges_asm486 (void);
+
+void R_ScanEdges (void)
+{
+	R_ScanEdges_asm486 ();
+}
+
+#ifdef PROFILE486
+void R_ScanEdgesProfileBegin_asm486 (double *start)
+{
+	if (bench486_profile_frame_active)
+		*start = Sys_FloatTime ();
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_EDGE_SCAN);
+}
+
+void R_ScanEdgesProfileEnd_asm486 (double *start,
+		unsigned long scanline_start)
+{
+	if (bench486_profile_frame_active)
+		bench486_edge_scan_seconds += Sys_FloatTime () - *start;
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_EDGE_SCAN,
+			bench486_scanlines - scanline_start, 0);
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif
+
+#endif
+
+#ifdef ASM486_EDGE_LIST
+typedef char r_edge_list_edge_size_must_be_32[
+	(sizeof(edge_t) == 32) ? 1 : -1];
+typedef char r_edge_list_u_offset_must_be_0[
+	(offsetof(edge_t, u) == 0) ? 1 : -1];
+typedef char r_edge_list_u_step_offset_must_be_4[
+	(offsetof(edge_t, u_step) == 4) ? 1 : -1];
+typedef char r_edge_list_prev_offset_must_be_8[
+	(offsetof(edge_t, prev) == 8) ? 1 : -1];
+typedef char r_edge_list_next_offset_must_be_12[
+	(offsetof(edge_t, next) == 12) ? 1 : -1];
+typedef char r_edge_list_nextremove_offset_must_be_20[
+	(offsetof(edge_t, nextremove) == 20) ? 1 : -1];
+#endif
+
+#ifdef ASM486_BACKWARD_SPANS
+typedef char r_backward_span_espan_size_must_be_16[
+	(sizeof(espan_t) == 16) ? 1 : -1];
+typedef char r_backward_span_espan_offsets_must_match[
+	(offsetof(espan_t, u) == 0 && offsetof(espan_t, v) == 4 &&
+	 offsetof(espan_t, count) == 8 && offsetof(espan_t, pnext) == 12) ? 1 : -1];
+typedef char r_backward_span_edge_layout_must_match[
+	(sizeof(edge_t) == 32 && offsetof(edge_t, u) == 0 &&
+	 offsetof(edge_t, surfs) == 16 && sizeof(((edge_t *)0)->surfs[0]) == 2) ? 1 : -1];
+typedef char r_backward_span_surface_layout_must_match[
+	(sizeof(surf_t) == 64 && offsetof(surf_t, next) == 0 &&
+	 offsetof(surf_t, prev) == 4 && offsetof(surf_t, spans) == 8 &&
+	 offsetof(surf_t, key) == 12 && offsetof(surf_t, last_u) == 16 &&
+	 offsetof(surf_t, spanstate) == 20 && offsetof(surf_t, insubmodel) == 40) ? 1 : -1];
+#endif

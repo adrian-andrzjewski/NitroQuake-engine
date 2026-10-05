@@ -23,8 +23,36 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 #include "d_local.h"
 
-static finalvert_t		fv[2][8];
-static auxvert_t		av[8];
+#ifdef ASM486_ALIAS_CLIP
+#include <stddef.h>
+
+typedef char alias_clip_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char alias_clip_finalvert_layout[
+		(offsetof(finalvert_t, v) == 0 &&
+		offsetof(finalvert_t, flags) == 24 && sizeof(finalvert_t) == 32) ? 1 : -1];
+typedef char alias_clip_auxvert_layout[
+		(offsetof(auxvert_t, fv) == 0 && sizeof(auxvert_t) == 12) ? 1 : -1];
+typedef char alias_clip_mtriangle_layout[
+		(offsetof(mtriangle_t, facesfront) == 0 &&
+		offsetof(mtriangle_t, vertindex) == 4 && sizeof(mtriangle_t) == 16) ? 1 : -1];
+typedef char alias_clip_affinetridesc_layout[
+		(offsetof(affinetridesc_t, ptriangles) == 16 &&
+		offsetof(affinetridesc_t, pfinalverts) == 20 &&
+		offsetof(affinetridesc_t, seamfixupX16) == 32 &&
+		sizeof(affinetridesc_t) == 36) ? 1 : -1];
+typedef char alias_clip_refdef_layout[
+		(offsetof(refdef_t, aliasvrect) == 20 &&
+		offsetof(refdef_t, aliasvrectright) == 48 &&
+		offsetof(refdef_t, aliasvrectbottom) == 52) ? 1 : -1];
+#endif
+
+#ifdef ASM486_ALIAS_CLIP
+finalvert_t			R_AliasClip_fv[2][8];
+auxvert_t			R_AliasClip_av[8];
+#else
+static finalvert_t	R_AliasClip_fv[2][8];
+static auxvert_t	R_AliasClip_av[8];
+#endif
 
 void R_AliasProjectFinalVert (finalvert_t *fv, auxvert_t *av);
 void R_Alias_clip_top (finalvert_t *pfv0, finalvert_t *pfv1,
@@ -44,13 +72,21 @@ R_Alias_clip_z
 pfv0 is the unclipped vertex, pfv1 is the z-clipped vertex
 ================
 */
-void R_Alias_clip_z (finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
+#ifdef ASM486_ALIAS_CLIP
+#define R_AliasClipTriangleZCallback R_Alias_clip_z_C
+void R_Alias_clip_z_C (finalvert_t *pfv0, finalvert_t *pfv1,
+		finalvert_t *out)
+#else
+#define R_AliasClipTriangleZCallback R_Alias_clip_z
+void R_Alias_clip_z (finalvert_t *pfv0, finalvert_t *pfv1,
+		finalvert_t *out)
+#endif
 {
 	float		scale;
 	auxvert_t	*pav0, *pav1, avout;
 
-	pav0 = &av[pfv0 - &fv[0][0]];
-	pav1 = &av[pfv1 - &fv[0][0]];
+	pav0 = &R_AliasClip_av[pfv0 - &R_AliasClip_fv[0][0]];
+	pav1 = &R_AliasClip_av[pfv1 - &R_AliasClip_fv[0][0]];
 
 	if (pfv0->v[1] >= pfv1->v[1])
 	{
@@ -90,6 +126,72 @@ void R_Alias_clip_z (finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 	if (out->v[1] > r_refdef.aliasvrectbottom)
 		out->flags |= ALIAS_BOTTOM_CLIP;	
 }
+
+#if defined(ASM486_ALIAS_CLIP_Z) && defined(BENCH486)
+extern void R_Alias_clip_z_asm486 (finalvert_t *pfv0, finalvert_t *pfv1,
+		finalvert_t *out);
+
+void R_Alias_clip_z_bench (finalvert_t *pfv0, finalvert_t *pfv1,
+		finalvert_t *out)
+{
+	static int compare_enabled = -1;
+	static int trace_handle = -1;
+	static unsigned long callback_count;
+	static unsigned long mismatch_count;
+	finalvert_t c_out, asm_out;
+	auxvert_t *pav0, *pav1;
+	char text[256];
+	int i, mismatch;
+
+	if (compare_enabled < 0)
+		compare_enabled = COM_CheckParm ("-aliasclipzcompare") != 0;
+	if (!compare_enabled)
+	{
+		R_Alias_clip_z_asm486 (pfv0, pfv1, out);
+		return;
+	}
+
+	Q_memset (&c_out, 0, sizeof(c_out));
+	Q_memset (&asm_out, 0, sizeof(asm_out));
+	R_Alias_clip_z_C (pfv0, pfv1, &c_out);
+	R_Alias_clip_z_asm486 (pfv0, pfv1, &asm_out);
+	callback_count++;
+	pav0 = &R_AliasClip_av[
+			pfv0 - &R_AliasClip_fv[0][0]];
+	pav1 = &R_AliasClip_av[
+			pfv1 - &R_AliasClip_fv[0][0]];
+	mismatch = c_out.flags != asm_out.flags;
+	for (i=0 ; i<6 ; i++)
+		if (c_out.v[i] != asm_out.v[i])
+			mismatch = true;
+
+	if ((callback_count <= 16 || mismatch) && mismatch_count < 128)
+	{
+		if (trace_handle == -1)
+		{
+			trace_handle = Sys_FileOpenWrite ("aliasz.txt");
+		}
+		if (trace_handle != -1)
+		{
+			sprintf (text,
+					"%lu mismatch %d y %d %d z %.6f %.6f C %d %d %d %d %d %d f%u ASM %d %d %d %d %d %d f%u\n",
+					callback_count, mismatch, pfv0->v[1], pfv1->v[1],
+					pav0->fv[2], pav1->fv[2],
+					c_out.v[0], c_out.v[1], c_out.v[2], c_out.v[3],
+					c_out.v[4], c_out.v[5], (unsigned)c_out.flags,
+					asm_out.v[0], asm_out.v[1], asm_out.v[2], asm_out.v[3],
+					asm_out.v[4], asm_out.v[5], (unsigned)asm_out.flags);
+			Sys_FileWrite (trace_handle, text, Q_strlen(text));
+		}
+	}
+	if (mismatch)
+	{
+		mismatch_count++;
+	}
+
+	*out = asm_out;
+}
+#endif
 
 
 #if	!id386
@@ -188,8 +290,14 @@ void R_Alias_clip_bottom (finalvert_t *pfv0, finalvert_t *pfv1,
 #endif
 
 
+#if !defined(ASM486_ALIAS_CLIP) || defined(BENCH486)
+#ifdef ASM486_ALIAS_CLIP
+int R_AliasClip_C (finalvert_t *in, finalvert_t *out, int flag, int count,
+	void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out) )
+#else
 int R_AliasClip (finalvert_t *in, finalvert_t *out, int flag, int count,
 	void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out) )
+#endif
 {
 	int			i,j,k;
 	int			flags, oldflags;
@@ -226,6 +334,19 @@ int R_AliasClip (finalvert_t *in, finalvert_t *out, int flag, int count,
 	
 	return k;
 }
+#endif
+
+#ifdef ASM486_ALIAS_CLIP
+int R_AliasClip_asm486 (finalvert_t *in, finalvert_t *out, int flag,
+		int count,
+		void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out));
+
+int R_AliasClip (finalvert_t *in, finalvert_t *out, int flag, int count,
+	void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out))
+{
+	return R_AliasClip_asm486 (in, out, flag, count, clip);
+}
+#endif
 
 
 /*
@@ -233,7 +354,14 @@ int R_AliasClip (finalvert_t *in, finalvert_t *out, int flag, int count,
 R_AliasClipTriangle
 ================
 */
+#if !defined(ASM486_ALIAS_CLIP) || defined(BENCH486)
+#ifdef ASM486_ALIAS_CLIP
+#define R_AliasClipTrianglePass R_AliasClip_C
+void R_AliasClipTriangle_C (mtriangle_t *ptri)
+#else
+#define R_AliasClipTrianglePass R_AliasClip
 void R_AliasClipTriangle (mtriangle_t *ptri)
+#endif
 {
 	int				i, k, pingpong;
 	mtriangle_t		mtri;
@@ -242,35 +370,39 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 // copy vertexes and fix seam texture coordinates
 	if (ptri->facesfront)
 	{
-		fv[0][0] = pfinalverts[ptri->vertindex[0]];
-		fv[0][1] = pfinalverts[ptri->vertindex[1]];
-		fv[0][2] = pfinalverts[ptri->vertindex[2]];
+		R_AliasClip_fv[0][0] = pfinalverts[ptri->vertindex[0]];
+		R_AliasClip_fv[0][1] = pfinalverts[ptri->vertindex[1]];
+		R_AliasClip_fv[0][2] = pfinalverts[ptri->vertindex[2]];
 	}
 	else
 	{
 		for (i=0 ; i<3 ; i++)
 		{
-			fv[0][i] = pfinalverts[ptri->vertindex[i]];
+			R_AliasClip_fv[0][i] = pfinalverts[ptri->vertindex[i]];
 	
-			if (!ptri->facesfront && (fv[0][i].flags & ALIAS_ONSEAM) )
-				fv[0][i].v[2] += r_affinetridesc.seamfixupX16;
+			if (!ptri->facesfront &&
+					(R_AliasClip_fv[0][i].flags & ALIAS_ONSEAM) )
+				R_AliasClip_fv[0][i].v[2] += r_affinetridesc.seamfixupX16;
 		}
 	}
 
 // clip
-	clipflags = fv[0][0].flags | fv[0][1].flags | fv[0][2].flags;
+	clipflags = R_AliasClip_fv[0][0].flags |
+			R_AliasClip_fv[0][1].flags | R_AliasClip_fv[0][2].flags;
 
 	if (clipflags & ALIAS_Z_CLIP)
 	{
 		for (i=0 ; i<3 ; i++)
-			av[i] = pauxverts[ptri->vertindex[i]];
+			R_AliasClip_av[i] = pauxverts[ptri->vertindex[i]];
 
-		k = R_AliasClip (fv[0], fv[1], ALIAS_Z_CLIP, 3, R_Alias_clip_z);
+		k = R_AliasClipTrianglePass (R_AliasClip_fv[0], R_AliasClip_fv[1],
+				ALIAS_Z_CLIP, 3, R_AliasClipTriangleZCallback);
 		if (k == 0)
 			return;
 
 		pingpong = 1;
-		clipflags = fv[1][0].flags | fv[1][1].flags | fv[1][2].flags;
+		clipflags = R_AliasClip_fv[1][0].flags |
+				R_AliasClip_fv[1][1].flags | R_AliasClip_fv[1][2].flags;
 	}
 	else
 	{
@@ -280,7 +412,8 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 
 	if (clipflags & ALIAS_LEFT_CLIP)
 	{
-		k = R_AliasClip (fv[pingpong], fv[pingpong ^ 1],
+		k = R_AliasClipTrianglePass (R_AliasClip_fv[pingpong],
+						R_AliasClip_fv[pingpong ^ 1],
 							ALIAS_LEFT_CLIP, k, R_Alias_clip_left);
 		if (k == 0)
 			return;
@@ -290,7 +423,8 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 
 	if (clipflags & ALIAS_RIGHT_CLIP)
 	{
-		k = R_AliasClip (fv[pingpong], fv[pingpong ^ 1],
+		k = R_AliasClipTrianglePass (R_AliasClip_fv[pingpong],
+						R_AliasClip_fv[pingpong ^ 1],
 							ALIAS_RIGHT_CLIP, k, R_Alias_clip_right);
 		if (k == 0)
 			return;
@@ -300,7 +434,8 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 
 	if (clipflags & ALIAS_BOTTOM_CLIP)
 	{
-		k = R_AliasClip (fv[pingpong], fv[pingpong ^ 1],
+		k = R_AliasClipTrianglePass (R_AliasClip_fv[pingpong],
+						R_AliasClip_fv[pingpong ^ 1],
 							ALIAS_BOTTOM_CLIP, k, R_Alias_clip_bottom);
 		if (k == 0)
 			return;
@@ -310,7 +445,8 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 
 	if (clipflags & ALIAS_TOP_CLIP)
 	{
-		k = R_AliasClip (fv[pingpong], fv[pingpong ^ 1],
+		k = R_AliasClipTrianglePass (R_AliasClip_fv[pingpong],
+						R_AliasClip_fv[pingpong ^ 1],
 							ALIAS_TOP_CLIP, k, R_Alias_clip_top);
 		if (k == 0)
 			return;
@@ -320,23 +456,23 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 
 	for (i=0 ; i<k ; i++)
 	{
-		if (fv[pingpong][i].v[0] < r_refdef.aliasvrect.x)
-			fv[pingpong][i].v[0] = r_refdef.aliasvrect.x;
-		else if (fv[pingpong][i].v[0] > r_refdef.aliasvrectright)
-			fv[pingpong][i].v[0] = r_refdef.aliasvrectright;
+		if (R_AliasClip_fv[pingpong][i].v[0] < r_refdef.aliasvrect.x)
+			R_AliasClip_fv[pingpong][i].v[0] = r_refdef.aliasvrect.x;
+		else if (R_AliasClip_fv[pingpong][i].v[0] > r_refdef.aliasvrectright)
+			R_AliasClip_fv[pingpong][i].v[0] = r_refdef.aliasvrectright;
 
-		if (fv[pingpong][i].v[1] < r_refdef.aliasvrect.y)
-			fv[pingpong][i].v[1] = r_refdef.aliasvrect.y;
-		else if (fv[pingpong][i].v[1] > r_refdef.aliasvrectbottom)
-			fv[pingpong][i].v[1] = r_refdef.aliasvrectbottom;
+		if (R_AliasClip_fv[pingpong][i].v[1] < r_refdef.aliasvrect.y)
+			R_AliasClip_fv[pingpong][i].v[1] = r_refdef.aliasvrect.y;
+		else if (R_AliasClip_fv[pingpong][i].v[1] > r_refdef.aliasvrectbottom)
+			R_AliasClip_fv[pingpong][i].v[1] = r_refdef.aliasvrectbottom;
 
-		fv[pingpong][i].flags = 0;
+		R_AliasClip_fv[pingpong][i].flags = 0;
 	}
 
 // draw triangles
 	mtri.facesfront = ptri->facesfront;
 	r_affinetridesc.ptriangles = &mtri;
-	r_affinetridesc.pfinalverts = fv[pingpong];
+	r_affinetridesc.pfinalverts = R_AliasClip_fv[pingpong];
 
 // FIXME: do all at once as trifan?
 	mtri.vertindex[0] = 0;
@@ -347,4 +483,16 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 		D_PolysetDraw ();
 	}
 }
+#undef R_AliasClipTrianglePass
+#undef R_AliasClipTriangleZCallback
+#endif
+
+#ifdef ASM486_ALIAS_CLIP
+void R_AliasClipTriangle_asm486 (mtriangle_t *ptri);
+
+void R_AliasClipTriangle (mtriangle_t *ptri)
+{
+	R_AliasClipTriangle_asm486 (ptri);
+}
+#endif
 

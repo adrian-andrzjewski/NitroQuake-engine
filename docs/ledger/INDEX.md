@@ -1,8 +1,9 @@
 # Experiment ledger
 
 Every dated measurement, rejection and correction from the 486 optimization work:
-**89 headings**, all of which until 2026-10-03 sat under a single `## Current state`
-heading in `ASM486-HANDOFF.md`. The prose was moved verbatim; nothing was reworded.
+**132 headings** across the dated experiment records and the ongoing renderer
+port. Historical experiment entries moved from `ASM486-HANDOFF.md` beginning
+2026-10-03; the prose was moved verbatim.
 
 Read the entry by its heading, never by a line number - see the process rule in
 `ASM486-HANDOFF.md` under "Process rules". Ten of twelve line-number citations in
@@ -26,6 +27,17 @@ later insertion above it.
 | [`2026-10-03-isa-audit-and-i386-codepath.md`](2026-10-03-isa-audit-and-i386-codepath.md) | 2 | ISA / i386 |
 | [`2026-10-03-region-pricing-sweep.md`](2026-10-03-region-pricing-sweep.md) | 4 | z-spans |
 | [`2026-10-04-toolchain-refactor.md`](2026-10-04-toolchain-refactor.md) | 10 | harness / method |
+| [`2026-10-04-renderer-assembler-port.md`](2026-10-04-renderer-assembler-port.md) | 22 | renderer port |
+| [`2026-10-05-world-bsp-assembly-port.md`](2026-10-05-world-bsp-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-05-render-world-assembly-port.md`](2026-10-05-render-world-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-05-renderface-assembly-port.md`](2026-10-05-renderface-assembly-port.md) | 3 | renderer port / renderface |
+| [`2026-10-05-bmodel-face-assembly-port.md`](2026-10-05-bmodel-face-assembly-port.md) | 2 | renderer port / renderface |
+| [`2026-10-05-efrag-store-assembly-port.md`](2026-10-05-efrag-store-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-05-submodel-polygons-assembly-port.md`](2026-10-05-submodel-polygons-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-05-bmodel-polygon-clip-assembly-port.md`](2026-10-05-bmodel-polygon-clip-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-05-edge-drawing-assembly-port.md`](2026-10-05-edge-drawing-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-05-scan-edges-assembly-port.md`](2026-10-05-scan-edges-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-05-edge-list-maintenance-assembly-port.md`](2026-10-05-edge-list-maintenance-assembly-port.md) | 2 | renderer port / world-bsp |
 | [`2026-09-29-offline-precomputation-pass.md`](2026-09-29-offline-precomputation-pass.md) | 2 | harness / method |
 | [`timedemo-baseline-history.md`](timedemo-baseline-history.md) | 6 | harness / method |
 | [`microbenchmark-results.md`](microbenchmark-results.md) | 14 | harness / method |
@@ -37,6 +49,8 @@ other axis: one row per renderer region, newest entry first.
 
 ### alias
 
+- `in progress` [Alias polygon clipping now has i486 assembly paths](2026-10-04-renderer-assembler-port.md)
+- `in progress` [The clipped alias vertex-preparation loop now has an i486 assembly selector](2026-10-04-renderer-assembler-port.md)
 - `measured` [The alias-glue C block is **0.1703% of frame, 3.4x the gate** — the first price that region has ever had,...](2026-10-03-alias-glue-closure.md)
 - `measured` [`alias-glue` reads 6.01% of frame and is **2.29%** — 62% of it is the profiler measuring itself (2026-10-...](2026-10-03-alias-glue-closure.md)
 - `negative` [Aff8 AGI interlock investigation (2026-09-29) — null result, selector removed](2026-09-29-harness-and-cost-model.md)
@@ -108,6 +122,45 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [The rate is a dependency property, not a constant — this is the important result](2026-10-02-edge-scan-and-texture-spans.md)
 - `measured` [What the price does to `renderface`](2026-10-02-edge-scan-and-texture-spans.md)
 - `measured` [Two probe mechanics specific to C, both of which would have produced a silently wrong number](2026-10-02-edge-scan-and-texture-spans.md)
+
+### renderer port
+
+- `in progress` [`D_FillRect` is now an i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_DrawZPoint` is now an i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
+- `in progress` [The active sky span pixel loop has a selectable i486 assembly path](2026-10-04-renderer-assembler-port.md)
+- `in progress` [The sky scan span loop now has an i486 assembly path](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_DrawSkyScans8` is now a complete i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_WarpScreen` is now a selectable i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_DrawSolidSurface` now has a selectable i486 assembly path](2026-10-04-renderer-assembler-port.md)
+- `in progress` [The `Turbulent8` scan setup and interpolation now have a selectable i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`R_BuildLightMap` now has a selectable i486 assembly dispatcher](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`R_AddDynamicLights` orchestration and projection now have selectable i486 assembly](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`R_DlightContributes` now has a selectable i486 assembly entry](2026-10-04-renderer-assembler-port.md)
+- `in progress` [The `D_CacheSurface` miss handoff now has i486 assembly paths](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`R_DrawSurface` now has a selectable i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_CacheSurface` now has a full selectable i486 assembly entry](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`R_TextureAnimation` now has a full selectable i486 assembly entry](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_MipLevelForScale` now exports its public i486 assembly entry directly](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`R_SetSurfaceZGradients` now has a selectable i486 assembly entry](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_CalcGradients` and texture-axis caching now have an i486 assembly path](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`D_DrawSurfaces` now has a selectable i486 assembly dispatcher](2026-10-04-renderer-assembler-port.md)
+- `in progress` [Next work](2026-10-04-renderer-assembler-port.md)
+- `in progress` [`R_RecursiveWorldNode` now has a selectable assembly walk](2026-10-05-world-bsp-assembly-port.md)
+- `in progress` [Remaining world-BSP closure](2026-10-05-world-bsp-assembly-port.md)
+- `in progress` [`R_RenderWorld` now has a selectable i486 assembly entry](2026-10-05-render-world-assembly-port.md)
+- `in progress` [Remaining active world-renderer closure](2026-10-05-render-world-assembly-port.md)
+- `in progress` [`R_RenderFace` now has a selectable i486 assembly entry](2026-10-05-renderface-assembly-port.md)
+- `in progress` [`R_EmitCachedEdge` now has a selectable i486 assembly entry](2026-10-05-renderface-assembly-port.md)
+- `in progress` [Remaining face-renderer closure](2026-10-05-renderface-assembly-port.md)
+- `in progress` [Remaining active renderer closure](2026-10-05-renderface-assembly-port.md)
+- `in progress` [`R_RenderBmodelFace` now has a selectable i486 assembly entry](2026-10-05-bmodel-face-assembly-port.md)
+- `in progress` [Remaining B-model renderer closure](2026-10-05-bmodel-face-assembly-port.md)
+- `in progress` [`R_StoreEfrags` now has a selectable i486 assembly entry](2026-10-05-efrag-store-assembly-port.md)
+- `in progress` [Remaining world-renderer closure](2026-10-05-efrag-store-assembly-port.md)
+- `in progress` [`R_DrawSubmodelPolygons` now has a selectable i486 assembly entry](2026-10-05-submodel-polygons-assembly-port.md)
+- `in progress` [Remaining submodel-polygon closure](2026-10-05-submodel-polygons-assembly-port.md)
+- `in progress` [`R_EdgeDrawing` now has a selectable i486 assembly entry](2026-10-05-edge-drawing-assembly-port.md)
+- `in progress` [Remaining edge-drawing closure](2026-10-05-edge-drawing-assembly-port.md)
 - `promoted` [`surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)](2026-10-02-surf8-bundle-and-promotion.md)
 - `closed` [The `surf8` horizontal-flat axis, screened (2026-10-02) — four candidates, two closed by price](2026-10-02-surf8-bundle-and-promotion.md)
 - `promoted` [mip-1 flat-row index hoist (2026-10-02) — **0.0353% alone; promoted at 0.0620% as part of a bundle**](2026-10-02-surf8-bundle-and-promotion.md)
@@ -136,6 +189,20 @@ other axis: one row per renderer region, newest entry first.
 
 ### world-bsp
 
+- `in progress` [`R_RecursiveClipBPoly` now has a selectable i486 assembly entry](2026-10-05-bmodel-polygon-clip-assembly-port.md)
+- `in progress` [`demo1` wall leak traced to the split fraction and fixed](2026-10-05-bmodel-polygon-clip-assembly-port.md)
+- `in progress` [Edge-list maintenance now has explicit implementation choices](2026-10-05-edge-list-maintenance-assembly-port.md)
+- `in progress` [Remaining active-edge maintenance closure](2026-10-05-edge-list-maintenance-assembly-port.md)
+- `in progress` [`R_ScanEdges` now has a selectable i486 assembly entry](2026-10-05-scan-edges-assembly-port.md)
+- `in progress` [Remaining edge-scan closure](2026-10-05-scan-edges-assembly-port.md)
+- `in progress` [`R_EdgeDrawing` now has a selectable i486 assembly entry](2026-10-05-edge-drawing-assembly-port.md)
+- `in progress` [Remaining edge-drawing closure](2026-10-05-edge-drawing-assembly-port.md)
+- `in progress` [`R_DrawSubmodelPolygons` now has a selectable i486 assembly entry](2026-10-05-submodel-polygons-assembly-port.md)
+- `in progress` [Remaining submodel-polygon closure](2026-10-05-submodel-polygons-assembly-port.md)
+- `in progress` [`R_StoreEfrags` now has a selectable i486 assembly entry](2026-10-05-efrag-store-assembly-port.md)
+- `in progress` [`R_RenderWorld` now has a selectable i486 assembly entry](2026-10-05-render-world-assembly-port.md)
+- `in progress` [Remaining active world-renderer closure](2026-10-05-render-world-assembly-port.md)
+- `in progress` [`R_RecursiveWorldNode` now has a selectable assembly walk](2026-10-05-world-bsp-assembly-port.md)
 - `measured` [The bmodel frustum `FIXME` (2026-09-29) — premise measured, ceiling is two orders of magnitude short, do ...](2026-09-29-harness-and-cost-model.md)
 - `measured` [`world-bsp` decomposed (2026-10-01) — it was never the BSP walk; 85% of it is per-face edge setup](2026-10-01-attribution-corrections.md)
 - `measured` [World-BSP frame-count cache experiment (2026-09-28)](2026-09-28-span-micro-experiments.md)
@@ -181,4 +248,3 @@ section below moved verbatim.
 - `Alias bounding-box projection result`
 - `Clipped alias vertex transform result`
 - `Rejected negative-gradient Z-span unroll`
-

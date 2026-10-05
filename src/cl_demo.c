@@ -420,6 +420,8 @@ void CL_TimeDemo_f (void)
 #ifdef BENCH486
 	if (COM_CheckParm ("-timedemoexit") && vid.buffer)
 		Q_memset ((byte *)vid.buffer, 0, vid.rowbytes * vid.height);
+	Bench486ResetTimedemoFrameChecksums (
+			COM_CheckParm ("-framechecksums") != 0);
 	if (COM_CheckParm ("-fpsstats"))
 		Bench486ResetTimedemoStats ();
 #ifdef PROFILE486

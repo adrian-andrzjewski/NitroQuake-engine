@@ -25,6 +25,53 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 #include "d_local.h"
 
+#ifdef ASM486_WARP_SCREEN
+#if MAXHEIGHT != 1024 || MAXWIDTH != 1280 || AMP2 != 3
+#error "D_WarpScreen_asm486 stack-array layout must match MAXHEIGHT, MAXWIDTH, and AMP2"
+#endif
+#endif
+
+#if defined(ASM486_WARP_SCREEN) && defined(BENCH486)
+void D_WarpTables_C_Bench (byte **rowptr, int *column, byte *viewbase,
+		int screenwidth, int rowcount, int colcount, int h, int w,
+		int hdenominator, int wdenominator, int x_origin,
+		float hratio, float wratio)
+{
+	int v, u;
+
+	for (v=0 ; v<rowcount ; v++)
+		rowptr[v] = viewbase + screenwidth *
+				(int)((float)v * hratio * h / hdenominator);
+
+	for (u=0 ; u<colcount ; u++)
+		column[u] = x_origin +
+				(int)((float)u * wratio * w / wdenominator);
+}
+
+void D_WarpPixels_C_Bench (byte *dest, byte **rowptr, int *column,
+		int *turb, int width, int height, int rowbytes)
+{
+	int v, u;
+	byte *destrow;
+	int *col;
+	byte **row;
+
+	destrow = dest;
+	for (v=0 ; v<height ; v++, destrow += rowbytes)
+	{
+		col = &column[turb[v]];
+		row = &rowptr[v];
+		for (u=0 ; u<width ; u+=4)
+		{
+			destrow[u+0] = row[turb[u+0]][col[u+0]];
+			destrow[u+1] = row[turb[u+1]][col[u+1]];
+			destrow[u+2] = row[turb[u+2]][col[u+2]];
+			destrow[u+3] = row[turb[u+3]][col[u+3]];
+		}
+	}
+}
+#endif
+
 unsigned char	*r_turb_pbase, *r_turb_pdest;
 fixed16_t		r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
 int				*r_turb_turb;
@@ -53,6 +100,7 @@ D_WarpScreen
 // the sine warp, to keep the edges from wrapping
 =============
 */
+#ifndef ASM486_WARP_SCREEN
 void D_WarpScreen (void)
 {
 	int		w, h;
@@ -100,6 +148,7 @@ void D_WarpScreen (void)
 		}
 	}
 }
+#endif
 
 
 #if	!id386
@@ -159,6 +208,11 @@ void D_DrawTurbulent8Span_C (void)
 Turbulent8
 =============
 */
+#if defined(ASM486_TURBULENT_SCAN) && defined(BENCH486)
+#define Turbulent8 Turbulent8_C
+#endif
+
+#if !defined(ASM486_TURBULENT_SCAN) || defined(BENCH486)
 void Turbulent8 (espan_t *pspan)
 {
 	int				count;
@@ -307,9 +361,10 @@ void Turbulent8 (espan_t *pspan)
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
-		bench486_turbulent_seconds += Sys_FloatTime () - bench486_turbulent_start;
+	bench486_turbulent_seconds += Sys_FloatTime () - bench486_turbulent_start;
 #endif
 }
+#endif
 
 
 #if	!id386

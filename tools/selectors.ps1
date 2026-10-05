@@ -47,16 +47,42 @@
 # on any of these is what makes the .s files part of the build; see SelectsAsm.
 $script:AssemblyBackedImplementations = @(
     'MemoryImplementation',
+    'FillRectImplementation',
+    'ZPointImplementation',
+    'SkySpanImplementation',
+    'WarpScreenImplementation',
+    'SolidSurfaceImplementation',
+    'TurbulentScanImplementation',
     'TextureAxisImplementation',
     'SurfaceCacheImplementation',
+    'SurfaceDrawImplementation',
+    'SurfaceZGradientImplementation',
+    'SurfaceGradientImplementation',
+    'SurfaceDispatcherImplementation',
     'MipLevelImplementation',
     'TextureAnimationImplementation',
     'LightMapNormalizeImplementation',
     'LightMapStylesImplementation',
     'FusedLightMapImplementation',
     'DynamicLightImplementation',
+    'DynamicLightOrchestrationImplementation',
+    'DlightContributesImplementation',
+    'LightMapBuildImplementation',
     'BspPlaneDotImplementation',
     'BspClipImplementation',
+    'RenderWorldImplementation',
+    'RenderFaceImplementation',
+    'RenderBmodelFaceImplementation',
+    'BmodelPolygonClipImplementation',
+    'SolidClippedSubmodelPolygonsImplementation',
+    'SubmodelPolygonsImplementation',
+    'EdgeDrawingImplementation',
+    'ScanEdgesImplementation',
+    'EdgeListMaintenanceImplementation',
+    'BackwardSpansImplementation',
+    'EfragStoreImplementation',
+    'EmitCachedEdgeImplementation',
+    'RenderPolyImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation'
 )
@@ -117,6 +143,51 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'FillRectImplementation'
+        Manifest   = 'fillRectImplementation'
+        Suffix     = @{ 'asm' = 'fillrectasm' }
+        C          = @{ 'asm' = @('ASM486_FILLRECT') }
+        Asm        = @{ 'asm' = @('ASM486_FILLRECT') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'ZPointImplementation'
+        Manifest   = 'zPointImplementation'
+        Suffix     = @{ 'asm' = 'zpointasm' }
+        C          = @{ 'asm' = @('ASM486_ZPOINT') }
+        Asm        = @{ 'asm' = @('ASM486_ZPOINT') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SkySpanImplementation'
+        Manifest   = 'skySpanImplementation'
+        Suffix     = @{ 'asm' = 'skyasm' }
+        C          = @{ 'asm' = @('ASM486_SKY_SPAN') }
+        Asm        = @{ 'asm' = @('ASM486_SKY_SPAN') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'WarpScreenImplementation'
+        Manifest   = 'warpScreenImplementation'
+        Suffix     = @{ 'asm' = 'warpasm' }
+        C          = @{ 'asm' = @('ASM486_WARP_SCREEN') }
+        Asm        = @{ 'asm' = @('ASM486_WARP_SCREEN') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SolidSurfaceImplementation'
+        Manifest   = 'solidSurfaceImplementation'
+        Suffix     = @{ 'asm' = 'solidasm' }
+        C          = @{ 'asm' = @('ASM486_SOLID_SURFACE') }
+        Asm        = @{ 'asm' = @('ASM486_SOLID_SURFACE') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'TextureAxisImplementation'
         Manifest   = 'textureAxisImplementation'
         Suffix     = @{ 'asm' = 'axisasm' }
@@ -130,7 +201,7 @@ $script:SelectorTable = @(
         Manifest   = 'surfaceCacheImplementation'
         Suffix     = @{ 'asm' = 'surfaceasm' }
         C          = @{ 'asm' = @('ASM486_SURFACE_CACHE_CHECK') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_SURFACE_CACHE_CHECK') }
         SelectsAsm = $true
     }
 
@@ -139,7 +210,7 @@ $script:SelectorTable = @(
         Manifest   = 'mipLevelImplementation'
         Suffix     = @{ 'asm' = 'mipasm' }
         C          = @{ 'asm' = @('ASM486_MIP_LEVEL') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_MIP_LEVEL') }
         SelectsAsm = $true
     }
 
@@ -149,9 +220,58 @@ $script:SelectorTable = @(
         Suffix     = @{ 'c' = 'turbc'; 'asm' = 'turbasm' }
         C          = @{ 'c' = @('ASM486_TURBULENT_C') }
         # 'stosb' is the default and emits no token, so it is absent from Suffix;
-        # it is spelled out here because its define must still be emitted.
-        Asm        = @{ 'stosb' = @('ASM486_TURBULENT_STOSB') }
+        # the C selector's define also reaches the assembler so a selected outer
+        # scan can call the matching inner-loop reference.
+        Asm        = @{
+            'c'     = @('ASM486_TURBULENT_C')
+            'stosb' = @('ASM486_TURBULENT_STOSB')
+        }
         SelectsAsm = $false
+    }
+
+    @{
+        Param      = 'TurbulentScanImplementation'
+        Manifest   = 'turbulentScanImplementation'
+        Suffix     = @{ 'asm' = 'turbscan' }
+        C          = @{ 'asm' = @('ASM486_TURBULENT_SCAN') }
+        Asm        = @{ 'asm' = @('ASM486_TURBULENT_SCAN') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SurfaceDrawImplementation'
+        Manifest   = 'surfaceDrawImplementation'
+        Suffix     = @{ 'asm' = 'surfacedrawasm' }
+        C          = @{ 'asm' = @('ASM486_SURFACE_DRAW') }
+        Asm        = @{ 'asm' = @('ASM486_SURFACE_DRAW') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SurfaceZGradientImplementation'
+        Manifest   = 'surfaceZGradientImplementation'
+        Suffix     = @{ 'asm' = 'surfacezasm' }
+        C          = @{ 'asm' = @('ASM486_SURFACE_ZGRADIENTS') }
+        Asm        = @{ 'asm' = @('ASM486_SURFACE_ZGRADIENTS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SurfaceGradientImplementation'
+        Manifest   = 'surfaceGradientImplementation'
+        Suffix     = @{ 'asm' = 'surfacegradasm' }
+        C          = @{ 'asm' = @('ASM486_SURFACE_GRADIENTS') }
+        Asm        = @{ 'asm' = @('ASM486_SURFACE_GRADIENTS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SurfaceDispatcherImplementation'
+        Manifest   = 'surfaceDispatcherImplementation'
+        Suffix     = @{ 'asm' = 'surfacesasm' }
+        C          = @{ 'asm' = @('ASM486_SURFACE_DISPATCH') }
+        Asm        = @{ 'asm' = @('ASM486_SURFACE_DISPATCH') }
+        SelectsAsm = $true
     }
 
     # ---- texture spans --------------------------------------------------------
@@ -344,7 +464,7 @@ $script:SelectorTable = @(
         Manifest   = 'aliasProjectImplementation'
         Suffix     = @{ 'c' = 'aliasc' }
         C          = @{ 'asm' = @('ASM486_ALIAS_PROJECT') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_PROJECT') }
         SelectsAsm = $false
     }
 
@@ -369,10 +489,31 @@ $script:SelectorTable = @(
     @{
         Param      = 'AliasPrepareImplementation'
         Manifest   = 'aliasPrepareImplementation'
-        Suffix     = @{ 'local' = 'aliaslocal' }
-        C          = @{ 'local' = @('ASM486_ALIAS_PREPARE_LOCAL') }
-        Asm        = @{}
-        SelectsAsm = $false
+        Suffix     = @{ 'local' = 'aliaslocal'; 'asm' = 'aliasprepareasm' }
+        C          = @{
+            'local' = @('ASM486_ALIAS_PREPARE_LOCAL')
+            'asm' = @('ASM486_ALIAS_PREPARE')
+        }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_PREPARE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasClipImplementation'
+        Manifest   = 'aliasClipImplementation'
+        Suffix     = @{ 'asm' = 'aliasclipasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_CLIP') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_CLIP') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasClipZImplementation'
+        Manifest   = 'aliasClipZImplementation'
+        Suffix     = @{ 'asm' = 'aliasclipzasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_CLIP_Z') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_CLIP_Z') }
+        SelectsAsm = $true
     }
 
     @{
@@ -391,7 +532,7 @@ $script:SelectorTable = @(
         Manifest   = 'textureAnimationImplementation'
         Suffix     = @{ 'c' = 'textureanimc' }
         C          = @{ 'asm' = @('ASM486_TEXTURE_ANIMATION') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_TEXTURE_ANIMATION') }
         SelectsAsm = $true
     }
 
@@ -400,7 +541,7 @@ $script:SelectorTable = @(
         Manifest   = 'lightMapNormalizeImplementation'
         Suffix     = @{ 'c' = 'lightmapc' }
         C          = @{ 'asm' = @('ASM486_LIGHTMAP_NORMALIZE') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_LIGHTMAP_NORMALIZE') }
         SelectsAsm = $true
     }
 
@@ -409,7 +550,7 @@ $script:SelectorTable = @(
         Manifest   = 'lightMapStylesImplementation'
         Suffix     = @{ 'asm' = 'lightmapstylesasm' }
         C          = @{ 'asm' = @('ASM486_LIGHTMAP_STYLES') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_LIGHTMAP_STYLES') }
         SelectsAsm = $true
     }
 
@@ -418,7 +559,7 @@ $script:SelectorTable = @(
         Manifest   = 'fusedLightMapImplementation'
         Suffix     = @{ 'asm' = 'fusedlightmapasm' }
         C          = @{ 'asm' = @('ASM486_FUSED_LIGHTMAP') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_FUSED_LIGHTMAP') }
         SelectsAsm = $true
     }
 
@@ -427,7 +568,34 @@ $script:SelectorTable = @(
         Manifest   = 'dynamicLightImplementation'
         Suffix     = @{ 'asm' = 'dlightasm' }
         C          = @{ 'asm' = @('ASM486_DYNAMIC_LIGHTS') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_DYNAMIC_LIGHTS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'DynamicLightOrchestrationImplementation'
+        Manifest   = 'dynamicLightOrchestrationImplementation'
+        Suffix     = @{ 'asm' = 'dlightorchestrationasm' }
+        C          = @{ 'asm' = @('ASM486_DYNAMIC_LIGHT_ORCHESTRATION', 'ASM486_DYNAMIC_LIGHT_PROJECTION') }
+        Asm        = @{ 'asm' = @('ASM486_DYNAMIC_LIGHT_ORCHESTRATION', 'ASM486_DYNAMIC_LIGHT_PROJECTION') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'DlightContributesImplementation'
+        Manifest   = 'dlightContributesImplementation'
+        Suffix     = @{ 'asm' = 'dlightcontribasm' }
+        C          = @{ 'asm' = @('ASM486_DLIGHT_CONTRIBUTES', 'ASM486_DYNAMIC_LIGHT_PROJECTION') }
+        Asm        = @{ 'asm' = @('ASM486_DLIGHT_CONTRIBUTES', 'ASM486_DYNAMIC_LIGHT_PROJECTION') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'LightMapBuildImplementation'
+        Manifest   = 'lightMapBuildImplementation'
+        Suffix     = @{ 'asm' = 'lightmapbuildasm' }
+        C          = @{ 'asm' = @('ASM486_LIGHTMAP_BUILD') }
+        Asm        = @{ 'asm' = @('ASM486_LIGHTMAP_BUILD') }
         SelectsAsm = $true
     }
 
@@ -458,6 +626,140 @@ $script:SelectorTable = @(
         C          = @{ 'local' = @('ASM486_BSP_FRAME_COUNT') }
         Asm        = @{}
         SelectsAsm = $false
+    }
+
+    @{
+        Param      = 'BspWalkImplementation'
+        Manifest   = 'bspWalkImplementation'
+        Suffix     = @{ 'asm' = 'bspwalkasm' }
+        C          = @{ 'asm' = @('ASM486_BSP_WALK') }
+        Asm        = @{ 'asm' = @('ASM486_BSP_WALK') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'RenderWorldImplementation'
+        Manifest   = 'renderWorldImplementation'
+        Suffix     = @{ 'asm' = 'renderworldasm' }
+        C          = @{ 'asm' = @('ASM486_RENDER_WORLD') }
+        Asm        = @{ 'asm' = @('ASM486_RENDER_WORLD') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'RenderFaceImplementation'
+        Manifest   = 'renderFaceImplementation'
+        Suffix     = @{ 'asm' = 'renderfaceasm' }
+        C          = @{ 'asm' = @('ASM486_RENDER_FACE') }
+        Asm        = @{ 'asm' = @('ASM486_RENDER_FACE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'RenderBmodelFaceImplementation'
+        Manifest   = 'renderBmodelFaceImplementation'
+        Suffix     = @{ 'asm' = 'bmodelasm' }
+        C          = @{ 'asm' = @('ASM486_RENDER_BMODEL_FACE') }
+        Asm        = @{ 'asm' = @('ASM486_RENDER_BMODEL_FACE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'BmodelPolygonClipImplementation'
+        Manifest   = 'bmodelPolygonClipImplementation'
+        Suffix     = @{ 'asm' = 'bmodelclipasm' }
+        C          = @{ 'asm' = @('ASM486_BMODEL_POLYGON_CLIP') }
+        Asm        = @{ 'asm' = @('ASM486_BMODEL_POLYGON_CLIP') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SolidClippedSubmodelPolygonsImplementation'
+        Manifest   = 'solidClippedSubmodelPolygonsImplementation'
+        Suffix     = @{ 'asm' = 'bmodelsetupasm' }
+        C          = @{ 'asm' = @('ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS') }
+        Asm        = @{ 'asm' = @('ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SubmodelPolygonsImplementation'
+        Manifest   = 'submodelPolygonsImplementation'
+        Suffix     = @{ 'asm' = 'submodelpolysasm' }
+        C          = @{ 'asm' = @('ASM486_DRAW_SUBMODEL_POLYGONS') }
+        Asm        = @{ 'asm' = @('ASM486_DRAW_SUBMODEL_POLYGONS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'EdgeDrawingImplementation'
+        Manifest   = 'edgeDrawingImplementation'
+        Suffix     = @{ 'asm' = 'edgedrawasm' }
+        C          = @{ 'asm' = @('ASM486_EDGE_DRAWING') }
+        Asm        = @{ 'asm' = @('ASM486_EDGE_DRAWING') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'ScanEdgesImplementation'
+        Manifest   = 'scanEdgesImplementation'
+        Suffix     = @{ 'asm' = 'scanedgesasm' }
+        C          = @{ 'asm' = @('ASM486_SCAN_EDGES') }
+        Asm        = @{ 'asm' = @('ASM486_SCAN_EDGES') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'EdgeListMaintenanceImplementation'
+        Manifest   = 'edgeListMaintenanceImplementation'
+        Suffix     = @{ 'c' = 'edgelistc'; 'asm' = 'edgelistasm' }
+        C          = @{
+            'legacy' = @()
+            'c'   = @('ASM486_EDGE_LIST_C')
+            'asm' = @('ASM486_EDGE_LIST')
+        }
+        Asm        = @{
+            'legacy' = @()
+            'c'   = @('ASM486_EDGE_LIST_C')
+            'asm' = @('ASM486_EDGE_LIST')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'BackwardSpansImplementation'
+        Manifest   = 'backwardSpansImplementation'
+        Suffix     = @{ 'asm' = 'backspansasm' }
+        C          = @{ 'asm' = @('ASM486_BACKWARD_SPANS') }
+        Asm        = @{ 'asm' = @('ASM486_BACKWARD_SPANS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'EfragStoreImplementation'
+        Manifest   = 'efragStoreImplementation'
+        Suffix     = @{ 'asm' = 'efragstoreasm' }
+        C          = @{ 'asm' = @('ASM486_EFRAG_STORE') }
+        Asm        = @{ 'asm' = @('ASM486_EFRAG_STORE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'EmitCachedEdgeImplementation'
+        Manifest   = 'emitCachedEdgeImplementation'
+        Suffix     = @{ 'asm' = 'emitcachedasm' }
+        C          = @{ 'asm' = @('ASM486_EMIT_CACHED_EDGE') }
+        Asm        = @{ 'asm' = @('ASM486_EMIT_CACHED_EDGE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'RenderPolyImplementation'
+        Manifest   = 'renderPolyImplementation'
+        Suffix     = @{ 'asm' = 'renderpolyasm' }
+        C          = @{ 'asm' = @('ASM486_RENDER_POLY') }
+        Asm        = @{ 'asm' = @('ASM486_RENDER_POLY') }
+        SelectsAsm = $true
     }
 
     @{
@@ -533,10 +835,20 @@ $script:SuffixOrder = @(
     'OptimizationProfile'
     'TextureAxisCacheEntries'
     'MemoryImplementation'
+    'FillRectImplementation'
+    'ZPointImplementation'
+    'SkySpanImplementation'
+    'WarpScreenImplementation'
+    'SolidSurfaceImplementation'
     'TextureAxisImplementation'
     'SurfaceCacheImplementation'
+    'SurfaceDrawImplementation'
+    'SurfaceZGradientImplementation'
+    'SurfaceGradientImplementation'
+    'SurfaceDispatcherImplementation'
     'MipLevelImplementation'
     'TurbulentImplementation'
+    'TurbulentScanImplementation'
     'TextureSpanStores'
     'TextureSpanTailStores'
     'TextureSpanRowPath'
@@ -557,38 +869,86 @@ $script:SuffixOrder = @(
     'AliasBBoxProjectImplementation'
     'AliasTransformFinalImplementation'
     'AliasPrepareImplementation'
+    'AliasClipImplementation'
+    'AliasClipZImplementation'
     'AliasMatrixCompositionImplementation'
     'TextureAnimationImplementation'
     'LightMapNormalizeImplementation'
     'LightMapStylesImplementation'
     'FusedLightMapImplementation'
     'DynamicLightImplementation'
+    'DynamicLightOrchestrationImplementation'
+    'DlightContributesImplementation'
+    'LightMapBuildImplementation'
     'BspPlaneDotImplementation'
     'BspClipImplementation'
     'BspFrameCountImplementation'
+    'BspWalkImplementation'
+    'RenderWorldImplementation'
+    'RenderFaceImplementation'
+    'RenderBmodelFaceImplementation'
+    'BmodelPolygonClipImplementation'
+    'SolidClippedSubmodelPolygonsImplementation'
+    'SubmodelPolygonsImplementation'
+    'EdgeDrawingImplementation'
+    'ScanEdgesImplementation'
+    'EdgeListMaintenanceImplementation'
+    'BackwardSpansImplementation'
+    'EfragStoreImplementation'
+    'EmitCachedEdgeImplementation'
+    'RenderPolyImplementation'
     'GibTrailHorizontalIntegration'
 )
 
 $script:CDefineOrder = @(
     'BUILD:BENCH486'
     'MemoryImplementation'
+    'FillRectImplementation'
+    'ZPointImplementation'
+    'SkySpanImplementation'
+    'WarpScreenImplementation'
+    'SolidSurfaceImplementation'
     'TextureAxisImplementation'
     'SurfaceCacheImplementation'
+    'SurfaceDrawImplementation'
+    'SurfaceZGradientImplementation'
+    'SurfaceGradientImplementation'
+    'SurfaceDispatcherImplementation'
     'MipLevelImplementation'
     'TextureAnimationImplementation'
     'LightMapNormalizeImplementation'
     'LightMapStylesImplementation'
     'FusedLightMapImplementation'
     'DynamicLightImplementation'
+    'DynamicLightOrchestrationImplementation'
+    'DlightContributesImplementation'
+    'LightMapBuildImplementation'
     'BspPlaneDotImplementation'
     'BspClipImplementation'
     'BspFrameCountImplementation'
+    'BspWalkImplementation'
+    'RenderWorldImplementation'
+    'RenderFaceImplementation'
+    'RenderBmodelFaceImplementation'
+    'BmodelPolygonClipImplementation'
+    'SolidClippedSubmodelPolygonsImplementation'
+    'SubmodelPolygonsImplementation'
+    'EdgeDrawingImplementation'
+    'ScanEdgesImplementation'
+    'EdgeListMaintenanceImplementation'
+    'BackwardSpansImplementation'
+    'EfragStoreImplementation'
+    'EmitCachedEdgeImplementation'
+    'RenderPolyImplementation'
     'GibTrailHorizontalIntegration'
     'AliasBBoxProjectImplementation'
     'AliasTransformFinalImplementation'
     'AliasPrepareImplementation'
+    'AliasClipImplementation'
+    'AliasClipZImplementation'
     'AliasMatrixCompositionImplementation'
     'TurbulentImplementation'
+    'TurbulentScanImplementation'
     'BUILD:PROFILE486'
     'AliasGlueProbe'
     'RenderFaceProbe'
@@ -598,8 +958,46 @@ $script:CDefineOrder = @(
 
 $script:AsmDefineOrder = @(
     'CpuTarget'
+    'FillRectImplementation'
+    'ZPointImplementation'
+    'SkySpanImplementation'
+    'WarpScreenImplementation'
+    'SolidSurfaceImplementation'
+    'SurfaceCacheImplementation'
+    'SurfaceDrawImplementation'
+    'SurfaceZGradientImplementation'
+    'SurfaceGradientImplementation'
+    'SurfaceDispatcherImplementation'
+    'MipLevelImplementation'
+    'TextureAnimationImplementation'
+    'AliasPrepareImplementation'
+    'AliasClipImplementation'
+    'AliasProjectImplementation'
+    'AliasClipZImplementation'
     'BUILD:PROFILE486'
+    'LightMapNormalizeImplementation'
+    'LightMapStylesImplementation'
+    'FusedLightMapImplementation'
+    'DynamicLightImplementation'
+    'DynamicLightOrchestrationImplementation'
+    'DlightContributesImplementation'
+    'LightMapBuildImplementation'
+    'BspWalkImplementation'
+    'RenderWorldImplementation'
+    'RenderFaceImplementation'
+    'RenderBmodelFaceImplementation'
+    'BmodelPolygonClipImplementation'
+    'SolidClippedSubmodelPolygonsImplementation'
+    'SubmodelPolygonsImplementation'
+    'EdgeDrawingImplementation'
+    'ScanEdgesImplementation'
+    'EdgeListMaintenanceImplementation'
+    'BackwardSpansImplementation'
+    'EfragStoreImplementation'
+    'EmitCachedEdgeImplementation'
+    'RenderPolyImplementation'
     'TurbulentImplementation'
+    'TurbulentScanImplementation'
     'TextureSpanStores'
     'TextureSpanRowPath'
     'TextureSpanTailStores'
