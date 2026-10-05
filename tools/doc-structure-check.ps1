@@ -196,7 +196,7 @@ if ($AsJson) {
     [pscustomobject]@{
         documents = $docs.Count
         findings  = $findings.Count
-        results   = @($findings)
+        results   = $findings.ToArray()
     } | ConvertTo-Json -Depth 5
     exit $(if ($findings.Count) { 1 } else { 0 })
 }

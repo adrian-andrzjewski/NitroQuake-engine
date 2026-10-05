@@ -30,6 +30,8 @@
                                 path.  Seconds.
       3. test-video-dos.py      host-compiled harness over vid_ext.c and three
                                 vid_vga/vid_dos functions.  Seconds.
+      3a. test-rendering.py     host tests for PCX decoding/tolerances and
+                                per-frame checksum parsing. Seconds.
       4. build-dos.ps1         compiles, and now carries the blocking ISA gate,
                                 so a build that emits a regressing above-target
                                 instruction stops here rather than at promotion.
@@ -48,10 +50,13 @@
       8. bench-dos.ps1         bench486 correctness, including the C-versus-asm
                                 comparisons that are the only parity oracle for the
                                 assembly helpers.
-      9. timedemo-dos.ps1      the promotion gate: 969 frames, framebuffer checksum,
+      9. render-validation-dos.ps1 deterministic demo1/2/3 scenes, VGA/VESA and
+                                 lighting/viewport variants, per-frame checksums, and tolerant
+                                 captured-image comparisons.
+     10. timedemo-dos.ps1      the promotion gate: 969 frames, framebuffer checksum,
                                 and the median the 0.05% threshold is applied to.
                                 Slowest, so it runs after bench486.
-     10. guard-i486-release.py  SHA-256 pins over the release objects and the
+     11. guard-i486-release.py  SHA-256 pins over the release objects and the
                                 executable.  Last, because it judges a finished
                                 build and any earlier gate may have changed it.
                                 The tool prints how many; nothing here counts them,
@@ -74,8 +79,12 @@
     had already gone stale.
 
 .PARAMETER SkipSlow
-    Omit the timedemo (gate 9).  Use for a quick inner-loop check; the result is
-    not a promotion result, because the timedemo is the promotion criterion.
+    Omit the final three-run promotion timedemo. Use for an inner-loop check; the
+    result is not a performance promotion result.
+
+.PARAMETER SkipRendering
+    Omit the deterministic multi-scene rendering suite. Use with -SkipSlow for
+    the shortest host/build checks.
 
 .PARAMETER Runs
     Timedemo run count.  The project convention is 3, escalating to 5 when the
@@ -91,7 +100,7 @@
     .\tools\run-tests.ps1
 
 .EXAMPLE
-    .\tools\run-tests.ps1 -SkipSlow -NoBootstrap
+    .\tools\run-tests.ps1 -SkipSlow -SkipRendering -NoBootstrap
 #>
 [CmdletBinding()]
 param(
@@ -101,7 +110,8 @@ param(
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [switch]$NoBootstrap,
-    [switch]$SkipReleaseGuard
+    [switch]$SkipReleaseGuard,
+    [switch]$SkipRendering
 )
 
 Set-StrictMode -Version Latest
@@ -197,6 +207,7 @@ Invoke-Gate -Name 'doc-structure-check (citations, links, ledger index)' -Kind '
 Invoke-Gate -Name 'test-build-dos (flag/suffix golden pins)' -Kind 'host' -Command @('python', 'tools/test-build-dos.py') | Out-Null
 Invoke-Gate -Name 'test-sysinfo-dos (sys_dos report path)' -Kind 'host' -Command @('python', 'tools/test-sysinfo-dos.py') | Out-Null
 Invoke-Gate -Name 'test-video-dos (vid_ext + vid_vga/vid_dos)' -Kind 'host' -Command @('python', 'tools/test-video-dos.py') | Out-Null
+Invoke-Gate -Name 'test-rendering (PCX comparison + frame-log parser)' -Kind 'host' -Command @('python', 'tools/test-rendering.py') | Out-Null
 
 # ---- 4: build, carrying the blocking ISA gate. ----------------------------
 Invoke-Gate -Name "build-dos ($CpuTarget; includes the blocking ISA gate)" -Kind 'build' `
@@ -239,7 +250,24 @@ Invoke-Gate -Name 'coverage-dos (localmp: server/world/pr/net reachable)' -Kind 
 Invoke-Gate -Name 'bench-dos (bench486 PASS, C-vs-asm parity)' -Kind 'dos' -TimeoutSeconds 900 `
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/bench-dos.ps1', '-TimeoutSeconds', '600') + $nb) | Out-Null
 
-# ---- 9: the promotion gate. ----------------------------------------------
+# ---- 9: deterministic rendered scenes, temporal checks and image diffs. ---
+if ($SkipRendering) {
+    $results.Add([pscustomobject]@{
+            gate    = 'render-validation (demo scenes, frame stability, PCX comparisons)'
+            kind    = 'dos'
+            exit    = '-'
+            seconds = 0
+            result  = 'SKIP'
+        })
+    Write-Host ''
+    Write-Host '  render-validation: SKIPPED (-SkipRendering).' -ForegroundColor Yellow
+}
+else {
+    Invoke-Gate -Name 'render-validation (demo1/2/3, VGA/VESA, quality, images)' -Kind 'dos' -TimeoutSeconds 3600 `
+        -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/render-validation-dos.ps1', '-CpuTarget', $CpuTarget, '-TimeoutSeconds', '600') + $nb) | Out-Null
+}
+
+# ---- 10: the promotion gate. ---------------------------------------------
 if ($SkipSlow) {
     $results.Add([pscustomobject]@{
             gate    = 'timedemo (969 frames, checksum, median)'
@@ -256,7 +284,7 @@ else {
         -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/timedemo-dos.ps1', '-Runs', "$Runs", '-NoFpsStats') + $nb) | Out-Null
 }
 
-# ---- 10: release artefact pins.  Last: it judges a finished build. --------
+# ---- 11: release artefact pins.  Last: it judges a finished build. --------
 if ($SkipReleaseGuard) {
     $results.Add([pscustomobject]@{
             gate    = 'guard-i486-release'

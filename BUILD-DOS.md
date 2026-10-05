@@ -20,9 +20,17 @@ consumes the dismissal and held-key releases before gameplay. Dedicated startup
 prints the information once with video disabled. Dedicated and benchmark builds
 ignore the pause switch.
 
-Host-side focused checks: `python tools/test-sysinfo-dos.py` and
-`python tools/test-video-dos.py`. These do not replace emulator or physical-machine
-visual/input checks, or the existing benchmark acceptance gates.
+Host-side focused checks include `python tools/test-sysinfo-dos.py`,
+`python tools/test-video-dos.py`, and `python tools/test-rendering.py`. The
+manifest-driven `tools/render-validation-dos.ps1` suite runs deterministic Quake
+demos through VGA/VESA and lighting/viewport paths, compares captured PCX frames against
+tolerant references, and checks per-frame output for temporal instability. See
+`RENDERING-VALIDATION.md` for scenarios, thresholds, and result artifacts. These
+checks do not replace physical-machine visual/input acceptance.
+
+Run the full registered verification suite with `tools/run-tests.ps1`. Pass
+`-SkipRendering -SkipSlow` to omit the multi-scene rendering suite and the final
+promotion timedemo during a short source/build iteration.
 
 This checkout builds the retained NitroQuake MS-DOS/software-renderer source
 directly from Windows 10.  The compiler is a Windows-hosted DJGPP cross

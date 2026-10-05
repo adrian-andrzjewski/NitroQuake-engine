@@ -169,6 +169,21 @@ param(
     [string]$HdpmiEnv = '',
     # Extra Quake/qbench command-line tokens (e.g. '-mem 8' to pin heap size across DPMI hosts).
     [string]$QuakeExtraArgs = '',
+    # Deterministic Quake commands written to the isolated id1\autoexec.cfg.
+    # This runs before Quake's automatic demo startup; use it for renderer cvars
+    # rather than adding more '+' commands after the timedemo command.
+    [string[]]$AutoexecCommands = @(),
+    # JSON-encoded string array for callers that need to forward multiple lines
+    # across a pwsh -File process boundary without positional-argument ambiguity.
+    [string]$AutoexecCommandsJson = '',
+    # Record one framebuffer checksum per rendered timedemo frame. This detects
+    # temporal instability and synchronization regressions that a final-frame
+    # checksum cannot see.
+    [switch]$FrameChecksums,
+    # Capture a PCX image at this zero-based timedemo frame. Requires
+    # -FrameChecksums because the existing renderer hook records captures there.
+    [ValidateRange(-1, 65535)]
+    [int]$FrameCaptureIndex = -1,
     # When using hdpmi32, still run DPMI.EXE to record the resident host identity.
     [switch]$SkipDpmiProbe,
     #
@@ -372,6 +387,38 @@ $stagingRoot = $staging.StagingRoot
 $quakeRoot = $staging.QuakeRoot
 $stagedData = $staging.StagedData
 
+if (-not [string]::IsNullOrWhiteSpace($AutoexecCommandsJson)) {
+    if (-not $AutoexecCommandsJson.TrimStart().StartsWith('[')) {
+        throw '-AutoexecCommandsJson must contain a JSON array of command strings.'
+    }
+    try {
+        $decodedAutoexecCommands = @(ConvertFrom-Json -InputObject $AutoexecCommandsJson -ErrorAction Stop)
+    }
+    catch {
+        throw "-AutoexecCommandsJson must contain a JSON array of command strings: $($_.Exception.Message)"
+    }
+    if ($decodedAutoexecCommands.Count -eq 0) {
+        throw '-AutoexecCommandsJson must contain a non-empty JSON array of command strings.'
+    }
+    foreach ($command in $decodedAutoexecCommands) {
+        if ($command -isnot [string]) {
+            throw '-AutoexecCommandsJson values must all be strings.'
+        }
+    }
+    $AutoexecCommands = @($AutoexecCommands) + @($decodedAutoexecCommands)
+}
+
+if ($AutoexecCommands.Count -gt 0) {
+    foreach ($command in $AutoexecCommands) {
+        if ($command.Contains("`r") -or $command.Contains("`n")) {
+            throw 'Each -AutoexecCommands value must be a single command line.'
+        }
+    }
+    $autoexecPath = Join-Path $stagedData 'autoexec.cfg'
+    $autoexecText = ($AutoexecCommands -join "`r`n") + "`r`n"
+    [IO.File]::WriteAllText($autoexecPath, $autoexecText, [Text.Encoding]::ASCII)
+}
+
 $cwsdpmiSource = Join-Path $repoRoot 'src\cwsdpmi.exe'
 $hdpmiDir = Join-Path $PSScriptRoot 'thirdparty\hdpmi'
 $hdpmiSource = Join-Path $hdpmiDir 'HDPMI32.EXE'
@@ -414,6 +461,10 @@ else {
     }
 }
 
+if ($FrameCaptureIndex -ge 0 -and -not $FrameChecksums) {
+    throw '-FrameCaptureIndex requires -FrameChecksums.'
+}
+
 $sha256Host = [Security.Cryptography.SHA256]::Create()
 try {
     $dpmiHostSha256 = ([BitConverter]::ToString(
@@ -427,10 +478,12 @@ $batchPath = Join-Path $quakeRoot 'timedemo.bat'
 $probeBlock = if ($dpmiProbeLines.Count) { ($dpmiProbeLines -join "`r`n") + "`r`n" } else { '' }
 $loadBlock = if ($hdpmiLoadLine) { "$hdpmiLoadLine`r`n" } else { '' }
 $quakeExtras = if ([string]::IsNullOrWhiteSpace($QuakeExtraArgs)) { '' } else { ' ' + $QuakeExtraArgs.Trim() }
+$frameChecksumOptions = if ($FrameChecksums) { ' -framechecksums' } else { '' }
+$frameCaptureOption = if ($FrameCaptureIndex -ge 0) { " -framecapture $FrameCaptureIndex" } else { '' }
 @"
 @echo off
 cd \quake
-$loadBlock$probeBlock$executableName -basedir \quake -timedemoexit$fpsStatsOptions -nosound -nojoy -nomouse -nocdaudio$quakeExtras +timedemo $DemoName
+$loadBlock$probeBlock$executableName -basedir \quake -timedemoexit$fpsStatsOptions$frameChecksumOptions$frameCaptureOption -nosound -nojoy -nomouse -nocdaudio$quakeExtras +timedemo $DemoName
 exit
 "@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
@@ -480,6 +533,14 @@ for ($run = 1; $run -le $Runs; $run++) {
     if (Test-Path -LiteralPath $profileJsonPath) {
         Remove-Item -LiteralPath $profileJsonPath -Force
     }
+    $frameChecksumDosPath = Join-Path $quakeRoot 'FRAMECHE.TXT'
+    if (Test-Path -LiteralPath $frameChecksumDosPath) {
+        Remove-Item -LiteralPath $frameChecksumDosPath -Force
+    }
+    $frameCaptureDosPath = Join-Path $stagedData 'FRAME.PCX'
+    if (Test-Path -LiteralPath $frameCaptureDosPath) {
+        Remove-Item -LiteralPath $frameCaptureDosPath -Force
+    }
 
     $dosboxRun = Invoke-DosboxProcess -Dosbox $dosbox -ConfigPath $configPath `
         -TimeoutSeconds $TimeoutSeconds -Description "DOSBox-X 486 timedemo run $run/$Runs"
@@ -494,6 +555,42 @@ for ($run = 1; $run -le $Runs; $run++) {
     $report = Get-Content -LiteralPath $reportPath -Raw
     if ($dosboxExit -ne 0) {
         throw "DOSBox-X timedemo failed with exit code $dosboxExit."
+    }
+
+    $runDiagnostics = $null
+    if ($FrameChecksums) {
+        if (-not (Test-Path -LiteralPath $frameChecksumDosPath -PathType Leaf)) {
+            throw "Timedemo did not produce per-frame checksums at '$frameChecksumDosPath'."
+        }
+        $checksumText = Get-Content -LiteralPath $frameChecksumDosPath -Raw
+        $checksumSummary = [regex]::Match($checksumText, '(?m)^frames\s+(?<frames>\d+)\s+overflow\s+(?<overflow>\d+)\s*$')
+        if (-not $checksumSummary.Success) {
+            throw "Per-frame checksum output has no completion summary: '$frameChecksumDosPath'."
+        }
+        $checksumOverflow = [int]$checksumSummary.Groups['overflow'].Value
+        if ($checksumOverflow -ne 0) {
+            throw "Per-frame checksum output overflowed by $checksumOverflow frames; inspect '$frameChecksumDosPath'."
+        }
+
+        $runDiagnosticsRoot = Join-Path $stagingRoot ('runs\run-{0:D2}' -f $run)
+        New-Item -ItemType Directory -Path $runDiagnosticsRoot -Force | Out-Null
+        $runChecksumPath = Join-Path $runDiagnosticsRoot 'framechecksums.txt'
+        Copy-Item -LiteralPath $frameChecksumDosPath -Destination $runChecksumPath -Force
+        $runCapturePath = $null
+        if ($FrameCaptureIndex -ge 0) {
+            if (-not (Test-Path -LiteralPath $frameCaptureDosPath -PathType Leaf)) {
+                throw "Timedemo did not produce the requested frame capture at '$frameCaptureDosPath'."
+            }
+            $runCapturePath = Join-Path $runDiagnosticsRoot 'frame.pcx'
+            Copy-Item -LiteralPath $frameCaptureDosPath -Destination $runCapturePath -Force
+        }
+        $runDiagnostics = [ordered]@{
+            frameChecksumPath = $runChecksumPath
+            frameChecksumFrames = [int]$checksumSummary.Groups['frames'].Value
+            frameChecksumOverflow = $checksumOverflow
+            frameCapturePath = $runCapturePath
+            frameCaptureIndex = if ($FrameCaptureIndex -ge 0) { $FrameCaptureIndex } else { $null }
+        }
     }
 
     $match = [regex]::Match($report,
@@ -529,13 +626,13 @@ for ($run = 1; $run -le $Runs; $run++) {
         $null
     }
     $gateFailures = @()
-    if ($runFrames -ne $ExpectedFrames) {
+    if ($ExpectedFrames -gt 0 -and $runFrames -ne $ExpectedFrames) {
         $gateFailures += "frames $runFrames != $ExpectedFrames"
     }
     if ($null -eq $runChecksum) {
         $gateFailures += 'framebuffer checksum absent from the report'
     }
-    elseif ($runChecksum -ne $ExpectedChecksum) {
+    elseif ($ExpectedChecksum -gt 0 -and $runChecksum -ne $ExpectedChecksum) {
         $gateFailures += "framebuffer checksum $runChecksum != $ExpectedChecksum"
     }
     if ($gateFailures.Count -gt 0) {
@@ -554,6 +651,7 @@ for ($run = 1; $run -le $Runs; $run++) {
         fpsStats = $fpsStatsData
         report = $report.Trim()
         profile = $profileData
+        renderingDiagnostics = $runDiagnostics
     }
 }
 
@@ -687,7 +785,9 @@ $result = [ordered]@{
         expectedProfileSha256 = $ExpectedProfileSha256
         expectedFrames = $ExpectedFrames
         expectedChecksum = $ExpectedChecksum
-        enforced = (-not $AllowGateOverride)
+        framesEnforced = ($ExpectedFrames -gt 0 -and -not $AllowGateOverride)
+        checksumEnforced = ($ExpectedChecksum -gt 0 -and -not $AllowGateOverride)
+        enforced = ((-not $AllowGateOverride) -and ($ExpectedFrames -gt 0 -or $ExpectedChecksum -gt 0))
     }
     executable = $benchmarkExe
     dpmiHost = $DpmiHost
@@ -696,6 +796,9 @@ $result = [ordered]@{
     hdpmiExtraArgs = if ($DpmiHost -eq 'hdpmi32') { $HdpmiExtraArgs } else { $null }
     hdpmiEnv = if ($DpmiHost -eq 'hdpmi32') { $HdpmiEnv } else { $null }
     quakeExtraArgs = $QuakeExtraArgs
+    autoexecCommands = @($AutoexecCommands)
+    frameChecksums = [bool]$FrameChecksums
+    frameCaptureIndex = if ($FrameCaptureIndex -ge 0) { $FrameCaptureIndex } else { $null }
     dpmiHostProbe = $dpmiHostProbe
     optimizationProfile = $OptimizationProfile
     textureAxisCacheEntries = $TextureAxisCacheEntries
@@ -773,6 +876,7 @@ $resultPath = Join-Path $stagingRoot 'timedemo-result.json'
 $result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $resultPath -Encoding ASCII
 
 Write-Host ($results | ForEach-Object { $_.report })
+Write-Host ("Timedemo result: {0}" -f $resultPath)
 Write-Host ("DPMI host: {0} ({1})" -f $DpmiHost, $dpmiHostSha256)
 if ($null -ne $dpmiHostProbe -and $dpmiHostProbe.Length -gt 0) {
     Write-Host "DPMI probe:"
@@ -787,4 +891,3 @@ if ($null -ne $fpsSummary) {
         $fpsSummary.high1PercentFps, $fpsSummary.standardDeviationFps,
         $fpsSummary.drops, $fpsSummary.spikes)
 }
-Write-Host "Timedemo result: $resultPath"

@@ -1,6 +1,6 @@
 # NitroQuake documentation
 
-Eight documents, one experiment ledger, and a rule about how to cite them.
+Operational documents, one experiment ledger, and a rule about how to cite them.
 
 ## Read in this order
 
@@ -8,14 +8,16 @@ Eight documents, one experiment ledger, and a rule about how to cite them.
    DOS renderer from Windows, the probe switches, the timedemo gate, what each
    script enforces, and the committed default baseline. Start here to *run*
    anything.
-2. **[`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md)** - the state of record. The
+2. **[`../RENDERING-VALIDATION.md`](../RENDERING-VALIDATION.md)** - deterministic
+   rendering scenarios, image comparison tolerances, and failure artifacts.
+3. **[`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md)** - the state of record. The
    convergence statement, the current baseline and evidence, the promoted and
    reverted change tables, the standing decisions, and the open work. Start
    here to *know* something.
-3. **[`ledger/INDEX.md`](ledger/INDEX.md)** - all the dated experiments, indexed
+4. **[`ledger/INDEX.md`](ledger/INDEX.md)** - all the dated experiments, indexed
    by day and by renderer region. Start here to find out *whether something was
    tried*.
-4. **[`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md)** - the five decisions that
+5. **[`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md)** - the five decisions that
    govern the work, and why each was corrected. Read before proposing an
    optimisation.
 
@@ -27,6 +29,7 @@ Eight documents, one experiment ledger, and a rule about how to cite them.
 | [`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md) | State of record: convergence, baseline, decisions, next steps | ~1,580 lines |
 | [`../BENCHMARK-COMPARISON.md`](../BENCHMARK-COMPARISON.md) | Current build against the supplied executables | 139 lines |
 | [`../VIDEO-DOS-VALIDATION.md`](../VIDEO-DOS-VALIDATION.md) | DOS VESA default validation, 2026-09-26 | 127 lines |
+| [`../RENDERING-VALIDATION.md`](../RENDERING-VALIDATION.md) | Deterministic render scenarios, PCX comparison and temporal checks | New |
 | [`../DPMI-HDPMI32.md`](../DPMI-HDPMI32.md) | CWSDPMI vs HDPMI32 host experiment | 111 lines |
 | [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) | The five governing decisions | 384 lines |
 | [`PURE-ASSEMBLER-CANDIDATES.md`](PURE-ASSEMBLER-CANDIDATES.md) | Which functions are worth hand-writing, and which are not | 359 lines |
