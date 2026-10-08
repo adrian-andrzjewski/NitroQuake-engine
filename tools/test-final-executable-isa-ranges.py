@@ -1,6 +1,6 @@
 """Exercise exact proof identity and complete, non-overlapping final mappings."""
 from pathlib import Path
-import argparse,contextlib,copy,hashlib,importlib.util,io,json,os,subprocess,tempfile
+import argparse,contextlib,copy,gzip,hashlib,importlib.util,io,json,os,shutil,subprocess,tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
 def load_module(name,path):
@@ -26,7 +26,10 @@ def main():
     save(proof_path,proof);index={'pass':True,'failures':[],'proofs':[str(proof_path)]};save(index_path,index)
     exe=work/'fixture.exe';exe.write_bytes(b'executable byte identity for mapping test')
     mapping=work/'fixture.map';mapping.write_text('unit mapping fixture\n',encoding='ascii')
-    details=work/'inputs.jsonl';details.write_text(json.dumps(dict(object=native.name,path=str(native)))+'\n',encoding='utf-8')
+    detail_line=json.dumps(dict(object=native.name,path=str(native)))+'\n'
+    details=work/'inputs.jsonl';details.write_text(detail_line,encoding='utf-8')
+    compressed_details=work/'inputs.jsonl.gz'
+    with gzip.open(compressed_details,'wt',encoding='utf-8') as stream:stream.write(detail_line)
     sections,_=boundary.coff(native);size=sections['.text']['size']
     report={'pass':True,'sourceBoundCodeData':True,'executable':str(exe),'executableSha256':sha(exe),
             'linkerMap':str(mapping),'linkerMapSha256':sha(mapping),'instructionAudit':{'inputInstructionDetailsJsonl':str(details)},
@@ -38,6 +41,10 @@ def main():
         with contextlib.redirect_stdout(io.StringIO()):tool.build(args)
         return json.loads((args.output/'range-proof.json').read_text(encoding='utf-8'))
     valid=check('valid');assert valid['codeRanges']>=1 and valid['isaAuditRequired']
+    compressed_report=copy.deepcopy(report)
+    compressed_report['instructionAudit']['inputInstructionDetailsJsonl']=str(compressed_details)
+    valid_compressed=check('valid_compressed_details',record=compressed_report)
+    assert valid_compressed['codeRanges']==valid['codeRanges'] and valid_compressed['isaAuditRequired']
     cases={}
     def changed(name,mutate):
         item=copy.deepcopy(report);mutate(item);cases[name]=(item,index,proof)
@@ -59,6 +66,7 @@ def main():
         try:check(name,record,proof_index,proof_record)
         except (ValueError,subprocess.CalledProcessError) as error:rejected.append(dict(name=name,reason=str(error)))
         else:raise AssertionError('Invalid final boundary evidence was accepted: '+name)
-    save(work/'results.json',dict(passed=True,valid=1,rejected=rejected))
-    print(f'PASS: one exact final boundary mapping and {len(rejected)} adversarial rejections; {work}')
+    save(work/'results.json',dict(passed=True,valid=2,rejected=rejected))
+    shutil.rmtree(work)
+    print(f'PASS: plain and gzip final boundary mappings plus {len(rejected)} adversarial rejections')
 if __name__=='__main__':main()

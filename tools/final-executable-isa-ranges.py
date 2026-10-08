@@ -5,7 +5,7 @@ is fed to isa-audit.ps1 for independent decoding of the relocated executable,
 including operands and ModRM bytes rather than only input opcode comparisons.
 """
 from __future__ import annotations
-import argparse,hashlib,importlib.util,json,subprocess,sys
+import argparse,gzip,hashlib,importlib.util,json,subprocess,sys
 from pathlib import Path
 
 
@@ -28,10 +28,16 @@ def build(args):
         if key in proofs:raise ValueError('Ambiguous duplicate native object proof: '+key)
         proofs[key]=proof
     inputs={}
-    for line in Path(report['instructionAudit']['inputInstructionDetailsJsonl']).read_text(encoding='utf-8-sig').splitlines():
-        item=json.loads(line);key=item['object'].lower();path=Path(item['path'])
-        if key in inputs and inputs[key]!=path:raise ValueError('Ambiguous audited native object path.')
-        inputs[key]=path
+    details=Path(report['instructionAudit']['inputInstructionDetailsJsonl'])
+    if details.suffix.lower()=='.gz':
+        detail_file=gzip.open(details,'rt',encoding='utf-8-sig')
+    else:
+        detail_file=details.open('r',encoding='utf-8-sig')
+    with detail_file:
+        for line in detail_file:
+            item=json.loads(line);key=item['object'].lower();path=Path(item['path'])
+            if key in inputs and inputs[key]!=path:raise ValueError('Ambiguous audited native object path.')
+            inputs[key]=path
     spec=importlib.util.spec_from_file_location('final_ranges_coff',tool)
     coff=importlib.util.module_from_spec(spec);spec.loader.exec_module(coff)
     ranges=[];bound=[]
