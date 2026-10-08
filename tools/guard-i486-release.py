@@ -69,15 +69,17 @@ TIMESTAMP_PATTERNS = (
 )
 
 
-def release_root() -> str:
-    """Ask build-dos.ps1 where the i486 release lands.
+def release_paths() -> tuple[str, str]:
+    """Ask build-dos.ps1 where the i486 executable and objects land.
 
     Deliberately does not repeat the profile-suffix arithmetic here: three copies of
     that rule is how smoke-dos.ps1 came to look for an executable the builder never
-    wrote. The builder is the only place that knows.
+    wrote. Long selector profiles can put objects in a hashed sibling directory,
+    so the builder is also the only place that knows the object root.
     """
     try:
-        return dump_flags("-CpuTarget", "i486")["outputRoot"]
+        flags = dump_flags("-CpuTarget", "i486")
+        return flags["outputRoot"], flags["objectRoot"]
     except BuildFlagsError as error:
         raise SystemExit(str(error)) from error
 
@@ -108,9 +110,8 @@ def hash_artifact(path: str) -> tuple[str, bool]:
     return hashlib.sha256(data).hexdigest().upper(), normalized
 
 
-def collect(root: str) -> dict[str, tuple[str, bool]]:
+def collect(root: str, object_dir: str) -> dict[str, tuple[str, bool]]:
     """Map repo-relative artefact path -> (sha256, was_normalized)."""
-    object_dir = os.path.join(root, "obj")
     if not os.path.isdir(object_dir):
         raise SystemExit(
             "%s does not exist. Build it first: .\\tools\\build-dos.ps1 -Clean -NoBootstrap"
@@ -152,8 +153,8 @@ def load_golden() -> dict[str, str]:
 
 def main() -> int:
     record = "--record" in sys.argv[1:]
-    root = release_root()
-    entries = collect(root)
+    root, object_dir = release_paths()
+    entries = collect(root, object_dir)
 
     if record:
         lines = [

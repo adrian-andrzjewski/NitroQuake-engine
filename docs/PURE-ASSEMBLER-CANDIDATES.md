@@ -1,6 +1,6 @@
 # Pure-Assembler Conversion Candidates
 
-Date: 2026-09-28, updated 2026-10-05
+Date: 2026-09-28, updated 2026-10-07
 Scope: i486 DOS NitroQuake software renderer
 
 > **Scope update (2026-10-04):** this document records the earlier performance
@@ -11,6 +11,13 @@ Scope: i486 DOS NitroQuake software renderer
 > order and measuring performance; its recommendation against a full conversion no
 > longer limits the requested scope. Track implementation state in
 > renderer-port ledgers under `docs/ledger/`.
+> Current source and coverage gaps are recorded in
+> [Renderer completion gaps](RENDERER-COMPLETION-GAPS.md).
+
+> **Objective clarification (2026-10-06):** the requested move to assembly is
+> primarily to establish i486 CPU compatibility while preserving the reference
+> renderer's behavior. Timing remains useful diagnostic evidence, but a slower
+> assembly path is not a reason to reject a correct i486 implementation.
 
 > **Implementation update (2026-10-04):** `D_DrawSkyScans8` now has a complete
 > selectable i486 assembly path, including viewport/time setup, UV projection,
@@ -50,6 +57,42 @@ Scope: i486 DOS NitroQuake software renderer
 > passed; the single timedemo sample is not performance evidence. C remains
 > the release default. The render-time dependency closure remains open; see
 > the renderer-port ledger.
+
+> **Alias-frame setup update (2026-10-07):** `R_AliasSetupFrame` now has a
+> selectable i486 assembly helper for single and grouped model-frame
+> resolution. Fifty-six direct comparisons passed across four x87 rounding
+> modes. A two-repeat Demo 2 pair matched all 980 post-warmup checksums per
+> run and both complete indexed captures and palettes. Selected-object and
+> linked-runtime audits passed; C remains the release default. Alias skin
+> selection and gradient setup have since received focused implementations;
+> see the renderer-port ledgers.
+
+> **Alias-skin setup update (2026-10-07):** `R_AliasSetupSkin` now has a
+> selectable i486 assembly helper for single and grouped skin resolution.
+> Fifty-six direct comparisons passed across four x87 rounding modes. A
+> two-repeat Demo 2 pair matched all 980 post-warmup checksums per run and
+> both complete indexed captures and palettes. Selected-object and linked
+> runtime audits passed; C remains the release default. See the
+> renderer-port ledger.
+
+> **Alias-gradient setup update (2026-10-07):** `D_PolysetCalcGradients` now
+> has an explicit C-reference/assembly selector around the existing i486 x87
+> routine. Eight direct cases matched eleven gradient outputs, including the
+> determinant-versus-reciprocal handoff and x87 control-word behavior. A
+> two-repeat Demo 2 pair matched all 980 post-warmup checksums and complete
+> indexed captures and palettes on both repeats. Object and linked-runtime
+> i486 audits passed. Assembly remains the i486 default, preserving the
+> existing path; see the renderer-port ledger.
+
+> **Alias line-scan setup update (2026-10-07):**
+> `D_PolysetSetUpForLineScan` now has a selectable i486 assembly path for
+> small-table lookup and larger positive-edge division. The 16,416-case
+> direct fixture passed across all table pairs, long edges, extreme signed
+> coordinates, and four x87 rounding modes. A two-repeat Demo 2 pair matched
+> every post-warmup checksum and complete indexed capture and palette on both
+> repeats. Object and linked-runtime ISA audits passed; assembly is the i486
+> default. Large invalid heights retain the C error path. See the
+> renderer-port ledger.
 
 > **Surface-cache entry update (2026-10-04):** `D_CacheSurface` now has a full
 > selectable i486 assembly entry for texture call guarding, cache hit/miss flow,
@@ -142,6 +185,41 @@ Scope: i486 DOS NitroQuake software renderer
 > the user-reported live-display smear remains under investigation because a
 > buffer capture does not validate the DOSBox-X window presentation.
 
+> **Sprite-draw orchestration update (2026-10-07):** `D_DrawSprite` now has a
+> selectable i486 assembly entry for vertex bounds, scan rounding, local span
+> storage, cache setup, closing-vertex copy, and dispatch to its independently
+> selectable sprite stages. The direct C/assembly fixture matched color and
+> depth buffers in all three cases; the two-repeat Demo 2 pair matched all 980
+> post-warmup frame checksums and every captured palette index and palette
+> byte. `D_SpriteDrawSpans` is the preexisting `id386` 8-bit assembly
+> rasterizer. C remains selectable; see the renderer-port ledger.
+
+> **Sprite-setup orchestration update (2026-10-07):** `R_SetupAndDrawSprite`
+> now has a selectable i486 assembly entry for poster construction, world
+> frustum clipping, view transformation, near-plane handling, projection, and
+> dispatch. Five direct C/assembly fixtures match clip vertices, projected
+> vertices, `nearzi`, color, and depth exactly. A two-repeat Demo 2 pair matched
+> all 980 post-warmup frame checksums and the complete captured indexed frame
+> and palette on both repeats. The focused object and linked-runtime i486 audits
+> passed. Assembly is now the i486 default; C remains selectable and i386 remains C. See the renderer-port ledger.
+
+> **Alias-lighting setup update (2026-10-07):** `R_AliasSetupLighting` now
+> has a selectable i486 assembly entry for ambient and shade setup plus light
+> vector rotation. Its 24 direct cases passed exact comparison across all four
+> x87 rounding modes, and object and linked-runtime audits passed. A focused
+> two-repeat Demo 2 pair matched all 980 post-warmup checksums per run and both
+> complete indexed captures and palettes. C remains the release default; see
+> the renderer-port ledger.
+
+> **Alias matrix-setup update (2026-10-07):** the `asm` setting for
+> `AliasMatrixCompositionImplementation` now selects assembly for view-basis
+> setup and both matrix products in `R_AliasSetUpTransform`. Three view-basis
+> fixtures and the fractional and translation-order matrix fixtures matched
+> exactly. Two repeated Demo 2 runs matched all 980 post-warmup checksums plus
+> both complete indexed captures and palettes. The selected and linked i486
+> audits passed; assembly is now the i486 default while both C choices remain
+> selectable. See the renderer-port ledger.
+
 > **Lightmap dispatcher update (2026-10-04):** `R_BuildLightMap` now has a
 > selectable full i486 assembly dispatcher, with the C dispatcher retained as
 > the release default and benchmark reference. Eleven focused scenarios passed
@@ -153,9 +231,10 @@ Scope: i486 DOS NitroQuake software renderer
 > next work is the remaining rendering-time dependency closure;
 > see the renderer-port ledger.
 
-## Conclusion
+## Historical optimization survey conclusion
 
-The highest-value parts to convert to pure 32-bit assembler are tight,
+The earlier performance survey identified the highest-value parts to convert
+to pure 32-bit assembler as tight,
 integer-heavy raster loops. The renderer does not benefit from converting the
 entire engine or every C function. High-level orchestration, floating-point
 setup, recursion, and pointer-heavy control flow should remain in C unless a
@@ -245,22 +324,28 @@ paid for in instruction count, memory traffic, or arithmetic.
 The lightmap-combination helper is implemented as the selectable
 `R_BuildLightMapStyles_asm486` path. The full `R_BuildLightMap` dispatcher and
 the dynamic-light orchestration and projection now have selectable assembly
-entries; their C paths remain the default pending repeatable end-to-end
-performance evidence.
+entries. Their C references remain available; parity and the i486 ISA gate
+determine promotion, while timing is used to catch material regressions.
 
 | Area | Location | Feasibility | Recommended boundary |
 |---|---|---:|---|
+| Active dynamic-light enumeration | `src/r_light.c:R_PushDlights` | **Implemented and promoted for i486** | `DynamicLightPushImplementation=c|asm` selects the 32-slot active-light loop and dispatch to `R_MarkLights`. Five direct fixture cases passed; six scenes, two repeats each, had exact frame checksums and exact 320x200 framebuffer/palette captures. Assembly is the i486 default; C remains selectable and i386 remains C. See the R_PushDlights ledger. The four-path combined profile also passed six-scene exact parity. |
 | Lightmap combination | `src/r_surf.c:R_BuildLightMap` | Implemented | The assembly dispatcher owns bounds, cache, path selection, dynamic-light dispatch, and normalization calls; C remains the release default. |
 | Dynamic-light accumulation | `src/r_surf.c:R_AddDynamicLights` | Implemented | Assembly owns sparse light-bit traversal, x87 projection, culling, and dispatch; the texel sample loop remains independently selectable. |
-| Alias setup | `src/r_alias.c:R_AliasPreparePoints`, `src/r_aclip.c` clipping, gradient setup | **Partial, not promoted** | `AliasPrepareImplementation=control|local|asm` selects the original C loops or an i486 clipped-vertex loop. `AliasClipImplementation=c|asm` selects the generic clip pass and triangle-level clipping orchestration; `AliasClipZImplementation=c|asm` independently selects the Z-plane intersection callback and requires `AliasClipImplementation=asm`. The Z callback passed one pinned 969-frame checksum run; C remains the default pending repeated performance and visual review. Alias gradient setup remains. Preserve projection, clipping, and triangle order exactly. |
+| BSP dynamic-light marking | `src/r_light.c:R_MarkLights` | **Implemented and promoted for i486** | `MarkLightsImplementation=c|asm` selects the recursive i486 BSP walk. The 128-case x87 fixture, exact Demo 1 comparison, and six-scene paired comparison with transient notices disabled passed. With notices enabled, the only captured differences were expiring console text in rows 1–23; all other framebuffer pixels and palettes matched. Assembly is the i486 default, C remains selectable, and the separate i386 default remains C. See the renderer-port ledger. The four-path combined profile also passed six-scene exact parity. |
+| Alias setup | `src/r_alias.c:R_AliasPreparePoints`, `R_AliasSetViewMatrix`, `R_AliasSetUpTransform`, `R_AliasSetupLighting`, `R_AliasSetupFrame`, `R_AliasSetupSkin`, `src/asm486_experiments.s:R_AliasSetViewMatrix_asm486`, `R_ConcatTransforms_asm486`, `src/r_aclip.c` clipping, `src/d_polyse.c:D_PolysetCalcGradients`, `D_PolysetSetUpForLineScan`, `D_PolysetSetEdgeTable`, `D_PolysetUpdateTables`, and `D_RasterizeAliasPolySmooth` | **Partial, not promoted** | `AliasPrepareImplementation=control|local|asm` selects the C control reference, a local C-loop variant, or the i486 clipped-vertex assembly loop; `asm` is now the i486 default and passed two-repeat exact Demo 2 parity. `AliasMatrixCompositionImplementation=c|special|asm` selects generic C, the specialized diagonal C path, or assembly view-basis setup plus both `R_ConcatTransforms_asm486` products; three view-basis fixtures, two matrix fixtures, and two-repeat exact Demo 2 parity passed, and assembly is now the i486 default. `AliasClipImplementation=c|asm` selects the generic clip pass and triangle-level clipping orchestration; `AliasClipZImplementation=c|asm` independently selects the Z-plane intersection callback and requires `AliasClipImplementation=asm`. `AliasSetupLightingImplementation=c|asm` selects ambient/shade and light-vector setup; 24 direct cases and a two-repeat Demo 2 pair passed exact comparison. `AliasSetupFrameImplementation=c|asm` selects single/group alias model animation frame resolution; 56 direct cases and a two-repeat Demo 2 pair passed exact comparison. `AliasSetupSkinImplementation=c|asm` selects single/group skin resolution; 56 direct cases and a two-repeat Demo 2 pair passed exact comparison. `AliasGradientImplementation=c|asm` selects the existing x87 gradient routine; eight direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasLineScanImplementation=c|asm` selects table lookup and large-edge setup; 16,416 direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasEdgeTableImplementation=c|asm` selects the original 12-way signed-Y table lookup; 1,372 direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasSkinTableImplementation=c|asm` selects the cache-key comparison and 480 byte-stride skin-row pointers; 64 direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasRasterizeImplementation=c|asm` selects the triangle rasterization orchestration and span-package setup; the focused Demo 2 pair matched exactly on both repeats, and assembly remains the i486 default. Preserve projection, clipping, and triangle order exactly. |
 | Surface-cache checks | `src/d_surf.c:D_CacheSurface`, `src/r_surf.c:R_DlightContributes` | Medium | `R_DlightContributes`, the public `D_CacheSurface` hit/miss flow, cache key/setup/tag work, `D_SCAlloc`, cache attachment, draw dispatch, dynamic-light tag updates, and the `R_DrawSurface` entry have assembly paths; animation-frame resolution and PROFILE486 accounting still call C helpers. |
 | Surface dispatch | `src/d_edge.c:D_DrawSurfaces` | Implemented | The selectable assembly dispatcher owns the per-frame surface loop; cache, gradient, mip, and drawing callees remain independent selectors. The world walk has its own assembly selector; shared render callees remain open. |
 | BSP traversal | `src/r_bsp.c:R_RecursiveWorldNode` | Implemented | `BspWalkImplementation=c|asm` selects the recursive assembly walk; C remains the release default. The assembly path preserves traversal and face order, calls the selectable face renderer and efrag walk, and still calls the shared polygon renderer. |
 | World-render orchestration | `src/r_bsp.c:R_RenderWorld` | **Implemented, not promoted** | `RenderWorldImplementation=c|asm` selects the assembly setup, frame-local polygon queue, BSP dispatch, and optional polygon replay; C remains the release default. C and assembly timedemo PCX captures matched byte-for-byte. |
 | Face/edge setup | `src/r_draw.c:R_RenderFace`, `R_RenderBmodelFace`, `R_EmitCachedEdge` | **Implemented, not promoted** | Selectable i486 assembly is available for both face paths and cached-edge insertion, with C references retained. The face paths and combined BSP configuration passed the exact framebuffer checksum; `R_EmitCachedEdge` also passed the pinned checksum and instrumented call-count check. Single samples are not comparative performance evidence; C remains the release default. `R_ClipEdge` and edge projection/emission are legacy handwritten assembly under `id386`. |
 | Entity efrags | `src/r_efrag.c:R_StoreEfrags` | **Implemented, not promoted** | `EfragStoreImplementation=c|asm` selects the list walk; compile-time layout checks protect its 32-bit field offsets. Combined renderer selectors passed the pinned checksum; C remains the release default. |
+| Particle simulation | `src/r_part.c:R_DrawParticles` | Implemented | `ParticleUpdateImplementation=c|asm` selects dead-list maintenance, draw order, position, velocity, and ramp updates. The C wrapper retains lifecycle and PROFILE486 glue; `D_DrawParticle` remains the existing driver rasterizer. The all-assembly i486 profile passed six repeated reference-scene checks; C remains independently selectable. |
 | Submodel polygon surfaces | `src/r_bsp.c:R_DrawSubmodelPolygons` | **Implemented, not promoted** | `SubmodelPolygonsImplementation=c|asm` selects the surface loop, x87 backface test, render-key update, and face dispatch. The assembly smoke and both C/ASM combined candidates passed the pinned checksum; their live captures landed at different demo times, so visual frame parity remains open. |
 | Brush-model polygon clipping | `src/r_bsp.c:R_RecursiveClipBPoly` | **Implemented, not promoted** | `BmodelPolygonClipImplementation=c|asm` selects the recursive BSP edge clipper, intersection-vertex construction, clip-boundary edges, and visible-leaf dispatch. C and assembly passed the pinned checksum; matched `demo1` captures reproduced and then cleared the wall leak, with zero edge overflows after the x87 divide fix. |
+| Animated sprite-frame selection | `src/r_sprite.c:R_GetSpriteframe` | **Implemented and promoted for i486** | `SpriteFrameImplementation=c|asm` selects single/group frame resolution with the original interval boundary and x87 conversion behavior. Twelve direct cases and a two-repeat Demo 2 comparison passed exactly; focused linked ISA audit passed. Assembly is now the i486 default; C remains selectable and i386 remains C. |
+| Sprite draw orchestration | `src/d_sprite.c:D_DrawSprite` | **Implemented and promoted for i486** | `SpriteDrawImplementation=c|asm` selects vertex bounds/rounding, span storage, sprite cache setup, vertex closure, and stage dispatch, with C retained. Direct color/depth fixtures and a two-repeat Demo 2 pair passed exact comparison; sprite sub-stages remain independently selectable. Assembly is now the i486 default; C remains selectable and i386 remains C. It also passed the combined four-path, six-scene exact comparison. |
+| Sprite setup orchestration | `src/r_sprite.c:R_SetupAndDrawSprite` | **Implemented and promoted for i486** | `SpriteSetupImplementation=c|asm` selects backface culling, poster construction, four-plane clipping, transform, near-plane clamp, perspective projection, `nearzi`, and draw dispatch. Five direct fixtures and a two-repeat Demo 2 pair passed exact frame/checksum comparisons; focused i486 object and linked-runtime audits passed. Assembly is now the i486 default; C remains selectable and i386 remains C. |
 | Edge-drawing orchestration | `src/r_main.c:R_EdgeDrawing` | **Implemented, not promoted** | `EdgeDrawingImplementation=c|asm` selects stack-buffer setup, world dispatch, scans, Z-enable, brush-entity dispatch, and update flow. C and ASM passed smoke and the pinned checksum; live captures were coherent but landed at slightly different demo states. |
 | Edge scanline loop | `src/r_edge.c:R_ScanEdges` | **Implemented, not promoted** | `ScanEdgesImplementation=c|asm` selects the aligned span buffer, row loop, edge updates, span flushes, and final draw. C and ASM passed smoke and the pinned 969-frame checksum. Single runs showed no speed gain, and matched-frame visual acceptance remains open. |
 | Active-edge maintenance | `src/r_edge.c:R_InsertNewEdges`, `R_RemoveEdges`, `R_StepActiveU` | **Implemented, not promoted** | `EdgeListMaintenanceImplementation=legacy|c|asm` preserves the original `id386` assembly as the default, exposes the true C reference, and adds replacement i486 assembly. C and ASM matched the pinned checksum, with no gain in single samples; visual acceptance remains open. |
@@ -349,7 +434,7 @@ complexity:
 Whole-function rewrites in these areas increase code size, branch pressure,
 and parity risk while making later maintenance more difficult.
 
-## Implementation rules
+## Current implementation rules
 
 1. Add a narrow assembler helper beside an unchanged C reference helper.
 2. Keep the C/assembler ABI explicit: pointers, counts, strides, and scalar
@@ -358,8 +443,9 @@ and parity risk while making later maintenance more difficult.
    store order unless a deliberate parity change is approved.
 4. Do not introduce MMX, SSE, or assumptions beyond the target i486.
 5. Keep global-state reads at the C boundary where possible.
-6. Remove or promote an experiment only after a matched benchmark and
-   correctness result.
+6. Integrate an assembly path only after exact reference comparisons and
+   mechanical i486 ISA validation pass. Record matched timing measurements
+   to detect significant regressions; a speed improvement is not required.
 
 ## Validation gate
 
@@ -374,8 +460,10 @@ validated in the pinned DOSBox-X environment:
   fixed-cycle profile and data root.
 
 A timing improvement without exact framebuffer parity is a rejected result.
-Conversely, parity alone does not establish a performance win; retain the C
-path until the improvement is repeated across matched runs.
+Promote a correct, auditable i486 assembly path after its correctness and ISA
+gates pass, provided measurements show no unacceptable performance regression.
+Retain the C implementation as a selectable reference. Small slowdowns do not
+prevent promotion and do not justify repeated optimization of correct assembly.
 
 ## Practical decision
 

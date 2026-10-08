@@ -151,6 +151,7 @@ void D_WarpScreen (void)
 #endif
 
 
+
 #if	!id386
 
 /*

@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "normalBuildGeneratesAssembly": false,
+  "callingConvention": "32-bit cdecl; EBX/ESI/EDI/EBP preserved; complete x87 control word restored",
+  "entries": [
+    {
+      "originalFile": "drawing-driver-reference/d_init.c",
+      "originalFunction": "D_Init",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_Init_Driver_C",
+      "originalFileSha256": "2ffed33e39b07b5ccd499e09c844d38641f503c15c9ca28b974415f995184f0e",
+      "originalFunctionSha256": "462E2F6E0C869E199BA4E5DAC5FDBD6858E46327996DD4793B2013AD90E5F2AE"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_init.c",
+      "originalFunction": "D_CopyRects",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_CopyRects_Driver_C",
+      "originalFileSha256": "2ffed33e39b07b5ccd499e09c844d38641f503c15c9ca28b974415f995184f0e",
+      "originalFunctionSha256": "B6112775F0CAC1916404103D53E0309259FA908E1937DBB61A22DA6887699AE8"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_init.c",
+      "originalFunction": "D_EnableBackBufferAccess",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_EnableBackBufferAccess_Driver_C",
+      "originalFileSha256": "2ffed33e39b07b5ccd499e09c844d38641f503c15c9ca28b974415f995184f0e",
+      "originalFunctionSha256": "1F1BA45CD7C37CE991B5A53959D255BAC5C96A73202608845E384DBF6FCD84D5"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_init.c",
+      "originalFunction": "D_TurnZOn",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_TurnZOn_Driver_C",
+      "originalFileSha256": "2ffed33e39b07b5ccd499e09c844d38641f503c15c9ca28b974415f995184f0e",
+      "originalFunctionSha256": "FB829958916096F273E561A08BBA40BE5960028E3D693EB2BFC6CD78AE31BB37"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_init.c",
+      "originalFunction": "D_DisableBackBufferAccess",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_DisableBackBufferAccess_Driver_C",
+      "originalFileSha256": "2ffed33e39b07b5ccd499e09c844d38641f503c15c9ca28b974415f995184f0e",
+      "originalFunctionSha256": "851686E65115F444D697AD611A7518B97880BD3CC94BE232A701F685A4D8BEB2"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_init.c",
+      "originalFunction": "D_SetupFrame",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_SetupFrame_Driver_C",
+      "originalFileSha256": "2ffed33e39b07b5ccd499e09c844d38641f503c15c9ca28b974415f995184f0e",
+      "originalFunctionSha256": "D1EC89FF3C9EB4EF40F845B72D58E0C227A8196C7AEA6F842085B3EB1E2566BA"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_init.c",
+      "originalFunction": "D_UpdateRects",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_UpdateRects_Driver_C",
+      "originalFileSha256": "2ffed33e39b07b5ccd499e09c844d38641f503c15c9ca28b974415f995184f0e",
+      "originalFunctionSha256": "FC06AEF8095F42D8D9955F3E76567CB72EECC80E92C260F4240E7EDF85FD38E4"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_modech.c",
+      "originalFunction": "D_Patch",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_Patch_Driver_C",
+      "originalFileSha256": "419794e174fa9c15a4f1478162d25dfa3ca1f2a310b408d1b141a9c1e8dfce50",
+      "originalFunctionSha256": "FF868F4D5AA890710D0176288773EC94A8B7FE09E870819424C9662AD0B2E6BB"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_modech.c",
+      "originalFunction": "D_ViewChanged",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_ViewChanged_Driver_C",
+      "originalFileSha256": "419794e174fa9c15a4f1478162d25dfa3ca1f2a310b408d1b141a9c1e8dfce50",
+      "originalFunctionSha256": "04F0566B56E17A194A96CA98636776806D35E6295A4A319D94A2B8C3B827D4CB"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_part.c",
+      "originalFunction": "D_EndParticles",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_EndParticles_Driver_C",
+      "originalFileSha256": "2609f818f3efdb799d1081112307691a8a32640a800950070e8b0f34d249d554",
+      "originalFunctionSha256": "6B465C907D8B23FDB64B30C5B036FD0821888DEA731A71E5954EF223A3069BC2"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_part.c",
+      "originalFunction": "D_StartParticles",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_StartParticles_Driver_C",
+      "originalFileSha256": "2609f818f3efdb799d1081112307691a8a32640a800950070e8b0f34d249d554",
+      "originalFunctionSha256": "49B2872090C65E04AA5D507E15E524CB5E6039AA1368B940E5EDF720DEB870C4"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_surf.c",
+      "originalFunction": "D_FlushCaches",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_FlushCaches_Driver_C",
+      "originalFileSha256": "9e47be08e11e39acb3633951504aa700b6c17f209143c1e1bd9293e3932b1678",
+      "originalFunctionSha256": "1F181747018F32F39A4BE271D1B0D317DCD93B8531CC2EFC98C41AF4543F24A0"
+    },
+    {
+      "originalFile": "drawing-driver-reference/d_edge.c",
+      "originalFunction": "D_DrawPoly",
+      "assemblyFile": "../../src/d_driverasm.s",
+      "oracle": "D_DrawPoly_Driver_C",
+      "originalFileSha256": "d330df8d170835f461b153ec5376c4339585f524e338e3b0d62dcbdddd685a19",
+      "originalFunctionSha256": "70D81D35077D61A260C1761BD6F8E26556C338EBAD6E5FE59E27AF4272321ABE"
+    }
+  ]
+}

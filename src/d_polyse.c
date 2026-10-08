@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // texture (used for Alias models)
 
 #include "quakedef.h"
+#include "asm_publicbindings.h"
 #include "r_local.h"
 #include "d_local.h"
 
@@ -50,12 +51,16 @@ typedef struct {
 	int		*prightedgevert2;
 } edgetable;
 
+/* The i486 selector indexes this array using the original 36-byte C layout. */
+typedef char edgetable_i486_size[(sizeof(edgetable) == 36) ? 1 : -1];
+
 int	r_p0[6], r_p1[6], r_p2[6];
 
 byte		*d_pcolormap;
 
 int			d_aflatcolor;
 int			d_xdenom;
+int			d_xdenom_int;
 
 edgetable	*pedgetable;
 
@@ -98,7 +103,9 @@ typedef struct {
 	int		remainder;
 } adivtab_t;
 
-static adivtab_t	adivtab[64*64] = {
+/* The i486 line-scan setup reads the same small-step table directly. */
+typedef char adivtab_i486_entry_size[(sizeof(adivtab_t) == 8) ? 1 : -1];
+adivtab_t	adivtab[64*64] = {
 #include "adivtab.h"
 };
 
@@ -116,15 +123,136 @@ unsigned long	bench486_ag_probe_count;
 byte	*skintable[MAX_LBM_HEIGHT];
 int		skinwidth;
 byte	*skinstart;
+typedef char skintable_i486_rows[(sizeof(skintable) / sizeof(skintable[0]) == 480) ? 1 : -1];
 
 void D_PolysetDrawSpans8 (spanpackage_t *pspanpackage);
 void D_PolysetCalcGradients (int skinwidth);
+void D_PolysetCalcGradients_C (int skinwidth);
+void D_PolysetSetUpForLineScan (fixed8_t startvertu, fixed8_t startvertv,
+		fixed8_t endvertu, fixed8_t endvertv);
+void D_PolysetSetUpForLineScan_C (fixed8_t startvertu, fixed8_t startvertv,
+		fixed8_t endvertu, fixed8_t endvertv);
+void D_PolysetSetEdgeTable_C (void);
+void D_PolysetUpdateTables_C (void);
+void D_RasterizeAliasPolySmooth_C (void);
+#ifdef PROFILE486
+void D_PolysetCalcGradientsProfiled (int skinwidth);
+void D_PolysetScanLeftEdgeProfiled (int height);
+void D_PolysetDrawSpansProfiled (spanpackage_t *spans);
+#endif
+#if id386
+void D_PolysetCalcGradients_asm486 (int skinwidth);
+void D_PolysetSetUpForLineScan_asm486 (fixed8_t startvertu,
+		fixed8_t startvertv, fixed8_t endvertu, fixed8_t endvertv);
+void D_PolysetSetEdgeTable_asm486 (void);
+void D_PolysetUpdateTables_asm486 (void);
+void D_RasterizeAliasPolySmooth_asm486 (void);
+#endif
 void D_DrawSubdiv (void);
 void D_DrawNonSubdiv (void);
 void D_PolysetRecursiveTriangle (int *p1, int *p2, int *p3);
 void D_PolysetSetEdgeTable (void);
 void D_RasterizeAliasPolySmooth (void);
 void D_PolysetScanLeftEdge (int height);
+
+#ifdef PROFILE486
+void D_PolysetCalcGradientsProfiled (int skinwidth)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_CALCGRADIENTS);
+	D_PolysetCalcGradients (skinwidth);
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void D_PolysetScanLeftEdgeProfiled (int height)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
+	D_PolysetScanLeftEdge (height);
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void D_PolysetDrawSpansProfiled (spanpackage_t *spans)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_DRAW_SPANS);
+	D_PolysetDrawSpans8 (spans);
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif
+
+#if !id386 || defined(BENCH486) || !defined(ASM486_ALIAS_GRADIENTS)
+void D_PolysetCalcGradients_C (int skinwidth)
+{
+	float	xstepdenominv, ystepdenominv, t0, t1;
+	float	p01_minus_p21, p11_minus_p21, p00_minus_p20, p10_minus_p20;
+
+	p00_minus_p20 = r_p0[0] - r_p2[0];
+	p01_minus_p21 = r_p0[1] - r_p2[1];
+	p10_minus_p20 = r_p1[0] - r_p2[0];
+	p11_minus_p21 = r_p1[1] - r_p2[1];
+
+	xstepdenominv = 1.0 / (float)d_xdenom;
+	ystepdenominv = -xstepdenominv;
+
+	// ceil () for light so positive steps are exaggerated, negative steps
+	// diminished, pushing away from underflow toward overflow.
+	t0 = r_p0[4] - r_p2[4];
+	t1 = r_p1[4] - r_p2[4];
+	r_lstepx = (int)
+			ceil((t1 * p01_minus_p21 - t0 * p11_minus_p21) * xstepdenominv);
+	r_lstepy = (int)
+			ceil((t1 * p00_minus_p20 - t0 * p10_minus_p20) * ystepdenominv);
+
+	t0 = r_p0[2] - r_p2[2];
+	t1 = r_p1[2] - r_p2[2];
+	r_sstepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
+			xstepdenominv);
+	r_sstepy = (int)((t1 * p00_minus_p20 - t0 * p10_minus_p20) *
+			ystepdenominv);
+
+	t0 = r_p0[3] - r_p2[3];
+	t1 = r_p1[3] - r_p2[3];
+	r_tstepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
+			xstepdenominv);
+	r_tstepy = (int)((t1 * p00_minus_p20 - t0 * p10_minus_p20) *
+			ystepdenominv);
+
+	t0 = r_p0[5] - r_p2[5];
+	t1 = r_p1[5] - r_p2[5];
+	r_zistepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
+			xstepdenominv);
+	r_zistepy = (int)((t1 * p00_minus_p20 - t0 * p10_minus_p20) *
+			ystepdenominv);
+
+#if id386
+	a_sstepxfrac = r_sstepx << 16;
+	a_tstepxfrac = r_tstepx << 16;
+#else
+	a_sstepxfrac = r_sstepx & 0xFFFF;
+	a_tstepxfrac = r_tstepx & 0xFFFF;
+#endif
+
+	a_ststepxwhole = skinwidth * (r_tstepx >> 16) + (r_sstepx >> 16);
+}
+#endif
+
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_ALIAS_GRADIENTS)
+void D_PolysetCalcGradients (int skinwidth)
+{
+#if id386 && defined(ASM486_ALIAS_GRADIENTS)
+	D_PolysetCalcGradients_asm486 (skinwidth);
+#elif id386
+	int saved_denominator;
+
+	// The legacy assembly edge walker leaves the reciprocal as a float bit
+	// pattern in d_xdenom. The C reference consumes the integer determinant.
+	saved_denominator = d_xdenom;
+	d_xdenom = d_xdenom_int;
+	D_PolysetCalcGradients_C (skinwidth);
+	d_xdenom = saved_denominator;
+#else
+	D_PolysetCalcGradients_C (skinwidth);
+#endif
+}
+#endif /* public entry is assembly-owned when selected */
 
 #if	!id386
 
@@ -409,7 +537,8 @@ nodraw:
 D_PolysetUpdateTables
 ================
 */
-void D_PolysetUpdateTables (void)
+#if !id386 || defined(BENCH486) || !defined(ASM486_ALIAS_SKIN_TABLE)
+void D_PolysetUpdateTables_C (void)
 {
 	int		i;
 	byte	*s;
@@ -424,6 +553,7 @@ void D_PolysetUpdateTables (void)
 			skintable[i] = s;
 	}
 }
+#endif
 
 
 #if	!id386
@@ -502,16 +632,11 @@ void D_PolysetScanLeftEdge (int height)
 D_PolysetSetUpForLineScan
 ====================
 */
-void D_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
+void D_PolysetSetUpForLineScan_C(fixed8_t startvertu, fixed8_t startvertv,
 		fixed8_t endvertu, fixed8_t endvertv)
 {
 	int			tm, tn;
 	adivtab_t	*ptemp;
-
-#ifdef PROFILE486
-	if (bench486_profile_frame_active)
-		bench486_line_setup_calls++;
-#endif
 
 	errorterm = -1;
 
@@ -565,69 +690,38 @@ void D_PolysetSetUpForLineScan(fixed8_t startvertu, fixed8_t startvertv,
 	}
 }
 
-
-#if	!id386
-
-/*
-================
-D_PolysetCalcGradients
-================
-*/
-void D_PolysetCalcGradients (int skinwidth)
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_ALIAS_SKIN_TABLE)
+void D_PolysetUpdateTables (void)
 {
-	float	xstepdenominv, ystepdenominv, t0, t1;
-	float	p01_minus_p21, p11_minus_p21, p00_minus_p20, p10_minus_p20;
-
-	p00_minus_p20 = r_p0[0] - r_p2[0];
-	p01_minus_p21 = r_p0[1] - r_p2[1];
-	p10_minus_p20 = r_p1[0] - r_p2[0];
-	p11_minus_p21 = r_p1[1] - r_p2[1];
-
-	xstepdenominv = 1.0 / (float)d_xdenom;
-
-	ystepdenominv = -xstepdenominv;
-
-// ceil () for light so positive steps are exaggerated, negative steps
-// diminished,  pushing us away from underflow toward overflow. Underflow is
-// very visible, overflow is very unlikely, because of ambient lighting
-	t0 = r_p0[4] - r_p2[4];
-	t1 = r_p1[4] - r_p2[4];
-	r_lstepx = (int)
-			ceil((t1 * p01_minus_p21 - t0 * p11_minus_p21) * xstepdenominv);
-	r_lstepy = (int)
-			ceil((t1 * p00_minus_p20 - t0 * p10_minus_p20) * ystepdenominv);
-
-	t0 = r_p0[2] - r_p2[2];
-	t1 = r_p1[2] - r_p2[2];
-	r_sstepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
-			xstepdenominv);
-	r_sstepy = (int)((t1 * p00_minus_p20 - t0* p10_minus_p20) *
-			ystepdenominv);
-
-	t0 = r_p0[3] - r_p2[3];
-	t1 = r_p1[3] - r_p2[3];
-	r_tstepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
-			xstepdenominv);
-	r_tstepy = (int)((t1 * p00_minus_p20 - t0 * p10_minus_p20) *
-			ystepdenominv);
-
-	t0 = r_p0[5] - r_p2[5];
-	t1 = r_p1[5] - r_p2[5];
-	r_zistepx = (int)((t1 * p01_minus_p21 - t0 * p11_minus_p21) *
-			xstepdenominv);
-	r_zistepy = (int)((t1 * p00_minus_p20 - t0 * p10_minus_p20) *
-			ystepdenominv);
-
-#if	id386
-	a_sstepxfrac = r_sstepx << 16;
-	a_tstepxfrac = r_tstepx << 16;
+#if id386 && defined(ASM486_ALIAS_SKIN_TABLE)
+	D_PolysetUpdateTables_asm486 ();
 #else
-	a_sstepxfrac = r_sstepx & 0xFFFF;
-	a_tstepxfrac = r_tstepx & 0xFFFF;
+	D_PolysetUpdateTables_C ();
+#endif
+}
+#endif /* public entry is assembly-owned when selected */
+
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_ALIAS_LINE_SCAN)
+void D_PolysetSetUpForLineScan (fixed8_t startvertu, fixed8_t startvertv,
+		fixed8_t endvertu, fixed8_t endvertv)
+{
+#ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		bench486_line_setup_calls++;
 #endif
 
-	a_ststepxwhole = skinwidth * (r_tstepx >> 16) + (r_sstepx >> 16);
+#if id386 && defined(ASM486_ALIAS_LINE_SCAN)
+	D_PolysetSetUpForLineScan_asm486 (startvertu, startvertv,
+			endvertu, endvertv);
+#else
+	D_PolysetSetUpForLineScan_C (startvertu, startvertv,
+			endvertu, endvertv);
+#endif
 }
+#endif /* public entry is assembly-owned when selected */
+
+
+#if	!id386
 
 #endif	// !id386
 
@@ -764,19 +858,13 @@ void D_PolysetFillSpans8 (spanpackage_t *pspanpackage)
 D_RasterizeAliasPolySmooth
 ================
 */
-void D_RasterizeAliasPolySmooth (void)
+#if !id386 || defined(BENCH486) || !defined(ASM486_ALIAS_RASTERIZE)
+void D_RasterizeAliasPolySmooth_C (void)
 {
 	int				initialleftheight, initialrightheight;
 	int				*plefttop, *prighttop, *pleftbottom, *prightbottom;
 	int				working_lstepx, originalcount;
 	int				skinwidth, sbase, tbase, sextra, textra;
-
-	// One scope per triangle rather than one per sub-block. The four per-call C
-	// scopes this replaces ran 110k-264k times each and spent more time inside
-	// Sys_FloatTime than they measured, so their per-call figures were dominated
-	// by the clock. The three ASM helpers keep their own scopes, so the self time
-	// left here is the C glue.
-	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_GLUE);
 
 	plefttop = pedgetable->pleftedgevert0;
 	prighttop = pedgetable->prightedgevert0;
@@ -791,9 +879,11 @@ void D_RasterizeAliasPolySmooth (void)
 // set the s, t, and light gradients, which are consistent across the triangle
 // because being a triangle, things are affine
 //
-	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_CALCGRADIENTS);
+#ifdef PROFILE486
+	D_PolysetCalcGradientsProfiled (r_affinetridesc.skinwidth);
+#else
 	D_PolysetCalcGradients (r_affinetridesc.skinwidth);
-	BENCH486_PROFILE_LEAVE ();
+#endif
 
 //
 // rasterize the polygon
@@ -928,9 +1018,11 @@ void D_RasterizeAliasPolySmooth (void)
 	}
 #endif
 
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
+	#ifdef PROFILE486
+		D_PolysetScanLeftEdgeProfiled (initialleftheight);
+	#else
 		D_PolysetScanLeftEdge (initialleftheight);
-		BENCH486_PROFILE_LEAVE ();
+	#endif
 	}
 
 //
@@ -1024,9 +1116,11 @@ void D_RasterizeAliasPolySmooth (void)
 			d_lightextrastep = d_lightbasestep + working_lstepx;
 			d_ziextrastep = d_zibasestep + r_zistepx;
 
-			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_SCAN_LEFT_EDGE);
+			#ifdef PROFILE486
+			D_PolysetScanLeftEdgeProfiled (height);
+			#else
 			D_PolysetScanLeftEdge (height);
-			BENCH486_PROFILE_LEAVE ();
+			#endif
 		}
 	}
 
@@ -1040,9 +1134,11 @@ void D_RasterizeAliasPolySmooth (void)
 	d_countextrastep = ubasestep + 1;
 	originalcount = a_spans[initialrightheight].count;
 	a_spans[initialrightheight].count = -999999; // mark end of the spanpackages
-	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_DRAW_SPANS);
+	#ifdef PROFILE486
+	D_PolysetDrawSpansProfiled (a_spans);
+	#else
 	D_PolysetDrawSpans8 (a_spans);
-	BENCH486_PROFILE_LEAVE ();
+	#endif
 
 // scan out the bottom part of the right edge, if it exists
 	if (pedgetable->numrightedges == 2)
@@ -1066,13 +1162,30 @@ void D_RasterizeAliasPolySmooth (void)
 		d_countextrastep = ubasestep + 1;
 		a_spans[initialrightheight + height].count = -999999;
 											// mark end of the spanpackages
-		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_DRAW_SPANS);
+		#ifdef PROFILE486
+		D_PolysetDrawSpansProfiled (pstart);
+		#else
 		D_PolysetDrawSpans8 (pstart);
-		BENCH486_PROFILE_LEAVE ();
+		#endif
 	}
 
+}
+#endif
+
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_ALIAS_RASTERIZE)
+void D_RasterizeAliasPolySmooth (void)
+{
+	// One scope per triangle rather than one per sub-block. The three delegated
+	// raster helpers keep their own scopes; this measures only their C/ASM glue.
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_GLUE);
+#if id386 && defined(ASM486_ALIAS_RASTERIZE)
+	D_RasterizeAliasPolySmooth_asm486 ();
+#else
+	D_RasterizeAliasPolySmooth_C ();
+#endif
 	BENCH486_PROFILE_LEAVE ();
 }
+#endif /* public entry is assembly-owned when selected */
 
 
 /*
@@ -1080,7 +1193,8 @@ void D_RasterizeAliasPolySmooth (void)
 D_PolysetSetEdgeTable
 ================
 */
-void D_PolysetSetEdgeTable (void)
+#if !id386 || defined(BENCH486) || !defined(ASM486_ALIAS_EDGE_TABLE)
+void D_PolysetSetEdgeTable_C (void)
 {
 	int			edgetableindex;
 
@@ -1135,6 +1249,30 @@ void D_PolysetSetEdgeTable (void)
 
 	pedgetable = &edgetables[edgetableindex];
 }
+#endif
+
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_ALIAS_EDGE_TABLE)
+void D_PolysetSetEdgeTable (void)
+{
+#if id386 && defined(ASM486_ALIAS_EDGE_TABLE)
+	D_PolysetSetEdgeTable_asm486 ();
+#else
+	D_PolysetSetEdgeTable_C ();
+#endif
+}
+#endif /* public entry is assembly-owned when selected */
+
+#ifdef BENCH486
+void *D_PolysetGetEdgeTableForBench (void)
+{
+	return (void *)pedgetable;
+}
+
+void D_PolysetSetEdgeTableForBench (void *table)
+{
+	pedgetable = (edgetable *)table;
+}
+#endif
 
 
 #if 0

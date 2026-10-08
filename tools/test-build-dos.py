@@ -13,9 +13,9 @@ that such a drift fails instead of landing.
 It also pins the things the 486 path must *not* acquire:
 
 * the default `-CpuTarget` must stay `i486`;
-* the i486 profile suffix and output root must keep their historical values, so
-  no release artefact, benchmark baseline or `out\dos-timedemo-*` directory
-  stops matching;
+* the resolved i486 suffix and output root stay explicitly pinned, so every
+  intentional selector promotion is visible in the release profile and its
+  `out\dos-timedemo-*` paths;
 * the two targets must resolve to different output roots, because `-Clean`
   removes the directory it is handed.
 
@@ -31,6 +31,7 @@ Exits 0 when every check passes, 1 otherwise, printing one line per failure.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -42,13 +43,12 @@ from _nq import BuildFlagsError, dump_flags as _dump_flags, portable  # noqa: E4
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 
-# The i486 release profile suffix as it has stood since the retained build was
-# established.  Duplicated here on purpose: build-dos.ps1 computes it from the
-# selector defaults, and this literal is the independent check that the
-# computation still produces it.
+# The current i486 release profile suffix. Duplicated here on purpose:
+# build-dos.ps1 computes it from the selector defaults, and this literal is the
+# independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
-    "-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm"
+    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-spriteframeasm-spritedrawasm-spritesetupasm"
 )
 
 failures: list[str] = []
@@ -79,7 +79,36 @@ def load_golden(target: str) -> dict:
         fail("missing golden flag file %s" % path)
         return {}
     with open(path, "r", encoding="ascii") as handle:
-        return json.load(handle)
+        expected = json.load(handle)
+    # Directory hashes include the physical checkout path. Recompute those
+    # paths from the pinned suffix/inventory so isolated worktrees exercise the
+    # same golden flags instead of inheriting another checkout's hash.
+    paths = expected_paths(expected)
+    expected.update(paths)
+    expected["linkFlags"] = [
+        "-Wl,-Map=" + paths["executable"] + ".map" if flag.startswith("-Wl,-Map=")
+        else paths["executable"] if flag.endswith("\\quake.exe") else flag
+        for flag in expected["linkFlags"]
+    ]
+    return expected
+
+
+def expected_paths(config: dict) -> dict:
+    root = os.path.join(REPO_ROOT, "out", "dos" + config["profileSuffix"])
+    if max(len(os.path.join(root, "quake.exe")), len(os.path.join(root, "quake.exe.map"))) > 259:
+        digest = hashlib.sha256(("profile-output-v1|" + root).encode("utf-8")).hexdigest()[:16]
+        root = os.path.join(REPO_ROOT, "out", "profile-" + digest)
+    objects = os.path.join(root, "obj")
+    sources = config["cSources"] + config["assemblySources"]
+    longest = max(sources, key=len)
+    if len(os.path.join(objects, os.path.splitext(longest)[0] + ".obj")) > 259:
+        digest = hashlib.sha256(("object-root-v1|" + root + "|obj").encode("utf-8")).hexdigest()[:16]
+        objects = os.path.join(REPO_ROOT, "out", "obj-" + digest + "-obj")
+    return {
+        "outputRoot": root.replace(REPO_ROOT, "<repo>"),
+        "objectRoot": objects.replace(REPO_ROOT, "<repo>"),
+        "executable": os.path.join(root, "quake.exe").replace(REPO_ROOT, "<repo>"),
+    }
 
 
 def compare(target: str, actual: dict, expected: dict) -> None:
@@ -98,6 +127,36 @@ def compare(target: str, actual: dict, expected: dict) -> None:
 
 
 def main() -> int:
+    with open(os.path.join(REPO_ROOT, "tools", "build-dos.ps1"), "r", encoding="utf-8") as handle:
+        build_script = handle.read()
+    for contract in (
+        '"-Wl,-Map=$linkMap"',
+        "verify-executable-isa.ps1",
+        "linkedInstructionsVerified",
+    ):
+        if contract not in build_script:
+            fail("the normal release build is missing linked ISA contract %r" % contract)
+    with open(os.path.join(REPO_ROOT, "tools", "verify-executable-isa.ps1"), "r", encoding="utf-8") as handle:
+        verification_script = handle.read()
+    for contract in ("isa-audit-linked.ps1", "final-executable-isa-ranges.py", "startup-linked-proof.py",
+                     "runtime-source-proofs", "-FailOnViolation"):
+        # Runtime reconstruction is delegated by the linked verifier.
+        text = verification_script
+        if contract == "runtime-source-proofs":
+            with open(os.path.join(REPO_ROOT, "tools", "isa-audit-linked.ps1"), "r", encoding="utf-8") as handle:
+                text += handle.read()
+        if contract not in text:
+            fail("the release ISA verifier is missing contract %r" % contract)
+    hashed_output_rewrite = build_script.find(
+        "$outputRoot = Join-Path $repoOutRoot ('profile-'"
+    )
+    hashed_map_rewrite = build_script.find(
+        "$linkMap = Join-Path $outputRoot ($executableName + '.map')",
+        hashed_output_rewrite + 1,
+    )
+    if hashed_output_rewrite < 0 or hashed_map_rewrite < 0:
+        fail("the hashed long-profile output path does not recompute its linker-map path")
+
     # 1. The default target must be the retained release profile.
     default_dump = dump_flags()
     if default_dump and default_dump.get("cpuTarget") != "i486":
@@ -107,14 +166,24 @@ def main() -> int:
             % default_dump.get("cpuTarget")
         )
 
-    # 2. The i486 release paths must be exactly what they have always been.
+    # 2. Keep the release suffix stable and use its descriptive root unless the
+    #    executable or linker-map path would exceed the legacy Windows limit.
     if default_dump:
         if default_dump.get("profileSuffix") != RELEASE_I486_SUFFIX:
             fail(
                 "the i486 profile suffix is %r; it must stay %r"
                 % (default_dump.get("profileSuffix"), RELEASE_I486_SUFFIX)
             )
-        expected_root = "<repo>\\out\\dos" + RELEASE_I486_SUFFIX
+        unhashed_root = os.path.join(REPO_ROOT, "out", "dos" + RELEASE_I486_SUFFIX)
+        unhashed_executable = os.path.join(unhashed_root, "quake.exe")
+        unhashed_map = unhashed_executable + ".map"
+        if max(len(unhashed_executable), len(unhashed_map)) > 259:
+            output_hash = hashlib.sha256(
+                ("profile-output-v1|" + unhashed_root).encode("utf-8")
+            ).hexdigest()[:16]
+            expected_root = "<repo>\\out\\profile-" + output_hash
+        else:
+            expected_root = "<repo>\\out\\dos" + RELEASE_I486_SUFFIX
         if default_dump.get("outputRoot") != expected_root:
             fail(
                 "the i486 output root is %r; it must stay %r"
@@ -125,6 +194,19 @@ def main() -> int:
                 "the i486 executable is %r; it must stay under the release root"
                 % default_dump.get("executable")
             )
+        actual_executable = str(default_dump.get("executable", "")).replace(
+            "<repo>", REPO_ROOT
+        )
+        map_flags = [
+            flag for flag in default_dump.get("linkFlags", [])
+            if str(flag).startswith("-Wl,-Map=")
+        ]
+        if len(map_flags) != 1:
+            fail("the i486 release must resolve exactly one linker map path")
+        else:
+            actual_map = str(map_flags[0]).split("=", 1)[1].replace("<repo>", REPO_ROOT)
+            if max(len(actual_executable), len(actual_map)) > 259:
+                fail("the i486 executable or linker-map path exceeds the legacy Windows limit")
 
     # 3. Both targets match their golden flag lists.
     i486 = dump_flags("-CpuTarget", "i486")
@@ -132,23 +214,48 @@ def main() -> int:
     compare("i486", i486, load_golden("i486"))
     compare("i386", i386, load_golden("i386"))
 
-    # 4. The two targets are genuinely separated, and only in the architecture.
+    expected_source_flags = {
+        "r_main.c": ["-fno-jump-tables"],
+        "mathlib.c": ["-fno-jump-tables"],
+        "host_cmd.c": ["-fno-jump-tables"],
+        "pr_edict.c": ["-fno-delete-null-pointer-checks"],
+        "wad.c": ["-fno-delete-null-pointer-checks"],
+    }
+    for target_name, target_flags in (("i486", i486), ("i386", i386)):
+        if target_flags and target_flags.get("cSourceExtraFlags") != expected_source_flags:
+            fail(
+                "%s per-source compatibility flags are %r; expected %r"
+                % (target_name, target_flags.get("cSourceExtraFlags"), expected_source_flags)
+            )
+
+    # Benchmark-only assembly diagnostics call C helpers, so both compiler
+    # frontends must receive the same build switch. Release assembly stays free
+    # of those calls.
+    benchmark = dump_flags("-Benchmark")
+    if benchmark and i486:
+        if "-DBENCH486" not in benchmark.get("cFlags", []):
+            fail("the benchmark C flags omit -DBENCH486")
+        if "-DBENCH486" not in benchmark.get("asmFlags", []):
+            fail("the benchmark assembly flags omit -DBENCH486")
+        if "-DBENCH486" in i486.get("cFlags", []) or "-DBENCH486" in i486.get("asmFlags", []):
+            fail("the release i486 flags include benchmark-only -DBENCH486")
+
+    # 4. The two targets are genuinely separated by architecture plus the
+    #    promoted i486-only renderer selectors.
     if i486 and i386:
         if i486.get("outputRoot") == i386.get("outputRoot"):
             fail("both targets resolve to %r" % i486.get("outputRoot"))
         if i486.get("objectRoot") == i386.get("objectRoot"):
             fail("both targets resolve to the object root %r" % i486.get("objectRoot"))
-        if not str(i386.get("outputRoot", "")).startswith(
-            "<repo>\\out\\dos-i386-"
-        ):
+        if i386.get("outputRoot") != expected_paths(load_golden("i386"))["outputRoot"]:
             fail(
-                "the i386 output root must live under out\\dos-i386-; it is %r"
+                "the i386 output root must match its independent target profile; it is %r"
                 % i386.get("outputRoot")
             )
 
-        # The i386 flag lists must differ from i486 only in the architecture
-        # entries and the TARGET_I386 switch.  Anything else means the two
-        # codepaths have drifted apart in a way nobody asked for.
+        # The i386 flag lists may omit the i486-default MarkLights and
+        # R_PushDlights paths; their C references remain the i386 defaults.
+        # Anything else means the codepaths have drifted unexpectedly.
         for list_name in ("cFlags", "asmFlags", "linkFlags"):
             i486_flags = i486.get(list_name, [])
             i386_flags = i386.get(list_name, [])
@@ -158,6 +265,11 @@ def main() -> int:
                 "-mtune=i486",
                 "-mtune=i386",
                 "-DTARGET_I386",
+                "-DASM486_MARK_LIGHTS",
+                "-DASM486_DYNAMIC_LIGHT_PUSH",
+                "-DASM486_SPRITE_SETUP",
+                "-DASM486_SPRITE_DRAW",
+                "-DASM486_SPRITE_FRAME",
             }
             # Paths differ between the targets by design, and the link list
             # carries the output executable as its last argument.
@@ -167,9 +279,32 @@ def main() -> int:
             stray = [f for f in only_i386 + only_i486 if f not in allowed]
             if stray:
                 fail(
-                    "%s differs between targets by more than the architecture "
-                    "flags and TARGET_I386: %r" % (list_name, stray)
+                    "%s differs between targets by more than architecture, "
+                    "TARGET_I386, and the promoted i486 renderer defaults: %r"
+                    % (list_name, stray)
                 )
+
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_MARK_LIGHTS" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted -DASM486_MARK_LIGHTS" % flags_name)
+            if "-DASM486_MARK_LIGHTS" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted MarkLights assembly" % flags_name)
+            if "-DASM486_DYNAMIC_LIGHT_PUSH" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted R_PushDlights assembly" % flags_name)
+            if "-DASM486_DYNAMIC_LIGHT_PUSH" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted R_PushDlights assembly" % flags_name)
+            if "-DASM486_SPRITE_SETUP" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted sprite-setup assembly" % flags_name)
+            if "-DASM486_SPRITE_SETUP" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted sprite setup" % flags_name)
+            if "-DASM486_SPRITE_DRAW" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted sprite-draw assembly" % flags_name)
+            if "-DASM486_SPRITE_DRAW" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted sprite draw" % flags_name)
+            if "-DASM486_SPRITE_FRAME" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted sprite-frame assembly" % flags_name)
+            if "-DASM486_SPRITE_FRAME" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted sprite frame" % flags_name)
 
         if "-DTARGET_I386" not in i386.get("asmFlags", []):
             fail("the i386 build does not pass -DTARGET_I386 to the assembler")
@@ -328,6 +463,161 @@ def main() -> int:
             if "-DASM486_BSP_WALK" not in bsp_walk_asm.get(flags_name, []):
                 fail("the BSP-walk assembly selector omits ASM486_BSP_WALK from %s" % flags_name)
 
+    sprite_beam_c = dump_flags("-SpriteBeamImplementation", "c")
+    sprite_beam_asm = dump_flags("-SpriteBeamImplementation", "asm")
+    if sprite_beam_c and sprite_beam_asm:
+        if sprite_beam_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-beam C selector changes the retained i486 profile suffix")
+        if "spritebeamasm" not in sprite_beam_asm.get("profileSuffix", ""):
+            fail("the sprite-beam assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_BEAM" in sprite_beam_c.get(flags_name, []):
+                fail("the sprite-beam C selector enables ASM486_SPRITE_BEAM in %s" % flags_name)
+            if "-DASM486_SPRITE_BEAM" not in sprite_beam_asm.get(flags_name, []):
+                fail("the sprite-beam assembly selector omits ASM486_SPRITE_BEAM from %s" % flags_name)
+
+    sprite_clip_c = dump_flags("-SpriteClipImplementation", "c")
+    sprite_clip_asm = dump_flags("-SpriteClipImplementation", "asm")
+    if sprite_clip_c and sprite_clip_asm:
+        if sprite_clip_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-clip C selector changes the retained i486 profile suffix")
+        if "spriteclipasm" not in sprite_clip_asm.get("profileSuffix", ""):
+            fail("the sprite-clip assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_CLIP" in sprite_clip_c.get(flags_name, []):
+                fail("the sprite-clip C selector enables ASM486_SPRITE_CLIP in %s" % flags_name)
+            if "-DASM486_SPRITE_CLIP" not in sprite_clip_asm.get(flags_name, []):
+                fail("the sprite-clip assembly selector omits ASM486_SPRITE_CLIP from %s" % flags_name)
+
+    sprite_frame_c = dump_flags("-SpriteFrameImplementation", "c")
+    sprite_frame_asm = dump_flags("-SpriteFrameImplementation", "asm")
+    if sprite_frame_c and sprite_frame_asm:
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-spriteframeasm", "")
+        if sprite_frame_c.get("profileSuffix") != c_reference_suffix:
+            fail("the sprite-frame C selector does not restore the C-reference suffix")
+        if sprite_frame_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-frame assembly selector changes the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_FRAME" in sprite_frame_c.get(flags_name, []):
+                fail("the sprite-frame C selector enables ASM486_SPRITE_FRAME in %s" % flags_name)
+            if "-DASM486_SPRITE_FRAME" not in sprite_frame_asm.get(flags_name, []):
+                fail("the sprite-frame assembly selector omits ASM486_SPRITE_FRAME from %s" % flags_name)
+
+    sprite_gradient_c = dump_flags("-SpriteGradientImplementation", "c")
+    sprite_gradient_asm = dump_flags("-SpriteGradientImplementation", "asm")
+    if sprite_gradient_c and sprite_gradient_asm:
+        if sprite_gradient_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-gradient C selector changes the retained i486 profile suffix")
+        if "spritegradientasm" not in sprite_gradient_asm.get("profileSuffix", ""):
+            fail("the sprite-gradient assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_GRADIENTS" in sprite_gradient_c.get(flags_name, []):
+                fail("the sprite-gradient C selector enables ASM486_SPRITE_GRADIENTS in %s" % flags_name)
+            if "-DASM486_SPRITE_GRADIENTS" not in sprite_gradient_asm.get(flags_name, []):
+                fail("the sprite-gradient assembly selector omits ASM486_SPRITE_GRADIENTS from %s" % flags_name)
+
+    sprite_scan_left_c = dump_flags("-SpriteScanLeftImplementation", "c")
+    sprite_scan_left_asm = dump_flags("-SpriteScanLeftImplementation", "asm")
+    if sprite_scan_left_c and sprite_scan_left_asm:
+        if sprite_scan_left_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-scan-left C selector changes the retained i486 profile suffix")
+        if "spritescanleftasm" not in sprite_scan_left_asm.get("profileSuffix", ""):
+            fail("the sprite-scan-left assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_SCAN_LEFT" in sprite_scan_left_c.get(flags_name, []):
+                fail("the sprite-scan-left C selector enables ASM486_SPRITE_SCAN_LEFT in %s" % flags_name)
+            if "-DASM486_SPRITE_SCAN_LEFT" not in sprite_scan_left_asm.get(flags_name, []):
+                fail("the sprite-scan-left assembly selector omits ASM486_SPRITE_SCAN_LEFT from %s" % flags_name)
+
+    sprite_scan_right_c = dump_flags("-SpriteScanRightImplementation", "c")
+    sprite_scan_right_asm = dump_flags("-SpriteScanRightImplementation", "asm")
+    if sprite_scan_right_c and sprite_scan_right_asm:
+        if sprite_scan_right_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-scan-right C selector changes the retained i486 profile suffix")
+        if "spritescanrightasm" not in sprite_scan_right_asm.get("profileSuffix", ""):
+            fail("the sprite-scan-right assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_SCAN_RIGHT" in sprite_scan_right_c.get(flags_name, []):
+                fail("the sprite-scan-right C selector enables ASM486_SPRITE_SCAN_RIGHT in %s" % flags_name)
+            if "-DASM486_SPRITE_SCAN_RIGHT" not in sprite_scan_right_asm.get(flags_name, []):
+                fail("the sprite-scan-right assembly selector omits ASM486_SPRITE_SCAN_RIGHT from %s" % flags_name)
+
+    sprite_draw_c = dump_flags("-SpriteDrawImplementation", "c")
+    sprite_draw_asm = dump_flags("-SpriteDrawImplementation", "asm")
+    if sprite_draw_c and sprite_draw_asm:
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-spritedrawasm", "")
+        if sprite_draw_c.get("profileSuffix") != c_reference_suffix:
+            fail("the sprite-draw C selector does not restore the C-reference suffix")
+        if sprite_draw_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-draw assembly selector changes the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_DRAW" in sprite_draw_c.get(flags_name, []):
+                fail("the sprite-draw C selector enables ASM486_SPRITE_DRAW in %s" % flags_name)
+            if "-DASM486_SPRITE_DRAW" not in sprite_draw_asm.get(flags_name, []):
+                fail("the sprite-draw assembly selector omits ASM486_SPRITE_DRAW from %s" % flags_name)
+
+    sprite_setup_c = dump_flags("-SpriteSetupImplementation", "c")
+    sprite_setup_asm = dump_flags("-SpriteSetupImplementation", "asm")
+    if sprite_setup_c and sprite_setup_asm:
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-spritesetupasm", "")
+        if sprite_setup_c.get("profileSuffix") != c_reference_suffix:
+            fail("the sprite-setup C selector does not restore the C-reference suffix")
+        if sprite_setup_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the sprite-setup assembly selector changes the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SPRITE_SETUP" in sprite_setup_c.get(flags_name, []):
+                fail("the sprite-setup C selector enables ASM486_SPRITE_SETUP in %s" % flags_name)
+            if "-DASM486_SPRITE_SETUP" not in sprite_setup_asm.get(flags_name, []):
+                fail("the sprite-setup assembly selector omits ASM486_SPRITE_SETUP from %s" % flags_name)
+
+    for selector, define, token in (
+        ("SpriteOrientationImplementation", "ASM486_SPRITE_ORIENTATION", "spriteorientationasm"),
+        ("RenderMathImplementation", "ASM486_RENDER_MATH", "rendermathasm"),
+        ("AnimatedLightImplementation", "ASM486_ANIMATED_LIGHT", "animatedlightasm"),
+        ("PointLightImplementation", "ASM486_POINT_LIGHT", "pointlightasm"),
+        ("FrameControlImplementation", "ASM486_FRAME_CONTROL", "framecontrolasm"),
+        ("PaletteImplementation", "ASM486_PALETTE", "paletteasm"),
+        ("MathClosureImplementation", "ASM486_MATH_CLOSURE", "mathclosureasm"),
+        ("VisibilityImplementation", "ASM486_VISIBILITY", "visibilityasm"),
+        ("PublicBindingsImplementation", "ASM486_PUBLIC_BINDINGS", "bindingsasm"),
+        ("SkyImplementation", "ASM486_SKY", "skyasm"),
+        ("RenderDispatchImplementation", "ASM486_RENDER_DISPATCH", "dispatchasm"),
+        ("DrawingDriverImplementation", "ASM486_DRAWING_DRIVER", "driverasm"),
+        ("ViewControlImplementation", "ASM486_VIEW_CONTROL", "viewcontrolasm"),
+        ("DrawingImplementation", "ASM486_DRAWING", "drawingasm"),
+        ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
+    ):
+        reference = dump_flags("-" + selector, "c")
+        candidate = dump_flags("-" + selector, "asm")
+        if reference and candidate:
+            if reference.get("profileSuffix") != RELEASE_I486_SUFFIX:
+                fail(selector + " changes the reference suffix")
+            if candidate.get("profileSuffix") != RELEASE_I486_SUFFIX + "-" + token:
+                fail(selector + " does not isolate its assembly profile")
+            for language in ("cFlags", "asmFlags"):
+                if "-D" + define in reference.get(language, []):
+                    fail(selector + " leaks its assembly define into C selection")
+                if "-D" + define not in candidate.get(language, []):
+                    fail(selector + " omits its assembly define from " + language)
+
+    alias_control_args = ["-AliasPrepareImplementation", "asm", "-AliasBBoxProjectImplementation", "asm", "-AliasMatrixCompositionImplementation", "asm", "-AliasSetupLightingImplementation", "asm", "-AliasSetupFrameImplementation", "asm", "-AliasSetupSkinImplementation", "asm"]
+    alias_control_reference = dump_flags(*alias_control_args, "-AliasControlImplementation", "c")
+    alias_control_candidate = dump_flags(*alias_control_args, "-AliasControlImplementation", "asm")
+    if alias_control_reference and alias_control_candidate:
+        if alias_control_candidate["profileSuffix"] != alias_control_reference["profileSuffix"] + "-aliascontrolasm":
+            fail("alias control assembly does not isolate its profile")
+        for language in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_CONTROL" in alias_control_reference[language] or "-DASM486_ALIAS_CONTROL" not in alias_control_candidate[language]:
+                fail("alias control definition does not follow selection")
+    world_control_c = dump_flags("-WorldControlImplementation", "c")
+    world_control_asm = dump_flags("-WorldControlImplementation", "asm")
+    if world_control_c and world_control_asm:
+        if world_control_asm["profileSuffix"] != world_control_c["profileSuffix"] + "-worldcontrolasm":
+            fail("world control assembly does not isolate its profile")
+        for language in ("cFlags", "asmFlags"):
+            if "-DASM486_WORLD_CONTROL" in world_control_c[language] or "-DASM486_WORLD_CONTROL" not in world_control_asm[language]:
+                fail("world control definition does not follow selection")
+
     render_world_c = dump_flags("-RenderWorldImplementation", "c")
     render_world_asm = dump_flags("-RenderWorldImplementation", "asm")
     if render_world_c and render_world_asm:
@@ -371,12 +661,14 @@ def main() -> int:
     alias_prepare_local = dump_flags("-AliasPrepareImplementation", "local")
     alias_prepare_asm = dump_flags("-AliasPrepareImplementation", "asm")
     if alias_prepare_control and alias_prepare_local and alias_prepare_asm:
-        if alias_prepare_control.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the alias-prepare control selector changes the retained i486 profile suffix")
+        if alias_prepare_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the default alias-prepare assembly selector changes the retained i486 profile suffix")
+        if alias_prepare_control.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
+            "-aliasmatrixasm", "-aliaspreparecontrol-aliasmatrixasm"
+        ):
+            fail("the alias-prepare control selector does not add its reference profile token")
         if "aliaslocal" not in alias_prepare_local.get("profileSuffix", ""):
             fail("the alias-prepare local selector does not add its profile token")
-        if "aliasprepareasm" not in alias_prepare_asm.get("profileSuffix", ""):
-            fail("the alias-prepare assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
             if "-DASM486_ALIAS_PREPARE" in alias_prepare_control.get(flags_name, []):
                 fail("the alias-prepare control selector enables ASM486_ALIAS_PREPARE in %s" % flags_name)
@@ -436,6 +728,131 @@ def main() -> int:
             fail("the alias-project C selector enables ASM486_ALIAS_PROJECT in asmFlags")
         if "-DASM486_ALIAS_PROJECT" not in alias_project_asm.get("asmFlags", []):
             fail("the alias-project assembly selector omits ASM486_ALIAS_PROJECT from asmFlags")
+
+    alias_matrix_c = dump_flags("-AliasMatrixCompositionImplementation", "c")
+    alias_matrix_asm = dump_flags("-AliasMatrixCompositionImplementation", "asm")
+    if alias_matrix_c and alias_matrix_asm:
+        if "aliasmatrixc" not in alias_matrix_c.get("profileSuffix", ""):
+            fail("the alias-matrix C selector does not name its implementation profile")
+        if "aliasmatrixasm" not in alias_matrix_asm.get("profileSuffix", ""):
+            fail("the alias-matrix assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_MATRIX_COMPOSE_ASM" in alias_matrix_c.get(flags_name, []):
+                fail("the alias-matrix C selector enables the assembly path in %s" % flags_name)
+            if "-DASM486_ALIAS_MATRIX_COMPOSE_ASM" not in alias_matrix_asm.get(flags_name, []):
+                fail("the alias-matrix assembly selector omits its macro from %s" % flags_name)
+
+    alias_setup_lighting_c = dump_flags("-AliasSetupLightingImplementation", "c")
+    alias_setup_lighting_asm = dump_flags("-AliasSetupLightingImplementation", "asm")
+    if alias_setup_lighting_c and alias_setup_lighting_asm:
+        if alias_setup_lighting_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the alias-lighting C selector changes the retained i486 profile suffix")
+        if "aliaslightingasm" not in alias_setup_lighting_asm.get("profileSuffix", ""):
+            fail("the alias-lighting assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_SETUP_LIGHTING" in alias_setup_lighting_c.get(flags_name, []):
+                fail("the alias-lighting C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_SETUP_LIGHTING" not in alias_setup_lighting_asm.get(flags_name, []):
+                fail("the alias-lighting assembly selector omits its macro from %s" % flags_name)
+
+    alias_setup_frame_c = dump_flags("-AliasSetupFrameImplementation", "c")
+    alias_setup_frame_asm = dump_flags("-AliasSetupFrameImplementation", "asm")
+    if alias_setup_frame_c and alias_setup_frame_asm:
+        if alias_setup_frame_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the alias-frame C selector changes the retained i486 profile suffix")
+        if "aliasframeasm" not in alias_setup_frame_asm.get("profileSuffix", ""):
+            fail("the alias-frame assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_SETUP_FRAME" in alias_setup_frame_c.get(flags_name, []):
+                fail("the alias-frame C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_SETUP_FRAME" not in alias_setup_frame_asm.get(flags_name, []):
+                fail("the alias-frame assembly selector omits its macro from %s" % flags_name)
+
+    alias_setup_skin_c = dump_flags("-AliasSetupSkinImplementation", "c")
+    alias_setup_skin_asm = dump_flags("-AliasSetupSkinImplementation", "asm")
+    if alias_setup_skin_c and alias_setup_skin_asm:
+        if alias_setup_skin_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the alias-skin C selector changes the retained i486 profile suffix")
+        if "aliaskinasm" not in alias_setup_skin_asm.get("profileSuffix", ""):
+            fail("the alias-skin assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_SETUP_SKIN" in alias_setup_skin_c.get(flags_name, []):
+                fail("the alias-skin C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_SETUP_SKIN" not in alias_setup_skin_asm.get(flags_name, []):
+                fail("the alias-skin assembly selector omits its macro from %s" % flags_name)
+
+    alias_gradient_c = dump_flags("-AliasGradientImplementation", "c")
+    alias_gradient_asm = dump_flags("-AliasGradientImplementation", "asm")
+    if alias_gradient_c and alias_gradient_asm:
+        if "aliasgradientc" not in alias_gradient_c.get("profileSuffix", ""):
+            fail("the alias-gradient C selector does not add its profile token")
+        if "aliasgradientasm" not in alias_gradient_asm.get("profileSuffix", ""):
+            fail("the alias-gradient assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_GRADIENTS" in alias_gradient_c.get(flags_name, []):
+                fail("the alias-gradient C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_GRADIENTS" not in alias_gradient_asm.get(flags_name, []):
+                fail("the alias-gradient assembly selector omits its macro from %s" % flags_name)
+
+    alias_line_scan_c = dump_flags("-AliasLineScanImplementation", "c")
+    alias_line_scan_asm = dump_flags("-AliasLineScanImplementation", "asm")
+    if alias_line_scan_c and alias_line_scan_asm:
+        if alias_line_scan_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
+            "-aliaslinescanasm", ""
+        ):
+            fail("the alias-line-scan C selector changes more than its own profile token")
+        if "aliaslinescanasm" not in alias_line_scan_asm.get("profileSuffix", ""):
+            fail("the alias-line-scan assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_LINE_SCAN" in alias_line_scan_c.get(flags_name, []):
+                fail("the alias-line-scan C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_LINE_SCAN" not in alias_line_scan_asm.get(flags_name, []):
+                fail("the alias-line-scan assembly selector omits its macro from %s" % flags_name)
+
+    alias_edge_table_c = dump_flags("-AliasEdgeTableImplementation", "c")
+    alias_edge_table_asm = dump_flags("-AliasEdgeTableImplementation", "asm")
+    if alias_edge_table_c and alias_edge_table_asm:
+        if alias_edge_table_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the default alias-edge-table assembly selector changes the retained i486 release suffix")
+        if alias_edge_table_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
+            "-lightmapstylesasm", "-aliasedgetablec-lightmapstylesasm"
+        ):
+            fail("the alias-edge-table C selector does not add its reference profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_EDGE_TABLE" in alias_edge_table_c.get(flags_name, []):
+                fail("the alias-edge-table C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_EDGE_TABLE" not in alias_edge_table_asm.get(flags_name, []):
+                fail("the alias-edge-table assembly selector omits its macro from %s" % flags_name)
+
+    alias_skin_table_c = dump_flags("-AliasSkinTableImplementation", "c")
+    alias_skin_table_asm = dump_flags("-AliasSkinTableImplementation", "asm")
+    if alias_skin_table_c and alias_skin_table_asm:
+        if alias_skin_table_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the default alias skin-table assembly selector changes the retained i486 release suffix")
+        if alias_skin_table_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
+            "-lightmapstylesasm", "-aliasskintablec-lightmapstylesasm"
+        ):
+            fail("the alias skin-table C selector does not add its reference profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_SKIN_TABLE" in alias_skin_table_c.get(flags_name, []):
+                fail("the alias skin-table C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_SKIN_TABLE" not in alias_skin_table_asm.get(flags_name, []):
+                fail("the alias skin-table assembly selector omits its macro from %s" % flags_name)
+
+    alias_rasterize_c = dump_flags("-AliasRasterizeImplementation", "c")
+    alias_rasterize_asm = dump_flags("-AliasRasterizeImplementation", "asm")
+    if alias_rasterize_c and alias_rasterize_asm:
+        if alias_rasterize_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the default alias rasterization assembly selector changes the retained i486 release suffix")
+        if alias_rasterize_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
+            "-lightmapstylesasm", "-aliasrasterizec-lightmapstylesasm"
+        ):
+            fail("the alias rasterization C selector does not add its reference profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_RASTERIZE" in alias_rasterize_c.get(flags_name, []):
+                fail("the alias rasterization C selector enables assembly in %s" % flags_name)
+            if "-DASM486_ALIAS_RASTERIZE" not in alias_rasterize_asm.get(flags_name, []):
+                fail("the alias rasterization assembly selector omits its macro from %s" % flags_name)
 
     bmodel_polygon_clip_c = dump_flags("-BmodelPolygonClipImplementation", "c")
     bmodel_polygon_clip_asm = dump_flags("-BmodelPolygonClipImplementation", "asm")
@@ -652,10 +1069,13 @@ def main() -> int:
         executable = str(long_executable_profile.get("executable", "")).replace(
             "<repo>", REPO_ROOT
         )
+        link_map = os.path.join(output_root, os.path.basename(executable) + ".map")
         if len(executable) > 259:
             fail("the long renderer profile executable path exceeds the legacy Windows MAX_PATH boundary")
         if not os.path.basename(output_root).startswith("profile-"):
             fail("the long executable profile did not use the hashed short output directory")
+        if len(link_map) > 259 or os.path.dirname(link_map) != output_root:
+            fail("the long executable profile linker map is not under the hashed short output directory")
 
     instrumented_cache_draw = dump_flags(
         "-Benchmark", "-Instrumentation",
@@ -663,14 +1083,19 @@ def main() -> int:
         "-SurfaceDrawImplementation", "asm",
     )
     if instrumented_cache_draw:
+        if instrumented_cache_draw.get("manifest") != "build-manifest-profile.json":
+            fail("the instrumented build must own a separate manifest")
         if not str(instrumented_cache_draw.get("executable", "")).endswith(
             "\\qprof.exe"
         ):
             fail("the instrumented cache/draw selector does not resolve qprof.exe")
-        if not str(instrumented_cache_draw.get("objectRoot", "")).endswith(
-            "\\obj-bp"
-        ):
+        object_root = str(instrumented_cache_draw.get("objectRoot", ""))
+        if not object_root.endswith(("\\obj-bp", "-obj-bp")):
             fail("the instrumented benchmark does not use the compact obj-bp directory")
+    if benchmark and benchmark.get("manifest") != "build-manifest-bench.json":
+        fail("the benchmark build did not retain its own manifest")
+    if i486 and i486.get("manifest") != "build-manifest.json":
+        fail("the release build did not retain its own manifest")
 
     dlight_orchestration_c = dump_flags(
         "-DynamicLightOrchestrationImplementation", "c"
@@ -704,8 +1129,48 @@ def main() -> int:
                 if "-D" + macro not in dlight_contributes_asm.get(flags_name, []):
                     fail("the dynamic-light predicate assembly selector omits %s from %s" % (macro, flags_name))
 
-    # 6. Source inventory is unchanged: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 21 assembly sources.
+    mark_lights_c = dump_flags("-MarkLightsImplementation", "c")
+    mark_lights_asm = dump_flags("-MarkLightsImplementation", "asm")
+    mark_lights_only = dump_flags(
+        "-MarkLightsImplementation", "asm",
+        "-LightMapBuildImplementation", "c",
+    )
+    if mark_lights_c and mark_lights_asm:
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-marklightsasm", "")
+        if mark_lights_c.get("profileSuffix") != c_reference_suffix:
+            fail("the MarkLights C selector does not restore the C-reference profile suffix")
+        if "marklightsasm" not in mark_lights_asm.get("profileSuffix", ""):
+            fail("the MarkLights assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_MARK_LIGHTS" in mark_lights_c.get(flags_name, []):
+                fail("the MarkLights C selector enables ASM486_MARK_LIGHTS in %s" % flags_name)
+            if "-DASM486_MARK_LIGHTS" not in mark_lights_asm.get(flags_name, []):
+                fail("the MarkLights assembly selector omits ASM486_MARK_LIGHTS from %s" % flags_name)
+    if mark_lights_only:
+        if "marklightsasm" not in mark_lights_only.get("profileSuffix", ""):
+            fail("MarkLights assembly with the C lightmap dispatcher lacks its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_MARK_LIGHTS" not in mark_lights_only.get(flags_name, []):
+                fail("MarkLights-only assembly omits ASM486_MARK_LIGHTS from %s" % flags_name)
+            if "-DASM486_LIGHTMAP_BUILD" in mark_lights_only.get(flags_name, []):
+                fail("MarkLights-only assembly unexpectedly enables ASM486_LIGHTMAP_BUILD in %s" % flags_name)
+
+    dlight_push_c = dump_flags("-DynamicLightPushImplementation", "c")
+    dlight_push_asm = dump_flags("-DynamicLightPushImplementation", "asm")
+    if dlight_push_c and dlight_push_asm:
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-dlightpushasm", "")
+        if dlight_push_c.get("profileSuffix") != c_reference_suffix:
+            fail("the R_PushDlights C selector does not restore the C-reference suffix")
+        if dlight_push_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_PushDlights assembly selector changes the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_DYNAMIC_LIGHT_PUSH" in dlight_push_c.get(flags_name, []):
+                fail("the R_PushDlights C selector enables ASM486_DYNAMIC_LIGHT_PUSH in %s" % flags_name)
+            if "-DASM486_DYNAMIC_LIGHT_PUSH" not in dlight_push_asm.get(flags_name, []):
+                fail("the R_PushDlights assembly selector omits ASM486_DYNAMIC_LIGHT_PUSH from %s" % flags_name)
+
+    # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
+    #    included by another unit), 38 assembly sources.
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
             continue
@@ -716,9 +1181,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 21:
+        if dump.get("allAssemblySourceCount") != 38:
             fail(
-                "%s: expected 21 assembly sources, got %r"
+                "%s: expected 38 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

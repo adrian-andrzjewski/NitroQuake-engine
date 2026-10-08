@@ -1,0 +1,42 @@
+{
+  "source": "chase.c",
+  "originalSourceSha256": "468D930EA3B2F3CF2B6A33921B636EF04AC1A978045128D816881364471B86A5",
+  "maintainedAssembly": "v_chaseasm.s",
+  "maintainedInclude": "v_chase_reference.inc",
+  "layoutFacts": 23,
+  "entries": [
+    {
+      "originalFunction": "Chase_Init",
+      "assemblyEntry": "_Chase_Init",
+      "purpose": "Register the original variables in order.",
+      "directFixture": "Bench486ChaseCases",
+      "isaGate": "source-bound executable verification"
+    },
+    {
+      "originalFunction": "Chase_Reset",
+      "assemblyEntry": "_Chase_Reset",
+      "purpose": "Preserve the original empty reset hook.",
+      "directFixture": "Bench486ChaseCases",
+      "isaGate": "source-bound executable verification"
+    },
+    {
+      "originalFunction": "TraceLine",
+      "assemblyEntry": "_TraceLine",
+      "purpose": "Preserve all-zero trace defaults, hull zero and impact copying.",
+      "directFixture": "Bench486ChaseCases",
+      "isaGate": "source-bound executable verification"
+    },
+    {
+      "originalFunction": "Chase_Update",
+      "assemblyEntry": "_Chase_Update",
+      "purpose": "Preserve destination, look trace, distance clamp and x87 pitch behavior.",
+      "directFixture": "Bench486ChaseCases",
+      "isaGate": "source-bound executable verification"
+    }
+  ],
+  "originalHullFractionStackBits": [
+    "00000000",
+    "00000001"
+  ],
+  "originalHullFractionNote": "The original implicit C call passes integer bits to float parameters; preserve those bits rather than converting the second fraction to 1.0f."
+}

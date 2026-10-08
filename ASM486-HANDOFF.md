@@ -102,6 +102,75 @@ renderer-port stages, including the public `R_TextureAnimation` assembly entry.
 The C `D_WarpScreen` and `D_DrawSkyScans8` default bodies remain emitted
 directly from their original C entries.
 
+On 2026-10-06, the release pin was re-recorded after review of four changed
+artifacts: `asm486_experiments.obj` and `r_alias.obj` include the alias transform
+and bounding-box vector assembly paths; `r_part.obj` includes the selectable
+particle update entry; `quake.exe` contains those reviewed objects. The rebuilt
+release audit decoded 168,077 instructions in 103 objects, with zero enforced
+above-i486 and zero unknown instructions (the one MMX-pattern match is the
+data-only CRC table). `guard-i486-release.py` then passed against the recorded
+104-artifact set, including the executable. This pin records the current
+reviewed release bytes.
+
+### Linked executable and runtime ISA audit (2026-10-06)
+
+The object classifier was corrected on 2026-10-07 after real assembled fixtures
+exposed false acceptance of CMOV, newer x87 forms, AVX and system encodings.
+The current release re-audit passes with 187,773 verified linked opcode sites
+and zero opcode mismatches; the 25 permitted / 150 forbidden instruction
+fixtures now run in the standard test workflow. Earlier reports predate these
+fixes. See the object-gate correction in
+`docs/ledger/2026-10-03-isa-audit-and-i386-codepath.md` for exact coverage and the
+hash-bound eight-byte runtime constant exclusion.
+
+The ordinary i486 build now writes `quake.exe.map` and runs
+`tools/isa-audit-linked.ps1` after linking. This checks the code sections that
+actually entered the executable, including every selected CRT and static
+runtime object. It extracts archive members from the exact DJGPP libraries used
+by the link, hashes them into `isa-audit-linked.json`, and disassembles the
+linked input objects with their mapped-section allow-list. The object audit
+fails on every above-i486 or unclassified instruction outside narrowly bounded
+data exemptions.
+
+The linked pass checks the final GO32 executable too. It requires the executable
+`.text` extent and every input contribution size to match the linker map, then
+compares each audited instruction's ISA-defining opcode and ModRM bytes at its
+mapped final address. It parses input relocations so pointer tables placed in
+`.text` are reported as relocated data, and keeps explicitly identified data
+ranges separate. GO32 also places strings and tables in `.text`, so the full
+linear executable disassembly is retained for inspection while the gate uses
+the object instruction boundaries and their exact linked addresses.
+
+The normal i486 release build passed this gate on 2026-10-06: 338 linked input
+objects and 209,707 disassembly records; zero enforced post-i486 instructions,
+zero unclassified instructions, and zero linked opcode mismatches. Of those
+records, 207,062 opcode sites matched in the executable; the others were
+accounted for as bounded data ranges, standalone data bytes/prefixes, or
+relocation-covered `.text` bytes. The archive closure included 235 runtime
+inputs across 331 mapped `.text` contributions. The complete report and saved
+disassembly live beside `quake.exe` as `isa-audit-linked.json`,
+`isa-audit-linked-executable-instructions.jsonl`,
+`isa-audit-linked-relocations.txt`, and
+`isa-audit-linked-executable-disassembly.txt`.
+
+Reproduce the build gate with:
+
+```powershell
+rtk pwsh -NoProfile -File tools/build-dos.ps1 -NoBootstrap
+```
+
+This closes the linked instruction-set and static runtime-code audit for the
+current build configuration. Full renderer conversion, repeated temporal-soak
+coverage, representative gameplay acceptance, and hardware/486-emulator
+validation remain open.
+
+The same reviewed alias-matrix conversion changed the previously recorded
+release bytes in `asm486_experiments.obj` and `quake.exe`. After its exact
+six-scene framebuffer comparison and the linked ISA gate passed, the 104-entry
+release hash manifest was updated. `tools/guard-i486-release.py` now passes for
+103 objects plus `quake.exe`; this pin update records the deliberate renderer
+change and does not mark the renderer port complete.
+
 ## Process rules
 
 ### Process rule (2026-10-03): **cite this file by heading, never by line number**
@@ -1685,4 +1754,17 @@ report call, never a longer format string.
 `2378409472` is printed by the binary under test and compared by no script, so a
 binary that computed a different answer and said PASS would pass. The timedemo
 does not have this problem: its checksum is compared against the pinned constant.
+
+## Accepted renderer checkpoint on 2026-10-08
+
+The combined 38-module profile passes the complete exact guest correctness
+suite, ending with checksum `3755475462`. Its accepted report and binary proofs
+are retained. Cleanup of copied oracle whitespace preserves all 480 allocated
+objects across four builds, apart from proved build-clock literal data. The
+default i486 release pins were deliberately refreshed for the accepted ports;
+`guard-i486-release.py` verifies 120 objects and the executable. Full executable,
+runtime, startup and provider ISA gates pass with zero instruction exemptions.
+See the [accepted checkpoint](docs/ledger/2026-10-08-accepted-renderer-checkpoint.md)
+for the exact source hashes and retained artifacts. Remaining ownership and
+complete-frame sequence gates are still required.
 

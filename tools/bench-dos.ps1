@@ -1,9 +1,10 @@
 [CmdletBinding()]
 param(
     [switch]$SkipBuild,
+    [switch]$Instrumentation,
     [switch]$NoBootstrap,
-    # Parity-only reference builds can contain C multiply sequences above i486.
-    # Keep the release ISA gate enabled; this is only for explicit C-helper A/Bs.
+    # This bypass is for diagnostic experiments only. All normal C and assembly
+    # profiles are expected to pass the selected target's ISA audit.
     [switch]$SkipIsaAudit,
     [string]$ToolRoot,
     [string]$DataRoot,
@@ -89,13 +90,29 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
     [ValidateSet('control', 'local', 'asm')]
-    [string]$AliasPrepareImplementation = 'control',
+    [string]$AliasPrepareImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasClipImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasClipZImplementation = 'c',
-    [ValidateSet('c', 'special')]
-    [string]$AliasMatrixCompositionImplementation = 'special',
+    [ValidateSet('c', 'special', 'asm')]
+    [string]$AliasMatrixCompositionImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupLightingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupFrameImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupSkinImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasGradientImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasLineScanImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasEdgeTableImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSkinTableImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasRasterizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -109,7 +126,11 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightOrchestrationImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightPushImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$DlightContributesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MarkLightsImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$LightMapBuildImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -146,6 +167,58 @@ param(
     [string]$EmitCachedEdgeImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderPolyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ParticleUpdateImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteBeamImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteFrameImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteScanLeftImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteScanRightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteSetupImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteOrientationImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderMathImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AnimatedLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PointLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$FrameControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PaletteImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MathClosureImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$VisibilityImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PublicBindingsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SkyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderDispatchImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DrawingDriverImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ViewControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DrawingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ChaseImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$WorldControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteDrawImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [switch]$FillRectOnly,
@@ -158,6 +231,36 @@ param(
     [switch]$AliasProjectOnly,
     [switch]$AliasBBoxProjectOnly,
     [switch]$AliasTransformFinalOnly,
+    [switch]$AliasSetupLightingOnly,
+    [switch]$AliasSetupFrameOnly,
+    [switch]$AliasSetupSkinOnly,
+    [switch]$AliasGradientsOnly,
+    [switch]$AliasLineScanOnly,
+    [switch]$AliasEdgeTableOnly,
+    [switch]$AliasSkinTableOnly,
+    [switch]$SpriteBeamOnly,
+    [switch]$SpriteClipOnly,
+    [switch]$SpriteFrameOnly,
+    [switch]$SpriteGradientOnly,
+    [switch]$SpriteScanLeftOnly,
+    [switch]$SpriteScanRightOnly,
+    [switch]$SpriteDrawOnly,
+    [switch]$SpriteSetupOnly,
+    [switch]$SpriteOrientationOnly,
+    [switch]$LightControlOnly,
+    [switch]$FrameControlOnly,
+    [switch]$PaletteOnly,
+    [switch]$MathClosureOnly,
+    [switch]$VisibilityOnly,
+    [switch]$PublicBindingsOnly,
+    [switch]$SkyOnly,
+    [switch]$RenderDispatchOnly,
+    [switch]$DrawingDriverOnly,
+    [switch]$ViewControlOnly,
+    [switch]$DrawingOnly,
+    [switch]$ChaseOnly,
+    [switch]$AliasControlOnly,
+    [switch]$WorldControlOnly,
     [switch]$MipLevelOnly,
     [switch]$TextureAnimationOnly,
     [switch]$LightMapNormalizeOnly,
@@ -175,6 +278,24 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Match the promoted release selectors on i486, but keep the separate i386
+# benchmark profile on its C reference unless the caller opts in explicitly.
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MarkLightsImplementation')) {
+    $MarkLightsImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('DynamicLightPushImplementation')) {
+    $DynamicLightPushImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteSetupImplementation')) {
+    $SpriteSetupImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawImplementation')) {
+    $SpriteDrawImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
+    $SpriteFrameImplementation = 'asm'
+}
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -194,6 +315,33 @@ if ($SurfaceZGradientOnly -and $SurfaceZGradientImplementation -ne 'asm') {
 }
 if ($SurfaceGradientOnly -and $SurfaceGradientImplementation -ne 'asm') {
     throw '-SurfaceGradientOnly requires -SurfaceGradientImplementation asm.'
+}
+if ($SpriteDrawOnly -and $SpriteDrawImplementation -ne 'asm') {
+    throw '-SpriteDrawOnly requires -SpriteDrawImplementation asm.'
+}
+if ($SpriteSetupOnly -and $SpriteSetupImplementation -ne 'asm') {
+    throw '-SpriteSetupOnly requires -SpriteSetupImplementation asm.'
+}
+if ($AliasSetupLightingOnly -and $AliasSetupLightingImplementation -ne 'asm') {
+    throw '-AliasSetupLightingOnly requires -AliasSetupLightingImplementation asm.'
+}
+if ($AliasSetupFrameOnly -and $AliasSetupFrameImplementation -ne 'asm') {
+    throw '-AliasSetupFrameOnly requires -AliasSetupFrameImplementation asm.'
+}
+if ($AliasSetupSkinOnly -and $AliasSetupSkinImplementation -ne 'asm') {
+    throw '-AliasSetupSkinOnly requires -AliasSetupSkinImplementation asm.'
+}
+if ($AliasGradientsOnly -and $AliasGradientImplementation -ne 'asm') {
+    throw '-AliasGradientsOnly requires -AliasGradientImplementation asm.'
+}
+if ($AliasLineScanOnly -and $AliasLineScanImplementation -ne 'asm') {
+    throw '-AliasLineScanOnly requires -AliasLineScanImplementation asm.'
+}
+if ($AliasEdgeTableOnly -and $AliasEdgeTableImplementation -ne 'asm') {
+    throw '-AliasEdgeTableOnly requires -AliasEdgeTableImplementation asm.'
+}
+if ($AliasSkinTableOnly -and $AliasSkinTableImplementation -ne 'asm') {
+    throw '-AliasSkinTableOnly requires -AliasSkinTableImplementation asm.'
 }
 if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
     throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
@@ -218,6 +366,7 @@ $toolManifest = Read-ToolchainManifest -ToolsDirectory $PSScriptRoot
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
 $buildParams = @{
         Benchmark = $true
+        Instrumentation = [bool]$Instrumentation
         CpuTarget = $CpuTarget
         OptimizationProfile = $OptimizationProfile
         TextureAxisCacheEntries = $TextureAxisCacheEntries
@@ -259,13 +408,23 @@ $buildParams = @{
         AliasClipImplementation = $AliasClipImplementation
         AliasClipZImplementation = $AliasClipZImplementation
         AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
+        AliasSetupLightingImplementation = $AliasSetupLightingImplementation
+        AliasSetupFrameImplementation = $AliasSetupFrameImplementation
+        AliasSetupSkinImplementation = $AliasSetupSkinImplementation
+        AliasGradientImplementation = $AliasGradientImplementation
+        AliasLineScanImplementation = $AliasLineScanImplementation
+        AliasEdgeTableImplementation = $AliasEdgeTableImplementation
+        AliasSkinTableImplementation = $AliasSkinTableImplementation
+        AliasRasterizeImplementation = $AliasRasterizeImplementation
         TextureAnimationImplementation = $TextureAnimationImplementation
         LightMapNormalizeImplementation = $LightMapNormalizeImplementation
         LightMapStylesImplementation = $LightMapStylesImplementation
         FusedLightMapImplementation = $FusedLightMapImplementation
         DynamicLightImplementation = $DynamicLightImplementation
         DynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+        DynamicLightPushImplementation = $DynamicLightPushImplementation
         DlightContributesImplementation = $DlightContributesImplementation
+        MarkLightsImplementation = $MarkLightsImplementation
         LightMapBuildImplementation = $LightMapBuildImplementation
         BspPlaneDotImplementation = $BspPlaneDotImplementation
         BspClipImplementation = $BspClipImplementation
@@ -284,6 +443,18 @@ $buildParams = @{
         EfragStoreImplementation = $EfragStoreImplementation
         EmitCachedEdgeImplementation = $EmitCachedEdgeImplementation
         RenderPolyImplementation = $RenderPolyImplementation
+        SpriteDrawImplementation = $SpriteDrawImplementation
+        SpriteSetupImplementation = $SpriteSetupImplementation
+        SpriteOrientationImplementation = $SpriteOrientationImplementation
+        RenderMathImplementation = $RenderMathImplementation
+        AnimatedLightImplementation = $AnimatedLightImplementation
+        PointLightImplementation = $PointLightImplementation
+        FrameControlImplementation = $FrameControlImplementation
+        PaletteImplementation = $PaletteImplementation
+        MathClosureImplementation = $MathClosureImplementation
+        VisibilityImplementation = $VisibilityImplementation
+        PublicBindingsImplementation = $PublicBindingsImplementation
+        SkyImplementation = $SkyImplementation
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
         ToolRoot = $ToolRoot
     }
@@ -297,6 +468,7 @@ if ($SkipIsaAudit) {
 # did smoke-dos.ps1 and timedemo-dos.ps1; three copies of one rule is a standing
 # invitation for a runner to look for an executable the builder never wrote.
 # The builder is the only place that knows.
+Add-RunnerBuildSelectors -BuildParameters $buildParams -Command $MyInvocation.MyCommand -SessionState $ExecutionContext.SessionState
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
 $benchmarkExe = $resolved.executable
 $dosbox = Resolve-DosboxExecutable -Manifest $toolManifest -ToolRoot $ToolRoot `
@@ -340,6 +512,7 @@ if ((-not $executableExists) -or $staleBuild) {
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
 }
+$selectorVerification = Assert-RunnerBuildManifest -Resolved $resolved -BuildParameters $buildParams
 
 # The staging directory is UTC-stamped, so it cannot already exist; New-QuakeStaging
 # refuses rather than overwrites.  The data-root and pak checks, the same-volume check
@@ -352,9 +525,101 @@ $staging = New-QuakeStaging -RepoRoot $repoRoot `
 $stagingRoot = $staging.StagingRoot
 $quakeRoot = $staging.QuakeRoot
 $stagedData = $staging.StagedData
+$providerVerification = Assert-RunnerDpmiProvider -CpuTarget $CpuTarget -BuildVerification $selectorVerification `
+    -ProviderPath (Join-Path $quakeRoot 'cwsdpmi.exe')
 
 $benchCommand = if ($AliasProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
+}
+elseif ($SpriteBeamOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspritebeam -benchexit'
+}
+elseif ($SpriteClipOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspriteclip -benchexit'
+}
+elseif ($SpriteFrameOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspriteframe -benchexit'
+}
+elseif ($SpriteGradientOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspritegradient -benchexit'
+}
+elseif ($SpriteScanLeftOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspritescanleft -benchexit'
+}
+elseif ($SpriteScanRightOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspritescanright -benchexit'
+}
+elseif ($SpriteDrawOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspritedraw -benchexit'
+}
+elseif ($AliasControlOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliascontrol -benchexit'
+}
+elseif ($WorldControlOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchworldcontrol -benchexit'
+}
+elseif ($ChaseOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchchase -benchexit'
+}
+elseif ($DrawingOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawing -benchexit'
+}
+elseif ($ViewControlOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchviewcontrol -benchexit'
+}
+elseif ($DrawingDriverOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
+}
+elseif ($RenderDispatchOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchrenderdispatch -benchexit'
+}
+elseif ($SkyOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsky -benchexit'
+}
+elseif ($PublicBindingsOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchpublicbindings -benchexit'
+}
+elseif ($VisibilityOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvisibility -benchexit'
+}
+elseif ($MathClosureOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchmathclosure -benchexit'
+}
+elseif ($PaletteOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchpalette -benchexit'
+}
+elseif ($FrameControlOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchframecontrol -benchexit'
+}
+elseif ($LightControlOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightcontrol -benchexit'
+}
+elseif ($SpriteOrientationOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspriteorientation -benchexit'
+}
+elseif ($SpriteSetupOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchspritesetup -benchexit'
+}
+elseif ($AliasSetupLightingOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliassetuplighting -benchexit'
+}
+elseif ($AliasSetupFrameOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliassetupframe -benchexit'
+}
+elseif ($AliasSetupSkinOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliassetupskin -benchexit'
+}
+elseif ($AliasGradientsOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasgradients -benchexit'
+}
+elseif ($AliasLineScanOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliaslinescan -benchexit'
+}
+elseif ($AliasEdgeTableOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasedgetable -benchexit'
+}
+elseif ($AliasSkinTableOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasskintable -benchexit'
 }
 elseif ($FillRectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfillrect -benchexit'
@@ -496,13 +761,23 @@ $result = [ordered]@{
     aliasClipImplementation = $AliasClipImplementation
     aliasClipZImplementation = $AliasClipZImplementation
     aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
+    aliasSetupLightingImplementation = $AliasSetupLightingImplementation
+    aliasSetupFrameImplementation = $AliasSetupFrameImplementation
+    aliasSetupSkinImplementation = $AliasSetupSkinImplementation
+    aliasGradientImplementation = $AliasGradientImplementation
+    aliasLineScanImplementation = $AliasLineScanImplementation
+    aliasEdgeTableImplementation = $AliasEdgeTableImplementation
+    aliasSkinTableImplementation = $AliasSkinTableImplementation
+    aliasRasterizeImplementation = $AliasRasterizeImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     lightMapStylesImplementation = $LightMapStylesImplementation
     fusedLightMapImplementation = $FusedLightMapImplementation
     dynamicLightImplementation = $DynamicLightImplementation
     dynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    dynamicLightPushImplementation = $DynamicLightPushImplementation
     dlightContributesImplementation = $DlightContributesImplementation
+    markLightsImplementation = $MarkLightsImplementation
     lightMapBuildImplementation = $LightMapBuildImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
@@ -521,11 +796,57 @@ $result = [ordered]@{
     efragStoreImplementation = $EfragStoreImplementation
     emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
     renderPolyImplementation = $RenderPolyImplementation
+    spriteSetupImplementation = $SpriteSetupImplementation
+    spriteOrientationImplementation = $SpriteOrientationImplementation
+    buildSelectorVerification = $selectorVerification
+    providerVerification = $providerVerification
+    renderMathImplementation = $RenderMathImplementation
+    animatedLightImplementation = $AnimatedLightImplementation
+    pointLightImplementation = $PointLightImplementation
+    frameControlImplementation = $FrameControlImplementation
+    paletteImplementation = $PaletteImplementation
+    mathClosureImplementation = $MathClosureImplementation
+    visibilityImplementation = $VisibilityImplementation
+    publicBindingsImplementation = $PublicBindingsImplementation
+    skyImplementation = $SkyImplementation
+    renderDispatchImplementation = $RenderDispatchImplementation
+    drawingDriverImplementation = $DrawingDriverImplementation
+    viewControlImplementation = $ViewControlImplementation
+    drawingImplementation = $DrawingImplementation
+    chaseImplementation = $ChaseImplementation
+    aliasControlImplementation = $AliasControlImplementation
+    worldControlImplementation = $WorldControlImplementation
+    instrumentation = [bool]$Instrumentation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     turbulentOnly = [bool]$TurbulentOnly
     aliasProjectOnly = [bool]$AliasProjectOnly
     aliasBBoxProjectOnly = [bool]$AliasBBoxProjectOnly
     aliasTransformFinalOnly = [bool]$AliasTransformFinalOnly
+    aliasSetupFrameOnly = [bool]$AliasSetupFrameOnly
+    spriteBeamOnly = [bool]$SpriteBeamOnly
+    spriteClipOnly = [bool]$SpriteClipOnly
+    spriteFrameOnly = [bool]$SpriteFrameOnly
+    spriteGradientOnly = [bool]$SpriteGradientOnly
+    spriteScanLeftOnly = [bool]$SpriteScanLeftOnly
+    spriteScanRightOnly = [bool]$SpriteScanRightOnly
+    spriteDrawOnly = [bool]$SpriteDrawOnly
+    spriteSetupOnly = [bool]$SpriteSetupOnly
+    spriteOrientationOnly = [bool]$SpriteOrientationOnly
+    lightControlOnly = [bool]$LightControlOnly
+    frameControlOnly = [bool]$FrameControlOnly
+    paletteOnly = [bool]$PaletteOnly
+    mathClosureOnly = [bool]$MathClosureOnly
+    visibilityOnly = [bool]$VisibilityOnly
+    publicBindingsOnly = [bool]$PublicBindingsOnly
+    skyOnly = [bool]$SkyOnly
+    renderDispatchOnly = [bool]$RenderDispatchOnly
+    drawingDriverOnly = [bool]$DrawingDriverOnly
+    viewControlOnly = [bool]$ViewControlOnly
+    drawingOnly = [bool]$DrawingOnly
+    chaseOnly = [bool]$ChaseOnly
+    aliasControlOnly = [bool]$AliasControlOnly
+    worldControlOnly = [bool]$WorldControlOnly
+    spriteDrawImplementation = $SpriteDrawImplementation
     textureAnimationOnly = [bool]$TextureAnimationOnly
     lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly
     lightMapStylesOnly = [bool]$LightMapStylesOnly

@@ -4,12 +4,10 @@ param(
     [switch]$Benchmark,
     [switch]$Instrumentation,
     [switch]$NoBootstrap,
-    # Minimum CPU the build targets.  i486 is the default and the retained
-    # release profile; i386 is a separate, separately-audited codepath whose
-    # object directory and executable never share the i486 output tree.  The
-    # i486 path must stay byte-identical: -CpuTarget i486 resolves to the same
-    # -march/-mtune pair, the same suffix, and the same output paths as before
-    # this parameter existed.  See tools\test-build-dos.py.
+    # Minimum CPU the build targets. i486 is the default and retained release
+    # profile; i386 is a separate, separately audited codepath whose object
+    # directory and executable never share the i486 output tree. Both targets'
+    # resolved flags and paths are pinned in tools\test-build-dos.py.
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     # Print the resolved flag lists and output paths as JSON and exit without
@@ -17,12 +15,11 @@ param(
     # be golden-pinned without the guard having to re-implement the profile
     # suffix arithmetic.
     [switch]$DumpFlags,
-    # Blocking ISA gate.  On by default: the build audits its own objects after
-    # the link and throws if an above-target instruction count regresses against
-    # tools\golden\isa-baseline.json, if a new above-target encoding appears, or
-    # if any instruction is unclassified.  -SkipIsaAudit downgrades this to the
-    # report-only mode tools\isa-audit.ps1 already supports, which is for
-    # quantifying a residual and is never a promotion path.
+    # Blocking ISA gate. On by default: audit the selected objects and compare
+    # the linked i486 executable against every mapped input .text contribution.
+    # The object audit also ratchets above-target encodings against
+    # tools\golden\isa-baseline.json. -SkipIsaAudit disables these promotion
+    # checks and is only for quantifying a residual.
     [switch]$SkipIsaAudit,
     # Ratchet the ISA baseline down to whatever this build just produced.  Read
     # the diff afterwards: --record on a release gate can hide a regression, so
@@ -112,13 +109,29 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
     [ValidateSet('control', 'local', 'asm')]
-    [string]$AliasPrepareImplementation = 'control',
+    [string]$AliasPrepareImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasClipImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasClipZImplementation = 'c',
-    [ValidateSet('c', 'special')]
-    [string]$AliasMatrixCompositionImplementation = 'special',
+    [ValidateSet('c', 'special', 'asm')]
+    [string]$AliasMatrixCompositionImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupLightingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupFrameImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupSkinImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasGradientImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasLineScanImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasEdgeTableImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSkinTableImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasRasterizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -132,7 +145,11 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightOrchestrationImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightPushImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$DlightContributesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MarkLightsImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$LightMapBuildImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -143,6 +160,58 @@ param(
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('c', 'asm')]
     [string]$BspWalkImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ParticleUpdateImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteBeamImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteFrameImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteScanLeftImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteScanRightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteSetupImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteOrientationImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderMathImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AnimatedLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PointLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$FrameControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PaletteImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MathClosureImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$VisibilityImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PublicBindingsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SkyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderDispatchImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DrawingDriverImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ViewControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DrawingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ChaseImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderWorldImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -177,6 +246,25 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# BSP light marking, R_PushDlights, and sprite frame/draw/setup paths passed
+# direct fixtures, paired checks, and i486 ISA gates. Keep these on the i486
+# assembly path by default while preserving C for the separate i386 target.
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MarkLightsImplementation')) {
+    $MarkLightsImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('DynamicLightPushImplementation')) {
+    $DynamicLightPushImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteSetupImplementation')) {
+    $SpriteSetupImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawImplementation')) {
+    $SpriteDrawImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
+    $SpriteFrameImplementation = 'asm'
+}
+
 if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm') {
     throw '-AliasClipZImplementation asm requires -AliasClipImplementation asm.'
 }
@@ -201,6 +289,14 @@ if ($TextureSpanStores -eq 'stosw' -and
 		$TextureSpanAddressing -ne 'control' -or
 		$TextureSpanRowPath -ne 'control')) {
 	throw 'The stosw texture-span store path requires control load order, addressing, and row path.'
+}
+
+if ($AliasControlImplementation -eq 'asm') {
+    foreach ($dependency in @('AliasPrepareImplementation','AliasBBoxProjectImplementation','AliasMatrixCompositionImplementation','AliasSetupLightingImplementation','AliasSetupFrameImplementation','AliasSetupSkinImplementation')) {
+        if ((Get-Variable -Name $dependency -ValueOnly) -ne 'asm') {
+            throw "-AliasControlImplementation asm requires -$dependency asm."
+        }
+    }
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -290,7 +386,8 @@ else {
 $objectRoot = Join-Path $outputRoot $objectDirectoryName
 $executableName = if ($Instrumentation) { 'qprof.exe' } elseif ($Benchmark) { 'qbench.exe' } else { 'quake.exe' }
 $executable = Join-Path $outputRoot $executableName
-$manifestName = if ($Benchmark) { 'build-manifest-bench.json' } else { 'build-manifest.json' }
+$linkMap = Join-Path $outputRoot ($executableName + '.map')
+$manifestName = if ($Instrumentation) { 'build-manifest-profile.json' } elseif ($Benchmark) { 'build-manifest-bench.json' } else { 'build-manifest.json' }
 
 # The two targets must never resolve to the same output tree, because -Clean
 # removes the directory it is handed.  They cannot collide by construction: the
@@ -322,7 +419,7 @@ elseif ($outputRoot -ne $i486RootForThisSelectorSet) {
 # Keep the profile's descriptive directory while the executable path fits the
 # legacy Windows limit. If it does not, hash the complete profile directory into
 # a short sibling under out\; the manifest still records every selector value.
-if ($executable.Length -gt 259) {
+if ($executable.Length -gt 259 -or $linkMap.Length -gt 259) {
     $hashProvider = [System.Security.Cryptography.SHA256]::Create()
     try {
         $hashInput = [System.Text.Encoding]::UTF8.GetBytes(
@@ -336,6 +433,7 @@ if ($executable.Length -gt 259) {
     $repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
     $outputRoot = Join-Path $repoOutRoot ('profile-' + $outputPathHash)
     $executable = Join-Path $outputRoot $executableName
+    $linkMap = Join-Path $outputRoot ($executableName + '.map')
 }
 
 # The object directory is created here rather than next to the compile loop,
@@ -369,7 +467,7 @@ $asmIsLive = $Benchmark -or (@(
 # parsed as "any implementation selector is asm, OR this file is not
 # asm486_experiments.s". The name test is therefore an extra way for a file to be
 # INCLUDED, not a way to exclude one: in the default release build every one of the
-# 21 .s files is compiled, asm486_experiments.s among them, and the inventory pin
+# 22 .s files is compiled, asm486_experiments.s among them, and the inventory pin
 # below expects 21. Only when every implementation selector is 'c' and this is not a
 # -Benchmark build does the name test do any work, and then it drops that one file
 # and the expected count drops with it.
@@ -449,7 +547,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 21
+$expectedAllAssemblySourceCount = 38
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {
@@ -516,6 +614,8 @@ try {
         '-fcommon',
         '-ffast-math',
         '-std=gnu89',
+        # Retain the exact compiler instruction listing from this compilation.
+        '-save-temps=obj',
         "-DD_TEXAXIS_CACHE_SIZE=$TextureAxisCacheEntries"
     )
     if ($Benchmark) {
@@ -580,6 +680,21 @@ try {
             }
         }
     }
+
+    # GCC may lower a C null dereference into UD2, which is newer than the 486.
+    # These two translation units contain cold legacy error paths where that
+    # transformation occurs. Preserve the original 386-compatible memory access
+    # behavior in those files without disabling the optimization project-wide.
+    $cSourceExtraFlags = [ordered]@{
+        'r_main.c'   = @('-fno-jump-tables')
+        'mathlib.c'  = @('-fno-jump-tables')
+        # Keep support-command control flow directly decodable. Embedded switch
+        # pointers in .text change their apparent ISA whenever code moves.
+        'host_cmd.c' = @('-fno-jump-tables')
+        'pr_edict.c' = @('-fno-delete-null-pointer-checks')
+        'wad.c'      = @('-fno-delete-null-pointer-checks')
+    }
+    $linkFingerprintFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s', '<objects>', '-lm', "-Wl,-Map=$linkMap", '-o', $executable)
     if ($DumpFlags) {
         # The link list is reported with a placeholder for the object files so
         # that the dump does not depend on the compile loop having run.
@@ -600,8 +715,9 @@ try {
             allAssemblySourceCount = $allAsmSources.Count
             assemblySourceCount = $asmSources.Count
             cFlags = @($cFlags)
+            cSourceExtraFlags = $cSourceExtraFlags
             asmFlags = @($asmFlags)
-            linkFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s', '<objects>', '-lm', '-o', $executable)
+            linkFlags = $linkFingerprintFlags
             cSources = @($cSources.Name)
             assemblySources = @($asmSources.Name)
         } | ConvertTo-Json -Depth 5
@@ -619,8 +735,21 @@ try {
     foreach ($source in $allSources) {
         $object = Join-Path $objectRoot ($source.BaseName + '.obj')
         $flags = if ($source.Extension -ieq '.c') { $cFlags } else { $asmFlags }
+        if ($source.Extension -ieq '.c' -and $cSourceExtraFlags.Contains($source.Name)) {
+            $flags = @($flags) + @($cSourceExtraFlags[$source.Name])
+        }
         Write-Host "Compiling $($source.Name)"
-        & $compiler @flags -c $source.FullName -o $object
+        if ($source.Extension -ieq '.c') {
+            & $compiler @flags -c $source.FullName -o $object
+        }
+        else {
+            # Preprocess maintained assembly once, retain it, then assemble that
+            # exact stream. No C-to-assembly generation occurs here.
+            $preprocessedAssembly = Join-Path $objectRoot ($source.BaseName + '.pp.s')
+            & $compiler @flags -E $source.FullName -o $preprocessedAssembly
+            if ($LASTEXITCODE -ne 0) { throw "Assembly preprocessing failed for '$($source.Name)'." }
+            & $compiler -c -x assembler $preprocessedAssembly -o $object
+        }
         if ($LASTEXITCODE -ne 0) {
             throw "DJGPP compilation failed for '$($source.Name)' with exit code $LASTEXITCODE."
         }
@@ -628,7 +757,7 @@ try {
     }
 
     Write-Host "Linking $executableName"
-    $linkFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s') + $objects + @('-lm', '-o', $executable)
+    $linkFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s') + $objects + @('-lm', "-Wl,-Map=$linkMap", '-o', $executable)
     & $compiler @linkFlags
     if ($LASTEXITCODE -ne 0) {
         throw "DJGPP link failed with exit code $LASTEXITCODE."
@@ -647,18 +776,123 @@ try {
     }
 
     # --- Blocking ISA gate -------------------------------------------------
-    # The nominal target is a claim this tree does not yet honour: the shipped
-    # executable carries 161 `0f af` (imul r32,r/m32, Pentium) and would fault
-    # on real hardware.  Until the multiply-elimination work reaches zero, the
-    # gate is a ratchet -- it refuses to let the count go up -- rather than an
-    # absolute pass, because an absolute pass would be red on day one and would
-    # simply be switched off.  Hard rules (unclassified, and any non-exempt p6)
-    # are absolute from the first build.  See tools\golden\isa-baseline.json.
+    # The object audit is the instruction-level gate for the selected target.
+    # Its ratchet rejects new or increasing above-target encodings; the i486
+    # release baseline is zero. Unknown instructions and non-exempt P6
+    # instructions always fail. See tools\golden\isa-baseline.json.
     $isaBaselinePath = Join-Path $PSScriptRoot 'golden\isa-baseline.json'
     $isaAuditScript = Join-Path $PSScriptRoot 'isa-audit.ps1'
-    $isaReportPath = Join-Path $outputRoot 'isa-audit.json'
+    # Each executable variant owns its evidence even when selector sets share a
+    # profile directory. qprof must never replace quake.exe's instruction proof.
+    $isaReportRoot = Join-Path $outputRoot ('isa-' + [IO.Path]::GetFileNameWithoutExtension($executableName))
+    New-Item -ItemType Directory -Path $isaReportRoot -Force | Out-Null
+    $isaReportPath = Join-Path $isaReportRoot 'isa-audit.json'
+    $linkedIsaReportPath = Join-Path $isaReportRoot 'isa-audit-linked.json'
+    $projectProofIndex = $null
+    if (-not $SkipIsaAudit -and $CpuTarget -eq 'i486') {
+        $proofRunId = Get-Date -Format 'yyyyMMdd-HHmmssfff'
+        $projectProofRoot = Join-Path $isaReportRoot ('project-source-' + $proofRunId)
+        $projectInputsPath = Join-Path $isaReportRoot ('project-inputs-' + $proofRunId + '.json')
+        $projectInputs = @(foreach ($unit in $allSources) {
+            $assemblyName = $unit.BaseName + $(if ($unit.Extension -ieq '.c') { '.s' } else { '.pp.s' })
+            [ordered]@{source=$unit.FullName;object=(Join-Path $objectRoot ($unit.BaseName + '.obj'));
+                assembly=(Join-Path $objectRoot $assemblyName);handwrittenAssembly=($unit.Extension -ine '.c')}
+        })
+        ConvertTo-Json -InputObject $projectInputs -Depth 5 | Set-Content -LiteralPath $projectInputsPath -Encoding UTF8
+        & python (Join-Path $PSScriptRoot 'project-source-proofs.py') --inputs $projectInputsPath `
+            --compiler $compiler --output $projectProofRoot
+        if ($LASTEXITCODE -ne 0) { throw 'Exact project source/instruction boundary reproduction failed.' }
+        $projectProofIndex = Join-Path $projectProofRoot 'proof-index.json'
+    }
+
 
     $isaExemptions = @('crc.obj:_crctable')
+    # These are linker-runtime data, not executable instructions. The CRC table
+    # is 256 words at .text+0x40; doserr2e's _map byte table is .text+0x30..12f.
+    # DJGPP 12.2 libc's doprnt dispatch table is 123 relocated 32-bit text
+    # pointers at .text offsets 0x2dc..0x4c7, indexed by the preceding indirect
+    # jump. libc dpmiexcp's _except_to_sig has a 17-entry pointer table at
+    # .text+0x2b8..0x2fb. Every exemption is applied only to its data range in
+    # both objects and the linked executable.
+    $linkedIsaExemptions = @()
+    $linkedIsaExemptRanges = @(
+        'crc.obj:.text:0x40:0x240',
+        'libc-doserr2e.obj:.text:0x30:0x130',
+        'libc-doprnt.obj:.text:0x2dc:0x4c8',
+        'libc-dpmiexcp.obj:.text:0x2b8:0x2fc'
+    )
+    $isaExemptRanges = @()
+    $hostCmdObjectPath = Join-Path $objectRoot 'host_cmd.obj'
+    if (Test-Path -LiteralPath $hostCmdObjectPath -PathType Leaf) {
+        $hostCmdSymbolLines = @(& $objdump -t $hostCmdObjectPath)
+        if ($LASTEXITCODE -ne 0) { throw "objdump -t failed for '$hostCmdObjectPath'." }
+        $hostCmdHeaders = @(& $objdump -h $hostCmdObjectPath)
+        if ($LASTEXITCODE -ne 0) { throw "objdump -h failed for '$hostCmdObjectPath'." }
+        $hostCmdTextHeaders = @($hostCmdHeaders | Where-Object { $_ -match '^\s*\d+\s+\.text\s+' })
+        if ($hostCmdTextHeaders.Count -ne 1) { throw 'Expected one host_cmd .text section.' }
+        $hostCmdTextNumber = [int]([regex]::Match($hostCmdTextHeaders[0], '^\s*(\d+)').Groups[1].Value) + 1
+        $modeNameTextPattern = '\(sec\s+' + $hostCmdTextNumber + '\).*\s_mode_names\.\d+$'
+        # A label table already stored in .data needs no .text boundary handling.
+        $modeNameSymbolLines = @($hostCmdSymbolLines | Where-Object { $_ -match $modeNameTextPattern })
+        if ($modeNameSymbolLines.Count -gt 1) {
+            throw "Expected at most one benchmark mode-name table in '$hostCmdObjectPath'."
+        }
+        if ($modeNameSymbolLines.Count -eq 1) {
+            $modeNameSymbolLine = [string]$modeNameSymbolLines[0]
+            $modeNameMatch = [regex]::Match($modeNameSymbolLine, '0x(?<address>[0-9a-fA-F]+) (?<symbol>_mode_names\.\d+)$')
+            if (-not $modeNameMatch.Success) {
+                throw "Could not parse the benchmark mode-name table symbol in '$hostCmdObjectPath': $modeNameSymbolLine"
+            }
+            $modeNameSymbol = $modeNameMatch.Groups['symbol'].Value
+            $modeNameStart = [Convert]::ToInt64($modeNameMatch.Groups['address'].Value, 16)
+            $modeNameEnd = $modeNameStart + (5 * 4)
+
+            # DJGPP places this five-pointer benchmark label table in .text.
+            # A linear disassembly interprets the third pointer's 0f 5d bytes as
+            # MINPS, although all five words are linker relocations to .text.
+            # Discover the range from the local symbol and fail closed unless
+            # every expected word has exactly one DIR32 relocation.
+            $hostCmdRelocationLines = @(& $objdump -r $hostCmdObjectPath)
+            if ($LASTEXITCODE -ne 0) { throw "objdump -r failed for '$hostCmdObjectPath'." }
+            $currentRelocationSection = $null
+            $modeNameRelocations = New-Object System.Collections.Generic.List[object]
+            foreach ($relocationLine in $hostCmdRelocationLines) {
+                $sectionMatch = [regex]::Match($relocationLine, '^RELOCATION RECORDS FOR \[(?<section>[^\]]+)\]:$')
+                if ($sectionMatch.Success) {
+                    $currentRelocationSection = $sectionMatch.Groups['section'].Value
+                    continue
+                }
+                if ($currentRelocationSection -ne '.text') { continue }
+                $relocationMatch = [regex]::Match($relocationLine, '^\s*(?<offset>[0-9a-fA-F]+)\s+(?<type>\S+)\s+(?<target>\S+)')
+                if (-not $relocationMatch.Success) { continue }
+                $relocationOffset = [Convert]::ToInt64($relocationMatch.Groups['offset'].Value, 16)
+                if ($relocationOffset -ge $modeNameStart -and $relocationOffset -lt $modeNameEnd) {
+                    $modeNameRelocations.Add([pscustomobject]@{
+                        offset = $relocationOffset
+                        type = $relocationMatch.Groups['type'].Value
+                        target = $relocationMatch.Groups['target'].Value
+                    })
+                }
+            }
+            if ($modeNameRelocations.Count -ne 5) {
+                throw "Expected five relocated pointers for $modeNameSymbol in '$hostCmdObjectPath'; found $($modeNameRelocations.Count)."
+            }
+            for ($pointerIndex = 0; $pointerIndex -lt 5; $pointerIndex++) {
+                $expectedOffset = $modeNameStart + (4 * $pointerIndex)
+                $pointerRelocation = @($modeNameRelocations | Where-Object { $_.offset -eq $expectedOffset })
+                if ($pointerRelocation.Count -ne 1 -or
+                    $pointerRelocation[0].type -ne 'dir32' -or
+                    $pointerRelocation[0].target -ne '.text') {
+                    throw "Benchmark mode-name table word at .text+0x$('{0:x}' -f $expectedOffset) is not one DIR32 .text relocation."
+                }
+            }
+
+            $modeNameRange = 'host_cmd.obj:.text:0x{0:x}:0x{1:x}' -f $modeNameStart, $modeNameEnd
+            $isaExemptRanges += $modeNameRange
+            $linkedIsaExemptRanges += $modeNameRange
+            Write-Host ("Recognized relocated benchmark label data: {0} ({1})" -f $modeNameRange, $modeNameSymbol)
+        }
+    }
     # Audit exactly the objects this build produced.  A build recompiles sources
     # in place, so an object directory also holds objects left behind by selector
     # sets that are no longer active; auditing the directory would make the count
@@ -666,14 +900,23 @@ try {
     # i386 figure oscillate between 1027 and 1029 across identical builds.
     $isaObjectNames = @($objects | ForEach-Object { Split-Path -Leaf $_ })
 
+    $strictProjectParameters = @{}
+    if ($null -ne $projectProofIndex) {
+        $strictProjectParameters.ObjectCodeDataProofJson = $projectProofIndex
+        # Source directives and exact reassembly replace every legacy waiver.
+        $isaExemptions = @()
+        $isaExemptRanges = @()
+        $linkedIsaExemptions = @()
+        $linkedIsaExemptRanges = @()
+    }
     if ($SkipIsaAudit) {
         Write-Host 'ISA audit: SKIPPED (-SkipIsaAudit) -- this build is not a promotion candidate.'
     }
     else {
-        & $isaAuditScript -BuildRoot $outputRoot -ObjectRoot $objectRoot `
+        & $isaAuditScript @strictProjectParameters -BuildRoot $outputRoot -ObjectRoot $objectRoot `
             -ExeName $executableName -MaxIsa $CpuTarget -SkipExecutable `
             -ObjectNames $isaObjectNames `
-            -OutputJson $isaReportPath -Exempt $isaExemptions
+            -OutputJson $isaReportPath -Exempt $isaExemptions -ExemptRange $isaExemptRanges
         if (-not (Test-Path -LiteralPath $isaReportPath -PathType Leaf)) {
             throw "isa-audit.ps1 did not write a report to '$isaReportPath'; the ISA gate cannot be evaluated."
         }
@@ -685,9 +928,7 @@ try {
         # Key on the variant as well as the target.  -Benchmark compiles the
         # ~4335-line bench harness in host_cmd.c and -Instrumentation compiles
         # the PROFILE486 counters, so those builds are strictly larger code sets
-        # with their own instruction mix: the i486 release build has 170
-        # above-target instructions and its -Benchmark sibling has 173.  One
-        # figure per target would have made every bench run trip the gate.
+        # with their own instruction mix, so each variant has its own baseline.
         $isaVariantKey = '{0}/{1}' -f $CpuTarget, $executableName
         $isaTarget = $isaBaseline.targets.PSObject.Properties[$isaVariantKey]
 
@@ -758,7 +999,8 @@ try {
             # compare the same enforced set.
             foreach ($key in $isaEnforced) {
                 $recordedCount = 0
-                if ($null -ne $isaRecorded -and ($isaRecorded.PSObject.Properties.Name -contains $key)) {
+                if ($null -ne $isaRecorded -and
+                    @($isaRecorded.PSObject.Properties | ForEach-Object { $_.Name }) -contains $key) {
                     $recordedCount = [int]$isaRecorded.$key
                 }
                 if ($isaFound[$key] -gt $recordedCount) {
@@ -767,7 +1009,11 @@ try {
             }
             $isaRemoved = @()
             if ($null -ne $isaRecorded) {
-                foreach ($key in $isaRecorded.PSObject.Properties.Name) {
+                # Empty JSON objects have no adapted Properties.Name member
+                # under StrictMode. Enumerate the property collection itself so
+                # a valid zero-above-target baseline produces an empty key list.
+                $isaRecordedKeys = @($isaRecorded.PSObject.Properties | ForEach-Object { $_.Name })
+                foreach ($key in $isaRecordedKeys) {
                     if (-not ($isaFound.Keys -contains $key)) {
                         $isaRemoved += $key
                     }
@@ -801,6 +1047,22 @@ try {
         }
     }
 
+    if ((-not $SkipIsaAudit) -and $CpuTarget -eq 'i486') {
+        & (Join-Path $PSScriptRoot 'verify-executable-isa.ps1') -BuildRoot $outputRoot -MapPath $linkMap `
+            -ReportRoot $isaReportRoot -ProjectProofIndex $projectProofIndex `
+            -ExecutableName $executableName -ObjectRoot $objectRoot -ObjectNames $isaObjectNames
+        if (-not (Test-Path -LiteralPath $linkedIsaReportPath -PathType Leaf)) {
+            throw 'The linked ISA audit did not produce a report; the executable compatibility gate cannot be evaluated.'
+        }
+        $linkedIsaReport = Get-Content -LiteralPath $linkedIsaReportPath -Raw | ConvertFrom-Json
+        if (-not $linkedIsaReport.pass -or [int]$linkedIsaReport.instructionAudit.linkedInstructionsVerified -le 0) {
+            throw 'The linked executable ISA audit did not inspect an instruction stream.'
+        }
+    }
+    elseif ($CpuTarget -eq 'i386') {
+        Write-Host 'Linked executable i486 audit: skipped for the separate i386 target.'
+    }
+
     # The build passed.  Record what it was made from, so every runner can tell
     # whether the executable it is about to test is this build rather than an
     # older one that happens to sit at the same path.  The builder is the only
@@ -823,6 +1085,8 @@ try {
         cFlags        = @($cFlags)
         asmFlags      = @($asmFlags)
         executable    = $executable
+        cSourceExtraFlags = $cSourceExtraFlags
+        linkFlags = $linkFingerprintFlags
     }
     $buildFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $fingerprintConfig
     Set-BuildFingerprint -Executable $executable -Fingerprint $buildFingerprint
@@ -846,6 +1110,7 @@ try {
         assemblySourceCount = $asmSources.Count
         benchmarkBuild = [bool]$Benchmark
         profileBuild = [bool]$Instrumentation
+        linkMap = $linkMap
     }
 
     # The selector echo, in the order the manifest has always listed it. That order
@@ -864,6 +1129,19 @@ try {
     $manifest['assemblySources'] = @($asmSources.Name)
     $manifest['sourceCommit'] = $commit
     $manifest['executable'] = $executable
+    $manifest['objectRoot'] = $objectRoot
+    $manifest['executableSha256'] = (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash
+    $manifest['compatibilityPolicySha256'] = Get-CompatibilityPolicyFingerprint -RepoRoot $repoRoot
+    $manifest['isaAuditStatus'] = if ($SkipIsaAudit) { 'SKIPPED' } else { 'PASS' }
+    $manifest['isaAuditReport'] = if ($SkipIsaAudit) { $null } else { $isaReportPath }
+    $manifest['isaAuditReportSha256'] = if ($SkipIsaAudit) { $null } else { (Get-FileHash -LiteralPath $isaReportPath -Algorithm SHA256).Hash }
+    $manifest['isaLinkedAuditReport'] = if ($SkipIsaAudit -or $CpuTarget -ne 'i486') { $null } else { $linkedIsaReportPath }
+    $manifest['isaLinkedAuditReportSha256'] = if ($SkipIsaAudit -or $CpuTarget -ne 'i486') { $null } else { (Get-FileHash -LiteralPath $linkedIsaReportPath -Algorithm SHA256).Hash }
+    $manifest['sourceBoundIsa'] = (-not $SkipIsaAudit -and $CpuTarget -eq 'i486')
+    $manifest['embeddedStartupIsa'] = if ($SkipIsaAudit -or $CpuTarget -ne 'i486') { $null } else { $linkedIsaReport.embeddedStartupIsa }
+    $manifest['actualRelocatedIsa'] = if ($SkipIsaAudit -or $CpuTarget -ne 'i486') { $null } else { $linkedIsaReport.actualRelocatedIsa }
+    $manifest['externalDpmiProviderIsa'] = if ($SkipIsaAudit -or $CpuTarget -ne 'i486') { $null } else { $linkedIsaReport.externalDpmiProvider }
+
     $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $outputRoot $manifestName) -Encoding ASCII
 
     Write-Host "Built $executable"

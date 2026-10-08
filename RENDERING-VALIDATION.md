@@ -14,7 +14,9 @@ use `timedemo-dos.ps1` or `bench-dos.ps1` for performance comparisons.
 ./tools/render-validation-dos.ps1 -NoBootstrap
 ./tools/render-validation-dos.ps1 -Scenario demo1-vga-full,demo1-fullbright,demo1-viewsize-50 -NoBootstrap
 ./tools/render-validation-dos.ps1 -ListScenarios
+./tools/render-parity-dos.ps1 -Scenario demo1-vga-full,demo3-world-workload -NoBootstrap
 python ./tools/test-rendering.py
+python ./tools/test-rendering-reports.py
 ```
 
 `tools/run-tests.ps1` runs the full rendering suite by default. Pass
@@ -26,7 +28,8 @@ development. A rendering run writes a suite JSON report under
 diff images remain in the corresponding `out/dos-timedemo-*` staging directory.
 The suite JSON records each scenario's source fingerprint, DOSBox profile hash
 and version, commands, expected frame/checksum pins, FPS, image metrics, and
-artifact paths for comparison across runs.
+artifact paths for comparison across runs. It also records a separate source
+tree fingerprint that excludes selector-specific build flags.
 
 The suite currently covers:
 
@@ -58,6 +61,12 @@ warmup; all later checksums must match, with the first differing frame reported
 and both source logs retained. This catches timing or rendering instability
 without treating initialization frames as scene output.
 
+Per-frame checksum capture adds one full-buffer scan and a DOS file write after
+each rendered frame. On a reduced-viewport timedemo this changed the final
+checksum even with fixed `host_framerate`, so compare checksum streams only
+between runs using the same instrumentation. Use captured PCX comparisons for
+pixel error and uninstrumented timedemos for promotion timing.
+
 Each PCX snapshot is decoded to RGB using its own palette and compared against
 the scenario reference. The default tolerance allows channel differences up to
 2 without counting a changed pixel, at most 0.05% of pixels above that channel
@@ -73,9 +82,58 @@ threshold are highlighted. A dimension mismatch always fails. These measures
 keep a handful of small palette or rounding differences from failing the suite
 while making larger visual changes easy to locate.
 
+For a direct C-reference versus assembly timedemo comparison, preserve each
+run's `framechecksums.txt` and compare the streams with:
+
+```powershell
+python ./tools/compare-rendering.py reference-framechecksums.txt candidate-framechecksums.txt --frame-checksums --report-json out/frame-stream-diff.json
+python ./tools/compare-rendering.py reference-framechecksums.txt candidate-framechecksums.txt --frame-checksums --ignore-leading-frames 6 --require-exact
+```
+
+The report gives the compared frame count, mismatch count, and first and last
+mismatching frames. `--require-exact` turns any mismatch into a failing gate.
+A checksum difference locates a frame for inspection; it does not measure the
+pixel error, so compare captured PCX images with the tolerance comparator before
+accepting a non-exact frame.
+
+For a complete paired-profile check, `render-parity-dos.ps1` runs the deterministic
+scene suite once with the C-reference profile and once with the selected assembly
+profile. It checks that the source tree stayed identical across both runs, then
+compares every paired checksum stream after the configured warmup and every
+captured framebuffer exactly: all 8-bit pixel indices and all 768 palette bytes
+must match. It writes a combined JSON report and one PNG diff per captured run.
+Any missing scenario/run, source-tree change, checksum difference, pixel-index
+difference, palette difference, or failed input suite makes the parity gate fail.
+The paired runner copies the scenario manifest under its output directory and
+adds `con_notifytime -1` so wall-clock notification expiry cannot create
+transient overlay differences in per-frame comparisons. Paired runs defer
+committed-golden image and final-checksum pins, then compare every C checksum
+stream and capture directly with its assembly counterpart. This still requires
+matching frame counts, repeat stability within each profile, and exact
+cross-profile checksum, pixel-index, and palette-byte equality. Run the ordinary
+`render-validation-dos.ps1` suite with its unmodified manifest to enforce the
+committed-golden images and checksum pins. Use `-KeepTransientNotifications`
+when notifications themselves are the subject of a dedicated visual scenario;
+the exact C-versus-assembly gates still apply.
+
+```powershell
+./tools/render-parity-dos.ps1 -NoBootstrap
+./tools/render-parity-dos.ps1 -Scenario demo1-vesa-full,demo2-entity-workload -NoBootstrap
+./tools/render-parity-dos.ps1 -ScenarioFile out/my-deterministic-scenes.json -NoBootstrap
+```
+
+The defaults use `i486-c-reference.json` and `i486-asm-selectable.json`; use
+`-ReferenceProfile` and `-CandidateProfile` to compare other selector variants.
+For already-generated reports, invoke `compare-rendering-reports.py` directly.
+Reports created before `sourceTreeFingerprint` was added require
+`--allow-unpinned-sources` for diagnostic comparisons and cannot pass the normal
+paired-profile gate.
+
 `tools/test-rendering.py` exercises PCX decoding, tolerance boundaries,
-dimension failures, PNG output, and frame-log integrity without DOSBox. It does
-not substitute for running the renderer scenarios.
+dimension failures, PNG output, and frame-log integrity without DOSBox.
+`tools/test-rendering-reports.py` exercises exact paired-report checks, including
+the case where different palette indices render to the same RGB color. These
+host tests do not substitute for running the renderer scenarios.
 
 ## Add or re-baseline a scene
 

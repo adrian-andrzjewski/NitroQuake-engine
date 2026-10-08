@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_worldcontrol.h"
 
 #ifdef ASM486_EFRAG_STORE
 #include <stddef.h>
@@ -67,6 +68,7 @@ R_RemoveEfrags
 Call when removing an object from the world or moving it to another position
 ================
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_RemoveEfrags (entity_t *ent)
 {
 	efrag_t		*ef, *old, *walk, **prev;
@@ -100,12 +102,14 @@ void R_RemoveEfrags (entity_t *ent)
 	
 	ent->efrag = NULL; 
 }
+#endif
 
 /*
 ===================
 R_SplitEntityOnNode
 ===================
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_SplitEntityOnNode (mnode_t *node)
 {
 	efrag_t		*ef;
@@ -171,6 +175,7 @@ void R_SplitEntityOnNode (mnode_t *node)
 	if (sides & 2)
 		R_SplitEntityOnNode (node->children[1]);
 }
+#endif
 
 
 /*
@@ -178,6 +183,7 @@ void R_SplitEntityOnNode (mnode_t *node)
 R_SplitEntityOnNode2
 ===================
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_SplitEntityOnNode2 (mnode_t *node)
 {
 	mplane_t	*splitplane;
@@ -210,6 +216,7 @@ void R_SplitEntityOnNode2 (mnode_t *node)
 	else
 		R_SplitEntityOnNode2 (node->children[1]);
 }
+#endif
 
 
 /*
@@ -217,6 +224,7 @@ void R_SplitEntityOnNode2 (mnode_t *node)
 R_AddEfrags
 ===========
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_AddEfrags (entity_t *ent)
 {
 	model_t		*entmodel;
@@ -245,6 +253,7 @@ void R_AddEfrags (entity_t *ent)
 
 	ent->topnode = r_pefragtopnode;
 }
+#endif
 
 
 /*
@@ -255,10 +264,12 @@ R_StoreEfrags
 ================
 */
 #ifdef ASM486_EFRAG_STORE
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_EFRAG_STORE)
 void R_StoreEfrags (efrag_t **ppefrag)
 {
 	R_StoreEfrags_asm486 (ppefrag);
 }
+#endif /* public entry is assembly-owned when selected */
 #else
 void R_StoreEfrags (efrag_t **ppefrag)
 {
@@ -299,3 +310,170 @@ void R_StoreEfrags (efrag_t **ppefrag)
 #endif
 
 
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL)
+void R_RemoveEfrags_WorldControl_C (entity_t *ent)
+{
+	efrag_t		*ef, *old, *walk, **prev;
+
+	ef = ent->efrag;
+
+	while (ef)
+	{
+		prev = &ef->leaf->efrags;
+		while (1)
+		{
+			walk = *prev;
+			if (!walk)
+				break;
+			if (walk == ef)
+			{	// remove this fragment
+				*prev = ef->leafnext;
+				break;
+			}
+			else
+				prev = &walk->leafnext;
+		}
+
+		old = ef;
+		ef = ef->entnext;
+
+	// put it on the free list
+		old->entnext = cl.free_efrags;
+		cl.free_efrags = old;
+	}
+
+	ent->efrag = NULL;
+}
+
+void R_SplitEntityOnNode_WorldControl_C (mnode_t *node)
+{
+	efrag_t		*ef;
+	mplane_t	*splitplane;
+	mleaf_t		*leaf;
+	int			sides;
+
+	if (node->contents == CONTENTS_SOLID)
+	{
+		return;
+	}
+
+// add an efrag if the node is a leaf
+
+	if ( node->contents < 0)
+	{
+		if (!r_pefragtopnode)
+			r_pefragtopnode = node;
+
+		leaf = (mleaf_t *)node;
+
+// grab an efrag off the free list
+		ef = cl.free_efrags;
+		if (!ef)
+		{
+			Bench486WorldControlPrint ("Too many efrags!\n");
+			return;		// no free fragments...
+		}
+		cl.free_efrags = cl.free_efrags->entnext;
+
+		ef->entity = r_addent;
+
+// add the entity link
+		*lastlink = ef;
+		lastlink = &ef->entnext;
+		ef->entnext = NULL;
+
+// set the leaf links
+		ef->leaf = leaf;
+		ef->leafnext = leaf->efrags;
+		leaf->efrags = ef;
+
+		return;
+	}
+
+// NODE_MIXED
+
+	splitplane = node->plane;
+	sides = BOX_ON_PLANE_SIDE(r_emins, r_emaxs, splitplane);
+
+	if (sides == 3)
+	{
+	// split on this plane
+	// if this is the first splitter of this bmodel, remember it
+		if (!r_pefragtopnode)
+			r_pefragtopnode = node;
+	}
+
+// recurse down the contacted sides
+	if (sides & 1)
+		R_SplitEntityOnNode_WorldControl_C (node->children[0]);
+
+	if (sides & 2)
+		R_SplitEntityOnNode_WorldControl_C (node->children[1]);
+}
+
+void R_SplitEntityOnNode2_WorldControl_C (mnode_t *node)
+{
+	mplane_t	*splitplane;
+	int			sides;
+
+	if (node->visframe != r_visframecount)
+		return;
+
+	if (node->contents < 0)
+	{
+		if (node->contents != CONTENTS_SOLID)
+			r_pefragtopnode = node; // we've reached a non-solid leaf, so it's
+									//  visible and not BSP clipped
+		return;
+	}
+
+	splitplane = node->plane;
+	sides = BOX_ON_PLANE_SIDE(r_emins, r_emaxs, splitplane);
+
+	if (sides == 3)
+	{
+	// remember first splitter
+		r_pefragtopnode = node;
+		return;
+	}
+
+// not split yet; recurse down the contacted side
+	if (sides & 1)
+		R_SplitEntityOnNode2_WorldControl_C (node->children[0]);
+	else
+		R_SplitEntityOnNode2_WorldControl_C (node->children[1]);
+}
+
+void R_AddEfrags_WorldControl_C (entity_t *ent)
+{
+	model_t		*entmodel;
+	int			i;
+
+	if (!ent->model)
+		return;
+
+	if (ent == cl_entities)
+		return;		// never add the world
+
+	r_addent = ent;
+
+	lastlink = &ent->efrag;
+	r_pefragtopnode = NULL;
+
+	entmodel = ent->model;
+
+	for (i=0 ; i<3 ; i++)
+	{
+		r_emins[i] = ent->origin[i] + entmodel->mins[i];
+		r_emaxs[i] = ent->origin[i] + entmodel->maxs[i];
+	}
+
+	R_SplitEntityOnNode_WorldControl_C (cl.worldmodel->nodes);
+
+	ent->topnode = r_pefragtopnode;
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL)
+#include "worldcontrol_bench_hooks.inc"
+#endif

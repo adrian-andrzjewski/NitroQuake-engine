@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_worldcontrol.h"
 
 #if defined(ASM486_BSP_WALK) || defined(ASM486_RENDER_WORLD) || \
 	defined(ASM486_DRAW_SUBMODEL_POLYGONS) || \
@@ -32,6 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef ASM486_BSP_WALK
 
 typedef char bsp_walk_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char bsp_walk_plane_layout[
+		(offsetof(mplane_t, normal) == 0 &&
+		offsetof(mplane_t, dist) == 12 &&
+		offsetof(mplane_t, type) == 16 &&
+		sizeof(mplane_t) == 20) ? 1 : -1];
 typedef char bsp_walk_node_layout[
 		(offsetof(mnode_t, contents) == 0 &&
 		offsetof(mnode_t, visframe) == 4 &&
@@ -192,6 +198,7 @@ typedef char solid_bmodel_clip_buffer_sizes[
 R_EntityRotate
 ================
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_EntityRotate (vec3_t vec)
 {
 	vec3_t	tvec;
@@ -201,6 +208,7 @@ void R_EntityRotate (vec3_t vec)
 	vec[1] = DotProduct (entity_rotation[1], tvec);
 	vec[2] = DotProduct (entity_rotation[2], tvec);
 }
+#endif
 
 
 /*
@@ -208,6 +216,7 @@ void R_EntityRotate (vec3_t vec)
 R_RotateBmodel
 ================
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_RotateBmodel (void)
 {
 	float	angle, s, c, temp1[3][3], temp2[3][3], temp3[3][3];
@@ -280,6 +289,7 @@ void R_RotateBmodel (void)
 
 	R_TransformFrustum ();
 }
+#endif
 
 
 /*
@@ -292,21 +302,25 @@ R_RotateBmodel remains the reference that always reconstructs the matrix.
 ================
 */
 #define BMODEL_ROTCACHE_SLOTS	8
+typedef char worldcontrol_cache_slots_must_match[(BMODEL_ROTCACHE_SLOTS==WORLD_BMODEL_CACHE_SLOTS)?1:-1];
+/* Original private zeroed cache data, shared with the BENCH oracle. */
+entity_t *worldcontrol_cache_ent[BMODEL_ROTCACHE_SLOTS];
+int worldcontrol_cache_frame[BMODEL_ROTCACHE_SLOTS];
+float worldcontrol_cache_rot[BMODEL_ROTCACHE_SLOTS][3][3];
 
+#if !defined(ASM486_WORLD_CONTROL)
 void R_RotateBmodelCached (void)
 {
 	unsigned				slot;
 	int						i, j;
-	static entity_t			*cache_ent[BMODEL_ROTCACHE_SLOTS];
-	static int				cache_frame[BMODEL_ROTCACHE_SLOTS];
-	static float			cache_rot[BMODEL_ROTCACHE_SLOTS][3][3];
+
 
 	slot = ((unsigned)currententity >> 5) & (BMODEL_ROTCACHE_SLOTS - 1);
-	if (cache_ent[slot] == currententity && cache_frame[slot] == r_framecount)
+	if (worldcontrol_cache_ent[slot] == currententity && worldcontrol_cache_frame[slot] == r_framecount)
 	{
 		for (i = 0 ; i < 3 ; i++)
 			for (j = 0 ; j < 3 ; j++)
-				entity_rotation[i][j] = cache_rot[slot][i][j];
+				entity_rotation[i][j] = worldcontrol_cache_rot[slot][i][j];
 		R_EntityRotate (modelorg);
 		R_EntityRotate (vpn);
 		R_EntityRotate (vright);
@@ -316,12 +330,13 @@ void R_RotateBmodelCached (void)
 	}
 
 	R_RotateBmodel ();
-	cache_ent[slot] = currententity;
-	cache_frame[slot] = r_framecount;
+	worldcontrol_cache_ent[slot] = currententity;
+	worldcontrol_cache_frame[slot] = r_framecount;
 	for (i = 0 ; i < 3 ; i++)
 		for (j = 0 ; j < 3 ; j++)
-			cache_rot[slot][i][j] = entity_rotation[i][j];
+			worldcontrol_cache_rot[slot][i][j] = entity_rotation[i][j];
 }
+#endif
 
 
 /*
@@ -509,11 +524,13 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 void R_RecursiveClipBPoly_asm486 (bedge_t *pedges, mnode_t *pnode,
 		msurface_t *psurf);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_BMODEL_POLYGON_CLIP)
 void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode,
 		msurface_t *psurf)
 {
 	R_RecursiveClipBPoly_asm486 (pedges, pnode, psurf);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -609,10 +626,12 @@ void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 #ifdef ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS
 void R_DrawSolidClippedSubmodelPolygons_asm486 (model_t *pmodel);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS)
 void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)
 {
 	R_DrawSolidClippedSubmodelPolygons_asm486 (pmodel);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -689,10 +708,12 @@ void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 #ifdef ASM486_DRAW_SUBMODEL_POLYGONS
 void R_DrawSubmodelPolygons_asm486 (model_t *pmodel, int clipflags);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_DRAW_SUBMODEL_POLYGONS)
 void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)
 {
 	R_DrawSubmodelPolygons_asm486 (pmodel, clipflags);
 }
+#endif /* public entry is assembly-owned when selected */
 
 #ifdef PROFILE486
 void R_DrawSubmodelPolygonsProfileEntry_asm486 (int numsurfaces)
@@ -986,6 +1007,7 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode_asm486
 	(mnode_t *node, int clipflags);
 #endif
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_BSP_WALK)
 void __attribute__((regparm(2))) R_RecursiveWorldNode
 	(mnode_t *node, int clipflags)
 {
@@ -995,6 +1017,7 @@ void __attribute__((regparm(2))) R_RecursiveWorldNode
 	R_RecursiveWorldNode_C (node, clipflags);
 #endif
 }
+#endif /* public entry is assembly-owned when selected */
 
 #if defined(ASM486_BSP_WALK) && defined(PROFILE486)
 void R_BspProfileRenderFaceEnter_asm486 (void)
@@ -1134,10 +1157,12 @@ void R_RenderWorld (void)
 #endif
 
 #ifdef ASM486_RENDER_WORLD
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_RENDER_WORLD)
 void R_RenderWorld (void)
 {
 	R_RenderWorld_asm486 ();
 }
+#endif /* public entry is assembly-owned when selected */
 
 #ifdef PROFILE486
 void R_RenderWorldProfileEnter_asm486 (void)
@@ -1159,3 +1184,116 @@ void R_RenderWorldProfileLeave_asm486 (void)
 #endif
 
 
+
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL)
+void R_EntityRotate_WorldControl_C (vec3_t vec)
+{
+	vec3_t	tvec;
+
+	VectorCopy (vec, tvec);
+	vec[0] = DotProduct (entity_rotation[0], tvec);
+	vec[1] = DotProduct (entity_rotation[1], tvec);
+	vec[2] = DotProduct (entity_rotation[2], tvec);
+}
+
+void R_RotateBmodel_WorldControl_C (void)
+{
+	float	angle, s, c, temp1[3][3], temp2[3][3], temp3[3][3];
+
+// TODO: should use a look-up table
+// TODO: should really be stored with the entity instead of being reconstructed
+// TODO: could cache lazily, stored in the entity
+// TODO: share work with R_SetUpAliasTransform
+
+// yaw
+	angle = currententity->angles[YAW];
+	angle = angle * M_PI*2 / 360;
+	s = sin(angle);
+	c = cos(angle);
+
+	temp1[0][0] = c;
+	temp1[0][1] = s;
+	temp1[0][2] = 0;
+	temp1[1][0] = -s;
+	temp1[1][1] = c;
+	temp1[1][2] = 0;
+	temp1[2][0] = 0;
+	temp1[2][1] = 0;
+	temp1[2][2] = 1;
+
+
+// pitch
+	angle = currententity->angles[PITCH];
+	angle = angle * M_PI*2 / 360;
+	s = sin(angle);
+	c = cos(angle);
+
+	temp2[0][0] = c;
+	temp2[0][1] = 0;
+	temp2[0][2] = -s;
+	temp2[1][0] = 0;
+	temp2[1][1] = 1;
+	temp2[1][2] = 0;
+	temp2[2][0] = s;
+	temp2[2][1] = 0;
+	temp2[2][2] = c;
+
+	R_ConcatRotations (temp2, temp1, temp3);
+
+// roll
+	angle = currententity->angles[ROLL];
+	angle = angle * M_PI*2 / 360;
+	s = sin(angle);
+	c = cos(angle);
+
+	temp1[0][0] = 1;
+	temp1[0][1] = 0;
+	temp1[0][2] = 0;
+	temp1[1][0] = 0;
+	temp1[1][1] = c;
+	temp1[1][2] = s;
+	temp1[2][0] = 0;
+	temp1[2][1] = -s;
+	temp1[2][2] = c;
+
+	R_ConcatRotations (temp1, temp3, entity_rotation);
+
+//
+// rotate modelorg and the transformation matrix
+//
+	R_EntityRotate_WorldControl_C (modelorg);
+	R_EntityRotate_WorldControl_C (vpn);
+	R_EntityRotate_WorldControl_C (vright);
+	R_EntityRotate_WorldControl_C (vup);
+
+	Bench486WorldControlFrustum ();
+}
+
+void R_RotateBmodelCached_WorldControl_C (void)
+{
+	unsigned				slot;
+	int						i, j;
+
+
+	slot = ((unsigned)currententity >> 5) & (BMODEL_ROTCACHE_SLOTS - 1);
+	if (worldcontrol_cache_ent[slot] == currententity && worldcontrol_cache_frame[slot] == r_framecount)
+	{
+		for (i = 0 ; i < 3 ; i++)
+			for (j = 0 ; j < 3 ; j++)
+				entity_rotation[i][j] = worldcontrol_cache_rot[slot][i][j];
+		R_EntityRotate_WorldControl_C (modelorg);
+		R_EntityRotate_WorldControl_C (vpn);
+		R_EntityRotate_WorldControl_C (vright);
+		R_EntityRotate_WorldControl_C (vup);
+		Bench486WorldControlFrustum ();
+		return;
+	}
+
+	R_RotateBmodel_WorldControl_C ();
+	worldcontrol_cache_ent[slot] = currententity;
+	worldcontrol_cache_frame[slot] = r_framecount;
+	for (i = 0 ; i < 3 ; i++)
+		for (j = 0 ; j < 3 ; j++)
+			worldcontrol_cache_rot[slot][i][j] = entity_rotation[i][j];
+}
+#endif

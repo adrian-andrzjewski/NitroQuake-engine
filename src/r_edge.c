@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_worldcontrol.h"
 #include <stddef.h>
 
 #if 0
@@ -57,7 +58,7 @@ int	current_iv;
 
 int	edge_head_u_shift20, edge_tail_u_shift20;
 
-#ifdef ASM486_SCAN_EDGES
+#if defined(ASM486_SCAN_EDGES) || defined(ASM486_WORLD_CONTROL)
 void (*pdrawfunc)(void);
 #else
 static void (*pdrawfunc)(void);
@@ -86,6 +87,7 @@ void R_TrailingEdge (surf_t *surf, edge_t *edge);
 R_DrawCulledPolys
 ==============
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_DrawCulledPolys (void)
 {
 	surf_t			*s;
@@ -122,6 +124,7 @@ void R_DrawCulledPolys (void)
 		}
 	}
 }
+#endif
 
 
 /*
@@ -129,6 +132,7 @@ void R_DrawCulledPolys (void)
 R_BeginEdgeFrame
 ==============
 */
+#if !defined(ASM486_WORLD_CONTROL)
 void R_BeginEdgeFrame (void)
 {
 	int		v;
@@ -161,6 +165,7 @@ void R_BeginEdgeFrame (void)
 		newedges[v] = removeedges[v] = NULL;
 	}
 }
+#endif
 
 
 #if	!id386 || defined(BENCH486) || defined(ASM486_EDGE_LIST_C)
@@ -217,10 +222,12 @@ addedge:
 #ifdef ASM486_EDGE_LIST
 void R_InsertNewEdges_asm486 (edge_t *edgestoadd, edge_t *edgelist);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_EDGE_LIST)
 void R_InsertNewEdges (edge_t *edgestoadd, edge_t *edgelist)
 {
 	R_InsertNewEdges_asm486 (edgestoadd, edgelist);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 	
 
@@ -252,10 +259,12 @@ void R_RemoveEdges (edge_t *pedge)
 #ifdef ASM486_EDGE_LIST
 void R_RemoveEdges_asm486 (edge_t *pedge);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_EDGE_LIST)
 void R_RemoveEdges (edge_t *pedge)
 {
 	R_RemoveEdges_asm486 (pedge);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -337,10 +346,12 @@ pushback:
 #ifdef ASM486_EDGE_LIST
 void R_StepActiveU_asm486 (edge_t *pedge);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_EDGE_LIST)
 void R_StepActiveU (edge_t *pedge)
 {
 	R_StepActiveU_asm486 (pedge);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -386,10 +397,12 @@ void R_CleanupSpan (void)
 #ifdef ASM486_BACKWARD_SPANS
 void R_CleanupSpan_asm486 (void);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_BACKWARD_SPANS)
 void R_CleanupSpan (void)
 {
 	R_CleanupSpan_asm486 ();
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -481,10 +494,12 @@ gotposition:
 #ifdef ASM486_BACKWARD_SPANS
 void R_LeadingEdgeBackwards_asm486 (edge_t *edge);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_BACKWARD_SPANS)
 void R_LeadingEdgeBackwards (edge_t *edge)
 {
 	R_LeadingEdgeBackwards_asm486 (edge);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -538,10 +553,12 @@ void R_TrailingEdge (surf_t *surf, edge_t *edge)
 #ifdef ASM486_BACKWARD_SPANS
 void R_TrailingEdge_asm486 (surf_t *surf, edge_t *edge);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_BACKWARD_SPANS)
 void R_TrailingEdge (surf_t *surf, edge_t *edge)
 {
 	R_TrailingEdge_asm486 (surf, edge);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -767,10 +784,12 @@ void R_GenerateSpansBackward (void)
 #ifdef ASM486_BACKWARD_SPANS
 void R_GenerateSpansBackward_asm486 (void);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_BACKWARD_SPANS)
 void R_GenerateSpansBackward (void)
 {
 	R_GenerateSpansBackward_asm486 ();
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -980,10 +999,12 @@ typedef char r_scan_edges_refdef_vrect_width_offset_must_be_8[
 
 void R_ScanEdges_asm486 (void);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_SCAN_EDGES)
 void R_ScanEdges (void)
 {
 	R_ScanEdges_asm486 ();
 }
+#endif /* public entry is assembly-owned when selected */
 
 #ifdef PROFILE486
 void R_ScanEdgesProfileBegin_asm486 (double *start)
@@ -1035,4 +1056,76 @@ typedef char r_backward_span_surface_layout_must_match[
 	 offsetof(surf_t, prev) == 4 && offsetof(surf_t, spans) == 8 &&
 	 offsetof(surf_t, key) == 12 && offsetof(surf_t, last_u) == 16 &&
 	 offsetof(surf_t, spanstate) == 20 && offsetof(surf_t, insubmodel) == 40) ? 1 : -1];
+#endif
+
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL)
+void R_DrawCulledPolys_WorldControl_C (void)
+{
+	surf_t			*s;
+	msurface_t		*pface;
+
+	currententity = &cl_entities[0];
+
+	if (r_worldpolysbacktofront)
+	{
+		for (s=surface_p-1 ; s>&surfaces[1] ; s--)
+		{
+			if (!s->spans)
+				continue;
+
+			if (!(s->flags & SURF_DRAWBACKGROUND))
+			{
+				pface = (msurface_t *)s->data;
+				Bench486WorldControlPoly (pface, 15);
+			}
+		}
+	}
+	else
+	{
+		for (s = &surfaces[1] ; s<surface_p ; s++)
+		{
+			if (!s->spans)
+				continue;
+
+			if (!(s->flags & SURF_DRAWBACKGROUND))
+			{
+				pface = (msurface_t *)s->data;
+				Bench486WorldControlPoly (pface, 15);
+			}
+		}
+	}
+}
+
+void R_BeginEdgeFrame_WorldControl_C (void)
+{
+	int		v;
+
+	edge_p = r_edges;
+	edge_max = &r_edges[r_numallocatededges];
+
+	surface_p = &surfaces[2];	// background is surface 1,
+								//  surface 0 is a dummy
+	surfaces[1].spans = NULL;	// no background spans yet
+	surfaces[1].flags = SURF_DRAWBACKGROUND;
+
+// put the background behind everything in the world
+	if (r_draworder.value)
+	{
+		pdrawfunc = R_GenerateSpansBackward;
+		surfaces[1].key = 0;
+		r_currentkey = 1;
+	}
+	else
+	{
+		pdrawfunc = R_GenerateSpans;
+		surfaces[1].key = 0x7FFFFFFF;
+		r_currentkey = 0;
+	}
+
+// FIXME: set with memset
+	for (v=r_refdef.vrect.y ; v<r_refdef.vrectbottom ; v++)
+	{
+		newedges[v] = removeedges[v] = NULL;
+	}
+}
 #endif

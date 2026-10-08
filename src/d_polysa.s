@@ -77,7 +77,71 @@ lzistepx:		.long	0
 #endif
 
 	.extern C(D_PolysetSetEdgeTable)
+	.extern C(edgetables)
+	.extern C(pedgetable)
+	.extern C(r_p0)
+	.extern C(r_p1)
+	.extern C(r_p2)
+	.extern C(r_affinetridesc)
+	.extern C(skintable)
+	.extern C(skinstart)
+	.extern C(skinwidth)
 	.extern C(D_RasterizeAliasPolySmooth)
+	.extern C(D_PolysetSetUpForLineScan_C)
+	.extern C(adivtab)
+	.extern C(d_xdenom_int)
+	.extern C(D_PolysetSetUpForLineScan)
+	.extern C(D_PolysetCalcGradients)
+	.extern C(D_PolysetScanLeftEdge)
+	.extern C(D_PolysetDrawSpans8)
+	.extern C(pedgetable)
+	.extern C(a_spans)
+	.extern C(r_affinetridesc)
+	.extern C(d_pedgespanpackage)
+	.extern C(d_aspancount)
+	.extern C(d_ptex)
+	.extern C(d_sfrac)
+	.extern C(d_tfrac)
+	.extern C(d_light)
+	.extern C(d_zi)
+	.extern C(d_pdest)
+	.extern C(d_pz)
+	.extern C(viewspantable)
+	.extern C(zspantable)
+	.extern C(d_zwidth)
+	.extern C(screenwidth)
+	.extern C(ubasestep)
+	.extern C(erroradjustup)
+	.extern C(erroradjustdown)
+	.extern C(errorterm)
+	.extern C(d_pzbasestep)
+	.extern C(d_pzextrastep)
+	.extern C(d_pdestbasestep)
+	.extern C(d_pdestextrastep)
+	.extern C(d_countextrastep)
+	.extern C(r_lstepx)
+	.extern C(r_lstepy)
+	.extern C(r_sstepx)
+	.extern C(r_sstepy)
+	.extern C(r_tstepx)
+	.extern C(r_tstepy)
+	.extern C(r_zistepx)
+	.extern C(r_zistepy)
+	.extern C(d_ptexbasestep)
+	.extern C(d_sfracbasestep)
+	.extern C(d_tfracbasestep)
+	.extern C(d_lightbasestep)
+	.extern C(d_zibasestep)
+	.extern C(d_ptexextrastep)
+	.extern C(d_sfracextrastep)
+	.extern C(d_tfracextrastep)
+	.extern C(d_lightextrastep)
+	.extern C(d_ziextrastep)
+#ifdef PROFILE486
+	.extern C(D_PolysetCalcGradientsProfiled)
+	.extern C(D_PolysetScanLeftEdgeProfiled)
+	.extern C(D_PolysetDrawSpansProfiled)
+#endif
 
 //----------------------------------------------------------------------
 // affine triangle gradient calculation code
@@ -85,8 +149,8 @@ lzistepx:		.long	0
 
 #define skinwidth	4+0
 
-.globl C(D_PolysetCalcGradients)
-C(D_PolysetCalcGradients):
+.globl C(D_PolysetCalcGradients_asm486)
+C(D_PolysetCalcGradients_asm486):
 
 //	p00_minus_p20 = r_p0[0] - r_p2[0];
 //	p01_minus_p21 = r_p0[1] - r_p2[1];
@@ -486,6 +550,93 @@ C(D_PolysetCalcGradients):
 	addl	%ecx,%eax
 	movl	%eax,C(a_ststepxwhole)
 
+	ret
+
+
+//----------------------------------------------------------------------
+// Bresenham-style line-scan setup for alias triangle edges.
+// The small-step table is the C adivtab[64*64] (two 32-bit integers per row).
+// Larger positive edge heights use signed division followed by the same
+// floor-division correction as D_PolysetSetUpForLineScan_C. Non-positive
+// large heights retain the reference error path through the C helper.
+//----------------------------------------------------------------------
+
+.globl C(D_PolysetSetUpForLineScan_asm486)
+C(D_PolysetSetUpForLineScan_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	movl	16(%ebp),%eax		// tm = endvertu - startvertu
+	subl	8(%ebp),%eax
+	movl	20(%ebp),%ecx		// tn = endvertv - startvertv
+	subl	12(%ebp),%ecx
+	movl	$-1,C(errorterm)
+
+	cmpl	$32,%eax
+	jg	.LPolysetLineScanLarge
+	cmpl	$-31,%eax
+	jl	.LPolysetLineScanLarge
+	cmpl	$32,%ecx
+	jg	.LPolysetLineScanLarge
+	cmpl	$-31,%ecx
+	jl	.LPolysetLineScanLarge
+
+// The original fast path covers every pair in [-31,32], including the
+// table's historical values for non-positive tn. Keep those exact entries.
+	leal	31(%eax),%edx
+	shll	$6,%edx
+	leal	31(%ecx),%eax
+	addl	%eax,%edx
+	movl	C(adivtab)(,%edx,8),%eax
+	movl	%eax,C(ubasestep)
+	movl	C(adivtab)+4(,%edx,8),%eax
+	movl	%eax,C(erroradjustup)
+	movl	%ecx,C(erroradjustdown)
+	leave
+	ret
+
+.LPolysetLineScanLarge:
+	testl	%ecx,%ecx
+	jle	.LPolysetLineScanC
+	movl	%ecx,C(erroradjustdown)
+	testl	%eax,%eax
+	js	.LPolysetLineScanNegative
+	cdq
+	idivl	%ecx
+	movl	%eax,C(ubasestep)
+	movl	%edx,C(erroradjustup)
+	leave
+	ret
+
+.LPolysetLineScanNegative:
+	cdq
+	idivl	%ecx
+	movl	%eax,C(ubasestep)
+	movl	16(%ebp),%eax
+	subl	8(%ebp),%eax
+	negl	%eax
+	cdq
+	idivl	%ecx
+	testl	%edx,%edx
+	jz	.LPolysetLineScanNegativeDone
+	decl	C(ubasestep)
+	subl	%edx,%ecx
+	movl	%ecx,C(erroradjustup)
+	leave
+	ret
+.LPolysetLineScanNegativeDone:
+	movl	%edx,C(erroradjustup)
+	// ubasestep was stored from the signed tm/tn quotient above.
+	leave
+	ret
+
+.LPolysetLineScanC:
+	pushl	20(%ebp)		// forward original cdecl parameters
+	pushl	16(%ebp)
+	pushl	12(%ebp)
+	pushl	8(%ebp)
+	call	C(D_PolysetSetUpForLineScan_C)
+	addl	$16,%esp
+	leave
 	ret
 
 
@@ -1728,6 +1879,7 @@ LNDLoop:
 //		}
 
 	movl	%eax,C(d_xdenom)
+	movl	%eax,C(d_xdenom_int)
 	fildl	C(d_xdenom)
 
 //		r_p0[0] = index0->v[0];		// u
@@ -1845,6 +1997,470 @@ LNextTri:
 
 	addl	$(SPAN_SIZE),%esp
 
+	ret
+
+
+// Select the original edgetables[] entry from the three already-ordered
+// screen-space Y coordinates. The equal-Y cases deliberately keep the
+// original hand-written table choices from D_PolysetSetEdgeTable_C.
+.globl C(D_PolysetSetEdgeTable_asm486)
+C(D_PolysetSetEdgeTable_asm486):
+	movl	C(r_p0)+4,%eax
+	movl	C(r_p1)+4,%ecx
+	xorl	%edx,%edx
+	cmpl	%ecx,%eax
+	jl	.LAliasEdgeY01Ready
+	je	.LAliasEdgeY01Equal
+	movl	$1,%edx
+	jmp	.LAliasEdgeCompareY2
+
+.LAliasEdgeY01Equal:
+	cmpl	C(r_p2)+4,%eax
+	jl	.LAliasEdgeEqualTop
+	movl	$5,%edx
+	jmp	.LAliasEdgeStore
+.LAliasEdgeEqualTop:
+	movl	$2,%edx
+	jmp	.LAliasEdgeStore
+
+.LAliasEdgeY01Ready:
+.LAliasEdgeCompareY2:
+	cmpl	C(r_p2)+4,%eax
+	jne	.LAliasEdgeCheckY12
+	testl	%edx,%edx
+	jz	.LAliasEdgeY02NoIndex
+	movl	$8,%edx
+	jmp	.LAliasEdgeStore
+.LAliasEdgeY02NoIndex:
+	movl	$9,%edx
+	jmp	.LAliasEdgeStore
+
+.LAliasEdgeCheckY12:
+	cmpl	C(r_p2)+4,%ecx
+	jne	.LAliasEdgeDistinct
+	testl	%edx,%edx
+	jz	.LAliasEdgeY12NoIndex
+	movl	$10,%edx
+	jmp	.LAliasEdgeStore
+.LAliasEdgeY12NoIndex:
+	movl	$11,%edx
+	jmp	.LAliasEdgeStore
+
+.LAliasEdgeDistinct:
+	cmpl	C(r_p2)+4,%eax
+	jle	.LAliasEdgeY02Ordered
+	addl	$2,%edx
+.LAliasEdgeY02Ordered:
+	cmpl	C(r_p2)+4,%ecx
+	jle	.LAliasEdgeStore
+	addl	$4,%edx
+
+.LAliasEdgeStore:
+	leal	(%edx,%edx,8),%eax
+	leal	C(edgetables)(,%eax,4),%eax
+	movl	%eax,C(pedgetable)
+	ret
+
+
+// Rebuild the 480-row skin pointer table only when either part of its cache
+// key changes. This preserves D_PolysetUpdateTables_C's byte-stride layout.
+.globl C(D_PolysetUpdateTables_asm486)
+C(D_PolysetUpdateTables_asm486):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	C(r_affinetridesc)+atd_skinwidth,%ecx
+	movl	C(r_affinetridesc)+atd_pskin,%eax
+	cmpl	C(skinwidth),%ecx
+	jne	.LAliasSkinTableRebuild
+	cmpl	C(skinstart),%eax
+	je	.LAliasSkinTableDone
+
+.LAliasSkinTableRebuild:
+	movl	%ecx,C(skinwidth)
+	movl	%eax,C(skinstart)
+	movl	%eax,%ebx
+	movl	$C(skintable),%esi
+	movl	$480,%edi
+
+.LAliasSkinTableLoop:
+	movl	%ebx,(%esi)
+	addl	%ecx,%ebx
+	addl	$4,%esi
+	decl	%edi
+	jnz	.LAliasSkinTableLoop
+
+.LAliasSkinTableDone:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
+
+// Assemble the C-owned triangle rasterization glue. Vertex arrays are six
+// 32-bit values (x, y, s, t, light, zi); edgetable_t is the original 36-byte
+// layout. This routine preserves that setup order and delegates only gradient,
+// line-scan, left-edge span emission, and span drawing to their existing paths.
+.macro ALIAS_STORE_SPAN_PACKAGE
+	movl	C(d_pedgespanpackage),%eax
+	movl	C(d_pdest),%ecx
+	movl	%ecx,spanpackage_t_pdest(%eax)
+	movl	C(d_pz),%ecx
+	movl	%ecx,spanpackage_t_pz(%eax)
+	movl	C(d_aspancount),%ecx
+	movl	%ecx,spanpackage_t_count(%eax)
+	movl	C(d_ptex),%ecx
+	movl	%ecx,spanpackage_t_ptex(%eax)
+	movl	C(d_sfrac),%ecx
+	movl	%ecx,spanpackage_t_sfrac(%eax)
+	movl	C(d_tfrac),%ecx
+	movl	%ecx,spanpackage_t_tfrac(%eax)
+	movl	C(d_light),%ecx
+	movl	%ecx,spanpackage_t_light(%eax)
+	movl	C(d_zi),%ecx
+	movl	%ecx,spanpackage_t_zi(%eax)
+	addl	$spanpackage_t_size,%eax
+	movl	%eax,C(d_pedgespanpackage)
+.endm
+
+.macro ALIAS_CALL_LINE_SCAN topoff, bottomoff
+	movl	\bottomoff(%ebp),%ecx
+	pushl	4(%ecx)
+	pushl	(%ecx)
+	movl	\topoff(%ebp),%eax
+	pushl	4(%eax)
+	pushl	(%eax)
+	call	C(D_PolysetSetUpForLineScan)
+	addl	$16,%esp
+.endm
+
+.macro ALIAS_CALL_SCAN_LEFT heightoff
+	pushl	\heightoff(%ebp)
+#ifdef PROFILE486
+	call	C(D_PolysetScanLeftEdgeProfiled)
+#else
+	call	C(D_PolysetScanLeftEdge)
+#endif
+	addl	$4,%esp
+.endm
+
+.macro ALIAS_SET_LEFT_EDGE_STEPS
+	// Depth rows are 16-bit pixels in the 386 renderer: one base step is two
+	// bytes per scanline and the extra step advances one additional pixel.
+	movl	C(d_zwidth),%eax
+	addl	C(ubasestep),%eax
+	shll	$1,%eax
+	movl	%eax,C(d_pzbasestep)
+	addl	$2,%eax
+	movl	%eax,C(d_pzextrastep)
+
+	movl	C(screenwidth),%eax
+	addl	C(ubasestep),%eax
+	movl	%eax,C(d_pdestbasestep)
+	addl	$1,%eax
+	movl	%eax,C(d_pdestextrastep)
+
+	movl	C(r_lstepx),%eax
+	cmpl	$0,C(ubasestep)
+	jge	.LAliasRasterLightStepReady\@
+	decl	%eax
+.LAliasRasterLightStepReady\@:
+	movl	%eax,-40(%ebp)
+
+	movl	C(r_affinetridesc)+atd_skinwidth,%eax
+	movl	%eax,-48(%ebp)
+	movl	C(ubasestep),%ecx
+	movl	C(r_sstepx),%eax
+	imull	%ecx,%eax
+	addl	C(r_sstepy),%eax
+	movl	%eax,-52(%ebp)
+	movl	C(r_tstepx),%eax
+	imull	%ecx,%eax
+	addl	C(r_tstepy),%eax
+	movl	%eax,-56(%ebp)
+
+	leal	1(%ecx),%eax
+	movl	%eax,C(d_countextrastep)
+
+	movl	-56(%ebp),%eax
+	sarl	$16,%eax
+	imull	-48(%ebp),%eax
+	movl	-52(%ebp),%edx
+	sarl	$16,%edx
+	addl	%edx,%eax
+	movl	%eax,C(d_ptexbasestep)
+
+	movl	-52(%ebp),%eax
+	shll	$16,%eax
+	movl	%eax,C(d_sfracbasestep)
+	movl	-56(%ebp),%eax
+	shll	$16,%eax
+	movl	%eax,C(d_tfracbasestep)
+
+	movl	-40(%ebp),%eax
+	imull	C(ubasestep),%eax
+	addl	C(r_lstepy),%eax
+	movl	%eax,C(d_lightbasestep)
+	movl	C(r_zistepx),%eax
+	imull	C(ubasestep),%eax
+	addl	C(r_zistepy),%eax
+	movl	%eax,C(d_zibasestep)
+
+	movl	-52(%ebp),%eax
+	addl	C(r_sstepx),%eax
+	movl	%eax,-60(%ebp)
+	movl	-56(%ebp),%eax
+	addl	C(r_tstepx),%eax
+	movl	%eax,-64(%ebp)
+	movl	-64(%ebp),%eax
+	sarl	$16,%eax
+	imull	-48(%ebp),%eax
+	movl	-60(%ebp),%edx
+	sarl	$16,%edx
+	addl	%edx,%eax
+	movl	%eax,C(d_ptexextrastep)
+
+	movl	-60(%ebp),%eax
+	shll	$16,%eax
+	movl	%eax,C(d_sfracextrastep)
+	movl	-64(%ebp),%eax
+	shll	$16,%eax
+	movl	%eax,C(d_tfracextrastep)
+	movl	C(d_lightbasestep),%eax
+	addl	-40(%ebp),%eax
+	movl	%eax,C(d_lightextrastep)
+	movl	C(d_zibasestep),%eax
+	addl	C(r_zistepx),%eax
+	movl	%eax,C(d_ziextrastep)
+.endm
+
+.globl C(D_RasterizeAliasPolySmooth_asm486)
+C(D_RasterizeAliasPolySmooth_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$60,%esp
+
+	// locals: left height -16, right height -20, left top -24, right top -28,
+	// left bottom -32, right bottom -36, working light step -40,
+	// original right count -44, skin width -48, s/t base -52/-56,
+	// s/t extra -60/-64, edge height -68, span start -72.
+	movl	C(pedgetable),%esi
+	movl	8(%esi),%eax
+	movl	%eax,-24(%ebp)
+	movl	24(%esi),%eax
+	movl	%eax,-28(%ebp)
+	movl	12(%esi),%eax
+	movl	%eax,-32(%ebp)
+	movl	28(%esi),%eax
+	movl	%eax,-36(%ebp)
+	movl	-32(%ebp),%eax
+	movl	-24(%ebp),%ecx
+	movl	4(%eax),%edx
+	subl	4(%ecx),%edx
+	movl	%edx,-16(%ebp)
+	movl	-36(%ebp),%eax
+	movl	-28(%ebp),%ecx
+	movl	4(%eax),%edx
+	subl	4(%ecx),%edx
+	movl	%edx,-20(%ebp)
+
+	// Gradients are shared by all three edges of the triangle.
+#ifdef PROFILE486
+	pushl	C(r_affinetridesc)+atd_skinwidth
+	call	C(D_PolysetCalcGradientsProfiled)
+#else
+	pushl	C(r_affinetridesc)+atd_skinwidth
+	call	C(D_PolysetCalcGradients)
+#endif
+	addl	$4,%esp
+
+	// Top (or only) left edge: initialize the first span package.
+	movl	C(a_spans),%eax
+	movl	%eax,C(d_pedgespanpackage)
+	movl	-24(%ebp),%edi
+	movl	4(%edi),%eax
+	movl	%eax,-68(%ebp)
+	movl	%eax,%ecx
+	movl	-28(%ebp),%edx
+	movl	(%edi),%eax
+	subl	(%edx),%eax
+	movl	%eax,C(d_aspancount)
+
+	movl	C(r_affinetridesc)+atd_skinwidth,%ecx
+	movl	8(%edi),%eax
+	sarl	$16,%eax
+	movl	12(%edi),%edx
+	sarl	$16,%edx
+	imull	%ecx,%edx
+	addl	%edx,%eax
+	addl	C(r_affinetridesc)+atd_pskin,%eax
+	movl	%eax,C(d_ptex)
+
+	movl	8(%edi),%eax
+	shll	$16,%eax
+	movl	%eax,C(d_sfrac)
+	movl	12(%edi),%eax
+	shll	$16,%eax
+	movl	%eax,C(d_tfrac)
+	movl	16(%edi),%eax
+	movl	%eax,C(d_light)
+	movl	20(%edi),%eax
+	movl	%eax,C(d_zi)
+
+	movl	-68(%ebp),%eax
+	movl	C(viewspantable)(,%eax,4),%ecx
+	movl	(%edi),%edx
+	leal	(%ecx,%edx),%ecx
+	movl	%ecx,C(d_pdest)
+	movl	C(zspantable)(,%eax,4),%ecx
+	leal	(%ecx,%edx,2),%ecx
+	movl	%ecx,C(d_pz)
+
+	cmpl	$1,-16(%ebp)
+	jne	.LAliasRasterLeftTopWalk
+	ALIAS_STORE_SPAN_PACKAGE
+	jmp	.LAliasRasterLeftBottom
+
+.LAliasRasterLeftTopWalk:
+	ALIAS_CALL_LINE_SCAN -24,-32
+	ALIAS_SET_LEFT_EDGE_STEPS
+	ALIAS_CALL_SCAN_LEFT -16
+
+.LAliasRasterLeftBottom:
+	movl	C(pedgetable),%esi
+	cmpl	$2,4(%esi)
+	jne	.LAliasRasterRightTop
+	movl	-32(%ebp),%eax
+	movl	%eax,-24(%ebp)
+	movl	16(%esi),%eax
+	movl	%eax,-32(%ebp)
+	movl	-32(%ebp),%eax
+	movl	-24(%ebp),%ecx
+	movl	4(%eax),%edx
+	subl	4(%ecx),%edx
+	movl	%edx,-68(%ebp)
+
+	// The C reference starts this lower segment with zero S/T fraction.
+	movl	-24(%ebp),%edi
+	movl	4(%edi),%eax
+	movl	%eax,-72(%ebp)
+	movl	-28(%ebp),%edx
+	movl	(%edi),%eax
+	subl	(%edx),%eax
+	movl	%eax,C(d_aspancount)
+	movl	C(r_affinetridesc)+atd_skinwidth,%ecx
+	movl	8(%edi),%eax
+	sarl	$16,%eax
+	movl	12(%edi),%edx
+	sarl	$16,%edx
+	imull	%ecx,%edx
+	addl	%edx,%eax
+	addl	C(r_affinetridesc)+atd_pskin,%eax
+	movl	%eax,C(d_ptex)
+	movl	$0,C(d_sfrac)
+	movl	$0,C(d_tfrac)
+	movl	16(%edi),%eax
+	movl	%eax,C(d_light)
+	movl	20(%edi),%eax
+	movl	%eax,C(d_zi)
+	movl	-72(%ebp),%eax
+	movl	C(viewspantable)(,%eax,4),%ecx
+	movl	(%edi),%edx
+	leal	(%ecx,%edx),%ecx
+	movl	%ecx,C(d_pdest)
+	movl	C(zspantable)(,%eax,4),%ecx
+	leal	(%ecx,%edx,2),%ecx
+	movl	%ecx,C(d_pz)
+
+	cmpl	$1,-68(%ebp)
+	jne	.LAliasRasterLeftBottomWalk
+	ALIAS_STORE_SPAN_PACKAGE
+	jmp	.LAliasRasterRightTop
+
+.LAliasRasterLeftBottomWalk:
+	ALIAS_CALL_LINE_SCAN -24,-32
+	ALIAS_SET_LEFT_EDGE_STEPS
+	ALIAS_CALL_SCAN_LEFT -68
+
+.LAliasRasterRightTop:
+	movl	C(a_spans),%eax
+	movl	%eax,C(d_pedgespanpackage)
+	ALIAS_CALL_LINE_SCAN -28,-36
+	movl	$0,C(d_aspancount)
+	movl	C(ubasestep),%eax
+	incl	%eax
+	movl	%eax,C(d_countextrastep)
+
+	movl	C(a_spans),%eax
+	movl	-20(%ebp),%ecx
+	shll	$5,%ecx
+	addl	%ecx,%eax
+	movl	spanpackage_t_count(%eax),%edx
+	movl	%edx,-44(%ebp)
+	movl	$-999999,spanpackage_t_count(%eax)
+#ifdef PROFILE486
+	pushl	C(a_spans)
+	call	C(D_PolysetDrawSpansProfiled)
+#else
+	pushl	C(a_spans)
+	call	C(D_PolysetDrawSpans8)
+#endif
+	addl	$4,%esp
+
+	// Optional lower right edge starts at the saved top-edge span count.
+	movl	C(pedgetable),%esi
+	cmpl	$2,20(%esi)
+	jne	.LAliasRasterDone
+	movl	C(a_spans),%eax
+	movl	-20(%ebp),%ecx
+	shll	$5,%ecx
+	addl	%ecx,%eax
+	movl	%eax,-72(%ebp)
+	movl	-44(%ebp),%edx
+	movl	%edx,spanpackage_t_count(%eax)
+
+	movl	-36(%ebp),%edx
+	movl	-28(%ebp),%eax
+	movl	(%edx),%ecx
+	subl	(%eax),%ecx
+	movl	%ecx,C(d_aspancount)
+	movl	%edx,-28(%ebp)
+	movl	32(%esi),%eax
+	movl	%eax,-36(%ebp)
+	movl	-36(%ebp),%eax
+	movl	-28(%ebp),%ecx
+	movl	4(%eax),%edx
+	subl	4(%ecx),%edx
+	movl	%edx,-68(%ebp)
+
+	ALIAS_CALL_LINE_SCAN -28,-36
+	movl	C(ubasestep),%eax
+	incl	%eax
+	movl	%eax,C(d_countextrastep)
+	movl	C(a_spans),%eax
+	movl	-20(%ebp),%ecx
+	addl	-68(%ebp),%ecx
+	shll	$5,%ecx
+	addl	%ecx,%eax
+	movl	$-999999,spanpackage_t_count(%eax)
+#ifdef PROFILE486
+	pushl	-72(%ebp)
+	call	C(D_PolysetDrawSpansProfiled)
+#else
+	pushl	-72(%ebp)
+	call	C(D_PolysetDrawSpans8)
+#endif
+	addl	$4,%esp
+
+.LAliasRasterDone:
+	addl	$60,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
 	ret
 
 

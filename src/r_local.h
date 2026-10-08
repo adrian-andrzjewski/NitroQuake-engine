@@ -54,6 +54,7 @@ extern float aliastransform[3][4];
 extern vec3_t r_plightvec;
 extern int r_ambientlight;
 extern float r_shadelight;
+extern float r_shadelight;
 
 //===========================================================================
 
@@ -161,6 +162,43 @@ extern	vec3_t			r_worldmodelorg;
 
 
 void R_DrawSprite (void);
+void R_DrawSprite_C (void);
+void R_DrawSprite_asm486 (void);
+mspriteframe_t *R_GetSpriteframePublic_asm486 (msprite_t *psprite);
+#ifdef BENCH486
+extern void (*bench486_sprite_setup_hook) (void);
+extern void (*bench486_sprite_project_hook) (const spritedesc_t *desc);
+#endif
+/* Keep the public argument type visible when its implementation is assembly.
+ * An implicit declaration would promote beamlength to double at C call sites. */
+void R_RotateSprite (float beamlength);
+void R_RotateSprite_C (float beamlength);
+void R_RotateSprite_asm486 (float beamlength);
+extern int clip_current;
+extern vec5_t clip_verts[2][MAXWORKINGVERTS];
+extern int sprite_width, sprite_height;
+void R_SetupAndDrawSprite (void);
+void R_SetupAndDrawSprite_C (void);
+void R_SetupAndDrawSprite_asm486 (void);
+void __attribute__((regparm(2))) R_RecursiveWorldNode
+	(mnode_t *node, int clipflags);
+int R_AliasClip (finalvert_t *in, finalvert_t *out, int flag, int count,
+	void (*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out));
+void R_AliasTransformVector (vec3_t in, vec3_t out);
+void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,
+	trivertx_t *pverts, stvert_t *pstverts);
+void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf);
+void R_GenerateSpansBackward (void);
+void R_CleanupSpan (void);
+void R_LeadingEdgeBackwards (edge_t *edge);
+void R_TrailingEdge (surf_t *surf, edge_t *edge);
+int R_ClipSpriteFace (int nump, clipplane_t *pclipplane);
+int R_ClipSpriteFace_C (int nump, clipplane_t *pclipplane);
+int R_ClipSpriteFace_asm486 (int nump, clipplane_t *pclipplane);
+mspriteframe_t *R_GetSpriteframe_C (msprite_t *psprite);
+mspriteframe_t *R_GetSpriteframe (msprite_t *psprite);
+mspriteframe_t *R_GetSpriteframe_asm486 (msprite_t *psprite, int frame,
+		double cltime, float syncbase);
 void R_RenderFace (msurface_t *fa, int clipflags);
 #ifdef ASM486_RENDER_FACE
 void R_RenderFace_asm486 (msurface_t *fa, int clipflags,
@@ -269,14 +307,22 @@ texture_t *R_TextureAnimation_asm486 (texture_t *base);
 texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
 void R_BuildLightMapNormalize_asm486 (unsigned *lights, int size);
 int R_AddDynamicLightSamples_asm486 (unsigned *blocklights, int smax,
-	int tmax, int local0, int local1, int idist_limit, int irad,
-	int all_lit);
+	int tmax, int local0, int local1, float local1_float,
+	int idist_limit, int irad, int all_lit);
 double R_RecursiveWorldNodePlaneDot_asm486 (mplane_t *plane);
 int R_RecursiveWorldNodeClip_asm486 (mnode_t *node, int clipflags);
 int R_AliasCheckBBoxProject_asm486 (auxvert_t *viewaux, finalvert_t *viewpts,
 	int numv);
+void R_AliasTransformVector_asm486 (vec3_t in, vec3_t out);
 void R_AliasTransformFinalVert_asm486 (finalvert_t *fv, auxvert_t *av,
-	trivertx_t *pverts, stvert_t *pstverts);
+		trivertx_t *pverts, stvert_t *pstverts);
+void R_ConcatTransforms_asm486 (float in1[3][4], float in2[3][4],
+		float out[3][4]);
+void R_AliasSetViewMatrix_asm486 (const float *right, const float *up,
+		const float *forward, float *out);
+#endif
+#ifdef BENCH486
+void R_AliasTransformVector_C (vec3_t in, vec3_t out);
 #endif
 
 #if	id386
@@ -324,6 +370,16 @@ void R_AddPolygonEdges (emitpoint_t *pverts, int numverts, int miplevel);
 surf_t *R_GetSurf (void);
 void __attribute__((regparm(1))) R_AliasDrawModel (alight_t *plighting);
 void R_AliasProjectFinalVert (finalvert_t *fv, auxvert_t *av);
+void R_AliasSetupLighting_C (alight_t *plighting, const float *forward,
+		const float *right, const float *up);
+void R_AliasSetupLighting_asm486 (alight_t *plighting,
+		const float *forward, const float *right, const float *up);
+void R_AliasSetupFrame_C (int frame, double cltime, float syncbase);
+void R_AliasSetupFrame_asm486 (int frame, double cltime, float syncbase);
+maliasskindesc_t *R_AliasSetupSkinSelect_C (int skinnum, double cltime,
+		float syncbase);
+maliasskindesc_t *R_AliasSetupSkinSelect_asm486 (int skinnum,
+		double cltime, float syncbase);
 #if id386
 void R_AliasProjectFinalVert_asm486 (finalvert_t *fv, auxvert_t *av);
 #endif
@@ -436,6 +492,7 @@ extern int				a_skinwidth;
 extern mtriangle_t		*ptriangles;
 extern int				numtriangles;
 extern aliashdr_t		*paliashdr;
+extern trivertx_t		*r_apverts;
 extern mdl_t			*pmdl;
 extern float			leftclip, topclip, rightclip, bottomclip;
 extern int				r_acliptype;
@@ -529,4 +586,26 @@ void R_EmitCachedEdge_C (void);
 void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip);
 void R_SplitEntityOnNode2 (mnode_t *node);
 void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
-
+void R_MarkLights_asm486 (dlight_t *light, int bit, mnode_t *node);
+void R_PushDlights (void);
+#ifdef BENCH486
+typedef struct
+{
+	float planedist;
+	float rad;
+	float fmin;
+	float local0;
+	float local1;
+	float cs;
+	float ct;
+	int fmin_scaled;
+	int sd;
+	int td;
+	int idist;
+	int stage;
+	int marked;
+} bench486_mark_lights_probe_t;
+extern bench486_mark_lights_probe_t *bench486_mark_lights_probe;
+void R_MarkLights_C (dlight_t *light, int bit, mnode_t *node);
+void R_PushDlights_C (void);
+#endif

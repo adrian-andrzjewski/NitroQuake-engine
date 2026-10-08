@@ -22,10 +22,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "d_local.h"
+#include "asm_renderdispatch.h"
+#ifdef BENCH486
+extern void (*bench486_sprite_project_hook) (const spritedesc_t *desc);
+#endif
 
-static int		sprite_height;
-static int		minindex, maxindex;
-static sspan_t	*sprite_spans;
+#include <stddef.h>
+
+typedef char sprite_gradient_assembly_layout_assert[
+	(offsetof(spritedesc_t, vup) == 12 &&
+	 offsetof(spritedesc_t, vright) == 24 &&
+	 offsetof(spritedesc_t, vpn) == 36) ? 1 : -1];
+typedef char sprite_scan_left_assembly_layout_assert[
+	(offsetof(emitpoint_t, u) == 0 && offsetof(emitpoint_t, v) == 4 &&
+	 sizeof(emitpoint_t) == 20 && offsetof(sspan_t, count) == 8 &&
+	 sizeof(sspan_t) == 12) ? 1 : -1];
+typedef char sprite_draw_assembly_layout_assert[
+	(MAXHEIGHT == 1024 && sizeof(sspan_t) == 12 &&
+	 sizeof(emitpoint_t) == 20) ? 1 : -1];
+
+int			sprite_height;
+int			minindex, maxindex;
+sspan_t		*sprite_spans;
 
 #if	!id386
 
@@ -196,7 +214,7 @@ NextSpan:
 D_SpriteScanLeftEdge
 =====================
 */
-void D_SpriteScanLeftEdge (void)
+void D_SpriteScanLeftEdge_C (void)
 {
 	int			i, v, itop, ibottom, lmaxindex;
 	emitpoint_t	*pvert, *pnext;
@@ -252,13 +270,44 @@ void D_SpriteScanLeftEdge (void)
 	} while (i != lmaxindex);
 }
 
+void D_SpriteScanLeftEdge_asm486 (sspan_t *spans, int minindex,
+		int maxindex, int nump, emitpoint_t *pverts);
+
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_SCAN_LEFT))
+void D_SpriteScanLeftEdge (void)
+{
+#ifdef ASM486_SPRITE_SCAN_LEFT
+	D_SpriteScanLeftEdge_asm486 (sprite_spans, minindex, maxindex,
+			r_spritedesc.nump, r_spritedesc.pverts);
+#else
+	D_SpriteScanLeftEdge_C ();
+#endif
+}
+#endif
+
+#ifdef BENCH486
+void D_SpriteScanLeftEdgeGetState (sspan_t **spans, int *min, int *max)
+{
+	*spans = sprite_spans;
+	*min = minindex;
+	*max = maxindex;
+}
+
+void D_SpriteScanLeftEdgeSetState (sspan_t *spans, int min, int max)
+{
+	sprite_spans = spans;
+	minindex = min;
+	maxindex = max;
+}
+#endif
+
 
 /*
 =====================
 D_SpriteScanRightEdge
 =====================
 */
-void D_SpriteScanRightEdge (void)
+void D_SpriteScanRightEdge_C (void)
 {
 	int			i, v, itop, ibottom;
 	emitpoint_t	*pvert, *pnext;
@@ -334,13 +383,57 @@ void D_SpriteScanRightEdge (void)
 	pspan->count = DS_SPAN_LIST_END;	// mark the end of the span list 
 }
 
+void D_SpriteScanRightEdge_asm486 (sspan_t *spans, int minindex,
+		int maxindex, int nump, emitpoint_t *pverts, float xleft,
+		float xright, float ytop, float ybottom);
+
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_SCAN_RIGHT))
+void D_SpriteScanRightEdge (void)
+{
+#ifdef ASM486_SPRITE_SCAN_RIGHT
+	D_SpriteScanRightEdge_asm486 (sprite_spans, minindex, maxindex,
+			r_spritedesc.nump, r_spritedesc.pverts,
+			r_refdef.fvrectx_adj, r_refdef.fvrectright_adj,
+			r_refdef.fvrecty_adj, r_refdef.fvrectbottom_adj);
+#else
+	D_SpriteScanRightEdge_C ();
+#endif
+}
+#endif
+
+#ifdef BENCH486
+void D_SpriteScanRightEdgeGetState (sspan_t **spans, int *min, int *max,
+		float *xleft, float *xright, float *ytop, float *ybottom)
+{
+	*spans = sprite_spans;
+	*min = minindex;
+	*max = maxindex;
+	*xleft = r_refdef.fvrectx_adj;
+	*xright = r_refdef.fvrectright_adj;
+	*ytop = r_refdef.fvrecty_adj;
+	*ybottom = r_refdef.fvrectbottom_adj;
+}
+
+void D_SpriteScanRightEdgeSetState (sspan_t *spans, int min, int max,
+		float xleft, float xright, float ytop, float ybottom)
+{
+	sprite_spans = spans;
+	minindex = min;
+	maxindex = max;
+	r_refdef.fvrectx_adj = xleft;
+	r_refdef.fvrectright_adj = xright;
+	r_refdef.fvrecty_adj = ytop;
+	r_refdef.fvrectbottom_adj = ybottom;
+}
+#endif
+
 
 /*
 =====================
 D_SpriteCalculateGradients
 =====================
 */
-void D_SpriteCalculateGradients (void)
+void D_SpriteCalculateGradients_C (void)
 {
 	vec3_t		p_normal, p_saxis, p_taxis, p_temp1;
 	float		distinv;
@@ -380,13 +473,37 @@ void D_SpriteCalculateGradients (void)
 	bbextentt = (sprite_height << 16) - 1;
 }
 
+void D_SpriteCalculateGradients_asm486 (int height);
+
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_GRADIENTS))
+void D_SpriteCalculateGradients (void)
+{
+#ifdef ASM486_SPRITE_GRADIENTS
+	D_SpriteCalculateGradients_asm486 (sprite_height);
+#else
+	D_SpriteCalculateGradients_C ();
+#endif
+}
+#endif
+
+#ifdef BENCH486
+int D_SpriteCalculateGradientsSetHeight (int height)
+{
+	int previous;
+
+	previous = sprite_height;
+	sprite_height = height;
+	return previous;
+}
+#endif
+
 
 /*
 =====================
 D_DrawSprite
 =====================
 */
-void D_DrawSprite (void)
+void D_DrawSprite_C (void)
 {
 	int			i, nump;
 	float		ymin, ymax;
@@ -440,3 +557,82 @@ void D_DrawSprite (void)
 	D_SpriteDrawSpans (sprite_spans);
 }
 
+void D_DrawSprite_asm486 (int nump, emitpoint_t *pverts, int frame_width,
+		int frame_height, byte *frame_pixels);
+
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_DRAW))
+void D_DrawSprite (void)
+{
+#ifdef BENCH486
+	/* Observe projected locals while their owning setup stack frame is alive. */
+	if (bench486_sprite_project_hook)
+		bench486_sprite_project_hook (&r_spritedesc);
+#endif
+#ifdef ASM486_SPRITE_DRAW
+	D_DrawSprite_asm486 (r_spritedesc.nump, r_spritedesc.pverts,
+			r_spritedesc.pspriteframe->width,
+			r_spritedesc.pspriteframe->height,
+			(byte *)&r_spritedesc.pspriteframe->pixels[0]);
+#else
+	D_DrawSprite_C ();
+#endif
+}
+#endif
+
+
+/* Pinned original argument adapters, compiled only as independent test oracles. */
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_SCAN_LEFT)
+void D_SpriteScanLeftEdge_Dispatch_C (void)
+{
+#ifdef ASM486_SPRITE_SCAN_LEFT
+	Bench486DispatchSpriteLeft (sprite_spans, minindex, maxindex,
+			r_spritedesc.nump, r_spritedesc.pverts);
+#else
+	D_SpriteScanLeftEdge_C ();
+#endif
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_SCAN_RIGHT)
+void D_SpriteScanRightEdge_Dispatch_C (void)
+{
+#ifdef ASM486_SPRITE_SCAN_RIGHT
+	Bench486DispatchSpriteRight (sprite_spans, minindex, maxindex,
+			r_spritedesc.nump, r_spritedesc.pverts,
+			r_refdef.fvrectx_adj, r_refdef.fvrectright_adj,
+			r_refdef.fvrecty_adj, r_refdef.fvrectbottom_adj);
+#else
+	D_SpriteScanRightEdge_C ();
+#endif
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_GRADIENTS)
+void D_SpriteCalculateGradients_Dispatch_C (void)
+{
+#ifdef ASM486_SPRITE_GRADIENTS
+	Bench486DispatchSpriteGradients (sprite_height);
+#else
+	D_SpriteCalculateGradients_C ();
+#endif
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_SPRITE_DRAW)
+void D_DrawSprite_Dispatch_C (void)
+{
+#ifdef BENCH486
+	/* Observe projected locals while their owning setup stack frame is alive. */
+	if (bench486_sprite_project_hook)
+		bench486_sprite_project_hook (&r_spritedesc);
+#endif
+#ifdef ASM486_SPRITE_DRAW
+	Bench486DispatchSpriteDraw (r_spritedesc.nump, r_spritedesc.pverts,
+			r_spritedesc.pspriteframe->width,
+			r_spritedesc.pspriteframe->height,
+			(byte *)&r_spritedesc.pspriteframe->pixels[0]);
+#else
+	D_DrawSprite_C ();
+#endif
+}
+#endif

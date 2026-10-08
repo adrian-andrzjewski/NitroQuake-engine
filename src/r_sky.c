@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 #include "d_local.h"
+#include "asm_sky.h"
 
 
 int		iskyspeed = 8;
@@ -38,14 +39,42 @@ int r_skydirect;		// not used?
 
 // TODO: clean up these routines
 
+#ifdef BENCH486
+/* C-owned storage with byte-exact symbol aliases keeps guards adjacent to the
+   arrays addressed by both implementations. These aliases add no instructions. */
+struct bench_sky_bottom_storage_t { byte before[32], pixels[128*131], after[32]; };
+struct bench_sky_new_storage_t { byte before[32], pixels[128*256], after[32]; };
+struct bench_sky_bottom_storage_t bench486_sky_bottom_storage = {{0x69}};
+struct bench_sky_bottom_storage_t bench486_sky_mask_storage = {{0x69}};
+struct bench_sky_new_storage_t bench486_sky_new_storage = {{0x69}};
+extern byte bottomsky[128*131], bottommask[128*131], newsky[128*256];
+__asm__(".globl _bottomsky\n.set _bottomsky,_bench486_sky_bottom_storage+32\n"
+        ".globl _bottommask\n.set _bottommask,_bench486_sky_mask_storage+32\n"
+        ".globl _newsky\n.set _newsky,_bench486_sky_new_storage+32");
+typedef char sky_bottom_guard_layout[(offsetof(struct bench_sky_bottom_storage_t,pixels)==32 &&
+    offsetof(struct bench_sky_bottom_storage_t,after)==32+128*131) ? 1 : -1];
+typedef char sky_new_guard_layout[(offsetof(struct bench_sky_new_storage_t,pixels)==32 &&
+    offsetof(struct bench_sky_new_storage_t,after)==32+128*256) ? 1 : -1];
+#else
 byte	bottomsky[128*131];
 byte	bottommask[128*131];
 byte	newsky[128*256];	// newsky and topsky both pack in here, 128 bytes
 							//  of newsky on the left of each scan, 128 bytes
 							//  of topsky on the right, because the low-level
 							//  drawers need 256-byte scan widths
+#endif
 
 
+#if !defined(ASM486_SKY) || defined(BENCH486)
+#ifdef ASM486_SKY
+/* Independent C oracles exist only in the benchmark executable. */
+#define R_InitSky R_InitSky_C
+#define R_MakeSky R_MakeSky_C
+#define R_GenSkyTile R_GenSkyTile_C
+#define R_GenSkyTile16 R_GenSkyTile16_C
+#define R_SetSkyFrame R_SetSkyFrame_C
+int r_sky_xlast_c = -1, r_sky_ylast_c = -1;
+#endif
 /*
 =============
 R_InitSky
@@ -100,7 +129,12 @@ void R_MakeSky (void)
 	int			ofs, baseofs;
 	int			xshift, yshift;
 	unsigned	*pnewsky;
+#if defined(ASM486_SKY) && defined(BENCH486)
+#define xlast r_sky_xlast_c
+#define ylast r_sky_ylast_c
+#else
 	static int	xlast = -1, ylast = -1;
+#endif
 
 	xshift = skytime*skyspeed;
 	yshift = skytime*skyspeed;
@@ -151,6 +185,11 @@ void R_MakeSky (void)
 
 	r_skymade = 1;
 }
+
+#if defined(ASM486_SKY) && defined(BENCH486)
+#undef xlast
+#undef ylast
+#endif
 
 
 /*
@@ -278,3 +317,5 @@ void R_SetSkyFrame (void)
 }
 
 
+
+#endif /* C implementation / independent benchmark oracle */

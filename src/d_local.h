@@ -137,6 +137,38 @@ fixed16_t	bbextents, bbextentt;
 
 
 void D_DrawSpans8 (espan_t *pspans);
+/* Public prototypes also cover builds that exclude the C entry definitions. */
+void D_CalcGradients (msurface_t *pface);
+void D_DrawSurfacesCalcGradients_asm486 (msurface_t *pface);
+void D_PolysetUpdateTables (void);
+void D_RasterizeAliasPolySmooth (void);
+void D_PolysetSetEdgeTable (void);
+void D_PolysetCalcGradients (int skinwidth);
+void D_PolysetCalcGradients_C (int skinwidth);
+void D_PolysetCalcGradients_asm486 (int skinwidth);
+void D_PolysetSetUpForLineScan (fixed8_t startvertu, fixed8_t startvertv,
+		fixed8_t endvertu, fixed8_t endvertv);
+void D_PolysetSetUpForLineScan_C (fixed8_t startvertu, fixed8_t startvertv,
+		fixed8_t endvertu, fixed8_t endvertv);
+void D_PolysetSetEdgeTable_C (void);
+void D_PolysetUpdateTables_C (void);
+#if id386
+void D_PolysetSetUpForLineScan_asm486 (fixed8_t startvertu,
+		fixed8_t startvertv, fixed8_t endvertu, fixed8_t endvertv);
+void D_PolysetSetEdgeTable_asm486 (void);
+void D_PolysetUpdateTables_asm486 (void);
+#endif
+#ifdef BENCH486
+extern int r_p0[6], r_p1[6], r_p2[6], d_xdenom, d_xdenom_int;
+extern byte *skintable[480], *skinstart;
+extern int skinwidth;
+void *D_PolysetGetEdgeTableForBench (void);
+void D_PolysetSetEdgeTableForBench (void *table);
+extern int a_sstepxfrac, a_tstepxfrac, a_ststepxwhole;
+extern int r_lstepx, r_lstepy, r_sstepx, r_sstepy;
+extern int r_tstepx, r_tstepy, r_zistepx, r_zistepy;
+extern unsigned int single_cw __asm__("single_cw");
+#endif
 void D_DrawSpans16 (espan_t *pspans);
 void D_DrawZSpans (espan_t *pspans);
 void Turbulent8 (espan_t *pspan);
@@ -144,6 +176,33 @@ void Turbulent8 (espan_t *pspan);
 void Turbulent8_C (espan_t *pspan);
 #endif
 void D_SpriteDrawSpans (sspan_t *pspan);
+void D_DrawSprite_C (void);
+void D_DrawSprite_asm486 (int nump, emitpoint_t *pverts, int frame_width,
+		int frame_height, byte *frame_pixels);
+void D_SpriteScanLeftEdge_C (void);
+void D_SpriteScanLeftEdge_asm486 (sspan_t *spans, int minindex,
+		int maxindex, int nump, emitpoint_t *pverts);
+#ifdef BENCH486
+void D_SpriteScanLeftEdgeGetState (sspan_t **spans, int *min, int *max);
+void D_SpriteScanLeftEdgeSetState (sspan_t *spans, int min, int max);
+#endif
+void D_SpriteScanRightEdge_C (void);
+void D_SpriteScanRightEdge_asm486 (sspan_t *spans, int minindex,
+		int maxindex, int nump, emitpoint_t *pverts, float xleft,
+		float xright, float ytop, float ybottom);
+#ifdef BENCH486
+void D_SpriteScanRightEdgeGetState (sspan_t **spans, int *min, int *max,
+		float *xleft, float *xright, float *ytop, float *ybottom);
+void D_SpriteScanRightEdgeSetState (sspan_t *spans, int min, int max,
+		float xleft, float xright, float ytop, float ybottom);
+#endif
+void D_SpriteCalculateGradients_C (void);
+void D_SpriteCalculateGradients_asm486 (int height);
+extern int sprite_height, minindex, maxindex;
+extern sspan_t *sprite_spans;
+#ifdef BENCH486
+int D_SpriteCalculateGradientsSetHeight (int height);
+#endif
 
 void D_DrawSkyScans8 (espan_t *pspan);
 void D_DrawSkyScans16 (espan_t *pspan);

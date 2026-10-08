@@ -27,10 +27,57 @@ void Sys_Error (char *error, ...);
 vec3_t vec3_origin = {0,0,0};
 int nanmask = 255<<23;
 
+#ifdef ASM486_MATH_CLOSURE
+#include "asm_mathclosure.h"
+#define ProjectPointOnPlane ProjectPointOnPlane_C
+void ProjectPointOnPlane_C ( vec3_t dst, const vec3_t p, const vec3_t normal );
+#define PerpendicularVector PerpendicularVector_C
+void PerpendicularVector_C ( vec3_t dst, const vec3_t src );
+#define RotatePointAroundVector RotatePointAroundVector_C
+void RotatePointAroundVector_C ( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
+#define anglemod anglemod_C
+float anglemod_C (float a);
+#define BOPS_Error BOPS_Error_C
+void BOPS_Error_C (void);
+#define VectorCompare VectorCompare_C
+int VectorCompare_C (vec3_t v1, vec3_t v2);
+#define VectorMA VectorMA_C
+void VectorMA_C (vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
+#define _DotProduct _DotProduct_C
+vec_t _DotProduct_C (vec3_t v1, vec3_t v2);
+#define _VectorSubtract _VectorSubtract_C
+void _VectorSubtract_C (vec3_t veca, vec3_t vecb, vec3_t out);
+#define _VectorAdd _VectorAdd_C
+void _VectorAdd_C (vec3_t veca, vec3_t vecb, vec3_t out);
+#define _VectorCopy _VectorCopy_C
+void _VectorCopy_C (vec3_t in, vec3_t out);
+#define CrossProduct CrossProduct_C
+void CrossProduct_C (vec3_t v1, vec3_t v2, vec3_t cross);
+#define Length Length_C
+vec_t Length_C (vec3_t v);
+#define VectorInverse VectorInverse_C
+void VectorInverse_C (vec3_t v);
+#define VectorScale VectorScale_C
+void VectorScale_C (vec3_t in, vec_t scale, vec3_t out);
+#define Q_log2 Q_log2_C
+int Q_log2_C (int val);
+#define R_ConcatRotations R_ConcatRotations_C
+void R_ConcatRotations_C (float in1[3][3], float in2[3][3], float out[3][3]);
+#define R_ConcatTransforms R_ConcatTransforms_C
+void R_ConcatTransforms_C (float in1[3][4], float in2[3][4], float out[3][4]);
+#define FloorDivMod FloorDivMod_C
+void FloorDivMod_C (double numer, double denom, int *quotient,
+		int *rem);
+#define GreatestCommonDivisor GreatestCommonDivisor_C
+int GreatestCommonDivisor_C (int i1, int i2);
+#endif
+
+
 /*-----------------------------------------------------------------*/
 
 #define DEG2RAD( a ) ( a * M_PI ) / 180.0F
 
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 {
 	float d;
@@ -49,10 +96,13 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 	dst[1] = p[1] - d * n[1];
 	dst[2] = p[2] - d * n[2];
 }
+#endif
+
 
 /*
 ** assumes "src" is normalized
 */
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void PerpendicularVector( vec3_t dst, const vec3_t src )
 {
 	int	pos;
@@ -82,9 +132,16 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 	/*
 	** normalize the result
 	*/
+#if defined(ASM486_MATH_CLOSURE) && defined(BENCH486)
+	VectorNormalize_C( dst );
+#else
 	VectorNormalize( dst );
+#endif
 }
+#endif
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees )
 {
 	float	m[3][3];
@@ -139,10 +196,13 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 		dst[i] = rot[i][0] * point[0] + rot[i][1] * point[1] + rot[i][2] * point[2];
 	}
 }
+#endif
+
 
 /*-----------------------------------------------------------------*/
 
 
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 float	anglemod(float a)
 {
 #if 0
@@ -154,6 +214,8 @@ float	anglemod(float a)
 	a = (360.0/65536) * ((int)(a*(65536/360.0)) & 65535);
 	return a;
 }
+#endif
+
 
 /*
 ==================
@@ -162,10 +224,13 @@ BOPS_Error
 Split out like this for ASM to call.
 ==================
 */
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void BOPS_Error (void)
 {
 	Sys_Error ("BoxOnPlaneSide:  Bad signbits");
 }
+#endif
+
 
 
 #if	!id386
@@ -280,7 +345,8 @@ if (sides == 0)
 #endif
 
 
-void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
+#if !defined(ASM486_RENDER_MATH) || defined(BENCH486)
+void AngleVectors_C (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	float		angle;
 	float		sr, sp, sy, cr, cp, cy;
@@ -306,6 +372,16 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 	up[2] = cr*cp;
 }
 
+#endif
+
+#ifndef ASM486_RENDER_MATH
+void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
+{
+	AngleVectors_C (angles, forward, right, up);
+}
+#endif
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 int VectorCompare (vec3_t v1, vec3_t v2)
 {
 	int		i;
@@ -316,50 +392,71 @@ int VectorCompare (vec3_t v1, vec3_t v2)
 			
 	return 1;
 }
+#endif
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void VectorMA (vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
 {
 	vecc[0] = veca[0] + scale*vecb[0];
 	vecc[1] = veca[1] + scale*vecb[1];
 	vecc[2] = veca[2] + scale*vecb[2];
 }
+#endif
 
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 vec_t _DotProduct (vec3_t v1, vec3_t v2)
 {
 	return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
 }
+#endif
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void _VectorSubtract (vec3_t veca, vec3_t vecb, vec3_t out)
 {
 	out[0] = veca[0]-vecb[0];
 	out[1] = veca[1]-vecb[1];
 	out[2] = veca[2]-vecb[2];
 }
+#endif
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void _VectorAdd (vec3_t veca, vec3_t vecb, vec3_t out)
 {
 	out[0] = veca[0]+vecb[0];
 	out[1] = veca[1]+vecb[1];
 	out[2] = veca[2]+vecb[2];
 }
+#endif
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void _VectorCopy (vec3_t in, vec3_t out)
 {
 	out[0] = in[0];
 	out[1] = in[1];
 	out[2] = in[2];
 }
+#endif
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 {
 	cross[0] = v1[1]*v2[2] - v1[2]*v2[1];
 	cross[1] = v1[2]*v2[0] - v1[0]*v2[2];
 	cross[2] = v1[0]*v2[1] - v1[1]*v2[0];
 }
+#endif
+
 
 double sqrt(double x);
 
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 vec_t Length(vec3_t v)
 {
 	int		i;
@@ -372,8 +469,11 @@ vec_t Length(vec3_t v)
 
 	return length;
 }
+#endif
 
-float VectorNormalize (vec3_t v)
+
+#if !defined(ASM486_RENDER_MATH) || defined(BENCH486)
+float VectorNormalize_C (vec3_t v)
 {
 	float	length, ilength;
 
@@ -392,21 +492,37 @@ float VectorNormalize (vec3_t v)
 
 }
 
+#endif
+
+#ifndef ASM486_RENDER_MATH
+float VectorNormalize (vec3_t v)
+{
+	return VectorNormalize_C (v);
+}
+#endif
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void VectorInverse (vec3_t v)
 {
 	v[0] = -v[0];
 	v[1] = -v[1];
 	v[2] = -v[2];
 }
+#endif
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void VectorScale (vec3_t in, vec_t scale, vec3_t out)
 {
 	out[0] = in[0]*scale;
 	out[1] = in[1]*scale;
 	out[2] = in[2]*scale;
 }
+#endif
 
 
+
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 int Q_log2(int val)
 {
 	int answer=0;
@@ -414,6 +530,8 @@ int Q_log2(int val)
 		answer++;
 	return answer;
 }
+#endif
+
 
 
 /*
@@ -421,6 +539,7 @@ int Q_log2(int val)
 R_ConcatRotations
 ================
 */
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 {
 	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
@@ -442,6 +561,8 @@ void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] +
 				in1[2][2] * in2[2][2];
 }
+#endif
+
 
 
 /*
@@ -449,6 +570,7 @@ void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 R_ConcatTransforms
 ================
 */
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 {
 	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
@@ -476,6 +598,8 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] +
 				in1[2][2] * in2[2][3] + in1[2][3];
 }
+#endif
+
 
 
 /*
@@ -488,6 +612,7 @@ quotient must fit in 32 bits.
 ====================
 */
 
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 void FloorDivMod (double numer, double denom, int *quotient,
 		int *rem)
 {
@@ -528,6 +653,8 @@ void FloorDivMod (double numer, double denom, int *quotient,
 	*quotient = q;
 	*rem = r;
 }
+#endif
+
 
 
 /*
@@ -535,6 +662,7 @@ void FloorDivMod (double numer, double denom, int *quotient,
 GreatestCommonDivisor
 ====================
 */
+#if !defined(ASM486_MATH_CLOSURE) || defined(BENCH486)
 int GreatestCommonDivisor (int i1, int i2)
 {
 	if (i1 > i2)
@@ -550,6 +678,8 @@ int GreatestCommonDivisor (int i1, int i2)
 		return GreatestCommonDivisor (i1, i2 % i1);
 	}
 }
+#endif
+
 
 
 #if	!id386
@@ -573,4 +703,27 @@ fixed16_t Invert24To16(fixed16_t val)
 			(((double)0x10000 * (double)0x1000000 / (double)val) + 0.5);
 }
 
+#endif
+
+#ifdef ASM486_MATH_CLOSURE
+#undef ProjectPointOnPlane
+#undef PerpendicularVector
+#undef RotatePointAroundVector
+#undef anglemod
+#undef BOPS_Error
+#undef VectorCompare
+#undef VectorMA
+#undef _DotProduct
+#undef _VectorSubtract
+#undef _VectorAdd
+#undef _VectorCopy
+#undef CrossProduct
+#undef Length
+#undef VectorInverse
+#undef VectorScale
+#undef Q_log2
+#undef R_ConcatRotations
+#undef R_ConcatTransforms
+#undef FloorDivMod
+#undef GreatestCommonDivisor
 #endif

@@ -1,0 +1,824 @@
+{
+  "schemaVersion": 1,
+  "normalBuildGeneratesAssembly": false,
+  "originalFileSha256": "BE6A06B767651363BD586FFF62BBA467F333D87820C13E7D66BF9D5A7B8FC979",
+  "entries": [
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasCheckBBox",
+      "originalFunctionSha256": "0FAE81914F2B20E41C20639F00096204DB406B4DC962687F2F9815E20863204E",
+      "oracle": "R_AliasCheckBBox_AliasControl_C",
+      "purpose": "Transform eight frame corners, clip the twelve original near-plane edges, reject XY bounds and retain the entity transform cache."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasPreparePoints",
+      "originalFunctionSha256": "0EBEF584D3C7F37A06B3F89831609F5CFF0C2E784113E58D6012905CD5FB44F9",
+      "oracle": "R_AliasPreparePoints_AliasControl_C",
+      "purpose": "Transform clipped vertices, reject triangles by flag intersection and dispatch unclipped or clipped triangles in original order."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasSetUpTransform",
+      "originalFunctionSha256": "37441D6D3639E0EF16C8BFD8AB710DD616292EDB548DB1F421BAECECDB06E7FA",
+      "oracle": "R_AliasSetUpTransform_AliasControl_C",
+      "purpose": "Compose entity scale/origin, angle vectors and the cached camera matrix, retaining the original 31-bit projection scaling."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasProjectFinalVert",
+      "originalFunctionSha256": "CD2064212D1858AD879D66B4758D0495C99CEC534BB3B01D8C54A9B65506FE81",
+      "oracle": "R_AliasProjectFinalVert_AliasControl_C",
+      "purpose": "Compute reciprocal depth and the original screen/depth integer conversions without changing x87 stores."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasPrepareUnclippedPoints",
+      "originalFunctionSha256": "BB6AC1207BF21A193C74D61F1C1FC853FB95A35C8F75D4F5B2005C1AEF8DFFEE",
+      "oracle": "R_AliasPrepareUnclippedPoints_AliasControl_C",
+      "purpose": "Transform/project vertices, optionally draw subdivision vertices and publish the full triangle batch."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasSetupSkin",
+      "originalFunctionSha256": "C59E0044F77622C63C0E3AB4B1A1CB3059A05F2B09A347097462CE2B156F3F26",
+      "oracle": "R_AliasSetupSkin_AliasControl_C",
+      "purpose": "Preserve invalid-skin fallback, animated selection and skin dimensions/seam correction."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasSetupLighting",
+      "originalFunctionSha256": "48C8C38D739CC2C2D77F4CA007B0929F5B04003AD0F1AF227AA068C49AFC5A51",
+      "oracle": "R_AliasSetupLighting_AliasControl_C",
+      "purpose": "Pass the original model basis and light descriptor to the accepted lighting primitive."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasSetupFrame",
+      "originalFunctionSha256": "E62C3C3AE40C3B93121560B4790A18AA93E984D900AC045B34CEC3A7A00E1BF1",
+      "oracle": "R_AliasSetupFrame_AliasControl_C",
+      "purpose": "Preserve invalid-frame fallback and animated frame selection at client time plus sync base."
+    },
+    {
+      "originalFile": "alias-control-reference/r_alias.c",
+      "originalFunction": "R_AliasDrawModel",
+      "originalFunctionSha256": "DFA7C8F0BF26A316AE71C39BCAF7854C10BC83C4A8CBF6D7852C76FB9D991ACC",
+      "oracle": "R_AliasDrawModel_AliasControl_C",
+      "purpose": "Retain aligned stack scratch, transform cache, setup order, colormap patching, depth scaling and triangle dispatch."
+    }
+  ],
+  "instructionVariants": [
+    {
+      "originalFunction": "R_AliasCheckBBox",
+      "variant": "release",
+      "assemblyFile": "src/r_aliasbounds_release.inc",
+      "purpose": "Transform eight frame corners, clip the twelve original near-plane edges, reject XY bounds and retain the entity transform cache.",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "840",
+        "8",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetUpTransform",
+      "variant": "release",
+      "assemblyFile": "src/r_aliastransform_release.inc",
+      "purpose": "Compose entity scale/origin, angle vectors and the cached camera matrix, retaining the original 31-bit projection scaling.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "120"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasProjectFinalVert",
+      "variant": "release",
+      "assemblyFile": "src/r_aliastransform_release.inc",
+      "purpose": "Compute reciprocal depth and the original screen/depth integer conversions without changing x87 stores.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_AliasPreparePoints",
+      "variant": "release",
+      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "purpose": "Transform clipped vertices, reject triangles by flag intersection and dispatch unclipped or clipped triangles in original order.",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "40",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasPrepareUnclippedPoints",
+      "variant": "release",
+      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "purpose": "Transform/project vertices, optionally draw subdivision vertices and publish the full triangle batch.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "16",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetupSkin",
+      "variant": "release",
+      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "purpose": "Preserve invalid-skin fallback, animated selection and skin dimensions/seam correction.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetupLighting",
+      "variant": "release",
+      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "purpose": "Pass the original model basis and light descriptor to the accepted lighting primitive.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetupFrame",
+      "variant": "release",
+      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "purpose": "Preserve invalid-frame fallback and animated frame selection at client time plus sync base.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasDrawModel",
+      "variant": "release",
+      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "purpose": "Retain aligned stack scratch, transform cache, setup order, colormap patching, depth scaling and triangle dispatch.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "88040",
+        "12",
+        "12",
+        "12",
+        "8",
+        "8",
+        "8",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasCheckBBox",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliasbounds_profile.inc",
+      "purpose": "Transform eight frame corners, clip the twelve original near-plane edges, reject XY bounds and retain the entity transform cache.",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "840",
+        "8",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetUpTransform",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliastransform_profile.inc",
+      "purpose": "Compose entity scale/origin, angle vectors and the cached camera matrix, retaining the original 31-bit projection scaling.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "120"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasProjectFinalVert",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliastransform_profile.inc",
+      "purpose": "Compute reciprocal depth and the original screen/depth integer conversions without changing x87 stores.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_AliasPreparePoints",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "purpose": "Transform clipped vertices, reject triangles by flag intersection and dispatch unclipped or clipped triangles in original order.",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "40",
+        "12",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasPrepareUnclippedPoints",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "purpose": "Transform/project vertices, optionally draw subdivision vertices and publish the full triangle batch.",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "16",
+        "12",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetupSkin",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "purpose": "Preserve invalid-skin fallback, animated selection and skin dimensions/seam correction.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetupLighting",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "purpose": "Pass the original model basis and light descriptor to the accepted lighting primitive.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasSetupFrame",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "purpose": "Preserve invalid-frame fallback and animated frame selection at client time plus sync base.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AliasDrawModel",
+      "variant": "profile",
+      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "purpose": "Retain aligned stack scratch, transform cache, setup order, colormap patching, depth scaling and triangle dispatch.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "88068",
+        "12",
+        "12",
+        "12",
+        "8",
+        "12"
+      ]
+    }
+  ],
+  "layoutFacts": [
+    {
+      "name": "pointer_size",
+      "expression": "sizeof(void *)",
+      "value": 4
+    },
+    {
+      "name": "float_size",
+      "expression": "sizeof(float)",
+      "value": 4
+    },
+    {
+      "name": "double_size",
+      "expression": "sizeof(double)",
+      "value": 8
+    },
+    {
+      "name": "integer_size",
+      "expression": "sizeof(int)",
+      "value": 4
+    },
+    {
+      "name": "entity_t_size",
+      "expression": "sizeof(entity_t)",
+      "value": 180
+    },
+    {
+      "name": "entity_t_model",
+      "expression": "offsetof(entity_t,model)",
+      "value": 132
+    },
+    {
+      "name": "entity_t_frame",
+      "expression": "offsetof(entity_t,frame)",
+      "value": 140
+    },
+    {
+      "name": "entity_t_skinnum",
+      "expression": "offsetof(entity_t,skinnum)",
+      "value": 156
+    },
+    {
+      "name": "entity_t_syncbase",
+      "expression": "offsetof(entity_t,syncbase)",
+      "value": 144
+    },
+    {
+      "name": "entity_t_angles",
+      "expression": "offsetof(entity_t,angles)",
+      "value": 120
+    },
+    {
+      "name": "entity_t_origin",
+      "expression": "offsetof(entity_t,origin)",
+      "value": 84
+    },
+    {
+      "name": "entity_t_colormap",
+      "expression": "offsetof(entity_t,colormap)",
+      "value": 148
+    },
+    {
+      "name": "entity_t_trivial_accept",
+      "expression": "offsetof(entity_t,trivial_accept)",
+      "value": 172
+    },
+    {
+      "name": "model_t_size",
+      "expression": "sizeof(model_t)",
+      "value": 392
+    },
+    {
+      "name": "model_t_name",
+      "expression": "offsetof(model_t,name)",
+      "value": 0
+    },
+    {
+      "name": "mdl_t_size",
+      "expression": "sizeof(mdl_t)",
+      "value": 84
+    },
+    {
+      "name": "mdl_t_scale",
+      "expression": "offsetof(mdl_t,scale)",
+      "value": 8
+    },
+    {
+      "name": "mdl_t_scale_origin",
+      "expression": "offsetof(mdl_t,scale_origin)",
+      "value": 20
+    },
+    {
+      "name": "mdl_t_numverts",
+      "expression": "offsetof(mdl_t,numverts)",
+      "value": 60
+    },
+    {
+      "name": "mdl_t_numtris",
+      "expression": "offsetof(mdl_t,numtris)",
+      "value": 64
+    },
+    {
+      "name": "mdl_t_numframes",
+      "expression": "offsetof(mdl_t,numframes)",
+      "value": 68
+    },
+    {
+      "name": "mdl_t_numskins",
+      "expression": "offsetof(mdl_t,numskins)",
+      "value": 48
+    },
+    {
+      "name": "mdl_t_skinwidth",
+      "expression": "offsetof(mdl_t,skinwidth)",
+      "value": 52
+    },
+    {
+      "name": "mdl_t_skinheight",
+      "expression": "offsetof(mdl_t,skinheight)",
+      "value": 56
+    },
+    {
+      "name": "mdl_t_size_offset",
+      "expression": "offsetof(mdl_t,size)",
+      "value": 80
+    },
+    {
+      "name": "aliashdr_t_size",
+      "expression": "sizeof(aliashdr_t)",
+      "value": 48
+    },
+    {
+      "name": "aliashdr_t_model",
+      "expression": "offsetof(aliashdr_t,model)",
+      "value": 0
+    },
+    {
+      "name": "aliashdr_t_stverts",
+      "expression": "offsetof(aliashdr_t,stverts)",
+      "value": 4
+    },
+    {
+      "name": "aliashdr_t_triangles",
+      "expression": "offsetof(aliashdr_t,triangles)",
+      "value": 12
+    },
+    {
+      "name": "aliashdr_t_skindesc",
+      "expression": "offsetof(aliashdr_t,skindesc)",
+      "value": 8
+    },
+    {
+      "name": "aliashdr_t_frames",
+      "expression": "offsetof(aliashdr_t,frames)",
+      "value": 16
+    },
+    {
+      "name": "maliasframedesc_t_size",
+      "expression": "sizeof(maliasframedesc_t)",
+      "value": 32
+    },
+    {
+      "name": "maliasframedesc_t_type",
+      "expression": "offsetof(maliasframedesc_t,type)",
+      "value": 0
+    },
+    {
+      "name": "maliasframedesc_t_bboxmin",
+      "expression": "offsetof(maliasframedesc_t,bboxmin)",
+      "value": 4
+    },
+    {
+      "name": "maliasframedesc_t_bboxmax",
+      "expression": "offsetof(maliasframedesc_t,bboxmax)",
+      "value": 8
+    },
+    {
+      "name": "maliasframedesc_t_frame",
+      "expression": "offsetof(maliasframedesc_t,frame)",
+      "value": 12
+    },
+    {
+      "name": "maliasgroup_t_size",
+      "expression": "sizeof(maliasgroup_t)",
+      "value": 20
+    },
+    {
+      "name": "maliasgroup_t_numframes",
+      "expression": "offsetof(maliasgroup_t,numframes)",
+      "value": 0
+    },
+    {
+      "name": "maliasgroup_t_intervals",
+      "expression": "offsetof(maliasgroup_t,intervals)",
+      "value": 4
+    },
+    {
+      "name": "maliasgroup_t_frames",
+      "expression": "offsetof(maliasgroup_t,frames)",
+      "value": 8
+    },
+    {
+      "name": "maliasskindesc_t_size",
+      "expression": "sizeof(maliasskindesc_t)",
+      "value": 12
+    },
+    {
+      "name": "maliasskindesc_t_type",
+      "expression": "offsetof(maliasskindesc_t,type)",
+      "value": 0
+    },
+    {
+      "name": "maliasskindesc_t_skin",
+      "expression": "offsetof(maliasskindesc_t,skin)",
+      "value": 8
+    },
+    {
+      "name": "maliasskingroup_t_size",
+      "expression": "sizeof(maliasskingroup_t)",
+      "value": 20
+    },
+    {
+      "name": "maliasskingroup_t_numskins",
+      "expression": "offsetof(maliasskingroup_t,numskins)",
+      "value": 0
+    },
+    {
+      "name": "maliasskingroup_t_intervals",
+      "expression": "offsetof(maliasskingroup_t,intervals)",
+      "value": 4
+    },
+    {
+      "name": "maliasskingroup_t_skindescs",
+      "expression": "offsetof(maliasskingroup_t,skindescs)",
+      "value": 8
+    },
+    {
+      "name": "mtriangle_t_size",
+      "expression": "sizeof(mtriangle_t)",
+      "value": 16
+    },
+    {
+      "name": "mtriangle_t_facesfront",
+      "expression": "offsetof(mtriangle_t,facesfront)",
+      "value": 0
+    },
+    {
+      "name": "mtriangle_t_vertindex",
+      "expression": "offsetof(mtriangle_t,vertindex)",
+      "value": 4
+    },
+    {
+      "name": "finalvert_t_size",
+      "expression": "sizeof(finalvert_t)",
+      "value": 32
+    },
+    {
+      "name": "finalvert_t_v",
+      "expression": "offsetof(finalvert_t,v)",
+      "value": 0
+    },
+    {
+      "name": "finalvert_t_flags",
+      "expression": "offsetof(finalvert_t,flags)",
+      "value": 24
+    },
+    {
+      "name": "finalvert_t_reserved",
+      "expression": "offsetof(finalvert_t,reserved)",
+      "value": 28
+    },
+    {
+      "name": "auxvert_t_size",
+      "expression": "sizeof(auxvert_t)",
+      "value": 12
+    },
+    {
+      "name": "auxvert_t_fv",
+      "expression": "offsetof(auxvert_t,fv)",
+      "value": 0
+    },
+    {
+      "name": "stvert_t_size",
+      "expression": "sizeof(stvert_t)",
+      "value": 12
+    },
+    {
+      "name": "stvert_t_onseam",
+      "expression": "offsetof(stvert_t,onseam)",
+      "value": 0
+    },
+    {
+      "name": "stvert_t_s",
+      "expression": "offsetof(stvert_t,s)",
+      "value": 4
+    },
+    {
+      "name": "stvert_t_t",
+      "expression": "offsetof(stvert_t,t)",
+      "value": 8
+    },
+    {
+      "name": "trivertx_t_size",
+      "expression": "sizeof(trivertx_t)",
+      "value": 4
+    },
+    {
+      "name": "trivertx_t_v",
+      "expression": "offsetof(trivertx_t,v)",
+      "value": 0
+    },
+    {
+      "name": "trivertx_t_lightnormalindex",
+      "expression": "offsetof(trivertx_t,lightnormalindex)",
+      "value": 3
+    },
+    {
+      "name": "refdef_t_size",
+      "expression": "sizeof(refdef_t)",
+      "value": 148
+    },
+    {
+      "name": "refdef_t_fvrectx",
+      "expression": "offsetof(refdef_t,fvrectx)",
+      "value": 60
+    },
+    {
+      "name": "refdef_t_fvrecty",
+      "expression": "offsetof(refdef_t,fvrecty)",
+      "value": 64
+    },
+    {
+      "name": "refdef_t_fvrectright",
+      "expression": "offsetof(refdef_t,fvrectright)",
+      "value": 92
+    },
+    {
+      "name": "refdef_t_fvrectbottom",
+      "expression": "offsetof(refdef_t,fvrectbottom)",
+      "value": 96
+    },
+    {
+      "name": "refdef_t_aliasvrect",
+      "expression": "offsetof(refdef_t,aliasvrect)",
+      "value": 20
+    },
+    {
+      "name": "refdef_t_aliasvrectright",
+      "expression": "offsetof(refdef_t,aliasvrectright)",
+      "value": 48
+    },
+    {
+      "name": "refdef_t_aliasvrectbottom",
+      "expression": "offsetof(refdef_t,aliasvrectbottom)",
+      "value": 52
+    },
+    {
+      "name": "affinetridesc_t_size",
+      "expression": "sizeof(affinetridesc_t)",
+      "value": 36
+    },
+    {
+      "name": "affinetridesc_t_pskin",
+      "expression": "offsetof(affinetridesc_t,pskin)",
+      "value": 0
+    },
+    {
+      "name": "affinetridesc_t_pskindesc",
+      "expression": "offsetof(affinetridesc_t,pskindesc)",
+      "value": 4
+    },
+    {
+      "name": "affinetridesc_t_skinwidth",
+      "expression": "offsetof(affinetridesc_t,skinwidth)",
+      "value": 8
+    },
+    {
+      "name": "affinetridesc_t_skinheight",
+      "expression": "offsetof(affinetridesc_t,skinheight)",
+      "value": 12
+    },
+    {
+      "name": "affinetridesc_t_ptriangles",
+      "expression": "offsetof(affinetridesc_t,ptriangles)",
+      "value": 16
+    },
+    {
+      "name": "affinetridesc_t_pfinalverts",
+      "expression": "offsetof(affinetridesc_t,pfinalverts)",
+      "value": 20
+    },
+    {
+      "name": "affinetridesc_t_numtriangles",
+      "expression": "offsetof(affinetridesc_t,numtriangles)",
+      "value": 24
+    },
+    {
+      "name": "affinetridesc_t_drawtype",
+      "expression": "offsetof(affinetridesc_t,drawtype)",
+      "value": 28
+    },
+    {
+      "name": "affinetridesc_t_seamfixupX16",
+      "expression": "offsetof(affinetridesc_t,seamfixupX16)",
+      "value": 32
+    },
+    {
+      "name": "client_state_t_size",
+      "expression": "sizeof(client_state_t)",
+      "value": 2900
+    },
+    {
+      "name": "client_state_t_time",
+      "expression": "offsetof(client_state_t,time)",
+      "value": 572
+    },
+    {
+      "name": "client_state_t_viewent",
+      "expression": "offsetof(client_state_t,viewent)",
+      "value": 2708
+    },
+    {
+      "name": "alight_t_size",
+      "expression": "sizeof(alight_t)",
+      "value": 12
+    },
+    {
+      "name": "alight_t_ambientlight",
+      "expression": "offsetof(alight_t,ambientlight)",
+      "value": 0
+    },
+    {
+      "name": "alight_t_shadelight",
+      "expression": "offsetof(alight_t,shadelight)",
+      "value": 4
+    },
+    {
+      "name": "alight_t_plightvec",
+      "expression": "offsetof(alight_t,plightvec)",
+      "value": 8
+    },
+    {
+      "name": "MAXALIASVERTS",
+      "expression": "MAXALIASVERTS",
+      "value": 2000
+    },
+    {
+      "name": "CACHE_SIZE",
+      "expression": "CACHE_SIZE",
+      "value": 32
+    },
+    {
+      "name": "ALIAS_LEFT_CLIP",
+      "expression": "ALIAS_LEFT_CLIP",
+      "value": 1
+    },
+    {
+      "name": "ALIAS_RIGHT_CLIP",
+      "expression": "ALIAS_RIGHT_CLIP",
+      "value": 4
+    },
+    {
+      "name": "ALIAS_TOP_CLIP",
+      "expression": "ALIAS_TOP_CLIP",
+      "value": 2
+    },
+    {
+      "name": "ALIAS_BOTTOM_CLIP",
+      "expression": "ALIAS_BOTTOM_CLIP",
+      "value": 8
+    },
+    {
+      "name": "ALIAS_Z_CLIP",
+      "expression": "ALIAS_Z_CLIP",
+      "value": 16
+    },
+    {
+      "name": "ALIAS_XY_CLIP_MASK",
+      "expression": "ALIAS_XY_CLIP_MASK",
+      "value": 15
+    },
+    {
+      "name": "ALIAS_ONSEAM",
+      "expression": "ALIAS_ONSEAM",
+      "value": 32
+    },
+    {
+      "name": "ALIAS_SINGLE",
+      "expression": "ALIAS_SINGLE",
+      "value": 0
+    },
+    {
+      "name": "ALIAS_GROUP",
+      "expression": "ALIAS_GROUP",
+      "value": 1
+    },
+    {
+      "name": "ALIAS_SKIN_SINGLE",
+      "expression": "ALIAS_SKIN_SINGLE",
+      "value": 0
+    },
+    {
+      "name": "ALIAS_SKIN_GROUP",
+      "expression": "ALIAS_SKIN_GROUP",
+      "value": 1
+    },
+    {
+      "name": "VID_CBITS",
+      "expression": "VID_CBITS",
+      "value": 6
+    },
+    {
+      "name": "VID_GRADES",
+      "expression": "VID_GRADES",
+      "value": 64
+    }
+  ]
+}

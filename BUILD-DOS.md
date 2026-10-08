@@ -62,31 +62,36 @@ it is used in exactly three files.
 
 ### Read this before calling it a 386 binary
 
-The i386 build is **i386 by construction and by audit of the project's own code,
-and it will nevertheless not execute on a 386.**  That is a property of the
-pinned toolchain, and it is worth stating precisely rather than in a footnote.
-
-`-march=i386` on GCC 12.2 does not produce 386-safe code.  Measured on this
-toolchain:
+The i386 build is **not executable on an 80386**. The source audit currently
+finds 131 i486 instructions, mostly compiler-generated `setcc`, plus one
+`shrdl`. The `TARGET_I386` assembly substitutions remove the i486-only forms
+from the assembly paths, but `-march=i386` does not constrain every construct
+GCC 12.2 emits:
 
 | construct | GCC emits | assembler emits | minimum ISA |
 |---|---|---|---|
-| `a * b`, two registers | `imull %ebx,%eax` | `0F AF` `imul r32,r/m32` | **Pentium** |
+| `a * b`, two registers | `imull %ebx,%eax` | `0F AF` `imul r32,r/m32` | **i386** |
 | `a > b` | `setg %al` | `0F 9F` | **i486** |
 
-`0F AF` is the only two-operand `IMUL` encoding x86 has, so GNU `as` has nothing
-to fall back on, and GCC emits that spelling regardless of `-march`.  There is no
-command-line switch that changes it: `-march=386` is not a valid spelling,
-`-Os` is worse (it adds `imull $imm`), and no `-mtune-ctrl` knob reaches
-instruction selection for `IMUL`.  This was not assumed — GCC 4.8.2, the oldest
-prebuilt in the `andrewwutw/build-djgpp` release series, was downloaded and
-probed, and it behaves identically.  A toolchain swap buys nothing, so
-`tools\dos-toolchain.json` is unchanged.
+The Intel 80386 manual documents `IMUL r32,r/m32` (`0F AF`) and the immediate
+forms. The earlier audit classified these encodings as Pentium, which was wrong;
+the corrected source and object audit both classify them as i386. See the
+[Intel 80386 Programmer's Reference Manual](https://read.seas.harvard.edu/~kohler/class/aosref/i386.pdf).
 
-The same two constructs are present in the **i486** release build.  The shipped
-`quake.exe` contains 161 `0F AF` instructions and would already fault on a real
-486.  That predates this work; it is recorded here because it is the same root
-cause, not a second problem.
+The retained i486 build is verified at zero above-i486 instructions by the
+compiler-output scan and object audit. The normal i486 build also writes a GNU
+linker map and runs `tools/isa-audit-linked.ps1`: it extracts and audits the
+exact linked CRT and static-runtime members, restricts inspection to mapped
+code sections, and checks ISA-defining opcode bytes at their final executable
+addresses. Relocation-backed tables and four source-identified data ranges in
+`.text` are reported separately from code. The full executable disassembly,
+linked input hashes, mapped section list, and opcode-site report are retained
+beside the executable. See `ASM486-HANDOFF.md` under “Linked executable and
+runtime ISA audit” for the last full-closure result and its limits.
+
+The object audit's MMX-shaped CRC match is a known data-only constant-table
+exemption. It remains visible in the report and is counted as data, not
+executable code.
 
 ### What the i386 build did fix
 
@@ -96,13 +101,11 @@ Every instruction above i486 **in this project's own assembly** is gone:
 |---|---|---:|---:|
 | `SHLD` (`0F A4`) | `d_draw.s` | 18 | **0** |
 | `BT`/`BTR` with a register bit offset (`0F A3`, `0F B3`) | `asm486_experiments.s` | 2 | **0** |
-| `RDMSR`/`WRMSR` (`0F 32`, `0F 30`) | `dosasm.s` | 6 | **0** |
 
-`dosasm.s`'s pair drives MSR `0x11` (CESR), which is a Pentium Pro / Cyrix-6x86
-register and is unusable on an i486 as well as an i386.  Nothing in the tree
-references `StartMSRInterval` or `EndMSRInterval`, so excluding them removes dead
-code and changes no behaviour.  The other two have i386 spellings that are
-bit-identical:
+The unused `StartMSRInterval`/`EndMSRInterval` routines, which accessed the
+Pentium Pro/Cyrix CESR through `RDMSR`/`WRMSR`, have been removed after a
+repository-wide call-site search found no references. The remaining two assembly
+substitutions are bit-identical:
 
 * `d_draw.s` packs a Z-span pixel pair with `shld`/`ror`; the i386 macro computes
   the same value as `(eax & 0xFFFF) | (edx & 0xFFFF0000)` in four instructions,
@@ -117,13 +120,11 @@ bit-identical:
 only, with zero unclassified:
 
 ```text
-instructions        115677
-i386 115370  i486 131  i586 176  p6 0  unknown 0
-above i386          307
-  i586  imull (two-operand)  173      21 in our assembly, 152 from GCC
-  i486  setcc                131      all from GCC
-  i586  ud2                    3      GCC cold-block traps, unreachable
-  i486  shrdl                  1      GCC
+instructions        115758
+i386 115627  i486 131  i586 0  p6 0  unknown 0
+above i386          131
+  i486  setcc                130      GCC output
+  i486  shrdl                  1      GCC output
 ```
 
 `tools\isa-audit.ps1` cross-checks that at the object level.  Note that this tool
@@ -165,11 +166,13 @@ The i486 release is pinned three ways, and all three are checked by
   object-level gate above: the two count instructions by different means, and
   `tools\golden\isa-baseline.json` records that their agreement is the evidence
   its 62/63 string-data exclusion is sound rather than convenient.  Run the tool
-  *without* `-FailOnViolation`, which is an absolute pass and stays red for as long
-  as the multiply-elimination work is incomplete; the ratchet is what gates.
-* The i386 codepath is entirely inside `#ifdef TARGET_I386`, so the i486 object
-  bytes cannot move.  That is what the SHA-256 pin proves, and it is checked after
-  every change to the assembly.
+  with `-FailOnViolation` when checking i486 output; zero above-target
+  instructions is now the expected result. The i386 target retains 131 i486
+  instructions and uses its separate recorded ratchet.
+* The architecture-specific assembly substitutions remain selected by
+  `TARGET_I386`. The per-source compatibility flags for `pr_edict.c` and `wad.c`
+  apply to both CPU targets and avoid GCC's unsupported cold-path `UD2` output.
+  The release SHA-256 baseline must be refreshed after the validated build.
 * `tools\dosbox-x-486-high.conf` is pinned by SHA-256 from `timedemo-dos.ps1`,
   with line endings normalised to LF before hashing.  Hashing the file as it sits
   on disk made that promotion gate depend on the machine's git configuration:
@@ -548,8 +551,9 @@ out\dos\quake.exe
 The default normal build uses all 83 C files and 21 preprocessed x86 assembly
 files in src.  Its `aggressive` profile is `-O3 -march=i486` with the
 measured ASM paths enabled for alias projection, alias bounding-box projection,
-clipped alias transform/lighting, texture animation, and lightmap
-normalization; the turbulent loop uses the measured `stosb` variant. Renderer
+clipped alias transform/lighting and vertex preparation, alias view-matrix setup
+and composition, alias triangle rasterization, texture animation, and lightmap normalization; the turbulent
+loop uses the measured `stosb` variant. Renderer
 entry selectors such as `-SkySpanImplementation`, `-WarpScreenImplementation`,
 `-SolidSurfaceImplementation`, and `-TurbulentScanImplementation` let C and
 assembly paths be built separately; the sky, solid-surface, and turbulent-scan
@@ -560,6 +564,49 @@ and obtains the remaining C implementation through that include.  Object files
 and a generated build-manifest.json remain under out\dos, which is ignored by
 Git.  The linker output is checked with the DJGPP objdump and must report
 coff-go32.
+
+### Alias triangle rasterization
+
+`D_RasterizeAliasPolySmooth` has selectable C and assembly paths. The assembly
+entry in `src/d_polysa.s` performs the original edge-table, span-package, and
+fixed-point step setup, then delegates to the existing gradient, line-scan,
+left-edge, and span-draw routines. It preserves EBX, ESI, EDI, and EBP and uses
+only 386 integer instructions in its orchestration. The C implementation stays
+available as `D_RasterizeAliasPolySmooth_C`.
+
+~~~powershell
+.\tools\build-dos.ps1 -AliasRasterizeImplementation c
+.\tools\build-dos.ps1 -AliasRasterizeImplementation asm
+.\tools\render-parity-dos.ps1 `
+  -ReferenceProfile .\tools\renderer-profiles\i486-c-reference.json `
+  -CandidateProfile .\tools\renderer-profiles\i486-asm-alias-rasterize.json `
+  -Scenario demo2-entity-workload
+~~~
+
+Assembly is the i486 default and retains the established release output root;
+the C reference build gets the `aliasrasterizec` suffix. The focused two-repeat
+Demo 2 comparison matched every post-warmup frame checksum and the complete
+indexed capture and palette. See
+`docs/ledger/2026-10-07-alias-rasterize-assembly-port.md` for the audit and
+result paths.
+
+`R_AliasPreparePoints` also selects its per-vertex loop with
+`-AliasPrepareImplementation control|local|asm`. The default `asm` route calls
+`R_AliasPreparePointsVertices_asm486`, which transforms each vertex, handles
+the near plane, projects visible points, and accumulates the original screen
+clip flags. The `control` C path and `local` C-loop variant remain available;
+their output roots have distinct suffixes. A focused two-repeat Demo 2 pair
+matched every post-warmup checksum and the complete captured indexed frame and
+palette. See `docs/ledger/2026-10-07-alias-prepare-assembly-port.md`.
+
+Alias model transform setup uses `R_AliasSetViewMatrix_asm486` for the three
+basis vectors and `R_ConcatTransforms_asm486` for both matrix products through
+`-AliasMatrixCompositionImplementation asm`; this is the i486 default. The C
+reference (`c`) and the specialized diagonal C path (`special`) remain
+selectable. Three view-matrix cases, the fractional and translation-order
+matrix fixtures, and the focused two-repeat Demo 2 capture matched exactly.
+Details and audit paths are in
+`docs/ledger/2026-10-07-alias-matrix-composition-assembly-port.md`.
 
 The memory-helper experiment can route the real `Q_memset` and `Q_memcpy`
 entry points through the hand-written 486 routines without changing the C
@@ -715,6 +762,78 @@ The surface-cache dynamic-light predicate is independently selectable with
 routine, which traverses sparse light bits and shares the assembly projection
 helper with `R_AddDynamicLights`. Benchmark builds retain the C predicate for
 the direct 36-case parity harness, including all four x87 rounding modes.
+
+The active-light enumeration in `R_PushDlights` has its own
+`-DynamicLightPushImplementation c|asm` selector. The i486 build defaults
+to the assembly loop; i386 and explicit `c` builds use the C reference.
+This selector covers the 32 light-slot deadline/radius checks and dispatches
+eligible lights through the independently selected `MarkLightsImplementation`.
+
+~~~powershell
+.\tools\build-dos.ps1 -DynamicLightPushImplementation c
+.\tools\build-dos.ps1 -DynamicLightPushImplementation asm
+.\tools\bench-dos.ps1 -NoBootstrap -DynamicLightPushImplementation asm -MarkLightsImplementation c -LightMapBuildOnly
+~~~
+
+The benchmark command runs the five-case direct C/assembly fixture (active
+slots including bit 31, exact deadline, zero radius, and expired lights with a
+null world). The focused six-scene framebuffer comparison uses
+`tools/renderer-profiles/i486-c-reference.json` and
+`tools/renderer-profiles/i486-asm-dlight-push.json` with
+`tools/render-parity-dos.ps1`. The paired run passed two repeats of each
+scene with exact captured frame and palette comparisons; see the
+`R_PushDlights` ledger for the report path and ISA audit.
+
+The sprite setup routine `R_SetupAndDrawSprite` has an independent
+`-SpriteSetupImplementation c|asm` selector. The i486 build defaults to the
+assembly path; i386 and explicit `c` builds use the C reference.
+
+~~~powershell
+.\tools\build-dos.ps1 -SpriteSetupImplementation c
+.\tools\build-dos.ps1 -SpriteSetupImplementation asm
+.\tools\bench-dos.ps1 -NoBootstrap -SpriteSetupImplementation asm -SpriteSetupOnly
+~~~
+
+The focused fixture checks five sprite cases against the C path, including the
+full clip buffer, projected vertices, near depth, indexed-color framebuffer,
+and depth buffer. The paired Demo 2 run matched both repeats and captured
+frames exactly. See `tools/renderer-profiles/i486-asm-sprite-setup.json`
+and the sprite-setup ledger for the audit and report paths.
+
+The sprite draw entry `D_DrawSprite` has a separate
+`-SpriteDrawImplementation c|asm` selector. The i486 build defaults to
+assembly; i386 and explicit `c` builds use C.
+
+~~~powershell
+.\tools\build-dos.ps1 -SpriteDrawImplementation c
+.\tools\build-dos.ps1 -SpriteDrawImplementation asm
+.\tools\bench-dos.ps1 -NoBootstrap -SpriteDrawImplementation asm -SpriteDrawOnly
+~~~
+
+The three direct fixtures compare the complete indexed-color and depth
+buffers. The paired Demo 2 comparison matched two repeats and both captured
+frames exactly. See `tools/renderer-profiles/i486-asm-sprite-draw.json`
+and the sprite-draw ledger for its instruction audit and report.
+
+The four promoted paths also passed a combined six-scene, two-repeat C/assembly
+comparison with exact frame-checksum streams and exact 320x200 framebuffer and
+palette captures. See the combined-run details in the sprite-draw ledger.
+
+The animated sprite-frame resolver `R_GetSpriteframe` has an independent
+`-SpriteFrameImplementation c|asm` selector. Assembly is the i486 default;
+i386 and explicit `c` builds use the C reference.
+
+~~~powershell
+.\tools\build-dos.ps1 -SpriteFrameImplementation c
+.\tools\build-dos.ps1 -SpriteFrameImplementation asm
+.\tools\bench-dos.ps1 -NoBootstrap -SpriteFrameImplementation asm -SpriteFrameOnly
+~~~
+
+The direct fixture checks 12 single-frame, group-boundary, wrap, negative
+time, and invalid-frame cases. Each returned frame pointer matched the C path.
+The focused Demo 2 comparison passed, and the five-path profile
+tools/renderer-profiles/i486-asm-promoted-renderers-spriteframe.json is used
+for the combined six-scene check.
 
 `-SurfaceCacheImplementation c|asm` independently selects the surface-cache
 hit check, key loads, miss-path metadata, texture/style tags, allocator,

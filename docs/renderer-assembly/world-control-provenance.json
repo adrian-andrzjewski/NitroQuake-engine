@@ -1,0 +1,569 @@
+{
+  "schemaVersion": 1,
+  "normalBuildGeneratesAssembly": false,
+  "originalFiles": {
+    "r_bsp.c": "91D1B008964C23C04F2EBBE21EBE34C1E64FF0C3593F71CBB38BD8CD456DB59D",
+    "r_efrag.c": "ED6B7C06DE282844FED37A1A09C97DD37D34EDB5413A889E763FEA29D0717A2A",
+    "r_edge.c": "4FCC88B6C6FBB3A698DFC5C4C32CA17C603686B8B750B623401FD78AB079369C"
+  },
+  "entries": [
+    {
+      "originalFile": "world-control-reference/r_bsp.c",
+      "originalFunction": "R_EntityRotate",
+      "originalFunctionSha256": "444349CDED8C064EF9E83E2C2F23C537C31480B92B6E1BB0E5D6450D98766227",
+      "oracle": "R_EntityRotate_WorldControl_C",
+      "purpose": "Copy the original vector before applying the three stored matrix rows, including aliased input/output."
+    },
+    {
+      "originalFile": "world-control-reference/r_bsp.c",
+      "originalFunction": "R_RotateBmodel",
+      "originalFunctionSha256": "26B21B568FC52FA866D7A84D441B3878FC4B79776AABCB64FA1A89D2B54C117A",
+      "oracle": "R_RotateBmodel_WorldControl_C",
+      "purpose": "Compose original yaw/pitch/roll matrices, rotate model/camera vectors and update the frustum in original x87 order."
+    },
+    {
+      "originalFile": "world-control-reference/r_bsp.c",
+      "originalFunction": "R_RotateBmodelCached",
+      "originalFunctionSha256": "DE7CEE8F07FCDE37F8500809FEDCEEC8A9817F26CB82A063EC76B163F510E61A",
+      "oracle": "R_RotateBmodelCached_WorldControl_C",
+      "purpose": "Preserve the eight-slot pointer/frame rotation cache, including same-frame hits and slot collisions."
+    },
+    {
+      "originalFile": "world-control-reference/r_efrag.c",
+      "originalFunction": "R_RemoveEfrags",
+      "originalFunctionSha256": "4356ADE3C170CF33AB1B881EAA101FC443D35EC0071A0838F7B4BB364901BE3D",
+      "oracle": "R_RemoveEfrags_WorldControl_C",
+      "purpose": "Unlink each entity fragment from its leaf and prepend it to the original free-fragment chain."
+    },
+    {
+      "originalFile": "world-control-reference/r_efrag.c",
+      "originalFunction": "R_SplitEntityOnNode",
+      "originalFunctionSha256": "841733175233F44ED468ADD64E61C2810CEDB43B6A5B1FCEB8FED46E0A67553D",
+      "oracle": "R_SplitEntityOnNode_WorldControl_C",
+      "purpose": "Traverse contacted BSP sides, preserve the first top node, and link available fragments into entity and leaf lists."
+    },
+    {
+      "originalFile": "world-control-reference/r_efrag.c",
+      "originalFunction": "R_SplitEntityOnNode2",
+      "originalFunctionSha256": "2B24024833D5B4A5E04EFA2F8D92AD409DB8DCE16C16D931CB77029F06F59EBA",
+      "oracle": "R_SplitEntityOnNode2_WorldControl_C",
+      "purpose": "Find the visible first splitter/non-solid leaf using the original visibility and plane-side rules."
+    },
+    {
+      "originalFile": "world-control-reference/r_efrag.c",
+      "originalFunction": "R_AddEfrags",
+      "originalFunctionSha256": "842980B2FA8146DAB331CBEA09DBBE8E3F9A0ABBF74F2F11AFC822291C48FAEB",
+      "oracle": "R_AddEfrags_WorldControl_C",
+      "purpose": "Preserve missing-model/world early returns, translated model bounds and original fragment/top-node publication."
+    },
+    {
+      "originalFile": "world-control-reference/r_edge.c",
+      "originalFunction": "R_DrawCulledPolys",
+      "originalFunctionSha256": "2C7D7728FA83C8F7494D460583598226D303D309711AD150D736B33A30B2DC9B",
+      "oracle": "R_DrawCulledPolys_WorldControl_C",
+      "purpose": "Visit span-bearing non-background surfaces in the original forward/backward order with clip flags 15."
+    },
+    {
+      "originalFile": "world-control-reference/r_edge.c",
+      "originalFunction": "R_BeginEdgeFrame",
+      "originalFunctionSha256": "95919DA1A0DF9EA5F4B65E1FF8384CB562BA26A4F76D622EFD25768577664D3B",
+      "oracle": "R_BeginEdgeFrame_WorldControl_C",
+      "purpose": "Reset edge/surface cursors, background/key/span direction and only the active scanline lists."
+    }
+  ],
+  "instructionVariants": [
+    {
+      "originalFunction": "R_EntityRotate",
+      "variant": "release",
+      "assemblyFile": "src/r_worldrotation_release.inc",
+      "purpose": "Copy the original vector before applying the three stored matrix rows, including aliased input/output.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_RotateBmodel",
+      "variant": "release",
+      "assemblyFile": "src/r_worldrotation_release.inc",
+      "purpose": "Compose original yaw/pitch/roll matrices, rotate model/camera vectors and update the frustum in original x87 order.",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "120"
+      ]
+    },
+    {
+      "originalFunction": "R_RotateBmodelCached",
+      "variant": "release",
+      "assemblyFile": "src/r_worldrotation_release.inc",
+      "purpose": "Preserve the eight-slot pointer/frame rotation cache, including same-frame hits and slot collisions.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "40"
+      ]
+    },
+    {
+      "originalFunction": "R_RemoveEfrags",
+      "variant": "release",
+      "assemblyFile": "src/r_worldefrags_release.inc",
+      "purpose": "Unlink each entity fragment from its leaf and prepend it to the original free-fragment chain.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_SplitEntityOnNode",
+      "variant": "release",
+      "assemblyFile": "src/r_worldefrags_release.inc",
+      "purpose": "Traverse contacted BSP sides, preserve the first top node, and link available fragments into entity and leaf lists.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "24",
+        "12",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_SplitEntityOnNode2",
+      "variant": "release",
+      "assemblyFile": "src/r_worldefrags_release.inc",
+      "purpose": "Find the visible first splitter/non-solid leaf using the original visibility and plane-side rules.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AddEfrags",
+      "variant": "release",
+      "assemblyFile": "src/r_worldefrags_release.inc",
+      "purpose": "Preserve missing-model/world early returns, translated model bounds and original fragment/top-node publication.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "8",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_DrawCulledPolys",
+      "variant": "release",
+      "assemblyFile": "src/r_worldedges_release.inc",
+      "purpose": "Visit span-bearing non-background surfaces in the original forward/backward order with clip flags 15.",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "8",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_BeginEdgeFrame",
+      "variant": "release",
+      "assemblyFile": "src/r_worldedges_release.inc",
+      "purpose": "Reset edge/surface cursors, background/key/span direction and only the active scanline lists.",
+      "calleeRegisters": [
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_EntityRotate",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldrotation_profile.inc",
+      "purpose": "Copy the original vector before applying the three stored matrix rows, including aliased input/output.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_RotateBmodel",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldrotation_profile.inc",
+      "purpose": "Compose original yaw/pitch/roll matrices, rotate model/camera vectors and update the frustum in original x87 order.",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "120"
+      ]
+    },
+    {
+      "originalFunction": "R_RotateBmodelCached",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldrotation_profile.inc",
+      "purpose": "Preserve the eight-slot pointer/frame rotation cache, including same-frame hits and slot collisions.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "40"
+      ]
+    },
+    {
+      "originalFunction": "R_RemoveEfrags",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "purpose": "Unlink each entity fragment from its leaf and prepend it to the original free-fragment chain.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_SplitEntityOnNode",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "purpose": "Traverse contacted BSP sides, preserve the first top node, and link available fragments into entity and leaf lists.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "24",
+        "12",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_SplitEntityOnNode2",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "purpose": "Find the visible first splitter/non-solid leaf using the original visibility and plane-side rules.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_AddEfrags",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "purpose": "Preserve missing-model/world early returns, translated model bounds and original fragment/top-node publication.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "8",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "R_DrawCulledPolys",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldedges_profile.inc",
+      "purpose": "Visit span-bearing non-background surfaces in the original forward/backward order with clip flags 15.",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "8",
+        "8"
+      ]
+    },
+    {
+      "originalFunction": "R_BeginEdgeFrame",
+      "variant": "profile",
+      "assemblyFile": "src/r_worldedges_profile.inc",
+      "purpose": "Reset edge/surface cursors, background/key/span direction and only the active scanline lists.",
+      "calleeRegisters": [
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": []
+    }
+  ],
+  "layoutFacts": [
+    {
+      "name": "pointer_size",
+      "expression": "sizeof(void *)",
+      "value": 4
+    },
+    {
+      "name": "float_size",
+      "expression": "sizeof(float)",
+      "value": 4
+    },
+    {
+      "name": "integer_size",
+      "expression": "sizeof(int)",
+      "value": 4
+    },
+    {
+      "name": "entity_t_size",
+      "expression": "sizeof(entity_t)",
+      "value": 180
+    },
+    {
+      "name": "entity_t_model",
+      "expression": "offsetof(entity_t,model)",
+      "value": 132
+    },
+    {
+      "name": "entity_t_efrag",
+      "expression": "offsetof(entity_t,efrag)",
+      "value": 136
+    },
+    {
+      "name": "entity_t_topnode",
+      "expression": "offsetof(entity_t,topnode)",
+      "value": 176
+    },
+    {
+      "name": "entity_t_angles",
+      "expression": "offsetof(entity_t,angles)",
+      "value": 120
+    },
+    {
+      "name": "entity_t_origin",
+      "expression": "offsetof(entity_t,origin)",
+      "value": 84
+    },
+    {
+      "name": "model_t_size",
+      "expression": "sizeof(model_t)",
+      "value": 392
+    },
+    {
+      "name": "model_t_mins",
+      "expression": "offsetof(model_t,mins)",
+      "value": 84
+    },
+    {
+      "name": "model_t_maxs",
+      "expression": "offsetof(model_t,maxs)",
+      "value": 96
+    },
+    {
+      "name": "model_t_nodes",
+      "expression": "offsetof(model_t,nodes)",
+      "value": 164
+    },
+    {
+      "name": "mnode_t_size",
+      "expression": "sizeof(mnode_t)",
+      "value": 40
+    },
+    {
+      "name": "mnode_t_contents",
+      "expression": "offsetof(mnode_t,contents)",
+      "value": 0
+    },
+    {
+      "name": "mnode_t_visframe",
+      "expression": "offsetof(mnode_t,visframe)",
+      "value": 4
+    },
+    {
+      "name": "mnode_t_plane",
+      "expression": "offsetof(mnode_t,plane)",
+      "value": 24
+    },
+    {
+      "name": "mnode_t_children",
+      "expression": "offsetof(mnode_t,children)",
+      "value": 28
+    },
+    {
+      "name": "mleaf_t_size",
+      "expression": "sizeof(mleaf_t)",
+      "value": 48
+    },
+    {
+      "name": "mleaf_t_contents",
+      "expression": "offsetof(mleaf_t,contents)",
+      "value": 0
+    },
+    {
+      "name": "mleaf_t_visframe",
+      "expression": "offsetof(mleaf_t,visframe)",
+      "value": 4
+    },
+    {
+      "name": "mleaf_t_efrags",
+      "expression": "offsetof(mleaf_t,efrags)",
+      "value": 28
+    },
+    {
+      "name": "mplane_t_size",
+      "expression": "sizeof(mplane_t)",
+      "value": 20
+    },
+    {
+      "name": "mplane_t_normal",
+      "expression": "offsetof(mplane_t,normal)",
+      "value": 0
+    },
+    {
+      "name": "mplane_t_dist",
+      "expression": "offsetof(mplane_t,dist)",
+      "value": 12
+    },
+    {
+      "name": "mplane_t_type",
+      "expression": "offsetof(mplane_t,type)",
+      "value": 16
+    },
+    {
+      "name": "mplane_t_signbits",
+      "expression": "offsetof(mplane_t,signbits)",
+      "value": 17
+    },
+    {
+      "name": "efrag_t_size",
+      "expression": "sizeof(efrag_t)",
+      "value": 16
+    },
+    {
+      "name": "efrag_t_leaf",
+      "expression": "offsetof(efrag_t,leaf)",
+      "value": 0
+    },
+    {
+      "name": "efrag_t_leafnext",
+      "expression": "offsetof(efrag_t,leafnext)",
+      "value": 4
+    },
+    {
+      "name": "efrag_t_entity",
+      "expression": "offsetof(efrag_t,entity)",
+      "value": 8
+    },
+    {
+      "name": "efrag_t_entnext",
+      "expression": "offsetof(efrag_t,entnext)",
+      "value": 12
+    },
+    {
+      "name": "client_state_t_size",
+      "expression": "sizeof(client_state_t)",
+      "value": 2900
+    },
+    {
+      "name": "client_state_t_worldmodel",
+      "expression": "offsetof(client_state_t,worldmodel)",
+      "value": 2692
+    },
+    {
+      "name": "client_state_t_free_efrags",
+      "expression": "offsetof(client_state_t,free_efrags)",
+      "value": 2696
+    },
+    {
+      "name": "refdef_t_size",
+      "expression": "sizeof(refdef_t)",
+      "value": 148
+    },
+    {
+      "name": "refdef_t_vrect",
+      "expression": "offsetof(refdef_t,vrect)",
+      "value": 0
+    },
+    {
+      "name": "refdef_t_vrectbottom",
+      "expression": "offsetof(refdef_t,vrectbottom)",
+      "value": 44
+    },
+    {
+      "name": "vrect_t_size",
+      "expression": "sizeof(vrect_t)",
+      "value": 20
+    },
+    {
+      "name": "vrect_t_y",
+      "expression": "offsetof(vrect_t,y)",
+      "value": 4
+    },
+    {
+      "name": "surf_t_size",
+      "expression": "sizeof(surf_t)",
+      "value": 64
+    },
+    {
+      "name": "surf_t_spans",
+      "expression": "offsetof(surf_t,spans)",
+      "value": 8
+    },
+    {
+      "name": "surf_t_flags",
+      "expression": "offsetof(surf_t,flags)",
+      "value": 24
+    },
+    {
+      "name": "surf_t_key",
+      "expression": "offsetof(surf_t,key)",
+      "value": 12
+    },
+    {
+      "name": "surf_t_data",
+      "expression": "offsetof(surf_t,data)",
+      "value": 28
+    },
+    {
+      "name": "edge_t_size",
+      "expression": "sizeof(edge_t)",
+      "value": 32
+    },
+    {
+      "name": "edge_t_u",
+      "expression": "offsetof(edge_t,u)",
+      "value": 0
+    },
+    {
+      "name": "cvar_t_size",
+      "expression": "sizeof(cvar_t)",
+      "value": 24
+    },
+    {
+      "name": "cvar_t_value",
+      "expression": "offsetof(cvar_t,value)",
+      "value": 16
+    },
+    {
+      "name": "clipplane_t_size",
+      "expression": "sizeof(clipplane_t)",
+      "value": 24
+    },
+    {
+      "name": "clipplane_t_normal",
+      "expression": "offsetof(clipplane_t,normal)",
+      "value": 0
+    },
+    {
+      "name": "clipplane_t_dist",
+      "expression": "offsetof(clipplane_t,dist)",
+      "value": 12
+    },
+    {
+      "name": "MAXHEIGHT",
+      "expression": "MAXHEIGHT",
+      "value": 1024
+    },
+    {
+      "name": "CONTENTS_SOLID",
+      "expression": "CONTENTS_SOLID",
+      "value": 4294967294
+    },
+    {
+      "name": "SURF_DRAWBACKGROUND",
+      "expression": "SURF_DRAWBACKGROUND",
+      "value": 64
+    }
+  ]
+}

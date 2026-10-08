@@ -17,12 +17,16 @@ param(
     [string]$OutputRoot,
     [string]$ToolRoot,
     [string]$DataRoot,
+    [string]$RendererSelectorProfile,
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [ValidateRange(30, 3600)]
     [int]$TimeoutSeconds = 180,
+    [ValidateRange(0, 9)]
+    [int]$RunsOverride = 0,
     [switch]$SkipBuild,
     [switch]$NoBootstrap,
+    [switch]$SkipGoldenImageComparison,
     [switch]$ListScenarios
 )
 
@@ -30,6 +34,50 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$timedemoScript = Join-Path $PSScriptRoot 'timedemo-dos.ps1'
+$rendererSelectorProfileData = $null
+$rendererSelectorProfilePathResolved = $null
+if (-not [string]::IsNullOrWhiteSpace($RendererSelectorProfile)) {
+    $profilePath = if ([IO.Path]::IsPathRooted($RendererSelectorProfile)) {
+        [IO.Path]::GetFullPath($RendererSelectorProfile)
+    }
+    else {
+        [IO.Path]::GetFullPath((Join-Path $repoRoot $RendererSelectorProfile))
+    }
+    if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
+        throw "Renderer selector profile was not found: '$profilePath'."
+    }
+    $rendererSelectorProfileData = Get-Content -LiteralPath $profilePath -Raw | ConvertFrom-Json
+    if ([int]$rendererSelectorProfileData.schemaVersion -ne 1) {
+        throw "Unsupported renderer selector profile schema '$($rendererSelectorProfileData.schemaVersion)'."
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$rendererSelectorProfileData.id) -or
+        [string]$rendererSelectorProfileData.id -notmatch '^[A-Za-z0-9_.-]+$') {
+        throw 'Renderer selector profile id must contain only letters, digits, dot, underscore, or hyphen.'
+    }
+    $selectorProperty = $rendererSelectorProfileData.PSObject.Properties['selectors']
+    if ($null -eq $selectorProperty -or $null -eq $selectorProperty.Value) {
+        throw 'Renderer selector profile must define a selectors object.'
+    }
+    $selectorProperties = @($selectorProperty.Value.PSObject.Properties)
+    if ($selectorProperties.Count -eq 0) {
+        throw 'Renderer selector profile must contain at least one selector.'
+    }
+    $timedemoSource = Get-Content -LiteralPath $timedemoScript -Raw
+    foreach ($selector in $selectorProperties) {
+        if ($selector.Name -notmatch 'Implementation$') {
+            throw "Renderer profile selector '$($selector.Name)' is not an implementation selector."
+        }
+        if ($selector.Value -isnot [string]) {
+            throw "Renderer profile selector '$($selector.Name)' must have a string value."
+        }
+        $escapedName = [regex]::Escape([string]$selector.Name)
+        if (-not [regex]::IsMatch($timedemoSource, "(?m)^\s*\[string\]\`$$escapedName(?=\s|=)")) {
+            throw "Renderer selector '$($selector.Name)' is not a parameter of timedemo-dos.ps1."
+        }
+    }
+    $rendererSelectorProfilePathResolved = $profilePath
+}
 if ([string]::IsNullOrWhiteSpace($ScenarioFile)) {
     $ScenarioFile = Join-Path $PSScriptRoot 'render-scenarios.json'
 }
@@ -80,7 +128,6 @@ New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
 
 $pwshCommand = Get-Command pwsh -ErrorAction SilentlyContinue
 if ($null -eq $pwshCommand) { $pwshCommand = Get-Command powershell }
-$timedemoScript = Join-Path $PSScriptRoot 'timedemo-dos.ps1'
 $compareScript = Join-Path $PSScriptRoot 'compare-rendering.py'
 $scenarioResults = New-Object System.Collections.Generic.List[object]
 $failures = New-Object System.Collections.Generic.List[object]
@@ -177,6 +224,7 @@ foreach ($scene in $selectedScenarios) {
     $timedemoJson = $null
     $imageReports = New-Object System.Collections.Generic.List[object]
     $frameReports = New-Object System.Collections.Generic.List[object]
+    $effectiveRuns = if ($RunsOverride -gt 0) { $RunsOverride } else { [int]$scene.repeatRuns }
     $childOutputText = ''
     $timedemoResultPath = $null
     $effectiveAutoexecCommands = @($validationAutoexecCommands)
@@ -195,13 +243,21 @@ foreach ($scene in $selectedScenarios) {
         $timedemoArgs = @(
             '-NoProfile', '-File', $timedemoScript,
             '-DemoName', [string]$scene.demo,
-            '-Runs', [string]$scene.repeatRuns,
+            '-Runs', [string]$effectiveRuns,
             '-TimeoutSeconds', [string]$TimeoutSeconds,
             '-FrameChecksums',
             '-FrameCaptureIndex', [string]$scene.captureFrame,
-            '-ExpectedFrames', [string]$scene.expectedFrames,
-            '-ExpectedChecksum', [string]$scene.expectedChecksum
+            '-ExpectedFrames', [string]$scene.expectedFrames
         )
+        if (-not $SkipGoldenImageComparison) {
+            $timedemoArgs += @('-ExpectedChecksum', [string]$scene.expectedChecksum)
+        }
+        else {
+            # timedemo-dos.ps1 has a legacy pinned-checksum default. Pass zero
+            # explicitly so paired runs defer checksum parity to the exact
+            # C-versus-assembly stream comparator.
+            $timedemoArgs += @('-ExpectedChecksum', '0')
+        }
         if (-not [string]::IsNullOrWhiteSpace([string]$scene.quakeExtraArgs)) {
             $timedemoArgs += @('-QuakeExtraArgs', [string]$scene.quakeExtraArgs)
         }
@@ -217,6 +273,11 @@ foreach ($scene in $selectedScenarios) {
         if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $timedemoArgs += @('-ToolRoot', $ToolRoot) }
         if (-not [string]::IsNullOrWhiteSpace($DataRoot)) { $timedemoArgs += @('-DataRoot', $DataRoot) }
         $timedemoArgs += @('-CpuTarget', $CpuTarget)
+        if ($null -ne $rendererSelectorProfileData) {
+            foreach ($selector in @($rendererSelectorProfileData.selectors.PSObject.Properties)) {
+                $timedemoArgs += @("-$($selector.Name)", [string]$selector.Value)
+            }
+        }
 
         $childOutput = & $pwshCommand.Source @timedemoArgs 2>&1
         $childExit = $LASTEXITCODE
@@ -298,6 +359,17 @@ foreach ($scene in $selectedScenarios) {
 
             $imageReportPath = Join-Path $sceneOutput ('run-{0:D2}-image-comparison.json' -f $run.run)
             $diffImagePath = Join-Path $sceneOutput ('run-{0:D2}-diff.png' -f $run.run)
+            if ($SkipGoldenImageComparison) {
+                $imageReport = [pscustomobject]@{
+                    pass = $true
+                    comparison = 'deferred-to-exact-paired-profile-comparison'
+                    reference = @{ path = $referencePath; validation = 'skipped' }
+                    actual = @{ path = [string]$diagnostics.frameCapturePath }
+                }
+                $imageReports.Add($imageReport)
+                Write-Host ("  run {0}: committed-golden comparison deferred to paired profile check" -f $run.run)
+                continue
+            }
             $comparisonArgs = @(
                 $compareScript, $referencePath, [string]$diagnostics.frameCapturePath,
                 '--scenario', [string]$scene.id,
@@ -360,16 +432,20 @@ foreach ($scene in $selectedScenarios) {
             result = $sceneStatus
             demo = $scene.demo
             quakeExtraArgs = $scene.quakeExtraArgs
-            repeatRuns = $scene.repeatRuns
+            repeatRuns = $effectiveRuns
             expectedFrames = $scene.expectedFrames
             expectedChecksum = $scene.expectedChecksum
             captureFrame = $scene.captureFrame
+            rendererSelectorProfile = if ($null -ne $rendererSelectorProfileData) { [string]$rendererSelectorProfileData.id } else { 'timedemo-defaults' }
+            rendererSelectorProfilePath = $rendererSelectorProfilePathResolved
+            rendererSelectors = if ($null -ne $rendererSelectorProfileData) { $rendererSelectorProfileData.selectors } else { @{} }
             tolerance = $effectiveTolerance
             reference = [IO.Path]::GetFullPath((Join-Path $repoRoot ([string]$scene.reference)))
             validationAutoexecCommands = $effectiveAutoexecCommands
             ignoredWarmupChecksumFrames = $warmupChecksumFrames
             timedemoResult = $timedemoResultPath
             sourceFingerprint = if ($null -ne $timedemoJson) { $timedemoJson.sourceFingerprint } else { $null }
+            sourceTreeFingerprint = if ($null -ne $timedemoJson) { $timedemoJson.sourceTreeFingerprint } else { $null }
             profile = if ($null -ne $timedemoJson) { $timedemoJson.profile } else { $null }
             profileSha256 = if ($null -ne $timedemoJson) { $timedemoJson.profileSha256 } else { $null }
             dosboxVersion = if ($null -ne $timedemoJson) { $timedemoJson.dosboxVersion } else { $null }
@@ -396,7 +472,13 @@ $suiteResult = [ordered]@{
     cpuTarget = $CpuTarget
     scenarioFile = [IO.Path]::GetFullPath($ScenarioFile)
     outputRoot = $OutputRoot
+    rendererSelectorProfile = if ($null -ne $rendererSelectorProfileData) { [string]$rendererSelectorProfileData.id } else { 'timedemo-defaults' }
+    rendererSelectorProfilePath = $rendererSelectorProfilePathResolved
+    rendererSelectors = if ($null -ne $rendererSelectorProfileData) { $rendererSelectorProfileData.selectors } else { @{} }
+    sourceTreeFingerprint = if ($scenarioResults.Count -gt 0) { $scenarioResults[0].sourceTreeFingerprint } else { $null }
     validationAutoexecCommands = $validationAutoexecCommands
+    goldenImageComparison = if ($SkipGoldenImageComparison) { 'deferred-to-paired-profile-comparison' } else { 'committed-reference' }
+    expectedChecksumValidation = if ($SkipGoldenImageComparison) { 'deferred-to-exact-paired-profile-comparison' } else { 'committed-reference' }
     warmupChecksumFrames = $warmupChecksumFrames
     scenarioCount = $scenarioResults.Count
     passed = @($scenarioResults.ToArray() | Where-Object { $_.result -eq 'PASS' }).Count

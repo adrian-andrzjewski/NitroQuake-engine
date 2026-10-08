@@ -25,6 +25,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
+#ifdef ASM486_VISIBILITY
+#include "asm_visibility.h"
+mleaf_t *Mod_PointInLeaf_C (vec3_t p, model_t *model);
+byte *Mod_DecompressVis_C (byte *in, model_t *model);
+byte *Mod_LeafPVS_C (mleaf_t *leaf, model_t *model);
+#endif
+
+
 model_t	*loadmodel;
 char	loadname[32];	// for hunk tags
 
@@ -81,6 +89,86 @@ void *Mod_Extradata (model_t *mod)
 Mod_PointInLeaf
 ===============
 */
+#if defined(ASM486_VISIBILITY) && defined(BENCH486)
+mleaf_t *Mod_PointInLeaf_C (vec3_t p, model_t *model)
+{
+	mnode_t		*node;
+	float		d;
+	mplane_t	*plane;
+
+	if (!model || !model->nodes)
+		Sys_Error ("Mod_PointInLeaf_C: bad model");
+
+	node = model->nodes;
+	while (1)
+	{
+		if (node->contents < 0)
+			return (mleaf_t *)node;
+		plane = node->plane;
+		d = DotProduct (p,plane->normal) - plane->dist;
+		if (d > 0)
+			node = node->children[0];
+		else
+			node = node->children[1];
+	}
+
+	return NULL;	// never reached
+}
+
+
+/*
+===================
+Mod_DecompressVis_C
+===================
+*/
+byte *Mod_DecompressVis_C (byte *in, model_t *model)
+{
+	static byte	decompressed[MAX_MAP_LEAFS/8];
+	int		c;
+	byte	*out;
+	int		row;
+
+	row = (model->numleafs+7)>>3;
+	out = decompressed;
+
+	if (!in)
+	{	// no vis info, so make all visible
+		while (row)
+		{
+			*out++ = 0xff;
+			row--;
+		}
+		return decompressed;
+	}
+
+	do
+	{
+		if (*in)
+		{
+			*out++ = *in++;
+			continue;
+		}
+
+		c = in[1];
+		in += 2;
+		while (c)
+		{
+			*out++ = 0;
+			c--;
+		}
+	} while (out - decompressed < row);
+
+	return decompressed;
+}
+
+byte *Mod_LeafPVS_C (mleaf_t *leaf, model_t *model)
+{
+	if (leaf == model->leafs)
+		return mod_novis;
+	return Mod_DecompressVis_C (leaf->compressed_vis, model);
+}
+
+#elif !defined(ASM486_VISIBILITY)
 mleaf_t *Mod_PointInLeaf (vec3_t p, model_t *model)
 {
 	mnode_t		*node;
@@ -158,6 +246,8 @@ byte *Mod_LeafPVS (mleaf_t *leaf, model_t *model)
 		return mod_novis;
 	return Mod_DecompressVis (leaf->compressed_vis, model);
 }
+
+#endif
 
 /*
 ===================

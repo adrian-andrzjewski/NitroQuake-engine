@@ -20,6 +20,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_renderdispatch.h"
+
+#if defined(ASM486_PARTICLE_UPDATE) && id386
+#include <stddef.h>
+typedef char particle_update_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
+typedef char particle_update_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, ramp) == 32 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+#endif
 
 #ifdef PROFILE486
 extern unsigned long bench486_gib_trail_particles;
@@ -651,7 +666,8 @@ R_DrawParticles
 */
 extern	cvar_t	sv_gravity;
 
-void R_DrawParticles (void)
+#if !defined(ASM486_PARTICLE_UPDATE) || !id386 || defined(BENCH486)
+void R_DrawParticles_C (void)
 {
 	particle_t		*p;
 	particle_t		**link;
@@ -799,4 +815,89 @@ void R_DrawParticles (void)
 		bench486_particle_seconds += Sys_FloatTime () - particle_start;
 #endif
 }
+#endif
 
+#if defined(ASM486_PARTICLE_UPDATE) && id386
+void R_DrawParticles_asm486 (float time, double oldtime, float gravity
+#ifdef PROFILE486
+		, unsigned long *particle_count, unsigned long *gib_trail_count
+#endif
+		);
+
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_PARTICLE_UPDATE) && id386)
+void R_DrawParticles (void)
+{
+#ifdef PROFILE486
+	unsigned long	particle_count, gib_trail_count;
+	double			particle_start;
+	qboolean		profiled;
+
+	particle_count = 0;
+	gib_trail_count = 0;
+	profiled = bench486_profile_frame_active;
+	if (profiled)
+		particle_start = Sys_FloatTime ();
+#endif
+
+	D_StartParticles ();
+#ifdef PROFILE486
+	R_DrawParticles_asm486 ((float)cl.time, cl.oldtime, sv_gravity.value,
+			&particle_count, &gib_trail_count);
+#else
+	R_DrawParticles_asm486 ((float)cl.time, cl.oldtime, sv_gravity.value);
+#endif
+	D_EndParticles ();
+
+#ifdef PROFILE486
+	if (profiled)
+	{
+		bench486_particle_count += particle_count;
+		bench486_gib_trail_particles += gib_trail_count;
+		bench486_particle_seconds += Sys_FloatTime () - particle_start;
+	}
+#endif
+}
+#endif
+#else
+void R_DrawParticles (void)
+{
+	R_DrawParticles_C ();
+}
+#endif
+
+
+/* Pinned original argument adapters, compiled only as independent test oracles. */
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_PARTICLE_UPDATE) && id386
+void R_DrawParticles_Dispatch_C (void)
+{
+#ifdef PROFILE486
+	unsigned long	particle_count, gib_trail_count;
+	double			particle_start;
+	qboolean		profiled;
+
+	particle_count = 0;
+	gib_trail_count = 0;
+	profiled = bench486_profile_frame_active;
+	if (profiled)
+		particle_start = Bench486DispatchFloatTime ();
+#endif
+
+	Bench486DispatchStartParticles ();
+#ifdef PROFILE486
+	Bench486DispatchParticles ((float)cl.time, cl.oldtime, sv_gravity.value,
+			&particle_count, &gib_trail_count);
+#else
+	Bench486DispatchParticles ((float)cl.time, cl.oldtime, sv_gravity.value);
+#endif
+	Bench486DispatchEndParticles ();
+
+#ifdef PROFILE486
+	if (profiled)
+	{
+		bench486_particle_count += particle_count;
+		bench486_gib_trail_particles += gib_trail_count;
+		bench486_particle_seconds += Bench486DispatchFloatTime () - particle_start;
+	}
+#endif
+}
+#endif

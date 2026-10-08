@@ -45,6 +45,1353 @@
 	.text
 #endif
 
+// R_RotateSprite: translate a beam sprite along its viewing normal.
+#if defined(ASM486_SPRITE_BEAM) || defined(BENCH486)
+// cdecl: one 32-bit float argument; caller-saved EAX and the x87 stack only.
+// Keep the scaled vector as three single-precision temporaries, matching
+// VectorScale's stores before the origin/model-origin updates.
+// DJGPP 32-bit spritedesc_t offsets: vpn=36 (nump=0, pointers=4/8,
+// vup=12, vright=24). Reload beamlength after each temporary store pops x87.
+.extern C(r_spritedesc)
+.extern C(r_entorigin)
+.extern C(modelorg)
+.globl C(R_RotateSprite_asm486)
+C(R_RotateSprite_asm486):
+	subl	$12,%esp
+	flds	16(%esp)
+	ftst
+	fnstsw	%ax
+	andb	$0x45,%ah
+	cmpb	$0x40,%ah
+	je	.Lrotate_sprite_zero
+	fchs
+	flds	C(r_spritedesc)+36
+	fmulp	%st,%st(1)
+	fstps	0(%esp)
+	flds	16(%esp)
+	fchs
+	flds	C(r_spritedesc)+40
+	fmulp	%st,%st(1)
+	fstps	4(%esp)
+	flds	16(%esp)
+	fchs
+	flds	C(r_spritedesc)+44
+	fmulp	%st,%st(1)
+	fstps	8(%esp)
+	flds	C(r_entorigin)
+	fadds	0(%esp)
+	fstps	C(r_entorigin)
+	flds	C(r_entorigin)+4
+	fadds	4(%esp)
+	fstps	C(r_entorigin)+4
+	flds	C(r_entorigin)+8
+	fadds	8(%esp)
+	fstps	C(r_entorigin)+8
+	flds	C(modelorg)
+	fsubs	0(%esp)
+	fstps	C(modelorg)
+	flds	C(modelorg)+4
+	fsubs	4(%esp)
+	fstps	C(modelorg)+4
+	flds	C(modelorg)+8
+	fsubs	8(%esp)
+	fstps	C(modelorg)+8
+	jmp	.Lrotate_sprite_return
+.Lrotate_sprite_zero:
+	fstp	%st(0)
+.Lrotate_sprite_return:
+	addl	$12,%esp
+	ret
+#endif
+
+// R_ClipSpriteFace: clip one five-float sprite winding against a plane.
+// clip_verts is two arrays of 20 vec5_t records (400 bytes each); keep that
+// stride synchronized with MAXWORKINGVERTS in r_shared.h. clip_current and
+// clip_verts are externally visible for this separately assembled routine and
+// for the direct C-vs-assembly fixture.
+#if defined(ASM486_SPRITE_CLIP) || defined(BENCH486)
+.extern C(clip_current)
+.extern C(clip_verts)
+.globl C(R_ClipSpriteFace_asm486)
+C(R_ClipSpriteFace_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$120,%esp
+
+	/* Locals: in=-16, out=-20, plane=-24, nump=-28, outcount=-32;
+	   dists[0..20]=-116..-36. Keep frac extended on the x87 stack. */
+	movl	8(%ebp),%eax
+	movl	%eax,-28(%ebp)
+	movl	12(%ebp),%eax
+	movl	%eax,-24(%ebp)
+	movl	C(clip_current),%eax
+	testl	%eax,%eax
+	je	.Lsprite_clip_input_zero
+	leal	C(clip_verts)+400,%eax
+	movl	%eax,-16(%ebp)
+	leal	C(clip_verts),%eax
+	movl	%eax,-20(%ebp)
+	movl	$0,C(clip_current)
+	jmp	.Lsprite_clip_buffers_ready
+.Lsprite_clip_input_zero:
+	leal	C(clip_verts),%eax
+	movl	%eax,-16(%ebp)
+	leal	C(clip_verts)+400,%eax
+	movl	%eax,-20(%ebp)
+	movl	$1,C(clip_current)
+.Lsprite_clip_buffers_ready:
+
+	/* dists[i] = ((x*nx + y*ny) + z*nz) - plane.dist, rounded to float. */
+	movl	-24(%ebp),%edx
+	movl	-16(%ebp),%esi
+	leal	-116(%ebp),%edi
+	movl	-28(%ebp),%ebx
+.Lsprite_clip_distance_loop:
+	testl	%ebx,%ebx
+	jle	.Lsprite_clip_distances_done
+	flds	(%esi)
+	fmuls	0(%edx)
+	flds	4(%esi)
+	fmuls	4(%edx)
+	faddp	%st(0),%st(1)
+	fsubs	12(%edx)
+	flds	8(%esi)
+	fmuls	8(%edx)
+	faddp	%st(0),%st(1)
+	fstps	(%edi)
+	addl	$20,%esi
+	addl	$4,%edi
+	decl	%ebx
+	jmp	.Lsprite_clip_distance_loop
+.Lsprite_clip_distances_done:
+
+	/* Match dists[nump]=dists[0] and the five-float input wrap copy. */
+	movl	-28(%ebp),%eax
+	movl	-116(%ebp),%edx
+	movl	%edx,-116(%ebp,%eax,4)
+	movl	-16(%ebp),%esi
+	leal	(%eax,%eax,4),%eax
+	shll	$2,%eax
+	addl	%eax,%esi
+	movl	-16(%ebp),%edx
+	movl	0(%edx),%eax
+	movl	%eax,0(%esi)
+	movl	4(%edx),%eax
+	movl	%eax,4(%esi)
+	movl	8(%edx),%eax
+	movl	%eax,8(%esi)
+	movl	12(%edx),%eax
+	movl	%eax,12(%esi)
+	movl	16(%edx),%eax
+	movl	%eax,16(%esi)
+
+	movl	-16(%ebp),%esi
+	movl	-20(%ebp),%edi
+	leal	-116(%ebp),%ecx
+	movl	-28(%ebp),%ebx
+	movl	$0,-32(%ebp)
+.Lsprite_clip_vertex_loop:
+	testl	%ebx,%ebx
+	jle	.Lsprite_clip_return_count
+
+	/* C's dists[i] >= 0 is true for +0, false for negative and unordered. */
+	flds	(%ecx)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$0x01,%ah
+	jnz	.Lsprite_clip_front_done
+	movl	0(%esi),%eax
+	movl	%eax,0(%edi)
+	movl	4(%esi),%eax
+	movl	%eax,4(%edi)
+	movl	8(%esi),%eax
+	movl	%eax,8(%edi)
+	movl	12(%esi),%eax
+	movl	%eax,12(%edi)
+	movl	16(%esi),%eax
+	movl	%eax,16(%edi)
+	addl	$20,%edi
+	incl	-32(%ebp)
+.Lsprite_clip_front_done:
+
+	/* Equality checks precede the side test in the reference routine. */
+	flds	(%ecx)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	andb	$0x45,%ah
+	cmpb	$0x40,%ah
+	je	.Lsprite_clip_next_vertex
+	flds	4(%ecx)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	andb	$0x45,%ah
+	cmpb	$0x40,%ah
+	je	.Lsprite_clip_next_vertex
+
+	/* Strict > 0 tests: unordered values are treated as not in front. */
+	flds	(%ecx)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	andb	$0x45,%ah
+	cmpb	$0,%ah
+	jne	.Lsprite_clip_current_back
+	flds	4(%ecx)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	andb	$0x45,%ah
+	cmpb	$0,%ah
+	je	.Lsprite_clip_next_vertex
+	jmp	.Lsprite_clip_crossing
+.Lsprite_clip_current_back:
+	flds	4(%ecx)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	andb	$0x45,%ah
+	cmpb	$0,%ah
+	jne	.Lsprite_clip_next_vertex
+
+.Lsprite_clip_crossing:
+	/* frac = dists[i] / (dists[i] - dists[i+1]), rounded to float. */
+	flds	(%ecx)
+	flds	4(%ecx)
+	fsubr	%st(1),%st(0)
+	fdivrp	%st(0),%st(1)
+	leal	20(%esi),%edx
+	/* Interpolate x,y,z,s,t in source expression order. */
+	flds	0(%edx)
+	fsubs	0(%esi)
+	fmul	%st(1),%st(0)
+	fadds	0(%esi)
+	fstps	0(%edi)
+	flds	4(%edx)
+	fsubs	4(%esi)
+	fmul	%st(1),%st(0)
+	fadds	4(%esi)
+	fstps	4(%edi)
+	flds	8(%edx)
+	fsubs	8(%esi)
+	fmul	%st(1),%st(0)
+	fadds	8(%esi)
+	fstps	8(%edi)
+	flds	12(%edx)
+	fsubs	12(%esi)
+	fmul	%st(1),%st(0)
+	fadds	12(%esi)
+	fstps	12(%edi)
+	flds	16(%edx)
+	fsubs	16(%esi)
+	fmul	%st(1),%st(0)
+	fadds	16(%esi)
+	fstps	16(%edi)
+	fstp	%st(0)
+	addl	$20,%edi
+	incl	-32(%ebp)
+
+.Lsprite_clip_next_vertex:
+	addl	$20,%esi
+	addl	$4,%ecx
+	decl	%ebx
+	jmp	.Lsprite_clip_vertex_loop
+.Lsprite_clip_return_count:
+	movl	-32(%ebp),%eax
+	addl	$120,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+#endif
+
+// R_GetSpriteframe: select a single frame or an animated group member.
+// The C wrapper sanitizes/logs the entity frame and passes current time and
+// syncbase explicitly, keeping entity/client structure offsets out of assembly.
+#if defined(ASM486_SPRITE_FRAME) || defined(BENCH486)
+.globl C(R_GetSpriteframe_asm486)
+C(R_GetSpriteframe_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$16,%esp
+
+	/* Locals: saved control word=-16, truncate control word=-18,
+	   integer quotient=-20, group frame count=-24, group pointer=-28. */
+	movl	8(%ebp),%ebx
+	movl	12(%ebp),%esi
+	leal	24(%ebx,%esi,8),%edi
+	movl	0(%edi),%eax
+	testl	%eax,%eax
+	jne	.Lsprite_frame_group
+	movl	4(%edi),%eax
+	jmp	.Lsprite_frame_return
+
+.Lsprite_frame_group:
+	movl	4(%edi),%esi
+	movl	%esi,-28(%ebp)
+	movl	0(%esi),%eax
+	movl	%eax,-24(%ebp)
+	movl	4(%esi),%edi
+
+	/* Keep the reference x87 order: time=syncbase+cl.time, then divide by
+	   fullinterval and truncate the quotient toward zero using a saved CW. */
+	flds	-4(%edi,%eax,4)
+	flds	24(%ebp)
+	faddl	16(%ebp)
+	fld	%st(0)
+	fdiv	%st(2),%st(0)
+	fnstcw	-16(%ebp)
+	movw	-16(%ebp),%dx
+	orb	$0x0c,%dh
+	movw	%dx,-18(%ebp)
+	fldcw	-18(%ebp)
+	fistpl	-20(%ebp)
+	fldcw	-16(%ebp)
+	fxch	%st(1)
+	fimull	-20(%ebp)
+	fsubrp	%st,%st(1)
+
+	/* Scan while i < numframes-1; equality chooses the following frame. */
+	movl	-24(%ebp),%ebx
+	decl	%ebx
+	xorl	%edx,%edx
+	testl	%ebx,%ebx
+	jle	.Lsprite_frame_select
+.Lsprite_frame_interval_loop:
+	fcoms	(%edi,%edx,4)
+	fnstsw	%ax
+	testb	$0x01,%ah
+	jnz	.Lsprite_frame_select
+	incl	%edx
+	cmpl	%ebx,%edx
+	jl	.Lsprite_frame_interval_loop
+.Lsprite_frame_select:
+	fstp	%st(0)
+	movl	-28(%ebp),%eax
+	movl	8(%eax,%edx,4),%eax
+
+.Lsprite_frame_return:
+	addl	$16,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+#endif
+
+#if defined(ASM486_SPRITE_GRADIENTS) || defined(BENCH486)
+.extern C(TransformVector)
+.extern C(r_spritedesc)
+.extern C(modelorg)
+.extern C(vright)
+.extern C(vup)
+.extern C(vpn)
+.extern C(xscaleinv)
+.extern C(yscaleinv)
+.extern C(xcenter)
+.extern C(ycenter)
+.extern C(cachewidth)
+.extern C(d_sdivzstepu)
+.extern C(d_tdivzstepu)
+.extern C(d_sdivzstepv)
+.extern C(d_tdivzstepv)
+.extern C(d_zistepu)
+.extern C(d_zistepv)
+.extern C(d_sdivzorigin)
+.extern C(d_tdivzorigin)
+.extern C(d_ziorigin)
+.extern C(sadjust)
+.extern C(tadjust)
+.extern C(bbextents)
+.extern C(bbextentt)
+	.section .rodata
+	.p2align 2
+.Lsprgrad_one:
+	.float 1.0
+.Lsprgrad_fixed16:
+	.float 65536.0
+.Lsprgrad_half:
+	.float 0.5
+	.text
+	.p2align 4,,15
+	.globl C(D_SpriteCalculateGradients_asm486)
+C(D_SpriteCalculateGradients_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	subl	$64,%esp
+	movl	8(%ebp),%ebx		// sprite_height from C-owned raster state
+
+	// TransformVector retains Quake's view-axis products and addition order.
+	leal	-12(%ebp),%eax		// p_normal
+	pushl	%eax
+	leal	C(r_spritedesc)+36,%eax	// spritedesc.vpn
+	pushl	%eax
+	call	C(TransformVector)
+	addl	$8,%esp
+	leal	-24(%ebp),%eax		// p_saxis
+	pushl	%eax
+	leal	C(r_spritedesc)+24,%eax	// spritedesc.vright
+	pushl	%eax
+	call	C(TransformVector)
+	addl	$8,%esp
+	leal	-36(%ebp),%eax		// p_taxis
+	pushl	%eax
+	leal	C(r_spritedesc)+12,%eax	// spritedesc.vup
+	pushl	%eax
+	call	C(TransformVector)
+	addl	$8,%esp
+	flds	-36(%ebp)
+	fchs
+	fstps	-36(%ebp)
+	flds	-32(%ebp)
+	fchs
+	fstps	-32(%ebp)
+	flds	-28(%ebp)
+	fchs
+	fstps	-28(%ebp)
+
+	// distinv = 1 / -DotProduct(modelorg, vpn), rounded to float.
+	flds	C(modelorg)
+	fmuls	C(r_spritedesc)+36
+	flds	C(modelorg)+4
+	fmuls	C(r_spritedesc)+40
+	faddp	%st(0),%st(1)
+	flds	C(modelorg)+8
+	fmuls	C(r_spritedesc)+44
+	faddp	%st(0),%st(1)
+	fchs
+	fdivrs	.Lsprgrad_one
+	// GCC's C reference keeps distinv extended in an x87 register instead of
+	// rounding the float local to memory. Keep it below subsequent temporaries.
+
+	// The six per-pixel steps are stored as floats before origin calculation.
+	flds	-24(%ebp)
+	fmuls	C(xscaleinv)
+	fstps	C(d_sdivzstepu)
+	flds	-36(%ebp)
+	fmuls	C(xscaleinv)
+	fstps	C(d_tdivzstepu)
+	flds	-20(%ebp)
+	fmuls	C(yscaleinv)
+	fchs
+	fstps	C(d_sdivzstepv)
+	flds	-32(%ebp)
+	fmuls	C(yscaleinv)
+	fchs
+	fstps	C(d_tdivzstepv)
+	flds	-12(%ebp)
+	fmuls	C(xscaleinv)
+	fmul	%st(1),%st(0)
+	fsts	C(d_zistepu)		// keep the extended result for d_ziorigin
+	flds	-8(%ebp)
+	fmuls	C(yscaleinv)
+	fchs
+	fmul	%st(2),%st(0)
+	fsts	C(d_zistepv)		// C keeps both z steps live in x87 registers
+
+	// axis[2] - xcenter*stepu - ycenter*stepv, using stored float steps.
+	flds	-16(%ebp)
+	flds	C(xcenter)
+	fmuls	C(d_sdivzstepu)
+	fsubrp	%st(0),%st(1)
+	flds	C(ycenter)
+	fmuls	C(d_sdivzstepv)
+	fsubrp	%st(0),%st(1)
+	fstps	C(d_sdivzorigin)
+	flds	-28(%ebp)
+	flds	C(xcenter)
+	fmuls	C(d_tdivzstepu)
+	fsubrp	%st(0),%st(1)
+	flds	C(ycenter)
+	fmuls	C(d_tdivzstepv)
+	fsubrp	%st(0),%st(1)
+	fstps	C(d_tdivzorigin)
+	flds	-4(%ebp)
+	fmul	%st(3),%st(0)		// p_normal[2] * extended distinv
+	flds	C(xcenter)
+	fmul	%st(3),%st(0)		// xcenter * extended d_zistepu
+	fsubrp	%st(0),%st(1)
+	flds	C(ycenter)
+	fmul	%st(2),%st(0)		// ycenter * extended d_zistepv
+	fsubrp	%st(0),%st(1)
+	fstps	C(d_ziorigin)
+	fstp	%st(0)			// discard retained extended d_zistepv
+	fstp	%st(0)			// discard retained extended d_zistepu
+	fstp	%st(0)			// discard retained extended distinv
+
+	// Dot products for sadjust/tadjust use the C x87 order and truncation.
+	leal	-48(%ebp),%eax		// p_temp1 = TransformVector(modelorg)
+	pushl	%eax
+	pushl	$C(modelorg)
+	call	C(TransformVector)
+	addl	$8,%esp
+	flds	-48(%ebp)
+	fmuls	-24(%ebp)
+	flds	-44(%ebp)
+	fmuls	-20(%ebp)
+	faddp	%st(0),%st(1)
+	flds	-40(%ebp)
+	fmuls	-16(%ebp)
+	faddp	%st(0),%st(1)
+	fmuls	.Lsprgrad_fixed16
+	fadds	.Lsprgrad_half
+	fnstcw	-54(%ebp)
+	movw	-54(%ebp),%ax
+	orb	$0x0c,%ah		// C float-to-int casts truncate toward zero
+	movw	%ax,-56(%ebp)
+	fldcw	-56(%ebp)
+	fistpl	-60(%ebp)
+	fldcw	-54(%ebp)
+	movl	C(cachewidth),%eax
+	sarl	$1,%eax
+	shll	$16,%eax
+	addl	-60(%ebp),%eax
+	movl	%eax,C(sadjust)
+
+	flds	-48(%ebp)
+	fmuls	-36(%ebp)
+	flds	-44(%ebp)
+	fmuls	-32(%ebp)
+	faddp	%st(0),%st(1)
+	flds	-40(%ebp)
+	fmuls	-28(%ebp)
+	faddp	%st(0),%st(1)
+	fmuls	.Lsprgrad_fixed16
+	fadds	.Lsprgrad_half
+	fldcw	-56(%ebp)
+	fistpl	-60(%ebp)
+	fldcw	-54(%ebp)
+	movl	%ebx,%eax
+	sarl	$1,%eax
+	shll	$16,%eax
+	addl	-60(%ebp),%eax
+	movl	%eax,C(tadjust)
+
+	movl	C(cachewidth),%eax
+	shll	$16,%eax
+	decl	%eax
+	movl	%eax,C(bbextents)
+	movl	%ebx,%eax
+	shll	$16,%eax
+	decl	%eax
+	movl	%eax,C(bbextentt)
+
+	leal	-4(%ebp),%esp
+	popl	%ebx
+	leave
+	ret
+#endif
+
+#if defined(ASM486_SPRITE_SCAN_LEFT) || defined(BENCH486)
+	.section .rodata
+	.p2align 2
+.Lsprscanleft_fixed16:
+	.float 65536.0
+	.text
+	.p2align 4,,15
+	.globl C(D_SpriteScanLeftEdge_asm486)
+C(D_SpriteScanLeftEdge_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$72,%esp
+	movl	8(%ebp),%edi		// output sspan_t cursor
+	movl	12(%ebp),%ebx		// minindex
+	movl	16(%ebp),%eax		// maxindex, with zero meaning nump
+	movl	20(%ebp),%ecx		// nump
+	movl	%ecx,-72(%ebp)
+	movl	24(%ebp),%esi		// emitpoint_t array
+	movl	%eax,-24(%ebp)
+	testl	%ebx,%ebx
+	jne	.Lsprscanleft_min_ready
+	movl	%ecx,%ebx
+.Lsprscanleft_min_ready:
+	cmpl	$0,-24(%ebp)
+	jne	.Lsprscanleft_max_ready
+	movl	%ecx,-24(%ebp)
+.Lsprscanleft_max_ready:
+
+	fnstcw	-64(%ebp)
+	movw	-64(%ebp),%ax
+	andb	$0xf3,%ah
+	orb	$0x08,%ah		// FRNDINT rounds toward +infinity for ceil
+	movw	%ax,-66(%ebp)
+	movw	-64(%ebp),%ax
+	orb	$0x0c,%ah		// C float-to-int casts truncate toward zero
+	movw	%ax,-68(%ebp)
+
+.Lsprscanleft_segment:
+	movl	%ebx,%eax
+	imull	$20,%eax
+	leal	(%esi,%eax),%edx	// pvert = &pverts[i]
+	flds	4(%edx)
+	fldcw	-66(%ebp)
+	frndint
+	fldcw	-64(%ebp)
+	fstps	-28(%ebp)		// vtop = ceil(pvert->v), rounded to float
+
+	leal	-20(%edx),%ecx		// pnext = pvert - 1 emitpoint_t
+	flds	4(%ecx)
+	fldcw	-66(%ebp)
+	frndint
+	fldcw	-64(%ebp)
+	fstps	-32(%ebp)		// vbottom = ceil(pnext->v)
+
+	flds	-28(%ebp)
+	fcoms	-32(%ebp)
+	fnstsw	%ax
+	sahf
+	fstp	%st(0)
+	jae	.Lsprscanleft_next_segment
+
+	// slope=(pnext.u-pvert.u)/(pnext.v-pvert.v), kept as a float local.
+	flds	(%ecx)
+	fsubs	(%edx)
+	fstps	-36(%ebp)		// du
+	flds	4(%ecx)
+	fsubs	4(%edx)
+	fstps	-40(%ebp)		// dv
+	flds	-36(%ebp)
+	fdivs	-40(%ebp)
+	fstps	-44(%ebp)		// slope
+
+	// u_step=(int)(slope*65536), with the caller's rounding mode preserved.
+	flds	-44(%ebp)
+	fmuls	.Lsprscanleft_fixed16
+	fldcw	-68(%ebp)
+	fistpl	-52(%ebp)		// u_step
+	fldcw	-64(%ebp)
+
+	// Ceil the fixed-point edge start after evaluating the source expression.
+	flds	-28(%ebp)
+	fsubs	4(%edx)			// vtop - pvert.v
+	fmuls	-44(%ebp)
+	fadds	(%edx)			// pvert.u + slope*(vtop-pvert.v)
+	fmuls	.Lsprscanleft_fixed16
+	fldcw	-68(%ebp)
+	fistpl	-48(%ebp)		// u before the integer-pixel ceiling bias
+	fldcw	-64(%ebp)
+	addl	$65535,-48(%ebp)	// ceil the integer portion
+
+	// v boundaries are integral after ceil(); use explicit C-style casts.
+	flds	-28(%ebp)
+	fldcw	-68(%ebp)
+	fistpl	-56(%ebp)		// itop
+	fldcw	-64(%ebp)
+	flds	-32(%ebp)
+	fldcw	-68(%ebp)
+	fistpl	-60(%ebp)		// ibottom
+	fldcw	-64(%ebp)
+
+	movl	-56(%ebp),%ecx
+.Lsprscanleft_row:
+	cmpl	-60(%ebp),%ecx
+	jge	.Lsprscanleft_next_segment
+	movl	-48(%ebp),%eax
+	sarl	$16,%eax
+	movl	%eax,0(%edi)		// span.u
+	movl	%ecx,4(%edi)		// span.v
+	movl	-52(%ebp),%edx
+	addl	%edx,-48(%ebp)
+	addl	$12,%edi
+	incl	%ecx
+	jmp	.Lsprscanleft_row
+
+.Lsprscanleft_next_segment:
+	movl	-32(%ebp),%eax
+	movl	%eax,-28(%ebp)		// vtop = vbottom
+	decl	%ebx
+	jnz	.Lsprscanleft_check_end
+	movl	-72(%ebp),%ebx		// wrap vertex index zero to nump
+.Lsprscanleft_check_end:
+	cmpl	-24(%ebp),%ebx
+	jne	.Lsprscanleft_segment
+
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+#endif
+
+#if defined(ASM486_SPRITE_SCAN_RIGHT) || defined(BENCH486)
+	.section .rodata
+	.p2align 2
+.Lsprscanright_fixed16:
+	.float 65536.0
+	.text
+	.p2align 4,,15
+	.globl C(D_SpriteScanRightEdge_asm486)
+C(D_SpriteScanRightEdge_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$92,%esp
+	movl	8(%ebp),%edi		// output sspan_t cursor
+	movl	12(%ebp),%ebx		// first vertex
+	movl	16(%ebp),%eax		// stop vertex
+	movl	20(%ebp),%ecx		// nump
+	movl	%eax,-28(%ebp)
+	movl	%ecx,-24(%ebp)
+	movl	24(%ebp),%esi		// emitpoint_t array, with duplicate at nump
+	movl	28(%ebp),%eax
+	movl	%eax,-32(%ebp)		// fvrectx_adj
+	movl	32(%ebp),%eax
+	movl	%eax,-36(%ebp)		// fvrectright_adj
+	movl	36(%ebp),%eax
+	movl	%eax,-40(%ebp)		// fvrecty_adj
+	movl	40(%ebp),%eax
+	movl	%eax,-44(%ebp)		// fvrectbottom_adj
+
+	fnstcw	-98(%ebp)
+	movw	-98(%ebp),%ax
+	andb	$0xf3,%ah
+	orb	$0x08,%ah		// FRNDINT rounds toward +infinity for ceil
+	movw	%ax,-100(%ebp)
+	movw	-98(%ebp),%ax
+	orb	$0x0c,%ah		// C float-to-int casts truncate toward zero
+	movw	%ax,-102(%ebp)
+
+	// vvert = clamp(pverts[minindex].v, fvrecty_adj, fvrectbottom_adj).
+	movl	%ebx,%eax
+	imull	$20,%eax
+	leal	(%esi,%eax),%edx
+	flds	4(%edx)
+	fcoms	-40(%ebp)
+	fnstsw	%ax
+	sahf
+	jae	.Lsprscanright_initial_v_not_top
+	jp	.Lsprscanright_initial_v_not_top
+	fstp	%st(0)
+	flds	-40(%ebp)
+	jmp	.Lsprscanright_initial_v_check_bottom
+.Lsprscanright_initial_v_not_top:
+.Lsprscanright_initial_v_check_bottom:
+	fcoms	-44(%ebp)
+	fnstsw	%ax
+	sahf
+	jbe	.Lsprscanright_initial_v_store
+	fstp	%st(0)
+	flds	-44(%ebp)
+.Lsprscanright_initial_v_store:
+	fstps	-56(%ebp)		// clipped vvert
+	flds	-56(%ebp)
+	fldcw	-100(%ebp)
+	frndint
+	fldcw	-98(%ebp)
+	fstps	-48(%ebp)		// vtop=ceil(vvert)
+
+.Lsprscanright_segment:
+	movl	%ebx,%eax
+	imull	$20,%eax
+	leal	(%esi,%eax),%edx	// pvert = &pverts[i]
+	leal	20(%edx),%ecx		// pnext = pvert + 1
+
+	// vnext = clamp(pnext->v, fvrecty_adj, fvrectbottom_adj).
+	flds	4(%ecx)
+	fcoms	-40(%ebp)
+	fnstsw	%ax
+	sahf
+	jae	.Lsprscanright_vnext_not_top
+	jp	.Lsprscanright_vnext_not_top
+	fstp	%st(0)
+	flds	-40(%ebp)
+	jmp	.Lsprscanright_vnext_check_bottom
+.Lsprscanright_vnext_not_top:
+.Lsprscanright_vnext_check_bottom:
+	fcoms	-44(%ebp)
+	fnstsw	%ax
+	sahf
+	jbe	.Lsprscanright_vnext_store
+	fstp	%st(0)
+	flds	-44(%ebp)
+.Lsprscanright_vnext_store:
+	fstps	-60(%ebp)		// clipped vnext
+	flds	-60(%ebp)
+	fldcw	-100(%ebp)
+	frndint
+	fldcw	-98(%ebp)
+	fstps	-52(%ebp)		// vbottom=ceil(vnext)
+
+	flds	-48(%ebp)
+	fcoms	-52(%ebp)
+	fnstsw	%ax
+	sahf
+	fstp	%st(0)
+	jae	.Lsprscanright_next_segment
+
+	// uvert = clamp(pvert->u, fvrectx_adj, fvrectright_adj).
+	flds	(%edx)
+	fcoms	-32(%ebp)
+	fnstsw	%ax
+	sahf
+	jae	.Lsprscanright_uvert_not_left
+	jp	.Lsprscanright_uvert_not_left
+	fstp	%st(0)
+	flds	-32(%ebp)
+	jmp	.Lsprscanright_uvert_check_right
+.Lsprscanright_uvert_not_left:
+.Lsprscanright_uvert_check_right:
+	fcoms	-36(%ebp)
+	fnstsw	%ax
+	sahf
+	jbe	.Lsprscanright_uvert_store
+	fstp	%st(0)
+	flds	-36(%ebp)
+.Lsprscanright_uvert_store:
+	fstps	-64(%ebp)
+
+	// unext = clamp(pnext->u, fvrectx_adj, fvrectright_adj).
+	flds	(%ecx)
+	fcoms	-32(%ebp)
+	fnstsw	%ax
+	sahf
+	jae	.Lsprscanright_unext_not_left
+	jp	.Lsprscanright_unext_not_left
+	fstp	%st(0)
+	flds	-32(%ebp)
+	jmp	.Lsprscanright_unext_check_right
+.Lsprscanright_unext_not_left:
+.Lsprscanright_unext_check_right:
+	fcoms	-36(%ebp)
+	fnstsw	%ax
+	sahf
+	jbe	.Lsprscanright_unext_store
+	fstp	%st(0)
+	flds	-36(%ebp)
+.Lsprscanright_unext_store:
+	fstps	-68(%ebp)
+
+	// slope=(unext-uvert)/(vnext-vvert), stored as the C float locals are.
+	flds	-68(%ebp)
+	fsubs	-64(%ebp)
+	fstps	-72(%ebp)		// du
+	flds	-60(%ebp)
+	fsubs	-56(%ebp)
+	fstps	-76(%ebp)		// dv
+	flds	-72(%ebp)
+	fdivs	-76(%ebp)
+	fstps	-80(%ebp)		// slope
+
+	// u_step=(int)(slope*65536), truncating independently of caller RC.
+	flds	-80(%ebp)
+	fmuls	.Lsprscanright_fixed16
+	fldcw	-102(%ebp)
+	fistpl	-84(%ebp)
+	fldcw	-98(%ebp)
+
+	// Preserve the reference expression order before applying the pixel bias.
+	flds	-48(%ebp)
+	fsubs	-56(%ebp)			// vtop - vvert
+	fmuls	-80(%ebp)
+	fadds	-64(%ebp)			// uvert + slope*(vtop-vvert)
+	fmuls	.Lsprscanright_fixed16
+	fldcw	-102(%ebp)
+	fistpl	-88(%ebp)
+	fldcw	-98(%ebp)
+	addl	$65535,-88(%ebp)	// ceil the integer-pixel portion
+
+	flds	-48(%ebp)
+	fldcw	-102(%ebp)
+	fistpl	-92(%ebp)		// itop
+	fldcw	-98(%ebp)
+	flds	-52(%ebp)
+	fldcw	-102(%ebp)
+	fistpl	-96(%ebp)		// ibottom
+	fldcw	-98(%ebp)
+
+	movl	-92(%ebp),%eax
+.Lsprscanright_row:
+	cmpl	-96(%ebp),%eax
+	jge	.Lsprscanright_next_segment
+	movl	-88(%ebp),%edx
+	sarl	$16,%edx
+	subl	0(%edi),%edx
+	movl	%edx,8(%edi)		// count = right_u - left_u
+	movl	-84(%ebp),%edx
+	addl	%edx,-88(%ebp)
+	addl	$12,%edi
+	incl	%eax
+	jmp	.Lsprscanright_row
+
+.Lsprscanright_next_segment:
+	movl	-52(%ebp),%eax
+	movl	%eax,-48(%ebp)		// vtop = vbottom
+	movl	-60(%ebp),%eax
+	movl	%eax,-56(%ebp)		// vvert = vnext
+	incl	%ebx
+	cmpl	-24(%ebp),%ebx
+	jne	.Lsprscanright_check_end
+	xorl	%ebx,%ebx
+.Lsprscanright_check_end:
+	cmpl	-28(%ebp),%ebx
+	jne	.Lsprscanright_segment
+
+	movl	$-128,8(%edi)		// DS_SPAN_LIST_END
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+#endif
+
+#if defined(ASM486_SPRITE_DRAW) || defined(BENCH486)
+	.extern C(sprite_spans)
+	.extern C(sprite_height)
+	.extern C(minindex)
+	.extern C(maxindex)
+	.extern C(cachewidth)
+	.extern C(cacheblock)
+	.extern C(D_SpriteCalculateGradients)
+	.extern C(D_SpriteScanLeftEdge)
+	.extern C(D_SpriteScanRightEdge)
+	.extern C(D_SpriteDrawSpans)
+	.section .rodata
+	.p2align 2
+.Ldrawsprite_ymin_initial:
+	.float 999999.9
+.Ldrawsprite_ymax_initial:
+	.float -999999.9
+	.text
+	.p2align 4,,15
+	.globl C(D_DrawSprite_asm486)
+C(D_DrawSprite_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	// 1025 sspan_t records (12300 bytes), with separate locals above them.
+	subl	$12352,%esp
+	movl	8(%ebp),%eax
+	movl	%eax,-16(%ebp)		// nump
+	movl	12(%ebp),%esi
+	movl	%esi,-20(%ebp)		// pverts
+	movl	16(%ebp),%eax
+	movl	%eax,-24(%ebp)		// frame width
+	movl	20(%ebp),%eax
+	movl	%eax,-28(%ebp)		// frame height
+	movl	24(%ebp),%eax
+	movl	%eax,-32(%ebp)		// frame pixels
+	leal	-12364(%ebp),%edi	// local spans[MAXHEIGHT+1]
+	movl	%edi,-36(%ebp)
+	movl	%edi,C(sprite_spans)
+
+	flds	.Ldrawsprite_ymin_initial
+	fstps	-40(%ebp)		// ymin
+	flds	.Ldrawsprite_ymax_initial
+	fstps	-44(%ebp)		// ymax
+
+	xorl	%ebx,%ebx			// i=0
+.Ldrawsprite_vertex_loop:
+	cmpl	-16(%ebp),%ebx
+	jge	.Ldrawsprite_vertex_done
+	movl	%ebx,%eax
+	imull	$20,%eax
+	leal	(%esi,%eax),%edx	// pvert
+
+	// if (pvert->v < ymin), retaining the original float value.
+	flds	4(%edx)
+	fcoms	-40(%ebp)
+	fnstsw	%ax
+	sahf
+	jae	.Ldrawsprite_min_unchanged
+	jp	.Ldrawsprite_min_unchanged
+	fstps	-40(%ebp)
+	movl	%ebx,C(minindex)
+	jmp	.Ldrawsprite_check_max
+.Ldrawsprite_min_unchanged:
+	fstp	%st(0)
+
+.Ldrawsprite_check_max:
+	// if (pvert->v > ymax), also retaining the source float value.
+	flds	4(%edx)
+	fcoms	-44(%ebp)
+	fnstsw	%ax
+	sahf
+	jbe	.Ldrawsprite_max_unchanged
+	fstps	-44(%ebp)
+	movl	%ebx,C(maxindex)
+	jmp	.Ldrawsprite_next_vertex
+.Ldrawsprite_max_unchanged:
+	fstp	%st(0)
+
+.Ldrawsprite_next_vertex:
+	incl	%ebx
+	jmp	.Ldrawsprite_vertex_loop
+
+.Ldrawsprite_vertex_done:
+	fnstcw	-46(%ebp)
+	movw	-46(%ebp),%ax
+	andb	$0xf3,%ah
+	orb	$0x08,%ah		// FRNDINT rounds upward for ceil
+	movw	%ax,-48(%ebp)
+	flds	-40(%ebp)
+	fldcw	-48(%ebp)
+	frndint
+	fldcw	-46(%ebp)
+	fstps	-40(%ebp)
+	flds	-44(%ebp)
+	fldcw	-48(%ebp)
+	frndint
+	fldcw	-46(%ebp)
+	fstps	-44(%ebp)
+
+	// The C path returns when ceil(ymin) >= ceil(ymax).
+	flds	-40(%ebp)
+	fcoms	-44(%ebp)
+	fnstsw	%ax
+	sahf
+	fstp	%st(0)
+	jae	.Ldrawsprite_return
+
+	movl	-24(%ebp),%eax
+	movl	%eax,C(cachewidth)
+	movl	-28(%ebp),%eax
+	movl	%eax,C(sprite_height)
+	movl	-32(%ebp),%eax
+	movl	%eax,C(cacheblock)
+
+	// pverts[nump] = pverts[0], copying the complete 20-byte emitpoint_t.
+	movl	-20(%ebp),%esi
+	movl	-16(%ebp),%eax
+	imull	$20,%eax
+	leal	(%esi,%eax),%edi
+	movl	0(%esi),%eax
+	movl	%eax,0(%edi)
+	movl	4(%esi),%eax
+	movl	%eax,4(%edi)
+	movl	8(%esi),%eax
+	movl	%eax,8(%edi)
+	movl	12(%esi),%eax
+	movl	%eax,12(%edi)
+	movl	16(%esi),%eax
+	movl	%eax,16(%edi)
+
+	call	C(D_SpriteCalculateGradients)
+	call	C(D_SpriteScanLeftEdge)
+	call	C(D_SpriteScanRightEdge)
+	pushl	-36(%ebp)
+	call	C(D_SpriteDrawSpans)
+	addl	$4,%esp
+
+.Ldrawsprite_return:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+#endif
+
+#if defined(ASM486_SPRITE_SETUP) || defined(BENCH486)
+	.extern C(clip_current)
+	.extern C(clip_verts)
+	.extern C(sprite_width)
+	.extern C(sprite_height)
+	.extern C(r_spritedesc)
+	.extern C(r_entorigin)
+	.extern C(r_origin)
+	.extern C(modelorg)
+	.extern C(view_clipplanes)
+	.extern C(vright)
+	.extern C(vup)
+	.extern C(vpn)
+	.extern C(xscale)
+	.extern C(yscale)
+	.extern C(xcenter)
+	.extern C(ycenter)
+	.extern C(R_ClipSpriteFace)
+	.extern C(TransformVector)
+	.extern C(D_DrawSprite)
+	.extern C(Sys_Error)
+	.section .rodata
+	.p2align 2
+.Lsprite_setup_zero:
+	.float 0.0
+.Lsprite_setup_near_clip:
+	.float 0.01
+.Lsprite_setup_nearzi_initial:
+	.float -999999.0
+.Lsprite_setup_too_many:
+	.string "R_SetupAndDrawSprite: too many points"
+	.text
+	.p2align 4,,15
+	.globl C(R_SetupAndDrawSprite_asm486)
+C(R_SetupAndDrawSprite_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	// 21 emitpoint_t outputs occupy 420 bytes; the remaining locals sit above.
+	subl	$640,%esp
+	leal	-652(%ebp),%edi
+	movl	%edi,-32(%ebp)		// outverts
+	movl	C(r_spritedesc)+8,%eax
+	movl	%eax,-16(%ebp)		// pspriteframe
+
+	// Backface cull: dot(vpn, modelorg) >= 0 returns without touching spans.
+	flds	C(r_spritedesc)+36
+	fmuls	C(modelorg)
+	flds	C(r_spritedesc)+40
+	fmuls	C(modelorg)+4
+	faddp	%st,%st(1)
+	flds	C(r_spritedesc)+44
+	fmuls	C(modelorg)+8
+	faddp	%st,%st(1)
+	fstps	-120(%ebp)
+	flds	-120(%ebp)
+	fcoms	.Lsprite_setup_zero
+	fnstsw	%ax
+	sahf
+	fstp	%st(0)
+	jae	.Lsprite_setup_return
+
+	// Scale frame bounds along the sprite's world-space up and right axes.
+	movl	-16(%ebp),%eax
+	flds	C(r_spritedesc)+24
+	fmuls	24(%eax)			// frame.right
+	fstps	-72(%ebp)
+	flds	C(r_spritedesc)+28
+	fmuls	24(%eax)
+	fstps	-76(%ebp)
+	flds	C(r_spritedesc)+32
+	fmuls	24(%eax)
+	fstps	-80(%ebp)
+	flds	C(r_spritedesc)+24
+	fmuls	20(%eax)			// frame.left
+	fstps	-48(%ebp)
+	flds	C(r_spritedesc)+28
+	fmuls	20(%eax)
+	fstps	-52(%ebp)
+	flds	C(r_spritedesc)+32
+	fmuls	20(%eax)
+	fstps	-56(%ebp)
+	flds	C(r_spritedesc)+12
+	fmuls	12(%eax)			// frame.up
+	fstps	-60(%ebp)
+	flds	C(r_spritedesc)+16
+	fmuls	12(%eax)
+	fstps	-64(%ebp)
+	flds	C(r_spritedesc)+20
+	fmuls	12(%eax)
+	fstps	-68(%ebp)
+	flds	C(r_spritedesc)+12
+	fmuls	16(%eax)			// frame.down
+	fstps	-84(%ebp)
+	flds	C(r_spritedesc)+16
+	fmuls	16(%eax)
+	fstps	-88(%ebp)
+	flds	C(r_spritedesc)+20
+	fmuls	16(%eax)
+	fstps	-92(%ebp)
+
+	// Construct the four (x,y,z,s,t) poster corners in original order.
+	flds	C(r_entorigin)
+	fadds	-60(%ebp)
+	fadds	-48(%ebp)
+	fstps	C(clip_verts)
+	flds	C(r_entorigin)+4
+	fadds	-64(%ebp)
+	fadds	-52(%ebp)
+	fstps	C(clip_verts)+4
+	flds	C(r_entorigin)+8
+	fadds	-68(%ebp)
+	fadds	-56(%ebp)
+	fstps	C(clip_verts)+8
+
+	flds	C(r_entorigin)
+	fadds	-60(%ebp)
+	fadds	-72(%ebp)
+	fstps	C(clip_verts)+20
+	flds	C(r_entorigin)+4
+	fadds	-64(%ebp)
+	fadds	-76(%ebp)
+	fstps	C(clip_verts)+24
+	flds	C(r_entorigin)+8
+	fadds	-68(%ebp)
+	fadds	-80(%ebp)
+	fstps	C(clip_verts)+28
+
+	flds	C(r_entorigin)
+	fadds	-84(%ebp)
+	fadds	-72(%ebp)
+	fstps	C(clip_verts)+40
+	flds	C(r_entorigin)+4
+	fadds	-88(%ebp)
+	fadds	-76(%ebp)
+	fstps	C(clip_verts)+44
+	flds	C(r_entorigin)+8
+	fadds	-92(%ebp)
+	fadds	-80(%ebp)
+	fstps	C(clip_verts)+48
+
+	flds	C(r_entorigin)
+	fadds	-84(%ebp)
+	fadds	-48(%ebp)
+	fstps	C(clip_verts)+60
+	flds	C(r_entorigin)+4
+	fadds	-88(%ebp)
+	fadds	-52(%ebp)
+	fstps	C(clip_verts)+64
+	flds	C(r_entorigin)+8
+	fadds	-92(%ebp)
+	fadds	-56(%ebp)
+	fstps	C(clip_verts)+68
+
+	movl	$0,C(clip_verts)+12
+	movl	$0,C(clip_verts)+16
+	fildl	C(sprite_width)
+	fstps	C(clip_verts)+32
+	movl	$0,C(clip_verts)+36
+	fildl	C(sprite_width)
+	fstps	C(clip_verts)+52
+	fildl	C(sprite_height)
+	fstps	C(clip_verts)+56
+	movl	$0,C(clip_verts)+72
+	fildl	C(sprite_height)
+	fstps	C(clip_verts)+76
+
+	// Each face clip toggles clip_current and writes the next winding buffer.
+	movl	$0,C(clip_current)
+	movl	$4,-20(%ebp)		// nump
+	xorl	%ebx,%ebx
+.Lsprite_setup_clip_loop:
+	cmpl	$4,%ebx
+	jge	.Lsprite_setup_clipped
+	movl	%ebx,%eax
+	imull	$24,%eax			// sizeof(clipplane_t), layout asserted in C
+	leal	C(view_clipplanes)(%eax),%eax
+	pushl	%eax
+	pushl	-20(%ebp)
+	call	C(R_ClipSpriteFace)
+	addl	$8,%esp
+	movl	%eax,-20(%ebp)
+	cmpl	$3,%eax
+	jl	.Lsprite_setup_return
+	cmpl	$20,%eax			// MAXWORKINGVERTS, layout asserted in C
+	jl	.Lsprite_setup_clip_next
+	pushl	$.Lsprite_setup_too_many
+	call	C(Sys_Error)
+	addl	$4,%esp
+	jmp	.Lsprite_setup_return
+.Lsprite_setup_clip_next:
+	incl	%ebx
+	jmp	.Lsprite_setup_clip_loop
+
+.Lsprite_setup_clipped:
+	movl	C(clip_current),%eax
+	imull	$400,%eax			// sizeof(clip_verts[0]), asserted in C
+	leal	C(clip_verts)(%eax),%esi
+	flds	.Lsprite_setup_nearzi_initial
+	fstps	C(r_spritedesc)+48
+	xorl	%ebx,%ebx			// i=0
+.Lsprite_setup_project_loop:
+	cmpl	-20(%ebp),%ebx
+	jge	.Lsprite_setup_project_done
+	movl	%ebx,%eax
+	imull	$20,%eax
+	leal	(%esi,%eax),%edx		// pv
+	movl	%edx,-36(%ebp)
+	// local = pv.xyz - r_origin, then use the legacy assembly TransformVector.
+	flds	(%edx)
+	fsubs	C(r_origin)
+	fstps	-104(%ebp)
+	flds	4(%edx)
+	fsubs	C(r_origin)+4
+	fstps	-100(%ebp)
+	flds	8(%edx)
+	fsubs	C(r_origin)+8
+	fstps	-96(%ebp)
+	leal	-116(%ebp),%eax		// transformed output: x,y,z occupy -116..-108
+	leal	-104(%ebp),%edx		// contiguous local input: x,y,z at -104..-96
+	pushl	%eax
+	pushl	%edx
+	call	C(TransformVector)
+	addl	$8,%esp
+
+	// Preserve the reference near-plane clamp before calculating reciprocal z.
+	flds	-108(%ebp)
+	fcoms	.Lsprite_setup_near_clip
+	fnstsw	%ax
+	sahf
+	fstp	%st(0)
+	jp	.Lsprite_setup_depth_ready
+	jae	.Lsprite_setup_depth_ready
+	flds	.Lsprite_setup_near_clip
+	fstps	-108(%ebp)
+.Lsprite_setup_depth_ready:
+	fld1
+	fdivs	-108(%ebp)
+	fstps	16(%edi)			// pout->zi
+	flds	16(%edi)
+	fcoms	C(r_spritedesc)+48
+	fnstsw	%ax
+	sahf
+	jbe	.Lsprite_setup_nearzi_unchanged
+	fstps	C(r_spritedesc)+48
+	jmp	.Lsprite_setup_nearzi_done
+.Lsprite_setup_nearzi_unchanged:
+	fstp	%st(0)
+.Lsprite_setup_nearzi_done:
+
+	movl	-36(%ebp),%edx
+	movl	12(%edx),%eax
+	movl	%eax,8(%edi)		// pout->s
+	movl	16(%edx),%eax
+	movl	%eax,12(%edi)		// pout->t
+	flds	C(xscale)
+	fmuls	16(%edi)
+	fstps	-40(%ebp)			// scale = xscale * zi
+	flds	-40(%ebp)
+	fmuls	-116(%ebp)
+	fadds	C(xcenter)
+	fstps	(%edi)			// pout->u
+	flds	C(yscale)
+	fmuls	16(%edi)
+	fstps	-44(%ebp)			// scale = yscale * zi
+	flds	-44(%ebp)
+	fmuls	-112(%ebp)
+	fchs
+	fadds	C(ycenter)
+	fstps	4(%edi)			// pout->v = ycenter - scale * transformed.y
+	addl	$20,%edi
+	incl	%ebx
+	jmp	.Lsprite_setup_project_loop
+
+.Lsprite_setup_project_done:
+	movl	-20(%ebp),%eax
+	movl	%eax,C(r_spritedesc)		// nump
+	movl	-32(%ebp),%eax
+	movl	%eax,C(r_spritedesc)+4	// pverts = outverts
+	call	C(D_DrawSprite)
+
+.Lsprite_setup_return:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+#endif
+
 #ifdef ASM486_EDGE_DRAWING
 	.extern C(auxedges)
 	.extern C(r_edges)
@@ -2519,7 +3866,7 @@ C(D_CalcGradients_asm486):
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	subl	$36,%esp
+	subl	$48,%esp
 	movl	8(%ebp),%esi		// pface
 #ifdef PROFILE486
 	pushl	%esi
@@ -2705,39 +4052,55 @@ C(D_CalcGradients_asm486):
 	.p2align 4,,15
 
 // void *D_CacheSurfaceHit_asm486(void *cache, int surface_dlightframe,
-//     int frame, void *texture, int *lightadj)
-// Check the surfcache_t fast-path fields. The caller keeps texture animation
-// and surface generation in C; cache keys and allocation can use ASM entries.
+//     int frame, void *texture, int *lightadj, msurface_t *surface)
+// Match the C cache hit predicate, including the unused-style sentinel and
+// the discrete dynamic-light probe for phantom dlight marks.
 C(D_CacheSurfaceHit_asm486):
 	.globl C(D_CacheSurfaceHit_asm486)
-	movl	4(%esp),%eax		// cache
-	testl	%eax,%eax
+	pushl	%ebx
+	movl	8(%esp),%ebx		// cache
+	testl	%ebx,%ebx
 	jz	.Lsurface_cache_miss
-	cmpl	$0,24(%eax)		// cache->dlight
+	cmpl	$0,24(%ebx)		// cache->dlight
 	jne	.Lsurface_cache_miss
-	movl	8(%esp),%edx		// surface->dlightframe
-	cmpl	12(%esp),%edx		// r_framecount
-	je	.Lsurface_cache_miss
-	movl	16(%esp),%edx		// r_drawsurf.texture
-	cmpl	SURFCACHE_TEXTURE_OFFSET(%eax),%edx	// cache->texture
+	movl	20(%esp),%edx		// r_drawsurf.texture
+	cmpl	SURFCACHE_TEXTURE_OFFSET(%ebx),%edx	// cache->texture
 	jne	.Lsurface_cache_miss
-	movl	20(%esp),%edx		// r_drawsurf.lightadj
+	movl	24(%esp),%edx		// r_drawsurf.lightadj
 	movl	(%edx),%ecx
-	cmpl	8(%eax),%ecx
+	cmpl	8(%ebx),%ecx
 	jne	.Lsurface_cache_miss
+	movl	28(%esp),%edx		// surface
+	cmpb	$255,57(%edx)		// styles[1] unused
+	je	.Lsurface_cache_check_dlight
+	movl	24(%esp),%edx		// r_drawsurf.lightadj
 	movl	4(%edx),%ecx
-	cmpl	12(%eax),%ecx
+	cmpl	12(%ebx),%ecx
 	jne	.Lsurface_cache_miss
 	movl	8(%edx),%ecx
-	cmpl	16(%eax),%ecx
+	cmpl	16(%ebx),%ecx
 	jne	.Lsurface_cache_miss
 	movl	12(%edx),%ecx
-	cmpl	20(%eax),%ecx
+	cmpl	20(%ebx),%ecx
 	jne	.Lsurface_cache_miss
+
+.Lsurface_cache_check_dlight:
+	movl	12(%esp),%edx		// surface->dlightframe
+	cmpl	16(%esp),%edx		// current frame
+	jne	.Lsurface_cache_hit
+	pushl	28(%esp)			// R_DlightContributes(surface)
+	call	C(R_DlightContributes)
+	addl	$4,%esp
+	testl	%eax,%eax
+	jne	.Lsurface_cache_miss
+.Lsurface_cache_hit:
+	movl	%ebx,%eax
+	popl	%ebx
 	ret
 
 .Lsurface_cache_miss:
 	xorl	%eax,%eax
+	popl	%ebx
 	ret
 
 	.p2align 4,,15
@@ -3140,6 +4503,7 @@ C(D_CacheSurface):
 	addl	$16,%esp
 	movl	$C(r_drawsurf),%eax
 	leal	12(%eax),%eax		// &r_drawsurf.lightadj[0]
+	pushl	%esi			// surface for C-equivalent hit predicate
 	pushl	%eax
 	pushl	%edi
 	pushl	C(r_framecount)
@@ -3147,7 +4511,7 @@ C(D_CacheSurface):
 	pushl	%eax
 	pushl	-16(%ebp)
 	call	C(D_CacheSurfaceHit_asm486)
-	addl	$20,%esp
+	addl	$24,%esp
 	testl	%eax,%eax
 	jz	.Lcache_surface_miss
 	movl	%eax,-16(%ebp)
@@ -3653,7 +5017,7 @@ C(D_FillRect):
 	jl	.Lfillrect_done
 
 	// Initial destination = buffer + ry*rowbytes + rx. MUL is available
-	// on the 386 and avoids the Pentium-only two-register IMUL encoding.
+	// on the 386; this avoids the slower two-register form on 486-class CPUs.
 	movl	-8(%ebp),%eax
 	mull	-24(%ebp)
 	addl	C(vid),%eax
@@ -3863,33 +5227,32 @@ C(Turbulent8):
 	addl	%eax,C(bench486_turbulent_pixels)
 #endif
 
-	// Evaluate origin + dv*stepv + du*stepu in the same left-to-right order as
-	// the C expressions. Keeping the results as 80-bit values matches the x87 C
-	// path's excess precision until the final FISTP conversions.
-	flds	C(d_sdivzorigin)
+	// GCC's -ffast-math x87 output adds the two products before the origin.
+	// Preserve that emitted order and excess precision through the final casts.
 	fildl	espan_t_v(%ebx)
 	fmuls	C(d_sdivzstepv)
-	faddp	%st,%st(1)
 	fildl	espan_t_u(%ebx)
 	fmuls	C(d_sdivzstepu)
 	faddp	%st,%st(1)
+	flds	C(d_sdivzorigin)
+	faddp	%st,%st(1)
 	fstpt	TURB_SDIVZ(%ebp)
 
-	flds	C(d_tdivzorigin)
 	fildl	espan_t_v(%ebx)
 	fmuls	C(d_tdivzstepv)
-	faddp	%st,%st(1)
 	fildl	espan_t_u(%ebx)
 	fmuls	C(d_tdivzstepu)
 	faddp	%st,%st(1)
+	flds	C(d_tdivzorigin)
+	faddp	%st,%st(1)
 	fstpt	TURB_TDIVZ(%ebp)
 
-	flds	C(d_ziorigin)
 	fildl	espan_t_v(%ebx)
 	fmuls	C(d_zistepv)
-	faddp	%st,%st(1)
 	fildl	espan_t_u(%ebx)
 	fmuls	C(d_zistepu)
+	faddp	%st,%st(1)
+	flds	C(d_ziorigin)
 	faddp	%st,%st(1)
 	fstpt	TURB_ZI(%ebp)
 
@@ -4087,8 +5450,8 @@ C(Turbulent8):
 	cmpl	$0,C(bench486_profile_frame_active)
 	je	.Lturb_profile_end_done
 	call	C(Sys_FloatTime)
-	fldl	TURB_PROFILE_START(%ebp)
-	fsubp	%st,%st(1)
+	// ST(0) is end time: memory subtraction expresses end - start directly.
+	fsubl	TURB_PROFILE_START(%ebp)
 	faddl	C(bench486_turbulent_seconds)
 	fstpl	C(bench486_turbulent_seconds)
 .Lturb_profile_end_done:
@@ -4908,11 +6271,11 @@ C(R_BuildLightMapNormalize_asm486):
 
 // int R_AddDynamicLightSamples_asm486(unsigned *blocklights, int smax,
 //                                     int tmax, int local0, int local1,
-//                                     int idist_limit, int irad,
-//                                     int all_lit)
-// Walk one dynamic-light sample rectangle using the same integer distance
-// rule as R_AddDynamicLights.  The floating-point projection remains in C;
-// this helper owns only the repeated sample-distance and accumulation loop.
+//                                     float local1_float, int idist_limit,
+//                                     int irad, int all_lit)
+// Walk one sample rectangle while preserving C's per-row float-to-int
+// truncation.  A positive fractional t coordinate becomes one unit closer to
+// zero after its row crosses into negative values.
 #define DLIGHT_SAMPLE_PIXEL_AT(offset) \
 	movl	%edx,%eax; \
 	subl	$16,%edx; \
@@ -4929,7 +6292,7 @@ C(R_BuildLightMapNormalize_asm486):
 	jge	4f; \
 	sall	$8,%eax; \
 	negl	%eax; \
-	addl	60(%esp),%eax; \
+	addl	64(%esp),%eax; \
 	addl	%eax,offset(%esi); \
 	incl	%edi; \
 4:
@@ -4948,7 +6311,7 @@ C(R_BuildLightMapNormalize_asm486):
 2:  	addl	%ebp,%eax; \
 3:  	sall	$8,%eax; \
 	negl	%eax; \
-	addl	60(%esp),%eax; \
+	addl	64(%esp),%eax; \
 	addl	%eax,offset(%esi)
 
 C(R_AddDynamicLightSamples_asm486):
@@ -4961,14 +6324,25 @@ C(R_AddDynamicLightSamples_asm486):
 
 	// Four saved registers plus the 16-byte local block precede the args.
 	movl	36(%esp),%esi		// blocklights
-	movl	56(%esp),%ebx		// idist_limit
+	movl	60(%esp),%ebx		// idist_limit
 	xorl	%edi,%edi			// contributed count
 	movl	44(%esp),%eax		// tmax
 	movl	%eax,12(%esp)
 	movl	52(%esp),%eax		// signed td for the current row
 	movl	%eax,0(%esp)
-	movl	$0,4(%esp)		// contributed
-	cmpl	$0,64(%esp)		// all sampled distances pass
+	movl	$0,4(%esp)		// positive fractional t-coordinate flag
+	cmpl	$0,%eax
+	jl	.Ldlight_fraction_ready
+	fildl	52(%esp)
+	flds	56(%esp)
+	fcompp
+	fwait
+	fnstsw	%ax
+	sahf
+	jbe	.Ldlight_fraction_ready
+	movl	$1,4(%esp)
+.Ldlight_fraction_ready:
+	cmpl	$0,68(%esp)		// all sampled distances pass
 	jz	.Ldlight_row
 	movl	$1,%edi
 	jmp	.Ldlight_all_row
@@ -4977,6 +6351,12 @@ C(R_AddDynamicLightSamples_asm486):
 	// ECX is the absolute row distance and EBP is td >> 1.  Keep the
 	// signed row distance in the local block for the next row.
 	movl	0(%esp),%eax
+	cmpl	$0,4(%esp)
+	je	.Ldlight_row_t_ready
+	testl	%eax,%eax
+	jge	.Ldlight_row_t_ready
+	incl	%eax
+.Ldlight_row_t_ready:
 	movl	%eax,%ecx
 	sarl	$31,%eax
 	xorl	%eax,%ecx
@@ -5017,6 +6397,12 @@ C(R_AddDynamicLightSamples_asm486):
 
 .Ldlight_all_row:
 	movl	0(%esp),%eax
+	cmpl	$0,4(%esp)
+	je	.Ldlight_all_row_t_ready
+	testl	%eax,%eax
+	jge	.Ldlight_all_row_t_ready
+	incl	%eax
+.Ldlight_all_row_t_ready:
 	movl	%eax,%ecx
 	sarl	$31,%eax
 	xorl	%eax,%ecx
@@ -5079,6 +6465,45 @@ C(R_AddDynamicLightSamples_asm486):
 
 	.p2align 4,,15
 
+// Shared plane-dot body for the selector benchmark and the BSP walk.  The
+// walker reaches this once per visible internal node, so expanding the body
+// there avoids a stack argument, call/return, and cleanup on a hot path.
+.macro BSP_PLANE_DOT plane_reg
+	movzbl	16(\plane_reg),%eax		// plane->type
+	testl	%eax,%eax
+	jz	.Lbsp_plane_dot_x_\@
+	cmpl	$1,%eax
+	je	.Lbsp_plane_dot_y_\@
+	cmpl	$2,%eax
+	je	.Lbsp_plane_dot_z_\@
+
+	flds	C(modelorg)
+	fmuls	(\plane_reg)
+	flds	C(modelorg)+4
+	fmuls	4(\plane_reg)
+	faddp	%st,%st(1)
+	flds	C(modelorg)+8
+	fmuls	8(\plane_reg)
+	faddp	%st,%st(1)
+	fsubs	12(\plane_reg)
+	jmp	.Lbsp_plane_dot_done_\@
+
+.Lbsp_plane_dot_x_\@:
+	flds	C(modelorg)
+	fsubs	12(\plane_reg)
+	jmp	.Lbsp_plane_dot_done_\@
+
+.Lbsp_plane_dot_y_\@:
+	flds	C(modelorg)+4
+	fsubs	12(\plane_reg)
+	jmp	.Lbsp_plane_dot_done_\@
+
+.Lbsp_plane_dot_z_\@:
+	flds	C(modelorg)+8
+	fsubs	12(\plane_reg)
+.Lbsp_plane_dot_done_\@:
+.endm
+
 // double R_RecursiveWorldNodePlaneDot_asm486(mplane_t *plane)
 // Calculate the viewpoint/plane dot used to choose the front BSP child.
 // Axis-aligned planes avoid the three x87 multiplies; arbitrary planes keep
@@ -5086,38 +6511,7 @@ C(R_AddDynamicLightSamples_asm486):
 C(R_RecursiveWorldNodePlaneDot_asm486):
 	.globl C(R_RecursiveWorldNodePlaneDot_asm486)
 	movl	4(%esp),%edx		// plane
-	movzbl	16(%edx),%eax		// plane->type
-	testl	%eax,%eax
-	jz	.Lbsp_plane_dot_x
-	cmpl	$1,%eax
-	je	.Lbsp_plane_dot_y
-	cmpl	$2,%eax
-	je	.Lbsp_plane_dot_z
-
-	flds	C(modelorg)
-	fmuls	(%edx)
-	flds	C(modelorg)+4
-	fmuls	4(%edx)
-	faddp	%st,%st(1)
-	flds	C(modelorg)+8
-	fmuls	8(%edx)
-	faddp	%st,%st(1)
-	fsubs	12(%edx)
-	ret
-
-.Lbsp_plane_dot_x:
-	flds	C(modelorg)
-	fsubs	12(%edx)
-	ret
-
-.Lbsp_plane_dot_y:
-	flds	C(modelorg)+4
-	fsubs	12(%edx)
-	ret
-
-.Lbsp_plane_dot_z:
-	flds	C(modelorg)+8
-	fsubs	12(%edx)
+	BSP_PLANE_DOT %edx
 	ret
 
 	.p2align 4,,15
@@ -5231,10 +6625,17 @@ C(R_RecursiveWorldNodeClip_asm486):
 #ifdef ASM486_BSP_WALK
 	.p2align 4,,15
 
+#ifdef ASM486_BSP_FRAME_COUNT
+	.equ BSP_WALK_RECORD_BYTES, 28
+#else
+	.equ BSP_WALK_RECORD_BYTES, 24
+#endif
+
 // void R_RecursiveWorldNode_asm486(mnode_t *node, int clipflags)
-// regparm(2): EAX=node and EDX=clipflags.  The traversal and its visible
-// surface ordering are kept here; the plane-dot and frustum helpers are the
-// already parity-checked 486 assembly routines above.
+// regparm(2): EAX=node and EDX=clipflags.  Use explicit records on the
+// caller's stack to keep depth-first order without a function call per child.
+// A parent record holds its front-to-back continuation while both subtrees
+// are visited. The plane-dot and frustum helpers keep their reference order.
 C(R_RecursiveWorldNode_asm486):
 	.globl C(R_RecursiveWorldNode_asm486)
 	pushl	%ebp
@@ -5242,9 +6643,15 @@ C(R_RecursiveWorldNode_asm486):
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	subl	$36,%esp
-	movl	%eax,%ebx			// node, preserved by recursive calls
-	movl	%edx,-20(%ebp)		// clipflags
+	subl	$48,%esp
+	movl	%esp,-52(%ebp)		// bottom of the explicit continuation stack
+	movl	%eax,-56(%ebp)		// current node
+	movl	%edx,-60(%ebp)		// current clip flags
+
+.Lbsp_walk_node_enter:
+	movl	-56(%ebp),%ebx
+	movl	-60(%ebp),%eax
+	movl	%eax,-20(%ebp)		// clipflags
 
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
@@ -5272,9 +6679,9 @@ C(R_RecursiveWorldNode_asm486):
 
 	movl	C(r_visframecount),%eax
 	cmpl	%eax,4(%ebx)
-	jne	.Lbsp_walk_return
+	jne	.Lbsp_walk_node_complete
 	cmpl	$-2,0(%ebx)			// solid
-	je	.Lbsp_walk_return
+	je	.Lbsp_walk_node_complete
 
 	cmpl	$0,-20(%ebp)
 	je	.Lbsp_walk_clip_done
@@ -5283,7 +6690,7 @@ C(R_RecursiveWorldNode_asm486):
 	call	C(R_RecursiveWorldNodeClip_asm486)
 	addl	$8,%esp
 	testl	%eax,%eax
-	js	.Lbsp_walk_return
+	js	.Lbsp_walk_node_complete
 	movl	%eax,-20(%ebp)
 .Lbsp_walk_clip_done:
 
@@ -5296,9 +6703,8 @@ C(R_RecursiveWorldNode_asm486):
 	jl	.Lbsp_walk_leaf
 
 // Internal node: choose the front child from the assembly plane dot.
-	pushl	24(%ebx)
-	call	C(R_RecursiveWorldNodePlaneDot_asm486)
-	addl	$4,%esp
+	movl	24(%ebx),%edx		// node->plane
+	BSP_PLANE_DOT %edx
 	fstpl	-32(%ebp)
 	movl	$1,%edi			// side defaults to back for unordered dot
 	fldl	-32(%ebp)
@@ -5309,13 +6715,48 @@ C(R_RecursiveWorldNode_asm486):
 	jc	.Lbsp_walk_side_ready	// negative
 	movl	$0,%edi			// positive or zero
 .Lbsp_walk_side_ready:
-	fstp	%st(0)			// discard the FTST operand before recursion
+	fstp	%st(0)			// discard the FTST operand before descending
+
+	// Save the parent continuation, then enter its front child. Record layout:
+	// node, clip flags, double plane dot, side, stage, and optional framecount.
+	subl	$BSP_WALK_RECORD_BYTES,%esp
+	movl	%ebx,0(%esp)
+	movl	-20(%ebp),%eax
+	movl	%eax,4(%esp)
+	movl	-32(%ebp),%eax
+	movl	%eax,8(%esp)
+	movl	-28(%ebp),%eax
+	movl	%eax,12(%esp)
+	movl	%edi,16(%esp)
+	movl	$1,20(%esp)			// resume after front child
+#ifdef ASM486_BSP_FRAME_COUNT
+	movl	-24(%ebp),%eax
+	movl	%eax,24(%esp)
+#endif
 	movl	%edi,%eax
 	movl	28(%ebx,%eax,4),%eax
-	movl	-20(%ebp),%edx
-	call	C(R_RecursiveWorldNode_asm486)
+	movl	%eax,-56(%ebp)
+	movl	-20(%ebp),%eax
+	movl	%eax,-60(%ebp)
+	jmp	.Lbsp_walk_node_enter
 
 // Visit this node's marked surfaces in the same order as the C traversal.
+.Lbsp_walk_resume_after_front:
+	movl	$2,20(%esp)			// parent now awaits its back child
+	movl	0(%esp),%ebx
+	movl	4(%esp),%eax
+	movl	%eax,-20(%ebp)
+	movl	8(%esp),%eax
+	movl	%eax,-32(%ebp)
+	movl	12(%esp),%eax
+	movl	%eax,-28(%ebp)
+	movl	16(%esp),%edi
+#ifdef ASM486_BSP_FRAME_COUNT
+	movl	24(%esp),%eax
+	movl	%eax,-24(%ebp)
+#endif
+
+.Lbsp_walk_surface_start:
 	movzwl	38(%ebx),%eax		// unsigned short numsurfaces
 	movl	%eax,-40(%ebp)
 #ifdef PROFILE486
@@ -5418,9 +6859,10 @@ C(R_RecursiveWorldNode_asm486):
 	movl	%edi,%eax
 	xorl	$1,%eax			// !side
 	movl	28(%ebx,%eax,4),%eax
-	movl	-20(%ebp),%edx
-	call	C(R_RecursiveWorldNode_asm486)
-	jmp	.Lbsp_walk_return
+	movl	%eax,-56(%ebp)
+	movl	-20(%ebp),%eax
+	movl	%eax,-60(%ebp)
+	jmp	.Lbsp_walk_node_enter
 
 .Lbsp_walk_leaf:
 	movl	36(%ebx),%ecx		// nummarksurfaces
@@ -5450,6 +6892,15 @@ C(R_RecursiveWorldNode_asm486):
 	movl	C(r_currentkey),%eax
 	movl	%eax,40(%ebx)		// pleaf->key
 	incl	C(r_currentkey)
+
+.Lbsp_walk_node_complete:
+	movl	-52(%ebp),%eax
+	cmpl	%eax,%esp
+	je	.Lbsp_walk_return
+	cmpl	$1,20(%esp)
+	je	.Lbsp_walk_resume_after_front
+	addl	$BSP_WALK_RECORD_BYTES,%esp
+	jmp	.Lbsp_walk_node_complete
 
 .Lbsp_walk_return:
 	leal	-12(%ebp),%esp
@@ -5559,6 +7010,141 @@ C(R_AliasCheckBBoxProject_asm486):
 
 	.p2align 4,,15
 
+// void R_AliasTransformVector_asm486(vec3_t in, vec3_t out)
+// Transform one alias bounding-box corner.  Match the reference C build's
+// x87 order: accumulate coordinates 0 and 1, add translation, then add 2.
+C(R_AliasTransformVector_asm486):
+	.globl C(R_AliasTransformVector_asm486)
+	pushl	%esi
+	pushl	%edi
+	movl	12(%esp),%esi		// input vector
+	movl	16(%esp),%edi		// output vector
+
+	flds	0(%esi)
+	fmuls	C(aliastransform)+0
+	flds	4(%esi)
+	fmuls	C(aliastransform)+4
+	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+12
+	flds	8(%esi)
+	fmuls	C(aliastransform)+8
+	faddp	%st(0),%st(1)
+	fstps	0(%edi)
+
+	flds	0(%esi)
+	fmuls	C(aliastransform)+16
+	flds	4(%esi)
+	fmuls	C(aliastransform)+20
+	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+28
+	flds	8(%esi)
+	fmuls	C(aliastransform)+24
+	faddp	%st(0),%st(1)
+	fstps	4(%edi)
+
+	flds	0(%esi)
+	fmuls	C(aliastransform)+32
+	flds	4(%esi)
+	fmuls	C(aliastransform)+36
+	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+44
+	flds	8(%esi)
+	fmuls	C(aliastransform)+40
+	faddp	%st(0),%st(1)
+	fstps	8(%edi)
+
+	popl	%edi
+	popl	%esi
+	ret
+
+	.p2align 4,,15
+
+// Keep this operand order tied to the DJGPP reference disassembly of
+// R_ConcatTransforms: accumulate products 0 and 1, add the row translation
+// for column 3, then add product 2.  Each output is stored as a float before
+// the next expression, as in C.  The macro expands only to i386/x87 forms.
+	.macro	CONCAT_TRANSFORM out, a0, b0, a1, b1, a2, b2, translation
+	flds	\a0(%eax)
+	fmuls	\b0(%edx)
+	flds	\a1(%eax)
+	fmuls	\b1(%edx)
+	faddp	%st(0),%st(1)
+	.if	\translation >= 0
+	fadds	\translation(%eax)
+	.endif
+	flds	\a2(%eax)
+	fmuls	\b2(%edx)
+	faddp	%st(0),%st(1)
+	fstps	\out(%ecx)
+	.endm
+
+// void R_ConcatTransforms_asm486(float in1[3][4], float in2[3][4],
+//                                float out[3][4])
+// Cdecl; only caller-saved integer registers are used.  Every x87 result is
+// popped by FSTPS, so the routine returns with the x87 stack balanced.
+C(R_ConcatTransforms_asm486):
+	.globl	C(R_ConcatTransforms_asm486)
+	movl	4(%esp),%eax		// in1
+	movl	8(%esp),%edx		// in2
+	movl	12(%esp),%ecx		// out
+
+	CONCAT_TRANSFORM 0, 0, 0, 4, 16, 8, 32, -1
+	CONCAT_TRANSFORM 4, 0, 4, 4, 20, 8, 36, -1
+	CONCAT_TRANSFORM 8, 0, 8, 4, 24, 8, 40, -1
+	CONCAT_TRANSFORM 12, 0, 12, 4, 28, 8, 44, 12
+	CONCAT_TRANSFORM 16, 16, 0, 20, 16, 24, 32, -1
+	CONCAT_TRANSFORM 20, 16, 4, 20, 20, 24, 36, -1
+	CONCAT_TRANSFORM 24, 16, 8, 20, 24, 24, 40, -1
+	CONCAT_TRANSFORM 28, 16, 12, 20, 28, 24, 44, 28
+	CONCAT_TRANSFORM 32, 32, 0, 36, 16, 40, 32, -1
+	CONCAT_TRANSFORM 36, 32, 4, 36, 20, 40, 36, -1
+	CONCAT_TRANSFORM 40, 32, 8, 36, 24, 40, 40, -1
+	CONCAT_TRANSFORM 44, 32, 12, 36, 28, 40, 44, 44
+	ret
+
+#ifdef ASM486_ALIAS_MATRIX_COMPOSE_ASM
+	.p2align 4,,15
+// void R_AliasSetViewMatrix_asm486(const float *right, const float *up,
+//                                  const float *forward, float *out)
+// Copy the three view basis vectors into the 3x4 alias matrix and negate the
+// up row by flipping its IEEE-754 sign bits, exactly matching VectorInverse.
+// The fourth element of each row is deliberately untouched, like VectorCopy.
+C(R_AliasSetViewMatrix_asm486):
+	.globl C(R_AliasSetViewMatrix_asm486)
+	pushl	%ebx
+	pushl	%edi
+	movl	12(%esp),%eax		// right
+	movl	16(%esp),%ecx		// up
+	movl	20(%esp),%edx		// forward
+	movl	24(%esp),%edi		// output
+	movl	(%eax),%ebx
+	movl	%ebx,0(%edi)
+	movl	4(%eax),%ebx
+	movl	%ebx,4(%edi)
+	movl	8(%eax),%ebx
+	movl	%ebx,8(%edi)
+	movl	(%ecx),%ebx
+	xorl	$0x80000000,%ebx
+	movl	%ebx,16(%edi)
+	movl	4(%ecx),%ebx
+	xorl	$0x80000000,%ebx
+	movl	%ebx,20(%edi)
+	movl	8(%ecx),%ebx
+	xorl	$0x80000000,%ebx
+	movl	%ebx,24(%edi)
+	movl	(%edx),%ebx
+	movl	%ebx,32(%edi)
+	movl	4(%edx),%ebx
+	movl	%ebx,36(%edi)
+	movl	8(%edx),%ebx
+	movl	%ebx,40(%edi)
+	popl	%edi
+	popl	%ebx
+	ret
+#endif
+
+	.p2align 4,,15
+
 // void R_AliasTransformFinalVert_asm486(finalvert_t *fv, auxvert_t *av,
 //                                        trivertx_t *pverts,
 //                                        stvert_t *pstverts)
@@ -5574,6 +7160,11 @@ C(R_AliasTransformFinalVert_asm486):
 	movl	24(%esp),%ebp		// av
 	movl	28(%esp),%esi		// pverts
 	movl	32(%esp),%ebx		// pstverts
+	subl	$4,%esp
+	fnstcw	0(%esp)
+	movw	0(%esp),%dx
+	orw	$0x0c00,%dx			// C's float-to-int cast truncates toward zero
+	movw	%dx,2(%esp)
 
 	movzbl	0(%esi),%eax
 	movl	%eax,Lalias_transform_coords
@@ -5582,15 +7173,17 @@ C(R_AliasTransformFinalVert_asm486):
 	movzbl	2(%esi),%eax
 	movl	%eax,Lalias_transform_coords+8
 
+	// Preserve the reference compiler's x87 evaluation order for each row:
+	// accumulate the first two products, add translation, then add the third.
 	fildl	Lalias_transform_coords
 	fmuls	C(aliastransform)+0
 	fildl	Lalias_transform_coords+4
 	fmuls	C(aliastransform)+4
 	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+12
 	fildl	Lalias_transform_coords+8
 	fmuls	C(aliastransform)+8
 	faddp	%st(0),%st(1)
-	fadds	C(aliastransform)+12
 	fstps	0(%ebp)
 
 	fildl	Lalias_transform_coords
@@ -5598,10 +7191,10 @@ C(R_AliasTransformFinalVert_asm486):
 	fildl	Lalias_transform_coords+4
 	fmuls	C(aliastransform)+20
 	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+28
 	fildl	Lalias_transform_coords+8
 	fmuls	C(aliastransform)+24
 	faddp	%st(0),%st(1)
-	fadds	C(aliastransform)+28
 	fstps	4(%ebp)
 
 	fildl	Lalias_transform_coords
@@ -5609,10 +7202,10 @@ C(R_AliasTransformFinalVert_asm486):
 	fildl	Lalias_transform_coords+4
 	fmuls	C(aliastransform)+36
 	faddp	%st(0),%st(1)
+	fadds	C(aliastransform)+44
 	fildl	Lalias_transform_coords+8
 	fmuls	C(aliastransform)+40
 	faddp	%st(0),%st(1)
-	fadds	C(aliastransform)+44
 	fstps	8(%ebp)
 
 	movl	stv_s(%ebx),%eax
@@ -5642,18 +7235,307 @@ C(R_AliasTransformFinalVert_asm486):
 
 .Lalias_transform_shaded:
 	fmuls	C(r_shadelight)
+	fldcw	2(%esp)
 	fistpl	Lalias_transform_temp
+	fldcw	0(%esp)
 	addl	Lalias_transform_temp,%eax
 	jns	.Lalias_transform_store_light
 	xorl	%eax,%eax
 
 .Lalias_transform_store_light:
 	movl	%eax,fv_v+16(%edi)
+	addl	$4,%esp
 	popl	%ebx
 	popl	%esi
 	popl	%edi
 	popl	%ebp
 	ret
+
+#if defined(ASM486_ALIAS_SETUP_LIGHTING) || defined(BENCH486)
+	.extern C(r_ambientlight)
+	.extern C(r_plightvec)
+	.extern C(r_shadelight)
+
+	.section .rodata
+	.p2align 2
+.Lalias_setup_lighting_grades:
+	.float 64.0
+
+	.text
+	.p2align 4,,15
+
+// void R_AliasSetupLighting_asm486(alight_t *lighting,
+//        const float *forward, const float *right, const float *up)
+// Keep the original 32-bit stores between the scalar conversions and the
+// vector dot products.  Each dot accumulates X and Y, then adds Z, matching
+// Quake's left-to-right DotProduct expression and the clipped-vertex helper.
+C(R_AliasSetupLighting_asm486):
+	.globl C(R_AliasSetupLighting_asm486)
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp),%esi		// alight_t *lighting
+	movl	12(%ebp),%edi		// alias forward
+	movl	16(%ebp),%ebx		// negative alias right
+	movl	20(%ebp),%ecx		// alias up
+
+	// Match the two lower clamps and VID_CBITS transform in the C reference.
+	movl	0(%esi),%eax
+	cmpl	$5,%eax
+	jge	.Lalias_setup_ambient_minimum
+	movl	$5,%eax
+.Lalias_setup_ambient_minimum:
+	movl	$255,%edx
+	subl	%eax,%edx
+	shll	$6,%edx
+	cmpl	$5,%edx
+	jge	.Lalias_setup_store_ambient
+	movl	$5,%edx
+.Lalias_setup_store_ambient:
+	movl	%edx,C(r_ambientlight)
+
+	// C first converts the integer to float, clamps negatives, then scales.
+	fildl	4(%esi)
+	fstps	C(r_shadelight)
+	cmpl	$0,4(%esi)
+	jge	.Lalias_setup_shade_nonnegative
+	fldz
+	fstps	C(r_shadelight)
+.Lalias_setup_shade_nonnegative:
+	flds	C(r_shadelight)
+	fmuls	.Lalias_setup_lighting_grades
+	fstps	C(r_shadelight)
+
+	movl	8(%esi),%edx		// float *plightvec
+	flds	0(%edi)
+	fmuls	0(%edx)
+	flds	4(%edi)
+	fmuls	4(%edx)
+	faddp	%st(0),%st(1)
+	flds	8(%edi)
+	fmuls	8(%edx)
+	faddp	%st(0),%st(1)
+	fstps	C(r_plightvec)
+
+	flds	0(%ebx)
+	fmuls	0(%edx)
+	flds	4(%ebx)
+	fmuls	4(%edx)
+	faddp	%st(0),%st(1)
+	flds	8(%ebx)
+	fmuls	8(%edx)
+	faddp	%st(0),%st(1)
+	fchs
+	fstps	C(r_plightvec)+4
+
+	flds	0(%ecx)
+	fmuls	0(%edx)
+	flds	4(%ecx)
+	fmuls	4(%edx)
+	faddp	%st(0),%st(1)
+	flds	8(%ecx)
+	fmuls	8(%edx)
+	faddp	%st(0),%st(1)
+	fstps	C(r_plightvec)+8
+
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+#endif
+
+#if defined(ASM486_ALIAS_SETUP_FRAME) || defined(BENCH486)
+	.extern C(paliashdr)
+	.extern C(r_apverts)
+
+	.text
+	.p2align 4,,15
+// void R_AliasSetupFrame_asm486(int frame, double cltime, float syncbase)
+// Resolve the normalized alias frame exactly as R_AliasSetupFrame_C does.
+// The public C wrapper retains the entity-range diagnostic and frame-zero
+// fallback; this helper handles one descriptor and either a single frame or
+// an interval group. Alias file offsets are relative to paliashdr.
+C(R_AliasSetupFrame_asm486):
+	.globl C(R_AliasSetupFrame_asm486)
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$16,%esp
+
+	// Locals: saved CW=-16, truncate CW=-18, quotient=-20,
+	// group frame count=-24, group pointer=-28.
+	movl	C(paliashdr),%esi
+	movl	8(%ebp),%eax
+	shll	$5,%eax
+	leal	16(%esi,%eax),%edi	// aliashdr.frames[frame], stride 32
+	cmpl	$0,0(%edi)			// ALIAS_SINGLE == 0
+	jne	.Lalias_setup_frame_group
+	movl	12(%edi),%eax
+	addl	%esi,%eax
+	movl	%eax,C(r_apverts)
+	jmp	.Lalias_setup_frame_done
+
+.Lalias_setup_frame_group:
+	movl	12(%edi),%ebx
+	addl	%esi,%ebx			// maliasgroup_t *
+	movl	%ebx,-28(%ebp)
+	movl	0(%ebx),%eax
+	movl	%eax,-24(%ebp)
+	movl	4(%ebx),%edi
+	addl	%esi,%edi			// float *intervals
+
+	// fullinterval = intervals[numframes-1].
+	movl	-24(%ebp),%eax
+	flds	-4(%edi,%eax,4)
+
+	// Keep the sprite selector's proven x87 ordering: compute time as the
+	// double cl.time plus float syncbase, divide by fullinterval, truncate the
+	// quotient toward zero with a temporary CW, then form targettime. The
+	// original C locals are float; the compiler's i386 x87 expression handling
+	// and the focused C-vs-assembly fixture pin the resulting single values.
+	flds	20(%ebp)
+	faddl	12(%ebp)
+	fld	%st(0)
+	fdiv	%st(2),%st(0)
+	fnstcw	-16(%ebp)
+	movw	-16(%ebp),%dx
+	orb	$0x0c,%dh
+	movw	%dx,-18(%ebp)
+	fldcw	-18(%ebp)
+	fistpl	-20(%ebp)
+	fldcw	-16(%ebp)
+	fxch	%st(1)
+	fimull	-20(%ebp)
+	fsubrp	%st,%st(1)
+
+	// Scan i in [0,numframes-2]; equality selects the next interval.
+	movl	-24(%ebp),%ebx
+	decl	%ebx
+	xorl	%edx,%edx
+	testl	%ebx,%ebx
+	jle	.Lalias_setup_frame_select
+.Lalias_setup_frame_interval_loop:
+	fcoms	(%edi,%edx,4)
+	fnstsw	%ax
+	testb	$0x01,%ah			// C0: targettime < intervals[i]
+	jnz	.Lalias_setup_frame_select
+	incl	%edx
+	cmpl	%ebx,%edx
+	jl	.Lalias_setup_frame_interval_loop
+.Lalias_setup_frame_select:
+	fstp	%st(0)
+	movl	-28(%ebp),%eax
+	leal	(%edx,%edx,2),%ecx		// 3*i for 12-byte frame descriptors
+	movl	16(%eax,%ecx,4),%eax
+	addl	%esi,%eax
+	movl	%eax,C(r_apverts)
+
+.Lalias_setup_frame_done:
+	addl	$16,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+#endif
+
+#if defined(ASM486_ALIAS_SETUP_SKIN) || defined(BENCH486)
+	.extern C(paliashdr)
+
+	.text
+	.p2align 4,,15
+// maliasskindesc_t *R_AliasSetupSkinSelect_asm486(
+//     int skinnum, double cltime, float syncbase)
+// Resolve one single or grouped alias skin descriptor. The public C wrapper
+// retains the entity-range diagnostic and skin-zero fallback; all file offsets
+// here are relative to paliashdr, and group intervals select the first value
+// strictly greater than the wrapped target time, matching Mod_LoadAliasSkinGroup.
+C(R_AliasSetupSkinSelect_asm486):
+	.globl C(R_AliasSetupSkinSelect_asm486)
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$16,%esp
+
+	// Locals: saved CW=-16, truncate CW=-18, quotient=-20,
+	// group skin count=-24, group pointer=-28.
+	movl	C(paliashdr),%esi
+	movl	8(%esi),%edi
+	addl	%esi,%edi			// maliasskindesc_t * at header->skindesc
+	movl	8(%ebp),%eax
+	leal	(%eax,%eax,2),%eax
+	leal	(%edi,%eax,4),%edi	// 12-byte top-level skin descriptor stride
+	cmpl	$0,0(%edi)			// ALIAS_SKIN_SINGLE == 0
+	jne	.Lalias_setup_skin_group
+	movl	%edi,%eax
+	jmp	.Lalias_setup_skin_done
+
+.Lalias_setup_skin_group:
+	movl	8(%edi),%ebx
+	addl	%esi,%ebx			// maliasskingroup_t *
+	movl	%ebx,-28(%ebp)
+	movl	0(%ebx),%eax
+	movl	%eax,-24(%ebp)
+	movl	4(%ebx),%edi
+	addl	%esi,%edi			// float *intervals
+
+	// fullskininterval = intervals[numskins-1].
+	movl	-24(%ebp),%eax
+	flds	-4(%edi,%eax,4)
+
+	// Preserve the source expression order: double cl.time plus float
+	// syncbase, truncation toward zero for the integer quotient, then the
+	// interval subtraction. The focused fixture covers all x87 RC modes.
+	flds	20(%ebp)
+	faddl	12(%ebp)
+	fld	%st(0)
+	fdiv	%st(2),%st(0)
+	fnstcw	-16(%ebp)
+	movw	-16(%ebp),%dx
+	orb	$0x0c,%dh
+	movw	%dx,-18(%ebp)
+	fldcw	-18(%ebp)
+	fistpl	-20(%ebp)
+	fldcw	-16(%ebp)
+	fxch	%st(1)
+	fimull	-20(%ebp)
+	fsubrp	%st,%st(1)
+
+	// Scan i in [0,numskins-2]; equality advances to the next skin.
+	movl	-24(%ebp),%ebx
+	decl	%ebx
+	xorl	%edx,%edx
+	testl	%ebx,%ebx
+	jle	.Lalias_setup_skin_select
+.Lalias_setup_skin_interval_loop:
+	fcoms	(%edi,%edx,4)
+	fnstsw	%ax
+	testb	$0x01,%ah			// C0: targettime < intervals[i]
+	jnz	.Lalias_setup_skin_select
+	incl	%edx
+	cmpl	%ebx,%edx
+	jl	.Lalias_setup_skin_interval_loop
+.Lalias_setup_skin_select:
+	fstp	%st(0)
+	movl	-28(%ebp),%eax
+	leal	(%edx,%edx,2),%ecx	// 3*i for 12-byte skin descriptors
+	leal	8(%eax,%ecx,4),%eax
+
+.Lalias_setup_skin_done:
+	addl	$16,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+#endif
 
 #ifdef ASM486_ALIAS_PREPARE
 	.extern C(r_apverts)
@@ -7911,11 +9793,11 @@ C(R_AddDynamicLightProject_asm486):
 .Ldlight_project_td_ready:
 	cmpl	%edx,%eax
 	jl	.Ldlight_project_td_larger
-	sarl	$1,%eax
+	sarl	$1,%edx
 	addl	%edx,%eax
 	jmp	.Ldlight_project_store_all_lit
 .Ldlight_project_td_larger:
-	sarl	$1,%edx
+	sarl	$1,%eax
 	addl	%eax,%edx
 	movl	%edx,%eax
 .Ldlight_project_store_all_lit:
@@ -8038,17 +9920,18 @@ C(R_AddDynamicLights):
 	je	.Ldlight_orchestration_next
 
 #ifdef ASM486_DYNAMIC_LIGHTS
-	// The integer-coordinate helper matches the original optimized 486 loop.
+	// Keep integer s coordinates while preserving C's fractional t-row rounding.
 	pushl	DLO_ALL_LIT(%ebp)
 	pushl	DLO_IRAD(%ebp)
 	pushl	DLO_LIMIT(%ebp)
+	pushl	DLO_LOCAL1(%ebp)
 	pushl	DLO_LOCAL1_INT(%ebp)
 	pushl	DLO_LOCAL0_INT(%ebp)
 	pushl	DLO_TMAX(%ebp)
 	pushl	DLO_SMAX(%ebp)
 	pushl	$C(blocklights)
 	call	C(R_AddDynamicLightSamples_asm486)
-	addl	$32,%esp
+	addl	$36,%esp
 #else
 	// The selectable C reference consumes the original floating coordinates.
 	pushl	DLO_IRAD(%ebp)
@@ -8328,10 +10211,9 @@ C(R_DrawSubmodelPolygons_asm486):
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	subl	$4,%esp
 
-	movl	4(%ebp),%ebx
-	movl	8(%ebp),%edi
+	movl	8(%ebp),%ebx		// pmodel, first C argument
+	movl	12(%ebp),%edi		// clipflags, second C argument
 	movl	116(%ebx),%ecx		// nummodelsurfaces
 	movl	180(%ebx),%esi		// surfaces
 	movl	112(%ebx),%eax		// firstmodelsurface
@@ -8358,25 +10240,24 @@ C(R_DrawSubmodelPolygons_asm486):
 	flds	C(modelorg)+8
 	fmuls	8(%eax)
 	faddp	%st,%st(1)
+	// Keep the x87 extended dot live through the epsilon test. GCC's C path
+	// compares this value directly; a float store here culls near-plane faces
+	// differently.
 	fsubs	12(%eax)
-	fstps	-16(%ebp)		// vec_t dot (rounded to float before comparison)
 
 	movl	16(%esi),%eax		// psurf->flags
 	testl	$2,%eax			// SURF_PLANEBACK
 	jz	.Lsubmodel_polygons_front
-	fldl	.Lsubmodel_backface_negative_epsilon
-	flds	-16(%ebp)
-	fcompp
+	fcompl	.Lsubmodel_backface_negative_epsilon
 	fnstsw	%ax
 	sahf
-	jp	.Lsubmodel_polygons_next	// unordered comparisons are false in C
+	// Match GCC's C output for the negative-side test: it checks C0 only, so
+	// unordered x87 results follow the same branch as "below".
 	jb	.Lsubmodel_polygons_visible
 	jmp	.Lsubmodel_polygons_next
 
 .Lsubmodel_polygons_front:
-	fldl	.Lsubmodel_backface_positive_epsilon
-	flds	-16(%ebp)
-	fcompp
+	fcompl	.Lsubmodel_backface_positive_epsilon
 	fnstsw	%ax
 	sahf
 	jp	.Lsubmodel_polygons_next
@@ -9007,6 +10888,382 @@ C(R_DrawSolidClippedSubmodelPolygons_asm486):
 	jmp	.Lsolid_bmodel_surface_loop
 
 .Lsolid_bmodel_return:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+#endif
+
+#ifdef ASM486_PARTICLE_UPDATE
+	.extern C(active_particles)
+	.extern C(free_particles)
+	.extern C(ramp1)
+	.extern C(ramp2)
+	.extern C(ramp3)
+	.extern C(vright)
+	.extern C(vup)
+	.extern C(vpn)
+	.extern C(xscaleshrink)
+	.extern C(yscaleshrink)
+	.extern C(r_pright)
+	.extern C(r_pup)
+	.extern C(r_ppn)
+	.extern C(D_DrawParticle)
+#ifdef PROFILE486
+	.extern C(bench486_profile_frame_active)
+#endif
+
+	.section .rodata
+	.p2align 2
+.Lparticle_five:
+	.float 5.0
+.Lparticle_ten:
+	.float 10.0
+.Lparticle_fifteen:
+	.float 15.0
+.Lparticle_point_zero_five:
+	.double 0.05
+.Lparticle_four:
+	.float 4.0
+.Lparticle_one:
+	.float 1.0
+.Lparticle_six:
+	.float 6.0
+.Lparticle_eight:
+	.float 8.0
+.Lparticle_twenty:
+	.float 20.0
+	.text
+	.p2align 4,,15
+	.globl C(R_DrawParticles_asm486)
+C(R_DrawParticles_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$48,%esp
+
+	/* Keep the caller's x87 rounding mode.  Ramp-to-index casts use truncation
+	   only around FISTP, then restore it before the next renderer call. */
+	fnstcw	-46(%ebp)
+	movzwl	-46(%ebp),%eax
+	orl	$0x0c00,%eax
+	movw	%ax,-48(%ebp)
+
+	/* VectorScale/VectorCopy setup is performed on every invocation, including
+	   the empty-list case, as in the C reference. */
+	flds	C(vright)
+	fmuls	C(xscaleshrink)
+	fstps	C(r_pright)
+	flds	C(vright)+4
+	fmuls	C(xscaleshrink)
+	fstps	C(r_pright)+4
+	flds	C(vright)+8
+	fmuls	C(xscaleshrink)
+	fstps	C(r_pright)+8
+	flds	C(vup)
+	fmuls	C(yscaleshrink)
+	fstps	C(r_pup)
+	flds	C(vup)+4
+	fmuls	C(yscaleshrink)
+	fstps	C(r_pup)+4
+	flds	C(vup)+8
+	fmuls	C(yscaleshrink)
+	fstps	C(r_pup)+8
+	movl	C(vpn),%eax
+	movl	%eax,C(r_ppn)
+	movl	C(vpn)+4,%eax
+	movl	%eax,C(r_ppn)+4
+	movl	C(vpn)+8,%eax
+	movl	%eax,C(r_ppn)+8
+
+	flds	8(%ebp)
+	fstps	-16(%ebp)			// time
+	flds	8(%ebp)
+	fsubl	12(%ebp)
+	fstpt	-60(%ebp)			// retain C's x87-extended expression
+	fldt	-60(%ebp)
+	fstps	-20(%ebp)			// rounded frametime local used for movement
+	fldt	-60(%ebp)
+	fmuls	.Lparticle_fifteen
+	fstps	-24(%ebp)			// time3
+	fldt	-60(%ebp)
+	fmuls	.Lparticle_ten
+	fstps	-28(%ebp)			// time2
+	fldt	-60(%ebp)
+	fmuls	.Lparticle_five
+	fstps	-32(%ebp)			// time1
+	fldt	-60(%ebp)
+	fmuls	20(%ebp)
+	fmull	.Lparticle_point_zero_five
+	fstps	-36(%ebp)			// grav
+	fldt	-60(%ebp)
+	fmuls	.Lparticle_four
+	fstps	-40(%ebp)			// dvel
+
+	leal	C(active_particles),%esi	// link = &active_particles
+.Lparticle_loop:
+	movl	(%esi),%ebx
+	testl	%ebx,%ebx
+	jz	.Lparticle_return
+
+	/* C: if (p->die < time), with unordered comparisons taking the live path. */
+	flds	-16(%ebp)
+	fcomps	pt_die(%ebx)
+	fnstsw	%ax
+	sahf
+	jp	.Lparticle_live
+	ja	.Lparticle_remove
+	jmp	.Lparticle_live
+
+.Lparticle_remove:
+	movl	pt_next(%ebx),%eax
+	movl	%eax,(%esi)
+	movl	C(free_particles),%eax
+	movl	%eax,pt_next(%ebx)
+	movl	%ebx,C(free_particles)
+	jmp	.Lparticle_loop
+
+.Lparticle_live:
+#ifdef PROFILE486
+	movl	24(%ebp),%eax
+	addl	$1,(%eax)
+	cmpb	$PT_GRAV,pt_type(%ebx)
+	jne	.Lparticle_profile_done
+	movl	28(%ebp),%eax
+	addl	$1,(%eax)
+.Lparticle_profile_done:
+#endif
+	pushl	%ebx
+	call	C(D_DrawParticle)
+	addl	$4,%esp
+
+	/* The optional reference optimization avoids two zero-velocity updates
+	   for pt_grav blood trails. */
+#ifdef ASM486_GIB_TRAIL_SKIP_ZERO_XY
+	cmpb	$PT_GRAV,pt_type(%ebx)
+	jne	.Lparticle_move_all
+	flds	pt_vel+8(%ebx)
+	fmuls	-20(%ebp)
+	fadds	pt_org+8(%ebx)
+	fstps	pt_org+8(%ebx)
+#ifdef QUAKE2
+	flds	pt_vel+8(%ebx)
+	flds	-36(%ebp)
+	fmuls	.Lparticle_twenty
+	fsubrp	%st,%st(1)
+#else
+	flds	pt_vel+8(%ebx)
+	fsubs	-36(%ebp)
+#endif
+	fstps	pt_vel+8(%ebx)
+	leal	pt_next(%ebx),%esi
+	jmp	.Lparticle_loop
+.Lparticle_move_all:
+#endif
+
+	/* All live particles move before their type-specific velocity update. */
+	flds	pt_vel(%ebx)
+	fmuls	-20(%ebp)
+	fadds	pt_org(%ebx)
+	fstps	pt_org(%ebx)
+	flds	pt_vel+4(%ebx)
+	fmuls	-20(%ebp)
+	fadds	pt_org+4(%ebx)
+	fstps	pt_org+4(%ebx)
+	flds	pt_vel+8(%ebx)
+	fmuls	-20(%ebp)
+	fadds	pt_org+8(%ebx)
+	fstps	pt_org+8(%ebx)
+
+	cmpb	$PT_STATIC,pt_type(%ebx)
+	je	.Lparticle_next
+	cmpb	$PT_FIRE,pt_type(%ebx)
+	je	.Lparticle_fire
+	cmpb	$PT_EXPLODE,pt_type(%ebx)
+	je	.Lparticle_explode
+	cmpb	$PT_EXPLODE2,pt_type(%ebx)
+	je	.Lparticle_explode2
+	cmpb	$PT_BLOB,pt_type(%ebx)
+	je	.Lparticle_blob
+	cmpb	$PT_BLOB2,pt_type(%ebx)
+	je	.Lparticle_blob2
+	cmpb	$PT_GRAV,pt_type(%ebx)
+	je	.Lparticle_grav
+	cmpb	$PT_SLOWGRAV,pt_type(%ebx)
+	je	.Lparticle_slowgrav
+	jmp	.Lparticle_next
+
+.Lparticle_fire:
+	flds	pt_ramp(%ebx)
+	fadds	-32(%ebp)
+	fstps	pt_ramp(%ebx)
+	flds	pt_ramp(%ebx)
+	fcomps	.Lparticle_six
+	fnstsw	%ax
+	sahf
+	jp	.Lparticle_fire_color
+	jae	.Lparticle_ramp_dead
+.Lparticle_fire_color:
+	flds	pt_ramp(%ebx)
+	fldcw	-48(%ebp)
+	fistpl	-44(%ebp)
+	fldcw	-46(%ebp)
+	movl	-44(%ebp),%eax
+	movb	C(ramp3)(,%eax,4),%al
+	movb	%al,pt_color(%ebx)
+	jmp	.Lparticle_fire_gravity
+
+.Lparticle_ramp_dead:
+	movl	$0xbf800000,pt_die(%ebx)
+.Lparticle_fire_gravity:
+	flds	pt_vel+8(%ebx)
+	fadds	-36(%ebp)
+	fstps	pt_vel+8(%ebx)
+	jmp	.Lparticle_next
+
+.Lparticle_explode:
+	flds	pt_ramp(%ebx)
+	fadds	-28(%ebp)
+	fstps	pt_ramp(%ebx)
+	flds	pt_ramp(%ebx)
+	fcomps	.Lparticle_eight
+	fnstsw	%ax
+	sahf
+	jp	.Lparticle_explode_color
+	jae	.Lparticle_ramp_dead_explode
+.Lparticle_explode_color:
+	flds	pt_ramp(%ebx)
+	fldcw	-48(%ebp)
+	fistpl	-44(%ebp)
+	fldcw	-46(%ebp)
+	movl	-44(%ebp),%eax
+	movb	C(ramp1)(,%eax,4),%al
+	movb	%al,pt_color(%ebx)
+	jmp	.Lparticle_explode_velocity
+.Lparticle_ramp_dead_explode:
+	movl	$0xbf800000,pt_die(%ebx)
+.Lparticle_explode_velocity:
+	/* GCC -ffast-math folds v += v*dvel into v *= 1+dvel. */
+	flds	-40(%ebp)
+	fadds	.Lparticle_one
+	fld	%st(0)
+	fmuls	pt_vel(%ebx)
+	fstps	pt_vel(%ebx)
+	fld	%st(0)
+	fmuls	pt_vel+4(%ebx)
+	fstps	pt_vel+4(%ebx)
+	fld	%st(0)
+	fmuls	pt_vel+8(%ebx)
+	fstps	pt_vel+8(%ebx)
+	fstp	%st(0)
+	flds	pt_vel+8(%ebx)
+	fsubs	-36(%ebp)
+	fstps	pt_vel+8(%ebx)
+	jmp	.Lparticle_next
+
+.Lparticle_explode2:
+	flds	pt_ramp(%ebx)
+	fadds	-24(%ebp)
+	fstps	pt_ramp(%ebx)
+	flds	pt_ramp(%ebx)
+	fcomps	.Lparticle_eight
+	fnstsw	%ax
+	sahf
+	jp	.Lparticle_explode2_color
+	jae	.Lparticle_ramp_dead_explode2
+.Lparticle_explode2_color:
+	flds	pt_ramp(%ebx)
+	fldcw	-48(%ebp)
+	fistpl	-44(%ebp)
+	fldcw	-46(%ebp)
+	movl	-44(%ebp),%eax
+	movb	C(ramp2)(,%eax,4),%al
+	movb	%al,pt_color(%ebx)
+	jmp	.Lparticle_explode2_velocity
+.Lparticle_ramp_dead_explode2:
+	movl	$0xbf800000,pt_die(%ebx)
+.Lparticle_explode2_velocity:
+	/* Match GCC's v *= 1-frametime sequence, retaining the x87 value. */
+	fldt	-60(%ebp)
+	fld1
+	fsubp	%st,%st(1)
+	fld	%st(0)
+	fmuls	pt_vel(%ebx)
+	fstps	pt_vel(%ebx)
+	fld	%st(0)
+	fmuls	pt_vel+4(%ebx)
+	fstps	pt_vel+4(%ebx)
+	fld	%st(0)
+	fmuls	pt_vel+8(%ebx)
+	fstps	pt_vel+8(%ebx)
+	fstp	%st(0)
+	flds	pt_vel+8(%ebx)
+	fsubs	-36(%ebp)
+	fstps	pt_vel+8(%ebx)
+	jmp	.Lparticle_next
+
+.Lparticle_blob:
+	/* GCC -ffast-math folds v += v*dvel into v *= 1+dvel. */
+	flds	-40(%ebp)
+	fadds	.Lparticle_one
+	fld	%st(0)
+	fmuls	pt_vel(%ebx)
+	fstps	pt_vel(%ebx)
+	fld	%st(0)
+	fmuls	pt_vel+4(%ebx)
+	fstps	pt_vel+4(%ebx)
+	fld	%st(0)
+	fmuls	pt_vel+8(%ebx)
+	fstps	pt_vel+8(%ebx)
+	fstp	%st(0)
+	flds	pt_vel+8(%ebx)
+	fsubs	-36(%ebp)
+	fstps	pt_vel+8(%ebx)
+	jmp	.Lparticle_next
+
+.Lparticle_blob2:
+	/* Match GCC's v *= 1-dvel sequence. */
+	flds	-40(%ebp)
+	fld1
+	fsubp	%st,%st(1)
+	fld	%st(0)
+	fmuls	pt_vel(%ebx)
+	fstps	pt_vel(%ebx)
+	fld	%st(0)
+	fmuls	pt_vel+4(%ebx)
+	fstps	pt_vel+4(%ebx)
+	fstp	%st(0)
+	flds	pt_vel+8(%ebx)
+	fsubs	-36(%ebp)
+	fstps	pt_vel+8(%ebx)
+	jmp	.Lparticle_next
+
+.Lparticle_grav:
+#ifdef QUAKE2
+	flds	pt_vel+8(%ebx)
+	flds	-36(%ebp)
+	fmuls	.Lparticle_twenty
+	fsubrp	%st,%st(1)
+	fstps	pt_vel+8(%ebx)
+	jmp	.Lparticle_next
+#else
+	jmp	.Lparticle_slowgrav
+#endif
+.Lparticle_slowgrav:
+	flds	pt_vel+8(%ebx)
+	fsubs	-36(%ebp)
+	fstps	pt_vel+8(%ebx)
+
+.Lparticle_next:
+	leal	pt_next(%ebx),%esi
+	jmp	.Lparticle_loop
+
+.Lparticle_return:
+	fldcw	-46(%ebp)
 	leal	-12(%ebp),%esp
 	popl	%edi
 	popl	%esi

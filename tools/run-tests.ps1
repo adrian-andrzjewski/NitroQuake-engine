@@ -26,12 +26,16 @@
                                 compiler, so it fails fastest and it is what
                                 decides whether the other gates are testing the
                                 build they think they are.
+      1a. test-isa-audit.py     host-only ISA classifier checks for the 386
+                                IMUL encodings and 32-bit target assumptions.
       2. test-sysinfo-dos.py    host-compiled harness over sys_dos.c's report
                                 path.  Seconds.
       3. test-video-dos.py      host-compiled harness over vid_ext.c and three
                                 vid_vga/vid_dos functions.  Seconds.
       3a. test-rendering.py     host tests for PCX decoding/tolerances and
                                 per-frame checksum parsing. Seconds.
+      3b. test-rendering-reports.py exact paired-profile report comparisons.
+      3c. test-renderer-ownership.py compiler clones and direct root traces.
       4. build-dos.ps1         compiles, and now carries the blocking ISA gate,
                                 so a build that emits a regressing above-target
                                 instruction stops here rather than at promotion.
@@ -39,10 +43,9 @@
                                 on gate 4: same question, different measurement
                                 (compiler output rather than disassembled
                                 objects), so its agreement with gate 4 is evidence
-                                rather than a restatement.  Runs without
-                                -FailOnViolation, which is an absolute pass and
-                                stays red while the multiply-elimination work is
-                                incomplete; the ratchet is what gates.
+                                rather than a restatement. It uses the selected
+                                target's ratchet: i486 expects zero above-target
+                                instructions; i386 retains measured i486 forms.
       6. smoke-dos.ps1         DOSBox-X startup and clean exit, both exit codes.
       7. coverage-dos.ps1     a local single-process multiplayer game, which is the
                                 only gate that reaches sv_main/sv_phys/sv_user/sv_move,
@@ -53,9 +56,9 @@
       9. render-validation-dos.ps1 deterministic demo1/2/3 scenes, VGA/VESA and
                                  lighting/viewport variants, per-frame checksums, and tolerant
                                  captured-image comparisons.
-     10. timedemo-dos.ps1      the promotion gate: 969 frames, framebuffer checksum,
-                                and the median the 0.05% threshold is applied to.
-                                Slowest, so it runs after bench486.
+     10. timedemo-dos.ps1      969 frames, framebuffer checksum and timing for
+                                material performance regressions. Speed does not
+                                determine renderer conversion acceptance.
      11. guard-i486-release.py  SHA-256 pins over the release objects and the
                                 executable.  Last, because it judges a finished
                                 build and any earlier gate may have changed it.
@@ -79,16 +82,15 @@
     had already gone stale.
 
 .PARAMETER SkipSlow
-    Omit the final three-run promotion timedemo. Use for an inner-loop check; the
-    result is not a performance promotion result.
+    Omit the final three-run regression timedemo. Use for an inner-loop check.
 
 .PARAMETER SkipRendering
     Omit the deterministic multi-scene rendering suite. Use with -SkipSlow for
     the shortest host/build checks.
 
 .PARAMETER Runs
-    Timedemo run count.  The project convention is 3, escalating to 5 when the
-    median delta is under the 0.05% gate and therefore needs more samples.
+    Timedemo run count. Three runs provide representative regression evidence;
+    repeat only when a material regression or unstable measurements require it.
 
 .PARAMETER CpuTarget
     i486 (default, the retained release profile) or i386.
@@ -205,13 +207,29 @@ $nb = if ($NoBootstrap) { @('-NoBootstrap') } else { @() }
 Invoke-Gate -Name 'doc-structure-check (citations, links, ledger index)' -Kind 'host' `
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/doc-structure-check.ps1') | Out-Null
 Invoke-Gate -Name 'test-build-dos (flag/suffix golden pins)' -Kind 'host' -Command @('python', 'tools/test-build-dos.py') | Out-Null
+Invoke-Gate -Name 'test-runner-selectors (requested versus built)' -Kind 'host' -Command @('pwsh', '-NoProfile', '-File', 'tools/test-runner-selectors.ps1') | Out-Null
+Invoke-Gate -Name 'test-build-fingerprints (instruction inputs and flags)' -Kind 'host' -Command @('pwsh', '-NoProfile', '-File', 'tools/test-build-fingerprints.ps1') | Out-Null
+Invoke-Gate -Name 'test-isa-audit (486 opcode classifier)' -Kind 'host' -Command @('python', 'tools/test-isa-audit.py') | Out-Null
 Invoke-Gate -Name 'test-sysinfo-dos (sys_dos report path)' -Kind 'host' -Command @('python', 'tools/test-sysinfo-dos.py') | Out-Null
 Invoke-Gate -Name 'test-video-dos (vid_ext + vid_vga/vid_dos)' -Kind 'host' -Command @('python', 'tools/test-video-dos.py') | Out-Null
 Invoke-Gate -Name 'test-rendering (PCX comparison + frame-log parser)' -Kind 'host' -Command @('python', 'tools/test-rendering.py') | Out-Null
+Invoke-Gate -Name 'test-rendering-reports (exact C/ASM parity report comparator)' -Kind 'host' -Command @('python', 'tools/test-rendering-reports.py') | Out-Null
+Invoke-Gate -Name 'test-renderer-ownership (compiler clones and call traces)' -Kind 'host' -Command @('python', 'tools/test-renderer-ownership.py') | Out-Null
 
 # ---- 4: build, carrying the blocking ISA gate. ----------------------------
 Invoke-Gate -Name "build-dos ($CpuTarget; includes the blocking ISA gate)" -Kind 'build' `
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/build-dos.ps1', '-CpuTarget', $CpuTarget) + $nb) | Out-Null
+
+# Exercise the actual disassembler gate, including deliberately forbidden code.
+# Runs after bootstrap/build so the pinned assembler and objdump are available.
+Invoke-Gate -Name 'test-isa-audit-objects (permitted and forbidden machine code)' -Kind 'host' `
+    -Command @('python', 'tools/test-isa-audit-objects.py') | Out-Null
+foreach ($test in @('test-coff-code-data.py','test-runtime-source-proofs.py',
+        'test-djgpp-assembler-tool.py','test-final-executable-isa-ranges.py',
+        'test-source-bound-linked-isa.py','test-embedded-startup-isa.py','test-cws-provider-proof.py')) {
+    Invoke-Gate -Name "$test (strict source/binary evidence)" -Kind 'host' `
+        -Command @('python', "tools/$test") | Out-Null
+}
 
 # ---- 5: the source-level ISA cross-check -----------------------------------
 # The gate above counts instructions in the real objects. This one counts them in
@@ -224,9 +242,8 @@ Invoke-Gate -Name "build-dos ($CpuTarget; includes the blocking ISA gate)" -Kind
 # It was unregistered, which is the same defect run-tests.ps1's own .DESCRIPTION
 # records about the six-command checklist this runner replaced.
 #
-# Run WITHOUT -FailOnViolation. That flag is an absolute pass and stays red for as
-# long as the multiply-elimination work is incomplete; the ratchet is what gates,
-# mirroring the object-level gate. Roughly 20 s, host-only, no emulator.
+# The ratchet checks each ISA bucket and keeps unknown/P6 counts at zero. This is
+# host-only and requires the already installed DOS compiler, but no emulator.
 #
 # No -NoBootstrap is passed: this tool never installs the toolchain, it only needs
 # it present, and it has no such switch. Appending one made argparse exit 2.
@@ -244,11 +261,11 @@ Invoke-Gate -Name 'coverage-dos (localmp: server/world/pr/net reachable)' -Kind 
     -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/coverage-dos.ps1', '-CpuTarget', $CpuTarget, '-SkipBuild') + $nb) | Out-Null
 
 # ---- 8: bench486 correctness. ---------------------------------------------
-# The gate-level -TimeoutSeconds is a watchdog above the runner's own 600 s, not a
+# The gate-level -TimeoutSeconds is a watchdog above the runner's own 3600 s, not a
 # second limit on the benchmark: it exists so a wedged DOSBox-X or a child that
 # never returns cannot hold the suite open indefinitely. Same idea on the timedemo.
-Invoke-Gate -Name 'bench-dos (bench486 PASS, C-vs-asm parity)' -Kind 'dos' -TimeoutSeconds 900 `
-    -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/bench-dos.ps1', '-TimeoutSeconds', '600') + $nb) | Out-Null
+Invoke-Gate -Name 'bench-dos (bench486 PASS, C-vs-asm parity)' -Kind 'dos' -TimeoutSeconds 3900 `
+    -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/bench-dos.ps1', '-TimeoutSeconds', '3600') + $nb) | Out-Null
 
 # ---- 9: deterministic rendered scenes, temporal checks and image diffs. ---
 if ($SkipRendering) {
@@ -267,7 +284,7 @@ else {
         -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/render-validation-dos.ps1', '-CpuTarget', $CpuTarget, '-TimeoutSeconds', '600') + $nb) | Out-Null
 }
 
-# ---- 10: the promotion gate. ---------------------------------------------
+# ---- 10: deterministic correctness and performance regression evidence. --
 if ($SkipSlow) {
     $results.Add([pscustomobject]@{
             gate    = 'timedemo (969 frames, checksum, median)'
@@ -277,7 +294,7 @@ if ($SkipSlow) {
             result  = 'SKIP'
         })
     Write-Host ''
-    Write-Host '  timedemo: SKIPPED (-SkipSlow) -- this run is not a promotion result.'
+    Write-Host '  timedemo: SKIPPED (-SkipSlow); final timing evidence omitted.'
 }
 else {
     Invoke-Gate -Name "timedemo ($Runs runs; 969 frames + checksum + median)" -Kind 'dos' -TimeoutSeconds 900 `

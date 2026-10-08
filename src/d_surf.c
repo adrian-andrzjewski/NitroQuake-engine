@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "d_local.h"
+#include "asm_drawingdriver.h"
 #include "r_local.h"
 
 #ifdef ASM486_SURFACE_CACHE_CHECK
@@ -168,6 +169,7 @@ void D_InitCaches (void *buffer, int size)
 D_FlushCaches
 ==================
 */
+#ifndef ASM486_DRAWING_DRIVER
 void D_FlushCaches (void)
 {
 	surfcache_t     *c;
@@ -186,6 +188,7 @@ void D_FlushCaches (void)
 	sc_base->owner = NULL;
 	sc_base->size = sc_size;
 }
+#endif
 
 /*
 =================
@@ -419,7 +422,7 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	D_CacheSurfaceKeys_asm486 (surface, tex, &r_drawsurf,
 			d_lightstylevalue);
 	if (D_CacheSurfaceHit_asm486 (cache, surface->dlightframe,
-			r_framecount, r_drawsurf.texture, r_drawsurf.lightadj))
+			r_framecount, r_drawsurf.texture, r_drawsurf.lightadj, surface))
 #else
 	// Hit on tex/lightadj with a clean sticky dlight bit.  Unmarked frames
 	// return immediately; phantom marks probe the discrete sample walk and
@@ -709,17 +712,22 @@ void D_CacheSurfaceProfileFinish_asm486 (void *opaque_context)
 
 #ifdef BENCH486
 void *D_CacheSurfaceHit_C (void *cache_ptr, int surface_dlightframe,
-		int frame, void *texture, int *lightadj)
+		int frame, void *texture, int *lightadj, void *surface_ptr)
 {
 	surfcache_t *cache;
+	msurface_t *surface;
 
 	cache = (surfcache_t *)cache_ptr;
-	if (cache && !cache->dlight && surface_dlightframe != frame
+	surface = (msurface_t *)surface_ptr;
+	if (cache && !cache->dlight
 			&& cache->texture == (texture_t *)texture
 			&& cache->lightadj[0] == lightadj[0]
-			&& cache->lightadj[1] == lightadj[1]
-			&& cache->lightadj[2] == lightadj[2]
-			&& cache->lightadj[3] == lightadj[3])
+			&& (surface->styles[1] == 255
+				 || (cache->lightadj[1] == lightadj[1]
+				  && cache->lightadj[2] == lightadj[2]
+				  && cache->lightadj[3] == lightadj[3]))
+			&& (surface_dlightframe != frame ||
+					!R_DlightContributes (surface)))
 		return cache_ptr;
 	return NULL;
 }
@@ -776,3 +784,25 @@ void D_CacheSurfaceSetDlight_C (surfcache_t *cache,
 #endif
 
 
+
+/* Independent pinned C algorithms are test-only. */
+#if defined(BENCH486) && defined(ASM486_DRAWING_DRIVER)
+void D_FlushCaches_Driver_C (void)
+{
+	surfcache_t     *c;
+
+	if (!sc_base)
+		return;
+
+	for (c = sc_base ; c ; c = c->next)
+	{
+		if (c->owner)
+			*c->owner = NULL;
+	}
+
+	sc_rover = sc_base;
+	sc_base->next = NULL;
+	sc_base->owner = NULL;
+	sc_base->size = sc_size;
+}
+#endif

@@ -1,8 +1,8 @@
 # Experiment ledger
 
-Every dated measurement, rejection and correction from the 486 optimization work:
-**132 headings** across the dated experiment records and the ongoing renderer
-port. Historical experiment entries moved from `ASM486-HANDOFF.md` beginning
+This index covers the dated measurements, rejections and corrections from the
+486 optimization work and the ongoing renderer port. Historical experiment
+entries moved from `ASM486-HANDOFF.md` beginning
 2026-10-03; the prose was moved verbatim.
 
 Read the entry by its heading, never by a line number - see the process rule in
@@ -14,6 +14,23 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-08-accepted-renderer-checkpoint.md`](2026-10-08-accepted-renderer-checkpoint.md) | 2 | renderer port / checkpoint |
+| [`2026-10-08-world-control-assembly-port.md`](2026-10-08-world-control-assembly-port.md) | 2 | renderer port / world |
+| [`2026-10-08-alias-pipeline-assembly-port.md`](2026-10-08-alias-pipeline-assembly-port.md) | 2 | renderer port / alias |
+| [`2026-10-08-chase-camera-assembly-port.md`](2026-10-08-chase-camera-assembly-port.md) | 2 | renderer port / camera |
+| [`2026-10-08-automatic-executable-isa-gate.md`](2026-10-08-automatic-executable-isa-gate.md) | 2 | compatibility / workflow |
+| [`2026-10-08-cwsdpmi-486-provider.md`](2026-10-08-cwsdpmi-486-provider.md) | 2 | compatibility / provider |
+| [`2026-10-08-framebuffer-drawing-assembly-port.md`](2026-10-08-framebuffer-drawing-assembly-port.md) | 2 | renderer port / drawing |
+| [`2026-10-08-turbulent-profile-timer.md`](2026-10-08-turbulent-profile-timer.md) | 2 | validation / profiling |
+| [`2026-10-08-view-control-assembly-port.md`](2026-10-08-view-control-assembly-port.md) | 2 | renderer port / view |
+| [`2026-10-08-drawing-driver-assembly-port.md`](2026-10-08-drawing-driver-assembly-port.md) | 2 | renderer port / driver |
+| [`2026-10-08-render-dispatch-assembly-port.md`](2026-10-08-render-dispatch-assembly-port.md) | 2 | renderer port / dispatch |
+| [`2026-10-08-runtime-source-audit.md`](2026-10-08-runtime-source-audit.md) | 2 | compatibility / runtime |
+| [`2026-10-07-sky-assembly-port.md`](2026-10-07-sky-assembly-port.md) | 2 | renderer port / sky |
+| [`2026-10-07-public-entry-assembly-port.md`](2026-10-07-public-entry-assembly-port.md) | 2 | renderer port / entries |
+| [`2026-10-07-combined-direct-acceptance.md`](2026-10-07-combined-direct-acceptance.md) | 2 | renderer port / parity |
+| [`2026-10-07-all-selectable-combined-parity.md`](2026-10-07-all-selectable-combined-parity.md) | 2 | renderer port / parity |
+| [`2026-10-07-visibility-assembly-port.md`](2026-10-07-visibility-assembly-port.md) | 2 | renderer port / visibility |
 | [`2026-09-26-reproducibility-baseline.md`](2026-09-26-reproducibility-baseline.md) | 1 | harness / method |
 | [`2026-09-28-span-micro-experiments.md`](2026-09-28-span-micro-experiments.md) | 8 | alias |
 | [`2026-09-29-alias-and-surface-block-experiments.md`](2026-09-29-alias-and-surface-block-experiments.md) | 7 | alias |
@@ -24,10 +41,10 @@ later insertion above it.
 | [`2026-10-02-surf8-bundle-and-promotion.md`](2026-10-02-surf8-bundle-and-promotion.md) | 5 | renderface |
 | [`2026-10-03-alias-glue-closure.md`](2026-10-03-alias-glue-closure.md) | 3 | ISA / i386 |
 | [`2026-10-03-clamp-fusion-and-the-1.0-rate.md`](2026-10-03-clamp-fusion-and-the-1.0-rate.md) | 1 | harness / method |
-| [`2026-10-03-isa-audit-and-i386-codepath.md`](2026-10-03-isa-audit-and-i386-codepath.md) | 2 | ISA / i386 |
+| [`2026-10-03-isa-audit-and-i386-codepath.md`](2026-10-03-isa-audit-and-i386-codepath.md) | 3 | ISA / i386 |
 | [`2026-10-03-region-pricing-sweep.md`](2026-10-03-region-pricing-sweep.md) | 4 | z-spans |
-| [`2026-10-04-toolchain-refactor.md`](2026-10-04-toolchain-refactor.md) | 10 | harness / method |
-| [`2026-10-04-renderer-assembler-port.md`](2026-10-04-renderer-assembler-port.md) | 22 | renderer port |
+| [`2026-10-04-toolchain-refactor.md`](2026-10-04-toolchain-refactor.md) | 11 | harness / method |
+| [`2026-10-04-renderer-assembler-port.md`](2026-10-04-renderer-assembler-port.md) | 23 | renderer port |
 | [`2026-10-05-world-bsp-assembly-port.md`](2026-10-05-world-bsp-assembly-port.md) | 2 | renderer port / world-bsp |
 | [`2026-10-05-render-world-assembly-port.md`](2026-10-05-render-world-assembly-port.md) | 2 | renderer port / world-bsp |
 | [`2026-10-05-renderface-assembly-port.md`](2026-10-05-renderface-assembly-port.md) | 3 | renderer port / renderface |
@@ -38,6 +55,35 @@ later insertion above it.
 | [`2026-10-05-edge-drawing-assembly-port.md`](2026-10-05-edge-drawing-assembly-port.md) | 2 | renderer port / world-bsp |
 | [`2026-10-05-scan-edges-assembly-port.md`](2026-10-05-scan-edges-assembly-port.md) | 2 | renderer port / world-bsp |
 | [`2026-10-05-edge-list-maintenance-assembly-port.md`](2026-10-05-edge-list-maintenance-assembly-port.md) | 2 | renderer port / world-bsp |
+| [`2026-10-06-renderer-selector-benchmarks.md`](2026-10-06-renderer-selector-benchmarks.md) | 1 | renderer port / performance |
+| [`2026-10-06-alias-transform-order-parity.md`](2026-10-06-alias-transform-order-parity.md) | 3 | alias |
+| [`2026-10-06-particle-update-assembly-port.md`](2026-10-06-particle-update-assembly-port.md) | 3 | renderer port / particles |
+| [`2026-10-06-surface-cache-parity-fix.md`](2026-10-06-surface-cache-parity-fix.md) | 1 | renderer port / surface cache |
+| [`2026-10-06-sprite-clipping-assembly-port.md`](2026-10-06-sprite-clipping-assembly-port.md) | 2 | renderer port / sprites |
+| [`2026-10-06-sprite-frame-assembly-port.md`](2026-10-06-sprite-frame-assembly-port.md) | 1 | renderer port / sprites |
+| [`2026-10-06-sprite-gradient-assembly-port.md`](2026-10-06-sprite-gradient-assembly-port.md) | 1 | renderer port / sprites |
+| [`2026-10-06-sprite-scan-left-assembly-port.md`](2026-10-06-sprite-scan-left-assembly-port.md) | 1 | renderer port / sprites |
+| [`2026-10-06-sprite-scan-right-assembly-port.md`](2026-10-06-sprite-scan-right-assembly-port.md) | 1 | renderer port / sprites |
+| [`2026-10-07-sprite-draw-assembly-port.md`](2026-10-07-sprite-draw-assembly-port.md) | 3 | renderer port / sprites |
+| [`2026-10-07-sprite-setup-assembly-port.md`](2026-10-07-sprite-setup-assembly-port.md) | 2 | renderer port / sprites |
+| [`2026-10-07-alias-lighting-setup-assembly-port.md`](2026-10-07-alias-lighting-setup-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-frame-setup-assembly-port.md`](2026-10-07-alias-frame-setup-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-skin-setup-assembly-port.md`](2026-10-07-alias-skin-setup-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-gradient-setup-assembly-port.md`](2026-10-07-alias-gradient-setup-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-line-scan-setup-assembly-port.md`](2026-10-07-alias-line-scan-setup-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-edge-table-assembly-port.md`](2026-10-07-alias-edge-table-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-skin-table-assembly-port.md`](2026-10-07-alias-skin-table-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-rasterize-assembly-port.md`](2026-10-07-alias-rasterize-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-prepare-assembly-port.md`](2026-10-07-alias-prepare-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-alias-matrix-composition-assembly-port.md`](2026-10-07-alias-matrix-composition-assembly-port.md) | 3 | renderer port / alias |
+| [`2026-10-07-bsp-dynamic-light-marking-assembly-port.md`](2026-10-07-bsp-dynamic-light-marking-assembly-port.md) | 6 | renderer port / lighting |
+| [`2026-10-07-bsp-dynamic-light-push-assembly-port.md`](2026-10-07-bsp-dynamic-light-push-assembly-port.md) | 5 | renderer port / lighting |
+| [`2026-10-07-combined-renderer-parity-after-restart.md`](2026-10-07-combined-renderer-parity-after-restart.md) | 1 | renderer port / combined parity |
+| [`2026-10-07-sprite-orientation-and-render-math-port.md`](2026-10-07-sprite-orientation-and-render-math-port.md) | 3 | renderer port / sprites and math |
+| [`2026-10-07-light-control-port.md`](2026-10-07-light-control-port.md) | 1 | renderer port / lighting |
+| [`2026-10-07-palette-assembly-port.md`](2026-10-07-palette-assembly-port.md) | 3 | renderer port / palette |
+| [`2026-10-07-frame-control-assembly-port.md`](2026-10-07-frame-control-assembly-port.md) | 2 | renderer port / frame control |
+| [`2026-10-07-math-closure-assembly-port.md`](2026-10-07-math-closure-assembly-port.md) | 2 | renderer port / math support |
 | [`2026-09-29-offline-precomputation-pass.md`](2026-09-29-offline-precomputation-pass.md) | 2 | harness / method |
 | [`timedemo-baseline-history.md`](timedemo-baseline-history.md) | 6 | harness / method |
 | [`microbenchmark-results.md`](microbenchmark-results.md) | 14 | harness / method |
@@ -47,8 +93,96 @@ later insertion above it.
 The files are ordered by day, which is how the work happened. This table is the
 other axis: one row per renderer region, newest entry first.
 
+### renderer ownership and equivalence
+
+- measured [Combined assembly selection passes the complete guest suite](2026-10-08-accepted-renderer-checkpoint.md)
+- measured [Whitespace cleanup and release pins preserve all allocated behavior](2026-10-08-accepted-renderer-checkpoint.md)
+
+- measured [Original rotation, efrag and edge preparation remain traceable](2026-10-08-world-control-assembly-port.md)
+- measured [World ISA and exact scenes pass before reviewed integration](2026-10-08-world-control-assembly-port.md)
+
+- measured [Original transforms, clipping and model state are preserved](2026-10-08-alias-pipeline-assembly-port.md)
+- measured [ISA and exact scenes pass before reviewed integration](2026-10-08-alias-pipeline-assembly-port.md)
+
+- measured [Original collision and camera behavior is preserved](2026-10-08-chase-camera-assembly-port.md)
+- measured [ISA, active-camera scenes and reviewed integration pass](2026-10-08-chase-camera-assembly-port.md)
+
+- measured [Drawing algorithms and direct fixtures](2026-10-08-framebuffer-drawing-assembly-port.md)
+- measured [Drawing scene acceptance and reviewed integration](2026-10-08-framebuffer-drawing-assembly-port.md)
+
+- measured [Correct subtraction and unchanged normal assembly](2026-10-08-turbulent-profile-timer.md)
+- measured [Exact instrumented scene acceptance](2026-10-08-turbulent-profile-timer.md)
+
+- measured [View algorithms and direct fixtures](2026-10-08-view-control-assembly-port.md)
+- measured [View scene acceptance and reviewed integration](2026-10-08-view-control-assembly-port.md)
+
+- measured [Driver algorithms and direct fixtures](2026-10-08-drawing-driver-assembly-port.md)
+- measured [Drawing driver scene acceptance and reviewed integration](2026-10-08-drawing-driver-assembly-port.md)
+
+- measured [Calling behavior and direct tests](2026-10-08-render-dispatch-assembly-port.md)
+- measured [Dispatch scene acceptance and reviewed integration](2026-10-08-render-dispatch-assembly-port.md)
+
+- measured [Exact runtime object boundaries](2026-10-08-runtime-source-audit.md)
+- measured [Embedded executable startup code](2026-10-08-runtime-source-audit.md)
+- measured [Original algorithms and exact direct tests](2026-10-07-sky-assembly-port.md)
+- measured [Scene acceptance and reviewed integration](2026-10-07-sky-assembly-port.md)
+- measured [Calling conventions and direct validation](2026-10-07-public-entry-assembly-port.md)
+- measured [Public-entry scene acceptance and integration](2026-10-07-public-entry-assembly-port.md)
+- measured [Exact algorithms, continuous state and ABI checks](2026-10-07-combined-direct-acceptance.md)
+- measured [Reproduction and current ownership limits](2026-10-07-combined-direct-acceptance.md)
+- measured [Exact six-scene comparison](2026-10-07-all-selectable-combined-parity.md)
+- measured [Regression measurements and remaining scope](2026-10-07-all-selectable-combined-parity.md)
+- measured [Original behavior and direct tests](2026-10-07-visibility-assembly-port.md)
+- measured [Scene acceptance and integration](2026-10-07-visibility-assembly-port.md)
+
+- `measured` [Accepted returning routines](2026-10-07-math-closure-assembly-port.md)
+- `measured` [Scene equivalence and integration](2026-10-07-math-closure-assembly-port.md)
+- `measured` [Accepted frame-control equivalence (2026-10-07)](2026-10-07-frame-control-assembly-port.md)
+- `documented` [Reproducing the frame-control gates](2026-10-07-frame-control-assembly-port.md)
+- `measured` [Direct equivalence and ABI checks](2026-10-07-palette-assembly-port.md)
+- `measured` [Paired complete frames](2026-10-07-palette-assembly-port.md)
+- `documented` [Reproduce](2026-10-07-palette-assembly-port.md)
+- `measured` [Accepted animated-style and point-light equivalence (2026-10-07)](2026-10-07-light-control-port.md)
+- `documented` [Implementation and traceability](2026-10-07-sprite-orientation-and-render-math-port.md)
+- `measured` [ABI and arithmetic](2026-10-07-sprite-orientation-and-render-math-port.md)
+- `measured` [Mechanical and emulator evidence](2026-10-07-sprite-orientation-and-render-math-port.md)
+- `measured` [Exact output evidence](2026-10-07-combined-renderer-parity-after-restart.md)
+
 ### alias
 
+- `measured` [`R_ConcatTransforms` call sites](2026-10-07-alias-matrix-composition-assembly-port.md)
+- `measured` [Direct fixtures and i486 audit](2026-10-07-alias-matrix-composition-assembly-port.md)
+- `measured` [Two-repeat Demo 2 parity](2026-10-07-alias-matrix-composition-assembly-port.md)
+- `measured` [`R_AliasPreparePoints` per-vertex transform and clip setup](2026-10-07-alias-prepare-assembly-port.md)
+- `measured` [i486 object audit and exact Demo 2 parity](2026-10-07-alias-prepare-assembly-port.md)
+- `measured` [Release-default timing note](2026-10-07-alias-prepare-assembly-port.md)
+- `measured` [`D_RasterizeAliasPolySmooth` setup and span orchestration](2026-10-07-alias-rasterize-assembly-port.md)
+- `measured` [Selected-object and linked 486 ISA audit](2026-10-07-alias-rasterize-assembly-port.md)
+- `measured` [Two-repeat Demo 2 parity and timing](2026-10-07-alias-rasterize-assembly-port.md)
+- `measured` [D_PolysetUpdateTables cached skin-row lookup](2026-10-07-alias-skin-table-assembly-port.md)
+- `measured` [Direct skin-table fixture and 486 ISA audit](2026-10-07-alias-skin-table-assembly-port.md)
+- `measured` [Skin-table paired gameplay parity](2026-10-07-alias-skin-table-assembly-port.md)
+- `measured` [D_PolysetSetEdgeTable 12-way triangle edge selection](2026-10-07-alias-edge-table-assembly-port.md)
+- `measured` [Direct edge-selection fixture and 486 ISA audit](2026-10-07-alias-edge-table-assembly-port.md)
+- `measured` [Edge-table paired gameplay parity](2026-10-07-alias-edge-table-assembly-port.md)
+- `measured` [`D_PolysetSetUpForLineScan` edge-step setup](2026-10-07-alias-line-scan-setup-assembly-port.md)
+- `measured` [Direct fixture and 486 ISA audit](2026-10-07-alias-line-scan-setup-assembly-port.md)
+- `measured` [Paired gameplay parity](2026-10-07-alias-line-scan-setup-assembly-port.md)
+- `measured` [`D_PolysetCalcGradients` x87 gradient setup](2026-10-07-alias-gradient-setup-assembly-port.md)
+- `measured` [Gradient direct fixture and 486 ISA audit](2026-10-07-alias-gradient-setup-assembly-port.md)
+- `measured` [Gradient paired gameplay parity](2026-10-07-alias-gradient-setup-assembly-port.md)
+- `measured` [`R_AliasSetupSkin` single and grouped skin resolution](2026-10-07-alias-skin-setup-assembly-port.md)
+- `measured` [Skin resolver direct C/assembly fixture and ISA audit](2026-10-07-alias-skin-setup-assembly-port.md)
+- `measured` [Skin resolver paired gameplay parity](2026-10-07-alias-skin-setup-assembly-port.md)
+- `measured` [`R_AliasSetupFrame` single and grouped frame resolution](2026-10-07-alias-frame-setup-assembly-port.md)
+- `measured` [Frame resolver direct C/assembly fixture and ISA audit](2026-10-07-alias-frame-setup-assembly-port.md)
+- `measured` [Frame resolver paired gameplay parity](2026-10-07-alias-frame-setup-assembly-port.md)
+- `measured` [`R_AliasSetupLighting` scalar setup and light-vector rotation](2026-10-07-alias-lighting-setup-assembly-port.md)
+- `measured` [Direct C/assembly fixture and ISA audit](2026-10-07-alias-lighting-setup-assembly-port.md)
+- `measured` [Paired gameplay result](2026-10-07-alias-lighting-setup-assembly-port.md)
+- `measured` [`R_ConcatTransforms` (2026-10-06)](2026-10-06-alias-transform-order-parity.md)
+- `measured` [`R_AliasTransformVector` (2026-10-06)](2026-10-06-alias-transform-order-parity.md)
+- `measured` [`R_AliasTransformFinalVert` (2026-10-06)](2026-10-06-alias-transform-order-parity.md)
 - `in progress` [Alias polygon clipping now has i486 assembly paths](2026-10-04-renderer-assembler-port.md)
 - `in progress` [The clipped alias vertex-preparation loop now has an i486 assembly selector](2026-10-04-renderer-assembler-port.md)
 - `measured` [The alias-glue C block is **0.1703% of frame, 3.4x the gate** — the first price that region has ever had,...](2026-10-03-alias-glue-closure.md)
@@ -80,6 +214,7 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [One selector, written five times](2026-10-04-toolchain-refactor.md)
 - `measured` [Six latent defects in the source-level I...](2026-10-04-toolchain-refactor.md)
 - `measured` [What is now a gate that was not](2026-10-04-toolchain-refactor.md)
+- `measured` [Toolchain-audit ISA correction (2026-10-06)](2026-10-04-toolchain-refactor.md)
 - `measured` [A checklist moved out of a script's tail](2026-10-04-toolchain-refactor.md)
 - `measured` [Result](2026-10-04-toolchain-refactor.md)
 - `measured` [Dead code, and one that was not](2026-10-04-toolchain-refactor.md)
@@ -107,12 +242,22 @@ other axis: one row per renderer region, newest entry first.
 
 ### ISA / i386
 
-- `measured` [The 161 `imul r32,r/m32` sites are **not** strength-reducible — three approaches refuted by measurement (...](2026-10-03-isa-audit-and-i386-codepath.md)
-- `measured` [A separate i386 codepath exists, and the shipped "486" binary needs a Pentium — both from one root cause ...](2026-10-03-isa-audit-and-i386-codepath.md)
+- `measured` [Strict source-bound proof is integrated into normal builds](2026-10-08-automatic-executable-isa-gate.md)
+- `measured` [Cached execution and adversarial checks pass](2026-10-08-automatic-executable-isa-gate.md)
+- `measured` [Exact provider boundaries and replacements are verified](2026-10-08-cwsdpmi-486-provider.md)
+- `measured` [Three paired scenes preserve rendering and timing](2026-10-08-cwsdpmi-486-provider.md)
+- `measured` [Correction (2026-10-06): `0F AF` IMUL is i386, not Pentium; all three i486 variants audit at zero above-target instructions](2026-10-03-isa-audit-and-i386-codepath.md)
+- `measured` [The 161 `imul r32,r/m32` sites are **not** strength-reducible — three approaches refuted by measurement (2026-10-03) — historical claim, superseded by correction](2026-10-03-isa-audit-and-i386-codepath.md)
+- `measured` [A separate i386 codepath exists, and the shipped "486" binary needs a Pentium — both from one root cause (2026-10-03) — historical claim, superseded by correction](2026-10-03-isa-audit-and-i386-codepath.md)
 - `closed` [The alias-glue block is **63 instructions, minimal, and 5.5x the gate** — closed from its own disassembly...](2026-10-03-alias-glue-closure.md)
 
 ### lightmap
 
+- `promoted` [`R_PushDlights` active-light enumeration](2026-10-07-bsp-dynamic-light-push-assembly-port.md)
+- `measured` [Five-case direct fixture, i486 ISA audit, and six-scene exact frame parity](2026-10-07-bsp-dynamic-light-push-assembly-port.md)
+- `promoted` [`R_MarkLights` BSP traversal and surface marking](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `measured` [Direct 128-case C/assembly parity and i486 instruction audit](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `measured` [Exact Demo 1 C/assembly framebuffer parity](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
 - `measured` [`R_BuildLightMap` is **0.06% of frame, not 7.5%** — and a real loop-invariant hoist in it is worth **0.04...](2026-10-03-region-pricing-sweep.md)
 
 ### renderface
@@ -124,6 +269,27 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [Two probe mechanics specific to C, both of which would have produced a silently wrong number](2026-10-02-edge-scan-and-texture-spans.md)
 
 ### renderer port
+
+- `measured` [`R_MarkLights` tree walk](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `measured` [Direct fixture and i486 ISA audit](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `measured` [Exact Demo 1 parity](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `measured` [Extended paired scenes and transient console notifications](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `promoted` [Combined fixture, ISA gate, and i486 default](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `measured` [Benchmark text-data disassembly case](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
+- `measured` [`R_PushDlights` slot loop](2026-10-07-bsp-dynamic-light-push-assembly-port.md)
+- `measured` [Direct fixture and instruction audit](2026-10-07-bsp-dynamic-light-push-assembly-port.md)
+- `measured` [Six-scene exact framebuffer parity](2026-10-07-bsp-dynamic-light-push-assembly-port.md)
+- `measured` [Combined promoted dynamic-light paths](2026-10-07-bsp-dynamic-light-push-assembly-port.md)
+- `promoted` [Promotion](2026-10-07-bsp-dynamic-light-push-assembly-port.md)
+- `measured` [Combined promoted sprite-draw paths](2026-10-07-sprite-draw-assembly-port.md)
+- `promoted` [`R_GetSpriteframe` animated sprite-frame selection](2026-10-06-sprite-frame-assembly-port.md)
+- `measured` [Twelve direct frame-selection cases and exact paired Demo 2 parity](2026-10-06-sprite-frame-assembly-port.md)
+- `promoted` [`D_DrawSprite` sprite draw orchestration](2026-10-07-sprite-draw-assembly-port.md)
+- `measured` [Combined four-path, six-scene exact checksum and framebuffer parity](2026-10-07-sprite-draw-assembly-port.md)
+- `measured` [Three direct buffer fixtures, exact Demo 2 parity, and focused ISA audits](2026-10-07-sprite-draw-assembly-port.md)
+- `promoted` [`R_SetupAndDrawSprite` world poster, clipping, projection, and dispatch](2026-10-07-sprite-setup-assembly-port.md)
+- `measured` [Five direct fixtures, two-repeat exact Demo 2 parity, and focused ISA audits](2026-10-07-sprite-setup-assembly-port.md)
+- `measured` [Renderer-port ISA correction (2026-10-06)](2026-10-04-renderer-assembler-port.md)
 
 - `in progress` [`D_FillRect` is now an i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
 - `in progress` [`D_DrawZPoint` is now an i486 assembly entry point](2026-10-04-renderer-assembler-port.md)
@@ -146,6 +312,19 @@ other axis: one row per renderer region, newest entry first.
 - `in progress` [`D_DrawSurfaces` now has a selectable i486 assembly dispatcher](2026-10-04-renderer-assembler-port.md)
 - `in progress` [Next work](2026-10-04-renderer-assembler-port.md)
 - `in progress` [`R_RecursiveWorldNode` now has a selectable assembly walk](2026-10-05-world-bsp-assembly-port.md)
+- `in progress` [`R_DrawParticles` now has a selectable i486 assembly path](2026-10-06-particle-update-assembly-port.md)
+- `measured` [Build, ISA, and render validation](2026-10-06-particle-update-assembly-port.md)
+- `in progress` [Remaining particle closure](2026-10-06-particle-update-assembly-port.md)
+- `in progress` [`R_RotateSprite` beam translation](2026-10-06-sprite-clipping-assembly-port.md)
+- `in progress` [`R_ClipSpriteFace` plane clipping](2026-10-06-sprite-clipping-assembly-port.md)
+- `in progress` [`R_GetSpriteframe` animated frame selection](2026-10-06-sprite-frame-assembly-port.md)
+- `in progress` [`D_SpriteCalculateGradients` perspective setup](2026-10-06-sprite-gradient-assembly-port.md)
+- `in progress` [`D_SpriteScanLeftEdge` span generation](2026-10-06-sprite-scan-left-assembly-port.md)
+- `in progress` [`D_SpriteScanRightEdge` span completion](2026-10-06-sprite-scan-right-assembly-port.md)
+- `in progress` [`D_DrawSprite` orchestration](2026-10-07-sprite-draw-assembly-port.md)
+- `measured` [Paired render and linked-ISA validation](2026-10-07-sprite-draw-assembly-port.md)
+- `measured` [`R_SetupAndDrawSprite` world poster, clipping, projection, and dispatch](2026-10-07-sprite-setup-assembly-port.md)
+- `measured` [Instruction-set and paired-render validation](2026-10-07-sprite-setup-assembly-port.md)
 - `in progress` [Remaining world-BSP closure](2026-10-05-world-bsp-assembly-port.md)
 - `in progress` [`R_RenderWorld` now has a selectable i486 assembly entry](2026-10-05-render-world-assembly-port.md)
 - `in progress` [Remaining active world-renderer closure](2026-10-05-render-world-assembly-port.md)
@@ -171,6 +350,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### surface-cache
 
+- `measured` [`D_CacheSurface` hit predicate (2026-10-06)](2026-10-06-surface-cache-parity-fix.md)
 - `promoted` [The 1800 KB surface-cache wall does not exist (2026-09-29) — root-caused, and the latent win is promoted](2026-09-30-harness-fidelity-and-sourcing.md)
 - `rejected` [E4, the surface-cache eviction churn (2026-09-29) — premise falsified before it was built, 0 of 8,886 reb...](2026-09-29-harness-and-cost-model.md)
 
@@ -189,6 +369,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### world-bsp
 
+- `measured` [`Selector-set frame performance and BSP call removal (2026-10-06)`](2026-10-06-renderer-selector-benchmarks.md)
 - `in progress` [`R_RecursiveClipBPoly` now has a selectable i486 assembly entry](2026-10-05-bmodel-polygon-clip-assembly-port.md)
 - `in progress` [`demo1` wall leak traced to the split fraction and fixed](2026-10-05-bmodel-polygon-clip-assembly-port.md)
 - `in progress` [Edge-list maintenance now has explicit implementation choices](2026-10-05-edge-list-maintenance-assembly-port.md)

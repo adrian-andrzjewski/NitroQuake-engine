@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "d_local.h"
+#include "asm_drawingdriver.h"
 
 
 /*
@@ -28,10 +29,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 D_EndParticles
 ==============
 */
+#ifndef ASM486_DRAWING_DRIVER
 void D_EndParticles (void)
 {
 // not used by software driver
 }
+#endif
 
 
 /*
@@ -39,10 +42,12 @@ void D_EndParticles (void)
 D_StartParticles
 ==============
 */
+#ifndef ASM486_DRAWING_DRIVER
 void D_StartParticles (void)
 {
 // not used by software driver
 }
+#endif
 
 
 #if	!id386
@@ -205,3 +210,18 @@ void D_DrawParticle (particle_t *pparticle)
 
 #endif	// !id386
 
+
+/* Independent pinned C algorithms are test-only. */
+#if defined(BENCH486) && defined(ASM486_DRAWING_DRIVER)
+void D_EndParticles_Driver_C (void)
+{
+// not used by software driver
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_DRAWING_DRIVER)
+void D_StartParticles_Driver_C (void)
+{
+// not used by software driver
+}
+#endif

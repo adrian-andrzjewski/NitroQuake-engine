@@ -1,0 +1,189 @@
+{
+  "sourceSha256": "A57CC56F7BF565AEA70BC6E324B82CD393DC5F2A075E0B5F184019A76B798D70",
+  "flags": [
+    "-Iworkspace\\quake\\out\\math-closure-worktree-20261007\\src",
+    "-O3",
+    "-march=i486",
+    "-mtune=i486",
+    "-falign-loops=8",
+    "-falign-jumps=16",
+    "-falign-functions=8",
+    "-freorder-blocks",
+    "-freorder-functions",
+    "-fomit-frame-pointer",
+    "-frename-registers",
+    "-fno-strict-aliasing",
+    "-fcommon",
+    "-ffast-math",
+    "-std=gnu89",
+    "-DD_TEXAXIS_CACHE_SIZE=256",
+    "-DASM486_EDGE_LIST_C",
+    "-DASM486_TURBULENT_C",
+    "-fno-jump-tables",
+    "-S",
+    "-fverbose-asm"
+  ],
+  "normalBuildRegeneratesAssembly": false,
+  "sharedDataOwner": "C declarations: vec3_origin and nanmask",
+  "functions": [
+    {
+      "originalFunction": "ProjectPointOnPlane",
+      "assemblySymbol": "_ProjectPointOnPlane",
+      "purpose": "Project a point using the original reciprocal squared-normal length and scalar products.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "PerpendicularVector",
+      "assemblySymbol": "_PerpendicularVector",
+      "purpose": "Choose the least-magnitude axis, project it and normalize the perpendicular vector.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "16"
+      ]
+    },
+    {
+      "originalFunction": "RotatePointAroundVector",
+      "assemblySymbol": "_RotatePointAroundVector",
+      "purpose": "Build the original basis, transpose and degree rotation, concatenate matrices, and transform the point.",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "172"
+      ]
+    },
+    {
+      "originalFunction": "anglemod",
+      "assemblySymbol": "_anglemod",
+      "purpose": "Truncate to the original 16-bit angular grid and wrap with the 65535 mask.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "BOPS_Error",
+      "assemblySymbol": "_BOPS_Error",
+      "purpose": "Preserve the renderer plane-sign error boundary and diagnostic.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "24"
+      ]
+    },
+    {
+      "originalFunction": "VectorCompare",
+      "assemblySymbol": "_VectorCompare",
+      "purpose": "Compare all three floating components using the reference comparison behavior.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "VectorMA",
+      "assemblySymbol": "_VectorMA",
+      "purpose": "Preserve sequential component multiply/add stores, including permitted vector aliases.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "_DotProduct",
+      "assemblySymbol": "__DotProduct",
+      "purpose": "Evaluate the original three-component dot product and return ST(0).",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "_VectorSubtract",
+      "assemblySymbol": "__VectorSubtract",
+      "purpose": "Subtract and store the three vector components in source order.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "_VectorAdd",
+      "assemblySymbol": "__VectorAdd",
+      "purpose": "Add and store the three vector components in source order.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "_VectorCopy",
+      "assemblySymbol": "__VectorCopy",
+      "purpose": "Copy the original three vector words with the same sequential alias behavior.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "CrossProduct",
+      "assemblySymbol": "_CrossProduct",
+      "purpose": "Preserve the original sequential cross-product expressions and stores.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "Length",
+      "assemblySymbol": "_Length",
+      "purpose": "Accumulate squared components from zero, apply square root and return the reference float.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "VectorInverse",
+      "assemblySymbol": "_VectorInverse",
+      "purpose": "Negate the three components with the original floating store behavior.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "VectorScale",
+      "assemblySymbol": "_VectorScale",
+      "purpose": "Scale and store the three components with the reference alias behavior.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "Q_log2",
+      "assemblySymbol": "_Q_log2",
+      "purpose": "Count positive-value right shifts; zero returns zero.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_ConcatRotations",
+      "assemblySymbol": "_R_ConcatRotations",
+      "purpose": "Compose the two 3x3 matrices with the exact evaluation and sequential output stores.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "R_ConcatTransforms",
+      "assemblySymbol": "_R_ConcatTransforms",
+      "purpose": "Compose the 3x4 affine matrices, including the original translation additions.",
+      "calleeRegisters": [],
+      "stackReservations": []
+    },
+    {
+      "originalFunction": "FloorDivMod",
+      "assemblySymbol": "_FloorDivMod",
+      "purpose": "Preserve floor-based positive/negative quotient and remainder, truncation and error checks.",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "44",
+        "12"
+      ]
+    },
+    {
+      "originalFunction": "GreatestCommonDivisor",
+      "assemblySymbol": "_GreatestCommonDivisor",
+      "purpose": "Preserve the nonnegative recursive Euclidean algorithm and its zero-argument results.",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": []
+    }
+  ],
+  "layoutAssertions": 8
+}

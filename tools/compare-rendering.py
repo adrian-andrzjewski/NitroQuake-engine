@@ -1,7 +1,8 @@
-"""Compare Quake's indexed PCX captures with tolerant RGB image metrics.
+"""Compare Quake's captured frames and per-frame checksum streams.
 
 The renderer writes raw 8-bit PCX frames. This tool uses only the Python standard
 library so the validation path works on a clean Windows build host without PIL.
+It also compares checksum logs from identical reference and candidate timedemos.
 """
 
 from __future__ import annotations
@@ -210,6 +211,36 @@ def read_frame_checksums(path: Path) -> dict[str, Any]:
     return {"frames": checksums, "count": len(checksums), "overflow": overflow}
 
 
+def compare_frame_checksums(
+    expected_path: Path, actual_path: Path, *, ignore_leading_frames: int = 0
+) -> dict[str, Any]:
+    if ignore_leading_frames < 0:
+        raise ValueError("ignore_leading_frames must be nonnegative")
+    expected = read_frame_checksums(expected_path)
+    actual = read_frame_checksums(actual_path)
+    common_count = min(expected["count"], actual["count"])
+    start = min(ignore_leading_frames, common_count)
+    mismatch_frames = [
+        frame
+        for frame in range(start, common_count)
+        if expected["frames"][frame] != actual["frames"][frame]
+    ]
+    exact_match = expected["count"] == actual["count"] and not mismatch_frames
+    return {
+        "comparison": "per-frame-checksum",
+        "expected": str(expected_path),
+        "actual": str(actual_path),
+        "expectedFrames": expected["count"],
+        "actualFrames": actual["count"],
+        "comparedFrames": common_count - start,
+        "ignoredLeadingFrames": start,
+        "exactMatch": exact_match,
+        "mismatchedFrames": len(mismatch_frames),
+        "firstMismatchFrame": mismatch_frames[0] if mismatch_frames else None,
+        "lastMismatchFrame": mismatch_frames[-1] if mismatch_frames else None,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("expected", type=Path)
@@ -220,38 +251,78 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-mean-absolute-error", type=float, default=0.5)
     parser.add_argument("--report-json", type=Path)
     parser.add_argument("--diff-image", type=Path)
+    parser.add_argument(
+        "--frame-checksums",
+        action="store_true",
+        help="compare per-frame checksum logs instead of PCX images",
+    )
+    parser.add_argument(
+        "--ignore-leading-frames", type=int, default=0,
+        help="exclude startup frames from a checksum comparison",
+    )
+    parser.add_argument(
+        "--require-exact", action="store_true",
+        help="return failure when checksum streams differ (checksum mode only)",
+    )
     args = parser.parse_args(argv)
     if args.channel_tolerance < 0 or not 0 <= args.max_changed_pixel_fraction <= 1:
         parser.error("tolerances must be nonnegative and the pixel fraction must be in [0, 1]")
     if args.max_mean_absolute_error < 0 or math.isnan(args.max_mean_absolute_error):
         parser.error("--max-mean-absolute-error must be nonnegative")
 
-    try:
-        report = compare_images(
-            args.expected,
-            args.actual,
-            channel_tolerance=args.channel_tolerance,
-            max_changed_pixel_fraction=args.max_changed_pixel_fraction,
-            max_mean_absolute_error=args.max_mean_absolute_error,
-        )
-        report["scenario"] = args.scenario
-        diff_path = args.diff_image or args.actual.with_name(args.actual.stem + "-diff.png")
-        write_diff_png(diff_path, load_pcx(args.expected), load_pcx(args.actual), args.channel_tolerance)
-        report["diffImage"] = str(diff_path)
-    except (OSError, ValueError) as exc:
-        report = {
-            "scenario": args.scenario,
-            "pass": False,
-            "error": str(exc),
-            "expected": {"path": str(args.expected)},
-            "actual": {"path": str(args.actual)},
-        }
+    if args.ignore_leading_frames < 0:
+        parser.error("--ignore-leading-frames must be nonnegative")
+    if args.require_exact and not args.frame_checksums:
+        parser.error("--require-exact requires --frame-checksums")
+
+    if args.frame_checksums:
+        try:
+            report = compare_frame_checksums(
+                args.expected, args.actual,
+                ignore_leading_frames=args.ignore_leading_frames,
+            )
+            report["scenario"] = args.scenario
+        except (OSError, ValueError) as exc:
+            report = {
+                "scenario": args.scenario,
+                "comparison": "per-frame-checksum",
+                "exactMatch": False,
+                "error": str(exc),
+                "expected": str(args.expected),
+                "actual": str(args.actual),
+            }
+    else:
+        try:
+            report = compare_images(
+                args.expected,
+                args.actual,
+                channel_tolerance=args.channel_tolerance,
+                max_changed_pixel_fraction=args.max_changed_pixel_fraction,
+                max_mean_absolute_error=args.max_mean_absolute_error,
+            )
+            report["scenario"] = args.scenario
+            diff_path = args.diff_image or args.actual.with_name(args.actual.stem + "-diff.png")
+            write_diff_png(diff_path, load_pcx(args.expected), load_pcx(args.actual), args.channel_tolerance)
+            report["diffImage"] = str(diff_path)
+        except (OSError, ValueError) as exc:
+            report = {
+                "scenario": args.scenario,
+                "pass": False,
+                "error": str(exc),
+                "expected": {"path": str(args.expected)},
+                "actual": {"path": str(args.actual)},
+            }
 
     serialized = json.dumps(report, indent=2, sort_keys=True)
     if args.report_json:
         args.report_json.parent.mkdir(parents=True, exist_ok=True)
         args.report_json.write_text(serialized + "\n", encoding="utf-8")
     print(serialized)
+    if args.frame_checksums:
+        if report.get("error"):
+            return 1
+        exact_match = bool(report.get("exactMatch", False))
+        return 0 if not args.require_exact or exact_match else 1
     return 0 if report.get("pass") else 1
 
 

@@ -1,0 +1,308 @@
+{
+  "origin": "Hand-maintained public entry delegation; existing algorithm kernels are unchanged.",
+  "normalBuildRegeneratesAssembly": false,
+  "functions": [
+    {
+      "originalFunction": "D_CalcGradients",
+      "assemblySymbol": "_D_CalcGradients",
+      "target": "_D_CalcGradients_asm486",
+      "selectedKernelDefine": "ASM486_SURFACE_GRADIENTS",
+      "source": "d_edge.c",
+      "originalDefinition": "void D_CalcGradients (msurface_t *pface)\n{\n\tD_CalcGradients_asm486 (pface);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "D_DrawSurfacesCalcGradients_asm486",
+      "assemblySymbol": "_D_DrawSurfacesCalcGradients_asm486",
+      "target": "_D_CalcGradients_asm486",
+      "selectedKernelDefine": "ASM486_SURFACE_DISPATCH",
+      "source": "d_edge.c",
+      "originalDefinition": "void D_DrawSurfacesCalcGradients_asm486 (msurface_t *pface)\n{\n\tD_CalcGradients (pface);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "D_PolysetCalcGradients",
+      "assemblySymbol": "_D_PolysetCalcGradients",
+      "target": "_D_PolysetCalcGradients_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_GRADIENTS",
+      "source": "d_polyse.c",
+      "originalDefinition": "void D_PolysetCalcGradients (int skinwidth)\n{\n#if id386 && defined(ASM486_ALIAS_GRADIENTS)\n\tD_PolysetCalcGradients_asm486 (skinwidth);\n#elif id386\n\tint saved_denominator;\n\n\t// The legacy assembly edge walker leaves the reciprocal as a float bit\n\t// pattern in d_xdenom. The C reference consumes the integer determinant.\n\tsaved_denominator = d_xdenom;\n\td_xdenom = d_xdenom_int;\n\tD_PolysetCalcGradients_C (skinwidth);\n\td_xdenom = saved_denominator;\n#else\n\tD_PolysetCalcGradients_C (skinwidth);\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "D_PolysetUpdateTables",
+      "assemblySymbol": "_D_PolysetUpdateTables",
+      "target": "_D_PolysetUpdateTables_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_SKIN_TABLE",
+      "source": "d_polyse.c",
+      "originalDefinition": "void D_PolysetUpdateTables (void)\n{\n#if id386 && defined(ASM486_ALIAS_SKIN_TABLE)\n\tD_PolysetUpdateTables_asm486 ();\n#else\n\tD_PolysetUpdateTables_C ();\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "D_PolysetSetUpForLineScan",
+      "assemblySymbol": "_D_PolysetSetUpForLineScan",
+      "target": "_D_PolysetSetUpForLineScan_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_LINE_SCAN",
+      "source": "d_polyse.c",
+      "originalDefinition": "void D_PolysetSetUpForLineScan (fixed8_t startvertu, fixed8_t startvertv,\n\t\tfixed8_t endvertu, fixed8_t endvertv)\n{\n#ifdef PROFILE486\n\tif (bench486_profile_frame_active)\n\t\tbench486_line_setup_calls++;\n#endif\n\n#if id386 && defined(ASM486_ALIAS_LINE_SCAN)\n\tD_PolysetSetUpForLineScan_asm486 (startvertu, startvertv,\n\t\t\tendvertu, endvertv);\n#else\n\tD_PolysetSetUpForLineScan_C (startvertu, startvertv,\n\t\t\tendvertu, endvertv);\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "D_RasterizeAliasPolySmooth",
+      "assemblySymbol": "_D_RasterizeAliasPolySmooth",
+      "target": "_D_RasterizeAliasPolySmooth_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_RASTERIZE",
+      "source": "d_polyse.c",
+      "originalDefinition": "void D_RasterizeAliasPolySmooth (void)\n{\n\t// One scope per triangle rather than one per sub-block. The three delegated\n\t// raster helpers keep their own scopes; this measures only their C/ASM glue.\n\tBENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_GLUE);\n#if id386 && defined(ASM486_ALIAS_RASTERIZE)\n\tD_RasterizeAliasPolySmooth_asm486 ();\n#else\n\tD_RasterizeAliasPolySmooth_C ();\n#endif\n\tBENCH486_PROFILE_LEAVE ();\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "D_PolysetSetEdgeTable",
+      "assemblySymbol": "_D_PolysetSetEdgeTable",
+      "target": "_D_PolysetSetEdgeTable_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_EDGE_TABLE",
+      "source": "d_polyse.c",
+      "originalDefinition": "void D_PolysetSetEdgeTable (void)\n{\n#if id386 && defined(ASM486_ALIAS_EDGE_TABLE)\n\tD_PolysetSetEdgeTable_asm486 ();\n#else\n\tD_PolysetSetEdgeTable_C ();\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_AliasClip",
+      "assemblySymbol": "_R_AliasClip",
+      "target": "_R_AliasClip_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_CLIP",
+      "source": "r_aclip.c",
+      "originalDefinition": "int R_AliasClip (finalvert_t *in, finalvert_t *out, int flag, int count,\n\tvoid(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out))\n{\n\treturn R_AliasClip_asm486 (in, out, flag, count, clip);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_AliasClipTriangle",
+      "assemblySymbol": "_R_AliasClipTriangle",
+      "target": "_R_AliasClipTriangle_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_CLIP",
+      "source": "r_aclip.c",
+      "originalDefinition": "void R_AliasClipTriangle (mtriangle_t *ptri)\n{\n\tR_AliasClipTriangle_asm486 (ptri);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_AliasTransformVector",
+      "assemblySymbol": "_R_AliasTransformVector",
+      "target": "_R_AliasTransformVector_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_BBOX_PROJECT",
+      "source": "r_alias.c",
+      "originalDefinition": "void R_AliasTransformVector (vec3_t in, vec3_t out)\n{\n#ifdef ASM486_ALIAS_BBOX_PROJECT\n\tR_AliasTransformVector_asm486 (in, out);\n#else\n\tout[0] = DotProduct(in, aliastransform[0]) + aliastransform[0][3];\n\tout[1] = DotProduct(in, aliastransform[1]) + aliastransform[1][3];\n\tout[2] = DotProduct(in, aliastransform[2]) + aliastransform[2][3];\n#endif\n}",
+      "callingConvention": "32-bit cdecl",
+      "assemblySelectorDefine": "ASM486_BINDING_ALIAS_BBOX_PROJECT"
+    },
+    {
+      "originalFunction": "R_AliasTransformFinalVert",
+      "assemblySymbol": "_R_AliasTransformFinalVert",
+      "target": "_R_AliasTransformFinalVert_asm486",
+      "selectedKernelDefine": "ASM486_ALIAS_TRANSFORM_FINAL",
+      "source": "r_alias.c",
+      "originalDefinition": "void R_AliasTransformFinalVert (finalvert_t *fv, auxvert_t *av,\n\ttrivertx_t *pverts, stvert_t *pstverts)\n{\n#ifdef ASM486_ALIAS_TRANSFORM_FINAL\n\tR_AliasTransformFinalVert_asm486 (fv, av, pverts, pstverts);\n#else\n\tint\t\ttemp;\n\tfloat\tlightcos, *plightnormal;\n\n\tav->fv[0] = DotProduct(pverts->v, aliastransform[0]) +\n\t\t\taliastransform[0][3];\n\tav->fv[1] = DotProduct(pverts->v, aliastransform[1]) +\n\t\t\taliastransform[1][3];\n\tav->fv[2] = DotProduct(pverts->v, aliastransform[2]) +\n\t\t\taliastransform[2][3];\n\n\tfv->v[2] = pstverts->s;\n\tfv->v[3] = pstverts->t;\n\n\tfv->flags = pstverts->onseam;\n\n// lighting\n\tplightnormal = r_avertexnormals[pverts->lightnormalindex];\n\tlightcos = DotProduct (plightnormal, r_plightvec);\n\ttemp = r_ambientlight;\n\n\tif (lightcos < 0)\n\t{\n\t\ttemp += (int)(r_shadelight * lightcos);\n\n\t// clamp; because we limited the minimum ambient and shading light, we\n\t// don't have to clamp low light, just bright\n\t\tif (temp < 0)\n\t\t\ttemp = 0;\n\t}\n\n\tfv->v[4] = temp;\n#endif\n}",
+      "callingConvention": "32-bit cdecl",
+      "assemblySelectorDefine": "ASM486_BINDING_ALIAS_TRANSFORM_FINAL"
+    },
+    {
+      "originalFunction": "R_RecursiveClipBPoly",
+      "assemblySymbol": "_R_RecursiveClipBPoly",
+      "target": "_R_RecursiveClipBPoly_asm486",
+      "selectedKernelDefine": "ASM486_BMODEL_POLYGON_CLIP",
+      "source": "r_bsp.c",
+      "originalDefinition": "void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode,\n\t\tmsurface_t *psurf)\n{\n\tR_RecursiveClipBPoly_asm486 (pedges, pnode, psurf);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_DrawSolidClippedSubmodelPolygons",
+      "assemblySymbol": "_R_DrawSolidClippedSubmodelPolygons",
+      "target": "_R_DrawSolidClippedSubmodelPolygons_asm486",
+      "selectedKernelDefine": "ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS",
+      "source": "r_bsp.c",
+      "originalDefinition": "void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel)\n{\n\tR_DrawSolidClippedSubmodelPolygons_asm486 (pmodel);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_DrawSubmodelPolygons",
+      "assemblySymbol": "_R_DrawSubmodelPolygons",
+      "target": "_R_DrawSubmodelPolygons_asm486",
+      "selectedKernelDefine": "ASM486_DRAW_SUBMODEL_POLYGONS",
+      "source": "r_bsp.c",
+      "originalDefinition": "void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags)\n{\n\tR_DrawSubmodelPolygons_asm486 (pmodel, clipflags);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_RecursiveWorldNode",
+      "assemblySymbol": "_R_RecursiveWorldNode",
+      "target": "_R_RecursiveWorldNode_asm486",
+      "selectedKernelDefine": "ASM486_BSP_WALK",
+      "source": "r_bsp.c",
+      "originalDefinition": "void __attribute__((regparm(2))) R_RecursiveWorldNode\n\t(mnode_t *node, int clipflags)\n{\n#ifdef ASM486_BSP_WALK\n\tR_RecursiveWorldNode_asm486 (node, clipflags);\n#else\n\tR_RecursiveWorldNode_C (node, clipflags);\n#endif\n}",
+      "callingConvention": "regparm(2): EAX=node, EDX=clipflags"
+    },
+    {
+      "originalFunction": "R_RenderWorld",
+      "assemblySymbol": "_R_RenderWorld",
+      "target": "_R_RenderWorld_asm486",
+      "selectedKernelDefine": "ASM486_RENDER_WORLD",
+      "source": "r_bsp.c",
+      "originalDefinition": "void R_RenderWorld (void)\n{\n\tR_RenderWorld_asm486 ();\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_EmitCachedEdge",
+      "assemblySymbol": "_R_EmitCachedEdge",
+      "target": "_R_EmitCachedEdge_asm486",
+      "selectedKernelDefine": "ASM486_EMIT_CACHED_EDGE",
+      "source": "r_draw.c",
+      "originalDefinition": "void R_EmitCachedEdge (void)\n{\n\tR_EmitCachedEdge_asm486 ();\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_RenderBmodelFace",
+      "assemblySymbol": "_R_RenderBmodelFace",
+      "target": "_R_RenderBmodelFace_asm486",
+      "selectedKernelDefine": "ASM486_RENDER_BMODEL_FACE",
+      "source": "r_draw.c",
+      "originalDefinition": "void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)\n{\n\tR_RenderBmodelFace_asm486 (pedges, psurf);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_RenderPoly",
+      "assemblySymbol": "_R_RenderPoly",
+      "target": "_R_RenderPoly_asm486",
+      "selectedKernelDefine": "ASM486_RENDER_POLY",
+      "source": "r_draw.c",
+      "originalDefinition": "void R_RenderPoly (msurface_t *fa, int clipflags)\n{\n    R_RenderPoly_asm486 (fa, clipflags);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_GenerateSpansBackward",
+      "assemblySymbol": "_R_GenerateSpansBackward",
+      "target": "_R_GenerateSpansBackward_asm486",
+      "selectedKernelDefine": "ASM486_BACKWARD_SPANS",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_GenerateSpansBackward (void)\n{\n\tR_GenerateSpansBackward_asm486 ();\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_InsertNewEdges",
+      "assemblySymbol": "_R_InsertNewEdges",
+      "target": "_R_InsertNewEdges_asm486",
+      "selectedKernelDefine": "ASM486_EDGE_LIST",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_InsertNewEdges (edge_t *edgestoadd, edge_t *edgelist)\n{\n\tR_InsertNewEdges_asm486 (edgestoadd, edgelist);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_RemoveEdges",
+      "assemblySymbol": "_R_RemoveEdges",
+      "target": "_R_RemoveEdges_asm486",
+      "selectedKernelDefine": "ASM486_EDGE_LIST",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_RemoveEdges (edge_t *pedge)\n{\n\tR_RemoveEdges_asm486 (pedge);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_StepActiveU",
+      "assemblySymbol": "_R_StepActiveU",
+      "target": "_R_StepActiveU_asm486",
+      "selectedKernelDefine": "ASM486_EDGE_LIST",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_StepActiveU (edge_t *pedge)\n{\n\tR_StepActiveU_asm486 (pedge);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_CleanupSpan",
+      "assemblySymbol": "_R_CleanupSpan",
+      "target": "_R_CleanupSpan_asm486",
+      "selectedKernelDefine": "ASM486_BACKWARD_SPANS",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_CleanupSpan (void)\n{\n\tR_CleanupSpan_asm486 ();\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_LeadingEdgeBackwards",
+      "assemblySymbol": "_R_LeadingEdgeBackwards",
+      "target": "_R_LeadingEdgeBackwards_asm486",
+      "selectedKernelDefine": "ASM486_BACKWARD_SPANS",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_LeadingEdgeBackwards (edge_t *edge)\n{\n\tR_LeadingEdgeBackwards_asm486 (edge);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_TrailingEdge",
+      "assemblySymbol": "_R_TrailingEdge",
+      "target": "_R_TrailingEdge_asm486",
+      "selectedKernelDefine": "ASM486_BACKWARD_SPANS",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_TrailingEdge (surf_t *surf, edge_t *edge)\n{\n\tR_TrailingEdge_asm486 (surf, edge);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_ScanEdges",
+      "assemblySymbol": "_R_ScanEdges",
+      "target": "_R_ScanEdges_asm486",
+      "selectedKernelDefine": "ASM486_SCAN_EDGES",
+      "source": "r_edge.c",
+      "originalDefinition": "void R_ScanEdges (void)\n{\n\tR_ScanEdges_asm486 ();\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_StoreEfrags",
+      "assemblySymbol": "_R_StoreEfrags",
+      "target": "_R_StoreEfrags_asm486",
+      "selectedKernelDefine": "ASM486_EFRAG_STORE",
+      "source": "r_efrag.c",
+      "originalDefinition": "void R_StoreEfrags (efrag_t **ppefrag)\n{\n\tR_StoreEfrags_asm486 (ppefrag);\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_RotateSprite",
+      "assemblySymbol": "_R_RotateSprite",
+      "target": "_R_RotateSprite_asm486",
+      "selectedKernelDefine": "ASM486_SPRITE_BEAM",
+      "source": "r_sprite.c",
+      "originalDefinition": "void R_RotateSprite (float beamlength)\n{\n#ifdef ASM486_SPRITE_BEAM\n\tR_RotateSprite_asm486 (beamlength);\n#else\n\tR_RotateSprite_C (beamlength);\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_ClipSpriteFace",
+      "assemblySymbol": "_R_ClipSpriteFace",
+      "target": "_R_ClipSpriteFace_asm486",
+      "selectedKernelDefine": "ASM486_SPRITE_CLIP",
+      "source": "r_sprite.c",
+      "originalDefinition": "int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)\n{\n#ifdef ASM486_SPRITE_CLIP\n\treturn R_ClipSpriteFace_asm486 (nump, pclipplane);\n#else\n\treturn R_ClipSpriteFace_C (nump, pclipplane);\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_SetupAndDrawSprite",
+      "assemblySymbol": "_R_SetupAndDrawSprite",
+      "target": "_R_SetupAndDrawSprite_asm486",
+      "selectedKernelDefine": "ASM486_SPRITE_SETUP",
+      "source": "r_sprite.c",
+      "originalDefinition": "void R_SetupAndDrawSprite (void)\n{\n#ifdef BENCH486\n\tif (bench486_sprite_setup_hook)\n\t{\n\t\tbench486_sprite_setup_hook ();\n\t\treturn;\n\t}\n#endif\n#ifdef ASM486_SPRITE_SETUP\n\tR_SetupAndDrawSprite_asm486 ();\n#else\n\tR_SetupAndDrawSprite_C ();\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    },
+    {
+      "originalFunction": "R_TextureAnimation",
+      "assemblySymbol": "_R_TextureAnimation",
+      "target": "_R_TextureAnimation_asm486",
+      "selectedKernelDefine": "ASM486_TEXTURE_ANIMATION",
+      "source": "r_surf.c",
+      "originalDefinition": "texture_t *R_TextureAnimation (texture_t *base)\n{\n#if defined(ASM486_TEXTURE_ANIMATION) && id386\n\treturn R_TextureAnimation_asm486 (base);\n#else\n\treturn R_TextureAnimation_C_Impl (base);\n#endif\n}",
+      "callingConvention": "32-bit cdecl"
+    }
+  ],
+  "referenceSourceSha256": {
+    "d_edge.c": "5836AA07905328815DAE98E3B7ADA2F5575E9AFC9BF10523AE07B73DE7F9095B",
+    "d_polyse.c": "041CFDBC1D4F09A7AE864CE064CA3F2CF4E15E93818E0B9B1990147899816134",
+    "r_aclip.c": "0C2FF1B5CB48673FCF6FC0470E53D7B9D9E07A59C99BDBBB7348195724A0F554",
+    "r_alias.c": "D8F19899B621AF61C6C3C15FB9A5B05922C9C892B3978CF3C1027DBC56313655",
+    "r_bsp.c": "D64661018D3B4A0366A25CA848B2ECD6DD7CFCBC99202C881B23AB69AD66AACF",
+    "r_draw.c": "1282F5477484C894E0B1972296A38975A76A3EE58E3EFF5DC9087B9A0A98647A",
+    "r_edge.c": "F8C7A013189DFDD413090BB7D9F0E97423E12CB97C1FBD166815C39474F5E1F2",
+    "r_efrag.c": "E2DFFC6FC42D492162C4D56D8A8EDE14C7FAAA81E3E171D6B787E971829A5429",
+    "r_sprite.c": "E0A202FB5718C34A0BE7DAB69BC16820E62E697F5E725363E43B4D4622775DF1",
+    "r_surf.c": "9F45C1F98B513EB48CD5759E67310B3436E85718B2C1DE56508D0442871FB54A"
+  }
+}

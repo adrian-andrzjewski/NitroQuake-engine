@@ -22,6 +22,260 @@
 
 Set-StrictMode -Version Latest
 
+. (Join-Path $PSScriptRoot 'selectors.ps1')
+
+function Add-RunnerBuildSelectors {
+    <# Every selector exposed by a runner is forwarded from its resolved local
+       value. Do not maintain a second, partial forwarding list in each runner. #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][hashtable]$BuildParameters,
+        [Parameter(Mandatory = $true)][System.Management.Automation.CommandInfo]$Command,
+        [Parameter(Mandatory = $true)][System.Management.Automation.SessionState]$SessionState
+    )
+    foreach ($selector in $script:SelectorTable) {
+        if (-not $Command.Parameters.ContainsKey($selector.Param)) { continue }
+        $variable = $SessionState.PSVariable.Get($selector.Param)
+        if ($null -eq $variable) { throw "Runner selector '$($selector.Param)' has no resolved value." }
+        $BuildParameters[$selector.Param] = $variable.Value
+    }
+}
+
+function Assert-RunnerBuildManifest {
+    <# A requested selector in run metadata is not evidence that it was built.
+       Check the actual build manifest before staging or running the executable. #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]$Resolved,
+        [Parameter(Mandatory = $true)][hashtable]$BuildParameters
+    )
+    $manifestPath = Join-Path $Resolved.outputRoot $Resolved.manifest
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw "Build selector verification requires '$manifestPath'."
+    }
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    if ($manifest.executable -ne $Resolved.executable) {
+        throw "Build manifest executable '$($manifest.executable)' differs from '$($Resolved.executable)'."
+    }
+    $verified = [ordered]@{}
+    foreach ($selector in $script:SelectorTable) {
+        if (-not $BuildParameters.ContainsKey($selector.Param)) { continue }
+        $actual = $manifest.PSObject.Properties[$selector.Manifest]
+        $expected = [string]$BuildParameters[$selector.Param]
+        if ($null -eq $actual -or [string]$actual.Value -ne $expected) {
+            $built = if ($null -eq $actual) { '<missing>' } else { [string]$actual.Value }
+            throw "Build selector mismatch for '$($selector.Param)': requested '$expected', built '$built' in '$manifestPath'."
+        }
+        $verified[$selector.Param] = $actual.Value
+    }
+    $executableHash = (Get-FileHash -LiteralPath $Resolved.executable -Algorithm SHA256).Hash
+    $compatibility = $null
+    if ($manifest.cpuTarget -eq 'i486') {
+        foreach ($name in @('executableSha256', 'isaAuditStatus', 'isaAuditReport',
+                'isaAuditReportSha256', 'isaLinkedAuditReport', 'isaLinkedAuditReportSha256',
+                'compatibilityPolicySha256', 'sourceBoundIsa', 'actualRelocatedIsa', 'embeddedStartupIsa', 'externalDpmiProviderIsa')) {
+            if ($null -eq $manifest.PSObject.Properties[$name]) { throw "Build manifest lacks i486 evidence '$name'." }
+        }
+        if ($manifest.isaAuditStatus -ne 'PASS' -or $manifest.executableSha256 -ne $executableHash) {
+            throw 'The i486 executable does not match a passed ISA audit.'
+        }
+        $policy = Get-CompatibilityPolicyFingerprint -RepoRoot (Join-Path $PSScriptRoot '..')
+        if ($manifest.compatibilityPolicySha256 -ne $policy) {
+            throw 'The build used a different compatibility policy or runtime provider; rebuild and audit it.'
+        }
+        foreach ($pair in @(@('isaAuditReport', 'isaAuditReportSha256'),
+                @('isaLinkedAuditReport', 'isaLinkedAuditReportSha256'))) {
+            $path = [string]$manifest.($pair[0])
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or
+                    (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $manifest.($pair[1])) {
+                throw "The build's ISA report '$path' is missing or changed."
+            }
+        }
+        $linked = Get-Content -LiteralPath $manifest.isaLinkedAuditReport -Raw | ConvertFrom-Json
+        if (-not $linked.pass -or $linked.cpuTarget -ne 'i486' -or
+                $linked.executable -ne $Resolved.executable -or $linked.executableSha256 -ne $executableHash -or
+                [int]$linked.instructionAudit.linkedInstructionsVerified -le 0 -or
+                [int]$linked.instructionAudit.linkedOpcodeMismatches -ne 0) {
+            throw 'The linked ISA evidence is not bound to this i486 executable.'
+        }
+        if ($manifest.sourceBoundIsa -ne $true -or $linked.sourceBoundCodeData -ne $true -or
+                @($linked.instructionAudit.inputExempted).Count -ne 0 -or
+                [int]$linked.instructionAudit.inputContinuationLines -ne 0 -or
+                [int]$linked.instructionAudit.linkedDataSitesExempted -ne 0 -or
+                [int]$linked.instructionAudit.linkedNonInstructionByteSitesMatched -ne 0 -or
+                [int]$linked.instructionAudit.linkedRelocationCoveredDataSites -ne 0) {
+            throw 'The i486 runner requires exact source boundaries without instruction exemptions or skipped bytes.'
+        }
+        $final = $linked.actualRelocatedIsa
+        if ($final.sourceBound -ne $true -or [int]$final.instructionExemptions -ne 0 -or
+                [int]$final.instructionCount -ne [int]$linked.instructionAudit.linkedInstructionsVerified -or
+                $manifest.actualRelocatedIsa.reportSha256 -ne $final.reportSha256 -or
+                -not (Test-Path -LiteralPath $final.report -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $final.report -Algorithm SHA256).Hash -ne $final.reportSha256) {
+            throw 'The independent relocated-instruction report is incomplete, missing or changed.'
+        }
+        $finalReport = Get-Content -LiteralPath $final.report -Raw | ConvertFrom-Json
+        if ([int]$finalReport.instructionCount -ne [int]$final.instructionCount -or
+                [int]$finalReport.violationCount -ne 0 -or [int]$finalReport.unclassifiedCount -ne 0 -or
+                @($finalReport.exempted).Count -ne 0) { throw 'The independent final instruction audit did not pass strictly.' }
+        $startup = $linked.embeddedStartupIsa
+        if ($startup.exactFinalBytes -ne $true -or [int]$startup.instructionExemptions -ne 0 -or
+                [int]$startup.instructionCount -le 0 -or
+                $manifest.embeddedStartupIsa.proofSha256 -ne $startup.proofSha256 -or
+                -not (Test-Path -LiteralPath $startup.proof -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $startup.proof -Algorithm SHA256).Hash -ne $startup.proofSha256) {
+            throw 'The final embedded startup proof is incomplete, missing or changed.'
+        }
+        $startupReport = Get-Content -LiteralPath $startup.proof -Raw | ConvertFrom-Json
+        if ($startupReport.exactPrimarySourcesAndFinalBytes -ne $true -or
+                $startupReport.executableSha256 -ne $executableHash -or
+                [int]$startupReport.instructionRows -ne [int]$startup.instructionCount -or
+                [int]$startupReport.loadedStartupBytesProved -ne [int]$startup.loadedBytes) {
+            throw 'The embedded startup proof does not cover this exact executable.'
+        }
+        $provider = $linked.externalDpmiProvider
+        $providerPath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../src/cwsdpmi.exe'))
+        $providerHash = (Get-FileHash -LiteralPath $providerPath -Algorithm SHA256).Hash
+        if ($provider.exactMaintainedProvider -ne $true -or [int]$provider.instructionExemptions -ne 0 -or
+                [int]$provider.instructionCount -ne 9207 -or [int]$provider.runtimeVariantInstructions -ne 1 -or
+                $provider.executableSha256 -ne $providerHash -or
+                $manifest.externalDpmiProviderIsa.proofSha256 -ne $provider.proofSha256 -or
+                -not (Test-Path -LiteralPath $provider.proof -PathType Leaf) -or
+                (Get-FileHash -LiteralPath $provider.proof -Algorithm SHA256).Hash -ne $provider.proofSha256) {
+            throw 'The default DPMI provider does not match its complete i486 instruction proof.'
+        }
+        $providerReport = Get-Content -LiteralPath $provider.proof -Raw | ConvertFrom-Json
+        if ($providerReport.passed -ne $true -or $providerReport.exactOriginalPlusMaintainedAssembly -ne $true -or
+                $providerReport.executableSha256 -ne $providerHash -or [int]$providerReport.instructionCount -ne 9207 -or
+                [int]$providerReport.runtimeVariantInstructions -ne 1 -or [int]$providerReport.instructionExemptions -ne 0 -or
+                [int]$providerReport.unknownEncodings -ne 0 -or
+                $providerReport.policySha256 -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'cws-provider-proof.py') -Algorithm SHA256).Hash) {
+            throw 'The DPMI provider proof is stale or incomplete.'
+        }
+        foreach ($entry in @(@($providerReport.strictReport,$providerReport.strictReportSha256,9207),
+                @($providerReport.runtimeVariantReport,$providerReport.runtimeVariantReportSha256,1))) {
+            if (-not (Test-Path -LiteralPath $entry[0] -PathType Leaf) -or
+                    (Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash -ne $entry[1]) {
+                throw 'The provider instruction report is missing or changed.'
+            }
+            $audit = Get-Content -LiteralPath $entry[0] -Raw | ConvertFrom-Json
+            if ($audit.result -ne 'PASS' -or [int]$audit.instructionCount -ne [int]$entry[2] -or
+                    [int]$audit.unclassifiedCount -ne 0 -or [int]$audit.violationCount -ne 0 -or
+                    [int]$audit.exemptedCount -ne 0) { throw 'The provider instruction audit did not pass strictly.' }
+        }
+        $compatibility = [pscustomobject]@{
+            passed = $true; linkedReport = $manifest.isaLinkedAuditReport
+            linkedReportSha256 = $manifest.isaLinkedAuditReportSha256; policySha256 = $policy
+            sourceBound = $true; relocatedInstructions = [int]$final.instructionCount
+            embeddedStartupInstructions = [int]$startup.instructionCount
+            externalDpmiProviderVerified = $true; externalDpmiProviderSha256 = $providerHash
+            externalDpmiProviderInstructions = 9207
+        }
+    }
+    return [pscustomobject]@{
+        passed = $true
+        manifest = $manifestPath
+        manifestSha256 = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash
+        executableSha256 = $executableHash
+        selectors = $verified
+        compatibility = $compatibility
+    }
+}
+
+function Assert-RunnerDpmiProvider {
+    <# Validate the exact staged provider, including changes between build and staging. #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory=$true)][string]$CpuTarget,
+        [Parameter(Mandatory=$true)]$BuildVerification,
+        [Parameter(Mandatory=$true)][string]$ProviderPath)
+    $hash = (Get-FileHash -LiteralPath $ProviderPath -Algorithm SHA256).Hash
+    if ($CpuTarget -ne 'i486') { return [pscustomobject]@{verified=$false;cpuTarget=$CpuTarget;sha256=$hash} }
+    if ($null -eq $BuildVerification.compatibility -or
+            $BuildVerification.compatibility.externalDpmiProviderVerified -ne $true -or
+            $BuildVerification.compatibility.externalDpmiProviderSha256 -ne $hash) {
+        throw 'The staged DPMI provider has no matching i486 instruction proof in this build.'
+    }
+    return [pscustomobject]@{verified=$true;cpuTarget=$CpuTarget;sha256=$hash;instructionCount=9207;runtimeVariantInstructions=1}
+}
+
+function Get-CompatibilityPolicyFingerprint {
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+    # Runners pass tools/.. while the builder passes a canonical directory.
+    # Normalize before deriving bundle-relative names so both identify the
+    # same policy and no path spelling contaminates the digest.
+    $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
+    # Every decoder, source-boundary policy, primary runtime input, and external
+    # DOS provider participates in cache identity. A prior audit cannot cover a
+    # changed proof implementation or a changed source/listing bundle.
+    $policyPaths = @('tools/build-dos.ps1', 'tools/common.ps1', 'tools/selectors.ps1',
+            'tools/isa-audit.ps1', 'tools/isa-audit-linked.ps1', 'tools/dos-toolchain.json',
+            'tools/isa-disassemble.py', 'tools/coff-code-data.py', 'tools/project-source-proofs.py',
+            'tools/runtime-source-proofs.py', 'tools/djgpp-assembler-tool.py',
+            'tools/verify-executable-isa.ps1', 'tools/mz-loader-proof.py',
+            'tools/djgpp-startup-helpers-proof.py', 'tools/startup-linked-proof.py',
+            'tools/final-executable-isa-ranges.py', 'tools/isa-runtime-reference/manifest.json',
+            'tools/cws-provider-proof.py', 'tools/isa-provider-reference/manifest.json',
+            'tools/golden/isa-baseline.json', 'src/cwsdpmi.exe')
+    $bundle = Join-Path $RepoRoot 'tools/isa-runtime-reference'
+    if (Test-Path -LiteralPath $bundle -PathType Container) {
+        $policyPaths += @(Get-ChildItem -LiteralPath $bundle -File -Recurse | ForEach-Object {
+            $_.FullName.Substring($RepoRoot.Length).TrimStart('\','/') -replace '\\','/'
+        })
+    }
+    $providerBundle = Join-Path $RepoRoot 'tools/isa-provider-reference'
+    if (Test-Path -LiteralPath $providerBundle -PathType Container) {
+        $policyPaths += @(Get-ChildItem -LiteralPath $providerBundle -File -Recurse | ForEach-Object {
+            $_.FullName.Substring($RepoRoot.Length).TrimStart('\','/') -replace '\\','/'
+        })
+    }
+    $inputs = foreach ($relative in ($policyPaths | Sort-Object -Unique)) {
+        $path = Join-Path $RepoRoot $relative
+        $hash = if (Test-Path -LiteralPath $path -PathType Leaf) {
+            (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+        } else { 'MISSING' }
+        "$relative=$hash"
+    }
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    try { return [Convert]::ToHexString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($inputs -join "`n"))) }
+    finally { $hasher.Dispose() }
+}
+
+function Get-SourceTreeFingerprint {
+    <#
+    .SYNOPSIS
+        Hash the renderer source tree without build-profile settings.
+
+    .DESCRIPTION
+        Selector parity runs intentionally use different compiler flags and
+        executable suffixes, so Get-BuildFingerprint differs between C and
+        assembly profiles even when both were built from identical source. This
+        digest identifies the .c, .s, .h and assembly .inc inputs and lets paired render
+        reports prove they came from the same source snapshot.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+
+    $sourceRoot = Join-Path $RepoRoot 'src'
+    $inputs = @(
+        Get-ChildItem -LiteralPath $sourceRoot -Include '*.c', '*.s', '*.h', '*.inc' -File -Recurse |
+            Sort-Object FullName |
+            ForEach-Object {
+                $relative = $_.FullName.Substring($sourceRoot.Length).TrimStart('\', '/') -replace '\\', '/'
+                "$relative=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)"
+            }
+    )
+    $hasher = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString(
+                $hasher.ComputeHash(
+                    [Text.Encoding]::UTF8.GetBytes($inputs -join "`n")))).Replace('-', '')
+    }
+    finally {
+        $hasher.Dispose()
+    }
+}
+
 function Get-BuildFingerprint {
     <#
     .SYNOPSIS
@@ -64,7 +318,7 @@ function Get-BuildFingerprint {
 
     $sourceRoot = Join-Path $repoRoot 'src'
     $inputs = @(
-        Get-ChildItem -LiteralPath $sourceRoot -Include '*.c', '*.s', '*.h' -File -Recurse |
+        Get-ChildItem -LiteralPath $sourceRoot -Include '*.c', '*.s', '*.h', '*.inc' -File -Recurse |
             Sort-Object FullName |
             ForEach-Object {
                 "$($_.FullName.Substring($sourceRoot.Length))=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)"
@@ -72,11 +326,27 @@ function Get-BuildFingerprint {
     )
     # Each on its own line so no combination of values can be re-partitioned into
     # the same text as a different combination.
+    $inputs += 'build-fingerprint-schema=3'
+    $inputs += ('compatibilityPolicy=' + (Get-CompatibilityPolicyFingerprint -RepoRoot $RepoRoot))
     $inputs += "outputRoot=$($Resolved.outputRoot)"
     $inputs += "profileSuffix=$($Resolved.profileSuffix)"
-    $inputs += "cFlags=$(@($Resolved.cFlags) -join ' ')"
-    $inputs += "asmFlags=$(@($Resolved.asmFlags) -join ' ')"
+    $inputs += ('cFlags=' + (ConvertTo-Json -InputObject @($Resolved.cFlags) -Compress))
+    $inputs += ('asmFlags=' + (ConvertTo-Json -InputObject @($Resolved.asmFlags) -Compress))
     $inputs += "executable=$($Resolved.executable)"
+    if (@($Resolved.PSObject.Properties.Name) -contains 'cSourceExtraFlags') {
+        $sourceFlags = if ($Resolved.cSourceExtraFlags -is [Collections.IDictionary]) {
+            @($Resolved.cSourceExtraFlags.Keys | Sort-Object | ForEach-Object {
+                [pscustomobject]@{ Name = [string]$_; Value = @($Resolved.cSourceExtraFlags[$_]) }
+            })
+        } else { @($Resolved.cSourceExtraFlags.PSObject.Properties | Sort-Object Name) }
+        foreach ($entry in $sourceFlags) {
+            $inputs += ('sourceFlags=' + $entry.Name + '=' +
+                (ConvertTo-Json -InputObject @($entry.Value) -Compress))
+        }
+    }
+    if (@($Resolved.PSObject.Properties.Name) -contains 'linkFlags') {
+        $inputs += ('linkFlags=' + (ConvertTo-Json -InputObject @($Resolved.linkFlags) -Compress))
+    }
 
     $hasher = [Security.Cryptography.SHA256]::Create()
     try {

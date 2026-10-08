@@ -66,11 +66,38 @@ $script:AssemblyBackedImplementations = @(
     'FusedLightMapImplementation',
     'DynamicLightImplementation',
     'DynamicLightOrchestrationImplementation',
+    'DynamicLightPushImplementation',
     'DlightContributesImplementation',
+    'MarkLightsImplementation',
     'LightMapBuildImplementation',
     'BspPlaneDotImplementation',
     'BspClipImplementation',
     'RenderWorldImplementation',
+    'ParticleUpdateImplementation',
+    'SpriteBeamImplementation',
+    'SpriteClipImplementation',
+    'SpriteFrameImplementation',
+    'SpriteScanLeftImplementation',
+    'SpriteScanRightImplementation',
+    'SpriteDrawImplementation',
+    'SpriteSetupImplementation',
+    'SpriteOrientationImplementation',
+    'RenderMathImplementation',
+    'AnimatedLightImplementation',
+    'PointLightImplementation',
+    'FrameControlImplementation',
+    'PaletteImplementation',
+    'MathClosureImplementation',
+    'VisibilityImplementation',
+    'PublicBindingsImplementation',
+    'SkyImplementation',
+    'RenderDispatchImplementation',
+    'DrawingDriverImplementation',
+    'ViewControlImplementation',
+    'DrawingImplementation',
+    'ChaseImplementation',
+    'AliasControlImplementation',
+    'WorldControlImplementation',
     'RenderFaceImplementation',
     'RenderBmodelFaceImplementation',
     'BmodelPolygonClipImplementation',
@@ -84,7 +111,14 @@ $script:AssemblyBackedImplementations = @(
     'EmitCachedEdgeImplementation',
     'RenderPolyImplementation',
     'AliasBBoxProjectImplementation',
-    'AliasTransformFinalImplementation'
+    'AliasTransformFinalImplementation',
+    'AliasSetupFrameImplementation',
+    'AliasSetupSkinImplementation',
+    'AliasGradientImplementation',
+    'AliasLineScanImplementation',
+    'AliasEdgeTableImplementation',
+    'AliasSkinTableImplementation',
+    'AliasRasterizeImplementation'
 )
 
 $script:SelectorTable = @(
@@ -473,7 +507,7 @@ $script:SelectorTable = @(
         Manifest   = 'aliasBBoxProjectImplementation'
         Suffix     = @{ 'c' = 'aliasbboxc' }
         C          = @{ 'asm' = @('ASM486_ALIAS_BBOX_PROJECT') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_BINDING_ALIAS_BBOX_PROJECT') }
         SelectsAsm = $true
     }
 
@@ -482,14 +516,16 @@ $script:SelectorTable = @(
         Manifest   = 'aliasTransformFinalImplementation'
         Suffix     = @{ 'c' = 'aliastransformc' }
         C          = @{ 'asm' = @('ASM486_ALIAS_TRANSFORM_FINAL') }
-        Asm        = @{}
+        Asm        = @{ 'asm' = @('ASM486_BINDING_ALIAS_TRANSFORM_FINAL') }
         SelectsAsm = $true
     }
 
     @{
         Param      = 'AliasPrepareImplementation'
         Manifest   = 'aliasPrepareImplementation'
-        Suffix     = @{ 'local' = 'aliaslocal'; 'asm' = 'aliasprepareasm' }
+        # The assembly path is now the i486 default and keeps the release root
+        # stable. Name the two C alternatives so they cannot overwrite it.
+        Suffix     = @{ 'control' = 'aliaspreparecontrol'; 'local' = 'aliaslocal' }
         C          = @{
             'local' = @('ASM486_ALIAS_PREPARE_LOCAL')
             'asm' = @('ASM486_ALIAS_PREPARE')
@@ -511,7 +547,7 @@ $script:SelectorTable = @(
         Param      = 'AliasClipZImplementation'
         Manifest   = 'aliasClipZImplementation'
         Suffix     = @{ 'asm' = 'aliasclipzasm' }
-        C          = @{ 'asm' = @('ASM486_ALIAS_CLIP_Z') }
+        C          = @{ 'asm' = @('BENCH486_ALIAS_CLIP_Z_COMPARE') }
         Asm        = @{ 'asm' = @('ASM486_ALIAS_CLIP_Z') }
         SelectsAsm = $true
     }
@@ -519,10 +555,89 @@ $script:SelectorTable = @(
     @{
         Param      = 'AliasMatrixCompositionImplementation'
         Manifest   = 'aliasMatrixCompositionImplementation'
-        Suffix     = @{ 'special' = 'aliasmatrixspecial' }
-        C          = @{ 'special' = @('ASM486_ALIAS_MATRIX_COMPOSE') }
-        Asm        = @{}
-        SelectsAsm = $false
+        Suffix     = @{ 'c' = 'aliasmatrixc'; 'special' = 'aliasmatrixspecial'; 'asm' = 'aliasmatrixasm' }
+        C          = @{
+            'special' = @('ASM486_ALIAS_MATRIX_COMPOSE')
+            'asm' = @('ASM486_ALIAS_MATRIX_COMPOSE_ASM')
+        }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_MATRIX_COMPOSE_ASM') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasSetupLightingImplementation'
+        Manifest   = 'aliasSetupLightingImplementation'
+        Suffix     = @{ 'asm' = 'aliaslightingasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_SETUP_LIGHTING') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_SETUP_LIGHTING') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasSetupFrameImplementation'
+        Manifest   = 'aliasSetupFrameImplementation'
+        Suffix     = @{ 'asm' = 'aliasframeasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_SETUP_FRAME') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_SETUP_FRAME') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasSetupSkinImplementation'
+        Manifest   = 'aliasSetupSkinImplementation'
+        Suffix     = @{ 'asm' = 'aliaskinasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_SETUP_SKIN') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_SETUP_SKIN') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasGradientImplementation'
+        Manifest   = 'aliasGradientImplementation'
+        Suffix     = @{ 'asm' = 'aliasgradientasm'; 'c' = 'aliasgradientc' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_GRADIENTS') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_GRADIENTS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasLineScanImplementation'
+        Manifest   = 'aliasLineScanImplementation'
+        Suffix     = @{ 'asm' = 'aliaslinescanasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_LINE_SCAN') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_LINE_SCAN') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasEdgeTableImplementation'
+        Manifest   = 'aliasEdgeTableImplementation'
+        # Keep the i486 release directory stable for this default ASM selector;
+        # name only the C reference variant so it cannot collide with the release.
+        Suffix     = @{ 'c' = 'aliasedgetablec' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_EDGE_TABLE') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_EDGE_TABLE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasSkinTableImplementation'
+        Manifest   = 'aliasSkinTableImplementation'
+        # The default assembly path keeps the retained release directory stable.
+        Suffix     = @{ 'c' = 'aliasskintablec' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_SKIN_TABLE') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_SKIN_TABLE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasRasterizeImplementation'
+        Manifest   = 'aliasRasterizeImplementation'
+        # This is the default assembly path; retain the established release root.
+        Suffix     = @{ 'c' = 'aliasrasterizec' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_RASTERIZE') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_RASTERIZE') }
+        SelectsAsm = $true
     }
 
     # ---- lighting -------------------------------------------------------------
@@ -582,11 +697,29 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'DynamicLightPushImplementation'
+        Manifest   = 'dynamicLightPushImplementation'
+        Suffix     = @{ 'asm' = 'dlightpushasm' }
+        C          = @{ 'asm' = @('ASM486_DYNAMIC_LIGHT_PUSH') }
+        Asm        = @{ 'asm' = @('ASM486_DYNAMIC_LIGHT_PUSH') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'DlightContributesImplementation'
         Manifest   = 'dlightContributesImplementation'
         Suffix     = @{ 'asm' = 'dlightcontribasm' }
         C          = @{ 'asm' = @('ASM486_DLIGHT_CONTRIBUTES', 'ASM486_DYNAMIC_LIGHT_PROJECTION') }
         Asm        = @{ 'asm' = @('ASM486_DLIGHT_CONTRIBUTES', 'ASM486_DYNAMIC_LIGHT_PROJECTION') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'MarkLightsImplementation'
+        Manifest   = 'markLightsImplementation'
+        Suffix     = @{ 'asm' = 'marklightsasm' }
+        C          = @{ 'asm' = @('ASM486_MARK_LIGHTS') }
+        Asm        = @{ 'asm' = @('ASM486_MARK_LIGHTS') }
         SelectsAsm = $true
     }
 
@@ -634,6 +767,240 @@ $script:SelectorTable = @(
         Suffix     = @{ 'asm' = 'bspwalkasm' }
         C          = @{ 'asm' = @('ASM486_BSP_WALK') }
         Asm        = @{ 'asm' = @('ASM486_BSP_WALK') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'ParticleUpdateImplementation'
+        Manifest   = 'particleUpdateImplementation'
+        Suffix     = @{ 'asm' = 'particleupdateasm' }
+        C          = @{ 'asm' = @('ASM486_PARTICLE_UPDATE') }
+        Asm        = @{ 'asm' = @('ASM486_PARTICLE_UPDATE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteBeamImplementation'
+        Manifest   = 'spriteBeamImplementation'
+        Suffix     = @{ 'asm' = 'spritebeamasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_BEAM') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_BEAM') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteClipImplementation'
+        Manifest   = 'spriteClipImplementation'
+        Suffix     = @{ 'asm' = 'spriteclipasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_CLIP') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_CLIP') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteFrameImplementation'
+        Manifest   = 'spriteFrameImplementation'
+        Suffix     = @{ 'asm' = 'spriteframeasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_FRAME') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_FRAME') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteGradientImplementation'
+        Manifest   = 'spriteGradientImplementation'
+        Suffix     = @{ 'asm' = 'spritegradientasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_GRADIENTS') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_GRADIENTS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteScanLeftImplementation'
+        Manifest   = 'spriteScanLeftImplementation'
+        Suffix     = @{ 'asm' = 'spritescanleftasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_SCAN_LEFT') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_SCAN_LEFT') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteScanRightImplementation'
+        Manifest   = 'spriteScanRightImplementation'
+        Suffix     = @{ 'asm' = 'spritescanrightasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_SCAN_RIGHT') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_SCAN_RIGHT') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteDrawImplementation'
+        Manifest   = 'spriteDrawImplementation'
+        Suffix     = @{ 'asm' = 'spritedrawasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_DRAW') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_DRAW') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteSetupImplementation'
+        Manifest   = 'spriteSetupImplementation'
+        Suffix     = @{ 'asm' = 'spritesetupasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_SETUP') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_SETUP') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SpriteOrientationImplementation'
+        Manifest   = 'spriteOrientationImplementation'
+        Suffix     = @{ 'asm' = 'spriteorientationasm' }
+        C          = @{ 'asm' = @('ASM486_SPRITE_ORIENTATION') }
+        Asm        = @{ 'asm' = @('ASM486_SPRITE_ORIENTATION') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'RenderMathImplementation'
+        Manifest   = 'renderMathImplementation'
+        Suffix     = @{ 'asm' = 'rendermathasm' }
+        C          = @{ 'asm' = @('ASM486_RENDER_MATH') }
+        Asm        = @{ 'asm' = @('ASM486_RENDER_MATH') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AnimatedLightImplementation'
+        Manifest   = 'animatedLightImplementation'
+        Suffix     = @{ 'asm' = 'animatedlightasm' }
+        C          = @{ 'asm' = @('ASM486_ANIMATED_LIGHT') }
+        Asm        = @{ 'asm' = @('ASM486_ANIMATED_LIGHT') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'PointLightImplementation'
+        Manifest   = 'pointLightImplementation'
+        Suffix     = @{ 'asm' = 'pointlightasm' }
+        C          = @{ 'asm' = @('ASM486_POINT_LIGHT') }
+        Asm        = @{ 'asm' = @('ASM486_POINT_LIGHT') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'FrameControlImplementation'
+        Manifest   = 'frameControlImplementation'
+        Suffix     = @{ 'asm' = 'framecontrolasm' }
+        C          = @{ 'asm' = @('ASM486_FRAME_CONTROL') }
+        Asm        = @{ 'asm' = @('ASM486_FRAME_CONTROL') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'PaletteImplementation'
+        Manifest   = 'paletteImplementation'
+        Suffix     = @{ 'asm' = 'paletteasm' }
+        C          = @{ 'asm' = @('ASM486_PALETTE') }
+        Asm        = @{ 'asm' = @('ASM486_PALETTE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'MathClosureImplementation'
+        Manifest   = 'mathClosureImplementation'
+        Suffix     = @{ 'asm' = 'mathclosureasm' }
+        C          = @{ 'asm' = @('ASM486_MATH_CLOSURE') }
+        Asm        = @{ 'asm' = @('ASM486_MATH_CLOSURE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'VisibilityImplementation'
+        Manifest   = 'visibilityImplementation'
+        Suffix     = @{ 'asm' = 'visibilityasm' }
+        C          = @{ 'asm' = @('ASM486_VISIBILITY') }
+        Asm        = @{ 'asm' = @('ASM486_VISIBILITY') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'PublicBindingsImplementation'
+        Manifest   = 'publicBindingsImplementation'
+        Suffix     = @{ 'asm' = 'bindingsasm' }
+        C          = @{ 'asm' = @('ASM486_PUBLIC_BINDINGS') }
+        Asm        = @{ 'asm' = @('ASM486_PUBLIC_BINDINGS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'SkyImplementation'
+        Manifest   = 'skyImplementation'
+        Suffix     = @{ 'asm' = 'skyasm' }
+        C          = @{ 'asm' = @('ASM486_SKY') }
+        Asm        = @{ 'asm' = @('ASM486_SKY') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'RenderDispatchImplementation'
+        Manifest   = 'renderDispatchImplementation'
+        Suffix     = @{ 'asm' = 'dispatchasm' }
+        C          = @{ 'asm' = @('ASM486_RENDER_DISPATCH') }
+        Asm        = @{ 'asm' = @('ASM486_RENDER_DISPATCH') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'DrawingDriverImplementation'
+        Manifest   = 'drawingDriverImplementation'
+        Suffix     = @{ 'asm' = 'driverasm' }
+        C          = @{ 'asm' = @('ASM486_DRAWING_DRIVER') }
+        Asm        = @{ 'asm' = @('ASM486_DRAWING_DRIVER') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'ViewControlImplementation'
+        Manifest   = 'viewControlImplementation'
+        Suffix     = @{ 'asm' = 'viewcontrolasm' }
+        C          = @{ 'asm' = @('ASM486_VIEW_CONTROL') }
+        Asm        = @{ 'asm' = @('ASM486_VIEW_CONTROL') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'ChaseImplementation'
+        Manifest   = 'chaseImplementation'
+        Suffix     = @{ 'asm' = 'chaseasm' }
+        C          = @{ 'asm' = @('ASM486_CHASE') }
+        Asm        = @{ 'asm' = @('ASM486_CHASE') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'AliasControlImplementation'
+        Manifest   = 'aliasControlImplementation'
+        Suffix     = @{ 'asm' = 'aliascontrolasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_CONTROL') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_CONTROL') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'WorldControlImplementation'
+        Manifest   = 'worldControlImplementation'
+        Suffix     = @{ 'asm' = 'worldcontrolasm' }
+        C          = @{ 'asm' = @('ASM486_WORLD_CONTROL') }
+        Asm        = @{ 'asm' = @('ASM486_WORLD_CONTROL') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'DrawingImplementation'
+        Manifest   = 'drawingImplementation'
+        Suffix     = @{ 'asm' = 'drawingasm' }
+        C          = @{ 'asm' = @('ASM486_DRAWING') }
+        Asm        = @{ 'asm' = @('ASM486_DRAWING') }
         SelectsAsm = $true
     }
 
@@ -872,18 +1239,54 @@ $script:SuffixOrder = @(
     'AliasClipImplementation'
     'AliasClipZImplementation'
     'AliasMatrixCompositionImplementation'
+    'AliasSetupLightingImplementation'
+    'AliasSetupFrameImplementation'
+    'AliasSetupSkinImplementation'
+    'AliasGradientImplementation'
+    'AliasLineScanImplementation'
+    'AliasEdgeTableImplementation'
+    'AliasSkinTableImplementation'
+    'AliasRasterizeImplementation'
     'TextureAnimationImplementation'
     'LightMapNormalizeImplementation'
     'LightMapStylesImplementation'
     'FusedLightMapImplementation'
     'DynamicLightImplementation'
     'DynamicLightOrchestrationImplementation'
+    'DynamicLightPushImplementation'
     'DlightContributesImplementation'
+    'MarkLightsImplementation'
     'LightMapBuildImplementation'
     'BspPlaneDotImplementation'
     'BspClipImplementation'
     'BspFrameCountImplementation'
     'BspWalkImplementation'
+    'ParticleUpdateImplementation'
+    'SpriteBeamImplementation'
+    'SpriteClipImplementation'
+    'SpriteFrameImplementation'
+    'SpriteGradientImplementation'
+    'SpriteScanLeftImplementation'
+    'SpriteScanRightImplementation'
+    'SpriteDrawImplementation'
+    'SpriteSetupImplementation'
+    'SpriteOrientationImplementation'
+    'RenderMathImplementation'
+    'AnimatedLightImplementation'
+    'PointLightImplementation'
+    'FrameControlImplementation'
+    'PaletteImplementation'
+    'MathClosureImplementation'
+    'VisibilityImplementation'
+    'PublicBindingsImplementation'
+    'SkyImplementation'
+    'RenderDispatchImplementation'
+    'DrawingDriverImplementation'
+    'ViewControlImplementation'
+    'DrawingImplementation'
+    'ChaseImplementation'
+    'AliasControlImplementation'
+    'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'
     'RenderBmodelFaceImplementation'
@@ -921,12 +1324,40 @@ $script:CDefineOrder = @(
     'FusedLightMapImplementation'
     'DynamicLightImplementation'
     'DynamicLightOrchestrationImplementation'
+    'DynamicLightPushImplementation'
     'DlightContributesImplementation'
+    'MarkLightsImplementation'
     'LightMapBuildImplementation'
     'BspPlaneDotImplementation'
     'BspClipImplementation'
     'BspFrameCountImplementation'
     'BspWalkImplementation'
+    'ParticleUpdateImplementation'
+    'SpriteBeamImplementation'
+    'SpriteClipImplementation'
+    'SpriteFrameImplementation'
+    'SpriteGradientImplementation'
+    'SpriteScanLeftImplementation'
+    'SpriteScanRightImplementation'
+    'SpriteDrawImplementation'
+    'SpriteSetupImplementation'
+    'SpriteOrientationImplementation'
+    'RenderMathImplementation'
+    'AnimatedLightImplementation'
+    'PointLightImplementation'
+    'FrameControlImplementation'
+    'PaletteImplementation'
+    'MathClosureImplementation'
+    'VisibilityImplementation'
+    'PublicBindingsImplementation'
+    'SkyImplementation'
+    'RenderDispatchImplementation'
+    'DrawingDriverImplementation'
+    'ViewControlImplementation'
+    'DrawingImplementation'
+    'ChaseImplementation'
+    'AliasControlImplementation'
+    'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'
     'RenderBmodelFaceImplementation'
@@ -947,6 +1378,14 @@ $script:CDefineOrder = @(
     'AliasClipImplementation'
     'AliasClipZImplementation'
     'AliasMatrixCompositionImplementation'
+    'AliasSetupLightingImplementation'
+    'AliasSetupFrameImplementation'
+    'AliasSetupSkinImplementation'
+    'AliasGradientImplementation'
+    'AliasLineScanImplementation'
+    'AliasEdgeTableImplementation'
+    'AliasSkinTableImplementation'
+    'AliasRasterizeImplementation'
     'TurbulentImplementation'
     'TurbulentScanImplementation'
     'BUILD:PROFILE486'
@@ -973,16 +1412,56 @@ $script:AsmDefineOrder = @(
     'AliasPrepareImplementation'
     'AliasClipImplementation'
     'AliasProjectImplementation'
+    'AliasBBoxProjectImplementation'
+    'AliasTransformFinalImplementation'
     'AliasClipZImplementation'
+    'AliasMatrixCompositionImplementation'
+    'AliasSetupLightingImplementation'
+    'AliasSetupFrameImplementation'
+    'AliasSetupSkinImplementation'
+    'AliasGradientImplementation'
+    'AliasLineScanImplementation'
+    'AliasEdgeTableImplementation'
+    'AliasSkinTableImplementation'
+    'AliasRasterizeImplementation'
+    'BUILD:BENCH486'
     'BUILD:PROFILE486'
     'LightMapNormalizeImplementation'
     'LightMapStylesImplementation'
     'FusedLightMapImplementation'
     'DynamicLightImplementation'
     'DynamicLightOrchestrationImplementation'
+    'DynamicLightPushImplementation'
     'DlightContributesImplementation'
+    'MarkLightsImplementation'
     'LightMapBuildImplementation'
     'BspWalkImplementation'
+    'ParticleUpdateImplementation'
+    'SpriteBeamImplementation'
+    'SpriteClipImplementation'
+    'SpriteFrameImplementation'
+    'SpriteGradientImplementation'
+    'SpriteScanLeftImplementation'
+    'SpriteScanRightImplementation'
+    'SpriteDrawImplementation'
+    'SpriteSetupImplementation'
+    'SpriteOrientationImplementation'
+    'RenderMathImplementation'
+    'AnimatedLightImplementation'
+    'PointLightImplementation'
+    'FrameControlImplementation'
+    'PaletteImplementation'
+    'MathClosureImplementation'
+    'VisibilityImplementation'
+    'PublicBindingsImplementation'
+    'SkyImplementation'
+    'RenderDispatchImplementation'
+    'DrawingDriverImplementation'
+    'ViewControlImplementation'
+    'DrawingImplementation'
+    'ChaseImplementation'
+    'AliasControlImplementation'
+    'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'
     'RenderBmodelFaceImplementation'

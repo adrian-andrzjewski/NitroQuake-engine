@@ -21,10 +21,57 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include <stddef.h>
+#include "asm_sprite.h"
 
-static int				clip_current;
-static vec5_t			clip_verts[2][MAXWORKINGVERTS];
-static int				sprite_width, sprite_height;
+typedef char sprite_orientation_assembly_layout_assert[
+	(offsetof(entity_t, angles) == so_entity_angles &&
+	 offsetof(entity_t, model) == so_entity_model &&
+	 offsetof(entity_t, frame) == so_entity_frame &&
+	 offsetof(entity_t, syncbase) == so_entity_syncbase &&
+	 offsetof(model_t, cache) + offsetof(cache_user_t, data) == so_model_cache &&
+	 offsetof(client_state_t, time) == so_client_time &&
+	 offsetof(msprite_t, type) == so_sprite_type &&
+	 offsetof(msprite_t, beamlength) == so_sprite_beamlength &&
+	 sizeof(spritedesc_t) == so_desc_size &&
+	 SPR_VP_PARALLEL_UPRIGHT == so_parallel_upright &&
+	 SPR_FACING_UPRIGHT == so_facing_upright && SPR_VP_PARALLEL == so_parallel &&
+	 SPR_ORIENTED == so_oriented &&
+	 SPR_VP_PARALLEL_ORIENTED == so_parallel_oriented) ? 1 : -1];
+
+#ifdef BENCH486
+/* Direct orientation fixtures observe dispatch before exercising rasterization. */
+void (*bench486_sprite_setup_hook) (void);
+void (*bench486_sprite_project_hook) (const spritedesc_t *desc);
+#endif
+
+int				clip_current;
+vec5_t			clip_verts[2][MAXWORKINGVERTS];
+int				sprite_width, sprite_height;
+
+typedef char sprite_clip_assembly_layout_assert[
+	(sizeof(clip_verts[0]) == 400 && sizeof(vec5_t) == 20 &&
+	 offsetof(clipplane_t, dist) == 12) ? 1 : -1];
+typedef char sprite_frame_assembly_layout_assert[
+	(offsetof(msprite_t, frames) == 24 &&
+	 offsetof(mspritegroup_t, intervals) == 4 &&
+	 offsetof(mspritegroup_t, frames) == 8 &&
+	 sizeof(mspriteframedesc_t) == 8) ? 1 : -1];
+typedef char sprite_setup_assembly_layout_assert[
+	(MAXWORKINGVERTS == 20 && sizeof(clip_verts[0]) == 400 &&
+	 sizeof(vec5_t) == 20 && sizeof(emitpoint_t) == 20 &&
+	 sizeof(clipplane_t) == 24 &&
+	 offsetof(spritedesc_t, nump) == 0 &&
+	 offsetof(spritedesc_t, pverts) == 4 &&
+	 offsetof(spritedesc_t, pspriteframe) == 8 &&
+	 offsetof(spritedesc_t, vup) == 12 &&
+	 offsetof(spritedesc_t, vright) == 24 &&
+	 offsetof(spritedesc_t, vpn) == 36 &&
+	 offsetof(spritedesc_t, nearzi) == 48 &&
+	 offsetof(mspriteframe_t, up) == 12 &&
+	 offsetof(mspriteframe_t, down) == 16 &&
+	 offsetof(mspriteframe_t, left) == 20 &&
+	 offsetof(mspriteframe_t, right) == 24) ? 1 : -1];
 
 spritedesc_t			r_spritedesc;
 	
@@ -34,7 +81,7 @@ spritedesc_t			r_spritedesc;
 R_RotateSprite
 ================
 */
-void R_RotateSprite (float beamlength)
+void R_RotateSprite_C (float beamlength)
 {
 	vec3_t	vec;
 	
@@ -46,6 +93,19 @@ void R_RotateSprite (float beamlength)
 	VectorSubtract (modelorg, vec, modelorg);
 }
 
+void R_RotateSprite_asm486 (float beamlength);
+
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_SPRITE_BEAM)
+void R_RotateSprite (float beamlength)
+{
+#ifdef ASM486_SPRITE_BEAM
+	R_RotateSprite_asm486 (beamlength);
+#else
+	R_RotateSprite_C (beamlength);
+#endif
+}
+#endif /* public entry is assembly-owned when selected */
+
 
 /*
 =============
@@ -55,7 +115,7 @@ Clips the winding at clip_verts[clip_current] and changes clip_current
 Throws out the back side
 ==============
 */
-int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
+int R_ClipSpriteFace_C (int nump, clipplane_t *pclipplane)
 {
 	int		i, outcount;
 	float	dists[MAXWORKINGVERTS+1];
@@ -127,13 +187,26 @@ int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
 	return outcount;
 }
 
+int R_ClipSpriteFace_asm486 (int nump, clipplane_t *pclipplane);
+
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_SPRITE_CLIP)
+int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
+{
+#ifdef ASM486_SPRITE_CLIP
+	return R_ClipSpriteFace_asm486 (nump, pclipplane);
+#else
+	return R_ClipSpriteFace_C (nump, pclipplane);
+#endif
+}
+#endif /* public entry is assembly-owned when selected */
+
 
 /*
 ================
 R_SetupAndDrawSprite
 ================
 */
-void R_SetupAndDrawSprite ()
+void R_SetupAndDrawSprite_C (void)
 {
 	int			i, nump;
 	float		dot, scale, *pv;
@@ -227,13 +300,33 @@ void R_SetupAndDrawSprite ()
 	D_DrawSprite ();
 }
 
+void R_SetupAndDrawSprite_asm486 (void);
+
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_SPRITE_SETUP)
+void R_SetupAndDrawSprite (void)
+{
+#ifdef BENCH486
+	if (bench486_sprite_setup_hook)
+	{
+		bench486_sprite_setup_hook ();
+		return;
+	}
+#endif
+#ifdef ASM486_SPRITE_SETUP
+	R_SetupAndDrawSprite_asm486 ();
+#else
+	R_SetupAndDrawSprite_C ();
+#endif
+}
+#endif /* public entry is assembly-owned when selected */
+
 
 /*
 ================
 R_GetSpriteframe
 ================
 */
-mspriteframe_t *R_GetSpriteframe (msprite_t *psprite)
+mspriteframe_t *R_GetSpriteframe_C (msprite_t *psprite)
 {
 	mspritegroup_t	*pspritegroup;
 	mspriteframe_t	*pspriteframe;
@@ -277,13 +370,23 @@ mspriteframe_t *R_GetSpriteframe (msprite_t *psprite)
 	return pspriteframe;
 }
 
+mspriteframe_t *R_GetSpriteframe_asm486 (msprite_t *psprite, int frame,
+		double cltime, float syncbase);
+
+#ifndef ASM486_SPRITE_FRAME
+mspriteframe_t *R_GetSpriteframe (msprite_t *psprite)
+{
+	return R_GetSpriteframe_C (psprite);
+}
+#endif
+
 
 /*
 ================
 R_DrawSprite
 ================
 */
-void R_DrawSprite (void)
+void R_DrawSprite_C (void)
 {
 	int				i;
 	msprite_t		*psprite;
@@ -398,4 +501,12 @@ void R_DrawSprite (void)
 
 	R_SetupAndDrawSprite ();
 }
+
+/* The selected assembly module exports the public symbol directly. */
+#ifndef ASM486_SPRITE_ORIENTATION
+void R_DrawSprite (void)
+{
+	R_DrawSprite_C ();
+}
+#endif
 

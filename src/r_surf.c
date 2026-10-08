@@ -342,6 +342,7 @@ int R_AddDynamicLightProject_C (int lnum, msurface_t *surf, int smax, int tmax,
 	*all_lit = (idist < *idist_limit);
 	return 1;
 }
+
 #endif
 #endif
 
@@ -396,6 +397,7 @@ int R_AddDynamicLightSamples_C (unsigned *lights, int smax, int tmax,
 	}
 	return contributed;
 }
+
 #endif
 
 /*
@@ -488,7 +490,7 @@ void R_AddDynamicLights (void)
 			idist = td + (sd>>1);
 		all_lit = (idist < idist_limit);
 		contributed |= R_AddDynamicLightSamples_asm486 (blocklights,
-				smax, tmax, (int)local[0], (int)local[1],
+				smax, tmax, (int)local[0], (int)local[1], local[1],
 				idist_limit, irad, all_lit);
 		#else
 		for (t = 0 ; t<tmax ; t++)
@@ -1051,6 +1053,7 @@ R_TextureAnimation
 Returns the proper texture for a given time and base texture.
 ===============
 */
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_TEXTURE_ANIMATION)
 texture_t *R_TextureAnimation (texture_t *base)
 {
 #if defined(ASM486_TEXTURE_ANIMATION) && id386
@@ -1059,6 +1062,7 @@ texture_t *R_TextureAnimation (texture_t *base)
 	return R_TextureAnimation_C_Impl (base);
 #endif
 }
+#endif /* public entry is assembly-owned when selected */
 
 #if defined(ASM486_SURFACE_DRAW) && defined(PROFILE486)
 static double r_drawsurface_asm_profile_stage_start;

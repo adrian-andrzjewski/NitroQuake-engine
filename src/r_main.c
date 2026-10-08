@@ -149,6 +149,42 @@ void SetVisibilityByPassages (void);
 R_InitTextures
 ==================
 */
+#ifdef ASM486_FRAME_CONTROL
+#include "asm_framecontrol.h"
+#ifdef ASM486_EDGE_DRAWING
+#define FRAME_CONTROL_RESTORE_EDGE_SELECTOR
+#undef ASM486_EDGE_DRAWING
+#endif
+#define R_InitTextures R_InitTextures_C
+void R_InitTextures_C (void);
+#define R_Init R_Init_C
+void R_Init_C (void);
+#define R_NewMap R_NewMap_C
+void R_NewMap_C (void);
+#define R_SetVrect R_SetVrect_C
+void R_SetVrect_C (vrect_t *pvrectin, vrect_t *pvrect, int lineadj);
+#define R_ViewChanged R_ViewChanged_C
+void R_ViewChanged_C (vrect_t *pvrect, int lineadj, float aspect);
+#define R_MarkLeaves R_MarkLeaves_C
+void R_MarkLeaves_C (void);
+#define R_DrawEntitiesOnList R_DrawEntitiesOnList_C
+void R_DrawEntitiesOnList_C (void);
+#define R_DrawViewModel R_DrawViewModel_C
+void R_DrawViewModel_C (void);
+#define R_BmodelCheckBBox R_BmodelCheckBBox_C
+int R_BmodelCheckBBox_C (model_t *clmodel, float *minmaxs);
+#define R_DrawBEntitiesOnList R_DrawBEntitiesOnList_C
+void R_DrawBEntitiesOnList_C (void);
+#define R_EdgeDrawing R_EdgeDrawing_C
+void R_EdgeDrawing_C (void);
+#define R_RenderView_ R_RenderView__C
+void R_RenderView__C (void);
+#define R_RenderView R_RenderView_C
+void R_RenderView_C (void);
+#define R_InitTurb R_InitTurb_C
+void R_InitTurb_C (void);
+#endif
+#if !defined(ASM486_FRAME_CONTROL) || defined(BENCH486)
 void	R_InitTextures (void)
 {
 	int		x,y, m;
@@ -1216,3 +1252,88 @@ void R_InitTurb (void)
 	}
 }
 
+
+#endif /* Original frame-control C implementation or BENCH486 oracle. */
+#ifdef ASM486_FRAME_CONTROL
+#undef R_InitTextures
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_Init
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_NewMap
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_SetVrect
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_ViewChanged
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_MarkLeaves
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_DrawEntitiesOnList
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_DrawViewModel
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_BmodelCheckBBox
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_DrawBEntitiesOnList
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_EdgeDrawing
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_RenderView_
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_RenderView
+#endif
+#ifdef ASM486_FRAME_CONTROL
+#undef R_InitTurb
+#endif
+#ifdef FRAME_CONTROL_RESTORE_EDGE_SELECTOR
+#define ASM486_EDGE_DRAWING
+#endif
+#if defined(ASM486_FRAME_CONTROL) && defined(ASM486_EDGE_DRAWING) && defined(PROFILE486)
+static double bench486_edgedrawing_world_start;
+
+void R_EdgeDrawingProfileEnter_asm486 (void)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_EDGE_DRAWING);
+}
+
+void R_EdgeDrawingProfileLeave_asm486 (void)
+{
+	BENCH486_PROFILE_LEAVE ();
+}
+
+void R_EdgeDrawingProfileWorldStart_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		bench486_edgedrawing_world_start = Sys_FloatTime ();
+}
+
+void R_EdgeDrawingProfileWorldEnd_asm486 (void)
+{
+	if (bench486_profile_frame_active)
+		bench486_world_seconds += Sys_FloatTime () -
+			bench486_edgedrawing_world_start;
+}
+
+void R_EdgeDrawingProfileBrushEnter_asm486 (void)
+{
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_BRUSH_ENTITIES);
+}
+
+void R_EdgeDrawingProfileBrushLeave_asm486 (void)
+{
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_BRUSH_ENTITIES,
+			(unsigned long)cl_numvisedicts, 0);
+	BENCH486_PROFILE_LEAVE ();
+}
+#endif

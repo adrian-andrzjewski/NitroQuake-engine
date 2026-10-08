@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "normalBuildGeneratesAssembly": false,
+  "originalFileSha256": "2A3CB6610EF604885AFF99B1A7F341494D8A0F43D2A46CBB183C3ABBD7FA6A45",
+  "entries": [
+    {
+      "originalFunction": "Draw_PicFromWad",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "B18FC181A5262F2A32A8CA78C13E7DC75D779EA704DF9104703CC85AFC9507D9",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_PicFromWad_Drawing_C",
+      "purpose": "Return the original named WAD picture."
+    },
+    {
+      "originalFunction": "Draw_CachePic",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "D434F57A5167E06FABAC49A01A71021E6C3AA6DA5D8BA9135B8FD07B48C5BDAE",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_CachePic_Drawing_C",
+      "purpose": "Preserve bounded menu lookup, cache checking, loading and byte-order conversion."
+    },
+    {
+      "originalFunction": "Draw_Init",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "CA15206B73CCC08EBFB0153BCD31C2F80ED80D413C82DA07318E9A07A2A9BE8E",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_Init_Drawing_C",
+      "purpose": "Load console characters, disc icon and background tile; initialize the rectangle descriptor."
+    },
+    {
+      "originalFunction": "Draw_Character",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "05D2F8CDD691C1103FBE5C5D62C78C7A7712F93B7DD265859AFA847F259E2A9D",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_Character_Drawing_C",
+      "purpose": "Preserve zero-transparent 8 by 8 glyphs, top clipping and both pixel formats."
+    },
+    {
+      "originalFunction": "Draw_String",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "A156AD8DBED2BA80243D331FEEDAE778E2040AB99286A54D62A97D155AF14E5A",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_String_Drawing_C",
+      "purpose": "Advance eight pixels per signed character; retain the private register-argument glyph helper."
+    },
+    {
+      "originalFunction": "Draw_DebugChar",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "4536D51CACDBA2E96F57DCF440E0C94A93659AD8B251C3C91C2A254AB9B93A8F",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_DebugChar_Drawing_C",
+      "purpose": "Write all glyph bytes to the original fixed 320-byte direct framebuffer stride."
+    },
+    {
+      "originalFunction": "Draw_Pic",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "06B3F321A7C64F9DFEDC488459981FB8F3F2B56797AE296D46B909CAB827E21F",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_Pic_Drawing_C",
+      "purpose": "Copy opaque indexed rows or translate each index through the original 16-bit palette."
+    },
+    {
+      "originalFunction": "Draw_TransPic",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "274B8FC2CDA15201C891C1C6320313000BA21C6C3322DC32F2B4327A50406284",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_TransPic_Drawing_C",
+      "purpose": "Preserve index-255 transparency, general and eight-pixel row paths."
+    },
+    {
+      "originalFunction": "Draw_TransPicTranslate",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "DC896D2EB10C7F66DBB9E7EBEABF015C24095A7AFE53375D8F2E07E38C33AEE9",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_TransPicTranslate_Drawing_C",
+      "purpose": "Apply the translation table only in the original indexed path."
+    },
+    {
+      "originalFunction": "Draw_CharToConback",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "E6015C67220CA1C4038E9DD52B9E89B5F44895A07B63C8000EF6175083AC76B2",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_CharToConback_Drawing_C",
+      "purpose": "Stamp nonzero glyph pixels with the original wrapping 0x60 palette bias."
+    },
+    {
+      "originalFunction": "Draw_ConsoleBackground",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "203F41D0E9153F2FDD5ECF7551CE8F5B25291351AAC6EACADE60114D1249685C",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_ConsoleBackground_Drawing_C",
+      "purpose": "Stamp the version and preserve integer vertical selection and 16.16 horizontal scaling."
+    },
+    {
+      "originalFunction": "R_DrawRect8",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "D467A3DCBB8059459C45453ABC21355C2067F9C14A4C3720A158B50D360A2476",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "R_DrawRect8_Drawing_C",
+      "purpose": "Copy rectangle rows with optional index-255 transparency and independent source/destination strides."
+    },
+    {
+      "originalFunction": "R_DrawRect16",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "D6E413ED5FD0364F5C38AF8CBA4B55FAACF7C1BA135869227B2E1CE46A32F51D",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "R_DrawRect16_Drawing_C",
+      "purpose": "Translate rectangle indices with the original half-byte-stride truncation."
+    },
+    {
+      "originalFunction": "Draw_TileClear",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "9DA140F365B3C676C966D348B1E6B407C549E37CE63960A9E7C2B5E04768AA08",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_TileClear_Drawing_C",
+      "purpose": "Preserve partial first tiles, tile wrapping and clipped final rectangles."
+    },
+    {
+      "originalFunction": "Draw_Fill",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "0C9EAE60E7E4D9A60D60BAC690DC4227807EEA51D289DFAA132198CCCC9E7596",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_Fill_Drawing_C",
+      "purpose": "Preserve indexed byte truncation and native 16-bit palette fills."
+    },
+    {
+      "originalFunction": "Draw_FadeScreen",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "4195B7D57D95D7B048772F54D6D8F27DE4A7BC190B3B5D4F775FA3521341C7FC",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_FadeScreen_Drawing_C",
+      "purpose": "Preserve the byte-oriented stipple and both unlock/sound/lock sequences."
+    },
+    {
+      "originalFunction": "Draw_BeginDisc",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "ACF44041C9C13E9815DCEF77077FBE701DE444129DC443E93E10801C37B21312",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_BeginDisc_Drawing_C",
+      "purpose": "Pass the original five direct-rectangle arguments in order."
+    },
+    {
+      "originalFunction": "Draw_EndDisc",
+      "originalFile": "drawing-reference/draw.c",
+      "originalFunctionSha256": "83A8108D5109E6FF61EF906B7CD6DC09DAF72F916394CD2044C01FC0642E8B10",
+      "assembly": "../../src/d_drawingasm.s",
+      "oracle": "Draw_EndDisc_Drawing_C",
+      "purpose": "Pass the original four restore-rectangle arguments in order."
+    }
+  ],
+  "instructionVariants": [
+    {
+      "variant": "release",
+      "sha256": "D6A3B292A92B0C73E760A5712D721FF32BE2EC04B6752489936BBCE014E76859"
+    },
+    {
+      "variant": "profile",
+      "sha256": "5571B379748C23C1E10F6CCC40C36021C77122CD8A7D4B4540440063AD2CB9E9"
+    }
+  ],
+  "layoutFacts": [
+    {
+      "name": "pointer_size",
+      "expression": "sizeof(void *)",
+      "value": 4
+    },
+    {
+      "name": "int_size",
+      "expression": "sizeof(int)",
+      "value": 4
+    },
+    {
+      "name": "vrect_size",
+      "expression": "sizeof(vrect_t)",
+      "value": 20
+    },
+    {
+      "name": "vid_size",
+      "expression": "sizeof(viddef_t)",
+      "value": 68
+    },
+    {
+      "name": "rectdesc_size",
+      "expression": "sizeof(rectdesc_t)",
+      "value": 36
+    },
+    {
+      "name": "cachepic_size",
+      "expression": "sizeof(cachepic_t)",
+      "value": 68
+    },
+    {
+      "name": "cache_user_size",
+      "expression": "sizeof(cache_user_t)",
+      "value": 4
+    },
+    {
+      "name": "viddef_t_buffer",
+      "expression": "offsetof(viddef_t,buffer)",
+      "value": 0
+    },
+    {
+      "name": "viddef_t_rowbytes",
+      "expression": "offsetof(viddef_t,rowbytes)",
+      "value": 16
+    },
+    {
+      "name": "viddef_t_width",
+      "expression": "offsetof(viddef_t,width)",
+      "value": 20
+    },
+    {
+      "name": "viddef_t_height",
+      "expression": "offsetof(viddef_t,height)",
+      "value": 24
+    },
+    {
+      "name": "viddef_t_conbuffer",
+      "expression": "offsetof(viddef_t,conbuffer)",
+      "value": 40
+    },
+    {
+      "name": "viddef_t_conrowbytes",
+      "expression": "offsetof(viddef_t,conrowbytes)",
+      "value": 44
+    },
+    {
+      "name": "viddef_t_conwidth",
+      "expression": "offsetof(viddef_t,conwidth)",
+      "value": 48
+    },
+    {
+      "name": "viddef_t_conheight",
+      "expression": "offsetof(viddef_t,conheight)",
+      "value": 52
+    },
+    {
+      "name": "viddef_t_direct",
+      "expression": "offsetof(viddef_t,direct)",
+      "value": 64
+    },
+    {
+      "name": "vrect_t_x",
+      "expression": "offsetof(vrect_t,x)",
+      "value": 0
+    },
+    {
+      "name": "vrect_t_y",
+      "expression": "offsetof(vrect_t,y)",
+      "value": 4
+    },
+    {
+      "name": "vrect_t_width",
+      "expression": "offsetof(vrect_t,width)",
+      "value": 8
+    },
+    {
+      "name": "vrect_t_height",
+      "expression": "offsetof(vrect_t,height)",
+      "value": 12
+    },
+    {
+      "name": "vrect_t_pnext",
+      "expression": "offsetof(vrect_t,pnext)",
+      "value": 16
+    },
+    {
+      "name": "qpic_t_width",
+      "expression": "offsetof(qpic_t,width)",
+      "value": 0
+    },
+    {
+      "name": "qpic_t_height",
+      "expression": "offsetof(qpic_t,height)",
+      "value": 4
+    },
+    {
+      "name": "qpic_t_data",
+      "expression": "offsetof(qpic_t,data)",
+      "value": 8
+    },
+    {
+      "name": "rectdesc_t_rect",
+      "expression": "offsetof(rectdesc_t,rect)",
+      "value": 0
+    },
+    {
+      "name": "rectdesc_t_width",
+      "expression": "offsetof(rectdesc_t,width)",
+      "value": 20
+    },
+    {
+      "name": "rectdesc_t_height",
+      "expression": "offsetof(rectdesc_t,height)",
+      "value": 24
+    },
+    {
+      "name": "rectdesc_t_ptexbytes",
+      "expression": "offsetof(rectdesc_t,ptexbytes)",
+      "value": 28
+    },
+    {
+      "name": "rectdesc_t_rowbytes",
+      "expression": "offsetof(rectdesc_t,rowbytes)",
+      "value": 32
+    },
+    {
+      "name": "cachepic_t_name",
+      "expression": "offsetof(cachepic_t,name)",
+      "value": 0
+    },
+    {
+      "name": "cachepic_t_cache",
+      "expression": "offsetof(cachepic_t,cache)",
+      "value": 64
+    },
+    {
+      "name": "cache_user_t_data",
+      "expression": "offsetof(cache_user_t,data)",
+      "value": 0
+    }
+  ]
+}

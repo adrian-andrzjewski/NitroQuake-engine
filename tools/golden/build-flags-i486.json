@@ -4,18 +4,18 @@
   "mtune": "-mtune=i486",
   "optimizationProfile": "aggressive",
   "optimizationLevel": "-O3",
-  "profileSuffix": "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm",
-  "outputRoot": "<repo>\\out\\dos-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm",
-  "objectRoot": "<repo>\\out\\dos-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\\obj",
-  "executable": "<repo>\\out\\dos-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe",
+  "profileSuffix": "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-spriteframeasm-spritedrawasm-spritesetupasm",
+  "outputRoot": "<repo>\\out\\profile-1981d7617a5f4c91",
+  "objectRoot": "<repo>\\out\\profile-1981d7617a5f4c91\\obj",
+  "executable": "<repo>\\out\\profile-1981d7617a5f4c91\\quake.exe",
   "manifest": "build-manifest.json",
   "cSourceCount": 83,
   "standaloneCSourceCount": 82,
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 21,
-  "assemblySourceCount": 21,
+  "allAssemblySourceCount": 38,
+  "assemblySourceCount": 38,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -32,6 +32,7 @@
     "-fcommon",
     "-ffast-math",
     "-std=gnu89",
+    "-save-temps=obj",
     "-DD_TEXAXIS_CACHE_SIZE=256",
     "-DASM486_RUNTIME_MEMOPS",
     "-DASM486_FILLRECT",
@@ -41,11 +42,39 @@
     "-DASM486_LIGHTMAP_STYLES",
     "-DASM486_FUSED_LIGHTMAP",
     "-DASM486_DYNAMIC_LIGHTS",
+    "-DASM486_DYNAMIC_LIGHT_PUSH",
+    "-DASM486_MARK_LIGHTS",
+    "-DASM486_SPRITE_FRAME",
+    "-DASM486_SPRITE_DRAW",
+    "-DASM486_SPRITE_SETUP",
     "-DASM486_ALIAS_BBOX_PROJECT",
     "-DASM486_ALIAS_TRANSFORM_FINAL",
-    "-DASM486_ALIAS_MATRIX_COMPOSE",
+    "-DASM486_ALIAS_PREPARE",
+    "-DASM486_ALIAS_MATRIX_COMPOSE_ASM",
+    "-DASM486_ALIAS_GRADIENTS",
+    "-DASM486_ALIAS_LINE_SCAN",
+    "-DASM486_ALIAS_EDGE_TABLE",
+    "-DASM486_ALIAS_SKIN_TABLE",
+    "-DASM486_ALIAS_RASTERIZE",
     "-DASM486_ALIAS_PROJECT"
   ],
+  "cSourceExtraFlags": {
+    "pr_edict.c": [
+      "-fno-delete-null-pointer-checks"
+    ],
+    "wad.c": [
+      "-fno-delete-null-pointer-checks"
+    ],
+    "r_main.c": [
+      "-fno-jump-tables"
+    ],
+    "mathlib.c": [
+      "-fno-jump-tables"
+    ],
+    "host_cmd.c": [
+      "-fno-jump-tables"
+    ]
+  },
   "asmFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -59,11 +88,25 @@
     "-DASM486_FILLRECT",
     "-DASM486_ZPOINT",
     "-DASM486_TEXTURE_ANIMATION",
+    "-DASM486_ALIAS_PREPARE",
     "-DASM486_ALIAS_PROJECT",
+    "-DASM486_BINDING_ALIAS_BBOX_PROJECT",
+    "-DASM486_BINDING_ALIAS_TRANSFORM_FINAL",
+    "-DASM486_ALIAS_MATRIX_COMPOSE_ASM",
+    "-DASM486_ALIAS_GRADIENTS",
+    "-DASM486_ALIAS_LINE_SCAN",
+    "-DASM486_ALIAS_EDGE_TABLE",
+    "-DASM486_ALIAS_SKIN_TABLE",
+    "-DASM486_ALIAS_RASTERIZE",
     "-DASM486_LIGHTMAP_NORMALIZE",
     "-DASM486_LIGHTMAP_STYLES",
     "-DASM486_FUSED_LIGHTMAP",
     "-DASM486_DYNAMIC_LIGHTS",
+    "-DASM486_DYNAMIC_LIGHT_PUSH",
+    "-DASM486_MARK_LIGHTS",
+    "-DASM486_SPRITE_FRAME",
+    "-DASM486_SPRITE_DRAW",
+    "-DASM486_SPRITE_SETUP",
     "-DASM486_TURBULENT_STOSB",
     "-DASM486_SPAN16_WORD_STORES",
     "-DASM486_SURF8_MIP0_ROWS16",
@@ -79,8 +122,9 @@
     "-s",
     "<objects>",
     "-lm",
+    "-Wl,-Map=<repo>\\out\\profile-1981d7617a5f4c91\\quake.exe.map",
     "-o",
-    "<repo>\\out\\dos-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixspecial-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe"
+    "<repo>\\out\\profile-1981d7617a5f4c91\\quake.exe"
   ],
   "cSources": [
     "cd_audio.c",
@@ -171,6 +215,8 @@
     "d_copy.s",
     "d_draw.s",
     "d_draw16.s",
+    "d_drawingasm.s",
+    "d_driverasm.s",
     "d_parta.s",
     "d_polysa.s",
     "d_scana.s",
@@ -180,13 +226,28 @@
     "math.s",
     "r_aclipa.s",
     "r_aliasa.s",
+    "r_aliascontrolasm.s",
     "r_drawa.s",
     "r_edgea.s",
+    "r_framecontrolasm.s",
+    "r_lightasm.s",
+    "r_lightcontrolasm.s",
+    "r_mathasm.s",
+    "r_mathclosureasm.s",
+    "r_publicbindingsasm.s",
+    "r_renderdispatchasm.s",
+    "r_skyasm.s",
+    "r_spriteasm.s",
     "r_varsa.s",
+    "r_visibilityasm.s",
+    "r_worldcontrolasm.s",
     "snd_mixa.s",
     "surf16.s",
     "surf8.s",
     "sys_dosa.s",
+    "v_chaseasm.s",
+    "v_paletteasm.s",
+    "v_viewcontrolasm.s",
     "worlda.s"
   ]
 }

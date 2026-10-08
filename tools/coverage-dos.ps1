@@ -91,6 +91,7 @@ $buildParams = @{ CpuTarget = $CpuTarget }
 if ($NoBootstrap) { $buildParams.NoBootstrap = $true }
 # The builder is the only place that knows the output paths. `executable` is
 # already an absolute path -- joining it onto outputRoot duplicates it.
+Add-RunnerBuildSelectors -BuildParameters $buildParams -Command $MyInvocation.MyCommand -SessionState $ExecutionContext.SessionState
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
 $releaseExe = $resolved.executable
 
@@ -119,6 +120,7 @@ if ((-not $SkipBuild) -or $freshness.Stale) {
 if (-not (Test-Path -LiteralPath $releaseExe -PathType Leaf)) {
     throw "Required DOS executable is missing: '$releaseExe'."
 }
+$selectorVerification = Assert-RunnerBuildManifest -Resolved $resolved -BuildParameters $buildParams
 
 # The build's ISA gate prints to stdout; -DumpFlags above is a pure inspection and
 # must stay quiet, so nothing else is echoed here.
@@ -134,6 +136,8 @@ $staging = New-QuakeStaging -RepoRoot $repoRoot `
 $stagingRoot = $staging.StagingRoot
 $quakeRoot = $staging.QuakeRoot
 $stagedData = $staging.StagedData
+$providerVerification = Assert-RunnerDpmiProvider -CpuTarget $CpuTarget -BuildVerification $selectorVerification `
+    -ProviderPath (Join-Path $quakeRoot 'cwsdpmi.exe')
 
 # The scenario commands go in id1\autoexec.cfg, NOT in '+' arguments. quake.rc runs
 #     exec default.cfg / exec config.cfg / exec autoexec.cfg / stuffcmds / startdemos
@@ -216,6 +220,8 @@ $ok = (-not $timedOut) -and ($null -ne $quakeExit) -and ($quakeExit -eq 0)
 $report = [ordered]@{
     scenario        = $Scenario
     cpuTarget       = $CpuTarget
+    buildSelectorVerification = $selectorVerification
+    providerVerification = $providerVerification
     frames          = $Frames
     commands        = $commands
     timedOut        = $timedOut

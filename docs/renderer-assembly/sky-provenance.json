@@ -1,0 +1,39 @@
+{
+  "source": "sky-reference.c",
+  "sourceSha256": "95406C3804B5B19A1A34263BA0130649989BC6F0F1FFF937FCE4D2D85D94A657",
+  "assembly": "src/r_skyasm.s",
+  "normalBuildRegeneratesAssembly": false,
+  "origin": "Hand-maintained translation of the five original r_sky.c functions.",
+  "functions": [
+    {
+      "originalFunction": "R_InitSky",
+      "assemblySymbol": "_R_InitSky",
+      "oracle": "R_InitSky_C",
+      "test": "Bench486SkyCases"
+    },
+    {
+      "originalFunction": "R_MakeSky",
+      "assemblySymbol": "_R_MakeSky",
+      "oracle": "R_MakeSky_C",
+      "test": "Bench486SkyCases"
+    },
+    {
+      "originalFunction": "R_GenSkyTile",
+      "assemblySymbol": "_R_GenSkyTile",
+      "oracle": "R_GenSkyTile_C",
+      "test": "Bench486SkyCases"
+    },
+    {
+      "originalFunction": "R_GenSkyTile16",
+      "assemblySymbol": "_R_GenSkyTile16",
+      "oracle": "R_GenSkyTile16_C",
+      "test": "Bench486SkyCases"
+    },
+    {
+      "originalFunction": "R_SetSkyFrame",
+      "assemblySymbol": "_R_SetSkyFrame",
+      "oracle": "R_SetSkyFrame_C",
+      "test": "Bench486SkyCases"
+    }
+  ]
+}

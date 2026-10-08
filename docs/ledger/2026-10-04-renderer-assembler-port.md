@@ -4,6 +4,18 @@ Status: ongoing. This entry records accepted incremental stages in the user-dire
 port of NitroQuake's full DOS software renderer and its render-time dependencies.
 The renderer is not yet fully ported.
 
+## Renderer-port ISA correction (2026-10-06)
+
+The later lightmap notes below say the C reference adds post-i486 multiply
+instructions and report 167/168 above-i486 instructions. Those counts came from
+the audit's incorrect classification of `IMUL r32,r/m32` (`0F AF`) as Pentium;
+the Intel 80386 manual documents that form. The corrected audit reports zero
+above-i486 instructions for the i486 release, benchmark, and instrumentation
+objects. The cold-path `UD2` and dead `RDMSR`/`WRMSR` sites were also removed as
+described in the corrected [ISA audit ledger](2026-10-03-isa-audit-and-i386-codepath.md).
+The prior `-SkipIsaAudit` runs remain historical parity evidence, not current ISA
+validation.
+
 ## `D_FillRect` is now an i486 assembly entry point
 
 `src/asm486_experiments.s` now exports `D_FillRect` directly when

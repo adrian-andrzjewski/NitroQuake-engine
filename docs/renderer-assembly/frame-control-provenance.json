@@ -1,0 +1,423 @@
+{
+  "sourceSha256": "7450F6A210849FA0272B07AB284DFAE6A21640FB6671E216E8440B211F3B3E87",
+  "flags": [
+    "-Iworkspace\\quake\\src",
+    "-O3",
+    "-march=i486",
+    "-mtune=i486",
+    "-falign-loops=8",
+    "-falign-jumps=16",
+    "-falign-functions=8",
+    "-freorder-blocks",
+    "-freorder-functions",
+    "-fomit-frame-pointer",
+    "-frename-registers",
+    "-fno-strict-aliasing",
+    "-fcommon",
+    "-ffast-math",
+    "-std=gnu89",
+    "-DD_TEXAXIS_CACHE_SIZE=256",
+    "-DASM486_EDGE_LIST_C",
+    "-DASM486_TURBULENT_C",
+    "-S",
+    "-fverbose-asm",
+    "-fno-jump-tables"
+  ],
+  "normalBuildRegeneratesAssembly": false,
+  "sharedStateOwner": "C declarations only",
+  "functions": [
+    {
+      "originalFunction": "R_InitTextures",
+      "assemblySymbol": "_R_InitTextures",
+      "variant": "release",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "36"
+      ],
+      "purpose": "Allocate and fill the original four-level checkerboard fallback texture."
+    },
+    {
+      "originalFunction": "R_Init",
+      "assemblySymbol": "_R_Init",
+      "variant": "release",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "44",
+        "8"
+      ],
+      "purpose": "Register renderer controls, initialize turbulence and the low-level drawing driver."
+    },
+    {
+      "originalFunction": "R_NewMap",
+      "assemblySymbol": "_R_NewMap",
+      "variant": "release",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "28",
+        "8",
+        "8"
+      ],
+      "purpose": "Reset leaf/entity/particle state and choose aligned edge/surface storage for the new map."
+    },
+    {
+      "originalFunction": "R_SetVrect",
+      "assemblySymbol": "_R_SetVrect",
+      "variant": "release",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "12"
+      ],
+      "purpose": "Apply intermission/view-size controls, icon minimum, width/height quantization and LCD subdivision."
+    },
+    {
+      "originalFunction": "R_ViewChanged",
+      "assemblySymbol": "_R_ViewChanged",
+      "variant": "release",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "24",
+        "8",
+        "8"
+      ],
+      "purpose": "Recompute viewport/perspective/scales, frustum edges and resolution-based alias transitions; patch the selected colormap driver."
+    },
+    {
+      "originalFunction": "R_MarkLeaves",
+      "assemblySymbol": "_R_MarkLeaves",
+      "variant": "release",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "20"
+      ],
+      "purpose": "Mark visible leaves and parent chains once per changed view leaf; preserve early termination at an already marked node."
+    },
+    {
+      "originalFunction": "R_DrawEntitiesOnList",
+      "assemblySymbol": "_R_DrawEntitiesOnList",
+      "variant": "release",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "76",
+        "12",
+        "12"
+      ],
+      "purpose": "Dispatch visible sprites and alias models in the original order, preserving ambient/dynamic lighting and clamp arithmetic."
+    },
+    {
+      "originalFunction": "R_DrawViewModel",
+      "assemblySymbol": "_R_DrawViewModel",
+      "variant": "release",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "52",
+        "12",
+        "12"
+      ],
+      "purpose": "Apply visibility gates, weapon minimum light, dynamic lights and the original ambient/shade clamps."
+    },
+    {
+      "originalFunction": "R_BmodelCheckBBox",
+      "assemblySymbol": "_R_BmodelCheckBBox",
+      "variant": "release",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "92",
+        "12",
+        "12",
+        "12",
+        "8"
+      ],
+      "purpose": "Classify rotated bounding spheres or unrotated accept/reject corners against the four view planes."
+    },
+    {
+      "originalFunction": "R_DrawBEntitiesOnList",
+      "assemblySymbol": "_R_DrawBEntitiesOnList",
+      "variant": "release",
+      "calleeRegisters": [],
+      "stackReservations": [],
+      "purpose": "Transform, light, clip and submit brush entities; restore view basis/model origin after each entity."
+    },
+    {
+      "originalFunction": "R_EdgeDrawing",
+      "assemblySymbol": "_R_EdgeDrawing_frame_reference",
+      "variant": "release",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "128108"
+      ],
+      "purpose": "Own aligned frame-local edge/surface arrays and preserve world/brush/span submission and sound-buffer ordering."
+    },
+    {
+      "originalFunction": "R_RenderView_",
+      "assemblySymbol": "_R_RenderView_",
+      "variant": "release",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "64012",
+        "12",
+        "12",
+        "8",
+        "8"
+      ],
+      "purpose": "Preserve setup/visibility/world/entity/viewmodel/particle/warp order and the frame-local warpbuffer lifetime."
+    },
+    {
+      "originalFunction": "R_RenderView",
+      "assemblySymbol": "_R_RenderView",
+      "variant": "release",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "28",
+        "12",
+        "12"
+      ],
+      "purpose": "Check renderer stack/global alignment and world availability before the complete frame."
+    },
+    {
+      "originalFunction": "R_InitTurb",
+      "assemblySymbol": "_R_InitTurb",
+      "variant": "release",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12"
+      ],
+      "purpose": "Initialize the two sine tables with the exact reference double-precision constants and truncating integer stores."
+    },
+    {
+      "originalFunction": "R_InitTextures",
+      "assemblySymbol": "_R_InitTextures",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "36"
+      ],
+      "purpose": "Allocate and fill the original four-level checkerboard fallback texture."
+    },
+    {
+      "originalFunction": "R_Init",
+      "assemblySymbol": "_R_Init",
+      "variant": "profile",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "44",
+        "8"
+      ],
+      "purpose": "Register renderer controls, initialize turbulence and the low-level drawing driver."
+    },
+    {
+      "originalFunction": "R_NewMap",
+      "assemblySymbol": "_R_NewMap",
+      "variant": "profile",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "28",
+        "8",
+        "8"
+      ],
+      "purpose": "Reset leaf/entity/particle state and choose aligned edge/surface storage for the new map."
+    },
+    {
+      "originalFunction": "R_SetVrect",
+      "assemblySymbol": "_R_SetVrect",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "12"
+      ],
+      "purpose": "Apply intermission/view-size controls, icon minimum, width/height quantization and LCD subdivision."
+    },
+    {
+      "originalFunction": "R_ViewChanged",
+      "assemblySymbol": "_R_ViewChanged",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "24",
+        "8",
+        "8"
+      ],
+      "purpose": "Recompute viewport/perspective/scales, frustum edges and resolution-based alias transitions; patch the selected colormap driver."
+    },
+    {
+      "originalFunction": "R_MarkLeaves",
+      "assemblySymbol": "_R_MarkLeaves",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "20"
+      ],
+      "purpose": "Mark visible leaves and parent chains once per changed view leaf; preserve early termination at an already marked node."
+    },
+    {
+      "originalFunction": "R_DrawEntitiesOnList",
+      "assemblySymbol": "_R_DrawEntitiesOnList",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "76",
+        "12",
+        "12",
+        "12"
+      ],
+      "purpose": "Dispatch visible sprites and alias models in the original order, preserving ambient/dynamic lighting and clamp arithmetic."
+    },
+    {
+      "originalFunction": "R_DrawViewModel",
+      "assemblySymbol": "_R_DrawViewModel",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebx",
+        "%esi"
+      ],
+      "stackReservations": [
+        "52",
+        "12",
+        "12"
+      ],
+      "purpose": "Apply visibility gates, weapon minimum light, dynamic lights and the original ambient/shade clamps."
+    },
+    {
+      "originalFunction": "R_BmodelCheckBBox",
+      "assemblySymbol": "_R_BmodelCheckBBox",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebp",
+        "%ebx",
+        "%edi",
+        "%esi"
+      ],
+      "stackReservations": [
+        "92",
+        "12",
+        "12",
+        "12",
+        "8"
+      ],
+      "purpose": "Classify rotated bounding spheres or unrotated accept/reject corners against the four view planes."
+    },
+    {
+      "originalFunction": "R_DrawBEntitiesOnList",
+      "assemblySymbol": "_R_DrawBEntitiesOnList",
+      "variant": "profile",
+      "calleeRegisters": [],
+      "stackReservations": [],
+      "purpose": "Transform, light, clip and submit brush entities; restore view basis/model origin after each entity."
+    },
+    {
+      "originalFunction": "R_EdgeDrawing",
+      "assemblySymbol": "_R_EdgeDrawing_frame_reference",
+      "variant": "profile",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "128136",
+        "12"
+      ],
+      "purpose": "Own aligned frame-local edge/surface arrays and preserve world/brush/span submission and sound-buffer ordering."
+    },
+    {
+      "originalFunction": "R_RenderView_",
+      "assemblySymbol": "_R_RenderView_",
+      "variant": "profile",
+      "calleeRegisters": [
+        "%ebx"
+      ],
+      "stackReservations": [
+        "64036",
+        "12",
+        "12",
+        "12",
+        "12",
+        "12",
+        "12",
+        "12",
+        "12",
+        "8",
+        "8"
+      ],
+      "purpose": "Preserve setup/visibility/world/entity/viewmodel/particle/warp order and the frame-local warpbuffer lifetime."
+    },
+    {
+      "originalFunction": "R_RenderView",
+      "assemblySymbol": "_R_RenderView",
+      "variant": "profile",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "28",
+        "12",
+        "12"
+      ],
+      "purpose": "Check renderer stack/global alignment and world availability before the complete frame."
+    },
+    {
+      "originalFunction": "R_InitTurb",
+      "assemblySymbol": "_R_InitTurb",
+      "variant": "profile",
+      "calleeRegisters": [],
+      "stackReservations": [
+        "12"
+      ],
+      "purpose": "Initialize the two sine tables with the exact reference double-precision constants and truncating integer stores."
+    }
+  ],
+  "layoutAssertions": 99,
+  "originalSource": "frame-control-reference.c",
+  "currentCOracle": "src/r_main.c: ASM486_FRAME_CONTROL/BENCH486 guards",
+  "assemblyEntry": "src/r_framecontrolasm.s",
+  "directCorrectnessFixture": "src/bench486_framecontrol.h",
+  "pairedCorrectnessProfile": "tools/renderer-profiles/i486-asm-frame-control.json",
+  "compatibilityGate": "tools/build-dos.ps1: selected object, runtime and linked-byte audits"
+}

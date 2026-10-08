@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_renderdispatch.h"
 #include "d_local.h"	// FIXME: shouldn't need to include this
 #include <stddef.h>
 
@@ -420,10 +421,12 @@ void R_EmitCachedEdge (void)
 #endif
 
 #ifdef ASM486_EMIT_CACHED_EDGE
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_EMIT_CACHED_EDGE)
 void R_EmitCachedEdge (void)
 {
 	R_EmitCachedEdge_asm486 ();
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -500,10 +503,12 @@ static void R_SetSurfaceZGradients (mplane_t *pplane)
 #endif
 
 #ifdef ASM486_RENDER_FACE
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_RENDER_FACE))
 void R_RenderFaceGradient_asm486 (mplane_t *plane)
 {
 	R_SetSurfaceZGradients (plane);
 }
+#endif
 
 typedef char r_renderface_surface_layout_check[
 	(offsetof(msurface_t, plane) == 12 &&
@@ -1429,6 +1434,7 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 void R_RenderFace_asm486 (msurface_t *fa, int clipflags,
 	medge_t *pedges, int *psurfedges);
 
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_RENDER_FACE))
 void R_RenderFace (msurface_t *fa, int clipflags)
 {
 	model_t *model;
@@ -1437,6 +1443,7 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	R_RenderFace_asm486 (fa, clipflags, model->edges,
 		model->surfedges + fa->firstedge);
 }
+#endif
 #endif
 
 
@@ -1550,10 +1557,12 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 #endif
 
 #ifdef ASM486_RENDER_BMODEL_FACE
+#if !(defined(ASM486_RENDER_DISPATCH) && defined(ASM486_RENDER_BMODEL_FACE))
 void R_RenderBmodelFaceGradient_asm486 (mplane_t *plane)
 {
 	R_SetSurfaceZGradients (plane);
 }
+#endif
 
 typedef char r_bmodel_face_bedge_layout_check[
 	(offsetof(bedge_t, v) == 0 &&
@@ -1579,10 +1588,12 @@ typedef char r_bmodel_face_surf_layout_check[
 
 void R_RenderBmodelFace_asm486 (bedge_t *pedges, msurface_t *psurf);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_RENDER_BMODEL_FACE)
 void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 {
 	R_RenderBmodelFace_asm486 (pedges, psurf);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -1812,10 +1823,12 @@ void R_RenderPoly (msurface_t *fa, int clipflags)
 #endif
 
 #ifdef ASM486_RENDER_POLY
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_RENDER_POLY)
 void R_RenderPoly (msurface_t *fa, int clipflags)
 {
     R_RenderPoly_asm486 (fa, clipflags);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -1851,3 +1864,29 @@ void R_ZDrawSubmodelPolys (model_t *pmodel)
 	}
 }
 
+
+/* Pinned original argument adapters, compiled only as independent test oracles. */
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_RENDER_FACE)
+void R_RenderFace_Dispatch_C (msurface_t *fa, int clipflags)
+{
+	model_t *model;
+
+	model = currententity->model;
+	Bench486DispatchRenderFace (fa, clipflags, model->edges,
+		model->surfedges + fa->firstedge);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_RENDER_FACE)
+void R_RenderFaceGradient_asm486_Dispatch_C (mplane_t *plane)
+{
+	Bench486DispatchFaceGradient (plane);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_RENDER_DISPATCH) && defined(ASM486_RENDER_BMODEL_FACE)
+void R_RenderBmodelFaceGradient_asm486_Dispatch_C (mplane_t *plane)
+{
+	Bench486DispatchBmodelGradient (plane);
+}
+#endif

@@ -56,6 +56,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define pt_type				13
 #define pt_size				40
 
+// particle_t::type values (keep in sync with the ptype_t enum in d_iface.h)
+#define PT_STATIC		0
+#define PT_GRAV			1
+#define PT_SLOWGRAV		2
+#define PT_FIRE			3
+#define PT_EXPLODE		4
+#define PT_EXPLODE2		5
+#define PT_BLOB			6
+#define PT_BLOB2			7
+
 #define PARTICLE_Z_CLIP	8.0
 
 // finalvert_t structure

@@ -130,7 +130,7 @@ void Q_memcpy_asm486 (void *dest, void *src, int count);
 void *D_GetTextureAxesHit_asm486 (void *entry, void *texinfo,
 		void *entity, int frame);
 void *D_CacheSurfaceHit_asm486 (void *cache, int surface_dlightframe,
-		int frame, void *texture, int *lightadj);
+		int frame, void *texture, int *lightadj, void *surface);
 int D_MipLevelForScale_asm486 (float scale);
 void R_BuildLightMapStyles_asm486 (unsigned *dest, byte *lightmap,
 		int size, int maps, unsigned scale, int *lightadj);
@@ -144,7 +144,7 @@ void R_BuildLightMapFusedNoDlights_C (unsigned *dest, byte *lightmap,
 void *D_GetTextureAxesHit_C (void *entry, void *texinfo,
 		void *entity, int frame);
 void *D_CacheSurfaceHit_C (void *cache, int surface_dlightframe,
-		int frame, void *texture, int *lightadj);
+		int frame, void *texture, int *lightadj, void *surface);
 int D_MipLevelForScale_C (float scale);
 #endif
 int Q_memcmp (void *m1, void *m2, int count);

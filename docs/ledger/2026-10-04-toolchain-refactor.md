@@ -225,6 +225,14 @@ own citation rule exists to prevent, committed by a tool. The report now carries
 Numbers unchanged, which is the point: 115677 instructions, 307 above i386, `p6 0`,
 `unknown 0`.
 
+## Toolchain-audit ISA correction (2026-10-06)
+
+The source-level counts and release-ISA conclusion recorded later in this entry
+used a wrong Pentium classification for `IMUL 0F AF`. The corrected source scan
+reports zero above-i486 instructions and 131 i486 instructions for the i386
+target. See the [ISA correction](2026-10-03-isa-audit-and-i386-codepath.md) for
+the primary manual reference and the refreshed object/source baselines.
+
 ## What is now a gate that was not
 
 `isa-audit-source.py` is gate 5. It counts instructions in compiler output where the

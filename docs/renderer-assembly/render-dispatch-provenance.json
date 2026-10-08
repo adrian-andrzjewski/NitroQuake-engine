@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "normalBuildGeneratesAssembly": false,
+  "callingConvention": "32-bit cdecl; EBX/ESI/EDI/EBP preserved; x87 control word retained",
+  "entries": [
+    {
+      "originalFile": "render-dispatch-reference/d_sprite.c",
+      "originalFunction": "D_SpriteScanLeftEdge",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "D_SpriteScanLeftEdge_Dispatch_C",
+      "backend": "D_SpriteScanLeftEdge_asm486",
+      "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
+      "originalFunctionSha256": "1f26888cf4527f40e19f77423bd168dd682375f9025f3a80fd3e3d046c596c79"
+    },
+    {
+      "originalFile": "render-dispatch-reference/d_sprite.c",
+      "originalFunction": "D_SpriteScanRightEdge",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "D_SpriteScanRightEdge_Dispatch_C",
+      "backend": "D_SpriteScanRightEdge_asm486",
+      "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
+      "originalFunctionSha256": "e0baaab08879dbe826a6a8bc35aabc26bad2c03310a9759cd4a449cc7318543a"
+    },
+    {
+      "originalFile": "render-dispatch-reference/d_sprite.c",
+      "originalFunction": "D_SpriteCalculateGradients",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "D_SpriteCalculateGradients_Dispatch_C",
+      "backend": "D_SpriteCalculateGradients_asm486",
+      "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
+      "originalFunctionSha256": "2f389ff67c6a9762a2400a76884af6c67b97fdf8b45038ca025d6982fc29c387"
+    },
+    {
+      "originalFile": "render-dispatch-reference/d_sprite.c",
+      "originalFunction": "D_DrawSprite",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "D_DrawSprite_Dispatch_C",
+      "backend": "D_DrawSprite_asm486",
+      "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
+      "originalFunctionSha256": "783f0be3bc171f6f7ced5692abe6133df6f4cc7918b78c98db6d37ca8d3defa6"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_alias.c",
+      "originalFunction": "R_AliasSetViewMatrix",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_AliasSetViewMatrix_Dispatch_C",
+      "backend": "R_AliasSetViewMatrix_asm486",
+      "originalFileSha256": "1e5fa9a28685fa611a1d908efa6e6292ab8ce24ba13e05464cac8dbc75aa6fbb",
+      "originalFunctionSha256": "40f3ec8820a7953a388c0977ddd9a5e57d9fd78e1e92fc7ad3f73438de0329a3"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_light.c",
+      "originalFunction": "R_MarkLights_asm486",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_MarkLights_asm486_Dispatch_C",
+      "backend": "R_MarkLightsTree_asm486",
+      "originalFileSha256": "d34f9b30c399bb442642a598ceba243d1300f5567094ba789f632da0152eb7d8",
+      "originalFunctionSha256": "739c0c92a865eedf01a509fd808fe46589b75015152232b0a3b9ea7679bfa583"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_light.c",
+      "originalFunction": "R_MarkLights",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_MarkLights_Dispatch_C",
+      "backend": "R_MarkLights_asm486",
+      "originalFileSha256": "d34f9b30c399bb442642a598ceba243d1300f5567094ba789f632da0152eb7d8",
+      "originalFunctionSha256": "e05134cb7585f356cddf17a6ab4f2f4591e67948a92e3306322f53e396404e3f"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_light.c",
+      "originalFunction": "R_PushDlights",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_PushDlights_Dispatch_C",
+      "backend": "R_PushDlights_asm486",
+      "originalFileSha256": "d34f9b30c399bb442642a598ceba243d1300f5567094ba789f632da0152eb7d8",
+      "originalFunctionSha256": "2b026c06929bc7db88370386a28cad2450eb6dca7b6db4510760aacf211795d2"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_draw.c",
+      "originalFunction": "R_RenderFace",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_RenderFace_Dispatch_C",
+      "backend": "R_RenderFace_asm486",
+      "originalFileSha256": "5731f676d7a644b21f51ab2af916d048b529a6bd09fb826d8acf741c57d38c49",
+      "originalFunctionSha256": "64dcc98b5ec2295e8c0673824ea6ea736c6b48b998a429af14e0dfed714debf9"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_draw.c",
+      "originalFunction": "R_RenderFaceGradient_asm486",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_RenderFaceGradient_asm486_Dispatch_C",
+      "backend": "R_SetSurfaceZGradients",
+      "originalFileSha256": "5731f676d7a644b21f51ab2af916d048b529a6bd09fb826d8acf741c57d38c49",
+      "originalFunctionSha256": "d8ea3249ac7d4672f67cd58965487b5df009e75b8719e188982075d638109d81"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_draw.c",
+      "originalFunction": "R_RenderBmodelFaceGradient_asm486",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_RenderBmodelFaceGradient_asm486_Dispatch_C",
+      "backend": "R_SetSurfaceZGradients",
+      "originalFileSha256": "5731f676d7a644b21f51ab2af916d048b529a6bd09fb826d8acf741c57d38c49",
+      "originalFunctionSha256": "a16d8f7b4a45f046d82dbff1131371af70937437e20a28bf38459b0f2d88d6a0"
+    },
+    {
+      "originalFile": "render-dispatch-reference/r_part.c",
+      "originalFunction": "R_DrawParticles",
+      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "oracle": "R_DrawParticles_Dispatch_C",
+      "backend": "R_DrawParticles_asm486",
+      "originalFileSha256": "18abb4f3b8ce8d95064d6f756ee7786763399ee03b37a6cfe28669d813263f64",
+      "originalFunctionSha256": "7ac656cb42ea7939e31f62e63b5c35deb450a4c0922995f608bbb559b79dc8b6"
+    }
+  ]
+}

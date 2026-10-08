@@ -8,6 +8,129 @@ cross-file references were repointed by heading, as the process rule in
 
 Index of every entry: [`../INDEX.md`](../INDEX.md).
 
+The dated entries below are retained as historical evidence. Their 2026-10-03
+instruction classifications and resulting conclusions are superseded by the
+correction recorded here.
+
+## Correction (2026-10-06): `0F AF` IMUL is i386, not Pentium
+
+The old audit classified two-operand `IMUL r32,r/m32` (`0F AF`) and the immediate
+forms as Pentium. That classification was wrong: the Intel 80386 manual documents
+these instructions. The corrected object and source classifiers now report the
+forms as i386. The earlier totals of 161/164/168 IMUL violations and the resulting
+recommendation to avoid migration were false; those IMUL sites did not need
+strength reduction.
+
+The corrected audit exposed nine actual above-i486 encodings in the benchmark
+object set: six `RDMSR`/`WRMSR` operations in unreferenced `StartMSRInterval` /
+`EndMSRInterval` assembly, and three compiler-generated `UD2` instructions in
+cold error paths. The unused MSR routines were removed. `pr_edict.c` and `wad.c`
+now use the source-specific `-fno-delete-null-pointer-checks` compiler option,
+which preserves their legacy 386-compatible failure-path memory behavior and
+prevents GCC from emitting those `UD2` instructions. The option is applied only
+to those two files.
+
+Verification on 2026-10-06:
+
+| i486 variant | object instructions | above i486 | unknown | non-exempt P6 |
+|---|---:|---:|---:|---:|
+| `quake.exe` | 168459 | 0 | 0 | 0 |
+| `qbench.exe` | 191974 | 0 | 0 | 0 |
+| `qprof.exe` | 199568 | 0 | 0 | 0 |
+
+Each object report counted one P6-shaped byte sequence in `crc.obj:_crctable`;
+that symbol is the CRC constant table in `.text` and is the existing explicit
+data exemption. The independent i486 source scan counted 119032 instructions,
+with 0 i586, P6, or unknown instructions. The i386 source scan now counts 131
+i486 instructions (130 `setcc` forms and one `shrdl`); the i386 object baseline
+records 141 because inlined copies are counted separately. The i486 object gate
+and source gate both require zero above-target instructions.
+
+The primary instruction reference is the [Intel 80386 Programmer's Reference
+Manual](https://read.seas.harvard.edu/~kohler/class/aosref/i386.pdf).
+
+### Object-gate false negatives corrected (2026-10-07)
+
+Actual assembled fixtures exposed false acceptance of CMOVcc, FCMOVcc,
+FCOMIP/FUCOMIP, VEX-encoded AVX, CMOV behind four prefixes, and newer fixed
+encodings sharing `0F 01` with legacy system instructions. `0F 05` was also
+incorrectly accepted. Source-text contract tests had not exercised these
+machine-code cases, so the earlier object audit passes were insufficient
+evidence for this part of the compatibility claim.
+
+The corrected object classifier rejects those encodings and also checks EVEX.
+It preserves the distinct legacy memory forms of FLD m80, FILD/FISTP m64,
+LES/LDS/BOUND, descriptor-table operations, and INVLPG. The CMOV and x87
+conditional/flag-compare classifications follow the compatibility and encoding
+entries in the [Intel instruction reference, Volume 2A](https://cdrdv2-public.intel.com/812383/253666-sdm-vol-2a.pdf).
+
+`tools/test-isa-audit-objects.py` assembles raw instruction bytes with the pinned
+toolchain, invokes the real object gate, and checks each symbol's reported ISA
+as well as the gate exit code. The bytes are never executed. All 25 permitted
+and 150 forbidden fixtures pass after the corrections. Reports are retained
+under `out/isa-object-regression-6g7jjs0x/`; the earlier failing reproduction
+reports are under `out/isa-object-regression-u8bdk6p4/` and
+`out/isa-object-regression-e8jfupwr/`. The fixture test is now part of
+`tools/run-tests.ps1`, after toolchain bootstrap/build.
+
+Reproduce with `rtk python -B tools/test-isa-audit-objects.py`. A nondefault
+tool installation can be supplied with `--tool-root`. This suite demonstrates
+these specific acceptance/rejection cases, not exhaustive verification of all
+x86 encodings.
+
+The corrected gate passed the retained release's 104 source objects. Its first
+full runtime re-audit then stopped on bytes `65 db c9` in `libm-e_pow.obj`.
+Inspection showed that the bytes belong to the eight-byte double literal
+`65dbc9934a86cd3f` at `.text+0x8c0`, value `0.23066074577556175`, read by
+`FADDL` at `.text+0x303` through the relocation at `+0x305`. The surrounding
+`_dp_h` label is merely the nearest symbol and does not identify executable
+FCMOV code. `isa-audit-linked.ps1` now recognizes only range `0x8c0..0x8c8`
+of the exact object with SHA-256
+`89E451E432DC68FEC2B3F49EEB64A29BDCA1046FD566AC58695F8B9CA3EB913B`.
+It records this evidence in `verifiedRuntimeData`; a changed object receives
+no exemption.
+
+The fresh release audit passed: 104 application objects / 148,910 instruction
+sites, 339 complete linked-input objects / 190,422 sites, and 187,773 verified
+linked opcode sites across 235 runtime inputs and 332 text contributions.
+There were zero enforced above-i486 instructions and zero linked opcode
+mismatches. The reports are under `out/profile-1981d7617a5f4c91/`; the linked
+report includes the pinned constant evidence in `verifiedRuntimeData`.
+The release hash guard passed for all 104 objects and the executable.
+The renderer source snapshot and binary bytes were not changed by these
+verifier corrections. Existing data exclusions remain explicit; these results
+do not close the full renderer conversion or its outstanding behavior tests.
+
+The previous C-reference benchmark binary was also re-audited successfully:
+339 input objects, 222,580 sites and 219,845 verified linked opcodes across 235
+runtime inputs and 333 text contributions, with zero opcode mismatches.
+Its report is under `out/profile-79ed86c9de0c8891/`.
+
+The five-selector candidate build exposed a separate benchmark-data case:
+`host_cmd.obj` at `.text+0x1d318` decoded as `FCMOVBE`, but that location is
+a DIR32 `.text` relocation for the `large-time-boundary` name pointer in the
+24-byte alias-frame fixture array. Instead of adding a symbol exemption, the
+alias-frame and alias-skin constant fixture tables now explicitly use `.data`.
+The failed gate also exposed an empty-baseline diagnostic exception in
+`build-dos.ps1`; enumerating the property collection handles the empty JSON
+object correctly. These source changes require rebuilt binaries and fresh
+paired scenes. The successful audits above refer to the preceding binaries.
+
+A focused compile of the corrected benchmark `host_cmd.c` with the five-path
+candidate flags passed the strict object audit: 34,056 instruction sites,
+zero above-i486 instructions and zero exclusions. The two fixture tables appear
+in COFF section 2 (`.data`). Evidence is under `out/isa-fixture-data-check/`.
+The build-selector tests, 175 assembled instruction fixtures, documentation
+structure check and whitespace check pass. The fresh full pair is running under
+`out/render-parity-isa-fixed-20261007/`; its result is still pending.
+
+The fresh C-reference VESA runs also matched the pre-change C reference in
+both repeats: 1,928 post-warmup checksum comparisons, both indexed captures
+and both palettes were exact. This specifically checks the benchmark-table
+placement change across source fingerprints; it is not a C/assembly completion
+claim. The comparison is saved as
+`out/render-parity-isa-fixed-20261007/fixture-data-placement-regression.json`.
+
 ## The 161 `imul r32,r/m32` sites are **not** strength-reducible — three approaches refuted by measurement (2026-10-03)
 
 This supersedes the arithmetic-reduction half of the entry above. That entry correctly

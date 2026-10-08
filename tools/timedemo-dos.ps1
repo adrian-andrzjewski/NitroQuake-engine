@@ -88,13 +88,29 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasTransformFinalImplementation = 'asm',
     [ValidateSet('control', 'local', 'asm')]
-    [string]$AliasPrepareImplementation = 'control',
+    [string]$AliasPrepareImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasClipImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasClipZImplementation = 'c',
-    [ValidateSet('c', 'special')]
-    [string]$AliasMatrixCompositionImplementation = 'special',
+    [ValidateSet('c', 'special', 'asm')]
+    [string]$AliasMatrixCompositionImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupLightingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupFrameImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSetupSkinImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasGradientImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasLineScanImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasEdgeTableImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasSkinTableImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasRasterizeImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TextureAnimationImplementation = 'asm',
     [ValidateSet('c', 'asm')]
@@ -108,7 +124,11 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DynamicLightOrchestrationImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$DynamicLightPushImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$DlightContributesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MarkLightsImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$LightMapBuildImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -119,6 +139,58 @@ param(
     [string]$BspFrameCountImplementation = 'control',
     [ValidateSet('c', 'asm')]
     [string]$BspWalkImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ParticleUpdateImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteBeamImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteClipImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteFrameImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteGradientImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteScanLeftImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteScanRightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteSetupImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SpriteOrientationImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderMathImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AnimatedLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PointLightImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$FrameControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PaletteImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$MathClosureImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$VisibilityImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PublicBindingsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SkyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RenderDispatchImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DrawingDriverImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ViewControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$DrawingImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ChaseImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$AliasControlImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderWorldImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -204,6 +276,24 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Match the promoted release selectors on i486, but keep the separate i386
+# timedemo profile on its C reference unless the caller opts in explicitly.
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MarkLightsImplementation')) {
+    $MarkLightsImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('DynamicLightPushImplementation')) {
+    $DynamicLightPushImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteSetupImplementation')) {
+    $SpriteSetupImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawImplementation')) {
+    $SpriteDrawImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
+    $SpriteFrameImplementation = 'asm'
+}
+
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
 $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
@@ -274,18 +364,37 @@ $buildParams = @{
     AliasClipImplementation              = $AliasClipImplementation
     AliasClipZImplementation             = $AliasClipZImplementation
     AliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
+        AliasSetupLightingImplementation = $AliasSetupLightingImplementation
+        AliasSetupFrameImplementation = $AliasSetupFrameImplementation
+        AliasSetupSkinImplementation = $AliasSetupSkinImplementation
+        AliasGradientImplementation = $AliasGradientImplementation
+        AliasLineScanImplementation = $AliasLineScanImplementation
+        AliasEdgeTableImplementation = $AliasEdgeTableImplementation
+        AliasSkinTableImplementation = $AliasSkinTableImplementation
+        AliasRasterizeImplementation = $AliasRasterizeImplementation
     TextureAnimationImplementation       = $TextureAnimationImplementation
     LightMapNormalizeImplementation      = $LightMapNormalizeImplementation
     LightMapStylesImplementation         = $LightMapStylesImplementation
     FusedLightMapImplementation          = $FusedLightMapImplementation
     DynamicLightImplementation           = $DynamicLightImplementation
     DynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    DynamicLightPushImplementation       = $DynamicLightPushImplementation
     DlightContributesImplementation      = $DlightContributesImplementation
+    MarkLightsImplementation             = $MarkLightsImplementation
     LightMapBuildImplementation          = $LightMapBuildImplementation
     BspPlaneDotImplementation            = $BspPlaneDotImplementation
     BspClipImplementation                = $BspClipImplementation
     BspFrameCountImplementation          = $BspFrameCountImplementation
     BspWalkImplementation                = $BspWalkImplementation
+    ParticleUpdateImplementation         = $ParticleUpdateImplementation
+    SpriteBeamImplementation             = $SpriteBeamImplementation
+    SpriteClipImplementation             = $SpriteClipImplementation
+    SpriteFrameImplementation            = $SpriteFrameImplementation
+    SpriteGradientImplementation         = $SpriteGradientImplementation
+    SpriteScanLeftImplementation         = $SpriteScanLeftImplementation
+    SpriteScanRightImplementation        = $SpriteScanRightImplementation
+    SpriteDrawImplementation              = $SpriteDrawImplementation
+    SpriteSetupImplementation              = $SpriteSetupImplementation
         RenderWorldImplementation            = $RenderWorldImplementation
         RenderFaceImplementation             = $RenderFaceImplementation
         RenderBmodelFaceImplementation       = $RenderBmodelFaceImplementation
@@ -317,6 +426,7 @@ if ($Instrumentation) {
 # did smoke-dos.ps1 and bench-dos.ps1; three copies of one rule is a standing
 # invitation for a runner to look for an executable the builder never wrote.
 # The builder is the only place that knows.
+Add-RunnerBuildSelectors -BuildParameters $buildParams -Command $MyInvocation.MyCommand -SessionState $ExecutionContext.SessionState
 $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
 $benchmarkExe = $resolved.executable
 
@@ -345,6 +455,7 @@ $executableName = [IO.Path]::GetFileName($resolved.executable)
 # had them overwrite each other's record and rebuild each other's binary on
 # alternating runs. (common.ps1 is dot-sourced once, at the top.)
 $sourceFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $resolved
+$sourceTreeFingerprint = Get-SourceTreeFingerprint -RepoRoot $repoRoot
 
 $freshness = Get-BuildFreshness -Executable $benchmarkExe -Fingerprint $sourceFingerprint
 $executableExists = $freshness.Exists
@@ -371,6 +482,7 @@ if ((-not $executableExists) -or $staleBuild) {
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
 }
+$selectorVerification = Assert-RunnerBuildManifest -Resolved $resolved -BuildParameters $buildParams
 
 $fpsStatsEnabled = [bool]($FpsStats -and -not $NoFpsStats)
 $fpsStatsOptions = if ($fpsStatsEnabled) { ' -fpsstats' } else { '' }
@@ -473,6 +585,8 @@ try {
 finally {
     $sha256Host.Dispose()
 }
+$providerVerification = Assert-RunnerDpmiProvider -CpuTarget $CpuTarget -BuildVerification $selectorVerification `
+    -ProviderPath (Join-Path $quakeRoot ([IO.Path]::GetFileName($dpmiHostPath)))
 
 $batchPath = Join-Path $quakeRoot 'timedemo.bat'
 $probeBlock = if ($dpmiProbeLines.Count) { ($dpmiProbeLines -join "`r`n") + "`r`n" } else { '' }
@@ -781,6 +895,7 @@ $result = [ordered]@{
     profile = $profilePath
     profileSha256 = $profileHash
     sourceFingerprint = $sourceFingerprint
+    sourceTreeFingerprint = $sourceTreeFingerprint
     parityGate = [ordered]@{
         expectedProfileSha256 = $ExpectedProfileSha256
         expectedFrames = $ExpectedFrames
@@ -840,18 +955,52 @@ $result = [ordered]@{
     aliasClipImplementation = $AliasClipImplementation
     aliasClipZImplementation = $AliasClipZImplementation
     aliasMatrixCompositionImplementation = $AliasMatrixCompositionImplementation
+    aliasSetupLightingImplementation = $AliasSetupLightingImplementation
+    aliasSetupFrameImplementation = $AliasSetupFrameImplementation
+    aliasSetupSkinImplementation = $AliasSetupSkinImplementation
+    aliasGradientImplementation = $AliasGradientImplementation
+    aliasLineScanImplementation = $AliasLineScanImplementation
+    aliasEdgeTableImplementation = $AliasEdgeTableImplementation
+    aliasSkinTableImplementation = $AliasSkinTableImplementation
+    aliasRasterizeImplementation = $AliasRasterizeImplementation
     textureAnimationImplementation = $TextureAnimationImplementation
     lightMapNormalizeImplementation = $LightMapNormalizeImplementation
     lightMapStylesImplementation = $LightMapStylesImplementation
     fusedLightMapImplementation = $FusedLightMapImplementation
     dynamicLightImplementation = $DynamicLightImplementation
     dynamicLightOrchestrationImplementation = $DynamicLightOrchestrationImplementation
+    dynamicLightPushImplementation = $DynamicLightPushImplementation
     dlightContributesImplementation = $DlightContributesImplementation
+    markLightsImplementation = $MarkLightsImplementation
     lightMapBuildImplementation = $LightMapBuildImplementation
     bspPlaneDotImplementation = $BspPlaneDotImplementation
     bspClipImplementation = $BspClipImplementation
     bspFrameCountImplementation = $BspFrameCountImplementation
     bspWalkImplementation = $BspWalkImplementation
+    particleUpdateImplementation = $ParticleUpdateImplementation
+    spriteBeamImplementation = $SpriteBeamImplementation
+    spriteClipImplementation = $SpriteClipImplementation
+    spriteFrameImplementation = $SpriteFrameImplementation
+    spriteGradientImplementation = $SpriteGradientImplementation
+    spriteScanLeftImplementation = $SpriteScanLeftImplementation
+    spriteScanRightImplementation = $SpriteScanRightImplementation
+    spriteDrawImplementation = $SpriteDrawImplementation
+    spriteSetupImplementation = $SpriteSetupImplementation
+    spriteOrientationImplementation = $SpriteOrientationImplementation
+    buildSelectorVerification = $selectorVerification
+    chaseImplementation = $ChaseImplementation
+    aliasControlImplementation = $AliasControlImplementation
+    worldControlImplementation = $WorldControlImplementation
+    providerVerification = $providerVerification
+    renderMathImplementation = $RenderMathImplementation
+    animatedLightImplementation = $AnimatedLightImplementation
+    pointLightImplementation = $PointLightImplementation
+    frameControlImplementation = $FrameControlImplementation
+    paletteImplementation = $PaletteImplementation
+    mathClosureImplementation = $MathClosureImplementation
+    visibilityImplementation = $VisibilityImplementation
+    publicBindingsImplementation = $PublicBindingsImplementation
+    skyImplementation = $SkyImplementation
     renderWorldImplementation = $RenderWorldImplementation
     renderFaceImplementation = $RenderFaceImplementation
     renderBmodelFaceImplementation = $RenderBmodelFaceImplementation

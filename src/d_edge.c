@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "d_local.h"
+#include "asm_drawingdriver.h"
 
 #if defined(ASM486_SURFACE_GRADIENTS) || defined(ASM486_SURFACE_DISPATCH)
 int			d_gradient_miplevel;
@@ -425,10 +426,12 @@ D_DrawPoly
 
 ==============
 */
+#ifndef ASM486_DRAWING_DRIVER
 void D_DrawPoly (void)
 {
 // this driver takes spans, not polygons
 }
+#endif
 
 
 /*
@@ -701,10 +704,12 @@ void D_CalcGradientsProfileAxisMiss_asm486 (void)
 }
 #endif
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_SURFACE_GRADIENTS)
 void D_CalcGradients (msurface_t *pface)
 {
 	D_CalcGradients_asm486 (pface);
 }
+#endif /* public entry is assembly-owned when selected */
 #elif defined(BENCH486)
 #define D_CalcGradients D_CalcGradients_C
 #endif
@@ -713,10 +718,12 @@ void D_CalcGradients (msurface_t *pface)
 // Keep the benchmark C reference selectable without teaching the assembler
 // build about C-only BENCH486 flags. This binding calls whichever gradient
 // implementation the build selected above.
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_SURFACE_DISPATCH)
 void D_DrawSurfacesCalcGradients_asm486 (msurface_t *pface)
 {
 	D_CalcGradients (pface);
 }
+#endif /* public entry is assembly-owned when selected */
 
 #endif
 
@@ -998,3 +1005,11 @@ void D_DrawSurfaces (void)
 
 #undef D_DRAW_SURFACES_FUNCTION
 
+
+/* Independent pinned C algorithms are test-only. */
+#if defined(BENCH486) && defined(ASM486_DRAWING_DRIVER)
+void D_DrawPoly_Driver_C (void)
+{
+// this driver takes spans, not polygons
+}
+#endif

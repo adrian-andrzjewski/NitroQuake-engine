@@ -127,7 +127,7 @@ void R_Alias_clip_z (finalvert_t *pfv0, finalvert_t *pfv1,
 		out->flags |= ALIAS_BOTTOM_CLIP;	
 }
 
-#if defined(ASM486_ALIAS_CLIP_Z) && defined(BENCH486)
+#if defined(BENCH486_ALIAS_CLIP_Z_COMPARE) && defined(BENCH486)
 extern void R_Alias_clip_z_asm486 (finalvert_t *pfv0, finalvert_t *pfv1,
 		finalvert_t *out);
 
@@ -341,11 +341,13 @@ int R_AliasClip_asm486 (finalvert_t *in, finalvert_t *out, int flag,
 		int count,
 		void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out));
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_ALIAS_CLIP)
 int R_AliasClip (finalvert_t *in, finalvert_t *out, int flag, int count,
 	void(*clip)(finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out))
 {
 	return R_AliasClip_asm486 (in, out, flag, count, clip);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 
@@ -490,9 +492,11 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 #ifdef ASM486_ALIAS_CLIP
 void R_AliasClipTriangle_asm486 (mtriangle_t *ptri);
 
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_ALIAS_CLIP)
 void R_AliasClipTriangle (mtriangle_t *ptri)
 {
 	R_AliasClipTriangle_asm486 (ptri);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
