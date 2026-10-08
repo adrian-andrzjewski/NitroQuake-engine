@@ -1,0 +1,12 @@
+[
+  {
+    "url": "https://www.delorie.com/pub/djgpp/current/v2gnu/gcc474b.zip",
+    "sha256": "CC91A9CB80B1F781855D1D84F07BB172CEBF0EE40303A088F33E36D62A5A4D47",
+    "bytes": 15314094
+  },
+  {
+    "url": "https://www.delorie.com/pub/djgpp/current/v2/djdev205.zip",
+    "sha256": "4557DFB6C161D326680AE5FA71F0098AC49425A1B11B90A020B83162EB705DDA",
+    "bytes": 2509574
+  }
+]

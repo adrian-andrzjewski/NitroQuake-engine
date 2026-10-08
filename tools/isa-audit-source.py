@@ -38,14 +38,14 @@ same `asmFlags` and classified the same way.
 Mnemonic classification
 -----------------------
 Instructions are classified by mnemonic, not by byte, because at this stage a
-line is known to be an instruction.  The two cases that matter most, and both
-are traps:
+line is known to be an instruction. IMUL operand count selects different
+encodings, but all forms used by this 32-bit build are supported on the 386:
 
 * `imull %ebx,%eax`  -- two operands, neither an immediate.  This is
-  `IMUL r32, r/m32`, opcode 0F AF, which is **Pentium**.  GNU as has no other
-  two-operand encoding to fall back on.
+  `IMUL r32, r/m32`, opcode 0F AF, documented in the Intel 80386 manual.
 * `imull $10,%eax`   -- one operand.  This is `F7 /5`, one-operand IMUL, which is
-  an i286 instruction and perfectly fine on a 386.
+  an i286 instruction and perfectly fine on a 386. The immediate two- and
+  three-operand forms are also available on the 386.
 
 An unrecognised mnemonic is reported as `unknown` and counts against the gate.
 The table is a floor, not a ceiling: it must be extended rather than bypassed.
@@ -258,21 +258,12 @@ def classify(mnemonic: str, operands: str) -> str:
         return "unknown"
     m = mnemonic
 
-    # --- imul, whose AT&T spelling is the whole problem ---------------------
-    if m in ("imul", "imull", "imulq", "imulw", "imulb"):
-        parts = [p.strip() for p in operands.split(",") if p.strip()]
-        if len(parts) >= 3:
-            # imul $imm, %src, %dst  ->  0F 6B.  Pentium.
-            return "i586"
-        if len(parts) == 2:
-            if parts[0].startswith("$"):
-                # imul $imm, %dst  ->  0F 69.  i486.
-                return "i486"
-            # imul %src, %dst  ->  0F AF.  Pentium.  GNU as has no other
-            # two-operand encoding, so this cannot be avoided at source level;
-            # it is the residual that decides whether an i386 build can run.
-            return "i586"
-        # imul %r/m  ->  F7 /5, one operand.  i286.
+    # --- imul ---------------------------------------------------------------
+    # The 386 supports F7 /5, 0F AF, and the immediate 69/6B forms. Keep the
+    # 64-bit mnemonic unknown: it is not an instruction in this 32-bit target.
+    if m == "imulq":
+        return "unknown"
+    if m in ("imul", "imull", "imulw", "imulb"):
         return "i386"
 
     # --- setcc / cmovcc -----------------------------------------------------
@@ -408,10 +399,8 @@ def load_baseline(path: str) -> dict:
 def record_baseline(path: str, cpu_target: str, totals: dict, above: int) -> None:
     """Write the figures this target just produced.
 
-    The end state is all zeros. This exists so the multiply-elimination work can be
-    shown to be reducing the count rather than merely being asserted to have done so,
-    and so a count that goes UP is a build failure rather than a line in a report
-    nobody diffs.
+    This records independently measured compiler output. The above-target count
+    should remain zero for a 486 build; a count that goes up is a build failure.
     """
     baseline = load_baseline_or_empty(path)
     baseline["targets"][cpu_target] = {
@@ -544,8 +533,9 @@ def main() -> int:
     # what they are; see the report's lineNumberKind field.
     for name in flags["cSources"]:
         source = os.path.join(SOURCE_ROOT, name)
+        source_flags = flags.get("cSourceExtraFlags", {}).get(name, [])
         scan(name, subprocess.run(
-            [compiler, *flags["cFlags"], "-S", "-o", "-", source],
+            [compiler, *flags["cFlags"], *source_flags, "-S", "-o", "-", source],
             capture_output=True, text=True, env=env,
         ), env, True)
 
@@ -621,14 +611,8 @@ def main() -> int:
         return 1
 
     # --- the ratchet --------------------------------------------------------
-    # -FailOnViolation is an absolute pass and is therefore red for as long as the
-    # multiply-elimination work is incomplete, which is the documented state of this
-    # tree. So the gate that can actually fail is a ratchet, mirroring
-    # tools\golden\isa-baseline.json for the object-level tool: two absolute rules
-    # (unclassified and p6 must be zero) plus per-ISA counts that may not rise.
-    #
-    # Run this and not -FailOnViolation; the two answer different questions, and
-    # only one of them is a gate.
+    # The baseline ratchets each ISA bucket and keeps unknown and P6 instructions
+    # at zero. -FailOnViolation is also available for an absolute ISA check.
     baseline_path = args.Baseline or os.path.join(
         TOOLS_DIR, "golden", "isa-source-baseline.json")
 

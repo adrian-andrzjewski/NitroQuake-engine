@@ -1,0 +1,24 @@
+[
+  {
+    "label": "O2-pentium-pentium-frame",
+    "flags": [
+      "-O2",
+      "-g",
+      "-march=pentium",
+      "-mtune=pentium",
+      "-fbuilding-libgcc",
+      "-fno-stack-protector",
+      "-fexceptions",
+      "-DENABLE_RUNTIME_CHECKING",
+      "-fno-omit-frame-pointer"
+    ],
+    "allocatedBytesEqual": true,
+    "sections": {
+      ".text": 5792,
+      ".data": 0,
+      ".bss": 0,
+      ".text.unlikely": 48,
+      ".eh_frame": 1288
+    }
+  }
+]

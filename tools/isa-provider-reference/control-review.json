@@ -1,0 +1,477 @@
+{
+  "schemaVersion": 1,
+  "staticInstructionCompatibilityPassed": true,
+  "executableSha256": "FF3501B50BCF320E6615E025BDFF94261A087F83212858D4B12E42C19C7E3883",
+  "codeInstructions": 9207,
+  "codeRanges": 10,
+  "typedDataRecords": 15,
+  "directBranches": 1751,
+  "typedEntries": 334,
+  "ownCodeMode": 16,
+  "ownCodeDescriptorDbit": 0,
+  "taskEntries": [
+    [
+      2133,
+      13952,
+      11128
+    ],
+    [
+      2144,
+      14194,
+      11128
+    ],
+    [
+      2155,
+      14436,
+      11128
+    ],
+    [
+      2166,
+      14678,
+      11128
+    ],
+    [
+      2177,
+      20090,
+      16024
+    ]
+  ],
+  "nearTransfers": [
+    {
+      "site": 290,
+      "targets": [
+        18798,
+        20486
+      ]
+    },
+    {
+      "site": 294,
+      "targets": [
+        18798
+      ]
+    },
+    {
+      "site": 298,
+      "targets": [
+        18798
+      ]
+    },
+    {
+      "site": 528,
+      "targets": [
+        19910
+      ]
+    },
+    {
+      "site": 5587,
+      "targets": [
+        5215,
+        5215,
+        16585,
+        5215,
+        5215,
+        5215,
+        5215,
+        5215,
+        5207,
+        5215,
+        5215,
+        5215,
+        5215,
+        5215,
+        5532,
+        5215,
+        16585,
+        16585,
+        16585,
+        16585,
+        16585,
+        16585,
+        16585,
+        16585,
+        5207,
+        5207,
+        16585,
+        16585,
+        16585,
+        5207,
+        5207,
+        5207,
+        5207,
+        5599,
+        5207,
+        5207,
+        5207,
+        5207,
+        5207,
+        5207,
+        16585,
+        16585,
+        16585,
+        16585,
+        16585,
+        16585,
+        16585,
+        5634,
+        5207,
+        6128
+      ]
+    },
+    {
+      "site": 6173,
+      "targets": [
+        6177,
+        6213,
+        6234,
+        6417,
+        6429,
+        6495,
+        6560,
+        6680,
+        6767,
+        6877,
+        6924,
+        6991,
+        7103,
+        7205,
+        7282,
+        7377,
+        7430,
+        7478,
+        7545,
+        7612,
+        7775,
+        8331,
+        8331,
+        8331,
+        8663,
+        8806,
+        8872,
+        8907,
+        8937,
+        8985,
+        9121,
+        9294,
+        9330,
+        9683,
+        9683,
+        9787,
+        9787,
+        9965,
+        9965,
+        10672,
+        10672,
+        10057,
+        10672,
+        10074,
+        10171,
+        10240,
+        10240,
+        10240,
+        10307,
+        10476,
+        10563,
+        10585,
+        10620
+      ]
+    },
+    {
+      "site": 18810,
+      "targets": []
+    },
+    {
+      "site": 21420,
+      "targets": [
+        19604
+      ]
+    },
+    {
+      "site": 21553,
+      "targets": [
+        21583,
+        21561,
+        21636,
+        21572,
+        21682,
+        21695,
+        21757,
+        21764,
+        21769,
+        21613,
+        21810,
+        21776,
+        21780,
+        21784,
+        21934,
+        22106,
+        22014,
+        22046,
+        22420,
+        22480,
+        22480,
+        22480,
+        21599,
+        21605
+      ]
+    },
+    {
+      "site": 23582,
+      "targets": [
+        0
+      ]
+    }
+  ],
+  "farTransfers": {
+    "521": "No far initializer record exists in the six-byte bounded startup table.",
+    "3488": "Own c_tss task gate; setup_tss installs 16-bit go_real_mode.",
+    "4079": "External protected-mode DPMI callback; only immediate offset/selector operands are patched.",
+    "4137": "Own c_tss task gate; setup_tss installs 16-bit go_real_mode.",
+    "4179": "External previous DOS interrupt 2f vector, supplied by the 486 DOS environment.",
+    "4320": "Own call gate selector 80, destination selector 18 and 16-bit ring0_iret at 10e5.",
+    "11012": "Own 16-bit selector 18, direct entry 2b09.",
+    "11112": "Own 16-bit selector 18, direct entry 2b6d.",
+    "11123": "External DPMI client task; the Quake executable and CRT are audited separately.",
+    "11193": "External VCPI transition entry, obtained from the DOS memory manager.",
+    "11218": "Own real-mode CODE; MZ relocates only the far segment operand to the load CS.",
+    "11340": "External real-mode DPMI callback or DOS interrupt vector.",
+    "16019": "Own i_tss task gate; setup_tss installs 16-bit interrupt_common at 3e98.",
+    "16196": "Own c_tss task gate; setup_tss installs 16-bit go_real_mode.",
+    "16221": "Own c_tss task gate; setup_tss installs 16-bit go_real_mode.",
+    "17038": "External VCPI entry from the DOS memory manager.",
+    "18503": "External XMS driver entry.",
+    "18521": "External XMS driver entry.",
+    "18544": "External XMS driver entry."
+  },
+  "selfModifications": [
+    {
+      "site": 240,
+      "changedByte": 487,
+      "originalOpcode": "JA",
+      "replacementOpcode": "JB",
+      "codeMode": 16,
+      "sameLengthAndTarget": true
+    },
+    {
+      "site": 246,
+      "changedByte": 470,
+      "kind": "MOV AH immediate; opcode and boundary unchanged"
+    },
+    {
+      "site": 3858,
+      "changedStart": 4081,
+      "changedEnd": 4085,
+      "kind": "External callback offset operand only"
+    },
+    {
+      "site": 3867,
+      "changedStart": 4085,
+      "changedEnd": 4087,
+      "kind": "External callback selector operand only"
+    }
+  ],
+  "emptyAtexitTable": true,
+  "formatterCallback": 19604,
+  "unlinkedFloatFormatHook": 0,
+  "sourceFormats": [
+    {
+      "source": "CONTROL.C",
+      "text": "Interrupt 0x%02x"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": "%s"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": " cr2=%08lx"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": " in RMCB"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": "eax=%08lx ebx=%08lx ecx=%08lx edx=%08lx esi=%08lx edi=%08lx\\n"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": "ebp=%08lx esp=%08lx cs=%x ds=%x es=%x fs=%x gs=%x ss=%x error=%04x\\n"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": "DOS 3 required.\\n"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": "CWSDPMI V0.90+ (r1) Copyright (C) 1995 CW Sandmann  ABSOLUTELY NO WARRANTY\\n"
+    },
+    {
+      "source": "CONTROL.C",
+      "text": "Protected mode not accessible.\\n"
+    },
+    {
+      "source": "DALLOC.C",
+      "text": "Warning: cannot open swap file %s\\n"
+    },
+    {
+      "source": "DALLOC.C",
+      "text": "No swap space!\\n"
+    },
+    {
+      "source": "DALLOC.C",
+      "text": "Swap disk full!\\n"
+    },
+    {
+      "source": "EHDRFIX.C",
+      "text": "Usage: ehdrfix cwsdpmi.exe\\n       Updates heap size in exe header\\n"
+    },
+    {
+      "source": "EHDRFIX.C",
+      "text": "Can't find heap and stack sizes in control.c!\\n"
+    },
+    {
+      "source": "EXPHDLR.C",
+      "text": "Access violation, address = 0x%08lx\\n"
+    },
+    {
+      "source": "EXPHDLR.C",
+      "text": "i=%#02x\\r\\n"
+    },
+    {
+      "source": "EXPHDLR.C",
+      "text": "DPMI request 0x%x 0x%x 0x%x 0x%lx\\r\\n"
+    },
+    {
+      "source": "EXPHDLR.C",
+      "text": "Descriptor(%d,8): 0x%lx 0x%lx\\n"
+    },
+    {
+      "source": "EXPHDLR.C",
+      "text": "205: %x (%x, %d) 0x%x 0x%lx\\r\\n"
+    },
+    {
+      "source": "EXPHDLR.C",
+      "text": "Warning: setting PM Int %d not supported\\n"
+    },
+    {
+      "source": "EXPHDLR.C",
+      "text": "DPMI request 0x%x unsupported\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": " swap_pd"
+    },
+    {
+      "source": "PAGING.C",
+      "text": " new_pd"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "Paging (err: 0x%x) in vaddr %#010lx -"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "invalid\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "protection\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "non-committed\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "valloc failed\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": " swap"
+    },
+    {
+      "source": "PAGING.C",
+      "text": " new"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "out_640 %d\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "dout %08lx"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "dflush %08lx"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "Map: 0x%lx for 0x%lx bytes to 0x%lx\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "Lock(%d): 0x%lx for 0x%lx bytes\\n"
+    },
+    {
+      "source": "PAGING.C",
+      "text": "Attrib(%d): 0x%lx for %d pages\\n"
+    },
+    {
+      "source": "VALLOC.C",
+      "text": "\\nError: Using XMS switched the CPU into V86 mode.\\n"
+    },
+    {
+      "source": "VALLOC.C",
+      "text": "Error: could not allocate page table memory\\n"
+    },
+    {
+      "source": "VALLOC.C",
+      "text": "Error: could not allocate page table memory\\n"
+    }
+  ],
+  "externalExecutionBoundary": "DOS/BIOS/XMS/VCPI and application callbacks require an i486 execution environment and separate client ISA audit.",
+  "sourceHashes": {
+    "BUGS": "C08AF61CB786E257FC74B29C64E168D66FD1482728A8985A52CA736164C45ADA",
+    "CONTROL.C": "10043403948B7FF70415D59DDA0D4C9BF1FEA31B0E9D5F3DCB55DEAEDD0F63C7",
+    "CONTROL.H": "534FBFF7B7D49E69FFEE1400388D339ED05620D6E2C737D6F84904DEC32C89E0",
+    "COPYING": "91DF39D1816BFB17A4DDA2D3D2C83B1F6F2D38D53E53E41E8F97AD5AC46A0CAD",
+    "COPYING.CWS": "B3B7A2E500F2F09BDC339B36BFA882CA46E0E3B23A2BB601A3B3FD77FBCD6DFA",
+    "DALLOC.C": "A1F530DECBDB23CB3FFE25BCAF932D44BFFA72C7F048F9B951C6B611EEE9EC2C",
+    "DALLOC.H": "BAFAB160CD04E362C554D5D39DB14C5E9F73AC06312B7DF55B5FFA30519D75D3",
+    "DOUTILS.ASM": "BC3BD2B179592C9A6338E2258E06E47F23FDA63187358CF045C2C4934EACEBBE",
+    "DPMISIM.ASM": "6E5434B22A2898B206D1B03C995B012A83546D403AD83C0B595021336994CFA8",
+    "DPMISIM.H": "1C45B0C908C73427A44CEF20021FAAE0914E9286D0978082791B49C681382FF7",
+    "EHDRFIX.C": "DFA254E778B652F9873054358C24F8CD2258F96FC665E0F96AE10D162760902B",
+    "EXPHDLR.C": "1C5D8FB64752C865DEEE3739C0B328A777DE663ED16EDB5C95F45A963B78D76D",
+    "EXPHDLR.H": "54EE204B19586EED18F4C3C95AEBA45857C211485DF368541D9F1C6C0B962EDE",
+    "GDT.H": "93F44228E89D571D593E5473007503A9C3E53EC4FAE2E6454730B9ED5B0EA25A",
+    "GDT.INC": "74F6FE25850A6F86A33F95C3F62D210DDA0F8B44F6F36AE02AA6687F7382DCBE",
+    "GOTYPES.H": "38226B40B4364D4B0ADF9DA6AD780B4CAD3A6DAA272CA8660DB2881661D30483",
+    "IDT.H": "E3FDE65BC8B3AD9046BAC685ED4C01285AB0F71253D6533E67AD587B9AB7F5C0",
+    "MAKEFILE": "5532C9468B3B7BB8030A1BD959FB18939ED6B9735C3E23B75C1BC0C0D3413538",
+    "MSWITCH.ASM": "983BC34458FED84E15E7C3C765640B0D85D3C5B946A375375CC805F0F88DF546",
+    "MSWITCH.H": "F5A18538C996D5D7C5FF7ECAAA485FF71214A6B0C4E0A843B804C8F338740D9F",
+    "PAGING.C": "E762A0B58832D53F4320E6A53B958F1A92C12EFBFA6B57F54BAE88F433C3D946",
+    "PAGING.H": "718D22D0B9444AD60028B7EDF8543ED064BA70600C3CA2D9B40B37FFBF23FF8B",
+    "SEGDEFS.INC": "3608BA9EA32444CF10361F644C4DBA3A60FA9E15E2356B12BF24AC8EE2668E71",
+    "TABLES.ASM": "C90260AF0E45F7114AF6FA4A06CBC2761CD1CBCE745125FF08C5812A10BB9329",
+    "TODO": "0825818BF56B9E9626CD98AF06E6B726627214AB018C63B381F2093B7B804454",
+    "TSS.H": "357C011C9DCAC46CB063DE8DA349C21848097E469015EA2E1A65775454F058CE",
+    "TSS.INC": "9EA23153B612AEA50D408F6131B288FCB4FAE0FE998AB0B57DD048C13C27DDF0",
+    "UNLOAD.ASM": "A84B230D789A8DADCDB0F3231D77B677035A688665FE361354FEF053EFB69277",
+    "UTILS.C": "20E060F6FECAEE451609B2ADDF04605A15276BF8216A442DCBBCC48F034DD139",
+    "UTILS.H": "D0A3BAEC95955D980E329C179988918C2B003199A1E6A7728BF514031AD3AFF3",
+    "VALLOC.C": "519896FAD3274A424BF56558C38BCE5D8DB0DCD32E54B4E7F43FB6AE3E689AE3",
+    "VALLOC.H": "CB8676CE730F42038EBDF60F3BD9951510EEB58F429EA43FAD5A8EC750FF1CDB",
+    "VCPI.ASM": "09BB0134C3ACAB89C8A99379365167F20D630C3EC6CC53BE95F1DD6C0E4D80C0",
+    "VCPI.H": "FB693DBA2119158211DCA21D88ACAFB9402F8C25F423661625CA2400825FF22F",
+    "VCPI.INC": "CF18CEC16BC0CF9F7F7620840D644B1C9755953CD944B399801A4D5306C7A8BA",
+    "XMS.ASM": "FA3BE667CB6085289B7B528D21862E32CED09C7EBDAC2C01246A9DBC7CF6445B",
+    "XMS.H": "C94311C0E03E1A5DF86BFE0193D8D2DC8589576DCAB445AA5A1847D94BF2A54B"
+  }
+}

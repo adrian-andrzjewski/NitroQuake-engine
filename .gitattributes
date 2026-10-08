@@ -1,0 +1,5 @@
+# Compatibility proofs bind these reference inputs to their exact original bytes.
+# Keep their upstream whitespace and line endings through Git checkouts.
+tools/isa-runtime-reference/** -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+tools/isa-provider-reference/** -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+docs/renderer-assembly/** -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

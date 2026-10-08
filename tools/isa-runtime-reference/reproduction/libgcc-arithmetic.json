@@ -1,0 +1,118 @@
+[
+  {
+    "function": "divdi3",
+    "flags": [
+      "-O2",
+      "-g",
+      "-march=pentium",
+      "-mtune=pentium",
+      "-fbuilding-libgcc",
+      "-fno-stack-protector",
+      "-fexceptions",
+      "-fnon-call-exceptions",
+      "-fno-omit-frame-pointer",
+      "-DMIN_UNITS_PER_WORD=4",
+      "-DL_divdi3"
+    ],
+    "allocatedBytesEqual": true,
+    "expectedSizes": {
+      ".text": 368,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 72
+    },
+    "actualSizes": {
+      ".text": 368,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 72
+    }
+  },
+  {
+    "function": "moddi3",
+    "flags": [
+      "-O2",
+      "-g",
+      "-march=pentium",
+      "-mtune=pentium",
+      "-fbuilding-libgcc",
+      "-fno-stack-protector",
+      "-fexceptions",
+      "-fnon-call-exceptions",
+      "-fno-omit-frame-pointer",
+      "-DMIN_UNITS_PER_WORD=4",
+      "-DL_moddi3"
+    ],
+    "allocatedBytesEqual": true,
+    "expectedSizes": {
+      ".text": 368,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 72
+    },
+    "actualSizes": {
+      ".text": 368,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 72
+    }
+  },
+  {
+    "function": "udivdi3",
+    "flags": [
+      "-O2",
+      "-g",
+      "-march=pentium",
+      "-mtune=pentium",
+      "-fbuilding-libgcc",
+      "-fno-stack-protector",
+      "-fexceptions",
+      "-fnon-call-exceptions",
+      "-fno-omit-frame-pointer",
+      "-DMIN_UNITS_PER_WORD=4",
+      "-DL_udivdi3"
+    ],
+    "allocatedBytesEqual": true,
+    "expectedSizes": {
+      ".text": 288,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 100
+    },
+    "actualSizes": {
+      ".text": 288,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 100
+    }
+  },
+  {
+    "function": "umoddi3",
+    "flags": [
+      "-O2",
+      "-g",
+      "-march=pentium",
+      "-mtune=pentium",
+      "-fbuilding-libgcc",
+      "-fno-stack-protector",
+      "-fexceptions",
+      "-fnon-call-exceptions",
+      "-fno-omit-frame-pointer",
+      "-DMIN_UNITS_PER_WORD=4",
+      "-DL_umoddi3"
+    ],
+    "allocatedBytesEqual": true,
+    "expectedSizes": {
+      ".text": 304,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 116
+    },
+    "actualSizes": {
+      ".text": 304,
+      ".data": 0,
+      ".bss": 0,
+      ".eh_frame": 116
+    }
+  }
+]

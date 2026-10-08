@@ -1,0 +1,17 @@
+1) Make 0.9 bug/deviation list
+2) Stacks without big bit set don't work
+3) Support I24 (ugly, a different type of callback)
+4) Move most of what is in i_31 to i_31prot.  Since TC can't handle ESP/EBP vs
+   SP/BP, very ugly.
+7) Valloc memory allocation at entry time? (But we use UMB...)
+8) get/restore RM hw interrupt vectors (if we abort them, for example)
+9) Prot mode page faults (savings? right now 3 mode swaps, future 2)
+10) raw mode save state needed?
+11) 16 bit support - get prototype working with BCC
+12) 1.0 version - finish mswitch in djasm (Morten is doing this)
+13) Restructure paging - re-use same page in file (short seeks)
+14) MW's nested task calls vs no jmpt at all (save 240 clocks!)
+15) MW's save things high - save the stack & fix DPMIsp crap
+16) Doom doesn't work, why?
+18) Write param edit image to set parameters (ie low memory usage, pagefile)
+19) RM stack: size a parameter? malloc it?

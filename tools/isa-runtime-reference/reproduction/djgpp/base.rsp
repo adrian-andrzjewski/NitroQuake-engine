@@ -1,0 +1,13 @@
+-O2
+-mtune=i586
+-march=i386
+-nostdinc
+-iquote
+.
+-isystem
+c:/djgpp/include
+-I
+c:/djgpp/lib/gcc/djgpp/4.74/include
+-DGAS_MAJOR=2
+-DGAS_MINOR=25
+-DGAS_MINORMINOR=0

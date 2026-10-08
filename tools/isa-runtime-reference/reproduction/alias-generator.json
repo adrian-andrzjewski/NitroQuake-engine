@@ -1,0 +1,11 @@
+{
+  "primarySourceUrl": "https://www.delorie.com/pub/djgpp/current/v2/djlsr205.zip",
+  "primaryHeadersUrl": "https://www.delorie.com/pub/djgpp/current/v2/djdev205.zip",
+  "primarySourceArchiveSha256": "80690B6E44FF8BC6C6081FCA1F4FAEBA1591C4490B76EF0EC8B35847BAA5DEEA",
+  "primaryHeaderArchiveSha256": "4557DFB6C161D326680AE5FA71F0098AC49425A1B11B90A020B83162EB705DDA",
+  "generatorSourceSha256": "AC68F9B3C005552F079030B0CCCEC8169302B6DC563D3D65EA94563F1C6C3B99",
+  "generatorExecutableSha256": "DC27249C0CD87C1DD8C996D3EA7C152F98B55AB3D55FB915B393EA6D383AFAC1",
+  "stubHeaderSha256": "31E4780FE04B5885BA4D957D01C0375CBE3E7F1147297981E09FFBF413D3771C",
+  "allocatedBytesAndRelocationsMatch": true,
+  "replacesRuntimeObjects": false
+}

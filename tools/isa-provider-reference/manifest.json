@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "target": "Intel 486 with original 16-bit DOS/DPMI support",
+  "originalSha256": "0A890815DF6CBDC052915A856C16944CEDEC825267E7B6E453C351A0CDC695F2",
+  "candidateSha256": "FF3501B50BCF320E6615E025BDFF94261A087F83212858D4B12E42C19C7E3883",
+  "codeEnd": 23616,
+  "patchLoadRanges": [
+    [
+      11623,
+      11661
+    ],
+    [
+      21336,
+      21340
+    ]
+  ],
+  "changedBytes": 36,
+  "primarySourceUrl": "https://sandmann.dotster.com/cwsdpmi/csdpmi1s.zip",
+  "primaryBinaryUrl": "https://sandmann.dotster.com/cwsdpmi/csdpmi1b.zip",
+  "originalCompiler": "Borland TCC/TASM; original code is inspected directly rather than claiming a new whole-provider compiler reproduction.",
+  "unknownProviderPolicy": "reject",
+  "files": [
+    {
+      "path": "boundaries.json",
+      "bytes": 8315,
+      "sha256": "4ECB8E25A3299B348BFDAE35F9A21AA0B7F442118A9C50ADC4377F8F2B2742C9"
+    },
+    {
+      "path": "control-review.json",
+      "bytes": 12560,
+      "sha256": "1ECA0539912B8333928A468DF04ED3203EB534B279FD8627395BF01AA5E9165A"
+    },
+    {
+      "path": "cpu486-and-hex.s",
+      "bytes": 1132,
+      "sha256": "5027BE41A183549BA6F7764D4BF8208700A8076EE033E71FA5F703BEF61146C4"
+    },
+    {
+      "path": "csdpmi1b.zip",
+      "bytes": 37143,
+      "sha256": "BB7B28163197C74BB46B4A3872C5297F7EF1D4C8C4618B05105836E75358096A"
+    },
+    {
+      "path": "csdpmi1s.zip",
+      "bytes": 69022,
+      "sha256": "2D43D4941EDBC27394D0E6101873792E90198EBC84D9B382709A68C9F4DA8AE0"
+    },
+    {
+      "path": "original-cwsdpmi.exe",
+      "bytes": 25920,
+      "sha256": "0A890815DF6CBDC052915A856C16944CEDEC825267E7B6E453C351A0CDC695F2"
+    },
+    {
+      "path": "primary/BUGS",
+      "bytes": 1584,
+      "sha256": "C08AF61CB786E257FC74B29C64E168D66FD1482728A8985A52CA736164C45ADA"
+    },
+    {
+      "path": "primary/CONTROL.C",
+      "bytes": 12626,
+      "sha256": "10043403948B7FF70415D59DDA0D4C9BF1FEA31B0E9D5F3DCB55DEAEDD0F63C7"
+    },
+    {
+      "path": "primary/CONTROL.H",
+      "bytes": 1941,
+      "sha256": "534FBFF7B7D49E69FFEE1400388D339ED05620D6E2C737D6F84904DEC32C89E0"
+    },
+    {
+      "path": "primary/COPYING",
+      "bytes": 17982,
+      "sha256": "91DF39D1816BFB17A4DDA2D3D2C83B1F6F2D38D53E53E41E8F97AD5AC46A0CAD"
+    },
+    {
+      "path": "primary/COPYING.CWS",
+      "bytes": 1939,
+      "sha256": "B3B7A2E500F2F09BDC339B36BFA882CA46E0E3B23A2BB601A3B3FD77FBCD6DFA"
+    },
+    {
+      "path": "primary/DALLOC.C",
+      "bytes": 3573,
+      "sha256": "A1F530DECBDB23CB3FFE25BCAF932D44BFFA72C7F048F9B951C6B611EEE9EC2C"
+    },
+    {
+      "path": "primary/DALLOC.H",
+      "bytes": 1220,
+      "sha256": "BAFAB160CD04E362C554D5D39DB14C5E9F73AC06312B7DF55B5FFA30519D75D3"
+    },
+    {
+      "path": "primary/DOUTILS.ASM",
+      "bytes": 428,
+      "sha256": "BC3BD2B179592C9A6338E2258E06E47F23FDA63187358CF045C2C4934EACEBBE"
+    },
+    {
+      "path": "primary/DPMISIM.ASM",
+      "bytes": 13793,
+      "sha256": "6E5434B22A2898B206D1B03C995B012A83546D403AD83C0B595021336994CFA8"
+    },
+    {
+      "path": "primary/DPMISIM.H",
+      "bytes": 1562,
+      "sha256": "1C45B0C908C73427A44CEF20021FAAE0914E9286D0978082791B49C681382FF7"
+    },
+    {
+      "path": "primary/EHDRFIX.C",
+      "bytes": 1418,
+      "sha256": "DFA254E778B652F9873054358C24F8CD2258F96FC665E0F96AE10D162760902B"
+    },
+    {
+      "path": "primary/EXPHDLR.C",
+      "bytes": 46144,
+      "sha256": "1C5D8FB64752C865DEEE3739C0B328A777DE663ED16EDB5C95F45A963B78D76D"
+    },
+    {
+      "path": "primary/EXPHDLR.H",
+      "bytes": 916,
+      "sha256": "54EE204B19586EED18F4C3C95AEBA45857C211485DF368541D9F1C6C0B962EDE"
+    },
+    {
+      "path": "primary/GDT.H",
+      "bytes": 2137,
+      "sha256": "93F44228E89D571D593E5473007503A9C3E53EC4FAE2E6454730B9ED5B0EA25A"
+    },
+    {
+      "path": "primary/GDT.INC",
+      "bytes": 1346,
+      "sha256": "74F6FE25850A6F86A33F95C3F62D210DDA0F8B44F6F36AE02AA6687F7382DCBE"
+    },
+    {
+      "path": "primary/GOTYPES.H",
+      "bytes": 907,
+      "sha256": "38226B40B4364D4B0ADF9DA6AD780B4CAD3A6DAA272CA8660DB2881661D30483"
+    },
+    {
+      "path": "primary/IDT.H",
+      "bytes": 962,
+      "sha256": "E3FDE65BC8B3AD9046BAC685ED4C01285AB0F71253D6533E67AD587B9AB7F5C0"
+    },
+    {
+      "path": "primary/MAKEFILE",
+      "bytes": 1661,
+      "sha256": "5532C9468B3B7BB8030A1BD959FB18939ED6B9735C3E23B75C1BC0C0D3413538"
+    },
+    {
+      "path": "primary/MSWITCH.ASM",
+      "bytes": 10633,
+      "sha256": "983BC34458FED84E15E7C3C765640B0D85D3C5B946A375375CC805F0F88DF546"
+    },
+    {
+      "path": "primary/MSWITCH.H",
+      "bytes": 891,
+      "sha256": "F5A18538C996D5D7C5FF7ECAAA485FF71214A6B0C4E0A843B804C8F338740D9F"
+    },
+    {
+      "path": "primary/PAGING.C",
+      "bytes": 15142,
+      "sha256": "E762A0B58832D53F4320E6A53B958F1A92C12EFBFA6B57F54BAE88F433C3D946"
+    },
+    {
+      "path": "primary/PAGING.H",
+      "bytes": 2265,
+      "sha256": "718D22D0B9444AD60028B7EDF8543ED064BA70600C3CA2D9B40B37FFBF23FF8B"
+    },
+    {
+      "path": "primary/SEGDEFS.INC",
+      "bytes": 1488,
+      "sha256": "3608BA9EA32444CF10361F644C4DBA3A60FA9E15E2356B12BF24AC8EE2668E71"
+    },
+    {
+      "path": "primary/TABLES.ASM",
+      "bytes": 10834,
+      "sha256": "C90260AF0E45F7114AF6FA4A06CBC2761CD1CBCE745125FF08C5812A10BB9329"
+    },
+    {
+      "path": "primary/TODO",
+      "bytes": 930,
+      "sha256": "0825818BF56B9E9626CD98AF06E6B726627214AB018C63B381F2093B7B804454"
+    },
+    {
+      "path": "primary/TSS.H",
+      "bytes": 2151,
+      "sha256": "357C011C9DCAC46CB063DE8DA349C21848097E469015EA2E1A65775454F058CE"
+    },
+    {
+      "path": "primary/TSS.INC",
+      "bytes": 1301,
+      "sha256": "9EA23153B612AEA50D408F6131B288FCB4FAE0FE998AB0B57DD048C13C27DDF0"
+    },
+    {
+      "path": "primary/UNLOAD.ASM",
+      "bytes": 1269,
+      "sha256": "A84B230D789A8DADCDB0F3231D77B677035A688665FE361354FEF053EFB69277"
+    },
+    {
+      "path": "primary/UTILS.C",
+      "bytes": 2090,
+      "sha256": "20E060F6FECAEE451609B2ADDF04605A15276BF8216A442DCBBCC48F034DD139"
+    },
+    {
+      "path": "primary/UTILS.H",
+      "bytes": 878,
+      "sha256": "D0A3BAEC95955D980E329C179988918C2B003199A1E6A7728BF514031AD3AFF3"
+    },
+    {
+      "path": "primary/VALLOC.C",
+      "bytes": 9692,
+      "sha256": "519896FAD3274A424BF56558C38BCE5D8DB0DCD32E54B4E7F43FB6AE3E689AE3"
+    },
+    {
+      "path": "primary/VALLOC.H",
+      "bytes": 1122,
+      "sha256": "CB8676CE730F42038EBDF60F3BD9951510EEB58F429EA43FAD5A8EC750FF1CDB"
+    },
+    {
+      "path": "primary/VCPI.ASM",
+      "bytes": 4014,
+      "sha256": "09BB0134C3ACAB89C8A99379365167F20D630C3EC6CC53BE95F1DD6C0E4D80C0"
+    },
+    {
+      "path": "primary/VCPI.H",
+      "bytes": 1317,
+      "sha256": "FB693DBA2119158211DCA21D88ACAFB9402F8C25F423661625CA2400825FF22F"
+    },
+    {
+      "path": "primary/VCPI.INC",
+      "bytes": 415,
+      "sha256": "CF18CEC16BC0CF9F7F7620840D644B1C9755953CD944B399801A4D5306C7A8BA"
+    },
+    {
+      "path": "primary/XMS.ASM",
+      "bytes": 2292,
+      "sha256": "FA3BE667CB6085289B7B528D21862E32CED09C7EBDAC2C01246A9DBC7CF6445B"
+    },
+    {
+      "path": "primary/XMS.H",
+      "bytes": 461,
+      "sha256": "C94311C0E03E1A5DF86BFE0193D8D2DC8589576DCAB445AA5A1847D94BF2A54B"
+    }
+  ]
+}

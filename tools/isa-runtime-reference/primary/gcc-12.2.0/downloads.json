@@ -1,0 +1,92 @@
+[
+  {
+    "file": "libgcc/unwind-dw2-fde.c",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/unwind-dw2-fde.c",
+    "sha256": "18f22cf2f66ad51b9931bb34d1fadad0d16e7254f424710cb7e799ff25bc714f"
+  },
+  {
+    "file": "libgcc/unwind-dw2-fde.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/unwind-dw2-fde.h",
+    "sha256": "34976ff2bc3c7635be101304c8cd27ccfde57e410a6509aefcede48ec4c78484"
+  },
+  {
+    "file": "libgcc/unwind-pe.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/unwind-pe.h",
+    "sha256": "ee1ae98942fa068319466916b00d86a6b7705b990df9022963c423626f3bcc66"
+  },
+  {
+    "file": "libgcc/unwind-dw2.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/unwind-dw2.h",
+    "sha256": "64c5cb4db6d0d86c0f86386ee9047300b01d39b16c1f5d183e7686c73d42aee9"
+  },
+  {
+    "file": "libgcc/libgcc2.c",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/libgcc2.c",
+    "sha256": "4051e1950496354f87c35cc92840c5b7141f5cc8cbf1723aed40ff73af765959"
+  },
+  {
+    "file": "libgcc/libgcc2.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/libgcc2.h",
+    "sha256": "99ac069c8d0749531d58a0fcebf67661b1e07e0b137e40253b450af9a202feb4"
+  },
+  {
+    "file": "libgcc/unwind-generic.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/unwind-generic.h",
+    "sha256": "f54cebf0c6b5eefc46b32352def6819a63173d2819fd92848b1458a446eef883"
+  },
+  {
+    "file": "libgcc/gthr.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/gthr.h",
+    "sha256": "0b01a05ab6cbac5199c4bebdc0f489b342ce0babd2f6b9eb56e1ecd423f3b1aa"
+  },
+  {
+    "file": "libgcc/gthr-single.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/libgcc/gthr-single.h",
+    "sha256": "b79b912b9eb80bee0a9ad63f9b88f614752edf431401cbec08e6300399e46c16"
+  },
+  {
+    "file": "gcc/tsystem.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/gcc/tsystem.h",
+    "sha256": "ac112c3307fc11a57bcb30fbdc9a1b7b7a78b29f3dc4f9f39bd00d782214e46e"
+  },
+  {
+    "file": "gcc/coretypes.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/gcc/coretypes.h",
+    "sha256": "e7dbc9fd5c8d796fff5712d06f7f9791e6813be549e793beb94a9d9fd1fb184b"
+  },
+  {
+    "file": "gcc/config/i386/djgpp.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/gcc/config/i386/djgpp.h",
+    "sha256": "a8c3accd6f99872cb9e83bd1123998b9e738dd0e7ec9ad09ba86426fa8d894be"
+  },
+  {
+    "file": "gcc/config/i386/i386.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/gcc/config/i386/i386.h",
+    "sha256": "7301254094852a71cd6572937ba8816d28b51cd0c56318e6f54e4af3e151b564"
+  },
+  {
+    "file": "gcc/config/i386/i386-protos.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/gcc/config/i386/i386-protos.h",
+    "sha256": "87b92e6f25c43a9747aae86960648ddd9e9be88b78152c3480b84b86f2b76665"
+  },
+  {
+    "file": "gcc/ginclude/stddef.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/gcc/ginclude/stddef.h",
+    "sha256": "192c28ec66b877fbfdceb84b28aceda2577e5dd46e32370f0c27be10dc0291ad"
+  },
+  {
+    "file": "include/dwarf2.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/include/dwarf2.h",
+    "sha256": "8f41459bfa5adf460bf4c25e29619d477d76ec12beb97f281ccba00c313ba0e7"
+  },
+  {
+    "file": "include/dwarf2.def",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/include/dwarf2.def",
+    "sha256": "4c3e5a0315e617d50ced155774819761e31eba1a3dffa1e2c61d2baf66b3af2c"
+  },
+  {
+    "file": "include/longlong.h",
+    "url": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-12.2.0/include/longlong.h",
+    "sha256": "efaa9996996a392ebd2e6c132baac411687955d98241845db128d7f6afc4515b"
+  }
+]

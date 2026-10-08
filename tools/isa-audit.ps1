@@ -65,13 +65,16 @@
     disassembled as if it were instructions.
 
 .PARAMETER SkipExecutable
-    Audit only the objects, not the linked executable.  Use this for a gate.  A
-    release build links with -s, so the executable has no symbol table and
-    objdump labels every region with its section name (`.text`); a symbol-keyed
-    exemption cannot be expressed against it.  The objects are the authoritative
-    instruction set for this tree -- the executable is their concatenation plus
-    the crt stubs -- so the gate runs on the objects and a second, reporting-only
-    pass covers the executable.
+    Audit only the objects, not the linked executable. The linked i486 gate uses
+    this with SectionAllowListJson, then checks the exact mapped opcode sites in
+    the final binary through isa-audit-linked.ps1. That wrapper also includes
+    CRT and runtime archive members selected by the linker.
+
+.PARAMETER SectionAllowListJson
+    Optional JSON array of `{ object, section }` pairs. When supplied, only those
+    sections are classified or written to instruction details. The linked
+    executable audit uses this to inspect the exact input code contributions in
+    the linker map, excluding unused cold sections from pulled archive members.
 
 .EXAMPLE
     .\tools\isa-audit.ps1 -BuildRoot out\dos-memasm-zneg4-... -MaxIsa i486
@@ -90,8 +93,14 @@ param(
     [ValidateSet('i386', 'i486', 'i586', 'p6')]
     [string]$MaxIsa = 'i486',
     [string]$OutputJson,
+    [string]$InstructionDetailsJsonl,
+    [string]$SectionAllowListJson,
+    [string]$ObjectCodeDataProofJson,
     [switch]$FailOnViolation,
     [string[]]$Exempt = @(),
+    [string[]]$ExemptRange = @(),
+    [switch]$ExecutableOnly,
+    [string]$AddressRangesJson,
     [switch]$SkipExecutable,
     [string]$ToolRoot
 )
@@ -128,19 +137,21 @@ if ([string]::IsNullOrWhiteSpace($OutputJson)) {
 $isaRank = @{ i386 = 0; i486 = 1; i586 = 2; p6 = 3; unknown = 99 }
 $maxRank = $isaRank[$MaxIsa]
 
-# Two-byte (0F xx) opcode map.  Only the entries that differ from the i386
-# baseline are listed; -SetConstructors are keyed on "0f" + second byte.
+# Two-byte (0F xx) opcode map. The fallback treats unlisted forms as unknown,
+# so this table includes both newer instructions and supported i386 forms that
+# need an explicit classification; keys are "0f" + second byte.
 $twoByteIsa = @{
-    '0f00' = 'i486'   # LLDT
-    # 0F 01 has no fixed ISA: /1 LLDT and /2 LTR are i486, the rest of the
-    # group (SGDT, SIDT, LGDT, LIDT, SMSW, LMSW) is i386.  Handled separately.
-    '0f06' = 'i486'   # CLTS
+    '0f00' = 'i386'   # LLDT
+    # 0F 01 is classified by its ModRM below: legacy descriptor/control
+    # operations share this escape with much newer fixed-register encodings.
+    '0f06' = 'i386'   # CLTS
+    '0f08' = 'i486'   # INVD
     '0f09' = 'i486'   # WBINVD
     '0f0b' = 'i586'   # UD2 -- GCC emits this only in unreachable cold blocks
     '0f0d' = 'p6'     # PREFETCH
     '0f0e' = 'p6'     # FEMMS (3DNow! / K5)
     '0f0f' = 'unknown' # 3DNow! prefix
-    '0f24' = 'unknown' # TEST r/m,r64 (long mode)
+    # 0F 20..24 and 26 are special-register MOV forms, validated by ModRM below.
     '0f30' = 'i586'   # WRMSR
     '0f31' = 'i586'   # RDTSC
     '0f32' = 'i586'   # RDMSR
@@ -148,23 +159,26 @@ $twoByteIsa = @{
     '0f34' = 'i586'   # SYSENTER
     '0f35' = 'i586'   # SYSEXIT
     '0fa2' = 'i586'   # CPUID
-    '0fa3' = 'i486'   # BT r/m,r
-    '0fa4' = 'i486'   # SHLD r/m,r,imm8
-    '0fa5' = 'i486'   # SHLD r/m,r,CL
-    '0fa8' = 'i486'   # BT r/m,r (alias decode)
-    '0fa6' = 'i386'   # CMPSB
-    '0fa7' = 'i386'   # CMPSD
+    '0fa3' = 'i386'   # BT r/m,r
+    '0fa4' = 'i386'   # SHLD r/m,r,imm8
+    '0fa5' = 'i386'   # SHLD r/m,r,CL
+    '0fa8' = 'i386'   # PUSH GS
+    '0fa6' = 'unknown' # reserved in the documented target
+    '0fa7' = 'unknown' # reserved in the documented target
     '0fae' = 'p6'     # LFENCE/MFENCE/SFENCE/CLFLUSH/LDMXCSR/STMXCSR
-    '0fab' = 'i486'   # BTS r/m,r
-    '0fac' = 'i486'   # SHRD r/m,r,imm8
-    '0fad' = 'i486'   # SHRD r/m,r,CL
-    '0faf' = 'i586'   # IMUL r32,r/m32 -- Pentium
+    '0fab' = 'i386'   # BTS r/m,r
+    '0fac' = 'i386'   # SHRD r/m,r,imm8
+    '0fad' = 'i386'   # SHRD r/m,r,CL
+    '0faf' = 'i386'   # IMUL r32,r/m32 -- documented by the Intel 80386 manual
     '0fb0' = 'i486'   # CMPXCHG
-    '0fb1' = 'i486'   # XCHG
+    '0fb1' = 'i486'   # CMPXCHG
     '0fb8' = 'p6'     # POPCNT
     '0fb9' = 'unknown' # UD1
-    '0fb3' = 'i486'   # BTR r/m,r
-    '0fbb' = 'i486'   # BTC r/m,r
+    '0fb2' = 'i386'   # LSS
+    '0fb4' = 'i386'   # LFS
+    '0fb5' = 'i386'   # LGS
+    '0fb3' = 'i386'   # BTR r/m,r
+    '0fbb' = 'i386'   # BTC r/m,r
     '0fc0' = 'i486'   # XADD
     '0fc1' = 'i486'   # XADD
     # CMPXCHG8B is a Pentium instruction, not a 486 one. Both of these entries
@@ -178,6 +192,7 @@ $twoByteIsa = @{
     # emits either, which is exactly when the gate has to be right.
     '0fc6' = 'i586'   # CMPXCHG8B
     '0fc7' = 'i586'   # CMPXCHG8B
+    '0fc3' = 'p6'     # MOVNTI (SSE2)
 }
 # MMX and SSE: 0F 10..0F 17, 0F 28..0F 2F, 0F 50..0F 77, 0F 78, 0F 79,
 # 0F 6F, 0F 7E, 0F 7F, 0F D4..0F FF.
@@ -185,27 +200,30 @@ foreach ($i in (@(0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x1E, 0x1F) +
     (0x28..0x2F) + (0x50..0x77) + @(0x6F, 0x78, 0x79, 0x7E, 0x7F) + (0xD4..0xFF))) {
     $twoByteIsa[('0f{0:x2}' -f $i)] = 'p6'
 }
-# CMOVcc: 0F 40..4F
+# CMOVcc: 0F 40..4F, introduced with P6; never valid on i486.
 for ($i = 0x40; $i -le 0x4F; $i++) {
-    $twoByteIsa[('0f{0:x2}' -f $i)] = 'i486'
+    $twoByteIsa[('0f{0:x2}' -f $i)] = 'p6'
 }
 # SETcc: 0F 90..9F
 for ($i = 0x90; $i -le 0x9F; $i++) {
-    $twoByteIsa[('0f{0:x2}' -f $i)] = 'i486'
+    $twoByteIsa[('0f{0:x2}' -f $i)] = 'i386'
 }
 # BSWAP: 0F C8..CF
 for ($i = 0xC8; $i -le 0xCF; $i++) {
     $twoByteIsa[('0f{0:x2}' -f $i)] = 'i486'
 }
 
-$objectDirectories = if ([string]::IsNullOrWhiteSpace($ObjectRoot)) {
-    @(Get-ChildItem -LiteralPath $BuildRoot -Directory -Filter 'obj*' -ErrorAction SilentlyContinue)
-}
-else {
-    if (-not (Test-Path -LiteralPath $ObjectRoot -PathType Container)) {
-        throw "Object root not found: '$ObjectRoot'."
+$objectDirectories = @()
+if (-not $ExecutableOnly) {
+    $objectDirectories = if ([string]::IsNullOrWhiteSpace($ObjectRoot)) {
+        @(Get-ChildItem -LiteralPath $BuildRoot -Directory -Filter 'obj*' -ErrorAction SilentlyContinue)
     }
-    @(Get-Item -LiteralPath (Resolve-Path -LiteralPath $ObjectRoot).Path)
+    else {
+        if (-not (Test-Path -LiteralPath $ObjectRoot -PathType Container)) {
+            throw "Object root not found: '$ObjectRoot'."
+        }
+        @(Get-Item -LiteralPath (Resolve-Path -LiteralPath $ObjectRoot).Path)
+    }
 }
 # Two states, not one: "no -ObjectNames given, sweep every object" and "-ObjectNames
 # given, audit exactly those". $null was doing double duty as the off state, which
@@ -215,6 +233,29 @@ else {
 # is always a real set.
 $filterByName = ($ObjectNames.Count -gt 0)
 $objectNameFilter = [System.Collections.Generic.HashSet[string]]::new([string[]]$ObjectNames)
+$addressRanges = @()
+if (-not [string]::IsNullOrWhiteSpace($AddressRangesJson)) {
+    if ($SkipExecutable) { throw '-AddressRangesJson requires executable disassembly; do not combine it with -SkipExecutable.' }
+    if (-not (Test-Path -LiteralPath $AddressRangesJson -PathType Leaf)) { throw "Address range list not found: '$AddressRangesJson'." }
+    $addressRanges = @(Get-Content -LiteralPath $AddressRangesJson -Raw | ConvertFrom-Json)
+    if ($addressRanges.Count -eq 0) { throw "Address range list '$AddressRangesJson' is empty." }
+    foreach ($range in $addressRanges) {
+        if ([long]$range.end -le [long]$range.start) { throw "Invalid executable address range '$($range.label)'." }
+    }
+}
+$allowedSectionKeys = $null
+if (-not [string]::IsNullOrWhiteSpace($SectionAllowListJson)) {
+    if (-not (Test-Path -LiteralPath $SectionAllowListJson -PathType Leaf)) {
+        throw "Section allow-list not found: '$SectionAllowListJson'."
+    }
+    $allowedSectionKeys = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $allowedSections = @(Get-Content -LiteralPath $SectionAllowListJson -Raw | ConvertFrom-Json)
+    if ($allowedSections.Count -eq 0) { throw "Section allow-list '$SectionAllowListJson' is empty." }
+    foreach ($allowedSection in $allowedSections) {
+        $null = $allowedSectionKeys.Add([string]$allowedSection.object + '|' + [string]$allowedSection.section)
+    }
+}
+if ($ExecutableOnly -and $filterByName) { throw '-ExecutableOnly cannot be combined with -ObjectNames.' }
 $targets = New-Object System.Collections.Generic.List[object]
 # Seeded from the request, so a name that matched nothing is still reported.
 # This list used to start empty and only ever had entries removed from it, which
@@ -239,8 +280,12 @@ if ($filterByName -and $missingObjects.Count -gt 0) {
     throw ("Named objects were not found under '{0}': {1}" -f (($objectDirectories | ForEach-Object { $_.FullName }) -join ', '), ($missingObjects -join ', '))
 }
 $exePath = Join-Path $BuildRoot $ExeName
-if ((-not $SkipExecutable) -and (Test-Path -LiteralPath $exePath -PathType Leaf)) {
+if (((-not $SkipExecutable) -or $ExecutableOnly) -and (Test-Path -LiteralPath $exePath -PathType Leaf)) {
     $targets.Add([pscustomobject]@{ kind = 'executable'; name = $ExeName; path = $exePath })
+}
+if ($ExecutableOnly -and $targets.Count -ne 1) { throw "-ExecutableOnly expected '$exePath', but the executable was not found." }
+if ($addressRanges.Count -gt 0 -and -not ($targets | Where-Object kind -eq 'executable')) {
+    throw '-AddressRangesJson was provided but the executable is not an audit target.'
 }
 
 if ($targets.Count -eq 0) {
@@ -257,6 +302,7 @@ $continuationLineCount = 0
 $violations = New-Object System.Collections.Generic.List[object]
 $unclassified = New-Object System.Collections.Generic.List[object]
 $exempted = New-Object System.Collections.Generic.List[object]
+$instructionDetailLines = New-Object System.Collections.Generic.List[string]
 $encodingTotals = [ordered]@{}
 
 # Normalise the exemption list into "object:symbol" keys, so a caller can write
@@ -269,8 +315,24 @@ foreach ($entry in $Exempt) {
     }
     $null = $exemptKeys.Add("$($parts[0]):$($parts[1])")
 }
+$parsedExemptRanges = New-Object System.Collections.Generic.List[object]
+foreach ($entry in $ExemptRange) {
+    $parts = $entry -split ':', 4
+    if ($parts.Count -ne 4) { throw "Malformed -ExemptRange entry '$entry'; expected 'object:section:start:end'." }
+    $startText = $parts[2] -replace '^0x', ''
+    $endText = $parts[3] -replace '^0x', ''
+    if ($startText -notmatch '^[0-9a-fA-F]+$' -or $endText -notmatch '^[0-9a-fA-F]+$') {
+        throw "Malformed -ExemptRange bounds in '$entry'; use hexadecimal offsets."
+    }
+    $start = [Convert]::ToInt64($startText, 16)
+    $end = [Convert]::ToInt64($endText, 16)
+    if ($end -le $start) { throw "Malformed -ExemptRange '$entry'; the end must follow the start." }
+    $parsedExemptRanges.Add([pscustomobject]@{ object = $parts[0]; section = $parts[1]; start = $start; end = $end; specification = $entry })
+}
 
 $byteColumnPattern = [regex]::new('^\s*[0-9a-fA-F]+:\t((?:[0-9a-fA-F]{2} )+)[ ]*\t')
+$addressPattern = [regex]::new('^\s*([0-9a-fA-F]+):\t')
+$sectionPattern = [regex]::new('^Disassembly of section (.+):$')
 $symbolPattern = [regex]::new('^[0-9a-fA-F]+ <(.+)>:$')
 $disassemblyLinePattern = [regex]::new('^\s*[0-9a-fA-F]+:\t')
 # Prefixes that do not change the instruction's ISA level.  LOCK (F0) and the
@@ -294,16 +356,97 @@ function Get-ModRmModField {
     return (([Convert]::ToInt32($ModRm, 16)) -shr 6) -band 3
 }
 
+$objectCodeRanges = @{}
+if (-not [string]::IsNullOrWhiteSpace($ObjectCodeDataProofJson)) {
+    if ($ExecutableOnly) { throw 'Object code/data proof cannot be used for raw executable disassembly.' }
+    & python (Join-Path $PSScriptRoot 'coff-code-data.py') --verify-proof-index $ObjectCodeDataProofJson
+    if ($LASTEXITCODE -ne 0) { throw 'The object code/data boundary evidence failed byte/relocation verification.' }
+    $index = Get-Content -LiteralPath $ObjectCodeDataProofJson -Raw | ConvertFrom-Json
+    foreach ($path in $index.proofs) {
+        $proof = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+        $name = [IO.Path]::GetFileName($proof.object)
+        if ($objectCodeRanges.ContainsKey($name)) { throw "Duplicate code/data proof for '$name'." }
+        $objectCodeRanges[$name] = $proof
+    }
+}
+
 foreach ($target in $targets) {
+    $targetRanges = New-Object System.Collections.Generic.List[object]
+    if ($target.kind -eq 'executable' -and $addressRanges.Count -gt 0) {
+        foreach ($range in $addressRanges) { $targetRanges.Add($range) }
+    }
+    elseif ($target.kind -eq 'object' -and $objectCodeRanges.ContainsKey($target.name)) {
+        $proof = $objectCodeRanges[$target.name]
+        if ((Get-FileHash -LiteralPath $target.path -Algorithm SHA256).Hash -ne $proof.objectSha256) {
+            throw "Code/data proof does not match '$($target.path)'."
+        }
+        foreach ($range in $proof.ranges) {
+            if ($range.kind -ne 'code') { continue }
+            if ($range.codeMode -notin @(16,32) -or $range.section -notmatch '^\.text') {
+                throw 'Object code/data evidence names an unsupported mode or section.'
+            }
+            $targetRanges.Add([pscustomobject]@{ start = [long]$range.start; end = [long]$range.end;
+                label = 'proved-compiler-code'; codeMode = [int]$range.codeMode; section = [string]$range.section })
+        }
+    }
+    else {
+        # -d stops at every symbol, including a patch label in the immediate
+        # byte of an INT instruction. -D crosses those labels correctly, but
+        # must be restricted to actual CODE sections so it never decodes .data.
+        $headers = & $objdump -h $target.path 2>$null
+        if ($LASTEXITCODE -ne 0) { throw "objdump section discovery failed on '$($target.path)'." }
+        $pendingSection = $null
+        foreach ($headerLine in $headers) {
+            if ($headerLine -match '^\s*\d+\s+(\S+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+') {
+                $pendingSection = [pscustomobject]@{
+                    section = $Matches[1]
+                    size = [Convert]::ToInt64($Matches[2],16)
+                    start = [Convert]::ToInt64($Matches[3],16)
+                }
+            }
+            elseif ($null -ne $pendingSection -and $headerLine -match '\bCODE\b') {
+                if ($pendingSection.size -gt 0 -and ($null -eq $allowedSectionKeys -or
+                    $allowedSectionKeys.Contains($target.name + '|' + $pendingSection.section))) {
+                    $targetRanges.Add([pscustomobject]@{
+                        start = $pendingSection.start
+                        end = $pendingSection.start + $pendingSection.size
+                        section = $pendingSection.section
+                        codeMode = 32
+                        label = 'complete-code-section'
+                    })
+                }
+                $pendingSection = $null
+            }
+        }
+    }
+    foreach ($targetRange in $targetRanges) {
     $symbol = '<none>'
-    $lines = & $objdump -d $target.path 2>$null
+    $section = '<none>'
+    $codeMode = 32
+    if ($null -ne $targetRange -and $null -ne $targetRange.PSObject.Properties['codeMode']) {
+        $codeMode = [int]$targetRange.codeMode
+    }
+    $selectedSection = if ($null -ne $targetRange.PSObject.Properties['section']) { $targetRange.section } else { '.text' }
+    $lines = & python (Join-Path $PSScriptRoot 'isa-disassemble.py') `
+        --target $target.path --section $selectedSection `
+        --start ('0x{0:x}' -f [long]$targetRange.start) `
+        --end ('0x{0:x}' -f [long]$targetRange.end) --mode $codeMode --objdump $objdump
     if ($LASTEXITCODE -ne 0) {
         throw "objdump failed on '$($target.path)' with exit code $LASTEXITCODE."
     }
     foreach ($line in $lines) {
+        $sectionMatch = $sectionPattern.Match($line)
+        if ($sectionMatch.Success) {
+            $section = $sectionMatch.Groups[1].Value
+            continue
+        }
         $symbolMatch = $symbolPattern.Match($line)
         if ($symbolMatch.Success) {
             $symbol = $symbolMatch.Groups[1].Value
+            continue
+        }
+        if ($null -ne $allowedSectionKeys -and
+            -not $allowedSectionKeys.Contains($target.name + '|' + $section)) {
             continue
         }
         # The hex byte column is the run of byte pairs between the first tab and
@@ -311,12 +454,11 @@ foreach ($target in $targets) {
         # byte pairs that straddle two instructions.
         $byteMatch = $byteColumnPattern.Match($line)
         if (-not $byteMatch.Success) {
-            # A disassembly line whose byte column did not parse is either an
-            # objdump continuation line (the tail of a 7+ byte instruction, with
-            # no mnemonic) or a parser gap.  Both are counted; the second kind is
-            # the one that would silently hide instructions.
+            # --insn-width=16 covers the architectural 15-byte maximum. Any
+            # unparsed instruction-looking row is a parser error, never evidence
+            # that can be counted and silently discarded.
             if ($disassemblyLinePattern.Match($line).Success) {
-                $continuationLineCount++
+                throw "Unparsed objdump instruction row in '$($target.path)': $line"
             }
             continue
         }
@@ -328,7 +470,7 @@ foreach ($target in $targets) {
 
         # Strip prefixes that do not change the instruction's ISA level.
         $skip = 0
-        while (($skip -lt 3) -and ($b0 -in $ignorablePrefixes)) {
+        while (($skip -lt $bytes.Count) -and ($b0 -in $ignorablePrefixes)) {
             $skip++
             if ($b1 -eq $null) { break }
             $b0 = $b1
@@ -341,29 +483,48 @@ foreach ($target in $targets) {
             }
             else {
                 $key = '0f' + $b1
-                if ($twoByteIsa.ContainsKey($key)) {
+                if ($b1 -in @('20', '21', '22', '23', '24', '26')) {
+                    # Intel i486 Programmer's Reference Manual, chapters 4/26:
+                    # CR0/2/3, DR0..3/6/7 and TR3..7 are documented. MOV CR4
+                    # is a later target, despite sharing MOV's old opcode.
+                    $isa = 'unknown'
+                    if ($bytes.Count -ge ($skip + 3)) {
+                        $specialModrm = $bytes[$skip + 2]
+                        $specialReg = Get-ModRmRegField -ModRm $specialModrm
+                        $specialMod = Get-ModRmModField -ModRm $specialModrm
+                        if ($specialMod -eq 3) {
+                            if ($b1 -in @('20', '22')) {
+                                if ($specialReg -in @(0, 2, 3)) { $isa = 'i386' }
+                                elseif ($specialReg -eq 4) { $isa = 'i586' }
+                            }
+                            elseif ($b1 -in @('21', '23')) {
+                                if ($specialReg -in @(0, 1, 2, 3, 6, 7)) { $isa = 'i386' }
+                            }
+                            else {
+                                if ($specialReg -in @(6, 7)) { $isa = 'i386' }
+                                elseif ($specialReg -in @(3, 4, 5)) { $isa = 'i486' }
+                            }
+                        }
+                    }
+                }
+                elseif ($twoByteIsa.ContainsKey($key)) {
                     $isa = $twoByteIsa[$key]
                 }
                 elseif ($b1 -eq '01') {
-                    # 0F 01 /1 LLDT and /2 LTR are i486; the rest (SGDT, SIDT,
-                    # LGDT, LIDT, SMSW, LMSW, and the INVLPG variants) are 386.
-                    # Seeded i386 here and corrected from the ModRM reg field below,
-                    # once bytes[2] is in hand.
-                    $isa = 'i386'
+                    $isa = 'unknown' # validated using ModRM below
                 }
                 elseif ($b1 -eq 'ba') {
                     $isa = 'i386'   # BT/BTS/BTR/BTC with an immediate: 386
                 }
                 else {
                     # 0F 80..8F jcc rel32, 0F B6/B7/BE/BF movzx/movsx, 0F BC/BD
-                    # bsf/bsr, 0F A0/A1/A8/A9 push/pop fs/gs, 0F 20-23 mov CRn/DRn
+                    # bsf/bsr and 0F A0/A1/A8/A9 push/pop fs/gs
                     # are all i386.  Everything else in the 0F map that is not
                     # listed above is newer than this build's toolchain can emit.
                     $second = [Convert]::ToInt32($b1, 16)
                     if (($second -ge 0x80 -and $second -le 0x8F) -or
                         ($second -in @(0xB6, 0xB7, 0xBE, 0xBF, 0xBC, 0xBD, 0xA0, 0xA1, 0xA8, 0xA9)) -or
-                        ($second -ge 0x20 -and $second -le 0x23) -or
-                        ($second -in @(0x02, 0x03, 0x04, 0x05))) {
+                        ($second -in @(0x02, 0x03))) {
                         $isa = 'i386'
                     }
                     else {
@@ -371,38 +532,42 @@ foreach ($target in $targets) {
                     }
                 }
             }
-            # 0F 01 needs the ModRM reg field, which is bytes[2] for the forms
-            # that have one.
-            if ($b1 -eq '01' -and $bytes.Count -ge 3) {
-                $regField = Get-ModRmRegField -ModRm $bytes[2]
-                if ($null -ne $regField -and $regField -in @(1, 2)) { $isa = 'i486' }
+            if ($b1 -eq '01' -and $bytes.Count -ge ($skip + 3)) {
+                $modrm = $bytes[$skip + 2]
+                $regField = Get-ModRmRegField -ModRm $modrm
+                $modField = Get-ModRmModField -ModRm $modrm
+                # SGDT/SIDT/LGDT/LIDT require memory; SMSW/LMSW also allow
+                # registers. INVLPG is the i486 memory-only /7 form. Reject
+                # fixed register encodings such as MONITOR, XGETBV, RDTSCP.
+                if (($regField -in @(4, 6)) -or
+                    (($modField -ne 3) -and ($regField -in @(0, 1, 2, 3)))) {
+                    $isa = 'i386'
+                }
+                elseif (($modField -ne 3) -and ($regField -eq 7)) {
+                    $isa = 'i486'
+                }
             }
         }
         elseif ($b0 -in @('f6', 'f7')) {
-            # F6/F7 group 3 (TEST) and group 5 (INC/DEC/NEG/NOT/MUL/IMUL/DIV/IDIV).
-            # reg == 1 is TEST r/m,imm, which only exists from i486; the other
-            # reg values -- including reg == 5, the one-operand IMUL -- are 286+.
-            $isa = 'i386'
-            $regField = Get-ModRmRegField -ModRm $b1
-            if ($null -ne $regField -and $regField -eq 1) { $isa = 'i486' }
+            $isa = if ((Get-ModRmRegField -ModRm $b1) -eq 1) { 'unknown' } else { 'i386' }
         }
         elseif ($b0 -match '^[d][89a-f]$') {
-            # The whole x87 map is i386, with three P6 exceptions that are worth
-            # naming precisely because their encodings alias 386 ones:
+            # Distinguish legacy x87 memory forms from newer register forms.
             #
-            #   DB /5 and DB /6 in *register* form are FUCOMI and FCOMI.  In
-            #   memory form DB /5 is FLD m80 and DB /6 is unused, so only the
-            #   register form (mod == 11) is a P6 instruction.  Getting this
-            #   wrong is not hypothetical: an earlier version of this table
-            #   treated DF /5 as FCOMI and reported 17 phantom FCOMIs, which are
-            #   really FILD m64int.
+            #   DA/DB /0..3 register forms are FCMOVcc (P6).
+            #   DB/DF /5..6 register forms are F(U)COMI / F(U)COMIP (P6).
+            #   DB /5 memory is FLD m80; DF /5 memory is FILD m64int. Those
+            #   remain valid legacy forms and must not be rejected.
             #
             #   DB, DD and DF /1 in memory form are FISTTP, added with SSE3.
             $isa = 'i386'
             $regField = Get-ModRmRegField -ModRm $b1
             $modField = Get-ModRmModField -ModRm $b1
             if ($null -ne $regField) {
-                if (($b0 -eq 'db') -and ($modField -eq 3) -and ($regField -in @(5, 6))) {
+                if (($b0 -in @('da', 'db')) -and ($modField -eq 3) -and ($regField -le 3)) {
+                    $isa = 'p6'
+                }
+                elseif (($b0 -in @('db', 'df')) -and ($modField -eq 3) -and ($regField -in @(5, 6))) {
                     $isa = 'p6'
                 }
                 elseif (($b0 -in @('db', 'dd', 'df')) -and ($regField -eq 1) -and ($modField -ne 3)) {
@@ -410,18 +575,107 @@ foreach ($target in $targets) {
                 }
             }
         }
-        elseif ($b0 -in @('62', '63')) {
-            $isa = 'i486'   # BOUND (486), ARPL (486)
-        }
-        elseif ($b0 -eq '9d') {
-            $isa = 'i386'
-            # POPF in 32-bit mode; a non-zero reg field is the i486 RDMSR escape.
-            $regField = Get-ModRmRegField -ModRm $b1
-            if ($null -ne $regField -and $regField -ne 0) { $isa = 'i486' }
+        elseif (($b0 -in @('c4', 'c5', '62')) -and
+                ((Get-ModRmModField -ModRm $b1) -eq 3)) {
+            # In 32-bit mode VEX/EVEX use mod=11, invalid for the legacy
+            # memory-only LES/LDS/BOUND instructions sharing these opcodes.
+            $isa = 'p6'
         }
         else {
-            $isa = 'i386'
+            # The one-byte 80386 map defines all remaining opcodes except these
+            # reserved/undocumented values. Group encodings are checked below.
+            $isa = if ($b0 -in @('82','d6','f1')) { 'unknown' } else { 'i386' }
         }
+
+        # documented-486-encoding-policy: reject reserved operands and prefixes,
+        # even if a modern disassembler supplies an old-looking mnemonic.
+        # Sources: Intel 80386 PRM appendix A / section 17.2; Intel 80387 PRM
+        # appendix A; Intel i486 PRM instruction formats and LOCK restrictions.
+        $reg = Get-ModRmRegField -ModRm $b1
+        $mod = Get-ModRmModField -ModRm $b1
+        if ($skip -ge $bytes.Count) { $isa = 'unknown' }
+        if ($b0 -in @('8d','c4','c5','62') -and ($null -eq $mod -or $mod -eq 3)) {
+            if ($isa -ne 'p6') { $isa = 'unknown' }
+        }
+        if (($b0 -eq '8c' -and ($null -eq $reg -or $reg -gt 5)) -or
+            ($b0 -eq '8e' -and ($null -eq $reg -or $reg -in @(1,6,7))) -or
+            ($b0 -in @('8f','c6','c7') -and ($null -eq $reg -or $reg -ne 0)) -or
+            ($b0 -eq 'fe' -and ($null -eq $reg -or $reg -gt 1)) -or
+            ($b0 -eq 'ff' -and ($null -eq $reg -or $reg -eq 7 -or ($reg -in @(3,5) -and $mod -eq 3))) -or
+            ($b0 -in @('c0','c1','d0','d1','d2','d3') -and ($null -eq $reg -or $reg -eq 6)) -or
+            ($b0 -in @('d4','d5') -and $b1 -ne '0a')) { $isa = 'unknown' }
+        if ($b0 -eq '0f' -and $bytes.Count -gt ($skip+2)) {
+            $reg = Get-ModRmRegField -ModRm $bytes[$skip+2]
+            $mod = Get-ModRmModField -ModRm $bytes[$skip+2]
+            if (($b1 -eq '00' -and $reg -gt 5) -or
+                ($b1 -eq 'ba' -and $reg -lt 4) -or
+                ($b1 -in @('b2','b4','b5') -and $mod -eq 3) -or
+                ($b1 -match '^9[0-9a-f]$' -and $reg -ne 0)) { $isa = 'unknown' }
+        }
+        if ($b0 -match '^d[89a-f]$' -and $null -ne $b1) {
+            $reg = Get-ModRmRegField -ModRm $b1
+            $mod = Get-ModRmModField -ModRm $b1
+            $operand = [Convert]::ToInt32($b1,16)
+            $documented = $false
+            if ($mod -ne 3) {
+                $documented = switch ($b0) {
+                    d8 { $true }; d9 { $reg -in @(0,2,3,4,5,6,7) }
+                    da { $true }; db { $reg -in @(0,2,3,5,7) }
+                    dc { $true }; dd { $reg -in @(0,2,3,4,6,7) }
+                    de { $true }; df { $reg -ne 1 }
+                }
+            } else {
+                $documented = switch ($b0) {
+                    d8 { $true }
+                    d9 { ($operand -ge 0xc0 -and $operand -le 0xcf) -or $operand -eq 0xd0 -or
+                        $operand -in @(0xe0,0xe1,0xe4,0xe5) -or
+                        ($operand -ge 0xe8 -and $operand -le 0xee) -or $operand -ge 0xf0 }
+                    da { $operand -eq 0xe9 }
+                    db { $operand -in @(0xe0,0xe1,0xe2,0xe3,0xe4) } # obsolete documented FNOP encodings included
+                    dc { ($operand -ge 0xc0 -and $operand -le 0xcf) -or $operand -ge 0xe0 }
+                    dd { ($operand -ge 0xc0 -and $operand -le 0xc7) -or
+                         ($operand -ge 0xd0 -and $operand -le 0xef) }
+                    de { ($operand -ge 0xc0 -and $operand -le 0xcf) -or $operand -eq 0xd9 -or $operand -ge 0xe0 }
+                    df { $operand -eq 0xe0 }
+                }
+            }
+            if (-not $documented -and $isa -ne 'p6') { $isa = 'unknown' }
+        }
+        $prefixGroups = @{}
+        $hasLock = $false; $hasRepeat = $false; $hasOperandPrefix = $false
+        for ($prefixIndex=0; $prefixIndex -lt $skip; $prefixIndex++) {
+            $prefix = $bytes[$prefixIndex]
+            $group = switch ($prefix) {
+                66 { 3 }; 67 { 4 }; f0 { 1 }; f2 { 1 }; f3 { 1 }; default { 2 }
+            }
+            if ($prefixGroups.ContainsKey($group)) { $isa = 'unknown' }
+            $prefixGroups[$group] = $true
+            if ($prefix -eq 'f0') { $hasLock = $true }
+            if ($prefix -in @('f2','f3')) { $hasRepeat = $true }
+            if ($prefix -eq '66') { $hasOperandPrefix = $true }
+        }
+        if ($b0 -eq '0f' -and $b1 -match '^c[89a-f]$' -and
+            (($codeMode -eq 32 -and $hasOperandPrefix) -or ($codeMode -eq 16 -and -not $hasOperandPrefix))) {
+            $isa = 'unknown'
+        }
+        if ($hasRepeat -and $b0 -notin @('6c','6d','6e','6f','a4','a5','a6','a7','aa','ab','ac','ad','ae','af')) {
+            $isa = if ($b0 -eq '90' -and $bytes[0] -eq 'f3') { 'p6' } else { 'unknown' }
+        }
+        if ('f2' -in $bytes[0..([Math]::Max(0,$skip-1))] -and $skip -gt 0 -and
+            $b0 -notin @('a6','a7','ae','af')) { $isa = 'unknown' }
+        if ($hasLock) {
+            $lockable = $false
+            if ($mod -ne 3 -and $null -ne $mod) {
+                $lockable = ($b0 -in @('00','01','08','09','10','11','18','19','20','21','28','29','30','31','86','87')) -or
+                    ($b0 -in @('80','81','83') -and $reg -ne 7) -or
+                    ($b0 -in @('f6','f7') -and $reg -in @(2,3)) -or
+                    ($b0 -in @('fe','ff') -and $reg -in @(0,1)) -or
+                    ($b0 -eq '0f' -and ($b1 -in @('ab','b0','b1','b3','bb','c0','c1') -or ($b1 -eq 'ba' -and $reg -in @(5,6,7))))
+            }
+            if (-not $lockable) { $isa = 'unknown' }
+        }
+        $decoded = $line.Substring($line.LastIndexOf("`t") + 1).Trim()
+        if ($decoded -match '\(bad\)|^\.byte\b') { $isa = 'unknown' }
 
         $instructionCount++
         switch ($isa) {
@@ -433,6 +687,11 @@ foreach ($target in $targets) {
         }
 
         if (($isaRank[$isa] -gt $maxRank) -or ($isa -eq 'unknown')) {
+            $addressMatch = $addressPattern.Match($line)
+            if (-not $addressMatch.Success) {
+                throw "Could not recover an instruction address from '$($target.path)': $line"
+            }
+            $instructionAddress = [Convert]::ToInt64($addressMatch.Groups[1].Value, 16)
             $decoded = $line.Substring($line.LastIndexOf("`t") + 1).Trim()
             $record = [pscustomobject]@{
                 kind = $target.kind
@@ -443,7 +702,16 @@ foreach ($target in $targets) {
                 example = "$($bytes[0..([Math]::Min(3, $bytes.Count - 1))] -join ' ')  $decoded"
                 encoding = if ($bytes.Count -ge 2 -and $b0 -eq '0f') { "0f $($bytes[1])" } else { $b0 }
             }
-            if ($exemptKeys.Contains("$($target.name):$symbol")) {
+            $rangeExempt = $false
+            foreach ($range in $parsedExemptRanges) {
+                if ([string]::Equals($range.object, $target.name, [StringComparison]::OrdinalIgnoreCase) -and
+                    [string]::Equals($range.section, $section, [StringComparison]::Ordinal) -and
+                    $instructionAddress -ge $range.start -and $instructionAddress -lt $range.end) {
+                    $rangeExempt = $true
+                    break
+                }
+            }
+            if ($exemptKeys.Contains("$($target.name):$symbol") -or $rangeExempt) {
                 $exempted.Add($record)
             }
             else {
@@ -454,7 +722,40 @@ foreach ($target in $targets) {
                 }
             }
         }
+
+        if (-not [string]::IsNullOrWhiteSpace($InstructionDetailsJsonl)) {
+            $addressMatch = $addressPattern.Match($line)
+            if (-not $addressMatch.Success) {
+                throw "Could not recover an instruction address from '$($target.path)': $line"
+            }
+            $decoded = $line.Substring($line.LastIndexOf("`t") + 1).Trim()
+            $detail = [ordered]@{
+                object = $target.name
+                path = $target.path
+                section = $section
+                address = [Convert]::ToInt64($addressMatch.Groups[1].Value, 16)
+                symbol = $symbol
+                rangeLabel = if ($null -eq $targetRange) { $null } else { $targetRange.label }
+                bytes = @($bytes)
+                isa = $isa
+                codeMode = $codeMode
+                decoded = $decoded
+            }
+            $instructionDetailLines.Add(($detail | ConvertTo-Json -Depth 4 -Compress))
+        }
     }
+    }
+}
+
+if (-not [string]::IsNullOrWhiteSpace($InstructionDetailsJsonl)) {
+    $detailDirectory = Split-Path -Parent $InstructionDetailsJsonl
+    if (-not [string]::IsNullOrWhiteSpace($detailDirectory)) {
+        New-Item -ItemType Directory -Path $detailDirectory -Force | Out-Null
+    }
+    [IO.File]::WriteAllLines(
+        [IO.Path]::GetFullPath($InstructionDetailsJsonl),
+        [string[]]$instructionDetailLines,
+        [Text.UTF8Encoding]::new($false))
 }
 
 # Collapse to one row per (kind, object, symbol, required) with a count, so a
@@ -492,10 +793,14 @@ $report = [ordered]@{
     buildRoot = $BuildRoot
     maxIsa = $MaxIsa
     executable = $exePath
+    executableOnly = [bool]$ExecutableOnly
+    addressRangesJson = if ([string]::IsNullOrWhiteSpace($AddressRangesJson)) { $null } else { [IO.Path]::GetFullPath($AddressRangesJson) }
+    disassemblyRangeCount = $addressRanges.Count
     objectDirectories = @($objectDirectories | ForEach-Object { $_.Name })
     objectCount = @($targets | Where-Object kind -eq 'object').Count
     executableCount = @($targets | Where-Object kind -eq 'executable').Count
     instructionCount = $instructionCount
+    instructionDetailsJsonl = if ([string]::IsNullOrWhiteSpace($InstructionDetailsJsonl)) { $null } else { [IO.Path]::GetFullPath($InstructionDetailsJsonl) }
     continuationLineCount = $continuationLineCount
     isaTotals = [ordered]@{
         i386 = $count386
@@ -508,6 +813,9 @@ $report = [ordered]@{
     unclassifiedCount = $unclassified.Count
     exemptedCount = $exempted.Count
     exemptions = @($exemptKeys | Sort-Object)
+    rangeExemptions = @($parsedExemptRanges | ForEach-Object {
+        [ordered]@{ object = $_.object; section = $_.section; start = ('0x{0:x}' -f $_.start); end = ('0x{0:x}' -f $_.end); specification = $_.specification }
+    })
     # Encodings that actually exceed the maximum, in one line each.  This is the
     # number that matters: a handful of encodings means a handful of decisions,
     # whereas a long site list means the compiler is choosing them.

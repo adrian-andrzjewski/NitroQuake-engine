@@ -1,0 +1,1 @@
+#define USED_FOR_TARGET 1

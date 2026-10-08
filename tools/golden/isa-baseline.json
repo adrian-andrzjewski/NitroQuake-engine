@@ -1,6 +1,6 @@
 {
   "schema": "nitroquake-isa-ratchet-baseline/2",
-  "note": "Blocking ISA gate baseline for build-dos.ps1. The build fails when an above-target instruction count EXCEEDS the figure recorded for its variant, when any above-target encoding appears that is not recorded, or when any instruction is unclassified. It does not fail while a count is still at or below its recorded figure, because the tree does not yet execute on its nominal target: see ASM486-HANDOFF.md, 'A separate i386 codepath exists, and the shipped 486 binary needs a Pentium'. Ratchet these numbers down as the multiply-elimination work lands; the end state is all-zero.",
+  "note": "Blocking ISA gate baseline for build-dos.ps1. Every i486 release, benchmark and instrumentation variant is recorded at zero above-i486 instructions. The i386 variant records the remaining i486 instructions. Any new or increased above-target encoding, any unclassified instruction, or any non-exempt P6 instruction fails the build.",
   "variantKey": "<cpuTarget>/<executableName>, where executableName is quake.exe (release), qbench.exe (-Benchmark), or qprof.exe (-Instrumentation). One figure per target is not enough: -Benchmark compiles the ~4335-line bench harness in host_cmd.c and -Instrumentation compiles the PROFILE486 counters, so those are strictly larger code sets with their own instruction mix.",
   "hardRules": {
     "unclassifiedMustBeZero": true,
@@ -10,53 +10,36 @@
     ],
     "exemptionReason": "The CRC constant table lives in .text and disassembles as if it were instructions; its single decoded byte pattern is a p6 MMX opcode. It is data, not code, and is the only exemption in the tree."
   },
-  "buildDeterminism": "GCC 12.2.0 emits 165103 or 165105 total instructions for the i386 object set across identical rebuilds of identical source, so the raw instruction total is not reproducible. The i486 object set is stable at 168463. The per-encoding above-target counts are reproducible once the 62/63 string-data decode is excluded, which is what the gate compares. Two further reasons the audit is given an explicit -ObjectNames list rather than a directory: an object directory accumulates objects from selector sets that are no longer active (asm486_experiments.s when every implementation selector is 'c', net_comx.c which is #included rather than compiled), which made the count depend on build history; and sweeping every obj* subdirectory audited 206 objects instead of 103 by double-counting obj/ and obj-bench/.",
-  "scopeNote": "These are object-level figures from tools\\isa-audit.ps1, which disassembles the real objects and counts every inlined copy separately, so they are the right numbers for a gate. The source-level figures from tools\\isa-audit-source.py count one hit per source construct and are the right numbers for a rewrite checklist. The two are not expected to agree -- object level sees more, because an inlined function is counted at every call site -- but once the string-data decode is excluded they land close: this file records 305 enforced above-i386 against the 307 that ASM486-HANDOFF.md cites from the source-level tool. That agreement is the evidence that the 62/63 exclusion is sound rather than convenient.",
+  "buildDeterminism": "The i486 release build audit on 2026-10-06 counted 168459 object instructions; total instruction counts are informational and can vary with compiler output. The gate compares per-encoding above-target counts after excluding 62/63 string-data decodes and the named CRC constant-table exemption. Builds audit only the explicit active object list because directories can retain stale objects from other selector sets. The i486 release, benchmark and instrumentation variants each have zero above-target instructions; the i386 variant has 141 i486 instructions.",
+  "scopeNote": "tools/isa-audit.ps1 disassembles active build objects and counts inlined copies; tools/isa-audit-source.py independently classifies compiler-generated and preprocessed source instructions. The source and object totals differ because the object audit counts inlined copies and both audits handle data embedded in .text differently. Both now confirm zero above-i486 instructions for the i486 builds. IMUL 0F AF is an i386 instruction per the Intel 80386 manual.",
   "targets": {
     "i486/quake.exe": {
-      "recorded": "2026-10-03",
+      "recorded": "2026-10-06",
       "objectDirectory": "obj",
-      "encodings": {
-        "0f af (i586)": 161,
-        "0f 32 (i586)": 2,
-        "0f 30 (i586)": 4,
-        "0f 0b (i586)": 3
-      },
-      "totalAbove": 170
+      "encodings": {},
+      "totalAbove": 0
     },
     "i486/qbench.exe": {
-      "recorded": "2026-10-03",
+      "recorded": "2026-10-06",
       "objectDirectory": "obj-bench",
-      "encodings": {
-        "0f af (i586)": 164,
-        "0f 32 (i586)": 2,
-        "0f 30 (i586)": 4,
-        "0f 0b (i586)": 3
-      },
-      "totalAbove": 173
+      "encodings": {},
+      "totalAbove": 0
     },
     "i486/qprof.exe": {
-      "recorded": "2026-10-03",
+      "recorded": "2026-10-06",
       "objectDirectory": "obj-bench-profile",
-      "encodings": {
-        "0f af (i586)": 168,
-        "0f 32 (i586)": 2,
-        "0f 30 (i586)": 4,
-        "0f 0b (i586)": 3
-      },
-      "totalAbove": 177
+      "encodings": {},
+      "totalAbove": 0
     },
     "i386/quake.exe": {
-      "recorded": "2026-10-03",
+      "recorded": "2026-10-06",
       "objectDirectory": "obj",
       "encodings": {
         "0f 95 (i486)": 53,
         "0f 94 (i486)": 53,
-        "0f af (i586)": 161,
         "0f 00 (i486)": 8,
         "f7 (i486)": 1,
         "0f 93 (i486)": 6,
-        "0f 0b (i586)": 3,
         "0f 9c (i486)": 3,
         "0f 9f (i486)": 11,
         "0f 9e (i486)": 3,
@@ -64,7 +47,7 @@
         "0f ac (i486)": 1,
         "0f 9d (i486)": 1
       },
-      "totalAbove": 305
+      "totalAbove": 141
     }
   },
   "noiseEncodings": {
@@ -75,9 +58,9 @@
     ]
   },
   "encodingMeanings": {
-    "0f af": "imul r32, r/m32 -- the only two-register general multiply x86 has, and a Pentium instruction. No 386-safe mnemonic spelling exists, so it can only be removed by strength reduction, never by respelling. This is the whole of the multiply-elimination work.",
-    "0f 0b": "ud2 -- emitted by GCC as a cold-block trap.",
-    "0f 30": "wrmsr -- dosasm.s StartMSRInterval/EndMSRInterval, dead code driving MSR 0x11 (Pentium Pro / Cyrix-6x86). Deletable.",
-    "0f 32": "rdmsr -- same dead dosasm.s pair."
+    "0f af": "imul r32, r/m32 -- documented by the Intel 80386 manual; this was previously misclassified as Pentium.",
+    "0f 0b": "ud2 -- unsupported on the 486; GCC emitted this in cold error paths until the per-source null-pointer behavior flags were added.",
+    "0f 30": "wrmsr -- removed with the unreferenced StartMSRInterval/EndMSRInterval routines from dosasm.s.",
+    "0f 32": "rdmsr -- removed with the unreferenced StartMSRInterval/EndMSRInterval routines from dosasm.s."
   }
 }
