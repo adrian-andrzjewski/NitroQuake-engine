@@ -221,6 +221,8 @@ Invoke-Gate -Name 'test-blobexplosion-demo-fixture (PACK + .dem format)' -Kind '
     -Command @('python', '-B', 'tools/test_blobexplosion_demo_fixture.py') | Out-Null
 Invoke-Gate -Name 'test-lavasplash-fixture (assembly source contract)' -Kind 'host' `
     -Command @('python', '-B', 'tools/test-lavasplash.py') | Out-Null
+Invoke-Gate -Name 'test-teleportsplash-fixture (assembly source contract)' -Kind 'host' `
+    -Command @('python', '-B', 'tools/test-teleportsplash.py') | Out-Null
 Invoke-Gate -Name 'test-timedemo-event-record (BENCH486 event report parser)' -Kind 'host' `
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-timedemo-event-record.ps1') | Out-Null
 Invoke-Gate -Name 'test-rendering-reports (exact C/ASM parity report comparator)' -Kind 'host' -Command @('python', 'tools/test-rendering-reports.py') | Out-Null

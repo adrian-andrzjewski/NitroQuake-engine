@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-teleportsplash-c",
+  "description": "C-reference TeleportSplash selector for an isolated renderer parity pair.",
+  "selectors": {
+    "TeleportSplashImplementation": "c"
+  }
+}

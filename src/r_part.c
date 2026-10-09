@@ -132,6 +132,25 @@ typedef char lava_splash_client_time_layout[
 typedef char lava_splash_particle_type[(pt_slowgrav == 2) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_TELEPORT_SPLASH) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char teleport_splash_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char teleport_splash_particle_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, ramp) == 32 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char teleport_splash_client_time_layout[
+		(offsetof(client_state_t, time) == 572 &&
+		sizeof(((client_state_t *)0)->time) == 8) ? 1 : -1];
+typedef char teleport_splash_particle_type[(pt_slowgrav == 2) ? 1 : -1];
+#endif
+
 #ifdef BENCH486
 int (*bench486_lavasplash_rand_probe) (void);
 unsigned bench486_lavasplash_rand_calls;
@@ -699,12 +718,32 @@ void R_LavaSplash (vec3_t org)
 #endif
 #undef LAVA_SPLASH_RAND
 
+#ifdef BENCH486
+int (*bench486_teleportsplash_rand_probe) (void);
+unsigned bench486_teleportsplash_rand_calls;
+
+int Bench486TeleportSplashRand (void)
+{
+	bench486_teleportsplash_rand_calls++;
+	if (bench486_teleportsplash_rand_probe)
+		return bench486_teleportsplash_rand_probe ();
+	return rand ();
+}
+#define TELEPORT_SPLASH_RAND() Bench486TeleportSplashRand ()
+#else
+#define TELEPORT_SPLASH_RAND() rand ()
+#endif
+
 /*
 ===============
 R_TeleportSplash
 
 ===============
 */
+#ifdef ASM486_TELEPORT_SPLASH
+#define R_TeleportSplash R_TeleportSplash_C
+#endif
+#if !defined(ASM486_TELEPORT_SPLASH) || defined(BENCH486)
 void R_TeleportSplash (vec3_t org)
 {
 	int			i, j, k;
@@ -723,23 +762,28 @@ void R_TeleportSplash (vec3_t org)
 				p->next = active_particles;
 				active_particles = p;
 		
-				p->die = cl.time + 0.2 + (rand()&7) * 0.02;
-				p->color = 7 + (rand()&7);
+				p->die = cl.time + 0.2 + (TELEPORT_SPLASH_RAND()&7) * 0.02;
+				p->color = 7 + (TELEPORT_SPLASH_RAND()&7);
 				p->type = pt_slowgrav;
 				
 				dir[0] = j*8;
 				dir[1] = i*8;
 				dir[2] = k*8;
 	
-				p->org[0] = org[0] + i + (rand()&3);
-				p->org[1] = org[1] + j + (rand()&3);
-				p->org[2] = org[2] + k + (rand()&3);
+				p->org[0] = org[0] + i + (TELEPORT_SPLASH_RAND()&3);
+				p->org[1] = org[1] + j + (TELEPORT_SPLASH_RAND()&3);
+				p->org[2] = org[2] + k + (TELEPORT_SPLASH_RAND()&3);
 	
 				VectorNormalize (dir);						
-				vel = 50 + (rand()&63);
+				vel = 50 + (TELEPORT_SPLASH_RAND()&63);
 				VectorScale (dir, vel, p->vel);
 			}
 }
+#endif
+#ifdef ASM486_TELEPORT_SPLASH
+#undef R_TeleportSplash
+#endif
+#undef TELEPORT_SPLASH_RAND
 
 #ifdef BENCH486
 int (*bench486_rockettrail_rand_probe) (void);

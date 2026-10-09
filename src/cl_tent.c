@@ -249,6 +249,9 @@ void CL_ParseTEnt (void)
 		pos[1] = MSG_ReadCoord ();
 		pos[2] = MSG_ReadCoord ();
 		R_TeleportSplash (pos);
+#ifdef BENCH486
+		Bench486RecordTeleportSplashEvent ();
+#endif
 		break;
 		
 	case TE_EXPLOSION2:				// color mapped explosion

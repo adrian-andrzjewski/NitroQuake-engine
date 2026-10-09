@@ -252,10 +252,12 @@ foreach ($scene in $selectedScenarios) {
     New-Item -ItemType Directory -Path $sceneOutput -Force | Out-Null
     $sceneStatus = 'PASS'
     $timedemoJson = $null
+    $referencePath = $null
     $imageReports = New-Object System.Collections.Generic.List[object]
     $frameReports = New-Object System.Collections.Generic.List[object]
     $previousBlobExplosionEventState = $null
     $previousLavaSplashEventState = $null
+    $previousTeleportSplashEventState = $null
     $effectiveRuns = if ($RunsOverride -gt 0) { $RunsOverride } else { [int]$scene.repeatRuns }
     $childOutputText = ''
     $timedemoResultPath = $null
@@ -277,7 +279,7 @@ foreach ($scene in $selectedScenarios) {
             throw "Scenario '$($scene.id)' captureBenchEvents must be a non-empty JSON array."
         }
         foreach ($captureBenchEvent in $captureBenchEventsProperty.Value) {
-            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash')) {
+            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash', 'teleportSplash')) {
                 throw "Scenario '$($scene.id)' has unsupported captureBenchEvents entry '$captureBenchEvent'."
             }
             $captureBenchEvents += $captureBenchEvent
@@ -287,7 +289,7 @@ foreach ($scene in $selectedScenarios) {
     $expectedBenchEventFramesProperty = $scene.PSObject.Properties['expectedBenchEventFrames']
     if ($null -ne $expectedBenchEventFramesProperty -and $null -ne $expectedBenchEventFramesProperty.Value) {
         foreach ($expectedEventProperty in $expectedBenchEventFramesProperty.Value.PSObject.Properties) {
-            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash') -or
+            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash', 'teleportSplash') -or
                 $expectedEventProperty.Value -isnot [array]) {
                 throw "Scenario '$($scene.id)' expectedBenchEventFrames has an invalid '$($expectedEventProperty.Name)' entry."
             }
@@ -299,6 +301,10 @@ foreach ($scene in $selectedScenarios) {
     if ($requiredBenchEvents -contains 'lavaSplash' -and
         -not $expectedBenchEventFrames.ContainsKey('lavaSplash')) {
         throw "Scenario '$($scene.id)' requires lavaSplash but does not define expectedBenchEventFrames.lavaSplash."
+    }
+    if ($requiredBenchEvents -contains 'teleportSplash' -and
+        -not $expectedBenchEventFrames.ContainsKey('teleportSplash')) {
+        throw "Scenario '$($scene.id)' requires teleportSplash but does not define expectedBenchEventFrames.teleportSplash."
     }
 
     Write-Host ''
@@ -461,6 +467,38 @@ foreach ($scene in $selectedScenarios) {
                 $null
             }
 
+            $teleportSplashFramesProperty = $diagnostics.PSObject.Properties['teleportSplashEventFrames']
+            $teleportSplashCountProperty = $diagnostics.PSObject.Properties['teleportSplashEventCount']
+            $teleportSplashOverflowProperty = $diagnostics.PSObject.Properties['teleportSplashEventOverflow']
+            $teleportSplashEventFrames = $null
+            $teleportSplashEventCount = $null
+            $teleportSplashEventOverflow = $null
+            $teleportSplashEventFramesPresent = $false
+            $teleportSplashEventCountPresent = $false
+            $teleportSplashEventOverflowPresent = $false
+            $invalidTeleportSplashEventFrames = @()
+            if ($null -ne $teleportSplashFramesProperty -and $teleportSplashFramesProperty.Value -is [System.Array]) {
+                $teleportSplashEventFramesPresent = $true
+                $teleportSplashEventFrames = @($teleportSplashFramesProperty.Value | ForEach-Object { [int]$_ })
+                $invalidTeleportSplashEventFrames = @($teleportSplashEventFrames | Where-Object {
+                        $_ -lt 0 -or $_ -ge $checksumStreamFrameCount
+                    })
+            }
+            if ($null -ne $teleportSplashCountProperty -and $null -ne $teleportSplashCountProperty.Value) {
+                $teleportSplashEventCountPresent = $true
+                $teleportSplashEventCount = [int]$teleportSplashCountProperty.Value
+            }
+            if ($null -ne $teleportSplashOverflowProperty -and $null -ne $teleportSplashOverflowProperty.Value) {
+                $teleportSplashEventOverflowPresent = $true
+                $teleportSplashEventOverflow = [int]$teleportSplashOverflowProperty.Value
+            }
+            $teleportSplashEventFrameSignature = if ($teleportSplashEventFramesPresent) {
+                [string]::Join(',', [string[]]$teleportSplashEventFrames)
+            }
+            else {
+                $null
+            }
+
             $blobExplosionEventRepeatParity = $null
             $blobExplosionEventRepeatComparison = $null
             if ($requiredBenchEvents -contains 'blobExplosion') {
@@ -535,6 +573,43 @@ foreach ($scene in $selectedScenarios) {
                     overflow = $lavaSplashEventOverflow
                 }
             }
+            $teleportSplashEventRepeatParity = $null
+            $teleportSplashEventRepeatComparison = $null
+            if ($requiredBenchEvents -contains 'teleportSplash') {
+                if ($null -ne $previousTeleportSplashEventState) {
+                    $teleportSplashEventRepeatComparison = Compare-Bench486EventRepeat `
+                        -ReferenceFramesPresent $previousTeleportSplashEventState.framesPresent `
+                        -ReferenceFramesSignature $previousTeleportSplashEventState.framesSignature `
+                        -ReferenceOverflowPresent $previousTeleportSplashEventState.overflowPresent `
+                        -ReferenceOverflow $previousTeleportSplashEventState.overflow `
+                        -CandidateFramesPresent $teleportSplashEventFramesPresent `
+                        -CandidateFramesSignature $teleportSplashEventFrameSignature `
+                        -CandidateOverflowPresent $teleportSplashEventOverflowPresent `
+                        -CandidateOverflow $teleportSplashEventOverflow
+                    $teleportSplashEventRepeatParity = if ($teleportSplashEventRepeatComparison.exactMatch) { 'PASS' } else { 'FAIL' }
+                    if (-not $teleportSplashEventRepeatComparison.exactMatch) {
+                        $sceneStatus = 'FAIL'
+                        $failures.Add([pscustomobject]@{
+                                scenario = $scene.id
+                                test = 'repeat-teleport-splash-event-stability'
+                                expected = @{
+                                    frames = $previousTeleportSplashEventState.frames
+                                    overflow = $previousTeleportSplashEventState.overflow
+                                }
+                                actual = @{ frames = $teleportSplashEventFrames; overflow = $teleportSplashEventOverflow }
+                                metrics = $teleportSplashEventRepeatComparison
+                                capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                            })
+                    }
+                }
+                $previousTeleportSplashEventState = [pscustomobject]@{
+                    framesPresent = $teleportSplashEventFramesPresent
+                    frames = $teleportSplashEventFrames
+                    framesSignature = $teleportSplashEventFrameSignature
+                    overflowPresent = $teleportSplashEventOverflowPresent
+                    overflow = $teleportSplashEventOverflow
+                }
+            }
             $frameReports.Add([pscustomobject]@{
                     run = $run.run
                     frames = $frameData.Count
@@ -552,6 +627,10 @@ foreach ($scene in $selectedScenarios) {
                     lavaSplashEventFrames = $lavaSplashEventFrames
                     lavaSplashEventOverflow = $lavaSplashEventOverflow
                     lavaSplashEventRepeatParity = $lavaSplashEventRepeatParity
+                    teleportSplashEventCount = $teleportSplashEventCount
+                    teleportSplashEventFrames = $teleportSplashEventFrames
+                    teleportSplashEventOverflow = $teleportSplashEventOverflow
+                    teleportSplashEventRepeatParity = $teleportSplashEventRepeatParity
                     captureBenchEvents = @($captureBenchEvents)
                     captureBenchEventChecks = @()
                     repeatParity = $null
@@ -633,6 +712,50 @@ foreach ($scene in $selectedScenarios) {
                 }
             }
 
+            if ($requiredBenchEvents -contains 'teleportSplash') {
+                $eventFailure = $null
+                $expectedTeleportSplashEventFrames = @($expectedBenchEventFrames['teleportSplash'])
+                $expectedTeleportSplashEventSignature = [string]::Join(',', [string[]]$expectedTeleportSplashEventFrames)
+                $actualTeleportSplashEventSignature = if ($teleportSplashEventFramesPresent) {
+                    [string]::Join(',', [string[]]$teleportSplashEventFrames)
+                }
+                else {
+                    $null
+                }
+                if (-not $teleportSplashEventFramesPresent -or -not $teleportSplashEventCountPresent -or
+                    -not $teleportSplashEventOverflowPresent) {
+                    $eventFailure = 'required teleportSplash event count/frame/overflow metadata is missing'
+                }
+                elseif ($invalidTeleportSplashEventFrames.Count -gt 0) {
+                    $eventFailure = "teleportSplash event frame index/indices fall outside the total $checksumStreamFrameCount-frame checksum stream"
+                }
+                elseif ($teleportSplashEventOverflow -ne 0) {
+                    $eventFailure = "teleportSplash event metadata overflowed by $teleportSplashEventOverflow event(s)"
+                }
+                elseif ($teleportSplashEventCount -ne $expectedTeleportSplashEventFrames.Count -or
+                    $teleportSplashEventFrames.Count -ne $expectedTeleportSplashEventFrames.Count) {
+                    $eventFailure = "teleportSplash event count must be exactly $($expectedTeleportSplashEventFrames.Count)"
+                }
+                elseif ($actualTeleportSplashEventSignature -ne $expectedTeleportSplashEventSignature) {
+                    $eventFailure = "teleportSplash event frame indices must be exactly '$expectedTeleportSplashEventSignature'"
+                }
+                if ($null -ne $eventFailure) {
+                    $sceneStatus = 'FAIL'
+                    $failures.Add([pscustomobject]@{
+                            scenario = $scene.id
+                            test = 'required-bench-event'
+                            expected = @{ event = 'teleportSplash'; count = $expectedTeleportSplashEventFrames.Count; frames = $expectedTeleportSplashEventFrames; overflow = 0 }
+                            actual = @{ count = $teleportSplashEventCount; frames = $teleportSplashEventFrames; overflow = $teleportSplashEventOverflow }
+                            metrics = @{
+                                error = $eventFailure
+                                invalidFrameIndices = $invalidTeleportSplashEventFrames
+                                checksumStreamFrames = $checksumStreamFrameCount
+                            }
+                            capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                        })
+                }
+            }
+
             $captureBenchEventChecks = @()
             foreach ($captureBenchEvent in $captureBenchEvents) {
                 $capturedFrameIndexProperty = $diagnostics.PSObject.Properties['frameCaptureIndex']
@@ -648,6 +771,9 @@ foreach ($scene in $selectedScenarios) {
                 }
                 elseif ($captureBenchEvent -eq 'lavaSplash') {
                     $lavaSplashEventFrames
+                }
+                elseif ($captureBenchEvent -eq 'teleportSplash') {
+                    $teleportSplashEventFrames
                 }
                 else {
                     @()

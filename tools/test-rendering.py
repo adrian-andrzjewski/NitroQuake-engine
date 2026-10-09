@@ -357,6 +357,74 @@ class RenderingComparisonTests(unittest.TestCase):
             expected_result["scenarios"][0]["runs"][0]["benchEvents"]["lavaSplash"]["expectedFramesMatch"]
         )
 
+    def test_required_teleportsplash_event_requires_exact_frame_and_pair_parity(self) -> None:
+        expected = {"teleportSplash": [10]}
+
+        def write_report(name: str, event: dict | None, *, expected_frames: dict = expected) -> Path:
+            checksum_path = self.root / f"{name}-checksums.txt"
+            checksum_rows = "".join(f"{frame} {123 + frame}\n" for frame in range(16))
+            checksum_path.write_text(f"{checksum_rows}frames 16 overflow 0\n", encoding="ascii")
+            image_path = self.capture(f"{name}.pcx")
+            diagnostic = {"run": 1, "frameChecksumPath": str(checksum_path)}
+            if event is not None:
+                diagnostic.update(event)
+            scenario = {
+                "scenario": "demo2-teleportsplash-event",
+                "result": "PASS",
+                "reference": None,
+                "captureFrame": 10,
+                "ignoredWarmupChecksumFrames": 2,
+                "requiredBenchEvents": ["teleportSplash"],
+                "expectedBenchEventFrames": expected_frames,
+                "frameDiagnostics": [diagnostic],
+                "imageComparisons": [{"actual": {"path": str(image_path)}}],
+            }
+            report_path = self.root / f"{name}-report.json"
+            report_path.write_text(json.dumps({
+                "schemaVersion": 1,
+                "result": "PASS",
+                "cpuTarget": "i486",
+                "sourceTreeFingerprint": "fixture-tree",
+                "scenarios": [scenario],
+            }), encoding="utf-8")
+            return report_path
+
+        valid_event = {
+            "teleportSplashEventCount": 1,
+            "teleportSplashEventFrames": [10],
+            "teleportSplashEventOverflow": 0,
+        }
+        reference = write_report("teleport-reference", valid_event)
+        candidate = write_report("teleport-candidate", valid_event)
+        compared = report_comparator.compare_reports(reference, candidate)
+        self.assertTrue(compared["pass"])
+        run = compared["scenarios"][0]["runs"][0]
+        self.assertTrue(run["frameChecksums"]["exactMatch"])
+        self.assertTrue(run["framebuffer"]["exactMatch"])
+        self.assertTrue(run["benchEvents"]["teleportSplash"]["pass"])
+        self.assertEqual(run["benchEvents"]["teleportSplash"]["expectedFrames"]["reference"], [10])
+
+        invalid_cases = (
+            ("wrong-frame", {"teleportSplashEventCount": 1, "teleportSplashEventFrames": [9], "teleportSplashEventOverflow": 0}),
+            ("wrong-count", {"teleportSplashEventCount": 2, "teleportSplashEventFrames": [10], "teleportSplashEventOverflow": 0}),
+            ("overflow", {"teleportSplashEventCount": 2, "teleportSplashEventFrames": [10], "teleportSplashEventOverflow": 1}),
+            ("missing-count", {"teleportSplashEventFrames": [10], "teleportSplashEventOverflow": 0}),
+            ("missing-event", None),
+        )
+        for name, event_data in invalid_cases:
+            with self.subTest(case=name):
+                invalid = write_report(name, event_data)
+                result = report_comparator.compare_reports(reference, invalid)
+                self.assertFalse(result["pass"])
+                self.assertFalse(result["scenarios"][0]["runs"][0]["benchEvents"]["teleportSplash"]["pass"])
+
+        wrong_expected = write_report("wrong-expected", valid_event, expected_frames={"teleportSplash": [9]})
+        expected_result = report_comparator.compare_reports(reference, wrong_expected)
+        self.assertFalse(expected_result["pass"])
+        self.assertFalse(
+            expected_result["scenarios"][0]["runs"][0]["benchEvents"]["teleportSplash"]["expectedFramesMatch"]
+        )
+
     def test_render_validation_enforces_and_exports_required_event_data(self) -> None:
         source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("$requiredBenchEvents -contains 'blobExplosion'", source)
@@ -381,6 +449,17 @@ class RenderingComparisonTests(unittest.TestCase):
             "pair-only scenarios must enforce LavaSplash telemetry before deferring golden-image comparison",
         )
         self.assertIn("$lavaSplashEventFrames", source[source.index("foreach ($captureBenchEvent") :])
+        self.assertIn("$requiredBenchEvents -contains 'teleportSplash'", source)
+        self.assertIn("teleportSplashEventCount = $teleportSplashEventCount", source)
+        self.assertIn("teleportSplashEventFrames = $teleportSplashEventFrames", source)
+        self.assertIn("teleportSplashEventOverflow = $teleportSplashEventOverflow", source)
+        self.assertIn("repeat-teleport-splash-event-stability", source)
+        self.assertIn("$teleportSplashEventFrames", source[source.index("foreach ($captureBenchEvent") :])
+        self.assertLess(
+            source.index("required teleportSplash event count/frame/overflow metadata is missing"),
+            source.index("if ($SkipGoldenImageComparison)"),
+            "pair-only scenarios must enforce TeleportSplash telemetry before deferring golden-image comparison",
+        )
 
     def test_repeat_event_parity_helper_is_wired_and_covers_frames_and_overflow(self) -> None:
         source = (ROOT / "tools/bench-event-repeat.ps1").read_text(encoding="utf-8")
@@ -399,6 +478,7 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("Frames = $null", source)
         self.assertIn("Read-Bench486BlobExplosionEvents -Report $report", timedemo_source)
         self.assertIn("Read-Bench486LavaSplashEvents -Report $report", timedemo_source)
+        self.assertIn("Read-Bench486TeleportSplashEvents -Report $report", timedemo_source)
         self.assertIn("test-timedemo-event-record.ps1", workflow_source)
 
     def test_scenario_manifest_has_pinned_references(self) -> None:
@@ -527,6 +607,52 @@ class RenderingComparisonTests(unittest.TestCase):
             '"reference": null',
             (ROOT / "tools/render-scenarios-lavasplash.json").read_text(encoding="utf-8"),
         )
+        self.assertIn("$validationArgs += '-SkipGoldenImageComparison'", parity_source)
+
+    def test_teleportsplash_scenario_is_pair_only_exact_and_uses_isolated_profiles(self) -> None:
+        manifest_text = (ROOT / "tools/render-scenarios-teleportsplash.json").read_text(encoding="utf-8")
+        manifest = json.loads(manifest_text)
+        self.assertEqual(manifest["warmupChecksumFrames"], 4)
+        self.assertEqual(len(manifest["scenarios"]), 1)
+        scene = manifest["scenarios"][0]
+        self.assertEqual(scene["id"], "demo2-teleportsplash-event")
+        self.assertIn("TE_TELEPORT", scene["description"])
+        self.assertEqual(scene["expectedFrames"], 10)
+        self.assertEqual(scene["expectedChecksum"], 0)
+        self.assertEqual(scene["captureFrame"], 10)
+        self.assertEqual(scene["requiredBenchEvents"], ["teleportSplash"])
+        self.assertEqual(scene["expectedBenchEventFrames"], {"teleportSplash": [10]})
+        self.assertEqual(scene["captureBenchEvents"], ["teleportSplash"])
+        self.assertIsNone(scene["reference"])
+        self.assertEqual(scene["tolerance"], {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0})
+        self.assertEqual(
+            scene["demoFixture"],
+            {
+                "sourceMember": "demo2.dem",
+                "firstPostSignonRecord": 4,
+                "keepPostSignonRecords": 11,
+                "eventRecord": 14,
+                "eventType": 11,
+                "coordShorts": [-2136, 17413, 9968],
+                "pakEntry": "demo2.dem",
+            },
+        )
+
+        c_profile = json.loads((ROOT / "tools/renderer-profiles/i486-teleportsplash-c.json").read_text(encoding="utf-8"))
+        asm_profile = json.loads((ROOT / "tools/renderer-profiles/i486-teleportsplash-asm.json").read_text(encoding="utf-8"))
+        self.assertEqual(c_profile["selectors"], {"TeleportSplashImplementation": "c"})
+        self.assertEqual(asm_profile["selectors"], {"TeleportSplashImplementation": "asm"})
+        timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$TeleportSplashImplementation\s*=\s*'c'")
+        self.assertIn("Read-Bench486TeleportSplashEvents -Report $report", timedemo_source)
+        self.assertIn("if ($eventType -notin @(4, 10, 11))", timedemo_source)
+        self.assertIn("TE_TELEPORT (11)", timedemo_source)
+        self.assertIn("TeleportSplashImplementation", timedemo_source)
+        validation_source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("$referencePath = $null", validation_source)
+        parity_source = (ROOT / "tools/render-parity-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("must define a reference image unless golden comparison is deferred", validation_source)
+        self.assertIn('"reference": null', manifest_text)
         self.assertIn("$validationArgs += '-SkipGoldenImageComparison'", parity_source)
 
     def test_assembly_selector_profile_uses_supported_i486_paths(self) -> None:

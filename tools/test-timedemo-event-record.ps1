@@ -50,4 +50,33 @@ if (-not $lavaMismatchRejected) {
     throw 'LavaSplash event parser accepted a count inconsistent with its stored frames and overflow.'
 }
 
+$teleport = Read-Bench486TeleportSplashEvents -Report "teleport-splash-events 1 frames 10 overflow 0`n"
+if ($teleport.Count -ne 1 -or $teleport.Frames.Count -ne 1 -or
+    $teleport.Frames[0] -ne 10 -or $teleport.Overflow -ne 0) {
+    throw 'TeleportSplash event record did not preserve the count, exact frame index, and overflow count.'
+}
+
+$teleportEmpty = Read-Bench486TeleportSplashEvents -Report "teleport-splash-events 0 frames overflow 0`n"
+if ($teleportEmpty.Count -ne 0 -or $teleportEmpty.Frames.Count -ne 0 -or
+    $teleportEmpty.Overflow -ne 0) {
+    throw 'Explicit zero-event TeleportSplash record was not distinguished as an empty event list.'
+}
+
+$teleportMissing = Read-Bench486TeleportSplashEvents -Report "320 frames 1.0 seconds 320.0 fps`n"
+if ($null -ne $teleportMissing.Count -or $null -ne $teleportMissing.Frames -or
+    $null -ne $teleportMissing.Overflow) {
+    throw 'A legacy report without the TeleportSplash event record should return null event metadata.'
+}
+
+$teleportMismatchRejected = $false
+try {
+    [void](Read-Bench486TeleportSplashEvents -Report "teleport-splash-events 2 frames 10 overflow 0`n")
+}
+catch {
+    $teleportMismatchRejected = $true
+}
+if (-not $teleportMismatchRejected) {
+    throw 'TeleportSplash event parser accepted a count inconsistent with its stored frames and overflow.'
+}
+
 Write-Output 'Timedemo event-record parser tests passed.'

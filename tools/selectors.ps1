@@ -78,6 +78,7 @@ $script:AssemblyBackedImplementations = @(
     'ParticleExplosion2Implementation',
     'BlobExplosionImplementation',
     'LavaSplashImplementation',
+    'TeleportSplashImplementation',
     'RocketTrailImplementation',
     'SpriteBeamImplementation',
     'SpriteClipImplementation',
@@ -827,6 +828,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'TeleportSplashImplementation'
+        Manifest   = 'teleportSplashImplementation'
+        Suffix     = @{ 'asm' = 'teleportsplashasm' }
+        C          = @{ 'asm' = @('ASM486_TELEPORT_SPLASH') }
+        Asm        = @{ 'asm' = @('ASM486_TELEPORT_SPLASH') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'RocketTrailImplementation'
         Manifest   = 'rocketTrailImplementation'
         Suffix     = @{ 'asm' = 'rockettrailasm' }
@@ -1376,6 +1386,7 @@ $script:SuffixOrder = @(
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'
+    'TeleportSplashImplementation'
     'RocketTrailImplementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
@@ -1458,6 +1469,7 @@ $script:CDefineOrder = @(
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'
+    'TeleportSplashImplementation'
     'RocketTrailImplementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
@@ -1573,6 +1585,7 @@ $script:AsmDefineOrder = @(
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'
+    'TeleportSplashImplementation'
     'RocketTrailImplementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'

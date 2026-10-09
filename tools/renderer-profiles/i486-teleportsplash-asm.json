@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-teleportsplash-asm",
+  "description": "i486 assembly TeleportSplash selector for an isolated renderer parity pair.",
+  "selectors": {
+    "TeleportSplashImplementation": "asm"
+  }
+}

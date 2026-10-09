@@ -24,7 +24,8 @@ SVC_TEMP_ENTITY = 23
 SVC_DISCONNECT = 2
 TE_TAREXPLOSION = 4
 TE_LAVASPLASH = 10
-SUPPORTED_TEMP_ENTITY_EVENTS = (TE_TAREXPLOSION, TE_LAVASPLASH)
+TE_TELEPORT = 11
+SUPPORTED_TEMP_ENTITY_EVENTS = (TE_TAREXPLOSION, TE_LAVASPLASH, TE_TELEPORT)
 MAX_DEMO_TRACK_LINE = 128
 
 
@@ -321,7 +322,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         type=int,
         choices=SUPPORTED_TEMP_ENTITY_EVENTS,
         default=TE_TAREXPLOSION,
-        help="Quake temp-entity type (4=TAREXPLOSION, 10=LAVASPLASH; default: %(default)s)",
+        help="Quake temp-entity type (4=TAREXPLOSION, 10=LAVASPLASH, 11=TELEPORT; default: %(default)s)",
     )
     parser.add_argument(
         "--coord-shorts",

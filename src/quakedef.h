@@ -286,6 +286,7 @@ void Bench486ResetTimedemoFrameChecksums (int enabled);
 void Bench486TimedemoFrameChecksumRecord (void);
 void Bench486RecordBlobExplosionEvent (void);
 void Bench486RecordLavaSplashEvent (void);
+void Bench486RecordTeleportSplashEvent (void);
 void Bench486FinishTimedemoStats (int timedemo_frames);
 void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
 		double timedemo_seconds);

@@ -487,6 +487,12 @@ static unsigned long bench486_lava_splash_event_stored_count;
 static unsigned long bench486_lava_splash_event_overflow;
 static unsigned long bench486_lava_splash_event_frames[
 		BENCH486_LAVA_SPLASH_EVENT_MAX];
+#define BENCH486_TELEPORT_SPLASH_EVENT_MAX 32
+static unsigned long bench486_teleport_splash_event_count;
+static unsigned long bench486_teleport_splash_event_stored_count;
+static unsigned long bench486_teleport_splash_event_overflow;
+static unsigned long bench486_teleport_splash_event_frames[
+		BENCH486_TELEPORT_SPLASH_EVENT_MAX];
 static int bench486_timedemo_frame_capture_index = -1;
 static qboolean bench486_timedemo_frame_checksums_enabled;
 static int bench486_timedemo_frame_checksum_handle = -1;
@@ -569,6 +575,9 @@ void Bench486ResetTimedemoFrameChecksums (int enabled)
 	bench486_lava_splash_event_count = 0;
 	bench486_lava_splash_event_stored_count = 0;
 	bench486_lava_splash_event_overflow = 0;
+	bench486_teleport_splash_event_count = 0;
+	bench486_teleport_splash_event_stored_count = 0;
+	bench486_teleport_splash_event_overflow = 0;
 	bench486_timedemo_frame_checksums_enabled = enabled != 0;
 	bench486_timedemo_frame_capture_index = -1;
 	parm = COM_CheckParm ("-framecapture");
@@ -600,6 +609,18 @@ void Bench486RecordLavaSplashEvent (void)
 	else
 		bench486_lava_splash_event_overflow++;
 	bench486_lava_splash_event_count++;
+}
+
+void Bench486RecordTeleportSplashEvent (void)
+{
+	if (bench486_teleport_splash_event_stored_count <
+			BENCH486_TELEPORT_SPLASH_EVENT_MAX)
+		bench486_teleport_splash_event_frames[
+				bench486_teleport_splash_event_stored_count++] =
+				bench486_timedemo_rendered_frame_count;
+	else
+		bench486_teleport_splash_event_overflow++;
+	bench486_teleport_splash_event_count++;
 }
 
 void Bench486TimedemoFrameChecksumRecord (void)
@@ -1955,6 +1976,17 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 				bench486_lava_splash_event_frames[event]);
 	text_length += sprintf (text + text_length, " overflow %lu\n",
 			bench486_lava_splash_event_overflow);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, text_length);
+
+	text_length = sprintf (text, "teleport-splash-events %lu frames",
+			bench486_teleport_splash_event_count);
+	for (event = 0 ; event < bench486_teleport_splash_event_stored_count ; event++)
+		text_length += sprintf (text + text_length, " %lu",
+				bench486_teleport_splash_event_frames[event]);
+	text_length += sprintf (text + text_length, " overflow %lu\n",
+			bench486_teleport_splash_event_overflow);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, text_length);
@@ -6807,6 +6839,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_LAVA_SPLASH)
 #include "bench486_lavasplash.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_TELEPORT_SPLASH)
+#include "bench486_teleportsplash.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_TRANSFORM_PLANE)
 #include "bench486_transformplane.h"
 #endif
@@ -10444,6 +10479,32 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("lava-splash fixture requires -LavaSplashImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchteleportsplash"))
+	{
+#ifdef ASM486_TELEPORT_SPLASH
+		if (!COM_CheckParm ("-benchexit"))
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("teleport-splash fixture requires -benchexit to isolate libc RNG state\n");
+		}
+		else
+			Bench486TeleportSplashCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("teleport-splash fixture requires -TeleportSplashImplementation asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

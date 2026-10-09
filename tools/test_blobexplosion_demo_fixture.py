@@ -151,7 +151,7 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
                 first_post_signon_record=2,
                 keep_post_signon_records=2,
                 event_record=2,
-                event_type=11,
+                event_type=12,
             )
         self.assertFalse(output.exists())
 
@@ -172,6 +172,26 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
         expected = bytes((fixture.SVC_TEMP_ENTITY, fixture.TE_LAVASPLASH))
         expected += struct.pack("<hhh", -2136, 17413, 9968)
         self.assertEqual(info.event_type, fixture.TE_LAVASPLASH)
+        self.assertEqual(result[3][0], self.source_records[3][0] + expected)
+        self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
+
+    def test_injects_exact_teleport_message_bytes(self) -> None:
+        output = self.root / "teleport.dem"
+        info = fixture.create_blob_demo(
+            self.pak0,
+            output,
+            member_name=MEMBER_NAME,
+            first_post_signon_record=2,
+            keep_post_signon_records=3,
+            event_record=3,
+            event_type=fixture.TE_TELEPORT,
+            coord_shorts=(-2136, 17413, 9968),
+        )
+
+        _, result = read_demo(output)
+        expected = bytes((fixture.SVC_TEMP_ENTITY, fixture.TE_TELEPORT))
+        expected += struct.pack("<hhh", -2136, 17413, 9968)
+        self.assertEqual(info.event_type, fixture.TE_TELEPORT)
         self.assertEqual(result[3][0], self.source_records[3][0] + expected)
         self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
 

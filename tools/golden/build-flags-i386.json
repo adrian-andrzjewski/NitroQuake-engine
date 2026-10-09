@@ -14,8 +14,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 50,
-  "assemblySourceCount": 50,
+  "allAssemblySourceCount": 51,
+  "assemblySourceCount": 51,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -240,6 +240,7 @@
     "r_rockettrailasm.s",
     "r_skyasm.s",
     "r_spriteasm.s",
+    "r_teleportsplashasm.s",
     "r_transformplaneasm.s",
     "r_varsa.s",
     "r_visibilityasm.s",

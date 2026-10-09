@@ -148,6 +148,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LavaSplashImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$TeleportSplashImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
@@ -408,8 +410,8 @@ function ConvertFrom-DemoFixtureJson {
         -Name 'eventRecord' -Minimum 0 -Maximum 1000000
     $eventType = ConvertTo-DemoFixtureInteger -Value $parsed.eventType `
         -Name 'eventType' -Minimum 0 -Maximum 255
-    if ($eventType -notin @(4, 10)) {
-        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4) or TE_LAVASPLASH (10).'
+    if ($eventType -notin @(4, 10, 11)) {
+        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4), TE_LAVASPLASH (10), or TE_TELEPORT (11).'
     }
     if ([long]$firstRecord + $keepRecords -gt 1000001 -or
         $eventRecord -lt $firstRecord -or $eventRecord -ge ([long]$firstRecord + $keepRecords)) {
@@ -560,6 +562,7 @@ $buildParams = @{
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
     BlobExplosionImplementation          = $BlobExplosionImplementation
     LavaSplashImplementation             = $LavaSplashImplementation
+    TeleportSplashImplementation         = $TeleportSplashImplementation
     RocketTrailImplementation            = $RocketTrailImplementation
     ParticleExplosionImplementation      = $ParticleExplosionImplementation
     SpriteBeamImplementation             = $SpriteBeamImplementation
@@ -1021,11 +1024,15 @@ for ($run = 1; $run -le $Runs; $run++) {
     # The parser also verifies that stored frames plus overflow equals total count.
     $blobExplosionEventData = Read-Bench486BlobExplosionEvents -Report $report
     $lavaSplashEventData = Read-Bench486LavaSplashEvents -Report $report
+    $teleportSplashEventData = Read-Bench486TeleportSplashEvents -Report $report
     $blobExplosionEventFrames = $blobExplosionEventData.Frames
     $blobExplosionEventOverflow = $blobExplosionEventData.Overflow
     $lavaSplashEventCount = $lavaSplashEventData.Count
     $lavaSplashEventFrames = $lavaSplashEventData.Frames
     $lavaSplashEventOverflow = $lavaSplashEventData.Overflow
+    $teleportSplashEventCount = $teleportSplashEventData.Count
+    $teleportSplashEventFrames = $teleportSplashEventData.Frames
+    $teleportSplashEventOverflow = $teleportSplashEventData.Overflow
 
     $runDiagnostics = [ordered]@{
         blobExplosionEventFrames = $blobExplosionEventFrames
@@ -1033,6 +1040,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         lavaSplashEventCount = $lavaSplashEventCount
         lavaSplashEventFrames = $lavaSplashEventFrames
         lavaSplashEventOverflow = $lavaSplashEventOverflow
+        teleportSplashEventCount = $teleportSplashEventCount
+        teleportSplashEventFrames = $teleportSplashEventFrames
+        teleportSplashEventOverflow = $teleportSplashEventOverflow
     }
     if ($FrameChecksums) {
         if (-not (Test-Path -LiteralPath $frameChecksumDosPath -PathType Leaf)) {
@@ -1130,6 +1140,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         lavaSplashEventCount = $lavaSplashEventCount
         lavaSplashEventFrames = $lavaSplashEventFrames
         lavaSplashEventOverflow = $lavaSplashEventOverflow
+        teleportSplashEventCount = $teleportSplashEventCount
+        teleportSplashEventFrames = $teleportSplashEventFrames
+        teleportSplashEventOverflow = $teleportSplashEventOverflow
         renderingDiagnostics = $runDiagnostics
     }
 }
@@ -1348,6 +1361,7 @@ $result = [ordered]@{
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     blobExplosionImplementation = $BlobExplosionImplementation
     lavaSplashImplementation = $LavaSplashImplementation
+    teleportSplashImplementation = $TeleportSplashImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     spriteBeamImplementation = $SpriteBeamImplementation
