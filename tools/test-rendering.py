@@ -789,6 +789,19 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("4096 continuous calls", fixture)
         self.assertIn("-benchzsubmodelpolys", bench)
 
+        combined = json.loads((profiles / "i486-asm-selectable-84.json").read_text(encoding="utf-8"))
+        self.assertEqual(combined["selectors"]["PublicBindingsImplementation"], "asm")
+        self.assertEqual(combined["selectors"]["ZSubmodelPolygonsImplementation"], "asm")
+        binding = (ROOT / "src/r_publicbindingsasm.s").read_text(encoding="utf-8")
+        public_fixture = (ROOT / "src/bench486_publicbindings.h").read_text(encoding="utf-8")
+        self.assertRegex(
+            binding,
+            r"(?s)#ifdef ASM486_DRAW_Z_SUBMODEL_POLYS\s+\.p2align 2\s+\.globl _R_ZDrawSubmodelPolys\s+"
+            r"_R_ZDrawSubmodelPolys:\s+jmp _R_ZDrawSubmodelPolys_asm486\s+#endif",
+        )
+        self.assertIn("{ (void (*)(void))R_ZDrawSubmodelPolys, (void (*)(void))R_ZDrawSubmodelPolys_asm486 }", public_fixture)
+        self.assertIn("#if !defined(ASM486_PUBLIC_BINDINGS)", oracle)
+
     def test_frustum_transform_assembly_has_an_isolated_profile_and_guarded_oracle(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))

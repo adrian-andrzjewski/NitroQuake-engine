@@ -50,6 +50,8 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf);
 void R_RenderBmodelFace_asm486 (bedge_t *pedges, msurface_t *psurf);
 void R_RenderPoly (msurface_t *fa, int clipflags);
 void R_RenderPoly_asm486 (msurface_t *fa, int clipflags);
+void R_ZDrawSubmodelPolys (model_t *pmodel);
+void R_ZDrawSubmodelPolys_asm486 (model_t *pmodel);
 void R_GenerateSpansBackward (void);
 void R_GenerateSpansBackward_asm486 (void);
 void R_InsertNewEdges (edge_t *edgestoadd, edge_t *edgelist);
@@ -139,6 +141,9 @@ static bench486_binding_pair_t bench486_binding_pairs[] = {
 #endif
 #ifdef ASM486_RENDER_POLY
     { (void (*)(void))R_RenderPoly, (void (*)(void))R_RenderPoly_asm486 },
+#endif
+#ifdef ASM486_DRAW_Z_SUBMODEL_POLYS
+    { (void (*)(void))R_ZDrawSubmodelPolys, (void (*)(void))R_ZDrawSubmodelPolys_asm486 },
 #endif
 #ifdef ASM486_BACKWARD_SPANS
     { (void (*)(void))R_GenerateSpansBackward, (void (*)(void))R_GenerateSpansBackward_asm486 },

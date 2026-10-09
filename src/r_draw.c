@@ -1879,10 +1879,12 @@ void R_ZDrawSubmodelPolys (model_t *pmodel)
 #ifdef ASM486_DRAW_Z_SUBMODEL_POLYS
 void R_ZDrawSubmodelPolys_asm486 (model_t *pmodel);
 
+#if !defined(ASM486_PUBLIC_BINDINGS)
 void R_ZDrawSubmodelPolys (model_t *pmodel)
 {
 	R_ZDrawSubmodelPolys_asm486 (pmodel);
 }
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 

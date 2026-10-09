@@ -185,6 +185,13 @@ _R_RenderPoly:
     jmp _R_RenderPoly_asm486
 #endif
 
+#ifdef ASM486_DRAW_Z_SUBMODEL_POLYS
+.p2align 2
+.globl _R_ZDrawSubmodelPolys
+_R_ZDrawSubmodelPolys:
+    jmp _R_ZDrawSubmodelPolys_asm486
+#endif
+
 /* Public entries formerly owned by r_edge.c. */
 
 #ifdef ASM486_BACKWARD_SPANS
