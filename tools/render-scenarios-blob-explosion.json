@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "validationAutoexecCommands": [
+    "host_framerate 0.0783"
+  ],
+  "warmupChecksumFrames": 6,
+  "defaultTolerance": {
+    "channel": 2,
+    "maxChangedPixelFraction": 0.0005,
+    "maxMeanAbsoluteError": 0.5
+  },
+  "scenarios": [
+    {
+      "id": "demo2-entity-workload",
+      "description": "Demo 2, alternate world and entity workload with a required TE_TAREXPLOSION blob-explosion event",
+      "demo": "demo2",
+      "quakeExtraArgs": "",
+      "expectedFrames": 985,
+      "expectedChecksum": 1887495667,
+      "captureFrame": 169,
+      "repeatRuns": 2,
+      "reference": "tools/golden/render/demo2-entity-workload.pcx",
+      "requiredBenchEvents": [
+        "blobExplosion"
+      ]
+    }
+  ]
+}

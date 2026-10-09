@@ -93,6 +93,26 @@ typedef char rocket_trail_particle_types[
 		(pt_static == 0 && pt_grav == 1 && pt_fire == 3) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_BLOB_EXPLOSION) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char blob_explosion_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char blob_explosion_particle_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(((particle_t *)0)->die) == 4 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char blob_explosion_client_time_layout[
+		(offsetof(client_state_t, time) == 572 &&
+		sizeof(((client_state_t *)0)->time) == 8) ? 1 : -1];
+typedef char blob_explosion_particle_types[
+		(pt_blob == 6 && pt_blob2 == 7) ? 1 : -1];
+#endif
+
 #ifdef BENCH486
 int (*bench486_particleexplosion_rand_probe) (void);
 unsigned bench486_particleexplosion_rand_calls;
@@ -464,12 +484,32 @@ void R_ParticleExplosion2 (vec3_t org, int colorStart, int colorLength)
 #undef R_ParticleExplosion2
 #endif
 
+#ifdef BENCH486
+int (*bench486_blobexplosion_rand_probe) (void);
+unsigned bench486_blobexplosion_rand_calls;
+
+int Bench486BlobExplosionRand (void)
+{
+	bench486_blobexplosion_rand_calls++;
+	if (bench486_blobexplosion_rand_probe)
+		return bench486_blobexplosion_rand_probe ();
+	return rand ();
+}
+#define BLOB_EXPLOSION_RAND() Bench486BlobExplosionRand ()
+#else
+#define BLOB_EXPLOSION_RAND() rand ()
+#endif
+
 /*
 ===============
 R_BlobExplosion
 
 ===============
 */
+#ifdef ASM486_BLOB_EXPLOSION
+#define R_BlobExplosion R_BlobExplosion_C
+#endif
+#if !defined(ASM486_BLOB_EXPLOSION) || defined(BENCH486)
 void R_BlobExplosion (vec3_t org)
 {
 	int			i, j;
@@ -484,30 +524,35 @@ void R_BlobExplosion (vec3_t org)
 		p->next = active_particles;
 		active_particles = p;
 
-		p->die = cl.time + 1 + (rand()&8)*0.05;
+		p->die = cl.time + 1 + (BLOB_EXPLOSION_RAND ()&8)*0.05;
 
 		if (i & 1)
 		{
 			p->type = pt_blob;
-			p->color = 66 + rand()%6;
+			p->color = 66 + BLOB_EXPLOSION_RAND ()%6;
 			for (j=0 ; j<3 ; j++)
 			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%512)-256;
+				p->org[j] = org[j] + ((BLOB_EXPLOSION_RAND ()%32)-16);
+				p->vel[j] = (BLOB_EXPLOSION_RAND ()%512)-256;
 			}
 		}
 		else
 		{
 			p->type = pt_blob2;
-			p->color = 150 + rand()%6;
+			p->color = 150 + BLOB_EXPLOSION_RAND ()%6;
 			for (j=0 ; j<3 ; j++)
 			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%512)-256;
+				p->org[j] = org[j] + ((BLOB_EXPLOSION_RAND ()%32)-16);
+				p->vel[j] = (BLOB_EXPLOSION_RAND ()%512)-256;
 			}
 		}
 	}
 }
+#endif
+#ifdef ASM486_BLOB_EXPLOSION
+#undef R_BlobExplosion
+#endif
+#undef BLOB_EXPLOSION_RAND
 
 /*
 ===============

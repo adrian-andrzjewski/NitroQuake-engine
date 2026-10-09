@@ -259,6 +259,11 @@ foreach ($scene in $selectedScenarios) {
     if ($null -ne $toleranceProperty -and $null -ne $toleranceProperty.Value) {
         $effectiveTolerance = $toleranceProperty.Value
     }
+    $requiredBenchEvents = @()
+    $requiredBenchEventsProperty = $scene.PSObject.Properties['requiredBenchEvents']
+    if ($null -ne $requiredBenchEventsProperty -and $null -ne $requiredBenchEventsProperty.Value) {
+        $requiredBenchEvents = @($requiredBenchEventsProperty.Value | ForEach-Object { [string]$_ })
+    }
 
     Write-Host ''
     Write-Host ('=' * 78)
@@ -342,16 +347,70 @@ foreach ($scene in $selectedScenarios) {
             }
 
             $frameData = Read-FrameChecksumLog -Path ([string]$diagnostics.frameChecksumPath) -IgnoreLeadingFrames $warmupChecksumFrames
+            # Event frame indices are absolute offsets in the full checksum
+            # stream. Warmup exclusion affects only post-warmup stability metrics.
+            $checksumStreamFrameCount = $frameData.Checksums.Count
+            $checksumPostWarmupFrameCount = [math]::Max(0, $checksumStreamFrameCount - $warmupChecksumFrames)
+            $blobExplosionFramesProperty = $diagnostics.PSObject.Properties['blobExplosionEventFrames']
+            $blobExplosionOverflowProperty = $diagnostics.PSObject.Properties['blobExplosionEventOverflow']
+            $blobExplosionEventFrames = $null
+            $blobExplosionEventOverflow = $null
+            $invalidBlobExplosionEventFrames = @()
+            if ($null -ne $blobExplosionFramesProperty -and $blobExplosionFramesProperty.Value -is [System.Array]) {
+                $blobExplosionEventFrames = @($blobExplosionFramesProperty.Value | ForEach-Object { [int]$_ })
+                $invalidBlobExplosionEventFrames = @($blobExplosionEventFrames | Where-Object {
+                        $_ -lt 0 -or $_ -ge $checksumStreamFrameCount
+                    })
+            }
+            if ($null -ne $blobExplosionOverflowProperty -and $null -ne $blobExplosionOverflowProperty.Value) {
+                $blobExplosionEventOverflow = [int]$blobExplosionOverflowProperty.Value
+            }
             $frameReports.Add([pscustomobject]@{
                     run = $run.run
                     frames = $frameData.Count
+                    checksumStreamFrames = $checksumStreamFrameCount
+                    checksumFramesAfterWarmup = $checksumPostWarmupFrameCount
                     timedemoFrames = $run.frames
                     uniqueAfterWarmup = $frameData.UniqueAfterWarmup
                     zeroAfterWarmup = $frameData.ZeroAfterWarmup
                     longestIdenticalRunAfterWarmup = $frameData.LongestIdenticalRunAfterWarmup
                     frameChecksumPath = $frameData.Path
+                    blobExplosionEventFrames = $blobExplosionEventFrames
+                    blobExplosionEventOverflow = $blobExplosionEventOverflow
                     repeatParity = $null
                 })
+
+            if ($requiredBenchEvents -contains 'blobExplosion') {
+                $eventFailure = $null
+                if ($null -eq $blobExplosionEventFrames -or $null -eq $blobExplosionEventOverflow) {
+                    $eventFailure = 'required blobExplosion event metadata is missing'
+                }
+                elseif ($blobExplosionEventFrames.Count -eq 0) {
+                    $eventFailure = 'required blobExplosion event count is zero'
+                }
+                elseif ($invalidBlobExplosionEventFrames.Count -gt 0) {
+                    $eventFailure = "blobExplosion event frame index/indices fall outside the total $checksumStreamFrameCount-frame checksum stream; warmup exclusion leaves $checksumPostWarmupFrameCount frame(s) for post-warmup metrics"
+                }
+                elseif ($blobExplosionEventOverflow -ne 0) {
+                    $eventFailure = "blobExplosion event metadata overflowed by $blobExplosionEventOverflow event(s)"
+                }
+                if ($null -ne $eventFailure) {
+                    $sceneStatus = 'FAIL'
+                    $failures.Add([pscustomobject]@{
+                            scenario = $scene.id
+                            test = 'required-bench-event'
+                            expected = @{ event = 'blobExplosion'; count = 'greater than zero'; overflow = 0 }
+                            actual = @{ frames = $blobExplosionEventFrames; overflow = $blobExplosionEventOverflow }
+                            metrics = @{
+                                error = $eventFailure
+                                invalidFrameIndices = $invalidBlobExplosionEventFrames
+                                checksumStreamFrames = $checksumStreamFrameCount
+                                checksumFramesAfterWarmup = $checksumPostWarmupFrameCount
+                            }
+                            capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                        })
+                }
+            }
 
             # CL_TimeDemo_f records one setup frame outside the measured interval.
             # A count drift is a synchronization/timing failure.
@@ -462,6 +521,7 @@ foreach ($scene in $selectedScenarios) {
             repeatRuns = $effectiveRuns
             expectedFrames = $scene.expectedFrames
             expectedChecksum = $scene.expectedChecksum
+            requiredBenchEvents = $requiredBenchEvents
             captureFrame = $scene.captureFrame
             rendererSelectorProfile = if ($null -ne $rendererSelectorProfileData) { [string]$rendererSelectorProfileData.id } else { 'timedemo-defaults' }
             rendererSelectorProfilePath = $rendererSelectorProfilePathResolved

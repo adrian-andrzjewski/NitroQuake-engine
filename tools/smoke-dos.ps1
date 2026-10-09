@@ -228,6 +228,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$BlobExplosionImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
@@ -330,6 +332,7 @@ $buildParams = @{
     AliasStatsImplementation = $AliasStatsImplementation
     PrintTimesImplementation = $PrintTimesImplementation
     ParticleExplosion2Implementation = $ParticleExplosion2Implementation
+    BlobExplosionImplementation = $BlobExplosionImplementation
     RocketTrailImplementation = $RocketTrailImplementation
     ParticleExplosionImplementation = $ParticleExplosionImplementation
     PaletteImplementation = $PaletteImplementation
@@ -497,6 +500,7 @@ $result = [ordered]@{
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    blobExplosionImplementation = $BlobExplosionImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     worldControlImplementation = $WorldControlImplementation

@@ -209,6 +209,9 @@ void CL_ParseTEnt (void)
 		pos[1] = MSG_ReadCoord ();
 		pos[2] = MSG_ReadCoord ();
 		R_BlobExplosion (pos);
+#ifdef BENCH486
+		Bench486RecordBlobExplosionEvent ();
+#endif
 
 		S_StartSound (-1, 0, cl_sfx_r_exp3, pos, 1, 1);
 		break;

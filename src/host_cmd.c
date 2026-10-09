@@ -474,6 +474,13 @@ static unsigned long bench486_timedemo_invalid_frames;
 static unsigned long bench486_timedemo_timer_reads;
 static unsigned long bench486_timedemo_frame_checksum_count;
 static unsigned long bench486_timedemo_frame_checksum_overflow;
+static unsigned long bench486_timedemo_rendered_frame_count;
+#define BENCH486_BLOB_EXPLOSION_EVENT_MAX 32
+static unsigned long bench486_blob_explosion_event_count;
+static unsigned long bench486_blob_explosion_event_stored_count;
+static unsigned long bench486_blob_explosion_event_overflow;
+static unsigned long bench486_blob_explosion_event_frames[
+		BENCH486_BLOB_EXPLOSION_EVENT_MAX];
 static int bench486_timedemo_frame_capture_index = -1;
 static qboolean bench486_timedemo_frame_checksums_enabled;
 static int bench486_timedemo_frame_checksum_handle = -1;
@@ -549,6 +556,10 @@ void Bench486ResetTimedemoFrameChecksums (int enabled)
 		Sys_FileClose (bench486_timedemo_frame_checksum_handle);
 	bench486_timedemo_frame_checksum_count = 0;
 	bench486_timedemo_frame_checksum_overflow = 0;
+	bench486_timedemo_rendered_frame_count = 0;
+	bench486_blob_explosion_event_count = 0;
+	bench486_blob_explosion_event_stored_count = 0;
+	bench486_blob_explosion_event_overflow = 0;
 	bench486_timedemo_frame_checksums_enabled = enabled != 0;
 	bench486_timedemo_frame_capture_index = -1;
 	parm = COM_CheckParm ("-framecapture");
@@ -558,12 +569,26 @@ void Bench486ResetTimedemoFrameChecksums (int enabled)
 			Sys_FileOpenWrite ("framechecksums.txt") : -1;
 }
 
+void Bench486RecordBlobExplosionEvent (void)
+{
+	if (bench486_blob_explosion_event_stored_count <
+			BENCH486_BLOB_EXPLOSION_EVENT_MAX)
+		bench486_blob_explosion_event_frames[
+				bench486_blob_explosion_event_stored_count++] =
+				bench486_timedemo_rendered_frame_count;
+	else
+		bench486_blob_explosion_event_overflow++;
+	bench486_blob_explosion_event_count++;
+}
+
 void Bench486TimedemoFrameChecksumRecord (void)
 {
 	char	text[32];
 	unsigned checksum;
 	unsigned long frame;
 
+	/* Keep event timing meaningful even when checksum output is disabled. */
+	bench486_timedemo_rendered_frame_count++;
 	if (!bench486_timedemo_frame_checksums_enabled)
 		return;
 
@@ -1879,8 +1904,10 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 
 void Bench486WriteTimedemoFrameChecksum (int report_handle)
 {
-	char	text[64];
+	char	text[512];
 	unsigned checksum;
+	unsigned long event;
+	int text_length;
 
 	checksum = vid.buffer ? Bench486Checksum ((byte *)vid.buffer,
 			(int)(vid.rowbytes * vid.height)) : 0;
@@ -1888,6 +1915,17 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, Q_strlen(text));
+
+	text_length = sprintf (text, "blob-explosion-events %lu frames",
+			bench486_blob_explosion_event_count);
+	for (event = 0 ; event < bench486_blob_explosion_event_stored_count ; event++)
+		text_length += sprintf (text + text_length, " %lu",
+				bench486_blob_explosion_event_frames[event]);
+	text_length += sprintf (text + text_length, " overflow %lu\n",
+			bench486_blob_explosion_event_overflow);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, text_length);
 
 	if (!bench486_timedemo_frame_checksums_enabled)
 		return;
@@ -6731,6 +6769,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_PARTICLE_EXPLOSION)
 #include "bench486_particleexplosion.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_BLOB_EXPLOSION)
+#include "bench486_blobexplosion.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_TRANSFORM_PLANE)
 #include "bench486_transformplane.h"
 #endif
@@ -10316,6 +10357,32 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("particle-explosion fixture requires -ParticleExplosionImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchblobexplosion"))
+	{
+#ifdef ASM486_BLOB_EXPLOSION
+		if (!COM_CheckParm ("-benchexit"))
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("blob-explosion fixture requires -benchexit to isolate libc RNG state\n");
+		}
+		else
+			Bench486BlobExplosionCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("blob-explosion fixture requires -BlobExplosionImplementation asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

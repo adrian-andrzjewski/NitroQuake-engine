@@ -1356,6 +1356,25 @@ def main() -> int:
             if "r_particleexplosionasm.s" not in dump.get("assemblySources", []):
                 fail("the R_ParticleExplosion %s selector omits r_particleexplosionasm.s from the source inventory" % dump_name)
 
+    blob_explosion_c = dump_flags("-BlobExplosionImplementation", "c")
+    blob_explosion_asm = dump_flags("-BlobExplosionImplementation", "asm")
+    if blob_explosion_c and blob_explosion_asm:
+        if blob_explosion_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_BlobExplosion C selector changes the promoted i486 suffix")
+        asm_suffix = blob_explosion_asm.get("profileSuffix", "")
+        if asm_suffix.count("-blobexplosionasm") != 1:
+            fail("the R_BlobExplosion assembly selector lacks its profile token")
+        elif asm_suffix.replace("-blobexplosionasm", "") != blob_explosion_c.get("profileSuffix"):
+            fail("the R_BlobExplosion assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_BLOB_EXPLOSION" in blob_explosion_c.get(flags_name, []):
+                fail("the R_BlobExplosion C selector enables ASM486_BLOB_EXPLOSION in %s" % flags_name)
+            if "-DASM486_BLOB_EXPLOSION" not in blob_explosion_asm.get(flags_name, []):
+                fail("the R_BlobExplosion assembly selector omits ASM486_BLOB_EXPLOSION from %s" % flags_name)
+        for dump_name, dump in (("C", blob_explosion_c), ("assembly", blob_explosion_asm)):
+            if "r_blobexplosionasm.s" not in dump.get("assemblySources", []):
+                fail("the R_BlobExplosion %s selector omits r_blobexplosionasm.s from the source inventory" % dump_name)
+
     transform_plane_c = dump_flags("-TransformPlaneImplementation", "c")
     transform_plane_asm = dump_flags("-TransformPlaneImplementation", "asm")
     if transform_plane_c and transform_plane_asm:
@@ -1376,7 +1395,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 48 assembly sources (one is omitted only
+    #    included by another unit), 49 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1388,9 +1407,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 48:
+        if dump.get("allAssemblySourceCount") != 49:
             fail(
-                "%s: expected 48 assembly sources, got %r"
+                "%s: expected 49 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

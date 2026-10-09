@@ -145,6 +145,13 @@ focused profiles and traceability record are
 ownership inventory or complete-profile acceptance run; the 61-C-entry figure
 above remains the preceding 77-selector inventory, not a current count.
 
+`R_BlobExplosion` now has an isolated assembly selector, a guarded direct
+C-versus-assembly fixture and a focused Demo 2 manifest requiring the
+`TE_TAREXPLOSION` event trace. The manifest unit test passes. The strict i486
+build and ISA audit, direct DOSBox fixture, and paired framebuffer/checksum run
+remain **PENDING**; no runtime parity or ISA pass is claimed. See the
+[BlobExplosion port ledger](ledger/2026-10-09-r-blobexplosion-assembly-port.md).
+
 Earlier sprite/math and light-control pair reports that failed to forward the
 new selectors are invalid acceptance evidence. Their original results and
 invalidation records are retained. Current runners forward declared selectors

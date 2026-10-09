@@ -22,6 +22,15 @@ rendering = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = rendering
 SPEC.loader.exec_module(rendering)
 
+REPORT_COMPARATOR_TOOL = Path(__file__).with_name("compare-rendering-reports.py")
+REPORT_COMPARATOR_SPEC = importlib.util.spec_from_file_location(
+    "compare_rendering_reports", REPORT_COMPARATOR_TOOL
+)
+assert REPORT_COMPARATOR_SPEC and REPORT_COMPARATOR_SPEC.loader
+report_comparator = importlib.util.module_from_spec(REPORT_COMPARATOR_SPEC)
+sys.modules[REPORT_COMPARATOR_SPEC.name] = report_comparator
+REPORT_COMPARATOR_SPEC.loader.exec_module(report_comparator)
+
 
 def load_json(text: str) -> dict:
     """Load JSON and treat newer renderer selectors as C in older profiles."""
@@ -38,6 +47,7 @@ def load_json(text: str) -> dict:
         document["selectors"].setdefault("PrintTimesImplementation", "c")
         document["selectors"].setdefault("ParticleExplosionImplementation", "c")
         document["selectors"].setdefault("ParticleExplosion2Implementation", "c")
+        document["selectors"].setdefault("BlobExplosionImplementation", "c")
         document["selectors"].setdefault("RocketTrailImplementation", "c")
         document["selectors"].setdefault("TransformPlaneImplementation", "c")
     return document
@@ -177,6 +187,126 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(strict_exit, 1)
         self.assertEqual(exact_exit, 0)
 
+    def test_required_blob_explosion_events_gate_paired_report_parity(self) -> None:
+        def write_report(
+            name: str,
+            event: dict | None,
+            *,
+            required: list[str] | None = None,
+        ) -> Path:
+            checksum_path = self.root / f"{name}-checksums.txt"
+            checksum_rows = "".join(f"{frame} {123 + frame}\n" for frame in range(16))
+            checksum_path.write_text(f"{checksum_rows}frames 16 overflow 0\n", encoding="ascii")
+            image_path = self.capture(f"{name}.pcx")
+            diagnostic = {"run": 1, "frameChecksumPath": str(checksum_path)}
+            if event is not None:
+                diagnostic.update(event)
+            scenario = {
+                "scenario": "blob-explosion-fixture",
+                "result": "PASS",
+                "ignoredWarmupChecksumFrames": 2,
+                "frameDiagnostics": [diagnostic],
+                "imageComparisons": [{"actual": {"path": str(image_path)}}],
+            }
+            if required is not None:
+                scenario["requiredBenchEvents"] = required
+            report_path = self.root / f"{name}-report.json"
+            report_path.write_text(
+                json.dumps({
+                    "schemaVersion": 1,
+                    "result": "PASS",
+                    "cpuTarget": "i486",
+                    "sourceTreeFingerprint": "fixture-tree",
+                    "scenarios": [scenario],
+                }),
+                encoding="utf-8",
+            )
+            return report_path
+
+        required_event = {
+            # Frame 15 is valid in the 16-record stream even though two leading
+            # checksum frames are excluded from post-warmup stability metrics.
+            "blobExplosionEventFrames": [7, 15],
+            "blobExplosionEventOverflow": 0,
+        }
+        reference = write_report("event-reference", required_event, required=["blobExplosion"])
+        matching = write_report("event-matching", required_event, required=["blobExplosion"])
+        passed = report_comparator.compare_reports(reference, matching)
+        self.assertTrue(passed["pass"])
+        self.assertEqual(
+            passed["scenarios"][0]["requiredBenchEvents"],
+            {
+                "reference": ["blobExplosion"],
+                "candidate": ["blobExplosion"],
+                "match": True,
+                "events": ["blobExplosion"],
+            },
+        )
+        event_result = passed["scenarios"][0]["runs"][0]["benchEvents"]["blobExplosion"]
+        self.assertTrue(event_result["pass"])
+        self.assertTrue(event_result["framesMatch"])
+
+        failing_cases = (
+            ("different-frames", {"blobExplosionEventFrames": [7, 12], "blobExplosionEventOverflow": 0}, "framesMatch"),
+            ("missing-metadata", None, "dataPresent"),
+            ("zero-events", {"blobExplosionEventFrames": [], "blobExplosionEventOverflow": 0}, "hasEvents"),
+            ("overflow", {"blobExplosionEventFrames": [7], "blobExplosionEventOverflow": 1}, "noOverflow"),
+            ("frame-index-past-stream", {"blobExplosionEventFrames": [7, 16], "blobExplosionEventOverflow": 0}, "frameIndicesInRange"),
+            ("negative-frame-index", {"blobExplosionEventFrames": [-1, 7], "blobExplosionEventOverflow": 0}, "frameIndicesInRange"),
+        )
+        for name, event_data, failed_state in failing_cases:
+            with self.subTest(case=name):
+                candidate = write_report(name, event_data, required=["blobExplosion"])
+                compared = report_comparator.compare_reports(reference, candidate)
+                self.assertFalse(compared["pass"])
+                event_report = compared["scenarios"][0]["runs"][0]["benchEvents"]["blobExplosion"]
+                self.assertFalse(event_report["pass"])
+                if failed_state == "framesMatch":
+                    self.assertFalse(event_report[failed_state])
+                else:
+                    self.assertFalse(event_report["candidate"][failed_state])
+
+        undeclared_candidate = write_report("requirement-drift", required_event, required=[])
+        requirement_drift = report_comparator.compare_reports(reference, undeclared_candidate)
+        self.assertFalse(requirement_drift["pass"])
+        self.assertFalse(requirement_drift["scenarios"][0]["requiredBenchEvents"]["match"])
+
+        out_of_range_reference = write_report(
+            "reference-frame-index-past-stream",
+            {"blobExplosionEventFrames": [7, 16], "blobExplosionEventOverflow": 0},
+            required=["blobExplosion"],
+        )
+        reference_range = report_comparator.compare_reports(out_of_range_reference, matching)
+        self.assertFalse(reference_range["pass"])
+        self.assertFalse(
+            reference_range["scenarios"][0]["runs"][0]["benchEvents"]["blobExplosion"]
+            ["reference"]["frameIndicesInRange"]
+        )
+
+        no_requirement_reference = write_report("optional-reference", None)
+        no_requirement_candidate = write_report("optional-candidate", None)
+        optional = report_comparator.compare_reports(no_requirement_reference, no_requirement_candidate)
+        self.assertTrue(optional["pass"])
+
+    def test_render_validation_enforces_and_exports_required_event_data(self) -> None:
+        source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("$requiredBenchEvents -contains 'blobExplosion'", source)
+        self.assertIn("test = 'required-bench-event'", source)
+        self.assertIn("blobExplosionEventFrames = $blobExplosionEventFrames", source)
+        self.assertIn("blobExplosionEventOverflow = $blobExplosionEventOverflow", source)
+        self.assertIn("$checksumStreamFrameCount = $frameData.Checksums.Count", source)
+        self.assertIn("$_ -lt 0 -or $_ -ge $checksumStreamFrameCount", source)
+        self.assertIn("checksumFramesAfterWarmup = $checksumPostWarmupFrameCount", source)
+        self.assertIn("outside the total $checksumStreamFrameCount-frame checksum stream", source)
+
+    def test_timedemo_event_parser_accepts_overflow_accounting_contract(self) -> None:
+        source = (ROOT / "tools/timedemo-event-record.ps1").read_text(encoding="utf-8")
+        timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("$count -ne ($frames.Count + $overflow)", source)
+        self.assertIn("if ($eventLines.Count -eq 0)", source)
+        self.assertIn("Frames = $null", source)
+        self.assertIn("Read-Bench486BlobExplosionEvents -Report $report", timedemo_source)
+
     def test_scenario_manifest_has_pinned_references(self) -> None:
         manifest = load_json((ROOT / "tools/render-scenarios.json").read_text(encoding="utf-8"))
         scenarios = manifest["scenarios"]
@@ -203,6 +333,40 @@ class RenderingComparisonTests(unittest.TestCase):
                 reference = ROOT / scene["reference"]
                 image = rendering.load_pcx(reference)
                 self.assertEqual((image.width, image.height), (320, 200))
+
+    def test_blob_explosion_scenario_manifest_is_pinned_and_requires_event(self) -> None:
+        base_manifest = load_json((ROOT / "tools/render-scenarios.json").read_text(encoding="utf-8"))
+        focused_manifest = load_json(
+            (ROOT / "tools/render-scenarios-blob-explosion.json").read_text(encoding="utf-8")
+        )
+        base_scenario = next(
+            scene for scene in base_manifest["scenarios"]
+            if scene["id"] == "demo2-entity-workload"
+        )
+        self.assertEqual(len(focused_manifest["scenarios"]), 1)
+        focused_scenario = focused_manifest["scenarios"][0]
+
+        for key in (
+            "id",
+            "demo",
+            "quakeExtraArgs",
+            "expectedFrames",
+            "expectedChecksum",
+            "captureFrame",
+            "repeatRuns",
+            "reference",
+        ):
+            with self.subTest(field=key):
+                self.assertEqual(focused_scenario[key], base_scenario[key])
+        self.assertEqual(focused_scenario["expectedFrames"], 985)
+        self.assertEqual(focused_scenario["expectedChecksum"], 1887495667)
+        self.assertEqual(focused_scenario["captureFrame"], 169)
+        self.assertEqual(
+            focused_scenario["reference"],
+            "tools/golden/render/demo2-entity-workload.pcx",
+        )
+        self.assertEqual(focused_scenario["requiredBenchEvents"], ["blobExplosion"])
+        self.assertIn("TE_TAREXPLOSION", focused_scenario["description"])
 
     def test_assembly_selector_profile_uses_supported_i486_paths(self) -> None:
         profile_path = ROOT / "tools/renderer-profiles/i486-asm-selectable.json"
@@ -614,7 +778,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 84)
+        self.assertEqual(len(reference["selectors"]), 85)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -677,7 +841,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 84)
+        self.assertEqual(len(reference["selectors"]), 85)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -947,6 +1111,62 @@ class RenderingComparisonTests(unittest.TestCase):
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ParticleExplosionImplementation\s*=\s*'c'",
                 f"{runner_name} must reject unsupported ParticleExplosion selectors",
+            )
+
+    def test_blob_explosion_profile_fixture_and_selectable_count(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        focused = load_json((profiles / "i486-asm-blob-explosion.json").read_text(encoding="utf-8"))
+        selectable91 = json.loads((profiles / "i486-asm-selectable-91.json").read_text(encoding="utf-8"))
+        selectable92 = json.loads((profiles / "i486-asm-selectable-92.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(reference["selectors"]["BlobExplosionImplementation"], "c")
+        self.assertEqual(focused["id"], "i486-asm-blob-explosion")
+        expected_focused = dict(reference["selectors"])
+        expected_focused["BlobExplosionImplementation"] = "asm"
+        self.assertEqual(focused["selectors"], expected_focused)
+        self.assertEqual(focused["selectors"]["ParticleExplosionImplementation"], "c")
+
+        self.assertEqual(len(selectable91["selectors"]), 91)
+        self.assertNotIn("BlobExplosionImplementation", selectable91["selectors"])
+        self.assertEqual(selectable92["id"], "i486-asm-selectable-92")
+        self.assertEqual(len(selectable92["selectors"]), 92)
+        expected92 = dict(selectable91)
+        expected92["id"] = selectable92["id"]
+        expected92["description"] = selectable92["description"]
+        expected92["selectors"] = dict(selectable91["selectors"])
+        expected92["selectors"]["BlobExplosionImplementation"] = "asm"
+        self.assertEqual(selectable92, expected92)
+
+        assembly = (ROOT / "src/r_blobexplosionasm.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/r_part.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_blobexplosion.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("idivl\t%ecx", assembly)
+        self.assertIn("R_BlobExplosion_asm486", assembly)
+        self.assertIn("Bench486BlobExplosionRand", assembly)
+        self.assertIn("R_BlobExplosion_C", oracle)
+        self.assertIn("ASM486_BLOB_EXPLOSION", selectors)
+        self.assertIn("emitted * 8", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn('#include "bench486_blobexplosion.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchblobexplosion")', host_commands)
+        self.assertIn("Bench486BlobExplosionCases ();", host_commands)
+        self.assertIn("[switch]$BlobExplosionOnly", bench_runner)
+        self.assertIn("-BlobExplosionOnly requires -BlobExplosionImplementation asm", bench_runner)
+        self.assertIn("+bench486 -benchblobexplosion -benchexit", bench_runner)
+
+        for runner_name in ("build-dos.ps1", "bench-dos.ps1", "smoke-dos.ps1", "timedemo-dos.ps1"):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$BlobExplosionImplementation\s*=\s*'c'",
+                f"{runner_name} must reject unsupported BlobExplosion selectors",
             )
 
     def test_transform_plane_profile_fixture_and_selectable_count(self) -> None:

@@ -20,7 +20,9 @@ later insertion above it.
 | [`2026-10-09-particle-explosion-assembly-port.md`](2026-10-09-particle-explosion-assembly-port.md) | 2 | renderer port / particles |
 | [`2026-10-09-particle-explosion2-assembly-port.md`](2026-10-09-particle-explosion2-assembly-port.md) | 2 | renderer port / particles |
 | [`2026-10-09-print-times-assembly-port.md`](2026-10-09-print-times-assembly-port.md) | 2 | renderer port / diagnostics |
+| [`2026-10-09-r-blobexplosion-assembly-port.md`](2026-10-09-r-blobexplosion-assembly-port.md) | 4 | renderer port / particles (`C reference and behavior`; `Assembly, selector and fixture`; `Event-driven scene trace`; `Validation status`) |
 | [`2026-10-09-r-check-variables-assembly-port.md`](2026-10-09-r-check-variables-assembly-port.md) | 3 | renderer port / variable checks |
+| [`2026-10-09-r-rockettrail-assembly-port.md`](2026-10-09-r-rockettrail-assembly-port.md) | 3 | renderer port / particles (`Port and traceability`; `Reference fixture`; `Acceptance evidence`) |
 | [`2026-10-09-r-setupframe-assembly-port.md`](2026-10-09-r-setupframe-assembly-port.md) | 3 | renderer port / frame setup |
 | [`2026-10-09-r-transformplane-assembly-port.md`](2026-10-09-r-transformplane-assembly-port.md) | 2 | renderer port / plane math |
 | [`2026-10-09-selectable-84-alias-control-checkpoint.md`](2026-10-09-selectable-84-alias-control-checkpoint.md) | 5 | renderer port / alias-control integration |

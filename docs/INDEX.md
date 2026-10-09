@@ -33,6 +33,7 @@ Operational documents, one experiment ledger, and a rule about how to cite them.
 | [`ISA-VERIFICATION.md`](ISA-VERIFICATION.md) | Source-bound object, executable, startup and provider verification | New |
 | [`RENDERER-ASSEMBLY-CONVENTIONS.md`](RENDERER-ASSEMBLY-CONVENTIONS.md) | Assembly ownership, ABI, arithmetic, modules and acceptance rules | New |
 | [`RENDERER-COMPLETION-GAPS.md`](RENDERER-COMPLETION-GAPS.md) | Accepted conversions and remaining ownership/scenario gates | New |
+| [`ledger/2026-10-09-r-blobexplosion-assembly-port.md`](ledger/2026-10-09-r-blobexplosion-assembly-port.md) | `R_BlobExplosion` traceability and pending acceptance gates | New |
 | [`../DPMI-HDPMI32.md`](../DPMI-HDPMI32.md) | CWSDPMI vs HDPMI32 host experiment | 111 lines |
 | [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) | The five governing decisions | 384 lines |
 | [`PURE-ASSEMBLER-CANDIDATES.md`](PURE-ASSEMBLER-CANDIDATES.md) | Which functions are worth hand-writing, and which are not | 359 lines |

@@ -144,6 +144,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$BlobExplosionImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
@@ -292,6 +294,8 @@ param(
     [switch]$AllowGateOverride
 )
 
+. (Join-Path $PSScriptRoot 'timedemo-event-record.ps1')
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -413,6 +417,7 @@ $buildParams = @{
     BspWalkImplementation                = $BspWalkImplementation
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
+    BlobExplosionImplementation          = $BlobExplosionImplementation
     RocketTrailImplementation            = $RocketTrailImplementation
     ParticleExplosionImplementation      = $ParticleExplosionImplementation
     SpriteBeamImplementation             = $SpriteBeamImplementation
@@ -749,7 +754,16 @@ for ($run = 1; $run -le $Runs; $run++) {
         throw "DOSBox-X timedemo failed with exit code $dosboxExit."
     }
 
-    $runDiagnostics = $null
+    # Keep old binaries usable by representing an absent event record as null.
+    # The parser also verifies that stored frames plus overflow equals total count.
+    $blobExplosionEventData = Read-Bench486BlobExplosionEvents -Report $report
+    $blobExplosionEventFrames = $blobExplosionEventData.Frames
+    $blobExplosionEventOverflow = $blobExplosionEventData.Overflow
+
+    $runDiagnostics = [ordered]@{
+        blobExplosionEventFrames = $blobExplosionEventFrames
+        blobExplosionEventOverflow = $blobExplosionEventOverflow
+    }
     if ($FrameChecksums) {
         if (-not (Test-Path -LiteralPath $frameChecksumDosPath -PathType Leaf)) {
             throw "Timedemo did not produce per-frame checksums at '$frameChecksumDosPath'."
@@ -776,13 +790,11 @@ for ($run = 1; $run -le $Runs; $run++) {
             $runCapturePath = Join-Path $runDiagnosticsRoot 'frame.pcx'
             Copy-Item -LiteralPath $frameCaptureDosPath -Destination $runCapturePath -Force
         }
-        $runDiagnostics = [ordered]@{
-            frameChecksumPath = $runChecksumPath
-            frameChecksumFrames = [int]$checksumSummary.Groups['frames'].Value
-            frameChecksumOverflow = $checksumOverflow
-            frameCapturePath = $runCapturePath
-            frameCaptureIndex = if ($FrameCaptureIndex -ge 0) { $FrameCaptureIndex } else { $null }
-        }
+        $runDiagnostics['frameChecksumPath'] = $runChecksumPath
+        $runDiagnostics['frameChecksumFrames'] = [int]$checksumSummary.Groups['frames'].Value
+        $runDiagnostics['frameChecksumOverflow'] = $checksumOverflow
+        $runDiagnostics['frameCapturePath'] = $runCapturePath
+        $runDiagnostics['frameCaptureIndex'] = if ($FrameCaptureIndex -ge 0) { $FrameCaptureIndex } else { $null }
     }
 
     $match = [regex]::Match($report,
@@ -843,6 +855,8 @@ for ($run = 1; $run -le $Runs; $run++) {
         fpsStats = $fpsStatsData
         report = $report.Trim()
         profile = $profileData
+        blobExplosionEventFrames = $blobExplosionEventFrames
+        blobExplosionEventOverflow = $blobExplosionEventOverflow
         renderingDiagnostics = $runDiagnostics
     }
 }
@@ -1059,6 +1073,7 @@ $result = [ordered]@{
     bspWalkImplementation = $BspWalkImplementation
     particleUpdateImplementation = $ParticleUpdateImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    blobExplosionImplementation = $BlobExplosionImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     spriteBeamImplementation = $SpriteBeamImplementation

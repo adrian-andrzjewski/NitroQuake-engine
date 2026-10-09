@@ -146,6 +146,80 @@ def _runs_by_id(entry: dict[str, Any], report_path: Path, scenario_id: str) -> d
     return runs
 
 
+def _required_bench_events(entry: dict[str, Any], report_path: Path, scenario_id: str) -> list[str]:
+    required = entry.get("requiredBenchEvents", [])
+    if not isinstance(required, list) or any(not isinstance(item, str) for item in required):
+        raise ValueError(f"{report_path}: {scenario_id} requiredBenchEvents must be an array of strings")
+    if len(set(required)) != len(required):
+        raise ValueError(f"{report_path}: {scenario_id} requiredBenchEvents contains duplicates")
+    return sorted(required)
+
+
+def _compare_required_bench_events(
+    reference_run: dict[str, Any],
+    candidate_run: dict[str, Any],
+    required: list[str],
+    reference_checksum_frames: int | None,
+    candidate_checksum_frames: int | None,
+) -> dict[str, Any]:
+    comparisons: dict[str, Any] = {}
+    for event in required:
+        if event != "blobExplosion":
+            comparisons[event] = {
+                "pass": False,
+                "error": f"unsupported required bench event {event!r}",
+            }
+            continue
+
+        left_frames = reference_run.get("blobExplosionEventFrames")
+        right_frames = candidate_run.get("blobExplosionEventFrames")
+        left_overflow = reference_run.get("blobExplosionEventOverflow")
+        right_overflow = candidate_run.get("blobExplosionEventOverflow")
+
+        def event_state(frames: Any, overflow: Any, checksum_frames: int | None) -> dict[str, Any]:
+            frames_valid = isinstance(frames, list) and all(
+                isinstance(frame, int) and not isinstance(frame, bool) for frame in frames
+            )
+            overflow_valid = isinstance(overflow, int) and not isinstance(overflow, bool)
+            checksum_frames_valid = isinstance(checksum_frames, int) and not isinstance(checksum_frames, bool)
+            indices_in_range = (
+                frames_valid
+                and checksum_frames_valid
+                and all(0 <= frame < checksum_frames for frame in frames)
+            )
+            return {
+                "frames": frames if frames_valid else None,
+                "overflow": overflow if overflow_valid else None,
+                "checksumFrames": checksum_frames if checksum_frames_valid else None,
+                "dataPresent": frames_valid and overflow_valid,
+                "hasEvents": frames_valid and len(frames) > 0,
+                "noOverflow": overflow_valid and overflow == 0,
+                "frameIndicesInRange": indices_in_range,
+            }
+
+        left = event_state(left_frames, left_overflow, reference_checksum_frames)
+        right = event_state(right_frames, right_overflow, candidate_checksum_frames)
+        frames_match = left["frames"] == right["frames"] if left["dataPresent"] and right["dataPresent"] else False
+        event_pass = (
+            left["dataPresent"]
+            and right["dataPresent"]
+            and left["hasEvents"]
+            and right["hasEvents"]
+            and left["noOverflow"]
+            and right["noOverflow"]
+            and left["frameIndicesInRange"]
+            and right["frameIndicesInRange"]
+            and frames_match
+        )
+        comparisons[event] = {
+            "reference": left,
+            "candidate": right,
+            "framesMatch": frames_match,
+            "pass": event_pass,
+        }
+    return comparisons
+
+
 def _safe_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value)
 
@@ -185,6 +259,10 @@ def compare_reports(
 
         ignored_reference = int(reference_entry.get("ignoredWarmupChecksumFrames", -1))
         ignored_candidate = int(candidate_entry.get("ignoredWarmupChecksumFrames", -1))
+        reference_required_events = _required_bench_events(reference_entry, reference_report_path, scenario_id)
+        candidate_required_events = _required_bench_events(candidate_entry, candidate_report_path, scenario_id)
+        required_events = sorted(set(reference_required_events) | set(candidate_required_events))
+        event_requirements_match = reference_required_events == candidate_required_events
         reference_runs = _runs_by_id(reference_entry, reference_report_path, scenario_id)
         candidate_runs = _runs_by_id(candidate_entry, candidate_report_path, scenario_id)
         reference_images = reference_entry.get("imageComparisons")
@@ -214,6 +292,16 @@ def compare_reports(
                 except (OSError, ValueError) as exc:
                     run_result["checksumError"] = str(exc)
 
+            if required_events:
+                checksum_comparison = run_result.get("frameChecksums", {})
+                run_result["benchEvents"] = _compare_required_bench_events(
+                    left,
+                    right,
+                    required_events,
+                    checksum_comparison.get("referenceFrames"),
+                    checksum_comparison.get("candidateFrames"),
+                )
+
             reference_image_index = reference_run_order.index(run_id)
             candidate_image_index = candidate_run_order.index(run_id)
             if reference_image_index >= len(reference_images) or candidate_image_index >= len(candidate_images):
@@ -232,6 +320,7 @@ def compare_reports(
             run_result["pass"] = (
                 run_result.get("frameChecksums", {}).get("exactMatch", False)
                 and run_result.get("framebuffer", {}).get("exactMatch", False)
+                and all(item.get("pass", False) for item in run_result.get("benchEvents", {}).values())
                 and "checksumError" not in run_result
                 and "imageError" not in run_result
             )
@@ -243,13 +332,24 @@ def compare_reports(
             image_shape_ok = True
         scenario_results.append({
             "scenario": scenario_id,
-            "pass": image_shape_ok and bool(run_results) and all(item.get("pass", False) for item in run_results),
+            "pass": (
+                image_shape_ok
+                and event_requirements_match
+                and bool(run_results)
+                and all(item.get("pass", False) for item in run_results)
+            ),
             "referenceResult": reference_entry.get("result"),
             "candidateResult": candidate_entry.get("result"),
             "ignoredWarmupChecksumFrames": ignored_reference,
             "referenceCaptureFrame": reference_entry.get("captureFrame"),
             "candidateCaptureFrame": candidate_entry.get("captureFrame"),
             "imageRunCountsMatch": image_shape_ok,
+            "requiredBenchEvents": {
+                "reference": reference_required_events,
+                "candidate": candidate_required_events,
+                "match": event_requirements_match,
+                "events": required_events,
+            },
             "runs": run_results,
         })
 

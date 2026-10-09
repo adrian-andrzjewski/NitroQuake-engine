@@ -167,6 +167,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$BlobExplosionImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
@@ -586,7 +588,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 48
+$expectedAllAssemblySourceCount = 49
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {
