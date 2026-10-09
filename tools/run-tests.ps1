@@ -32,8 +32,9 @@
                                 path.  Seconds.
       3. test-video-dos.py      host-compiled harness over vid_ext.c and three
                                 vid_vga/vid_dos functions.  Seconds.
-      3a. test-rendering.py     host tests for PCX decoding/tolerances and
-                                per-frame checksum parsing. Seconds.
+      3a. test-rendering.py, test_blobexplosion_demo_fixture.py, and
+          test-lavasplash.py host checks for PCX/frame comparisons, PACK/.dem,
+          and the LavaSplash assembly source contract. Seconds.
       3b. test-rendering-reports.py exact paired-profile report comparisons.
       3c. test-renderer-ownership.py compiler clones and direct root traces.
       4. build-dos.ps1         compiles, and now carries the blocking ISA gate,
@@ -215,6 +216,10 @@ Invoke-Gate -Name 'test-isa-audit (486 opcode classifier)' -Kind 'host' -Command
 Invoke-Gate -Name 'test-sysinfo-dos (sys_dos report path)' -Kind 'host' -Command @('python', 'tools/test-sysinfo-dos.py') | Out-Null
 Invoke-Gate -Name 'test-video-dos (vid_ext + vid_vga/vid_dos)' -Kind 'host' -Command @('python', 'tools/test-video-dos.py') | Out-Null
 Invoke-Gate -Name 'test-rendering (PCX comparison + frame-log parser)' -Kind 'host' -Command @('python', 'tools/test-rendering.py') | Out-Null
+Invoke-Gate -Name 'test-blobexplosion-demo-fixture (PACK + .dem format)' -Kind 'host' `
+    -Command @('python', '-B', 'tools/test_blobexplosion_demo_fixture.py') | Out-Null
+Invoke-Gate -Name 'test-lavasplash-fixture (assembly source contract)' -Kind 'host' `
+    -Command @('python', '-B', 'tools/test-lavasplash.py') | Out-Null
 Invoke-Gate -Name 'test-rendering-reports (exact C/ASM parity report comparator)' -Kind 'host' -Command @('python', 'tools/test-rendering-reports.py') | Out-Null
 Invoke-Gate -Name 'test-renderer-ownership (compiler clones and call traces)' -Kind 'host' -Command @('python', 'tools/test-renderer-ownership.py') | Out-Null
 
