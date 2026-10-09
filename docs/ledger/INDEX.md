@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-09-zsubmodel-polygons-assembly-port.md`](2026-10-09-zsubmodel-polygons-assembly-port.md) | 1 | renderer port / BSP |
 | [`2026-10-08-accepted-renderer-checkpoint.md`](2026-10-08-accepted-renderer-checkpoint.md) | 2 | renderer port / checkpoint |
 | [`2026-10-08-world-control-assembly-port.md`](2026-10-08-world-control-assembly-port.md) | 2 | renderer port / world |
 | [`2026-10-08-alias-pipeline-assembly-port.md`](2026-10-08-alias-pipeline-assembly-port.md) | 2 | renderer port / alias |
@@ -270,6 +271,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [Optional submodel polygon driver](2026-10-09-zsubmodel-polygons-assembly-port.md)
 - `measured` [`R_MarkLights` tree walk](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
 - `measured` [Direct fixture and i486 ISA audit](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)
 - `measured` [Exact Demo 1 parity](2026-10-07-bsp-dynamic-light-marking-assembly-port.md)

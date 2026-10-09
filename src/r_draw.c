@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 #include "asm_renderdispatch.h"
+#include "asm_zsubmodel.h"
 #include "d_local.h"	// FIXME: shouldn't need to include this
 #include <stddef.h>
 
@@ -1837,7 +1838,12 @@ void R_RenderPoly (msurface_t *fa, int clipflags)
 R_ZDrawSubmodelPolys
 ================
 */
+#if !defined(ASM486_DRAW_Z_SUBMODEL_POLYS) || defined(BENCH486)
+#ifdef ASM486_DRAW_Z_SUBMODEL_POLYS
+void R_ZDrawSubmodelPolys_C (model_t *pmodel)
+#else
 void R_ZDrawSubmodelPolys (model_t *pmodel)
+#endif
 {
 	int			i, numsurfaces;
 	msurface_t	*psurf;
@@ -1859,10 +1865,25 @@ void R_ZDrawSubmodelPolys (model_t *pmodel)
 			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
 		{
 		// FIXME: use bounding-box-based frustum clipping info?
-			R_RenderPoly (psurf, 15);
+#if defined(BENCH486) && defined(ASM486_DRAW_Z_SUBMODEL_POLYS)
+			if (bench486_zsubmodel_render_hook)
+				bench486_zsubmodel_render_hook (psurf, 15);
+			else
+#endif
+				R_RenderPoly (psurf, 15);
 		}
 	}
 }
+#endif
+
+#ifdef ASM486_DRAW_Z_SUBMODEL_POLYS
+void R_ZDrawSubmodelPolys_asm486 (model_t *pmodel);
+
+void R_ZDrawSubmodelPolys (model_t *pmodel)
+{
+	R_ZDrawSubmodelPolys_asm486 (pmodel);
+}
+#endif
 
 
 /* Pinned original argument adapters, compiled only as independent test oracles. */

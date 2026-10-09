@@ -61,6 +61,7 @@
     "BmodelPolygonClipImplementation": "asm",
     "SolidClippedSubmodelPolygonsImplementation": "asm",
     "SubmodelPolygonsImplementation": "asm",
+    "ZSubmodelPolygonsImplementation": "c",
     "EdgeDrawingImplementation": "asm",
     "ScanEdgesImplementation": "asm",
     "EdgeListMaintenanceImplementation": "asm",

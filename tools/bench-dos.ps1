@@ -154,6 +154,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$SubmodelPolygonsImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ZSubmodelPolygonsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$EdgeDrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScanEdgesImplementation = 'c',
@@ -269,6 +271,7 @@ param(
     [switch]$LightMapBuildOnly,
     [switch]$SurfaceCacheOnly,
     [switch]$ParticleListOnly,
+    [switch]$ZSubmodelPolygonsOnly,
     [switch]$SurfaceDrawOnly,
     [switch]$SurfaceZGradientOnly,
     [switch]$SurfaceGradientOnly,
@@ -310,6 +313,9 @@ if ($SurfaceCacheOnly -and $SurfaceCacheImplementation -ne 'asm') {
 }
 if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
     throw '-ParticleListOnly requires -ParticleUpdateImplementation asm.'
+}
+if ($ZSubmodelPolygonsOnly -and $ZSubmodelPolygonsImplementation -ne 'asm') {
+    throw '-ZSubmodelPolygonsOnly requires -ZSubmodelPolygonsImplementation asm.'
 }
 if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
     throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
@@ -440,6 +446,7 @@ $buildParams = @{
         BmodelPolygonClipImplementation = $BmodelPolygonClipImplementation
         SolidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
         SubmodelPolygonsImplementation = $SubmodelPolygonsImplementation
+        ZSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
         EdgeDrawingImplementation = $EdgeDrawingImplementation
         ScanEdgesImplementation = $ScanEdgesImplementation
         EdgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -664,6 +671,9 @@ elseif ($ParticleListOnly) {
 elseif ($SurfaceCacheOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacecache -benchexit'
 }
+elseif ($ZSubmodelPolygonsOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchzsubmodelpolys -benchexit'
+}
 elseif ($SurfaceDrawOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacedraw -benchexit'
 }
@@ -796,6 +806,7 @@ $result = [ordered]@{
     bmodelPolygonClipImplementation = $BmodelPolygonClipImplementation
     solidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
     submodelPolygonsImplementation = $SubmodelPolygonsImplementation
+    zSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
     edgeDrawingImplementation = $EdgeDrawingImplementation
     scanEdgesImplementation = $ScanEdgesImplementation
     edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -861,6 +872,7 @@ $result = [ordered]@{
     lightMapBuildOnly = [bool]$LightMapBuildOnly
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
+    zSubmodelPolygonsOnly = [bool]$ZSubmodelPolygonsOnly
     surfaceDrawOnly = [bool]$SurfaceDrawOnly
     surfaceZGradientOnly = [bool]$SurfaceZGradientOnly
     surfaceGradientOnly = [bool]$SurfaceGradientOnly

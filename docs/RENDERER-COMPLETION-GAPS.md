@@ -179,7 +179,7 @@ to prove a complete call graph.
 
 | Area | Remaining behavior or ownership to verify |
 |---|---|
-| BSP/world | Remaining submodel polygon/debug paths, shared frustum mathematics, initialization and explicit indirect-target closure |
+| BSP/world | Other optional polygon/debug passes, shared frustum mathematics, initialization and explicit indirect-target closure. `R_ZDrawSubmodelPolys` now has an assembly selector and direct cull/call-order fixture; that fixture does not test the downstream `R_RenderPoly` rasterizer. |
 | Edge processing | Frame initialization, culled polygons and remaining C list/span forwarding entries |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |
 | Sky and particles | Combined complete-profile verification, plus dedicated particle-effect and sky scenarios |

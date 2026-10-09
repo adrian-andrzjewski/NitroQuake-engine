@@ -893,6 +893,19 @@ def main() -> int:
             if "-DASM486_DRAW_SUBMODEL_POLYGONS" not in submodel_polygons_asm.get(flags_name, []):
                 fail("the submodel-polygons assembly selector omits ASM486_DRAW_SUBMODEL_POLYGONS from %s" % flags_name)
 
+    z_submodel_polygons_c = dump_flags("-ZSubmodelPolygonsImplementation", "c")
+    z_submodel_polygons_asm = dump_flags("-ZSubmodelPolygonsImplementation", "asm")
+    if z_submodel_polygons_c and z_submodel_polygons_asm:
+        if z_submodel_polygons_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the Z-submodel C selector changes the retained i486 profile suffix")
+        if "zsubmodelpolysasm" not in z_submodel_polygons_asm.get("profileSuffix", ""):
+            fail("the Z-submodel assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_DRAW_Z_SUBMODEL_POLYS" in z_submodel_polygons_c.get(flags_name, []):
+                fail("the Z-submodel C selector enables ASM486_DRAW_Z_SUBMODEL_POLYS in %s" % flags_name)
+            if "-DASM486_DRAW_Z_SUBMODEL_POLYS" not in z_submodel_polygons_asm.get(flags_name, []):
+                fail("the Z-submodel assembly selector omits ASM486_DRAW_Z_SUBMODEL_POLYS from %s" % flags_name)
+
     edge_drawing_c = dump_flags("-EdgeDrawingImplementation", "c")
     edge_drawing_asm = dump_flags("-EdgeDrawingImplementation", "asm")
     if edge_drawing_c and edge_drawing_asm:
@@ -1057,6 +1070,7 @@ def main() -> int:
         "-BmodelPolygonClipImplementation", "asm",
         "-SolidClippedSubmodelPolygonsImplementation", "asm",
         "-SubmodelPolygonsImplementation", "asm",
+        "-ZSubmodelPolygonsImplementation", "asm",
         "-EfragStoreImplementation", "asm",
         "-EmitCachedEdgeImplementation", "asm",
         "-RenderPolyImplementation", "asm",
@@ -1170,7 +1184,8 @@ def main() -> int:
                 fail("the R_PushDlights assembly selector omits ASM486_DYNAMIC_LIGHT_PUSH from %s" % flags_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 38 assembly sources.
+    #    included by another unit), 40 assembly sources (one is omitted only
+    #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
             continue
@@ -1181,9 +1196,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 39:
+        if dump.get("allAssemblySourceCount") != 40:
             fail(
-                "%s: expected 39 assembly sources, got %r"
+                "%s: expected 40 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

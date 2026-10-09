@@ -1860,6 +1860,28 @@ changed between builds. Their single timedemo samples are not a timing
 comparison. Fixed-wait live captures landed at different demo moments, so they
 do not establish visual frame parity; see the submodel assembly ledger.
 
+The optional Z-only brush-submodel polygon pass has its own selector,
+`-ZSubmodelPolygonsImplementation c|asm`:
+
+~~~powershell
+.\tools\build-dos.ps1 -ZSubmodelPolygonsImplementation asm
+.\tools\smoke-dos.ps1 -ZSubmodelPolygonsImplementation asm
+.\tools\timedemo-dos.ps1 -ZSubmodelPolygonsImplementation asm -Runs 1
+~~~
+
+Run its direct C/assembly fixture with:
+
+~~~powershell
+.\tools\bench-dos.ps1 -ZSubmodelPolygonsImplementation asm -ZSubmodelPolygonsOnly
+~~~
+
+This pass is reached only when the polygon driver requests polygons; the DOS
+span driver initializes `r_drawpolys` to false. Its direct fixture therefore
+compares selected surface indices and clip flags against the retained C body,
+with guarded model/surface/plane storage and ABI checks. It does not substitute
+for scene framebuffer parity or exercise the polygon rasterizer itself. See
+the Z-submodel port ledger for the exact evidence and limits.
+
 Frame-level edge drawing is independently selectable with
 `-EdgeDrawingImplementation c|asm`:
 

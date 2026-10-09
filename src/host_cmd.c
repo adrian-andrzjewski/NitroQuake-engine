@@ -6680,6 +6680,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_PARTICLE_UPDATE)
 #include "bench486_particlelist.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_DRAW_Z_SUBMODEL_POLYS)
+#include "bench486_zsubmodel.h"
+#endif
 
 static void Bench486AliasBBoxProjectCases (void)
 {
@@ -10451,6 +10454,24 @@ static void Bench486_f (void)
 	{
 		Bench486Printf ("particle-pool list reset compares C and 486 assembly\n");
 		Bench486ParticleListCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
+#ifdef ASM486_DRAW_Z_SUBMODEL_POLYS
+	if (COM_CheckParm ("-benchzsubmodelpolys"))
+	{
+		Bench486Printf ("submodel polygon Z pass compares the retained C routine with 486 assembly\n");
+		Bench486ZSubmodelCases ();
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);

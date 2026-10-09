@@ -103,6 +103,7 @@ $script:AssemblyBackedImplementations = @(
     'BmodelPolygonClipImplementation',
     'SolidClippedSubmodelPolygonsImplementation',
     'SubmodelPolygonsImplementation',
+    'ZSubmodelPolygonsImplementation',
     'EdgeDrawingImplementation',
     'ScanEdgesImplementation',
     'EdgeListMaintenanceImplementation',
@@ -1059,6 +1060,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ZSubmodelPolygonsImplementation'
+        Manifest   = 'zSubmodelPolygonsImplementation'
+        Suffix     = @{ 'asm' = 'zsubmodelpolysasm' }
+        C          = @{ 'asm' = @('ASM486_DRAW_Z_SUBMODEL_POLYS') }
+        Asm        = @{ 'asm' = @('ASM486_DRAW_Z_SUBMODEL_POLYS') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'EdgeDrawingImplementation'
         Manifest   = 'edgeDrawingImplementation'
         Suffix     = @{ 'asm' = 'edgedrawasm' }
@@ -1293,6 +1303,7 @@ $script:SuffixOrder = @(
     'BmodelPolygonClipImplementation'
     'SolidClippedSubmodelPolygonsImplementation'
     'SubmodelPolygonsImplementation'
+    'ZSubmodelPolygonsImplementation'
     'EdgeDrawingImplementation'
     'ScanEdgesImplementation'
     'EdgeListMaintenanceImplementation'
@@ -1364,6 +1375,7 @@ $script:CDefineOrder = @(
     'BmodelPolygonClipImplementation'
     'SolidClippedSubmodelPolygonsImplementation'
     'SubmodelPolygonsImplementation'
+    'ZSubmodelPolygonsImplementation'
     'EdgeDrawingImplementation'
     'ScanEdgesImplementation'
     'EdgeListMaintenanceImplementation'
@@ -1468,6 +1480,7 @@ $script:AsmDefineOrder = @(
     'BmodelPolygonClipImplementation'
     'SolidClippedSubmodelPolygonsImplementation'
     'SubmodelPolygonsImplementation'
+    'ZSubmodelPolygonsImplementation'
     'EdgeDrawingImplementation'
     'ScanEdgesImplementation'
     'EdgeListMaintenanceImplementation'

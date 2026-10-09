@@ -674,6 +674,7 @@ class RenderingComparisonTests(unittest.TestCase):
             "BmodelPolygonClipImplementation",
             "SolidClippedSubmodelPolygonsImplementation",
             "SubmodelPolygonsImplementation",
+            "ZSubmodelPolygonsImplementation",
             "EdgeDrawingImplementation",
             "ScanEdgesImplementation",
             "EdgeListMaintenanceImplementation",
@@ -709,6 +710,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 "BmodelPolygonClipImplementation",
                 "SolidClippedSubmodelPolygonsImplementation",
                 "SubmodelPolygonsImplementation",
+                "ZSubmodelPolygonsImplementation",
                 "EfragStoreImplementation",
                 "EmitCachedEdgeImplementation",
             },
@@ -744,6 +746,48 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertRegex(body, r"(?m)^\s*movl\s+8\(%ebp\),%ebx\s+// pmodel")
         self.assertRegex(body, r"(?m)^\s*movl\s+12\(%ebp\),%edi\s+// clipflags")
         self.assertNotRegex(body, r"(?m)^\s*movl\s+4\(%ebp\),%ebx")
+
+    def test_z_submodel_polygon_assembly_has_an_isolated_i486_profile_and_oracle(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        candidate = json.loads((profiles / "i486-asm-zsubmodel.json").read_text(encoding="utf-8"))
+        self.assertEqual(candidate["schemaVersion"], 1)
+        self.assertEqual(candidate["id"], "i486-asm-zsubmodel")
+        self.assertEqual(set(reference["selectors"]), set(candidate["selectors"]))
+        self.assertEqual(candidate["selectors"]["ZSubmodelPolygonsImplementation"], "asm")
+        changed = {
+            name for name, value in candidate["selectors"].items()
+            if reference["selectors"][name] != value
+        }
+        self.assertEqual(changed, {"ZSubmodelPolygonsImplementation"})
+
+        assembly = (ROOT / "src/r_zsubmodelasm.s").read_text(encoding="utf-8")
+        self.assertIn("C(R_ZDrawSubmodelPolys_asm486):", assembly)
+        self.assertIn("fcompl\t.Lzsubmodel_negative_epsilon", assembly)
+        self.assertIn("fcompl\t.Lzsubmodel_positive_epsilon", assembly)
+        self.assertIn("testb\t$1,%ah", assembly)
+        self.assertIn("testb\t$69,%ah", assembly)
+        self.assertIn("call\tC(R_RenderPoly)", assembly)
+
+        layout = (ROOT / "src/asm_zsubmodel.h").read_text(encoding="utf-8")
+        for contract in (
+            "offsetof(model_t, firstmodelsurface)",
+            "offsetof(model_t, nummodelsurfaces)",
+            "offsetof(model_t, surfaces)",
+            "offsetof(msurface_t, plane)",
+            "offsetof(msurface_t, flags)",
+            "sizeof(msurface_t)",
+            "offsetof(mplane_t, dist)",
+        ):
+            with self.subTest(contract=contract):
+                self.assertIn(contract, layout)
+
+        oracle = (ROOT / "src/r_draw.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_zsubmodel.h").read_text(encoding="utf-8")
+        bench = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("R_ZDrawSubmodelPolys_C", oracle)
+        self.assertIn("4096 continuous calls", fixture)
+        self.assertIn("-benchzsubmodelpolys", bench)
 
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
