@@ -350,5 +350,8 @@ run passes the 18,176-case ViewControl fixture. The candidate executable and
 runtime ISA gate passes 245,178 relocated renderer/runtime instructions, 353
 source-bound executable contributions, 1,844 ranges, 529 startup CODE rows and
 9,207 provider instructions, with zero above-i486 instructions and zero
-exemptions. Exact scene framebuffer parity is still running, so this slice is
-pending parity review and has not been promoted or made the default.
+exemptions. The paired C-reference versus 84-selector assembly run now passes
+three DOSBox-X scenes with exact frame-checksum streams (3,029 compared frames)
+and exact 320x200 indexed framebuffer and palette captures. The assembly path
+remains selectable; this checkpoint completes only the `R_CheckVariables`
+slice, not the renderer migration.

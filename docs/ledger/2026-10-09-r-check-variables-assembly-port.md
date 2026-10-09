@@ -23,8 +23,18 @@ zero instructions above i486 and zero exemptions.
 
 ## Parity and scope boundary
 
-Exact C-reference versus assembly scene parity is running under
-`out/render-parity-rcheck-20261009`. Framebuffer parity remains **PENDING**;
-this entry does not claim scene parity or selector promotion. An earlier
-baseline-only diagnostic failure did not use the integrated profile and is not
-recorded as an accepted regression.
+Exact C-reference versus 84-selector assembly parity passed under DOSBox-X
+i486 emulation in `out/render-parity-rcheck-20261009`. The source-tree
+fingerprints match. All three scenarios passed: `demo1-viewsize-50`,
+`demo2-entity-workload`, and `demo3-world-workload`. After ignoring six startup
+frames per scenario, all 3,029 compared per-frame checksums matched. Each
+frame-169 320x200 capture also matched all 64,000 palette indices and the full
+palette, with zero mismatches. The report is
+`out/render-parity-rcheck-20261009/render-parity-result.json`.
+
+The paired single-run median FPS readings (reference / assembly) were 18.06 /
+17.68, 12.78 / 12.70, and 12.17 / 11.92 for those scenarios. They show no
+catastrophic regression in this slice, but are not a broad performance survey.
+The assembly path remains selectable and this checkpoint does not complete the
+renderer migration. An earlier baseline-only diagnostic failure did not use
+the integrated profile and is not recorded as an accepted regression.
