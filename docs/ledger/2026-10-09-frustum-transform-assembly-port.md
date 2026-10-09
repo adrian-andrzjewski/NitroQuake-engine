@@ -112,14 +112,35 @@ both build manifests still say `SKIPPED`, so this is visual evidence only.
 
 **Promotion status and remaining checks.**
 
-This candidate is not promoted. The C implementation remains the default and
-the assembly profile remains isolated. The earlier strict audit and executable
-hash above predate the `R_SetUpFrustumIndexes` extension. The new diagnostic
-candidate's full renderer audit remains incomplete at the separate
-startup-source reproduction gate:
-`tools/djgpp-assembler-tool.py` could not find a Windows MinGW GCC. The earlier
-strictly audited executable therefore has no complete startup-source manifest,
-and the new visual-only executables have no renderer ISA audit. Complete the
-startup-source proof and run the strict linked and executable gates on the exact
-extended renderer binary before considering promotion. No performance claim is
-made for these setup routines.
+The C implementation remains the default and the assembly profile remains
+opt-in. The strict paired run below closes the earlier executable, startup and
+provider audit gap for this exact candidate. Overall renderer ownership,
+combined-profile, extended gameplay and long-run stability work remain open, so
+this result does not promote the candidate as the complete renderer.
+
+## Strict paired acceptance (2026-10-09)
+
+The strict `render-parity-dos.ps1` run compared `i486-c-reference` with
+`i486-asm-frustum-transform` at `CpuTarget=i486` for one run each of
+`demo1-vesa-full`, `demo2-entity-workload` and `demo3-world-workload`. Both
+validation suites passed and their source-tree fingerprints matched
+(`6FE9839E606AF326873711D4A104BBE4722FE787BA4C112B6B2C9A96944C4`).
+
+The candidate's exact qbench executable SHA-256 was
+`0E8120D00A85D3EDFBC93F8D10C5765226BBFD9740ECAA7CE42BB72520737E8C`. Its
+complete gate passed 202,135 independently relocated executable instructions,
+529 startup code rows and 9,207 CWSDPMI provider instructions. Project and
+runtime source proofs covered 123 project objects and 235 installed runtime
+objects; 340 source-bound code contributions and all 1,578 executable ranges
+were covered by the relocated-byte audit. Each audit reported zero post-i486
+instructions, unknowns and exemptions. The startup proof bound all 1,660 loaded
+bytes; the provider proof checked one runtime branch variant without exemptions.
+
+All three workloads passed on the DOSBox-X i486 profile. After six configured
+warmup frames, the pair compared 964, 980 and 1,085 frame checksums respectively
+with no mismatches. The selected frame-169 320x200 captures and all 768 palette
+bytes matched exactly in every scene: zero pixel-index differences and zero
+palette-byte differences. The pair report is
+`out/render-parity-frustum-index-strict-20261009/render-parity-result.json`.
+Candidate median rates were 12.68, 12.78 and 12.17 FPS, effectively matching
+the reference and showing no material regression in these workloads.

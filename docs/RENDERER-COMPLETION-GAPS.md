@@ -119,6 +119,14 @@ provider ISA gate without exemptions. Per-scene timings differ by at most
 scenarios remain open. See the
 [particle port](ledger/2026-10-06-particle-update-assembly-port.md).
 
+The opt-in frustum profile now selects assembly for both `R_TransformFrustum`
+and `R_SetUpFrustumIndexes`. Its strict paired i486 run passed the complete
+relocated executable, startup and CWSDPMI provider gates with zero instruction
+violations, unknowns or exemptions. Three matched scenes produced 3,029 exact
+post-warmup frame checksums and three exact indexed-framebuffer/palette
+captures. C remains the default while broader renderer ownership work continues.
+See the [frustum port](ledger/2026-10-09-frustum-transform-assembly-port.md).
+
 Earlier sprite/math and light-control pair reports that failed to forward the
 new selectors are invalid acceptance evidence. Their original results and
 invalidation records are retained. Current runners forward declared selectors
@@ -274,17 +282,16 @@ only proved build-clock literal data differs. The refreshed default release
 guard verifies 120 objects and its executable. See the
 [accepted checkpoint](ledger/2026-10-08-accepted-renderer-checkpoint.md).
 
-## Unpromoted candidate
+## Opt-in frustum candidate
 
-The opt-in frustum profile now selects assembly for both `R_TransformFrustum`
-and `R_SetUpFrustumIndexes`. The transform-only predecessor passed its direct
-fixture and strict project/runtime/linked-object/relocated-code audits. The
-extended candidate passed 5,760 transform and 5,632 AABB-index direct cases on
-DOSBox-X configured as an i486; its `r_frustumasm.obj` audit found 235
-i486-compatible instructions with no unknowns. Three paired C/assembly scenes
-matched all 3,029 post-warmup checksums and exact indexed pixels and palettes.
-The pair's renderer ISA status is explicitly `SKIPPED`, however, and the
-extended executable has not passed the full linked and relocated ISA gate. The
-strict startup-source proof still cannot complete because the host startup
-check cannot locate MinGW GCC; C remains the default. See the
+The frustum transform and AABB-index setup pair now has a complete strict
+acceptance run. The assembly profile passed the linked and independently
+relocated executable audit, startup checks and maintained CWSDPMI provider
+proof. Its final executable contained 202,135 relocated instructions, with
+zero post-i486 instructions, unknowns or exemptions. The C reference and
+assembly candidate passed `demo1-vesa-full`, `demo2-entity-workload` and
+`demo3-world-workload`: 3,029 post-warmup checksums and all three 320x200
+indexed captures/palettes matched exactly. The C selector remains the default;
+this isolated candidate does not close remaining renderer ownership or broader
+stability requirements. See the
 [frustum candidate and extension](ledger/2026-10-09-frustum-transform-assembly-port.md).
