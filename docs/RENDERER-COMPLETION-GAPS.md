@@ -279,7 +279,7 @@ exemptions. Its paired emulator runs pass 6,058 exact checksums and six complete
 indexed/palette captures. See the
 [provider acceptance](ledger/2026-10-08-cwsdpmi-486-provider.md).
 
-The all-selector combined profile now passes all six committed scenes and the
+The 77-selector combined profile now passes all six committed scenes and the
 complete i486 executable gate. Completion still requires closing direct C
 dependencies and indirect targets, reviewing initialization/debug/support
 paths, further ISA-classifier coverage, long full-renderer stability and
@@ -314,3 +314,13 @@ indexed captures/palettes matched exactly. The C selector remains the default;
 this isolated candidate does not close remaining renderer ownership or broader
 stability requirements. See the
 [frustum candidate and extension](ledger/2026-10-09-frustum-transform-assembly-port.md).
+
+## Expanded 83-selector candidate
+
+The opt-in 83-selector profile passes the complete i486 executable gate and
+the `demo1-vesa-full` paired run: 964 post-warmup checksums and the frame-169
+320x200 indexed capture/palette match exactly. Its ownership inventory reports
+25 directly reachable renderer C functions, 148 indirect transfer sites and
+33 unresolved direct callees; this is not a complete call graph. The result
+does not establish broad scenario or full-renderer parity. See the
+[83-selector VESA checkpoint](ledger/2026-10-09-selectable-83-vesa-checkpoint.md).

@@ -34,6 +34,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -127,6 +128,16 @@ def compare(target: str, actual: dict, expected: dict) -> None:
 
 
 def main() -> int:
+    host_tool_test = subprocess.run(
+        [sys.executable, os.path.join(REPO_ROOT, "tools", "test-djgpp-assembler-tool.py")],
+        capture_output=True,
+        text=True,
+    )
+    if host_tool_test.returncode:
+        fail("the hash-bound DJASM host-helper fallback failed: " + host_tool_test.stderr.strip())
+    elif host_tool_test.stdout.strip():
+        print(host_tool_test.stdout.strip())
+
     with open(os.path.join(REPO_ROOT, "tools", "build-dos.ps1"), "r", encoding="utf-8") as handle:
         build_script = handle.read()
     for contract in (

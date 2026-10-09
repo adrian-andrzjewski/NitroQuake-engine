@@ -6273,6 +6273,16 @@
       "bytes": 9930
     },
     {
+      "path": "prebuilt/djasm-host-provenance.json",
+      "bytes": 739,
+      "sha256": "DD1D22368E5ED31E0655900A12B860F12BA1C180BA12459A9173C8F73F72E4D2"
+    },
+    {
+      "path": "prebuilt/djasm-host.exe",
+      "bytes": 154552,
+      "sha256": "01C1C46B211E046D069F6C30DB28E5B6DF77F681F69058D7DFA5FBA1C0DE82AF"
+    },
+    {
       "path": "primary/djdev205.zip",
       "sha256": "4557DFB6C161D326680AE5FA71F0098AC49425A1B11B90A020B83162EB705DDA",
       "bytes": 2509574
