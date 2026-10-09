@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stddef.h>
 #include "asm_draw.h"
 #include "asm_frustum.h"
+#include "asm_transformplane.h"
 #include "asm_viewcontrol.h"
 
 
@@ -418,7 +419,12 @@ void TransformVector (vec3_t in, vec3_t out)
 R_TransformPlane
 ================
 */
+#if !defined(ASM486_TRANSFORM_PLANE) || defined(BENCH486)
+#if defined(ASM486_TRANSFORM_PLANE)
+void R_TransformPlane_C (mplane_t *p, float *normal, float *dist)
+#else
 void R_TransformPlane (mplane_t *p, float *normal, float *dist)
+#endif
 {
 	float	d;
 	
@@ -427,6 +433,7 @@ void R_TransformPlane (mplane_t *p, float *normal, float *dist)
 // TODO: when we have rotating entities, this will need to use the view matrix
 	TransformVector (p->normal, normal);
 }
+#endif /* !ASM486_TRANSFORM_PLANE || BENCH486 */
 
 
 /*

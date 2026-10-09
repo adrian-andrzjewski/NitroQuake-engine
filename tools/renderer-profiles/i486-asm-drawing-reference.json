@@ -84,6 +84,8 @@
     "DrawingDriverImplementation": "asm",
     "ViewControlImplementation": "asm",
     "DrawingImplementation": "c",
-    "ParticleExplosion2Implementation": "c"
+    "ParticleExplosion2Implementation": "c",
+    "ParticleExplosionImplementation": "c",
+    "TransformPlaneImplementation": "c"
   }
 }

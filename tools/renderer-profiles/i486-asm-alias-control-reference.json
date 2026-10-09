@@ -86,6 +86,8 @@
     "DrawingImplementation": "asm",
     "ChaseImplementation": "asm",
     "AliasControlImplementation": "c",
-    "ParticleExplosion2Implementation": "c"
+    "ParticleExplosion2Implementation": "c",
+    "ParticleExplosionImplementation": "c",
+    "TransformPlaneImplementation": "c"
   }
 }

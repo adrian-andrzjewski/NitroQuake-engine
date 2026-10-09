@@ -82,6 +82,8 @@
     "SkyImplementation": "asm",
     "RenderDispatchImplementation": "asm",
     "DrawingDriverImplementation": "c",
-    "ParticleExplosion2Implementation": "c"
+    "ParticleExplosion2Implementation": "c",
+    "ParticleExplosionImplementation": "c",
+    "TransformPlaneImplementation": "c"
   }
 }

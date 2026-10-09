@@ -83,6 +83,8 @@
     "SkyImplementation": "c",
     "AliasStatsImplementation": "c",
     "PrintTimesImplementation": "c",
-    "ParticleExplosion2Implementation": "c"
+    "ParticleExplosion2Implementation": "c",
+    "ParticleExplosionImplementation": "c",
+    "TransformPlaneImplementation": "c"
   }
 }

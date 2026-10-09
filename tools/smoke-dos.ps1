@@ -169,6 +169,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$TransformFrustumImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$TransformPlaneImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$EdgeDrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScanEdgesImplementation = 'c',
@@ -225,6 +227,8 @@ param(
     [string]$ParticleUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -324,6 +328,7 @@ $buildParams = @{
     AliasStatsImplementation = $AliasStatsImplementation
     PrintTimesImplementation = $PrintTimesImplementation
     ParticleExplosion2Implementation = $ParticleExplosion2Implementation
+    ParticleExplosionImplementation = $ParticleExplosionImplementation
     PaletteImplementation = $PaletteImplementation
     MathClosureImplementation = $MathClosureImplementation
     VisibilityImplementation = $VisibilityImplementation
@@ -336,6 +341,7 @@ $buildParams = @{
     SubmodelPolygonsImplementation = $SubmodelPolygonsImplementation
     ZSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
     TransformFrustumImplementation = $TransformFrustumImplementation
+    TransformPlaneImplementation = $TransformPlaneImplementation
     EdgeDrawingImplementation = $EdgeDrawingImplementation
     ScanEdgesImplementation = $ScanEdgesImplementation
     EdgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -488,6 +494,7 @@ $result = [ordered]@{
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    particleExplosionImplementation = $ParticleExplosionImplementation
     worldControlImplementation = $WorldControlImplementation
     providerVerification = $providerVerification
     renderMathImplementation = $RenderMathImplementation
@@ -507,6 +514,7 @@ $result = [ordered]@{
     submodelPolygonsImplementation = $SubmodelPolygonsImplementation
     zSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
     transformFrustumImplementation = $TransformFrustumImplementation
+    transformPlaneImplementation = $TransformPlaneImplementation
     edgeDrawingImplementation = $EdgeDrawingImplementation
     scanEdgesImplementation = $ScanEdgesImplementation
     edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation

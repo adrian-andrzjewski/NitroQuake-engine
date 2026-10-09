@@ -74,6 +74,7 @@ $script:AssemblyBackedImplementations = @(
     'BspClipImplementation',
     'RenderWorldImplementation',
     'ParticleUpdateImplementation',
+    'ParticleExplosionImplementation',
     'ParticleExplosion2Implementation',
     'SpriteBeamImplementation',
     'SpriteClipImplementation',
@@ -85,6 +86,7 @@ $script:AssemblyBackedImplementations = @(
     'SpriteOrientationImplementation',
     'RenderMathImplementation',
     'TransformFrustumImplementation',
+    'TransformPlaneImplementation',
     'AnimatedLightImplementation',
     'PointLightImplementation',
     'FrameControlImplementation',
@@ -786,6 +788,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ParticleExplosionImplementation'
+        Manifest   = 'particleExplosionImplementation'
+        Suffix     = @{ 'asm' = 'particleexplosionasm' }
+        C          = @{ 'asm' = @('ASM486_PARTICLE_EXPLOSION') }
+        Asm        = @{ 'asm' = @('ASM486_PARTICLE_EXPLOSION') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'ParticleExplosion2Implementation'
         Manifest   = 'particleExplosion2Implementation'
         Suffix     = @{ 'asm' = 'particleexplosion2asm' }
@@ -890,6 +901,15 @@ $script:SelectorTable = @(
         Suffix     = @{ 'asm' = 'frustumasm' }
         C          = @{ 'asm' = @('ASM486_TRANSFORM_FRUSTUM') }
         Asm        = @{ 'asm' = @('ASM486_TRANSFORM_FRUSTUM') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'TransformPlaneImplementation'
+        Manifest   = 'transformPlaneImplementation'
+        Suffix     = @{ 'asm' = 'transformplaneasm' }
+        C          = @{ 'asm' = @('ASM486_TRANSFORM_PLANE') }
+        Asm        = @{ 'asm' = @('ASM486_TRANSFORM_PLANE') }
         SelectsAsm = $true
     }
 
@@ -1322,6 +1342,7 @@ $script:SuffixOrder = @(
     'BspFrameCountImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleExplosionImplementation'
     'ParticleExplosion2Implementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
@@ -1366,6 +1387,7 @@ $script:SuffixOrder = @(
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
     'TransformFrustumImplementation'
+    'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
 )
 
@@ -1399,6 +1421,7 @@ $script:CDefineOrder = @(
     'BspFrameCountImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleExplosionImplementation'
     'ParticleExplosion2Implementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
@@ -1443,6 +1466,7 @@ $script:CDefineOrder = @(
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
     'TransformFrustumImplementation'
+    'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
     'AliasBBoxProjectImplementation'
     'AliasTransformFinalImplementation'
@@ -1509,6 +1533,7 @@ $script:AsmDefineOrder = @(
     'LightMapBuildImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleExplosionImplementation'
     'ParticleExplosion2Implementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
@@ -1552,6 +1577,7 @@ $script:AsmDefineOrder = @(
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
     'TransformFrustumImplementation'
+    'TransformPlaneImplementation'
     'LineGraphImplementation'
     'TurbulentImplementation'
     'TurbulentScanImplementation'

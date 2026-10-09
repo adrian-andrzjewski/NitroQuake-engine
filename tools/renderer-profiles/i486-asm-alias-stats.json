@@ -82,6 +82,8 @@
     "PublicBindingsImplementation": "c",
     "SkyImplementation": "c",
     "AliasStatsImplementation": "asm",
-    "ParticleExplosion2Implementation": "c"
+    "ParticleExplosion2Implementation": "c",
+    "ParticleExplosionImplementation": "c",
+    "TransformPlaneImplementation": "c"
   }
 }

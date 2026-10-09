@@ -1318,8 +1318,46 @@ def main() -> int:
             if "r_particleexplosion2asm.s" not in dump.get("assemblySources", []):
                 fail("the R_ParticleExplosion2 %s selector omits r_particleexplosion2asm.s from the source inventory" % dump_name)
 
+    particle_explosion_c = dump_flags("-ParticleExplosionImplementation", "c")
+    particle_explosion_asm = dump_flags("-ParticleExplosionImplementation", "asm")
+    if particle_explosion_c and particle_explosion_asm:
+        if particle_explosion_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_ParticleExplosion C selector changes the promoted i486 suffix")
+        asm_suffix = particle_explosion_asm.get("profileSuffix", "")
+        if asm_suffix.count("-particleexplosionasm") != 1:
+            fail("the R_ParticleExplosion assembly selector lacks its profile token")
+        elif asm_suffix.replace("-particleexplosionasm", "") != particle_explosion_c.get("profileSuffix"):
+            fail("the R_ParticleExplosion assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_PARTICLE_EXPLOSION" in particle_explosion_c.get(flags_name, []):
+                fail("the R_ParticleExplosion C selector enables ASM486_PARTICLE_EXPLOSION in %s" % flags_name)
+            if "-DASM486_PARTICLE_EXPLOSION" not in particle_explosion_asm.get(flags_name, []):
+                fail("the R_ParticleExplosion assembly selector omits ASM486_PARTICLE_EXPLOSION from %s" % flags_name)
+        for dump_name, dump in (("C", particle_explosion_c), ("assembly", particle_explosion_asm)):
+            if "r_particleexplosionasm.s" not in dump.get("assemblySources", []):
+                fail("the R_ParticleExplosion %s selector omits r_particleexplosionasm.s from the source inventory" % dump_name)
+
+    transform_plane_c = dump_flags("-TransformPlaneImplementation", "c")
+    transform_plane_asm = dump_flags("-TransformPlaneImplementation", "asm")
+    if transform_plane_c and transform_plane_asm:
+        if transform_plane_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_TransformPlane C selector changes the promoted i486 suffix")
+        asm_suffix = transform_plane_asm.get("profileSuffix", "")
+        if asm_suffix.count("-transformplaneasm") != 1:
+            fail("the R_TransformPlane assembly selector lacks its profile token")
+        elif asm_suffix.replace("-transformplaneasm", "") != transform_plane_c.get("profileSuffix"):
+            fail("the R_TransformPlane assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_TRANSFORM_PLANE" in transform_plane_c.get(flags_name, []):
+                fail("the R_TransformPlane C selector enables ASM486_TRANSFORM_PLANE in %s" % flags_name)
+            if "-DASM486_TRANSFORM_PLANE" not in transform_plane_asm.get(flags_name, []):
+                fail("the R_TransformPlane assembly selector omits ASM486_TRANSFORM_PLANE from %s" % flags_name)
+        for dump_name, dump in (("C", transform_plane_c), ("assembly", transform_plane_asm)):
+            if "r_transformplaneasm.s" not in dump.get("assemblySources", []):
+                fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
+
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 45 assembly sources (one is omitted only
+    #    included by another unit), 47 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1331,9 +1369,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 45:
+        if dump.get("allAssemblySourceCount") != 47:
             fail(
-                "%s: expected 45 assembly sources, got %r"
+                "%s: expected 47 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

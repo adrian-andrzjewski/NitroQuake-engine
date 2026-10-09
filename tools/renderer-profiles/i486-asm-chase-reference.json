@@ -85,6 +85,8 @@
     "ViewControlImplementation": "asm",
     "DrawingImplementation": "asm",
     "ChaseImplementation": "c",
-    "ParticleExplosion2Implementation": "c"
+    "ParticleExplosion2Implementation": "c",
+    "ParticleExplosionImplementation": "c",
+    "TransformPlaneImplementation": "c"
   }
 }

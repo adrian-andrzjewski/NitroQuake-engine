@@ -158,6 +158,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$TransformFrustumImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$TransformPlaneImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$EdgeDrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScanEdgesImplementation = 'c',
@@ -173,6 +175,8 @@ param(
     [string]$RenderPolyImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -285,9 +289,11 @@ param(
     [switch]$LightMapBuildOnly,
     [switch]$SurfaceCacheOnly,
     [switch]$ParticleListOnly,
+    [switch]$ParticleExplosionOnly,
     [switch]$ParticleExplosion2Only,
     [switch]$ZSubmodelPolygonsOnly,
     [switch]$FrustumTransformOnly,
+    [switch]$TransformPlaneOnly,
     [switch]$SurfaceDrawOnly,
     [switch]$SurfaceZGradientOnly,
     [switch]$SurfaceGradientOnly,
@@ -333,6 +339,9 @@ if ($SurfaceCacheOnly -and $SurfaceCacheImplementation -ne 'asm') {
 if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
     throw '-ParticleListOnly requires -ParticleUpdateImplementation asm.'
 }
+if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
+    throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
+}
 if ($ParticleExplosion2Only -and $ParticleExplosion2Implementation -ne 'asm') {
     throw '-ParticleExplosion2Only requires -ParticleExplosion2Implementation asm.'
 }
@@ -341,6 +350,9 @@ if ($ZSubmodelPolygonsOnly -and $ZSubmodelPolygonsImplementation -ne 'asm') {
 }
 if ($FrustumTransformOnly -and $TransformFrustumImplementation -ne 'asm') {
     throw '-FrustumTransformOnly requires -TransformFrustumImplementation asm.'
+}
+if ($TransformPlaneOnly -and $TransformPlaneImplementation -ne 'asm') {
+    throw '-TransformPlaneOnly requires -TransformPlaneImplementation asm.'
 }
 if ($LineGraphOnly -and $LineGraphImplementation -ne 'asm') {
     throw '-LineGraphOnly requires -LineGraphImplementation asm.'
@@ -482,6 +494,7 @@ $buildParams = @{
         SubmodelPolygonsImplementation = $SubmodelPolygonsImplementation
         ZSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
         TransformFrustumImplementation = $TransformFrustumImplementation
+        TransformPlaneImplementation = $TransformPlaneImplementation
         EdgeDrawingImplementation = $EdgeDrawingImplementation
         ScanEdgesImplementation = $ScanEdgesImplementation
         EdgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -500,6 +513,7 @@ $buildParams = @{
         AliasStatsImplementation = $AliasStatsImplementation
         PrintTimesImplementation = $PrintTimesImplementation
         ParticleExplosion2Implementation = $ParticleExplosion2Implementation
+        ParticleExplosionImplementation = $ParticleExplosionImplementation
         PaletteImplementation = $PaletteImplementation
         MathClosureImplementation = $MathClosureImplementation
         VisibilityImplementation = $VisibilityImplementation
@@ -755,6 +769,9 @@ elseif ($LightMapBuildOnly) {
 elseif ($ParticleListOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticlelist -benchexit'
 }
+elseif ($ParticleExplosionOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion -benchexit'
+}
 elseif ($ParticleExplosion2Only) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion2 -benchexit'
 }
@@ -766,6 +783,9 @@ elseif ($ZSubmodelPolygonsOnly) {
 }
 elseif ($FrustumTransformOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfrustumtransform -benchexit'
+}
+elseif ($TransformPlaneOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchtransformplane -benchexit'
 }
 elseif ($SurfaceDrawOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacedraw -benchexit'
@@ -905,6 +925,7 @@ $result = [ordered]@{
     submodelPolygonsImplementation = $SubmodelPolygonsImplementation
     zSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
     transformFrustumImplementation = $TransformFrustumImplementation
+    transformPlaneImplementation = $TransformPlaneImplementation
     edgeDrawingImplementation = $EdgeDrawingImplementation
     scanEdgesImplementation = $ScanEdgesImplementation
     edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -935,6 +956,7 @@ $result = [ordered]@{
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    particleExplosionImplementation = $ParticleExplosionImplementation
     worldControlImplementation = $WorldControlImplementation
     instrumentation = [bool]$Instrumentation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
@@ -978,6 +1000,8 @@ $result = [ordered]@{
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
     particleExplosion2Only = [bool]$ParticleExplosion2Only
+    particleExplosionOnly = [bool]$ParticleExplosionOnly
+    transformPlaneOnly = [bool]$TransformPlaneOnly
     zSubmodelPolygonsOnly = [bool]$ZSubmodelPolygonsOnly
     frustumTransformOnly = [bool]$FrustumTransformOnly
     surfaceDrawOnly = [bool]$SurfaceDrawOnly

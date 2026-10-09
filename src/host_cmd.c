@@ -6725,6 +6725,12 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_PARTICLE_EXPLOSION2)
 #include "bench486_particleexplosion2.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_PARTICLE_EXPLOSION)
+#include "bench486_particleexplosion.h"
+#endif
+#if defined(BENCH486) && defined(ASM486_TRANSFORM_PLANE)
+#include "bench486_transformplane.h"
+#endif
 
 static void Bench486AliasBBoxProjectCases (void)
 {
@@ -10261,6 +10267,46 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("particle-explosion2 fixture requires -ParticleExplosion2Implementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchparticleexplosion"))
+	{
+#ifdef ASM486_PARTICLE_EXPLOSION
+		Bench486ParticleExplosionCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("particle-explosion fixture requires -ParticleExplosionImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchtransformplane"))
+	{
+#ifdef ASM486_TRANSFORM_PLANE
+		Bench486TransformPlaneCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("transform-plane fixture requires -TransformPlaneImplementation asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

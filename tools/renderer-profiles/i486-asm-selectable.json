@@ -83,6 +83,8 @@
     "SkyImplementation": "asm",
     "AliasStatsImplementation": "asm",
     "PrintTimesImplementation": "asm",
-    "ParticleExplosion2Implementation": "asm"
+    "ParticleExplosion2Implementation": "asm",
+    "ParticleExplosionImplementation": "asm",
+    "TransformPlaneImplementation": "asm"
   }
 }

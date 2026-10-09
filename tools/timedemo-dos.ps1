@@ -144,6 +144,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParticleExplosionImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteClipImplementation = 'c',
@@ -215,6 +217,8 @@ param(
     [string]$ZSubmodelPolygonsImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$TransformFrustumImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$TransformPlaneImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$EdgeDrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -407,6 +411,7 @@ $buildParams = @{
     BspWalkImplementation                = $BspWalkImplementation
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
+    ParticleExplosionImplementation      = $ParticleExplosionImplementation
     SpriteBeamImplementation             = $SpriteBeamImplementation
     SpriteClipImplementation             = $SpriteClipImplementation
     SpriteFrameImplementation            = $SpriteFrameImplementation
@@ -423,6 +428,7 @@ $buildParams = @{
         SubmodelPolygonsImplementation       = $SubmodelPolygonsImplementation
         ZSubmodelPolygonsImplementation      = $ZSubmodelPolygonsImplementation
         TransformFrustumImplementation       = $TransformFrustumImplementation
+        TransformPlaneImplementation         = $TransformPlaneImplementation
         LineGraphImplementation              = $LineGraphImplementation
         AliasStatsImplementation             = $AliasStatsImplementation
         PrintTimesImplementation              = $PrintTimesImplementation
@@ -1045,6 +1051,7 @@ $result = [ordered]@{
     bspWalkImplementation = $BspWalkImplementation
     particleUpdateImplementation = $ParticleUpdateImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    particleExplosionImplementation = $ParticleExplosionImplementation
     spriteBeamImplementation = $SpriteBeamImplementation
     spriteClipImplementation = $SpriteClipImplementation
     spriteFrameImplementation = $SpriteFrameImplementation
@@ -1079,6 +1086,7 @@ $result = [ordered]@{
     submodelPolygonsImplementation = $SubmodelPolygonsImplementation
     zSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
     transformFrustumImplementation = $TransformFrustumImplementation
+    transformPlaneImplementation = $TransformPlaneImplementation
     edgeDrawingImplementation = $EdgeDrawingImplementation
     scanEdgesImplementation = $ScanEdgesImplementation
     edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation

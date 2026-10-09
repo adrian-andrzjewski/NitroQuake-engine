@@ -54,6 +54,41 @@ typedef char particle_explosion2_client_time_offset[
 typedef char particle_explosion2_blob_type[(pt_blob == 6) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_PARTICLE_EXPLOSION) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char particle_explosion_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char particle_explosion_particle_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, ramp) == 32 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char particle_explosion_client_time_offset[
+		(offsetof(client_state_t, time) == 572) ? 1 : -1];
+typedef char particle_explosion_type_values[
+		(pt_explode == 4 && pt_explode2 == 5) ? 1 : -1];
+#endif
+
+#ifdef BENCH486
+int (*bench486_particleexplosion_rand_probe) (void);
+unsigned bench486_particleexplosion_rand_calls;
+
+int Bench486ParticleExplosionRand (void)
+{
+	bench486_particleexplosion_rand_calls++;
+	if (bench486_particleexplosion_rand_probe)
+		return bench486_particleexplosion_rand_probe ();
+	return rand ();
+}
+#define PARTICLE_EXPLOSION_RAND() Bench486ParticleExplosionRand ()
+#else
+#define PARTICLE_EXPLOSION_RAND() rand ()
+#endif
+
 #ifdef PROFILE486
 extern unsigned long bench486_gib_trail_particles;
 #endif
@@ -320,6 +355,10 @@ R_ParticleExplosion
 
 ===============
 */
+#ifdef ASM486_PARTICLE_EXPLOSION
+#define R_ParticleExplosion R_ParticleExplosion_C
+#endif
+#if !defined(ASM486_PARTICLE_EXPLOSION) || defined(BENCH486)
 void R_ParticleExplosion (vec3_t org)
 {
 	int			i, j;
@@ -336,14 +375,14 @@ void R_ParticleExplosion (vec3_t org)
 
 		p->die = cl.time + 5;
 		p->color = ramp1[0];
-		p->ramp = rand()&3;
+		p->ramp = PARTICLE_EXPLOSION_RAND ()&3;
 		if (i & 1)
 		{
 			p->type = pt_explode;
 			for (j=0 ; j<3 ; j++)
 			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%512)-256;
+				p->org[j] = org[j] + ((PARTICLE_EXPLOSION_RAND ()%32)-16);
+				p->vel[j] = (PARTICLE_EXPLOSION_RAND ()%512)-256;
 			}
 		}
 		else
@@ -351,12 +390,17 @@ void R_ParticleExplosion (vec3_t org)
 			p->type = pt_explode2;
 			for (j=0 ; j<3 ; j++)
 			{
-				p->org[j] = org[j] + ((rand()%32)-16);
-				p->vel[j] = (rand()%512)-256;
+				p->org[j] = org[j] + ((PARTICLE_EXPLOSION_RAND ()%32)-16);
+				p->vel[j] = (PARTICLE_EXPLOSION_RAND ()%512)-256;
 			}
 		}
 	}
 }
+#endif
+#ifdef ASM486_PARTICLE_EXPLOSION
+#undef R_ParticleExplosion
+#endif
+#undef PARTICLE_EXPLOSION_RAND
 
 /*
 ===============

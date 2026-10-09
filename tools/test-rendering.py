@@ -24,7 +24,7 @@ SPEC.loader.exec_module(rendering)
 
 
 def load_json(text: str) -> dict:
-    """Load JSON and treat the new selector as C in older renderer profiles."""
+    """Load JSON and treat newer renderer selectors as C in older profiles."""
     document = json.loads(text)
     if (
         isinstance(document, dict)
@@ -36,6 +36,9 @@ def load_json(text: str) -> dict:
         document["selectors"].setdefault("LineGraphImplementation", "c")
         document["selectors"].setdefault("AliasStatsImplementation", "c")
         document["selectors"].setdefault("PrintTimesImplementation", "c")
+        document["selectors"].setdefault("ParticleExplosionImplementation", "c")
+        document["selectors"].setdefault("ParticleExplosion2Implementation", "c")
+        document["selectors"].setdefault("TransformPlaneImplementation", "c")
     return document
 
 
@@ -610,7 +613,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 81)
+        self.assertEqual(len(reference["selectors"]), 83)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -673,7 +676,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 81)
+        self.assertEqual(len(reference["selectors"]), 83)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -754,7 +757,7 @@ class RenderingComparisonTests(unittest.TestCase):
         expected_focused["PrintTimesImplementation"] = "asm"
         self.assertEqual(focused["selectors"], expected_focused)
         self.assertNotIn("PrintTimesImplementation", selectable86["selectors"])
-        self.assertEqual(len(selectable["selectors"]), 81)
+        self.assertEqual(len(selectable["selectors"]), 83)
         self.assertEqual(selectable["selectors"]["PrintTimesImplementation"], "asm")
         self.assertEqual(len(selectable87["selectors"]), 87)
         self.assertEqual(selectable87["id"], "i486-asm-selectable-87")
@@ -838,7 +841,7 @@ class RenderingComparisonTests(unittest.TestCase):
         expected_focused = dict(reference["selectors"])
         expected_focused["ParticleExplosion2Implementation"] = "asm"
         self.assertEqual(focused["selectors"], expected_focused)
-        self.assertEqual(len(selectable["selectors"]), 81)
+        self.assertEqual(len(selectable["selectors"]), 83)
         self.assertEqual(selectable["selectors"]["ParticleExplosion2Implementation"], "asm")
         self.assertEqual(len(selectable87["selectors"]), 87)
         self.assertNotIn("ParticleExplosion2Implementation", selectable87["selectors"])
@@ -883,6 +886,116 @@ class RenderingComparisonTests(unittest.TestCase):
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ParticleExplosion2Implementation\s*=\s*'c'",
                 f"{runner_name} must reject unsupported ParticleExplosion2 selectors",
+            )
+
+    def test_particle_explosion_profile_fixture_and_selectable_count(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        focused = load_json((profiles / "i486-asm-particle-explosion.json").read_text(encoding="utf-8"))
+        selectable = json.loads((profiles / "i486-asm-selectable.json").read_text(encoding="utf-8"))
+        selectable88 = json.loads((profiles / "i486-asm-selectable-88.json").read_text(encoding="utf-8"))
+        selectable89 = json.loads((profiles / "i486-asm-selectable-89.json").read_text(encoding="utf-8"))
+        selectable90 = json.loads((profiles / "i486-asm-selectable-90.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(reference["selectors"]["ParticleExplosionImplementation"], "c")
+        expected_focused = dict(reference["selectors"])
+        expected_focused["ParticleExplosionImplementation"] = "asm"
+        self.assertEqual(focused["selectors"], expected_focused)
+        self.assertEqual(len(selectable["selectors"]), 83)
+        self.assertEqual(selectable["selectors"]["ParticleExplosionImplementation"], "asm")
+        self.assertEqual(len(selectable88["selectors"]), 88)
+        self.assertNotIn("ParticleExplosionImplementation", selectable88["selectors"])
+        self.assertEqual(len(selectable89["selectors"]), 89)
+        self.assertEqual(selectable89["selectors"]["ParticleExplosionImplementation"], "asm")
+        self.assertNotIn("TransformPlaneImplementation", selectable89["selectors"])
+        expected90 = dict(selectable89)
+        expected90["id"] = selectable90["id"]
+        expected90["description"] = selectable90["description"]
+        expected90["selectors"] = dict(selectable89["selectors"])
+        expected90["selectors"]["TransformPlaneImplementation"] = "asm"
+        self.assertEqual(selectable90, expected90)
+        self.assertEqual(len(selectable90["selectors"]), 90)
+
+        assembly = (ROOT / "src/r_particleexplosionasm.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/r_part.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_particleexplosion.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("idivl\t%ecx", assembly)
+        self.assertIn("C(R_ParticleExplosion_asm486):", assembly)
+        self.assertIn("C(rand)", assembly)
+        self.assertIn("R_ParticleExplosion_C", oracle)
+        self.assertIn("ASM486_PARTICLE_EXPLOSION", selectors)
+        self.assertIn("INT_MIN", fixture)
+        self.assertIn("one-extra-libc-rand", fixture)
+        self.assertIn("seven rand calls per particle", assembly)
+        self.assertIn('#include "bench486_particleexplosion.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchparticleexplosion")', host_commands)
+        self.assertIn("Bench486ParticleExplosionCases ();", host_commands)
+        self.assertIn("[switch]$ParticleExplosionOnly", bench_runner)
+        self.assertIn("-ParticleExplosionOnly requires -ParticleExplosionImplementation asm", bench_runner)
+        self.assertIn("+bench486 -benchparticleexplosion -benchexit", bench_runner)
+
+        for runner_name in ("build-dos.ps1", "bench-dos.ps1", "smoke-dos.ps1", "timedemo-dos.ps1"):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ParticleExplosionImplementation\s*=\s*'c'",
+                f"{runner_name} must reject unsupported ParticleExplosion selectors",
+            )
+
+    def test_transform_plane_profile_fixture_and_selectable_count(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        focused = load_json((profiles / "i486-asm-transform-plane.json").read_text(encoding="utf-8"))
+        selectable = json.loads((profiles / "i486-asm-selectable.json").read_text(encoding="utf-8"))
+        selectable89 = json.loads((profiles / "i486-asm-selectable-89.json").read_text(encoding="utf-8"))
+        selectable90 = json.loads((profiles / "i486-asm-selectable-90.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(reference["selectors"]["TransformPlaneImplementation"], "c")
+        expected_focused = dict(reference["selectors"])
+        expected_focused["TransformPlaneImplementation"] = "asm"
+        self.assertEqual(focused["selectors"], expected_focused)
+        self.assertEqual(len(selectable["selectors"]), 83)
+        self.assertEqual(selectable["selectors"]["TransformPlaneImplementation"], "asm")
+        self.assertEqual(len(selectable89["selectors"]), 89)
+        self.assertNotIn("TransformPlaneImplementation", selectable89["selectors"])
+        self.assertEqual(len(selectable90["selectors"]), 90)
+        self.assertEqual(selectable90["selectors"]["TransformPlaneImplementation"], "asm")
+
+        assembly = (ROOT / "src/r_transformplaneasm.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/r_misc.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_transformplane.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("fstps\t-4(%ebp)", assembly)
+        self.assertIn("fsubs\t-4(%ebp)", assembly)
+        self.assertIn("call\tC(TransformVector)", assembly)
+        self.assertIn("R_TransformPlane_C", oracle)
+        self.assertIn("ASM486_TRANSFORM_PLANE", selectors)
+        self.assertIn("precision-sensitive-cancel", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn('#include "bench486_transformplane.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchtransformplane")', host_commands)
+        self.assertIn("Bench486TransformPlaneCases ();", host_commands)
+        self.assertIn("[switch]$TransformPlaneOnly", bench_runner)
+        self.assertIn("-TransformPlaneOnly requires -TransformPlaneImplementation asm", bench_runner)
+        self.assertIn("+bench486 -benchtransformplane -benchexit", bench_runner)
+
+        for runner_name in ("build-dos.ps1", "bench-dos.ps1", "smoke-dos.ps1", "timedemo-dos.ps1"):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$TransformPlaneImplementation\s*=\s*'c'",
+                f"{runner_name} must reject unsupported TransformPlane selectors",
             )
 
     def test_sprite_scan_left_focused_profile_changes_only_that_selector(self) -> None:

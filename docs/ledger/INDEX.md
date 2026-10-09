@@ -17,10 +17,12 @@ later insertion above it.
 | [`2026-10-09-alias-stats-assembly-port.md`](2026-10-09-alias-stats-assembly-port.md) | 3 | renderer port / alias |
 | [`2026-10-09-drawspans-dispatch-parity.md`](2026-10-09-drawspans-dispatch-parity.md) | 4 | renderer port / span dispatch |
 | [`2026-10-09-line-graph-assembly-port.md`](2026-10-09-line-graph-assembly-port.md) | 3 | renderer port / timing overlay |
+| [`2026-10-09-particle-explosion-assembly-port.md`](2026-10-09-particle-explosion-assembly-port.md) | 2 | renderer port / particles |
 | [`2026-10-09-particle-explosion2-assembly-port.md`](2026-10-09-particle-explosion2-assembly-port.md) | 2 | renderer port / particles |
 | [`2026-10-09-print-times-assembly-port.md`](2026-10-09-print-times-assembly-port.md) | 2 | renderer port / diagnostics |
 | [`2026-10-09-r-check-variables-assembly-port.md`](2026-10-09-r-check-variables-assembly-port.md) | 3 | renderer port / variable checks |
 | [`2026-10-09-r-setupframe-assembly-port.md`](2026-10-09-r-setupframe-assembly-port.md) | 3 | renderer port / frame setup |
+| [`2026-10-09-r-transformplane-assembly-port.md`](2026-10-09-r-transformplane-assembly-port.md) | 2 | renderer port / plane math |
 | [`2026-10-09-selectable-84-alias-control-checkpoint.md`](2026-10-09-selectable-84-alias-control-checkpoint.md) | 5 | renderer port / alias-control integration |
 | [`2026-10-09-selectable-83-vesa-checkpoint.md`](2026-10-09-selectable-83-vesa-checkpoint.md) | 5 | renderer port / 83-selector VESA checkpoint |
 | [`2026-10-09-selectable-77-assembly-profile-acceptance.md`](2026-10-09-selectable-77-assembly-profile-acceptance.md) | 4 | renderer port / all-selector profile |
@@ -291,6 +293,12 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [`R_ParticleExplosion2` -> i486 assembly port (2026-10-09)](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Particle pool semantics and ABI](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Full-state fixture and i486 results](2026-10-09-particle-explosion2-assembly-port.md)
+- `measured` [`R_ParticleExplosion` -> i486 assembly port (2026-10-09)](2026-10-09-particle-explosion-assembly-port.md)
+- `measured` [Standard explosion particle pool semantics and ABI](2026-10-09-particle-explosion-assembly-port.md)
+- `measured` [Full-state fixture and i486 validation](2026-10-09-particle-explosion-assembly-port.md)
+- `measured` [`R_TransformPlane` assembly slice (2026-10-09)](2026-10-09-r-transformplane-assembly-port.md)
+- `measured` [Semantics and focused fixture](2026-10-09-r-transformplane-assembly-port.md)
+- `measured` [Focused validation and remaining scene coverage](2026-10-09-r-transformplane-assembly-port.md)
 - `measured` [`R_PrintTimes` -> i486 assembly port (2026-10-09)](2026-10-09-print-times-assembly-port.md)
 - `measured` [Time conversion, formatting, and ABI](2026-10-09-print-times-assembly-port.md)
 - `measured` [Deterministic console fixture and i486 results](2026-10-09-print-times-assembly-port.md)
