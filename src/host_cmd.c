@@ -2085,6 +2085,8 @@ static void Bench486MemoryCase (char *name, int count, int iterations,
 
 	for (sample=0 ; sample<BENCH486_MEMORY_SAMPLES ; sample++)
 	{
+		Bench486Printf ("486 benchmark progress memory %s sample %d/%d\n",
+				name, sample + 1, BENCH486_MEMORY_SAMPLES);
 		/* Alternate order to expose any first-run cache or emulator bias. */
 		if ((sample & 1) == 0)
 		{
@@ -2124,6 +2126,31 @@ static void Bench486MemoryCase (char *name, int count, int iterations,
 
 	Bench486PrintSamples (name, count, iterations, set, source_offset, dest_offset,
 			c_samples, asm_samples, c_checksum, asm_checksum);
+}
+
+static void Bench486MemoryCases (void)
+{
+	Bench486Printf ("486 benchmark progress memory phase: 19 cases, %d samples each\n",
+			BENCH486_MEMORY_SAMPLES);
+	Bench486MemoryCase ("copy-1", 1, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-3", 3, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-zero", 0, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-negative", -1, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-4", 4, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-255", 255, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-256", 256, 250000, false, 0, 0);
+	Bench486MemoryCase ("copy-1024", 1024, 100000, false, 0, 0);
+	Bench486MemoryCase ("copy-255-both-unaligned", 255, 250000, false, 1, 1);
+	Bench486MemoryCase ("copy-255-misaligned", 255, 250000, false, 1, 2);
+	Bench486MemoryCase ("set-1", 1, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-3", 3, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-4", 4, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-255", 255, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-256", 256, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-1024", 1024, 100000, true, 0, 0);
+	Bench486MemoryCase ("set-255-unaligned", 255, 250000, true, 0, 1);
+	Bench486MemoryCase ("set-zero", 0, 250000, true, 0, 0);
+	Bench486MemoryCase ("set-negative", -1, 250000, true, 0, 0);
 }
 
 static void Bench486SetTurbulentState (byte *dest, int count)
@@ -9719,6 +9746,21 @@ static void Bench486_f (void)
 		Con_Printf ("bench486: could not create bench486.txt\n");
 
 	Bench486Printf ("486 benchmark begin\n");
+	if (COM_CheckParm ("-benchmemory"))
+	{
+		Bench486MemoryCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchsolidsurface"))
 	{
 #ifdef ASM486_SOLID_SURFACE
@@ -10619,25 +10661,7 @@ static void Bench486_f (void)
 #endif
 	Bench486Printf ("memory experiment compares existing C helpers with\n");
 	Bench486Printf ("separate forward-copy and byte-fill 486 assembly paths\n");
-	Bench486MemoryCase ("copy-1", 1, 250000, false, 0, 0);
-	Bench486MemoryCase ("copy-3", 3, 250000, false, 0, 0);
-	Bench486MemoryCase ("copy-zero", 0, 250000, false, 0, 0);
-	Bench486MemoryCase ("copy-negative", -1, 250000, false, 0, 0);
-	Bench486MemoryCase ("copy-4", 4, 250000, false, 0, 0);
-	Bench486MemoryCase ("copy-255", 255, 250000, false, 0, 0);
-	Bench486MemoryCase ("copy-256", 256, 250000, false, 0, 0);
-	Bench486MemoryCase ("copy-1024", 1024, 100000, false, 0, 0);
-	Bench486MemoryCase ("copy-255-both-unaligned", 255, 250000, false, 1, 1);
-	Bench486MemoryCase ("copy-255-misaligned", 255, 250000, false, 1, 2);
-	Bench486MemoryCase ("set-1", 1, 250000, true, 0, 0);
-	Bench486MemoryCase ("set-3", 3, 250000, true, 0, 0);
-	Bench486MemoryCase ("set-4", 4, 250000, true, 0, 0);
-	Bench486MemoryCase ("set-255", 255, 250000, true, 0, 0);
-	Bench486MemoryCase ("set-256", 256, 250000, true, 0, 0);
-	Bench486MemoryCase ("set-1024", 1024, 100000, true, 0, 0);
-	Bench486MemoryCase ("set-255-unaligned", 255, 250000, true, 0, 1);
-	Bench486MemoryCase ("set-zero", 0, 250000, true, 0, 0);
-	Bench486MemoryCase ("set-negative", -1, 250000, true, 0, 0);
+	Bench486MemoryCases ();
 	Bench486Printf ("texture-axis experiment compares the C cache-key probe with\n");
 	Bench486Printf ("the isolated 486 assembly fast-hit/miss probe\n");
 	Bench486TextureAxisCase ();

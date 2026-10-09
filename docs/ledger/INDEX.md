@@ -211,6 +211,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### harness / method
 
+- `measured` [Live `bench486` progress reporting (2026-10-09)](2026-10-09-bench486-live-progress.md)
 - `measured` [The duplication, measured](2026-10-04-toolchain-refactor.md)
 - `measured` [Four defects that were producing a wrong...](2026-10-04-toolchain-refactor.md)
 - `measured` [Two runners tested whatever binary was l...](2026-10-04-toolchain-refactor.md)

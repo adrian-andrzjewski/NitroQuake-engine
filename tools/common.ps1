@@ -801,6 +801,10 @@ function Invoke-DosboxProcess {
 
     .OUTPUTS
         ExitCode ($null when the process was killed) and TimedOut.
+
+    .PARAMETER ProgressFile
+        Optional text file appended while DOSBox-X runs. Complete lines are
+        echoed live to the caller, allowing long benchmarks to report progress.
     #>
     [CmdletBinding()]
     param(
@@ -808,7 +812,8 @@ function Invoke-DosboxProcess {
         [Parameter(Mandatory = $true)][string]$ConfigPath,
         [Parameter(Mandatory = $true)][int]$TimeoutSeconds,
         # Prepended to the launch message, e.g. 'DOSBox-X smoke test'.
-        [string]$Description = 'DOSBox-X'
+        [string]$Description = 'DOSBox-X',
+        [string]$ProgressFile
     )
 
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -828,11 +833,78 @@ function Invoke-DosboxProcess {
         if (-not $process.Start()) {
             throw 'DOSBox-X failed to start.'
         }
-        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
-            $process.Kill()
-            $timedOut = $true
+        if ([string]::IsNullOrWhiteSpace($ProgressFile)) {
+            if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+                $process.Kill()
+                $timedOut = $true
+            }
         }
         else {
+            $progressOffset = 0
+            $progressPending = ''
+            $stopwatch = [Diagnostics.Stopwatch]::StartNew()
+            while (-not $process.HasExited) {
+                if (Test-Path -LiteralPath $ProgressFile -PathType Leaf) {
+                    try {
+                        $progressText = [IO.File]::ReadAllText(
+                            $ProgressFile, [Text.Encoding]::ASCII)
+                        if ($progressText.Length -lt $progressOffset) {
+                            $progressOffset = 0
+                            $progressPending = ''
+                        }
+                        if ($progressText.Length -gt $progressOffset) {
+                            $progressPending += $progressText.Substring($progressOffset)
+                            $progressOffset = $progressText.Length
+                            $lastNewline = $progressPending.LastIndexOf("`n")
+                            if ($lastNewline -ge 0) {
+                                $completeText = $progressPending.Substring(0, $lastNewline)
+                                $progressPending = $progressPending.Substring($lastNewline + 1)
+                                foreach ($line in ($completeText -split "`r?`n")) {
+                                    if ($line.Length -gt 0) {
+                                        Write-Host "[DOSBox-X] $line"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch [System.IO.IOException] {
+                        # The DOS process may hold the report during a write;
+                        # retry on the next poll without losing the offset.
+                    }
+                }
+
+                if ($process.WaitForExit(1000)) {
+                    break
+                }
+                if ($stopwatch.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
+                    $process.Kill()
+                    $timedOut = $true
+                    break
+                }
+            }
+
+            # Flush the last complete or partial line after DOSBox exits.
+            if (Test-Path -LiteralPath $ProgressFile -PathType Leaf) {
+                try {
+                    $progressText = [IO.File]::ReadAllText(
+                        $ProgressFile, [Text.Encoding]::ASCII)
+                    if ($progressText.Length -gt $progressOffset) {
+                        $progressPending += $progressText.Substring($progressOffset)
+                    }
+                }
+                catch [System.IO.IOException] {
+                }
+            }
+            if ($progressPending.Length -gt 0) {
+                foreach ($line in ($progressPending -split "`r?`n")) {
+                    if ($line.Length -gt 0) {
+                        Write-Host "[DOSBox-X] $line"
+                    }
+                }
+            }
+        }
+
+        if (-not $timedOut -and $process.HasExited) {
             # Read before the finally disposes the process; ExitCode is not
             # readable afterwards.
             $exitCode = $process.ExitCode

@@ -225,6 +225,7 @@ param(
     [string]$SpriteDrawImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
+    [switch]$MemoryOnly,
     [switch]$FillRectOnly,
     [switch]$ZPointOnly,
     [switch]$SkySpanOnly,
@@ -310,6 +311,9 @@ $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
 $DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 if ($TimeoutSeconds -lt 10) {
     throw 'TimeoutSeconds must be at least 10 seconds.'
+}
+if ($MemoryOnly -and $MemoryImplementation -ne 'asm') {
+    throw '-MemoryOnly requires -MemoryImplementation asm.'
 }
 if ($SurfaceCacheOnly -and $SurfaceCacheImplementation -ne 'asm') {
     throw '-SurfaceCacheOnly requires -SurfaceCacheImplementation asm.'
@@ -582,7 +586,10 @@ $providerVerification = Assert-RunnerDpmiProvider -CpuTarget $CpuTarget -BuildVe
     -ProviderPath (Join-Path $quakeRoot 'cwsdpmi.exe') `
     -DiagnosticOnly:$selectorVerification.diagnosticOnly -ProviderProofPath $providerProofPath
 
-$benchCommand = if ($AliasProjectOnly) {
+$benchCommand = if ($MemoryOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchmemory -benchexit'
+}
+elseif ($AliasProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
 }
 elseif ($SpriteBeamOnly) {
@@ -761,14 +768,15 @@ exit
 $configPath = New-DosboxRuntimeConfig -ProfileTemplate (Get-DosboxProfilePath -ToolsDirectory $PSScriptRoot) `
     -StagingRoot $stagingRoot -BatchName 'bench.bat' -CpuTarget $CpuTarget -ConfigName 'dosbox-x-bench.conf'
 
+$reportPath = Join-Path $quakeRoot 'bench486.txt'
 $run = Invoke-DosboxProcess -Dosbox $dosbox -ConfigPath $configPath `
-    -TimeoutSeconds $TimeoutSeconds -Description "DOSBox-X 486 benchmark in $stagingRoot"
+    -TimeoutSeconds $TimeoutSeconds -Description "DOSBox-X 486 benchmark in $stagingRoot" `
+    -ProgressFile $reportPath
 if ($run.TimedOut) {
     throw "DOSBox-X benchmark exceeded $TimeoutSeconds seconds."
 }
 $dosboxExit = $run.ExitCode
 
-$reportPath = Join-Path $quakeRoot 'bench486.txt'
 if (-not (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
     throw "DOSBox-X exited with code $dosboxExit but Quake did not produce '$reportPath'."
 }
@@ -798,6 +806,7 @@ $result = [ordered]@{
     surfaceDispatcherImplementation = $SurfaceDispatcherImplementation
     mipLevelImplementation = $MipLevelImplementation
     memoryImplementation = $MemoryImplementation
+    memoryOnly = [bool]$MemoryOnly
     fillRectImplementation = $FillRectImplementation
     zPointImplementation = $ZPointImplementation
     skySpanImplementation = $SkySpanImplementation
