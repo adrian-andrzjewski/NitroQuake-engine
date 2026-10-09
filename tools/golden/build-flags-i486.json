@@ -14,8 +14,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 41,
-  "assemblySourceCount": 41,
+  "allAssemblySourceCount": 42,
+  "assemblySourceCount": 42,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -59,12 +59,6 @@
     "-DASM486_ALIAS_PROJECT"
   ],
   "cSourceExtraFlags": {
-    "pr_edict.c": [
-      "-fno-delete-null-pointer-checks"
-    ],
-    "wad.c": [
-      "-fno-delete-null-pointer-checks"
-    ],
     "r_main.c": [
       "-fno-jump-tables"
     ],
@@ -73,6 +67,12 @@
     ],
     "host_cmd.c": [
       "-fno-jump-tables"
+    ],
+    "pr_edict.c": [
+      "-fno-delete-null-pointer-checks"
+    ],
+    "wad.c": [
+      "-fno-delete-null-pointer-checks"
     ]
   },
   "asmFlags": [
@@ -233,6 +233,7 @@
     "r_frustumasm.s",
     "r_lightasm.s",
     "r_lightcontrolasm.s",
+    "r_linegraphasm.s",
     "r_mathasm.s",
     "r_mathclosureasm.s",
     "r_particlelist.s",

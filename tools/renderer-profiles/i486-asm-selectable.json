@@ -75,6 +75,7 @@
     "AnimatedLightImplementation": "asm",
     "PointLightImplementation": "asm",
     "FrameControlImplementation": "asm",
+    "LineGraphImplementation": "asm",
     "PaletteImplementation": "asm",
     "MathClosureImplementation": "asm",
     "VisibilityImplementation": "asm",

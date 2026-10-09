@@ -48,6 +48,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define rd_vrect_width              8
 #define rd_vrect_height             12
 
+// R_LineGraph assembly entry layout. Keep checked against viddef_t,
+// refdef_t::vrect, and cvar_t in r_misc.c when ASM486_LINE_GRAPH is selected.
+#define LG_VID_BUFFER               0
+#define LG_VID_ROWBYTES             16
+#define LG_REFDEF_VRECT_X           0
+#define LG_REFDEF_VRECT_Y           4
+#define LG_CVAR_VALUE               16
+
 // sspan_t structure
 // !!! if this is changed, it must be changed in d_local.h too !!!
 #define sspan_t_u    	0

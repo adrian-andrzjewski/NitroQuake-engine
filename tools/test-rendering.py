@@ -23,6 +23,20 @@ sys.modules[SPEC.name] = rendering
 SPEC.loader.exec_module(rendering)
 
 
+def load_json(text: str) -> dict:
+    """Load JSON and treat the new selector as C in older renderer profiles."""
+    document = json.loads(text)
+    if (
+        isinstance(document, dict)
+        and document.get("schemaVersion") == 1
+        and str(document.get("id", "")).startswith("i486-")
+        and not str(document.get("id", "")).startswith("i486-viewcontrol-")
+        and isinstance(document.get("selectors"), dict)
+    ):
+        document["selectors"].setdefault("LineGraphImplementation", "c")
+    return document
+
+
 def make_pcx(path: Path, width: int, height: int, pixels: bytes, palette: bytes) -> None:
     assert len(pixels) == width * height
     assert len(palette) == 768
@@ -158,7 +172,7 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(exact_exit, 0)
 
     def test_scenario_manifest_has_pinned_references(self) -> None:
-        manifest = json.loads((ROOT / "tools/render-scenarios.json").read_text(encoding="utf-8"))
+        manifest = load_json((ROOT / "tools/render-scenarios.json").read_text(encoding="utf-8"))
         scenarios = manifest["scenarios"]
         self.assertTrue(scenarios)
         self.assertIn("host_framerate 0.0783", manifest["validationAutoexecCommands"])
@@ -186,7 +200,7 @@ class RenderingComparisonTests(unittest.TestCase):
 
     def test_assembly_selector_profile_uses_supported_i486_paths(self) -> None:
         profile_path = ROOT / "tools/renderer-profiles/i486-asm-selectable.json"
-        profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile = load_json(profile_path.read_text(encoding="utf-8"))
         self.assertEqual(profile["schemaVersion"], 1)
         self.assertEqual(profile["id"], "i486-asm-selectable")
         self.assertTrue(profile["description"])
@@ -222,11 +236,11 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(selectors["AliasRasterizeImplementation"], "asm")
         self.assertEqual(selectors["MarkLightsImplementation"], "asm")
         self.assertEqual(selectors["DynamicLightPushImplementation"], "asm")
-        reference_selectors = json.loads(
+        reference_selectors = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )["selectors"]
         self.assertEqual(reference_selectors["MarkLightsImplementation"], "c")
-        mark_lights_profile = json.loads(
+        mark_lights_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-marklights.json").read_text(encoding="utf-8")
         )
         self.assertEqual(mark_lights_profile["selectors"]["MarkLightsImplementation"], "asm")
@@ -255,8 +269,8 @@ class RenderingComparisonTests(unittest.TestCase):
 
     def test_particle_update_profile_changes_only_particle_simulation(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
-        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
-        candidate = json.loads(
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        candidate = load_json(
             (profiles / "i486-asm-particle-update.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate["schemaVersion"], 1)
@@ -296,10 +310,10 @@ class RenderingComparisonTests(unittest.TestCase):
         )
 
     def test_dynamic_light_push_profile_and_fixture_are_isolated(self) -> None:
-        reference = json.loads(
+        reference = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate = json.loads(
+        candidate = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-dlight-push.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate["selectors"]["DynamicLightPushImplementation"], "asm")
@@ -326,10 +340,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("0x80000000U", source)
 
     def test_promoted_renderer_profile_changes_only_verified_i486_paths(self) -> None:
-        reference = json.loads(
+        reference = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate = json.loads(
+        candidate = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-promoted-renderers.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate["schemaVersion"], 1)
@@ -349,10 +363,10 @@ class RenderingComparisonTests(unittest.TestCase):
         )
 
     def test_promoted_renderer_profile_with_sprite_draw_has_four_assembly_paths(self) -> None:
-        reference = json.loads(
+        reference = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate = json.loads(
+        candidate = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-promoted-renderers-spritedraw.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate["schemaVersion"], 1)
@@ -373,10 +387,10 @@ class RenderingComparisonTests(unittest.TestCase):
         )
 
     def test_promoted_renderer_profile_with_sprite_frame_has_five_assembly_paths(self) -> None:
-        reference = json.loads(
+        reference = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate = json.loads(
+        candidate = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-promoted-renderers-spriteframe.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate["schemaVersion"], 1)
@@ -398,10 +412,10 @@ class RenderingComparisonTests(unittest.TestCase):
         )
 
     def test_alias_matrix_composition_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-matrix.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -415,10 +429,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasMatrixCompositionImplementation"})
 
     def test_alias_setup_lighting_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-lighting.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -432,10 +446,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasSetupLightingImplementation"})
 
     def test_alias_prepare_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-prepare.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -449,10 +463,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasPrepareImplementation"})
 
     def test_alias_setup_frame_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-frame.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -466,10 +480,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasSetupFrameImplementation"})
 
     def test_alias_setup_skin_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-skin.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -483,10 +497,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasSetupSkinImplementation"})
 
     def test_alias_gradient_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-gradient.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -500,10 +514,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasGradientImplementation"})
 
     def test_alias_line_scan_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-line-scan.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -517,10 +531,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasLineScanImplementation"})
 
     def test_alias_edge_table_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-edge-table.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -534,10 +548,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasEdgeTableImplementation"})
 
     def test_alias_skin_table_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-skin-table.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -551,10 +565,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasSkinTableImplementation"})
 
     def test_alias_rasterize_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-alias-rasterize.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -568,10 +582,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"AliasRasterizeImplementation"})
 
     def test_c_reference_profile_mirrors_assembly_selector_coverage(self) -> None:
-        assembly_profile = json.loads(
+        assembly_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-selectable.json").read_text(encoding="utf-8")
         )
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
         self.assertEqual(reference_profile["schemaVersion"], 1)
@@ -583,11 +597,77 @@ class RenderingComparisonTests(unittest.TestCase):
         )
         self.assertFalse(any(value == "asm" for value in reference_profile["selectors"].values()))
 
+    def test_linegraph_profile_fixture_and_historical_selectable_count(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        focused = load_json((profiles / "i486-asm-line-graph.json").read_text(encoding="utf-8"))
+        historical = json.loads(
+            (profiles / "i486-asm-selectable-84.json").read_text(encoding="utf-8")
+        )
+        selectable85 = json.loads(
+            (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
+        )
+
+        self.assertEqual(len(reference["selectors"]), 78)
+        self.assertEqual(focused["id"], "i486-asm-line-graph")
+        self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
+        expected_focused = dict(reference["selectors"])
+        expected_focused["LineGraphImplementation"] = "asm"
+        self.assertEqual(focused["selectors"], expected_focused)
+        self.assertEqual(len(historical["selectors"]), 84)
+        self.assertNotIn("LineGraphImplementation", historical["selectors"])
+        expected85 = dict(historical["selectors"])
+        expected85["LineGraphImplementation"] = "asm"
+        self.assertEqual(len(selectable85["selectors"]), 85)
+        self.assertEqual(selectable85["selectors"], expected85)
+
+        fixture = (ROOT / "src/bench486_linegraph.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("#define LG_FIXTURE_VISIBLE_WIDTH 64", fixture)
+        self.assertIn("#define LG_FIXTURE_ROWBYTES      72", fixture)
+        self.assertIn("Bench486LineGraphBuildExpected", fixture)
+        self.assertIn("Bench486LineGraphPaddingCanaries", fixture)
+        self.assertIn("R_LineGraph_C (cases[i].x, cases[i].y, cases[i].height)", fixture)
+        self.assertIn("R_LineGraph_asm486 (cases[i].x, cases[i].y, cases[i].height)", fixture)
+        self.assertGreaterEqual(
+            fixture.count("Q_memcpy (&bench486_linegraph_work, &bench486_linegraph_initial"), 2
+        )
+        for case in (
+            "fractional-height-and-offsets",
+            "height-clamped-to-fractional-limit",
+            "zero-height-fills-background",
+            "negative-fractional-graphheight",
+            "last-visible-column-with-padding",
+        ):
+            self.assertIn(case, fixture)
+        self.assertIn('Bench486Printf ("linegraph fixture begin', fixture)
+        self.assertIn('#include "bench486_linegraph.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchlinegraph")', host_commands)
+        self.assertIn("Bench486LineGraphCases ();", host_commands)
+        self.assertIn("[switch]$LineGraphOnly", bench_runner)
+        self.assertIn("$LineGraphOnly -and $LineGraphImplementation -ne 'asm'", bench_runner)
+        self.assertIn("+bench486 -benchlinegraph -benchexit", bench_runner)
+        for runner_name in ("build-dos.ps1", "bench-dos.ps1", "smoke-dos.ps1", "timedemo-dos.ps1"):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$LineGraphImplementation\s*=\s*'c'",
+                f"{runner_name} must reject unsupported LineGraph selectors",
+            )
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$PaletteImplementation\s*=\s*'c'",
+                f"{runner_name} must retain PaletteImplementation validation",
+            )
+
     def test_sprite_scan_left_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-sprite-scan-left.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -601,10 +681,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"SpriteScanLeftImplementation"})
 
     def test_sprite_scan_right_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-sprite-scan-right.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -618,10 +698,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"SpriteScanRightImplementation"})
 
     def test_sprite_draw_focused_profile_changes_only_that_selector(self) -> None:
-        reference_profile = json.loads(
+        reference_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
         )
-        candidate_profile = json.loads(
+        candidate_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-sprite-draw.json").read_text(encoding="utf-8")
         )
         self.assertEqual(candidate_profile["schemaVersion"], 1)
@@ -635,10 +715,10 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(changed, {"SpriteDrawImplementation"})
 
     def test_bsp_screening_profile_excludes_measured_regressions(self) -> None:
-        assembly_profile = json.loads(
+        assembly_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-selectable.json").read_text(encoding="utf-8")
         )
-        screened_profile = json.loads(
+        screened_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-bsp-c.json").read_text(encoding="utf-8")
         )
         self.assertEqual(screened_profile["schemaVersion"], 1)
@@ -665,10 +745,10 @@ class RenderingComparisonTests(unittest.TestCase):
             self.assertEqual(value, expected, name)
 
     def test_surface_alias_profile_keeps_world_edge_paths_on_reference(self) -> None:
-        assembly_profile = json.loads(
+        assembly_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-selectable.json").read_text(encoding="utf-8")
         )
-        screened_profile = json.loads(
+        screened_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-surface-alias.json").read_text(encoding="utf-8")
         )
         self.assertEqual(screened_profile["schemaVersion"], 1)
@@ -709,7 +789,7 @@ class RenderingComparisonTests(unittest.TestCase):
             self.assertEqual(value, expected, name)
 
     def test_world_and_edge_screen_profiles_change_only_their_group(self) -> None:
-        base_profile = json.loads(
+        base_profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-surface-alias.json").read_text(encoding="utf-8")
         )
         groups = {
@@ -733,7 +813,7 @@ class RenderingComparisonTests(unittest.TestCase):
             },
         }
         for profile_id, changed in groups.items():
-            profile = json.loads(
+            profile = load_json(
                 (ROOT / "tools/renderer-profiles" / f"{profile_id}.json").read_text(encoding="utf-8")
             )
             with self.subTest(profile=profile_id):
@@ -760,8 +840,8 @@ class RenderingComparisonTests(unittest.TestCase):
 
     def test_z_submodel_polygon_assembly_has_an_isolated_i486_profile_and_oracle(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
-        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
-        candidate = json.loads((profiles / "i486-asm-zsubmodel.json").read_text(encoding="utf-8"))
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-asm-zsubmodel.json").read_text(encoding="utf-8"))
         self.assertEqual(candidate["schemaVersion"], 1)
         self.assertEqual(candidate["id"], "i486-asm-zsubmodel")
         self.assertEqual(set(reference["selectors"]), set(candidate["selectors"]))
@@ -800,7 +880,7 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("4096 continuous calls", fixture)
         self.assertIn("-benchzsubmodelpolys", bench)
 
-        combined = json.loads((profiles / "i486-asm-selectable-84.json").read_text(encoding="utf-8"))
+        combined = load_json((profiles / "i486-asm-selectable-84.json").read_text(encoding="utf-8"))
         self.assertEqual(combined["selectors"]["PublicBindingsImplementation"], "asm")
         self.assertEqual(combined["selectors"]["ZSubmodelPolygonsImplementation"], "asm")
         binding = (ROOT / "src/r_publicbindingsasm.s").read_text(encoding="utf-8")
@@ -815,8 +895,8 @@ class RenderingComparisonTests(unittest.TestCase):
 
     def test_frustum_transform_assembly_has_an_isolated_profile_and_guarded_oracle(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
-        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
-        candidate = json.loads((profiles / "i486-asm-frustum-transform.json").read_text(encoding="utf-8"))
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-asm-frustum-transform.json").read_text(encoding="utf-8"))
         self.assertEqual(candidate["schemaVersion"], 1)
         self.assertEqual(candidate["id"], "i486-asm-frustum-transform")
         self.assertEqual(set(reference["selectors"]), set(candidate["selectors"]))
@@ -884,8 +964,8 @@ class RenderingComparisonTests(unittest.TestCase):
 
     def test_viewcontrol_setupframe_assembly_has_a_focused_profile_and_c_oracle(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
-        reference = json.loads((profiles / "i486-viewcontrol-c.json").read_text(encoding="utf-8"))
-        candidate = json.loads((profiles / "i486-viewcontrol-asm.json").read_text(encoding="utf-8"))
+        reference = load_json((profiles / "i486-viewcontrol-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-viewcontrol-asm.json").read_text(encoding="utf-8"))
         self.assertEqual(candidate["schemaVersion"], 1)
         self.assertEqual(candidate["selectors"], {"ViewControlImplementation": "asm"})
         self.assertEqual(reference["selectors"], {"ViewControlImplementation": "c"})
@@ -1547,8 +1627,8 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("exact projected/framebuffer result", benchmark)
 
         profiles = ROOT / "tools/renderer-profiles"
-        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
-        candidate = json.loads((profiles / "i486-asm-sprite-setup.json").read_text(encoding="utf-8"))
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-asm-sprite-setup.json").read_text(encoding="utf-8"))
         self.assertEqual(set(reference["selectors"]), set(candidate["selectors"]))
         changed = {
             name for name, value in candidate["selectors"].items()

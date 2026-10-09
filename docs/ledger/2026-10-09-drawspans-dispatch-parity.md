@@ -14,7 +14,7 @@ assembly definitions of both targets. Its proof is deliberately bounded to the
 selected `_D_SetupFrame`: it does not enumerate other possible writers to
 `_d_drawspans`.
 
-## Verification
+## Span dispatch verification
 
 The ownership audit on the combined 84-selector profile reported 614 renderer
 entries, 370 directly reachable entries, 18 reachable C entries and 41

@@ -123,6 +123,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$FrameControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$LineGraphImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$PaletteImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MathClosureImplementation = 'c',
@@ -312,6 +314,7 @@ $buildParams = @{
     AnimatedLightImplementation = $AnimatedLightImplementation
     PointLightImplementation = $PointLightImplementation
     FrameControlImplementation = $FrameControlImplementation
+    LineGraphImplementation = $LineGraphImplementation
     PaletteImplementation = $PaletteImplementation
     MathClosureImplementation = $MathClosureImplementation
     VisibilityImplementation = $VisibilityImplementation
@@ -479,6 +482,7 @@ $result = [ordered]@{
     animatedLightImplementation = $AnimatedLightImplementation
     pointLightImplementation = $PointLightImplementation
     frameControlImplementation = $FrameControlImplementation
+    lineGraphImplementation = $LineGraphImplementation
     paletteImplementation = $PaletteImplementation
     mathClosureImplementation = $MathClosureImplementation
     visibilityImplementation = $VisibilityImplementation

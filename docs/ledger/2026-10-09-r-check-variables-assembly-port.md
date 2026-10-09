@@ -9,7 +9,7 @@ implementation is `src/r_checkvariables_asm.inc`, included by
 reference's x87 comparison and cache-flush behavior. The C implementation is
 retained as the BENCH486 oracle.
 
-## Verification
+## R_CheckVariables verification
 
 The dedicated raw-float C/assembly fixture passed 180 cases across 12 x87
 control modes. The integrated, aggressive BENCH486 profile with all 84

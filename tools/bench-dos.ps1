@@ -198,6 +198,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$FrameControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$LineGraphImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$PaletteImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MathClosureImplementation = 'c',
@@ -254,6 +256,7 @@ param(
     [switch]$SpriteOrientationOnly,
     [switch]$LightControlOnly,
     [switch]$FrameControlOnly,
+    [switch]$LineGraphOnly,
     [switch]$PaletteOnly,
     [switch]$MathClosureOnly,
     [switch]$VisibilityOnly,
@@ -326,6 +329,9 @@ if ($ZSubmodelPolygonsOnly -and $ZSubmodelPolygonsImplementation -ne 'asm') {
 }
 if ($FrustumTransformOnly -and $TransformFrustumImplementation -ne 'asm') {
     throw '-FrustumTransformOnly requires -TransformFrustumImplementation asm.'
+}
+if ($LineGraphOnly -and $LineGraphImplementation -ne 'asm') {
+    throw '-LineGraphOnly requires -LineGraphImplementation asm.'
 }
 if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
     throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
@@ -472,6 +478,7 @@ $buildParams = @{
         AnimatedLightImplementation = $AnimatedLightImplementation
         PointLightImplementation = $PointLightImplementation
         FrameControlImplementation = $FrameControlImplementation
+        LineGraphImplementation = $LineGraphImplementation
         PaletteImplementation = $PaletteImplementation
         MathClosureImplementation = $MathClosureImplementation
         VisibilityImplementation = $VisibilityImplementation
@@ -651,6 +658,9 @@ elseif ($PaletteOnly) {
 }
 elseif ($FrameControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchframecontrol -benchexit'
+}
+elseif ($LineGraphOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlinegraph -benchexit'
 }
 elseif ($LightControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightcontrol -benchexit'
@@ -880,6 +890,7 @@ $result = [ordered]@{
     animatedLightImplementation = $AnimatedLightImplementation
     pointLightImplementation = $PointLightImplementation
     frameControlImplementation = $FrameControlImplementation
+    lineGraphImplementation = $LineGraphImplementation
     paletteImplementation = $PaletteImplementation
     mathClosureImplementation = $MathClosureImplementation
     visibilityImplementation = $VisibilityImplementation
@@ -910,6 +921,7 @@ $result = [ordered]@{
     spriteOrientationOnly = [bool]$SpriteOrientationOnly
     lightControlOnly = [bool]$LightControlOnly
     frameControlOnly = [bool]$FrameControlOnly
+    lineGraphOnly = [bool]$LineGraphOnly
     paletteOnly = [bool]$PaletteOnly
     mathClosureOnly = [bool]$MathClosureOnly
     visibilityOnly = [bool]$VisibilityOnly

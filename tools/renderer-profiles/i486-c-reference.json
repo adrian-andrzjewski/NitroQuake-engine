@@ -75,6 +75,7 @@
     "AnimatedLightImplementation": "c",
     "PointLightImplementation": "c",
     "FrameControlImplementation": "c",
+    "LineGraphImplementation": "c",
     "PaletteImplementation": "c",
     "MathClosureImplementation": "c",
     "VisibilityImplementation": "c",

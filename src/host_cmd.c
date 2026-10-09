@@ -6713,6 +6713,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_TRANSFORM_FRUSTUM)
 #include "bench486_frustum.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_LINE_GRAPH)
+#include "bench486_linegraph.h"
+#endif
 
 static void Bench486AliasBBoxProjectCases (void)
 {
@@ -9749,6 +9752,26 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchmemory"))
 	{
 		Bench486MemoryCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchlinegraph"))
+	{
+#ifdef ASM486_LINE_GRAPH
+		Bench486LineGraphCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("line-graph fixture requires -LineGraphImplementation asm\n");
+#endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);

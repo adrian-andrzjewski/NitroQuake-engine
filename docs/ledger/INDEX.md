@@ -14,8 +14,9 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
-| [`2026-10-09-drawspans-dispatch-parity.md`](2026-10-09-drawspans-dispatch-parity.md) | 1 | renderer port / span dispatch |
-| [`2026-10-09-r-check-variables-assembly-port.md`](2026-10-09-r-check-variables-assembly-port.md) | 1 | renderer port / variable checks |
+| [`2026-10-09-drawspans-dispatch-parity.md`](2026-10-09-drawspans-dispatch-parity.md) | 4 | renderer port / span dispatch |
+| [`2026-10-09-line-graph-assembly-port.md`](2026-10-09-line-graph-assembly-port.md) | 3 | renderer port / timing overlay |
+| [`2026-10-09-r-check-variables-assembly-port.md`](2026-10-09-r-check-variables-assembly-port.md) | 3 | renderer port / variable checks |
 | [`2026-10-09-r-setupframe-assembly-port.md`](2026-10-09-r-setupframe-assembly-port.md) | 3 | renderer port / frame setup |
 | [`2026-10-09-selectable-84-alias-control-checkpoint.md`](2026-10-09-selectable-84-alias-control-checkpoint.md) | 5 | renderer port / alias-control integration |
 | [`2026-10-09-selectable-83-vesa-checkpoint.md`](2026-10-09-selectable-83-vesa-checkpoint.md) | 5 | renderer port / 83-selector VESA checkpoint |
@@ -280,6 +281,17 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [`R_LineGraph` -> `R_LineGraph_asm486` port](2026-10-09-line-graph-assembly-port.md)
+- `measured` [Leaf behavior and ownership](2026-10-09-line-graph-assembly-port.md)
+- `measured` [Selection and oracle](2026-10-09-line-graph-assembly-port.md)
+- `measured` [Acceptance status](2026-10-09-line-graph-assembly-port.md)
+- `measured` [Original dispatch path](2026-10-09-drawspans-dispatch-parity.md)
+- `measured` [Span dispatch verification](2026-10-09-drawspans-dispatch-parity.md)
+- `measured` [Reference parity](2026-10-09-drawspans-dispatch-parity.md)
+- `open` [Scope boundary](2026-10-09-drawspans-dispatch-parity.md)
+- `measured` [Per-frame fullbright cache check](2026-10-09-r-check-variables-assembly-port.md)
+- `measured` [R_CheckVariables verification](2026-10-09-r-check-variables-assembly-port.md)
+- `measured` [Parity and scope boundary](2026-10-09-r-check-variables-assembly-port.md)
 - `measured` [Per-frame renderer setup](2026-10-09-r-setupframe-assembly-port.md)
 - `measured` [Verification](2026-10-09-r-setupframe-assembly-port.md)
 - `open` [Scope still open](2026-10-09-r-setupframe-assembly-port.md)

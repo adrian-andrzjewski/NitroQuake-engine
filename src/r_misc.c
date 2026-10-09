@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include <stddef.h>
+#include "asm_draw.h"
 #include "asm_frustum.h"
 #include "asm_viewcontrol.h"
 
@@ -126,10 +128,31 @@ void R_TimeRefresh_f (void)
 ================
 R_LineGraph
 
-Only called by R_DisplayTime
+Only called by R_TimeGraph
 ================
 */
+#if defined(ASM486_LINE_GRAPH)
+typedef char linegraph_vid_buffer_must_match[
+	(offsetof(viddef_t, buffer) == LG_VID_BUFFER) ? 1 : -1];
+typedef char linegraph_vid_rowbytes_must_match[
+	(offsetof(viddef_t, rowbytes) == LG_VID_ROWBYTES) ? 1 : -1];
+typedef char linegraph_refdef_vrect_x_must_match[
+	(offsetof(refdef_t, vrect.x) == LG_REFDEF_VRECT_X) ? 1 : -1];
+typedef char linegraph_refdef_vrect_y_must_match[
+	(offsetof(refdef_t, vrect.y) == LG_REFDEF_VRECT_Y) ? 1 : -1];
+typedef char linegraph_cvar_value_must_match[
+	(offsetof(cvar_t, value) == LG_CVAR_VALUE) ? 1 : -1];
+
+void R_LineGraph (int x, int y, int h);
+void R_LineGraph_asm486 (int x, int y, int h);
+#endif
+
+#if !defined(ASM486_LINE_GRAPH) || defined(BENCH486)
+#if defined(ASM486_LINE_GRAPH)
+void R_LineGraph_C (int x, int y, int h)
+#else
 void R_LineGraph (int x, int y, int h)
+#endif
 {
 	int		i;
 	byte	*dest;
@@ -158,6 +181,7 @@ void R_LineGraph (int x, int y, int h)
 		*(dest-vid.rowbytes) = 0x30;
 	}
 }
+#endif /* !ASM486_LINE_GRAPH || BENCH486 */
 
 /*
 ==============

@@ -168,6 +168,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$FrameControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$LineGraphImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$PaletteImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MathClosureImplementation = 'c',
@@ -414,6 +416,7 @@ $buildParams = @{
         SubmodelPolygonsImplementation       = $SubmodelPolygonsImplementation
         ZSubmodelPolygonsImplementation      = $ZSubmodelPolygonsImplementation
         TransformFrustumImplementation       = $TransformFrustumImplementation
+        LineGraphImplementation              = $LineGraphImplementation
         EdgeDrawingImplementation             = $EdgeDrawingImplementation
         ScanEdgesImplementation               = $ScanEdgesImplementation
         EdgeListMaintenanceImplementation     = $EdgeListMaintenanceImplementation
@@ -1050,6 +1053,7 @@ $result = [ordered]@{
     animatedLightImplementation = $AnimatedLightImplementation
     pointLightImplementation = $PointLightImplementation
     frameControlImplementation = $FrameControlImplementation
+    lineGraphImplementation = $LineGraphImplementation
     paletteImplementation = $PaletteImplementation
     mathClosureImplementation = $MathClosureImplementation
     visibilityImplementation = $VisibilityImplementation
