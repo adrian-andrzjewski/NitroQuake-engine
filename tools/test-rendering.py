@@ -242,6 +242,32 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(reference_selectors["AliasRasterizeImplementation"], "c")
         self.assertEqual(reference_selectors["AliasPrepareImplementation"], "control")
 
+    def test_particle_update_profile_changes_only_particle_simulation(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        candidate = json.loads(
+            (profiles / "i486-asm-particle-update.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(candidate["schemaVersion"], 1)
+        self.assertEqual(candidate["id"], "i486-asm-particle-update")
+        self.assertEqual(candidate["selectors"]["ParticleUpdateImplementation"], "asm")
+        self.assertEqual(
+            set(reference["selectors"]),
+            set(candidate["selectors"]),
+        )
+        self.assertEqual(
+            {
+                name: value
+                for name, value in candidate["selectors"].items()
+                if name != "ParticleUpdateImplementation"
+            },
+            {
+                name: value
+                for name, value in reference["selectors"].items()
+                if name != "ParticleUpdateImplementation"
+            },
+        )
+
     def test_mark_lights_fixture_is_independent_of_lightmap_dispatcher(self) -> None:
         host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
         self.assertIn(

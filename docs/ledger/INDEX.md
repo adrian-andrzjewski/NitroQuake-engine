@@ -57,7 +57,7 @@ later insertion above it.
 | [`2026-10-05-edge-list-maintenance-assembly-port.md`](2026-10-05-edge-list-maintenance-assembly-port.md) | 2 | renderer port / world-bsp |
 | [`2026-10-06-renderer-selector-benchmarks.md`](2026-10-06-renderer-selector-benchmarks.md) | 1 | renderer port / performance |
 | [`2026-10-06-alias-transform-order-parity.md`](2026-10-06-alias-transform-order-parity.md) | 3 | alias |
-| [`2026-10-06-particle-update-assembly-port.md`](2026-10-06-particle-update-assembly-port.md) | 3 | renderer port / particles |
+| [`2026-10-06-particle-update-assembly-port.md`](2026-10-06-particle-update-assembly-port.md) | 4 | renderer port / particles |
 | [`2026-10-06-surface-cache-parity-fix.md`](2026-10-06-surface-cache-parity-fix.md) | 1 | renderer port / surface cache |
 | [`2026-10-06-sprite-clipping-assembly-port.md`](2026-10-06-sprite-clipping-assembly-port.md) | 2 | renderer port / sprites |
 | [`2026-10-06-sprite-frame-assembly-port.md`](2026-10-06-sprite-frame-assembly-port.md) | 1 | renderer port / sprites |
@@ -315,6 +315,7 @@ other axis: one row per renderer region, newest entry first.
 - `in progress` [`R_DrawParticles` now has a selectable i486 assembly path](2026-10-06-particle-update-assembly-port.md)
 - `measured` [Build, ISA, and render validation](2026-10-06-particle-update-assembly-port.md)
 - `in progress` [Remaining particle closure](2026-10-06-particle-update-assembly-port.md)
+- `measured` [`R_ClearParticles` free-list reset follow-up (2026-10-09)](2026-10-06-particle-update-assembly-port.md)
 - `in progress` [`R_RotateSprite` beam translation](2026-10-06-sprite-clipping-assembly-port.md)
 - `in progress` [`R_ClipSpriteFace` plane clipping](2026-10-06-sprite-clipping-assembly-port.md)
 - `in progress` [`R_GetSpriteframe` animated frame selection](2026-10-06-sprite-frame-assembly-port.md)

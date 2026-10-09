@@ -110,6 +110,15 @@ Reviewed integration preserves the independently accepted alias pipeline;
 `i486-asm-world-alias` selects both cohorts. See the
 [world control port](ledger/2026-10-08-world-control-assembly-port.md).
 
+Particle simulation and free-list initialization have an isolated i486 profile.
+The C-reference and assembly profiles pass the six-scene pair twice each, with
+11,842 exact post-warmup frame checksums and twelve exact indexed/palette
+captures. The candidate binary passes the complete relocated, startup, and
+provider ISA gate without exemptions. Per-scene timings differ by at most
+0.021%; the broader all-assembly profile and dedicated particle-effect stress
+scenarios remain open. See the
+[particle port](ledger/2026-10-06-particle-update-assembly-port.md).
+
 Earlier sprite/math and light-control pair reports that failed to forward the
 new selectors are invalid acceptance evidence. Their original results and
 invalidation records are retained. Current runners forward declared selectors
@@ -173,7 +182,7 @@ to prove a complete call graph.
 | BSP/world | Remaining submodel polygon/debug paths, shared frustum mathematics, initialization and explicit indirect-target closure |
 | Edge processing | Frame initialization, culled polygons and remaining C list/span forwarding entries |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |
-| Sky and particles | Combined complete-profile verification and explicit dedicated scenarios |
+| Sky and particles | Combined complete-profile verification, plus dedicated particle-effect and sky scenarios |
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | Damage/bonus/init support, combined-profile verification and initialization/indirect dependencies |
