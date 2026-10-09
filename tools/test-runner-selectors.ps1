@@ -76,6 +76,37 @@ foreach ($runner in @('bench-dos.ps1', 'timedemo-dos.ps1', 'smoke-dos.ps1', 'cov
     }
 }
 
+# Keep the visual-only signal connected from paired validation through the
+# timedemo build boundary, and make its explicit ISA skip and isolated output
+# path visible in source rather than relying on an unlabelled ad hoc command.
+foreach ($runner in @('render-validation-dos.ps1', 'render-parity-dos.ps1')) {
+    $runnerPath = Join-Path $PSScriptRoot $runner
+    $tokens = $null; $parseErrors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseFile($runnerPath, [ref]$tokens, [ref]$parseErrors)
+    if ($parseErrors.Count) { throw "$runner has parse errors: $parseErrors" }
+    $visualParameter = @($ast.ParamBlock.Parameters | Where-Object {
+        $_.Name.VariablePath.UserPath -eq 'VisualParityOnly'
+    })
+    if ($visualParameter.Count -ne 1) { throw "$runner does not declare the explicit VisualParityOnly switch." }
+    $checks++
+}
+$validationSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'render-validation-dos.ps1') -Raw
+$paritySource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'render-parity-dos.ps1') -Raw
+$timedemoSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'timedemo-dos.ps1') -Raw
+if (-not $validationSource.Contains("`$timedemoArgs += '-VisualParityOnly'")) {
+    throw 'render-validation-dos.ps1 does not forward VisualParityOnly to timedemo-dos.ps1.'
+}
+if (-not $paritySource.Contains("`$validationArgs += '-VisualParityOnly'")) {
+    throw 'render-parity-dos.ps1 does not forward VisualParityOnly to both profile runs.'
+}
+foreach ($contract in @("`$buildParams['SkipIsaAudit']", "VisualParityOutputRoot", 'cws-provider-proof.py')) {
+    if (-not $timedemoSource.Contains($contract)) {
+        throw "timedemo-dos.ps1 is missing visual-only contract '$contract'."
+    }
+    $checks++
+}
+$checks += 2
+
 $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('nq-runner-selectors-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory $fixtureRoot | Out-Null
 try {
@@ -94,12 +125,13 @@ try {
     $providerAuditPath = Join-Path $fixtureRoot 'provider-isa.json'
     $variantAuditPath = Join-Path $fixtureRoot 'provider-variant-isa.json'
     $providerHash = (Get-FileHash -LiteralPath (Join-Path $repoRoot 'src/cwsdpmi.exe') -Algorithm SHA256).Hash
-    @{result='PASS';instructionCount=9207;unclassifiedCount=0;violationCount=0;exemptedCount=0} |
+    @{result='PASS';instructionCount=9207;continuationLineCount=0;unclassifiedCount=0;violationCount=0;exemptedCount=0} |
         ConvertTo-Json | Set-Content -LiteralPath $providerAuditPath
-    @{result='PASS';instructionCount=1;unclassifiedCount=0;violationCount=0;exemptedCount=0} |
+    @{result='PASS';instructionCount=1;continuationLineCount=0;unclassifiedCount=0;violationCount=0;exemptedCount=0} |
         ConvertTo-Json | Set-Content -LiteralPath $variantAuditPath
     @{passed=$true;exactOriginalPlusMaintainedAssembly=$true;executableSha256=$providerHash;
         instructionCount=9207;runtimeVariantInstructions=1;instructionExemptions=0;unknownEncodings=0;
+        sourceManifestSha256=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'isa-provider-reference/manifest.json') -Algorithm SHA256).Hash;
         policySha256=(Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'cws-provider-proof.py') -Algorithm SHA256).Hash;
         strictReport=$providerAuditPath;strictReportSha256=(Get-FileHash -LiteralPath $providerAuditPath -Algorithm SHA256).Hash;
         runtimeVariantReport=$variantAuditPath;runtimeVariantReportSha256=(Get-FileHash -LiteralPath $variantAuditPath -Algorithm SHA256).Hash} |
@@ -146,6 +178,34 @@ try {
     Copy-Item -LiteralPath (Join-Path $repoRoot 'src/cwsdpmi.exe') -Destination $stage
     $provider = Assert-RunnerDpmiProvider -CpuTarget i486 -BuildVerification $verified -ProviderPath $stage
     if (-not $provider.verified) { throw 'Exact staged provider was not verified.' }
+
+    # A skipped renderer audit is accepted only through the explicit visual
+    # parity path, with the skipped build still bound to its executable and the
+    # DPMI provider independently proven against the pinned provider bundle.
+    $manifest['isaAuditStatus'] = 'SKIPPED'
+    $manifest | ConvertTo-Json | Set-Content -LiteralPath $fixturePath
+    $skipRequest = @{}
+    foreach ($key in $request.Keys) { $skipRequest[$key] = $request[$key] }
+    $skipRequest['SkipIsaAudit'] = $true
+    $rejected = $false
+    try { Assert-RunnerBuildManifest -Resolved $resolvedFixture -BuildParameters $skipRequest | Out-Null }
+    catch { $rejected = $true }
+    if (-not $rejected) { throw 'A skipped i486 renderer ISA audit passed without visual-only opt-in.' }
+    $visualVerification = Assert-RunnerBuildManifest -Resolved $resolvedFixture -BuildParameters $skipRequest -VisualParityOnly
+    if ($visualVerification.isaAuditStatus -ne 'SKIPPED' -or
+            -not $visualVerification.visualParityOnly -or $null -ne $visualVerification.compatibility) {
+        throw 'The visual-only build result did not preserve its skipped ISA status.'
+    }
+    $visualProvider = Assert-RunnerDpmiProvider -CpuTarget i486 -BuildVerification $visualVerification `
+        -ProviderPath $stage -VisualParityOnly -ProviderProofPath $providerProofPath
+    if (-not $visualProvider.verified -or $visualProvider.rendererIsaAuditStatus -ne 'SKIPPED' -or
+            $visualProvider.verificationMode -ne 'independent-provider-isa-proof') {
+        throw 'Visual-only mode did not retain the independent DPMI-provider proof.'
+    }
+    $manifest['isaAuditStatus'] = 'PASS'
+    $manifest | ConvertTo-Json | Set-Content -LiteralPath $fixturePath
+    $checks += 3
+
     [IO.File]::WriteAllBytes($stage,[byte[]]@(0x0f,0xa2))
     $rejected = $false
     try { Assert-RunnerDpmiProvider -CpuTarget i486 -BuildVerification $verified -ProviderPath $stage | Out-Null }

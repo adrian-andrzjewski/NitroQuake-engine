@@ -47,7 +47,8 @@ function Assert-RunnerBuildManifest {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]$Resolved,
-        [Parameter(Mandatory = $true)][hashtable]$BuildParameters
+        [Parameter(Mandatory = $true)][hashtable]$BuildParameters,
+        [switch]$VisualParityOnly
     )
     $manifestPath = Join-Path $Resolved.outputRoot $Resolved.manifest
     if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
@@ -69,6 +70,37 @@ function Assert-RunnerBuildManifest {
         $verified[$selector.Param] = $actual.Value
     }
     $executableHash = (Get-FileHash -LiteralPath $Resolved.executable -Algorithm SHA256).Hash
+    $manifestIsaAuditStatus = if ($null -eq $manifest.PSObject.Properties['isaAuditStatus']) {
+        'NOT_RECORDED'
+    } else {
+        [string]$manifest.isaAuditStatus
+    }
+    if ($manifest.cpuTarget -eq 'i486' -and $manifestIsaAuditStatus -eq 'SKIPPED') {
+        if (-not $VisualParityOnly) {
+            throw 'The i486 renderer requires a complete ISA audit; use the explicit visual-only parity mode for framebuffer comparisons.'
+        }
+        if (-not $BuildParameters.ContainsKey('SkipIsaAudit') -or
+                -not [bool]$BuildParameters['SkipIsaAudit']) {
+            throw 'A skipped i486 ISA audit requires an explicit -SkipIsaAudit build parameter.'
+        }
+        if ($manifest.executableSha256 -ne $executableHash) {
+            throw 'The visual-only i486 executable does not match its build manifest.'
+        }
+        $policy = Get-CompatibilityPolicyFingerprint -RepoRoot (Join-Path $PSScriptRoot '..')
+        if ($manifest.compatibilityPolicySha256 -ne $policy) {
+            throw 'The visual-only build used a different compatibility policy or runtime provider; rebuild it.'
+        }
+        return [pscustomobject]@{
+            passed = $true
+            manifest = $manifestPath
+            manifestSha256 = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash
+            executableSha256 = $executableHash
+            selectors = $verified
+            compatibility = $null
+            isaAuditStatus = 'SKIPPED'
+            visualParityOnly = $true
+        }
+    }
     $compatibility = $null
     if ($manifest.cpuTarget -eq 'i486') {
         foreach ($name in @('executableSha256', 'isaAuditStatus', 'isaAuditReport',
@@ -179,6 +211,8 @@ function Assert-RunnerBuildManifest {
         executableSha256 = $executableHash
         selectors = $verified
         compatibility = $compatibility
+        isaAuditStatus = $manifestIsaAuditStatus
+        visualParityOnly = [bool]$VisualParityOnly
     }
 }
 
@@ -187,9 +221,59 @@ function Assert-RunnerDpmiProvider {
     [CmdletBinding()]
     param([Parameter(Mandatory=$true)][string]$CpuTarget,
         [Parameter(Mandatory=$true)]$BuildVerification,
-        [Parameter(Mandatory=$true)][string]$ProviderPath)
+        [Parameter(Mandatory=$true)][string]$ProviderPath,
+        [switch]$VisualParityOnly,
+        [string]$ProviderProofPath)
     $hash = (Get-FileHash -LiteralPath $ProviderPath -Algorithm SHA256).Hash
     if ($CpuTarget -ne 'i486') { return [pscustomobject]@{verified=$false;cpuTarget=$CpuTarget;sha256=$hash} }
+    if ($BuildVerification.isaAuditStatus -eq 'SKIPPED') {
+        if (-not $VisualParityOnly -or -not $BuildVerification.visualParityOnly) {
+            throw 'The staged DPMI provider cannot turn a skipped renderer ISA audit into an i486 compatibility pass.'
+        }
+        if ([string]::IsNullOrWhiteSpace($ProviderProofPath) -or
+                -not (Test-Path -LiteralPath $ProviderProofPath -PathType Leaf)) {
+            throw 'Visual-only parity requires a separate, complete maintained DPMI-provider proof.'
+        }
+        $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+        $sourceProvider = [IO.Path]::GetFullPath((Join-Path $repoRoot 'src/cwsdpmi.exe'))
+        $bundleManifestPath = Join-Path $PSScriptRoot 'isa-provider-reference/manifest.json'
+        $bundleManifest = Get-Content -LiteralPath $bundleManifestPath -Raw | ConvertFrom-Json
+        $bundleManifestHash = (Get-FileHash -LiteralPath $bundleManifestPath -Algorithm SHA256).Hash
+        $sourceHash = (Get-FileHash -LiteralPath $sourceProvider -Algorithm SHA256).Hash
+        $proof = Get-Content -LiteralPath $ProviderProofPath -Raw | ConvertFrom-Json
+        $proofHash = (Get-FileHash -LiteralPath $ProviderProofPath -Algorithm SHA256).Hash
+        if ($hash -ne $sourceHash -or $hash -ne $bundleManifest.candidateSha256 -or
+                $proof.passed -ne $true -or $proof.exactOriginalPlusMaintainedAssembly -ne $true -or
+                $proof.executableSha256 -ne $hash -or
+                $proof.sourceManifestSha256 -ne $bundleManifestHash -or
+                [int]$proof.instructionCount -ne 9207 -or
+                [int]$proof.runtimeVariantInstructions -ne 1 -or
+                [int]$proof.instructionExemptions -ne 0 -or [int]$proof.unknownEncodings -ne 0 -or
+                $proof.policySha256 -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'cws-provider-proof.py') -Algorithm SHA256).Hash) {
+            throw 'The independent maintained DPMI-provider proof is stale, incomplete or bound to another binary.'
+        }
+        foreach ($entry in @(@($proof.strictReport, $proof.strictReportSha256, 9207),
+                @($proof.runtimeVariantReport, $proof.runtimeVariantReportSha256, 1))) {
+            if (-not (Test-Path -LiteralPath $entry[0] -PathType Leaf) -or
+                    (Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash -ne $entry[1]) {
+                throw 'An independent DPMI-provider instruction report is missing or changed.'
+            }
+            $audit = Get-Content -LiteralPath $entry[0] -Raw | ConvertFrom-Json
+            if ($audit.result -ne 'PASS' -or [int]$audit.instructionCount -ne [int]$entry[2] -or
+                    [int]$audit.continuationLineCount -ne 0 -or
+                    [int]$audit.unclassifiedCount -ne 0 -or [int]$audit.violationCount -ne 0 -or
+                    [int]$audit.exemptedCount -ne 0) {
+                throw 'An independent DPMI-provider instruction audit did not pass strictly.'
+            }
+        }
+        return [pscustomobject]@{
+            verified = $true; cpuTarget = $CpuTarget; sha256 = $hash
+            instructionCount = 9207; runtimeVariantInstructions = 1
+            proof = [IO.Path]::GetFullPath($ProviderProofPath); proofSha256 = $proofHash
+            verificationMode = 'independent-provider-isa-proof'
+            rendererIsaAuditStatus = 'SKIPPED'
+        }
+    }
     if ($null -eq $BuildVerification.compatibility -or
             $BuildVerification.compatibility.externalDpmiProviderVerified -ne $true -or
             $BuildVerification.compatibility.externalDpmiProviderSha256 -ne $hash) {

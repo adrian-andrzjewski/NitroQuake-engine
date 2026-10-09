@@ -279,7 +279,11 @@ guard verifies 120 objects and its executable. See the
 `R_TransformFrustum` has an isolated i486 assembly candidate and a direct oracle
 fixture. The exact candidate executable passes the strict project, runtime,
 linked-object and relocated-code audits, plus 5,760 direct comparisons on
-DOSBox-X configured as an i486. Full paired scene captures remain pending
-because the host startup-source check cannot locate MinGW GCC; the C selector
-remains the default. See the
+DOSBox-X configured as an i486. A visual-only paired run then matched the C
+reference in three scenes, with 6,058 post-warmup frame-checksum comparisons
+and six exact framebuffer and palette captures. Both paired build manifests
+explicitly report `SKIPPED` for renderer ISA auditing, so this result is visual
+parity evidence only. The strict startup-source proof still cannot complete
+because the host startup check cannot locate MinGW GCC; the C selector remains
+the default. See the
 [frustum transform candidate](ledger/2026-10-09-frustum-transform-assembly-port.md).

@@ -9,6 +9,15 @@ the embedded 16-bit startup code and the maintained CWSDPMI provider. An unknown
 the i486/387 target fails the build. `-SkipIsaAudit` produces an explicitly
 unverified artifact which the normal i486 execution runners reject.
 
+For framebuffer diagnosis only, `render-parity-dos.ps1 -VisualParityOnly`
+allows paired C/reference and assembly runs to use fresh i486-targeted binaries
+with the renderer ISA audit skipped. It writes those binaries to a separate
+`out\visual-parity-*` tree, verifies the requested selectors and executable
+hashes, and independently checks the maintained CWSDPMI provider. The pair and
+both child reports say `isaAuditStatus: SKIPPED`; this mode does not satisfy the
+486 compatibility gate and must not be used to promote a renderer
+implementation. The regular i486 runner remains strict by default.
+
 For the accepted drawing conversion, build with the selectors in
 `tools/renderer-profiles/i486-asm-drawing.json`. Profiles are JSON selector
 tables; apply every selector to `build-dos.ps1`, or pass the profile to
@@ -94,6 +103,21 @@ profiles through `tools/render-parity-dos.ps1` with identical source, data and
 fixed-time scenes. Acceptance compares post-warmup frame checksum streams,
 indexed framebuffer bytes and all 768 palette bytes exactly. Historical
 golden-image RGB tolerances do not replace the exact paired comparison.
+When the toolchain cannot complete the full startup ISA proof, the explicit
+visual-only diagnostic can be run with, for example:
+
+```powershell
+tools/render-parity-dos.ps1 `
+  -VisualParityOnly -CpuTarget i486 `
+  -ReferenceProfile tools/renderer-profiles/i486-c-reference.json `
+  -CandidateProfile tools/renderer-profiles/i486-asm-frustum-transform.json `
+  -Scenario demo1-vga-full,demo2-entity-workload,demo3-world-workload `
+  -OutputRoot out/render-parity-frustum-visual
+```
+
+The resulting exact frame comparison is visual evidence only; renderer ISA
+status remains explicitly skipped and must be established by the normal build
+gate in a separate run.
 Maintain routine-to-reference/test mappings in `docs/renderer-assembly` and
 retain execution-bound binaries and reports with each acceptance result.
 Timing measurements detect material regressions; a speed improvement is not a

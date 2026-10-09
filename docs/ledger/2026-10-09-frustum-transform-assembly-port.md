@@ -39,18 +39,45 @@ relocation gaps. Source-to-executable mapping passed for 341 contributions and
 The main renderer suite passes 54 tests. `tools/test-build-dos.py`, the
 documentation structure check and `git diff --check` also pass.
 
+## Paired scene parity (visual-only diagnostic)
+
+On 2026-10-09, the isolated `-VisualParityOnly` runner compared
+`i486-c-reference` with `i486-asm-frustum-transform` in DOSBox-X 2026.08.31
+using the pinned i486 profile. The shared source-tree fingerprint matched
+(`1FCFC8080DC88945BD660E9A330538015A4AFD9FBE3B03F73BF5B16B7CD22736`).
+Both build manifests explicitly say `isaAuditStatus: SKIPPED`; these renderer
+binaries are separate from the earlier strictly audited executable and this
+pair is not 486 instruction-set evidence.
+
+The six runs (two each for `demo1-vga-full`, `demo2-entity-workload` and
+`demo3-world-workload`) passed 6,058 post-warmup frame-checksum comparisons.
+All six 320x200 indexed captures and their 768-byte palettes matched exactly:
+zero differing pixel indices, zero palette-byte mismatches and no unexplained
+frame differences. Six startup frames per run were excluded by the existing
+pair gate. The independent CWSDPMI provider proof also passed: 9,207
+instructions, one reviewed runtime branch variant and zero exemptions.
+
+The visual-only executables were recorded separately from the strict candidate:
+
+| Profile | Executable SHA-256 | ISA status |
+|---|---|---|
+| `i486-c-reference` | `023557407AD2406D83CCF37610753DA936D1303D9C56E6A2AA1F92349765C60C` | `SKIPPED` |
+| `i486-asm-frustum-transform` | `9D883BD296405FE7D0A8713CBDC0DE2F41753EA82EF26CC17AB6F23E95F028E3` | `SKIPPED` |
+
+The pair report is `out/render-parity-frustum-visual-20261009/render-parity-result.json`.
+Median FPS differed by less than 0.013% in each scene (candidate versus C):
+12.680860 versus 12.681964, 12.780727 versus 12.781459, and 12.173252 versus
+12.174717. These are regression observations, not a promotion criterion.
+
 **Promotion status and remaining checks.**
 
-This candidate is not promoted. Full C-versus-assembly scene captures have not
-completed, so the C implementation remains the default and the candidate profile
-is isolated. The normal i486 build reached and passed the project, runtime,
-linked-object and relocated-executable audits, then stopped at the separate
-startup-source reproduction gate: `tools/djgpp-assembler-tool.py` could not find
-a Windows MinGW GCC. The executable therefore has no complete startup/provider
-manifest from that build.
-
-An attempted paired run on the i386 build path stopped at its independent ISA
-baseline gate before DOSBox launched; it produced no scene captures and is not
-parity evidence. The next acceptance step is a paired i486 C-reference and
-assembly run through `tools/render-parity-dos.ps1`, followed by timing only if
-the parity gate passes. No performance claim is made for this setup routine.
+This candidate is not promoted. The C implementation remains the default and
+the assembly profile remains isolated. The normal i486 build reached and passed
+the project, runtime, linked-object and relocated-executable audits, then
+stopped at the separate startup-source reproduction gate:
+`tools/djgpp-assembler-tool.py` could not find a Windows MinGW GCC. The earlier
+strictly audited executable therefore has no complete startup-source manifest,
+and the visual-only executables above have no renderer ISA audit. Complete the
+startup-source proof and run the strict linked and executable gates on the exact
+renderer binary before considering promotion. No performance claim is made for
+this setup routine.

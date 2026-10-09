@@ -240,6 +240,37 @@ def main() -> int:
         if "-DBENCH486" in i486.get("cFlags", []) or "-DBENCH486" in i486.get("asmFlags", []):
             fail("the release i486 flags include benchmark-only -DBENCH486")
 
+    # Visual-only renderer comparisons use an isolated output directory so a
+    # -SkipIsaAudit build cannot replace a normal profile's strict manifest.
+    visual_output = os.path.join(REPO_ROOT, "out", "visual-parity-test-profile")
+    visual = dump_flags(
+        "-Benchmark", "-CpuTarget", "i486", "-SkipIsaAudit",
+        "-VisualParityOutputRoot", visual_output,
+    )
+    if visual:
+        expected_visual_root = "<repo>\\out\\visual-parity-test-profile"
+        if visual.get("outputRoot") != expected_visual_root:
+            fail(
+                "the visual-only output root is %r; expected isolated path %r"
+                % (visual.get("outputRoot"), expected_visual_root)
+            )
+        if visual.get("executable") != expected_visual_root + "\\qbench.exe":
+            fail("the visual-only benchmark executable did not stay under its isolated output root")
+    try:
+        _dump_flags("-Benchmark", "-CpuTarget", "i486", "-VisualParityOutputRoot", visual_output)
+        fail("the isolated visual output accepted a build without explicit -SkipIsaAudit")
+    except BuildFlagsError:
+        pass
+    outside_output = os.path.join(os.path.dirname(REPO_ROOT), "nq-visual-parity-outside")
+    try:
+        _dump_flags(
+            "-Benchmark", "-CpuTarget", "i486", "-SkipIsaAudit",
+            "-VisualParityOutputRoot", outside_output,
+        )
+        fail("the visual-only output accepted a path outside this checkout's out directory")
+    except BuildFlagsError:
+        pass
+
     # 4. The two targets are genuinely separated by architecture plus the
     #    promoted i486-only renderer selectors.
     if i486 and i386:

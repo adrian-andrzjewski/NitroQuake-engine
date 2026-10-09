@@ -244,7 +244,11 @@ param(
     [string]$RenderPolyImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
-    [string]$ToolRoot
+    [string]$ToolRoot,
+    # Isolated, non-promotion output for visual-only parity runs. This is
+    # intentionally limited to i486 builds with the ISA audit explicitly
+    # skipped, and the resolved path must remain below this checkout's out\.
+    [string]$VisualParityOutputRoot
 )
 
 Set-StrictMode -Version Latest
@@ -372,6 +376,23 @@ else {
     ''
 }
 $outputRoot = Join-Path $repoRoot ('out\dos' + $profileSuffix)
+if (-not [string]::IsNullOrWhiteSpace($VisualParityOutputRoot)) {
+    if ($CpuTarget -ne 'i486' -or -not $SkipIsaAudit) {
+        throw '-VisualParityOutputRoot is only available for explicit i486 -SkipIsaAudit builds.'
+    }
+    $repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
+    $visualOutputRoot = if ([IO.Path]::IsPathRooted($VisualParityOutputRoot)) {
+        [IO.Path]::GetFullPath($VisualParityOutputRoot)
+    } else {
+        [IO.Path]::GetFullPath((Join-Path $repoRoot $VisualParityOutputRoot))
+    }
+    $repoOutPrefix = $repoOutRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if ($visualOutputRoot -eq $repoOutRoot -or
+            -not $visualOutputRoot.StartsWith($repoOutPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Visual parity output must be a child of '$repoOutRoot'; got '$visualOutputRoot'."
+    }
+    $outputRoot = $visualOutputRoot
+}
 $objectDirectoryName = 'obj'
 if ($Benchmark -and $Instrumentation) {
     # Combined selector suffixes can push object filenames beyond Windows'
@@ -416,7 +437,8 @@ if ($CpuTarget -eq 'i386') {
         throw "The i386 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet'). Refusing to build, because -Clean removes the directory it is given."
     }
 }
-elseif ($outputRoot -ne $i486RootForThisSelectorSet) {
+elseif ([string]::IsNullOrWhiteSpace($VisualParityOutputRoot) -and
+        $outputRoot -ne $i486RootForThisSelectorSet) {
     throw "The i486 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet')."
 }
 

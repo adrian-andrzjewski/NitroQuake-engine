@@ -25,6 +25,7 @@ param(
     [ValidateRange(0, 9)]
     [int]$RunsOverride = 0,
     [switch]$SkipBuild,
+    [switch]$VisualParityOnly,
     [switch]$NoBootstrap,
     [switch]$SkipGoldenImageComparison,
     [switch]$ListScenarios
@@ -34,6 +35,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+if ($VisualParityOnly -and $CpuTarget -ne 'i486') {
+    throw '-VisualParityOnly is supported only for the i486 visual comparison path.'
+}
 $timedemoScript = Join-Path $PSScriptRoot 'timedemo-dos.ps1'
 $rendererSelectorProfileData = $null
 $rendererSelectorProfilePathResolved = $null
@@ -270,6 +274,7 @@ foreach ($scene in $selectedScenarios) {
         }
         if ($NoBootstrap) { $timedemoArgs += '-NoBootstrap' }
         if ($SkipBuild) { $timedemoArgs += '-SkipBuild' }
+        if ($VisualParityOnly) { $timedemoArgs += '-VisualParityOnly' }
         if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $timedemoArgs += @('-ToolRoot', $ToolRoot) }
         if (-not [string]::IsNullOrWhiteSpace($DataRoot)) { $timedemoArgs += @('-DataRoot', $DataRoot) }
         $timedemoArgs += @('-CpuTarget', $CpuTarget)
@@ -443,6 +448,10 @@ foreach ($scene in $selectedScenarios) {
             reference = [IO.Path]::GetFullPath((Join-Path $repoRoot ([string]$scene.reference)))
             validationAutoexecCommands = $effectiveAutoexecCommands
             ignoredWarmupChecksumFrames = $warmupChecksumFrames
+            visualParityOnly = [bool]$VisualParityOnly
+            isaAuditStatus = if ($VisualParityOnly) { 'SKIPPED' } elseif ($null -ne $timedemoJson) { $timedemoJson.isaAuditStatus } else { 'NOT_RUN' }
+            buildIsaAuditStatus = if ($null -ne $timedemoJson) { $timedemoJson.isaAuditStatus } else { 'NOT_RUN' }
+            providerVerification = if ($null -ne $timedemoJson) { $timedemoJson.providerVerification } else { $null }
             timedemoResult = $timedemoResultPath
             sourceFingerprint = if ($null -ne $timedemoJson) { $timedemoJson.sourceFingerprint } else { $null }
             sourceTreeFingerprint = if ($null -ne $timedemoJson) { $timedemoJson.sourceTreeFingerprint } else { $null }
@@ -472,6 +481,8 @@ $suiteResult = [ordered]@{
     cpuTarget = $CpuTarget
     scenarioFile = [IO.Path]::GetFullPath($ScenarioFile)
     outputRoot = $OutputRoot
+    visualParityOnly = [bool]$VisualParityOnly
+    isaAuditStatus = if ($VisualParityOnly) { 'SKIPPED' } elseif ($CpuTarget -eq 'i486' -and $scenarioResults.Count -gt 0) { [string]$scenarioResults[0].buildIsaAuditStatus } elseif ($scenarioResults.Count -eq 0) { 'NOT_RUN' } else { 'NOT_ASSERTED' }
     rendererSelectorProfile = if ($null -ne $rendererSelectorProfileData) { [string]$rendererSelectorProfileData.id } else { 'timedemo-defaults' }
     rendererSelectorProfilePath = $rendererSelectorProfilePathResolved
     rendererSelectors = if ($null -ne $rendererSelectorProfileData) { $rendererSelectorProfileData.selectors } else { @{} }

@@ -24,6 +24,7 @@ param(
     [ValidateRange(0, 9)]
     [int]$RunsOverride = 0,
     [switch]$SkipBuild,
+    [switch]$VisualParityOnly,
     [switch]$NoBootstrap,
     [switch]$KeepTransientNotifications
 )
@@ -33,6 +34,12 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
+if ($VisualParityOnly -and $CpuTarget -ne 'i486') {
+    throw '-VisualParityOnly is supported only for the i486 visual comparison path.'
+}
+if ($VisualParityOnly) {
+    Write-Host 'VISUAL PARITY ONLY: renderer ISA status will be reported as SKIPPED; this comparison does not certify 486 compatibility.' -ForegroundColor Yellow
+}
 $referencePath = if ([IO.Path]::IsPathRooted($ReferenceProfile)) {
     [IO.Path]::GetFullPath($ReferenceProfile)
 } else {
@@ -121,6 +128,7 @@ foreach ($profile in @(
     if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $validationArgs += @('-ToolRoot', $ToolRoot) }
     if (-not [string]::IsNullOrWhiteSpace($DataRoot)) { $validationArgs += @('-DataRoot', $DataRoot) }
     if ($SkipBuild) { $validationArgs += '-SkipBuild' }
+    if ($VisualParityOnly) { $validationArgs += '-VisualParityOnly' }
     if ($NoBootstrap) { $validationArgs += '-NoBootstrap' }
     $validationArgs += '-SkipGoldenImageComparison'
 
@@ -153,6 +161,27 @@ $compareArgs = @(
 & python @compareArgs
 $comparisonExit = $LASTEXITCODE
 Write-Host ("Parity report: {0}" -f $comparisonReport)
+if (Test-Path -LiteralPath $comparisonReport -PathType Leaf) {
+    $comparison = Get-Content -LiteralPath $comparisonReport -Raw | ConvertFrom-Json
+    $referenceIsaStatus = if (Test-Path -LiteralPath $referenceReport -PathType Leaf) {
+        (Get-Content -LiteralPath $referenceReport -Raw | ConvertFrom-Json).isaAuditStatus
+    } else { 'NOT_RUN' }
+    $candidateIsaStatus = if (Test-Path -LiteralPath $candidateReport -PathType Leaf) {
+        (Get-Content -LiteralPath $candidateReport -Raw | ConvertFrom-Json).isaAuditStatus
+    } else { 'NOT_RUN' }
+    $comparison | Add-Member -NotePropertyName visualParityOnly -NotePropertyValue ([bool]$VisualParityOnly) -Force
+    $comparison | Add-Member -NotePropertyName isaAuditStatus -NotePropertyValue $(if ($VisualParityOnly) { 'SKIPPED' } elseif ($referenceIsaStatus -eq 'PASS' -and $candidateIsaStatus -eq 'PASS') { 'PASS' } else { 'NOT_ASSERTED' }) -Force
+    $comparison | Add-Member -NotePropertyName buildIsaAuditStatuses -NotePropertyValue ([ordered]@{
+        reference = $referenceIsaStatus
+        candidate = $candidateIsaStatus
+    }) -Force
+    $comparison | Add-Member -NotePropertyName isaEvidenceScope -NotePropertyValue $(if ($VisualParityOnly) {
+        'Framebuffer comparison only; renderer ISA compatibility was not asserted by this run.'
+    } else {
+        'Each build manifest was checked by the normal renderer compatibility gate.'
+    }) -Force
+    $comparison | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath $comparisonReport -Encoding UTF8
+}
 if ($validationFailures.Count -gt 0 -or $comparisonExit -ne 0) {
     $reasons = @($validationFailures.ToArray())
     if ($comparisonExit -ne 0) { $reasons += "exact C-reference / assembly comparison exited with code $comparisonExit" }

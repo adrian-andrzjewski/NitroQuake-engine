@@ -228,6 +228,7 @@ param(
     [ValidateRange(1, 9)]
     [int]$Runs = 3,
     [int]$TimeoutSeconds = 180,
+    [switch]$VisualParityOnly,
     # Per-frame FPS collection costs ~0.0117 s on the 969-frame demo1 run
     # (0.020%, about 39% of the 0.05% promotion gate), so it is OFF by default
     # and opt-in. The recorded baseline 59.227329 s was measured with it off.
@@ -302,6 +303,12 @@ $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
 $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
 $DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
+if ($VisualParityOnly -and ($CpuTarget -ne 'i486' -or $DpmiHost -ne 'cwsdpmi')) {
+    throw '-VisualParityOnly requires CpuTarget i486 and the independently audited cwsdpmi provider.'
+}
+if ($VisualParityOnly) {
+    Write-Host 'VISUAL PARITY ONLY: renderer ISA audit is explicitly skipped; this run cannot prove 486 compatibility.' -ForegroundColor Yellow
+}
 if ($TimeoutSeconds -lt 30) {
     throw 'TimeoutSeconds must be at least 30 seconds.'
 }
@@ -433,7 +440,21 @@ if ($Instrumentation) {
 # invitation for a runner to look for an executable the builder never wrote.
 # The builder is the only place that knows.
 Add-RunnerBuildSelectors -BuildParameters $buildParams -Command $MyInvocation.MyCommand -SessionState $ExecutionContext.SessionState
-$resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+$defaultResolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+if ($VisualParityOnly) {
+    $buildParams['SkipIsaAudit'] = $true
+    $profileDirectory = Split-Path -Leaf ([string]$defaultResolved.outputRoot)
+    $visualOutputRoot = Join-Path $repoRoot (Join-Path 'out' ("visual-parity-" + $profileDirectory))
+    $buildParams['VisualParityOutputRoot'] = $visualOutputRoot
+    $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+    if ([IO.Path]::GetFullPath($resolved.outputRoot) -ne [IO.Path]::GetFullPath($visualOutputRoot)) {
+        throw "The builder did not honor the isolated visual parity output root '$visualOutputRoot'."
+    }
+    Write-Host "Visual parity build output: $($resolved.outputRoot)"
+}
+else {
+    $resolved = $defaultResolved
+}
 $benchmarkExe = $resolved.executable
 
 $dosbox = Resolve-DosboxExecutable -Manifest $toolManifest -ToolRoot $ToolRoot `
@@ -488,7 +509,8 @@ if ((-not $executableExists) -or $staleBuild) {
 if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
     throw "Required benchmark executable is missing: '$benchmarkExe'."
 }
-$selectorVerification = Assert-RunnerBuildManifest -Resolved $resolved -BuildParameters $buildParams
+$selectorVerification = Assert-RunnerBuildManifest -Resolved $resolved -BuildParameters $buildParams `
+    -VisualParityOnly:$VisualParityOnly
 
 $fpsStatsEnabled = [bool]($FpsStats -and -not $NoFpsStats)
 $fpsStatsOptions = if ($fpsStatsEnabled) { ' -fpsstats' } else { '' }
@@ -591,8 +613,32 @@ try {
 finally {
     $sha256Host.Dispose()
 }
+$providerProofPath = $null
+if ($VisualParityOnly -and $selectorVerification.isaAuditStatus -eq 'SKIPPED') {
+    $providerProofRoot = Join-Path $resolved.outputRoot 'provider-proof'
+    $providerProofPath = Join-Path $providerProofRoot 'provider-proof.json'
+    if (-not (Test-Path -LiteralPath $providerProofPath -PathType Leaf)) {
+        if (Test-Path -LiteralPath $providerProofRoot) {
+            throw "Incomplete provider proof output already exists at '$providerProofRoot'; remove that exact generated directory and retry."
+        }
+        $providerCompiler = Join-Path (Join-Path $ToolRoot $toolManifest.djgpp.installDirectory) `
+            ($toolManifest.djgpp.compiler -replace '/', [IO.Path]::DirectorySeparatorChar)
+        $providerProofArgs = @(
+            (Join-Path $PSScriptRoot 'cws-provider-proof.py'),
+            '--executable', $cwsdpmiSource,
+            '--compiler', $providerCompiler,
+            '--output', $providerProofRoot,
+            '--tool-root', $ToolRoot
+        )
+        & python @providerProofArgs
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $providerProofPath -PathType Leaf)) {
+            throw 'Independent DPMI-provider ISA proof failed during visual-only parity setup.'
+        }
+    }
+}
 $providerVerification = Assert-RunnerDpmiProvider -CpuTarget $CpuTarget -BuildVerification $selectorVerification `
-    -ProviderPath (Join-Path $quakeRoot ([IO.Path]::GetFileName($dpmiHostPath)))
+    -ProviderPath (Join-Path $quakeRoot ([IO.Path]::GetFileName($dpmiHostPath))) `
+    -VisualParityOnly:$VisualParityOnly -ProviderProofPath $providerProofPath
 
 $batchPath = Join-Path $quakeRoot 'timedemo.bat'
 $probeBlock = if ($dpmiProbeLines.Count) { ($dpmiProbeLines -join "`r`n") + "`r`n" } else { '' }
@@ -893,6 +939,8 @@ if (Test-Path -LiteralPath $dpmiHostProbePath -PathType Leaf) {
 }
 
 $result = [ordered]@{
+    visualParityOnly = [bool]$VisualParityOnly
+    isaAuditStatus = $selectorVerification.isaAuditStatus
     demo = $DemoName
     runs = $Runs
     medianFps = $medianFps
