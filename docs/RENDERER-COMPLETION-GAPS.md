@@ -341,3 +341,14 @@ fall from 25 to 20 and indirect transfer sites from 148 to 54. The graph is
 still incomplete, and the remaining C paths and broader renderer scenarios
 remain open. See the
 [84-selector alias-control checkpoint](ledger/2026-10-09-selectable-84-alias-control-checkpoint.md).
+
+The `R_CheckVariables` frame-control slice is now implemented in
+`src/r_checkvariables_asm.inc` and replaces `r_misc.c:R_CheckVariables` when
+`ASM486_VIEW_CONTROL` is selected. Its C-vs-assembly fixture passes 180 cases
+across twelve x87 control words; the combined all-84-selector aggressive BENCH
+run passes the 18,176-case ViewControl fixture. The candidate executable and
+runtime ISA gate passes 245,178 relocated renderer/runtime instructions, 353
+source-bound executable contributions, 1,844 ranges, 529 startup CODE rows and
+9,207 provider instructions, with zero above-i486 instructions and zero
+exemptions. Exact scene framebuffer parity is still running, so this slice is
+pending parity review and has not been promoted or made the default.
