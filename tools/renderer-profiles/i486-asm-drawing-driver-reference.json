@@ -71,6 +71,7 @@
     "RenderPolyImplementation": "asm",
     "SpriteOrientationImplementation": "asm",
     "RenderMathImplementation": "asm",
+    "TransformFrustumImplementation": "c",
     "AnimatedLightImplementation": "asm",
     "PointLightImplementation": "asm",
     "FrameControlImplementation": "asm",

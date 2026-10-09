@@ -161,6 +161,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ZSubmodelPolygonsImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$TransformFrustumImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$EdgeDrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScanEdgesImplementation = 'c',
@@ -321,6 +323,7 @@ $buildParams = @{
     SolidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
     SubmodelPolygonsImplementation = $SubmodelPolygonsImplementation
     ZSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
+    TransformFrustumImplementation = $TransformFrustumImplementation
     EdgeDrawingImplementation = $EdgeDrawingImplementation
     ScanEdgesImplementation = $ScanEdgesImplementation
     EdgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -487,6 +490,7 @@ $result = [ordered]@{
     solidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
     submodelPolygonsImplementation = $SubmodelPolygonsImplementation
     zSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
+    transformFrustumImplementation = $TransformFrustumImplementation
     edgeDrawingImplementation = $EdgeDrawingImplementation
     scanEdgesImplementation = $ScanEdgesImplementation
     edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation

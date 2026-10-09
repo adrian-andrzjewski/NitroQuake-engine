@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_frustum.h"
 
 
 /*
@@ -270,26 +271,48 @@ void WarpPalette (void)
 R_TransformFrustum
 ===================
 */
-void R_TransformFrustum (void)
+#if !defined(ASM486_TRANSFORM_FRUSTUM) || defined(BENCH486)
+void R_TransformFrustumCore_C (const mplane_t *screen, clipplane_t *clip,
+		const float *origin, const float *forward, const float *right,
+		const float *up)
 {
 	int		i;
 	vec3_t	v, v2;
 	
 	for (i=0 ; i<4 ; i++)
 	{
-		v[0] = screenedge[i].normal[2];
-		v[1] = -screenedge[i].normal[0];
-		v[2] = screenedge[i].normal[1];
+		v[0] = screen[i].normal[2];
+		v[1] = -screen[i].normal[0];
+		v[2] = screen[i].normal[1];
 
-		v2[0] = v[1]*vright[0] + v[2]*vup[0] + v[0]*vpn[0];
-		v2[1] = v[1]*vright[1] + v[2]*vup[1] + v[0]*vpn[1];
-		v2[2] = v[1]*vright[2] + v[2]*vup[2] + v[0]*vpn[2];
+		v2[0] = v[1]*right[0] + v[2]*up[0] + v[0]*forward[0];
+		v2[1] = v[1]*right[1] + v[2]*up[1] + v[0]*forward[1];
+		v2[2] = v[1]*right[2] + v[2]*up[2] + v[0]*forward[2];
 
-		VectorCopy (v2, view_clipplanes[i].normal);
+		VectorCopy (v2, clip[i].normal);
 
-		view_clipplanes[i].dist = DotProduct (modelorg, v2);
+		clip[i].dist = DotProduct (origin, v2);
 	}
 }
+
+void R_TransformFrustum_C (void)
+{
+	R_TransformFrustumCore_C (screenedge, view_clipplanes, modelorg,
+			vpn, vright, vup);
+}
+#endif
+
+#ifndef ASM486_TRANSFORM_FRUSTUM
+void R_TransformFrustum (void)
+{
+#ifdef BENCH486
+	R_TransformFrustum_C ();
+#else
+	R_TransformFrustumCore_C (screenedge, view_clipplanes, modelorg,
+			vpn, vright, vup);
+#endif
+}
+#endif
 
 
 #if	!id386

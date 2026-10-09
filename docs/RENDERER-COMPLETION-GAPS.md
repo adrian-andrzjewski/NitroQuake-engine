@@ -273,3 +273,13 @@ correctness suite, checksum `3755475462`. Four rebuilt variants also prove all
 only proved build-clock literal data differs. The refreshed default release
 guard verifies 120 objects and its executable. See the
 [accepted checkpoint](ledger/2026-10-08-accepted-renderer-checkpoint.md).
+
+## Unpromoted candidate
+
+`R_TransformFrustum` has an isolated i486 assembly candidate and a direct oracle
+fixture. The exact candidate executable passes the strict project, runtime,
+linked-object and relocated-code audits, plus 5,760 direct comparisons on
+DOSBox-X configured as an i486. Full paired scene captures remain pending
+because the host startup-source check cannot locate MinGW GCC; the C selector
+remains the default. See the
+[frustum transform candidate](ledger/2026-10-09-frustum-transform-assembly-port.md).

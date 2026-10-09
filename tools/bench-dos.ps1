@@ -156,6 +156,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ZSubmodelPolygonsImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$TransformFrustumImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$EdgeDrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScanEdgesImplementation = 'c',
@@ -272,6 +274,7 @@ param(
     [switch]$SurfaceCacheOnly,
     [switch]$ParticleListOnly,
     [switch]$ZSubmodelPolygonsOnly,
+    [switch]$FrustumTransformOnly,
     [switch]$SurfaceDrawOnly,
     [switch]$SurfaceZGradientOnly,
     [switch]$SurfaceGradientOnly,
@@ -316,6 +319,9 @@ if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
 }
 if ($ZSubmodelPolygonsOnly -and $ZSubmodelPolygonsImplementation -ne 'asm') {
     throw '-ZSubmodelPolygonsOnly requires -ZSubmodelPolygonsImplementation asm.'
+}
+if ($FrustumTransformOnly -and $TransformFrustumImplementation -ne 'asm') {
+    throw '-FrustumTransformOnly requires -TransformFrustumImplementation asm.'
 }
 if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
     throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
@@ -447,6 +453,7 @@ $buildParams = @{
         SolidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
         SubmodelPolygonsImplementation = $SubmodelPolygonsImplementation
         ZSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
+        TransformFrustumImplementation = $TransformFrustumImplementation
         EdgeDrawingImplementation = $EdgeDrawingImplementation
         ScanEdgesImplementation = $ScanEdgesImplementation
         EdgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -674,6 +681,9 @@ elseif ($SurfaceCacheOnly) {
 elseif ($ZSubmodelPolygonsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchzsubmodelpolys -benchexit'
 }
+elseif ($FrustumTransformOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchfrustumtransform -benchexit'
+}
 elseif ($SurfaceDrawOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacedraw -benchexit'
 }
@@ -807,6 +817,7 @@ $result = [ordered]@{
     solidClippedSubmodelPolygonsImplementation = $SolidClippedSubmodelPolygonsImplementation
     submodelPolygonsImplementation = $SubmodelPolygonsImplementation
     zSubmodelPolygonsImplementation = $ZSubmodelPolygonsImplementation
+    transformFrustumImplementation = $TransformFrustumImplementation
     edgeDrawingImplementation = $EdgeDrawingImplementation
     scanEdgesImplementation = $ScanEdgesImplementation
     edgeListMaintenanceImplementation = $EdgeListMaintenanceImplementation
@@ -873,6 +884,7 @@ $result = [ordered]@{
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
     zSubmodelPolygonsOnly = [bool]$ZSubmodelPolygonsOnly
+    frustumTransformOnly = [bool]$FrustumTransformOnly
     surfaceDrawOnly = [bool]$SurfaceDrawOnly
     surfaceZGradientOnly = [bool]$SurfaceZGradientOnly
     surfaceGradientOnly = [bool]$SurfaceGradientOnly

@@ -789,6 +789,59 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("4096 continuous calls", fixture)
         self.assertIn("-benchzsubmodelpolys", bench)
 
+    def test_frustum_transform_assembly_has_an_isolated_profile_and_guarded_oracle(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        candidate = json.loads((profiles / "i486-asm-frustum-transform.json").read_text(encoding="utf-8"))
+        self.assertEqual(candidate["schemaVersion"], 1)
+        self.assertEqual(candidate["id"], "i486-asm-frustum-transform")
+        self.assertEqual(set(reference["selectors"]), set(candidate["selectors"]))
+        self.assertEqual(candidate["selectors"]["TransformFrustumImplementation"], "asm")
+        changed = {
+            name for name, value in candidate["selectors"].items()
+            if reference["selectors"][name] != value
+        }
+        self.assertEqual(changed, {"TransformFrustumImplementation"})
+
+        assembly = (ROOT / "src/r_frustumasm.s").read_text(encoding="utf-8")
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("C(R_TransformFrustum):", assembly)
+        self.assertIn("call\tC(R_TransformFrustumCore_asm486)", assembly)
+        self.assertIn("C(R_TransformFrustumCore_asm486):", assembly)
+        self.assertIn("fchs", assembly)
+        self.assertIn("faddp", assembly)
+        self.assertIn("fxch", assembly)
+        for screen_offset in (0, 20, 40, 60):
+            self.assertIn(f"flds\t{screen_offset + 8}(%edi)", assembly)
+        for clip_offset in (0, 24, 48, 72):
+            for normal_offset in (0, 4, 8):
+                offset = clip_offset + normal_offset
+                operand = "(%eax)" if offset == 0 else f"{offset}(%eax)"
+                self.assertIn(f"fsts\t{operand}", assembly)
+            self.assertIn(f"fstps\t{clip_offset + 12}(%eax)", assembly)
+        self.assertIn("pushl\t%edi", assembly)
+        self.assertIn("popl\t%edi", assembly)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*)\b")
+
+        layout = (ROOT / "src/asm_frustum.h").read_text(encoding="utf-8")
+        for contract in (
+            "sizeof(mplane_t) == FR_SCREEN_STRIDE",
+            "offsetof(mplane_t, normal) == FR_SCREEN_NORMAL_X",
+            "sizeof(clipplane_t) == FR_CLIP_STRIDE",
+            "offsetof(clipplane_t, dist) == FR_CLIP_DIST",
+        ):
+            with self.subTest(contract=contract):
+                self.assertIn(contract, layout)
+
+        oracle = (ROOT / "src/r_misc.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_frustum.h").read_text(encoding="utf-8")
+        bench = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("R_TransformFrustumCore_C", oracle)
+        self.assertIn("4096 continuous calls", fixture)
+        self.assertIn("frustum sequence progress", fixture)
+        self.assertIn("-benchfrustumtransform", bench)
+
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
         routine = re.search(

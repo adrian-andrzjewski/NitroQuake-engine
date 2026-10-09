@@ -14,8 +14,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 40,
-  "assemblySourceCount": 40,
+  "allAssemblySourceCount": 41,
+  "assemblySourceCount": 41,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -222,6 +222,7 @@
     "r_drawa.s",
     "r_edgea.s",
     "r_framecontrolasm.s",
+    "r_frustumasm.s",
     "r_lightasm.s",
     "r_lightcontrolasm.s",
     "r_mathasm.s",

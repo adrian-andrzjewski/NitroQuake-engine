@@ -906,6 +906,19 @@ def main() -> int:
             if "-DASM486_DRAW_Z_SUBMODEL_POLYS" not in z_submodel_polygons_asm.get(flags_name, []):
                 fail("the Z-submodel assembly selector omits ASM486_DRAW_Z_SUBMODEL_POLYS from %s" % flags_name)
 
+    frustum_transform_c = dump_flags("-TransformFrustumImplementation", "c")
+    frustum_transform_asm = dump_flags("-TransformFrustumImplementation", "asm")
+    if frustum_transform_c and frustum_transform_asm:
+        if frustum_transform_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the frustum-transform C selector changes the retained i486 profile suffix")
+        if "frustumasm" not in frustum_transform_asm.get("profileSuffix", ""):
+            fail("the frustum-transform assembly selector does not add its profile token")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_TRANSFORM_FRUSTUM" in frustum_transform_c.get(flags_name, []):
+                fail("the frustum-transform C selector enables ASM486_TRANSFORM_FRUSTUM in %s" % flags_name)
+            if "-DASM486_TRANSFORM_FRUSTUM" not in frustum_transform_asm.get(flags_name, []):
+                fail("the frustum-transform assembly selector omits ASM486_TRANSFORM_FRUSTUM from %s" % flags_name)
+
     edge_drawing_c = dump_flags("-EdgeDrawingImplementation", "c")
     edge_drawing_asm = dump_flags("-EdgeDrawingImplementation", "asm")
     if edge_drawing_c and edge_drawing_asm:
@@ -1184,7 +1197,7 @@ def main() -> int:
                 fail("the R_PushDlights assembly selector omits ASM486_DYNAMIC_LIGHT_PUSH from %s" % flags_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 40 assembly sources (one is omitted only
+    #    included by another unit), 41 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1196,9 +1209,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 40:
+        if dump.get("allAssemblySourceCount") != 41:
             fail(
-                "%s: expected 40 assembly sources, got %r"
+                "%s: expected 41 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

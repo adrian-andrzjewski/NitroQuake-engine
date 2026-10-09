@@ -83,6 +83,7 @@ $script:AssemblyBackedImplementations = @(
     'SpriteSetupImplementation',
     'SpriteOrientationImplementation',
     'RenderMathImplementation',
+    'TransformFrustumImplementation',
     'AnimatedLightImplementation',
     'PointLightImplementation',
     'FrameControlImplementation',
@@ -871,6 +872,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'TransformFrustumImplementation'
+        Manifest   = 'transformFrustumImplementation'
+        Suffix     = @{ 'asm' = 'frustumasm' }
+        C          = @{ 'asm' = @('ASM486_TRANSFORM_FRUSTUM') }
+        Asm        = @{ 'asm' = @('ASM486_TRANSFORM_FRUSTUM') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'AnimatedLightImplementation'
         Manifest   = 'animatedLightImplementation'
         Suffix     = @{ 'asm' = 'animatedlightasm' }
@@ -1311,6 +1321,7 @@ $script:SuffixOrder = @(
     'EfragStoreImplementation'
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
+    'TransformFrustumImplementation'
     'GibTrailHorizontalIntegration'
 )
 
@@ -1383,6 +1394,7 @@ $script:CDefineOrder = @(
     'EfragStoreImplementation'
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
+    'TransformFrustumImplementation'
     'GibTrailHorizontalIntegration'
     'AliasBBoxProjectImplementation'
     'AliasTransformFinalImplementation'
@@ -1488,6 +1500,7 @@ $script:AsmDefineOrder = @(
     'EfragStoreImplementation'
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
+    'TransformFrustumImplementation'
     'TurbulentImplementation'
     'TurbulentScanImplementation'
     'TextureSpanStores'
