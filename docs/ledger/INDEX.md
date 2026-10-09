@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-09-selectable-84-alias-control-checkpoint.md`](2026-10-09-selectable-84-alias-control-checkpoint.md) | 5 | renderer port / alias-control integration |
 | [`2026-10-09-selectable-83-vesa-checkpoint.md`](2026-10-09-selectable-83-vesa-checkpoint.md) | 5 | renderer port / 83-selector VESA checkpoint |
 | [`2026-10-09-selectable-77-assembly-profile-acceptance.md`](2026-10-09-selectable-77-assembly-profile-acceptance.md) | 4 | renderer port / all-selector profile |
 | [`2026-10-09-selectable-assembly-profile-acceptance.md`](2026-10-09-selectable-assembly-profile-acceptance.md) | 3 | renderer port / combined profile |
@@ -276,6 +277,11 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [Candidate identity and strict ISA gate](2026-10-09-selectable-84-alias-control-checkpoint.md)
+- `measured` [Exact entity-scene parity](2026-10-09-selectable-84-alias-control-checkpoint.md)
+- `measured` [Ownership impact and remaining C paths](2026-10-09-selectable-84-alias-control-checkpoint.md)
+- `measured` [Validation boundary](2026-10-09-selectable-84-alias-control-checkpoint.md)
+- `measured` [Run the combined alias-control profile](2026-10-09-selectable-84-alias-control-checkpoint.md)
 - `measured` [Candidate identity and strict machine-code gate](2026-10-09-selectable-83-vesa-checkpoint.md)
 - `measured` [Exact parity for the VESA scene](2026-10-09-selectable-83-vesa-checkpoint.md)
 - `measured` [Current ownership inventory and remaining work](2026-10-09-selectable-83-vesa-checkpoint.md)

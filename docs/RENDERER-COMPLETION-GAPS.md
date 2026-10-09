@@ -324,3 +324,12 @@ the `demo1-vesa-full` paired run: 964 post-warmup checksums and the frame-169
 33 unresolved direct callees; this is not a complete call graph. The result
 does not establish broad scenario or full-renderer parity. See the
 [83-selector VESA checkpoint](ledger/2026-10-09-selectable-83-vesa-checkpoint.md).
+
+The 84-selector profile adds the accepted alias-control pipeline and passes
+the complete executable gate plus `demo2-entity-workload`: all 980 post-warmup
+checksums and the frame-169 indexed capture/palette match exactly. Its owner
+scan no longer reports the five alias-control C functions; direct C entries
+fall from 25 to 20 and indirect transfer sites from 148 to 54. The graph is
+still incomplete, and the remaining C paths and broader renderer scenarios
+remain open. See the
+[84-selector alias-control checkpoint](ledger/2026-10-09-selectable-84-alias-control-checkpoint.md).
