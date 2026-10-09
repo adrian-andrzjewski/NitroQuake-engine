@@ -34,6 +34,28 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Invoke-StreamingTimedemo {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][string]$Executable,
+        [Parameter(Mandatory = $true)][string[]]$Arguments,
+        [scriptblock]$OnOutput = { param($Line) Write-Host $Line }
+    )
+
+    $outputLines = New-Object System.Collections.Generic.List[string]
+    & $Executable @Arguments 2>&1 | ForEach-Object {
+        $line = [string]$_
+        $outputLines.Add($line)
+        $null = & $OnOutput $line
+    }
+    $exitCode = $LASTEXITCODE
+
+    return [pscustomobject]@{
+        ExitCode = $exitCode
+        Output = $outputLines.ToArray()
+    }
+}
+
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if ($VisualParityOnly -and $CpuTarget -ne 'i486') {
     throw '-VisualParityOnly is supported only for the i486 visual comparison path.'
@@ -284,11 +306,11 @@ foreach ($scene in $selectedScenarios) {
             }
         }
 
-        $childOutput = & $pwshCommand.Source @timedemoArgs 2>&1
-        $childExit = $LASTEXITCODE
-        $childOutputText = ($childOutput | ForEach-Object { [string]$_ }) -join [Environment]::NewLine
+        $timedemoRun = Invoke-StreamingTimedemo -Executable $pwshCommand.Source -Arguments $timedemoArgs
+        $childOutput = @($timedemoRun.Output)
+        $childExit = $timedemoRun.ExitCode
+        $childOutputText = $childOutput -join [Environment]::NewLine
         $childOutputText | Set-Content -LiteralPath (Join-Path $sceneOutput 'timedemo-output.txt') -Encoding UTF8
-        $childOutput | Out-Host
         if ($childExit -ne 0) {
             throw "timedemo-dos.ps1 exited with code $childExit. Captured output: '$([IO.Path]::GetFullPath((Join-Path $sceneOutput 'timedemo-output.txt')))'."
         }

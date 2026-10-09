@@ -726,8 +726,13 @@ for ($run = 1; $run -le $Runs; $run++) {
         Remove-Item -LiteralPath $frameCaptureDosPath -Force
     }
 
+    # The per-frame checksum file is written as the demo renders, so it doubles
+    # as a lightweight live-progress stream for the parent runner. Without
+    # -FrameChecksums, the final timedemo report is only created after playback.
+    $progressFile = if ($FrameChecksums) { $frameChecksumDosPath } else { $null }
     $dosboxRun = Invoke-DosboxProcess -Dosbox $dosbox -ConfigPath $configPath `
-        -TimeoutSeconds $TimeoutSeconds -Description "DOSBox-X 486 timedemo run $run/$Runs"
+        -TimeoutSeconds $TimeoutSeconds -Description "DOSBox-X 486 timedemo run $run/$Runs" `
+        -ProgressFile $progressFile
     if ($dosboxRun.TimedOut) {
         throw "DOSBox-X timedemo exceeded $TimeoutSeconds seconds."
     }
