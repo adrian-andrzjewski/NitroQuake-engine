@@ -102,14 +102,11 @@ I586_MNEMONICS = {
     "ud2",             # the formal trap instruction; added with the Pentium
 }
 
-# Anything containing one of these is P6 or newer.
+# Anything containing one of these is beyond the 486 target.
 #
-# `movq` used to be in this tuple as well as in I386_SAFE, and because this test
-# runs before the I386_SAFE lookup, every `movq` classified as p6. `movq` is the
-# ordinary 386 quadword move; the MMX register move spells the same, but this build
-# never enables MMX (-mmmx appears nowhere in the flag lists) and the real MMX and
-# SSE spellings -- movd, packss, pxor, movdqa -- are all still named here. So
-# `movq` is a 386 instruction and has been removed from this tuple.
+# MOVQ is intentionally handled separately in classify(): MMX/XMM operands are
+# beyond the 486 target, and an unrecognized 64-bit spelling must not inherit the
+# 386 MOV classification.
 #
 # _assert_no_shadowed_mnemonics below makes that class of mistake impossible to
 # reintroduce silently: any name in both this tuple and I386_SAFE is a table bug,
@@ -121,7 +118,7 @@ P6_SUBSTRINGS = (
     "mulss", "mulsd", "mulps", "mulpd", "divss", "divsd", "divps", "divpd",
     "cvtsi2ss", "cvtsi2sd", "cvtss2si", "cvtsd2si", "cvtt", "cvttss",
     "punpck", "packss", "padd", "psub", "pmul", "pand", "por", "pxor", "pcmpeq",
-    "psll", "psrl", "psra", "emms", "movmskps", "shufps", "unpck",
+    "psll", "psrl", "psra", "emms", "movmskps", "shufps", "unpck", "pause",
     "fxsave", "fxrstor", "ldmxcsr", "stmxcsr",
 )
 
@@ -142,7 +139,7 @@ X87 = re.compile(r"^f[a-z0-9]{1,10}$")
 # extended deliberately rather than widened by accident.
 I386_SAFE = {
     # data movement
-    "mov", "movb", "movw", "movl", "movq", "movsb", "movsw", "movsl",
+    "mov", "movb", "movw", "movl", "movsb", "movsw", "movsl",
     # movzbq, movzwq and movswq were listed here. They are the sign/zero-extend-
     # to-64-bit forms: long mode only, so calling them i386 was a false claim. They
     # resolve to i386 anyway through the suffix-strip retry below, so removing them
@@ -194,7 +191,7 @@ I386_SAFE = {
     "leave", "leaveq", "loop", "loopl", "loope", "loopne", "loopz", "loopnz",
     "jcxz", "jecxz", "jrcxz", "enter",
     "int", "int3", "into", "iret", "iretl", "iretd", "iretq",
-    "nop", "hlt", "wait", "pause",
+    "nop", "hlt", "wait",
     # flags
     "cld", "std", "clc", "stc", "cmc", "sahf", "lahf",
     "pushf", "pushfl", "popf", "popfl", "salc",
@@ -268,9 +265,16 @@ def classify(mnemonic: str, operands: str) -> str:
 
     # --- setcc / cmovcc -----------------------------------------------------
     if re.match(r"^set[a-z]{1,3}$", m):
-        return "i486"
-    if re.match(r"^cmov[a-z]{1,2}$", m):
-        return "i486"
+        return "i386"
+    if m.startswith("cmov") and len(m) > 4 and m[4:].isalpha():
+        # CMOVcc is P6. Accept suffix spellings such as cmovnel here too; the
+        # final object-byte audit remains authoritative for malformed names.
+        return "p6"
+    if m == "movq":
+        # In this 32-bit target, MOVQ with an MMX/XMM register is a SIMD
+        # instruction. There is no general-purpose 64-bit MOV form; do not
+        # let an unrecognized MOVQ spelling inherit the 386 MOV classification.
+        return "p6" if re.search(r"%(?:mm|xmm)\d+\b", operands.lower()) else "unknown"
 
     # --- bit test with a register bit offset -------------------------------
     if m in ("bt", "bts", "btr", "btc"):

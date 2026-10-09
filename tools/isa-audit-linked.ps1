@@ -8,7 +8,9 @@
     input objects with isa-audit.ps1, then disassembles each mapped range in the
     final executable and checks that its instruction boundaries and ISA-defining
     opcode bytes agree with the audited input object. Relocation fields may
-    differ, but opcodes and ModRM bytes may not.
+    differ, but opcodes and ModRM bytes may not. ScratchRoot optionally directs
+    transient object copies, archive extracts, and linked section bytes; it
+    defaults to the repository out directory.
 #>
 [CmdletBinding()]
 param(
@@ -28,7 +30,8 @@ param(
     [string[]]$ExemptRange = @(),
     [string]$ObjectCodeDataProofJson,
     [string]$RuntimeSourceBundle,
-    [string]$ToolRoot
+    [string]$ToolRoot,
+    [string]$ScratchRoot
 )
 
 Set-StrictMode -Version Latest
@@ -62,9 +65,13 @@ if (-not (Test-Path -LiteralPath $archiver -PathType Leaf)) { throw "Required DJ
 if (-not (Test-Path -LiteralPath $objcopy -PathType Leaf)) { throw "Required DJGPP objcopy is missing: '$objcopy'." }
 
 $runId = Get-Date -Format 'yyyyMMdd-HHmmssfff'
-$shortOutRoot = Join-Path $repoRoot 'out'
-$inputRoot = Join-Path $shortOutRoot ('isa-linked-inputs-' + $runId)
-$runtimeExtractRoot = Join-Path $shortOutRoot ('isa-archive-extract-' + $runId)
+if ([string]::IsNullOrWhiteSpace($ScratchRoot)) {
+    $ScratchRoot = Join-Path $repoRoot 'out'
+}
+$ScratchRoot = [IO.Path]::GetFullPath($ScratchRoot)
+New-Item -ItemType Directory -Path $ScratchRoot -Force | Out-Null
+$inputRoot = Join-Path $ScratchRoot ('isa-linked-inputs-' + $runId)
+$runtimeExtractRoot = Join-Path $ScratchRoot ('isa-archive-extract-' + $runId)
 New-Item -ItemType Directory -Path $inputRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $runtimeExtractRoot -Force | Out-Null
 
@@ -79,12 +86,46 @@ foreach ($name in $ObjectNames) {
 $mapStarted = $false
 $mainText = $null
 $rawContributions = New-Object System.Collections.Generic.List[object]
-$outputTextPattern = [regex]::new('^\.(?<section>text(?:[.$][^\s]+)?)\s+0x(?<address>[0-9a-fA-F]+)\s+0x(?<size>[0-9a-fA-F]+)\s*$')
-$inputTextPattern = [regex]::new('^\s+\.(?<section>text(?:[.$][^\s]+)?)\s+0x(?<address>[0-9a-fA-F]+)\s+0x(?<size>[0-9a-fA-F]+)\s+(?<input>.+?)\s*$')
+$rawTextFills = New-Object System.Collections.Generic.List[object]
+$currentOutputSection = $null
+$pendingInputSection = $null
+$outputSectionPattern = [regex]::new('^(?<section>\.\S+)\s+0x(?<address>[0-9a-fA-F]+)\s+0x(?<size>[0-9a-fA-F]+)\s*$')
+$inputContributionPattern = [regex]::new('^\s+\.(?<section>\S+)\s+0x(?<address>[0-9a-fA-F]+)\s+0x(?<size>[0-9a-fA-F]+)\s+(?<input>.+?)\s*$')
+$inputSectionPattern = [regex]::new('^\s+\.(?<section>\S+)\s*$')
+$wrappedContributionPattern = [regex]::new('^\s+0x(?<address>[0-9a-fA-F]+)\s+0x(?<size>[0-9a-fA-F]+)\s+(?<input>.+?)\s*$')
+$fillPattern = [regex]::new('^\s+\*fill\*\s+0x(?<address>[0-9a-fA-F]+)\s+0x(?<size>[0-9a-fA-F]+)\s*$')
 foreach ($line in Get-Content -LiteralPath $MapPath) {
     if ($line -match '^Linker script and memory map\s*$') { $mapStarted = $true; continue }
     if (-not $mapStarted) { continue }
-    $inputMatch = $inputTextPattern.Match($line)
+
+    # GNU ld prints output section headers flush-left. Inputs may be on one
+    # line, or as a section-name line followed by an address/size/origin line
+    # (common for .text.unlikely and .rodata contributions).
+    $outputMatch = $outputSectionPattern.Match($line)
+    if ($outputMatch.Success) {
+        $currentOutputSection = $outputMatch.Groups['section'].Value
+        $pendingInputSection = $null
+        if ($currentOutputSection -eq '.text') {
+            if ($null -ne $mainText) { throw 'The linker map contains more than one output .text section.' }
+            $mainText = [pscustomobject]@{
+                address = [Convert]::ToInt64($outputMatch.Groups['address'].Value, 16)
+                size = [Convert]::ToInt64($outputMatch.Groups['size'].Value, 16)
+            }
+        }
+        continue
+    }
+
+    if ($currentOutputSection -ne '.text') { continue }
+    $fillMatch = $fillPattern.Match($line)
+    if ($fillMatch.Success) {
+        $rawTextFills.Add([pscustomobject]@{
+            address = [Convert]::ToInt64($fillMatch.Groups['address'].Value, 16)
+            size = [Convert]::ToInt64($fillMatch.Groups['size'].Value, 16)
+        })
+        $pendingInputSection = $null
+        continue
+    }
+    $inputMatch = $inputContributionPattern.Match($line)
     if ($inputMatch.Success) {
         $rawContributions.Add([pscustomobject]@{
             section = '.' + $inputMatch.Groups['section'].Value
@@ -92,16 +133,29 @@ foreach ($line in Get-Content -LiteralPath $MapPath) {
             size = [Convert]::ToInt64($inputMatch.Groups['size'].Value, 16)
             input = $inputMatch.Groups['input'].Value.Trim()
         })
+        $pendingInputSection = $null
         continue
     }
-    $outputMatch = $outputTextPattern.Match($line)
-    if ($outputMatch.Success -and $outputMatch.Groups['section'].Value -eq 'text') {
-        if ($null -ne $mainText) { throw 'The linker map contains more than one output .text section.' }
-        $mainText = [pscustomobject]@{
-            address = [Convert]::ToInt64($outputMatch.Groups['address'].Value, 16)
-            size = [Convert]::ToInt64($outputMatch.Groups['size'].Value, 16)
-        }
+    $sectionMatch = $inputSectionPattern.Match($line)
+    if ($sectionMatch.Success) {
+        $pendingInputSection = '.' + $sectionMatch.Groups['section'].Value
+        continue
     }
+    if (-not [string]::IsNullOrWhiteSpace($pendingInputSection)) {
+        $wrappedMatch = $wrappedContributionPattern.Match($line)
+        if ($wrappedMatch.Success) {
+            $rawContributions.Add([pscustomobject]@{
+                section = $pendingInputSection
+                address = [Convert]::ToInt64($wrappedMatch.Groups['address'].Value, 16)
+                size = [Convert]::ToInt64($wrappedMatch.Groups['size'].Value, 16)
+                input = $wrappedMatch.Groups['input'].Value.Trim()
+            })
+            $pendingInputSection = $null
+            continue
+        }
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+    }
+    $pendingInputSection = $null
 }
 if ($null -eq $mainText) { throw "No output .text section was found in '$MapPath'." }
 if ($rawContributions.Count -eq 0) { throw "No input .text contributions were found in '$MapPath'." }
@@ -112,7 +166,6 @@ $runtimeInputs = New-Object System.Collections.Generic.List[object]
 $runtimeOrdinal = 0
 foreach ($entry in $rawContributions) {
     if ($entry.size -eq 0) { continue }
-    if ($entry.input -match '^\*fill\*') { continue }
     $origin = $entry.input
     if ($origin -match '^(?<archive>.+\.a)\((?<member>[^)]+)\)$') {
         $archivePath = [IO.Path]::GetFullPath($Matches['archive'])
@@ -310,7 +363,7 @@ if ($binaryText.address -ne $mainText.address -or $binaryText.size -ne $mainText
         $mainText.address, $mainText.size, $binaryText.address, $binaryText.size)
 }
 
-$textDumpPath = Join-Path $shortOutRoot ('isa-linked-text-' + $runId + '.bin')
+$textDumpPath = Join-Path $ScratchRoot ('isa-linked-text-' + $runId + '.bin')
 & $objcopy --dump-section ".text=$textDumpPath" $executable
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $textDumpPath -PathType Leaf)) {
     throw "Could not extract the executable .text bytes from '$executable'."
@@ -318,6 +371,65 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $textDumpPath -PathType
 $linkedTextBytes = [IO.File]::ReadAllBytes($textDumpPath)
 if ($linkedTextBytes.Length -ne $binaryText.size) {
     throw ("Extracted executable .text length {0} does not match section size {1}." -f $linkedTextBytes.Length, $binaryText.size)
+}
+
+# Account for every byte in the executable .text output section. This includes
+# linker-mapped input data such as .rodata and generated alignment fills. The
+# pinned GNU ld emits each in-.text fill as repeated 66 90 (XCHG AX,AX), an
+# explicitly 486-safe two-byte instruction; any changed fill encoding fails.
+$textCoverageSpans = New-Object System.Collections.Generic.List[object]
+foreach ($entry in $contributions) {
+    if ($entry.size -le 0) { continue }
+    $textCoverageSpans.Add([pscustomobject]@{
+        address = [long]$entry.address; size = [long]$entry.size
+        kind = 'input'; label = $entry.object + ':' + $entry.section
+    })
+}
+$textFillReport = New-Object System.Collections.Generic.List[object]
+$textEnd = [long]$mainText.address + [long]$mainText.size
+foreach ($fill in $rawTextFills) {
+    if ($fill.size -le 0) { continue }
+    $fillEnd = [long]$fill.address + [long]$fill.size
+    if ([long]$fill.address -lt [long]$mainText.address -or $fillEnd -gt $textEnd) {
+        throw ("Linker fill 0x{0:x8}+0x{1:x} falls outside executable .text." -f $fill.address, $fill.size)
+    }
+    if (($fill.size % 2) -ne 0) {
+        throw ("Linker fill 0x{0:x8}+0x{1:x} is not a whole number of 486-safe XCHG AX,AX pairs." -f $fill.address, $fill.size)
+    }
+    $fillOffset = [int]([long]$fill.address - [long]$binaryText.address)
+    $fillLength = [int]$fill.size
+    if ($fillOffset -lt 0 -or ($fillOffset + $fillLength) -gt $linkedTextBytes.Length) {
+        throw 'Linker fill lies outside the extracted executable .text bytes.'
+    }
+    for ($byteOffset = 0; $byteOffset -lt $fillLength; $byteOffset += 2) {
+        if ($linkedTextBytes[$fillOffset + $byteOffset] -ne 0x66 -or
+            $linkedTextBytes[$fillOffset + $byteOffset + 1] -ne 0x90) {
+            throw ("Linker fill at 0x{0:x8}+0x{1:x} contains bytes outside the documented 486-safe 66 90 policy." -f $fill.address, $fill.size)
+        }
+    }
+    $textCoverageSpans.Add([pscustomobject]@{
+        address = [long]$fill.address; size = [long]$fill.size
+        kind = 'linker-fill'; label = '486-safe 66 90 alignment'
+    })
+    $textFillReport.Add([pscustomobject]@{
+        address = ('0x{0:x8}' -f [long]$fill.address)
+        size = ('0x{0:x}' -f [long]$fill.size)
+        pattern = '66 90 repeated'
+    })
+}
+$sortedTextCoverage = @($textCoverageSpans | Sort-Object -Property address, size, kind)
+$textCoverageCursor = [long]$mainText.address
+foreach ($span in $sortedTextCoverage) {
+    if ([long]$span.address -gt $textCoverageCursor) {
+        throw ("Unmapped executable .text bytes at 0x{0:x8}+0x{1:x}; map inputs and linker fills must cover the section continuously." -f $textCoverageCursor, ([long]$span.address - $textCoverageCursor))
+    }
+    if ([long]$span.address -lt $textCoverageCursor) {
+        throw ("Overlapping executable .text coverage near 0x{0:x8} ({1})." -f $span.address, $span.label)
+    }
+    $textCoverageCursor = [long]$span.address + [long]$span.size
+}
+if ($textCoverageCursor -ne $textEnd) {
+    throw ("Unmapped executable .text tail at 0x{0:x8}+0x{1:x}." -f $textCoverageCursor, ($textEnd - $textCoverageCursor))
 }
 
 # Keep relocations from every linked input object. Jump tables and literal
@@ -629,6 +741,12 @@ $report = [ordered]@{
     executableCodeSections = @($executableCodeSections | Sort-Object)
     nonTextExecutableInputSections = $nonTextCodeSections.ToArray()
     executableText = [ordered]@{ address = ('0x{0:x8}' -f $binaryText.address); size = ('0x{0:x}' -f $binaryText.size) }
+    linkedTextCoverage = [ordered]@{
+        continuous = $true
+        bytes = $binaryText.size
+        fillPolicy = 'Every linker *fill* span in output .text must contain an even number of repeated 66 90 bytes (486-safe XCHG AX,AX).'
+    }
+    textFillSpans = @($textFillReport.ToArray())
     instructionAudit = [ordered]@{
         inputObjectAudit = $objectAudit
         inputInstructionDetailsJsonl = $instructionDetails

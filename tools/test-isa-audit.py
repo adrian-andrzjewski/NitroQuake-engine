@@ -40,6 +40,29 @@ def main() -> int:
     if isa_audit_source.classify("imulq", "%rbx,%rax") != "unknown":
         failures.append("32-bit source audit must reject the long-mode imulq mnemonic")
 
+    # Keep the independent source-level classifier aligned with the strict
+    # byte-level policy for instructions whose mnemonic alone is misleading.
+    cmov_names = (
+        "o no b c nae ae nb nc e z ne nz be na a nbe s ns p pe np po "
+        "l nge ge nl le ng g nle"
+    ).split()
+    for condition in cmov_names:
+        name = "cmov" + condition
+        if isa_audit_source.classify(name, "%ebx,%eax") != "p6":
+            failures.append("%s must be rejected as post-486" % name)
+    for name in ("cmovnel", "cmovzl", "cmovgew"):
+        if isa_audit_source.classify(name, "%ebx,%eax") != "p6":
+            failures.append("%s suffix spelling must be rejected as post-486" % name)
+    for operands in ("%mm0,%mm1", "(%eax),%mm0", "%xmm3,%xmm2"):
+        if isa_audit_source.classify("movq", operands) != "p6":
+            failures.append("MOVQ with SIMD operands %s must be rejected" % operands)
+    if isa_audit_source.classify("movq", "%eax,%ebx") != "unknown":
+        failures.append("unrecognized 32-bit MOVQ operands must fail closed")
+    if isa_audit_source.classify("pause", "") != "p6":
+        failures.append("PAUSE must be rejected as post-486")
+    if isa_audit_source.classify("sete", "%al") != "i386":
+        failures.append("SETcc must match its 386 classification")
+
     object_audit = os.path.join(ROOT, "tools", "isa-audit.ps1")
     with open(object_audit, "r", encoding="utf-8") as handle:
         text = handle.read()
@@ -58,6 +81,9 @@ def main() -> int:
         "Linked inputs contain code sections outside the mapped .text family",
         "Expected all executable code in the GO32 .text section",
         "objdump -r",
+        "Every linker *fill* span in output .text",
+        "textFillSpans = @($textFillReport.ToArray())",
+        "Unmapped executable .text bytes",
         "linkedOpcodeMismatches = $mismatches.Count",
         "linkedTextRelocationCount = $textRelocationCount",
         "fullExecutableDisassembly = $fullExecutableDisassembly",

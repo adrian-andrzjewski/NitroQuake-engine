@@ -41,6 +41,17 @@ full bytes and operands. The relocated instruction count must equal the verified
 input count. Source-bound mode accepts no instruction exemptions, skipped
 continuation bytes, arbitrary data-site allowances or relocation-field bypasses.
 Reports identify the object, function, address, encoding and offending ISA.
+When a proved initialized `STYP_DATA` section such as `.rodata` is linked into
+output `.text`, the mapper checks its allocated-section proof, characteristics,
+size, and exact linked bytes. DIR32 data relocations are checked against their
+mapped section-relative targets. These bytes are recorded in `data-ranges.json`
+and remain outside the CODE ranges sent to the instruction decoder.
+The linked audit also accounts continuously for every byte in output `.text`,
+including wrapped input contributions such as `.text.unlikely` and `.rodata`.
+It checks the actual bytes and address ranges of linker `*fill*` records. The
+documented policy permits only even-length runs of `66 90` (`XCHG AX,AX`, valid
+on the 486); a gap, overlap, or different fill pattern fails closed. The linked
+report records the covered byte count, policy, and each accepted fill span.
 
 ## Runtime sources and embedded startup
 
@@ -93,6 +104,10 @@ configured i486 emulator, not a later CPU profile, for execution acceptance.
 `tools/run-tests.ps1 -NoBootstrap` registers the strict encoding, boundary,
 runtime identity, host-tool isolation, final mapping and genuine linked-binary
 adversarial tests, including 21 provider mutation checks.
+The focused linked-binary fixture also checks wrapped `.text.unlikely` map
+entries, rejects a CMOV placed in that section, mutates a linked fill span to a
+CMOV encoding, and fails when the map omits a fill range. Its scratch files are
+confined to and removed with the fixture's temporary directory.
 `test-embedded-startup-isa.py --manifest <build-manifest.json>`
 runs all loader, CRT and final startup mutation checks against a verified build.
 The full direct renderer suite allows 3,600 seconds and a 3,900-second outer
