@@ -31,6 +31,8 @@ param(
     [switch]$ListScenarios
 )
 
+. (Join-Path $PSScriptRoot 'bench-event-repeat.ps1')
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -250,6 +252,7 @@ foreach ($scene in $selectedScenarios) {
     $timedemoJson = $null
     $imageReports = New-Object System.Collections.Generic.List[object]
     $frameReports = New-Object System.Collections.Generic.List[object]
+    $previousBlobExplosionEventState = $null
     $effectiveRuns = if ($RunsOverride -gt 0) { $RunsOverride } else { [int]$scene.repeatRuns }
     $childOutputText = ''
     $timedemoResultPath = $null
@@ -355,15 +358,63 @@ foreach ($scene in $selectedScenarios) {
             $blobExplosionOverflowProperty = $diagnostics.PSObject.Properties['blobExplosionEventOverflow']
             $blobExplosionEventFrames = $null
             $blobExplosionEventOverflow = $null
+            $blobExplosionEventFramesPresent = $false
+            $blobExplosionEventOverflowPresent = $false
             $invalidBlobExplosionEventFrames = @()
             if ($null -ne $blobExplosionFramesProperty -and $blobExplosionFramesProperty.Value -is [System.Array]) {
+                $blobExplosionEventFramesPresent = $true
                 $blobExplosionEventFrames = @($blobExplosionFramesProperty.Value | ForEach-Object { [int]$_ })
                 $invalidBlobExplosionEventFrames = @($blobExplosionEventFrames | Where-Object {
                         $_ -lt 0 -or $_ -ge $checksumStreamFrameCount
                     })
             }
             if ($null -ne $blobExplosionOverflowProperty -and $null -ne $blobExplosionOverflowProperty.Value) {
+                $blobExplosionEventOverflowPresent = $true
                 $blobExplosionEventOverflow = [int]$blobExplosionOverflowProperty.Value
+            }
+            $blobExplosionEventFrameSignature = if ($blobExplosionEventFramesPresent) {
+                [string]::Join(',', [string[]]$blobExplosionEventFrames)
+            }
+            else {
+                $null
+            }
+
+            $blobExplosionEventRepeatParity = $null
+            $blobExplosionEventRepeatComparison = $null
+            if ($requiredBenchEvents -contains 'blobExplosion') {
+                if ($null -ne $previousBlobExplosionEventState) {
+                    $blobExplosionEventRepeatComparison = Compare-Bench486EventRepeat `
+                        -ReferenceFramesPresent $previousBlobExplosionEventState.framesPresent `
+                        -ReferenceFramesSignature $previousBlobExplosionEventState.framesSignature `
+                        -ReferenceOverflowPresent $previousBlobExplosionEventState.overflowPresent `
+                        -ReferenceOverflow $previousBlobExplosionEventState.overflow `
+                        -CandidateFramesPresent $blobExplosionEventFramesPresent `
+                        -CandidateFramesSignature $blobExplosionEventFrameSignature `
+                        -CandidateOverflowPresent $blobExplosionEventOverflowPresent `
+                        -CandidateOverflow $blobExplosionEventOverflow
+                    $blobExplosionEventRepeatParity = if ($blobExplosionEventRepeatComparison.exactMatch) { 'PASS' } else { 'FAIL' }
+                    if (-not $blobExplosionEventRepeatComparison.exactMatch) {
+                        $sceneStatus = 'FAIL'
+                        $failures.Add([pscustomobject]@{
+                                scenario = $scene.id
+                                test = 'repeat-blob-explosion-event-stability'
+                                expected = @{
+                                    frames = $previousBlobExplosionEventState.frames
+                                    overflow = $previousBlobExplosionEventState.overflow
+                                }
+                                actual = @{ frames = $blobExplosionEventFrames; overflow = $blobExplosionEventOverflow }
+                                metrics = $blobExplosionEventRepeatComparison
+                                capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                            })
+                    }
+                }
+                $previousBlobExplosionEventState = [pscustomobject]@{
+                    framesPresent = $blobExplosionEventFramesPresent
+                    frames = $blobExplosionEventFrames
+                    framesSignature = $blobExplosionEventFrameSignature
+                    overflowPresent = $blobExplosionEventOverflowPresent
+                    overflow = $blobExplosionEventOverflow
+                }
             }
             $frameReports.Add([pscustomobject]@{
                     run = $run.run
@@ -377,12 +428,13 @@ foreach ($scene in $selectedScenarios) {
                     frameChecksumPath = $frameData.Path
                     blobExplosionEventFrames = $blobExplosionEventFrames
                     blobExplosionEventOverflow = $blobExplosionEventOverflow
+                    blobExplosionEventRepeatParity = $blobExplosionEventRepeatParity
                     repeatParity = $null
                 })
 
             if ($requiredBenchEvents -contains 'blobExplosion') {
                 $eventFailure = $null
-                if ($null -eq $blobExplosionEventFrames -or $null -eq $blobExplosionEventOverflow) {
+                if (-not $blobExplosionEventFramesPresent -or -not $blobExplosionEventOverflowPresent) {
                     $eventFailure = 'required blobExplosion event metadata is missing'
                 }
                 elseif ($blobExplosionEventFrames.Count -eq 0) {

@@ -298,6 +298,17 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("$_ -lt 0 -or $_ -ge $checksumStreamFrameCount", source)
         self.assertIn("checksumFramesAfterWarmup = $checksumPostWarmupFrameCount", source)
         self.assertIn("outside the total $checksumStreamFrameCount-frame checksum stream", source)
+        self.assertIn("Compare-Bench486EventRepeat", source)
+        self.assertIn("repeat-blob-explosion-event-stability", source)
+        self.assertIn("blobExplosionEventRepeatParity = $blobExplosionEventRepeatParity", source)
+
+    def test_repeat_event_parity_helper_is_wired_and_covers_frames_and_overflow(self) -> None:
+        source = (ROOT / "tools/bench-event-repeat.ps1").read_text(encoding="utf-8")
+        runner = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("framesMatch = $framesMatch", source)
+        self.assertIn("overflowMatch = $overflowMatch", source)
+        self.assertIn("exactMatch = $framesMatch -and $overflowMatch", source)
+        self.assertIn("bench-event-repeat.ps1", runner)
 
     def test_timedemo_event_parser_accepts_overflow_accounting_contract(self) -> None:
         source = (ROOT / "tools/timedemo-event-record.ps1").read_text(encoding="utf-8")
