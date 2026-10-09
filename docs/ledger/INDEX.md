@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-09-selectable-77-assembly-profile-acceptance.md`](2026-10-09-selectable-77-assembly-profile-acceptance.md) | 4 | renderer port / all-selector profile |
 | [`2026-10-09-selectable-assembly-profile-acceptance.md`](2026-10-09-selectable-assembly-profile-acceptance.md) | 3 | renderer port / combined profile |
 | [`2026-10-09-frustum-transform-assembly-port.md`](2026-10-09-frustum-transform-assembly-port.md) | 4 | renderer port / frustum |
 | [`2026-10-09-zsubmodel-polygons-assembly-port.md`](2026-10-09-zsubmodel-polygons-assembly-port.md) | 1 | renderer port / BSP |
@@ -273,6 +274,10 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [77-selector strict assembly profile acceptance (2026-10-09)](2026-10-09-selectable-77-assembly-profile-acceptance.md)
+- `measured` [Complete i486 executable gate](2026-10-09-selectable-77-assembly-profile-acceptance.md)
+- `measured` [Six-scene exact 77-selector parity](2026-10-09-selectable-77-assembly-profile-acceptance.md)
+- `measured` [Remaining 77-selector ownership and scope](2026-10-09-selectable-77-assembly-profile-acceptance.md)
 - `measured` [76-selector combined assembly profile acceptance (2026-10-09)](2026-10-09-selectable-assembly-profile-acceptance.md)
 - `measured` [Strict i486 executable gate](2026-10-09-selectable-assembly-profile-acceptance.md)
 - `measured` [Six-scene exact parity](2026-10-09-selectable-assembly-profile-acceptance.md)
