@@ -12,14 +12,36 @@
   "scenarios": [
     {
       "id": "demo1-vesa-full",
-      "description": "Demo 1, automatic VESA path, full viewport",
+      "description": "Demo 1, automatic VESA path, full viewport, D_DrawSpans16",
       "demo": "demo1",
       "quakeExtraArgs": "",
+      "autoexecCommands": [
+        "d_subdiv16 1"
+      ],
       "expectedFrames": 969,
       "expectedChecksum": 1047377823,
       "captureFrame": 169,
       "repeatRuns": 2,
       "reference": "tools/golden/render/demo1-vesa-full.pcx"
+    },
+    {
+      "id": "demo1-drawspans8",
+      "description": "Demo 1, automatic VESA path, full viewport, D_DrawSpans8",
+      "demo": "demo1",
+      "quakeExtraArgs": "",
+      "autoexecCommands": [
+        "d_subdiv16 0"
+      ],
+      "expectedFrames": 969,
+      "expectedChecksum": 3987640479,
+      "captureFrame": 169,
+      "repeatRuns": 2,
+      "tolerance": {
+        "channel": 0,
+        "maxChangedPixelFraction": 0,
+        "maxMeanAbsoluteError": 0
+      },
+      "reference": "tools/golden/render/demo1-drawspans8.pcx"
     },
     {
       "id": "demo1-vga-full",

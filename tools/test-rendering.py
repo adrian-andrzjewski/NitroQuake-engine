@@ -164,6 +164,17 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("host_framerate 0.0783", manifest["validationAutoexecCommands"])
         self.assertGreater(manifest["warmupChecksumFrames"], 0)
         self.assertEqual(len({scene["id"] for scene in scenarios}), len(scenarios))
+        scenario_by_id = {scene["id"]: scene for scene in scenarios}
+        self.assertEqual(scenario_by_id["demo1-vesa-full"]["autoexecCommands"], ["d_subdiv16 1"])
+        self.assertEqual(scenario_by_id["demo1-drawspans8"]["autoexecCommands"], ["d_subdiv16 0"])
+        drawspans8 = scenario_by_id["demo1-drawspans8"]
+        self.assertEqual(drawspans8["reference"], "tools/golden/render/demo1-drawspans8.pcx")
+        self.assertNotEqual(drawspans8["reference"], scenario_by_id["demo1-vesa-full"]["reference"])
+        self.assertEqual(drawspans8["expectedChecksum"], 3987640479)
+        self.assertEqual(
+            drawspans8["tolerance"],
+            {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0},
+        )
         for scene in scenarios:
             with self.subTest(scene=scene["id"]):
                 self.assertGreater(scene["expectedFrames"], 0)
