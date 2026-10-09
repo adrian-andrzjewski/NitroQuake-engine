@@ -6716,6 +6716,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_LINE_GRAPH)
 #include "bench486_linegraph.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_ALIAS_STATS)
+#include "bench486_aliasstats.h"
+#endif
 
 static void Bench486AliasBBoxProjectCases (void)
 {
@@ -10203,6 +10206,26 @@ static void Bench486_f (void)
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchaliasstats"))
+	{
+#ifdef ASM486_ALIAS_STATS
+		Bench486AliasStatsCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("alias-stats fixture requires -AliasStatsImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
 		return;
 	}
 	if (COM_CheckParm ("-benchworldcontrol"))

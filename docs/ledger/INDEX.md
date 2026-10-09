@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-09-alias-stats-assembly-port.md`](2026-10-09-alias-stats-assembly-port.md) | 3 | renderer port / alias |
 | [`2026-10-09-drawspans-dispatch-parity.md`](2026-10-09-drawspans-dispatch-parity.md) | 4 | renderer port / span dispatch |
 | [`2026-10-09-line-graph-assembly-port.md`](2026-10-09-line-graph-assembly-port.md) | 3 | renderer port / timing overlay |
 | [`2026-10-09-r-check-variables-assembly-port.md`](2026-10-09-r-check-variables-assembly-port.md) | 3 | renderer port / variable checks |
@@ -159,6 +160,10 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [Exact output evidence](2026-10-07-combined-renderer-parity-after-restart.md)
 
 ### alias
+
+- `documented` [Alias-stat leaf behavior and ownership](2026-10-09-alias-stats-assembly-port.md)
+- `documented` [Alias-stat selector and oracle](2026-10-09-alias-stats-assembly-port.md)
+- `pending` [Alias-stat validation status](2026-10-09-alias-stats-assembly-port.md)
 
 - `measured` [`R_ConcatTransforms` call sites](2026-10-07-alias-matrix-composition-assembly-port.md)
 - `measured` [Direct fixtures and i486 audit](2026-10-07-alias-matrix-composition-assembly-port.md)

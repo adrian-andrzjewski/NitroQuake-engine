@@ -222,6 +222,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$AliasStatsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteDrawImplementation = 'c',
@@ -268,6 +270,7 @@ param(
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
+    [switch]$AliasStatsOnly,
     [switch]$WorldControlOnly,
     [switch]$MipLevelOnly,
     [switch]$TextureAnimationOnly,
@@ -332,6 +335,9 @@ if ($FrustumTransformOnly -and $TransformFrustumImplementation -ne 'asm') {
 }
 if ($LineGraphOnly -and $LineGraphImplementation -ne 'asm') {
     throw '-LineGraphOnly requires -LineGraphImplementation asm.'
+}
+if ($AliasStatsOnly -and $AliasStatsImplementation -ne 'asm') {
+    throw '-AliasStatsOnly requires -AliasStatsImplementation asm.'
 }
 if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
     throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
@@ -479,6 +485,7 @@ $buildParams = @{
         PointLightImplementation = $PointLightImplementation
         FrameControlImplementation = $FrameControlImplementation
         LineGraphImplementation = $LineGraphImplementation
+        AliasStatsImplementation = $AliasStatsImplementation
         PaletteImplementation = $PaletteImplementation
         MathClosureImplementation = $MathClosureImplementation
         VisibilityImplementation = $VisibilityImplementation
@@ -622,6 +629,9 @@ elseif ($SpriteDrawOnly) {
 }
 elseif ($AliasControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliascontrol -benchexit'
+}
+elseif ($AliasStatsOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasstats -benchexit'
 }
 elseif ($WorldControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchworldcontrol -benchexit'
@@ -902,6 +912,7 @@ $result = [ordered]@{
     drawingImplementation = $DrawingImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
+    aliasStatsImplementation = $AliasStatsImplementation
     worldControlImplementation = $WorldControlImplementation
     instrumentation = [bool]$Instrumentation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
@@ -933,6 +944,7 @@ $result = [ordered]@{
     drawingOnly = [bool]$DrawingOnly
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly
+    aliasStatsOnly = [bool]$AliasStatsOnly
     worldControlOnly = [bool]$WorldControlOnly
     spriteDrawImplementation = $SpriteDrawImplementation
     textureAnimationOnly = [bool]$TextureAnimationOnly

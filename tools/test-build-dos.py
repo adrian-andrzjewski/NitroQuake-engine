@@ -1254,8 +1254,34 @@ def main() -> int:
             if "r_linegraphasm.s" not in dump.get("assemblySources", []):
                 fail("the R_LineGraph %s selector omits r_linegraphasm.s from the source inventory" % dump_name)
 
+    alias_stats_c = dump_flags("-AliasStatsImplementation", "c")
+    alias_stats_asm = dump_flags("-AliasStatsImplementation", "asm")
+    if alias_stats_c and alias_stats_asm:
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-aliasstatsasm", "")
+        if alias_stats_c.get("profileSuffix") != c_reference_suffix:
+            fail("the R_PrintAliasStats C selector changes the promoted i486 suffix")
+        asm_suffix = alias_stats_asm.get("profileSuffix", "")
+        if asm_suffix.count("-aliasstatsasm") != 1:
+            fail("the R_PrintAliasStats assembly selector lacks its profile token")
+        elif asm_suffix.replace("-aliasstatsasm", "") != alias_stats_c.get("profileSuffix"):
+            fail("the R_PrintAliasStats assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ALIAS_STATS" in alias_stats_c.get(flags_name, []):
+                fail("the R_PrintAliasStats C selector enables ASM486_ALIAS_STATS in %s" % flags_name)
+            if "-DASM486_ALIAS_STATS" not in alias_stats_asm.get(flags_name, []):
+                fail("the R_PrintAliasStats assembly selector omits ASM486_ALIAS_STATS from %s" % flags_name)
+        for macro in ("-DASM486_DYNAMIC_LIGHT_PUSH", "-DASM486_MARK_LIGHTS"):
+            for flags_name in ("cFlags", "asmFlags"):
+                if macro not in alias_stats_c.get(flags_name, []):
+                    fail("the promoted default %s is missing from AliasStats C %s" % (macro, flags_name))
+                if macro not in alias_stats_asm.get(flags_name, []):
+                    fail("the AliasStats selector drops promoted default %s from %s" % (macro, flags_name))
+        for dump_name, dump in (("C", alias_stats_c), ("assembly", alias_stats_asm)):
+            if "r_aliasstatsasm.s" not in dump.get("assemblySources", []):
+                fail("the R_PrintAliasStats %s selector omits r_aliasstatsasm.s from the source inventory" % dump_name)
+
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 42 assembly sources (one is omitted only
+    #    included by another unit), 43 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1267,9 +1293,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 42:
+        if dump.get("allAssemblySourceCount") != 43:
             fail(
-                "%s: expected 42 assembly sources, got %r"
+                "%s: expected 43 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

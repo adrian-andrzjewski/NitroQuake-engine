@@ -281,10 +281,20 @@ void R_PrintDSpeeds (void)
 R_PrintAliasStats
 =============
 */
+#if defined(ASM486_ALIAS_STATS)
+void R_PrintAliasStats (void);
+#if defined(BENCH486)
+void R_PrintAliasStats_C (void)
+{
+	Con_Printf ("%3i polygon model drawn\n", r_amodels_drawn);
+}
+#endif
+#else
 void R_PrintAliasStats (void)
 {
 	Con_Printf ("%3i polygon model drawn\n", r_amodels_drawn);
 }
+#endif
 
 
 void WarpPalette (void)

@@ -192,6 +192,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$AliasStatsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderWorldImplementation = 'c',
@@ -417,6 +419,7 @@ $buildParams = @{
         ZSubmodelPolygonsImplementation      = $ZSubmodelPolygonsImplementation
         TransformFrustumImplementation       = $TransformFrustumImplementation
         LineGraphImplementation              = $LineGraphImplementation
+        AliasStatsImplementation             = $AliasStatsImplementation
         EdgeDrawingImplementation             = $EdgeDrawingImplementation
         ScanEdgesImplementation               = $ScanEdgesImplementation
         EdgeListMaintenanceImplementation     = $EdgeListMaintenanceImplementation
@@ -1047,6 +1050,7 @@ $result = [ordered]@{
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
+    aliasStatsImplementation = $AliasStatsImplementation
     worldControlImplementation = $WorldControlImplementation
     providerVerification = $providerVerification
     renderMathImplementation = $RenderMathImplementation

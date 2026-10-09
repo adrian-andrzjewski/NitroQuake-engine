@@ -80,6 +80,7 @@
     "MathClosureImplementation": "c",
     "VisibilityImplementation": "c",
     "PublicBindingsImplementation": "c",
-    "SkyImplementation": "c"
+    "SkyImplementation": "c",
+    "AliasStatsImplementation": "asm"
   }
 }

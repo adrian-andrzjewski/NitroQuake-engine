@@ -34,6 +34,7 @@ def load_json(text: str) -> dict:
         and isinstance(document.get("selectors"), dict)
     ):
         document["selectors"].setdefault("LineGraphImplementation", "c")
+        document["selectors"].setdefault("AliasStatsImplementation", "c")
     return document
 
 
@@ -608,7 +609,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 78)
+        self.assertEqual(len(reference["selectors"]), 79)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -661,6 +662,81 @@ class RenderingComparisonTests(unittest.TestCase):
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$PaletteImplementation\s*=\s*'c'",
                 f"{runner_name} must retain PaletteImplementation validation",
+            )
+
+    def test_alias_stats_profile_fixture_and_selectable_count(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        focused = load_json((profiles / "i486-asm-alias-stats.json").read_text(encoding="utf-8"))
+        historical84 = json.loads((profiles / "i486-asm-selectable-84.json").read_text(encoding="utf-8"))
+        historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
+        selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(len(reference["selectors"]), 79)
+        self.assertEqual(focused["id"], "i486-asm-alias-stats")
+        self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
+        expected_focused = dict(reference["selectors"])
+        expected_focused["AliasStatsImplementation"] = "asm"
+        self.assertEqual(focused["selectors"], expected_focused)
+        self.assertNotIn("AliasStatsImplementation", historical84["selectors"])
+        self.assertNotIn("AliasStatsImplementation", historical85["selectors"])
+        self.assertEqual(len(historical84["selectors"]), 84)
+        self.assertEqual(len(historical85["selectors"]), 85)
+        self.assertEqual(historical85["selectors"]["LineGraphImplementation"], "asm")
+        expected86 = dict(historical85)
+        expected86["id"] = "i486-asm-selectable-86"
+        expected86["description"] = selectable86["description"]
+        expected86["selectors"] = dict(historical85["selectors"])
+        expected86["selectors"]["AliasStatsImplementation"] = "asm"
+        self.assertEqual(len(selectable86["selectors"]), 86)
+        self.assertEqual(selectable86, expected86)
+
+        assembly = (ROOT / "src/r_aliasstatsasm.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/r_misc.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_aliasstats.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("C(R_PrintAliasStats_asm486):", assembly)
+        self.assertIn('asciz "%3i polygon model drawn\\n"', assembly)
+        self.assertIn("pushl\tC(r_amodels_drawn)", assembly)
+        self.assertIn("call\tC(Con_Printf)", assembly)
+        self.assertIn("void R_PrintAliasStats_C (void)", oracle)
+        self.assertIn("ASM486_ALIAS_STATS", selectors)
+        self.assertIn("AS_FIXTURE_GUARD_BYTES", fixture)
+        self.assertIn("Con_Printf (\"\\n\")", fixture)
+        self.assertIn("Bench486AliasStatsBuildExpected", fixture)
+        self.assertIn("R_PrintAliasStats_C", fixture)
+        self.assertIn("R_PrintAliasStats_asm486", fixture)
+        self.assertIn("result->buffer_pointer = con_text", fixture)
+        self.assertIn("result_c.buffer_pointer ==", fixture)
+        self.assertIn("aliasstats %s FAIL baseline/C/ASM/pair", fixture)
+        self.assertIn('Bench486Printf ("aliasstats fixture begin', fixture)
+        for case in (
+            "negative-width-three",
+            "negative-width-four",
+            "signed-minimum",
+            "signed-maximum",
+        ):
+            self.assertIn(case, fixture)
+        self.assertIn("Bench486AliasStatsRestore (&saved);", fixture)
+        self.assertIn("Bench486AliasStatsSave (&saved);", fixture)
+        self.assertIn('#include "bench486_aliasstats.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchaliasstats")', host_commands)
+        self.assertIn("Bench486AliasStatsCases ();", host_commands)
+        self.assertIn("[switch]$AliasStatsOnly", bench_runner)
+        self.assertIn("$AliasStatsOnly -and $AliasStatsImplementation -ne 'asm'", bench_runner)
+        self.assertIn("+bench486 -benchaliasstats -benchexit", bench_runner)
+
+        for runner_name in ("build-dos.ps1", "bench-dos.ps1", "smoke-dos.ps1", "timedemo-dos.ps1"):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$AliasStatsImplementation\s*=\s*'c'",
+                f"{runner_name} must reject unsupported AliasStats selectors",
             )
 
     def test_sprite_scan_left_focused_profile_changes_only_that_selector(self) -> None:

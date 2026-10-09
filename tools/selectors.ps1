@@ -99,6 +99,7 @@ $script:AssemblyBackedImplementations = @(
     'DrawingImplementation',
     'ChaseImplementation',
     'AliasControlImplementation',
+    'AliasStatsImplementation',
     'WorldControlImplementation',
     'RenderFaceImplementation',
     'RenderBmodelFaceImplementation',
@@ -1008,6 +1009,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'AliasStatsImplementation'
+        Manifest   = 'aliasStatsImplementation'
+        Suffix     = @{ 'asm' = 'aliasstatsasm' }
+        C          = @{ 'asm' = @('ASM486_ALIAS_STATS') }
+        Asm        = @{ 'asm' = @('ASM486_ALIAS_STATS') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'WorldControlImplementation'
         Manifest   = 'worldControlImplementation'
         Suffix     = @{ 'asm' = 'worldcontrolasm' }
@@ -1317,6 +1327,7 @@ $script:SuffixOrder = @(
     'DrawingImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
+    'AliasStatsImplementation'
     'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'
@@ -1391,6 +1402,7 @@ $script:CDefineOrder = @(
     'DrawingImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
+    'AliasStatsImplementation'
     'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'
@@ -1497,6 +1509,7 @@ $script:AsmDefineOrder = @(
     'DrawingImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
+    'AliasStatsImplementation'
     'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'

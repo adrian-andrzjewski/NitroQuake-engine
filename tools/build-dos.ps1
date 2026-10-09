@@ -213,6 +213,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$AliasStatsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderWorldImplementation = 'c',
@@ -574,7 +576,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 42
+$expectedAllAssemblySourceCount = 43
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {
