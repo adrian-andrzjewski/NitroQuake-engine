@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 #include "asm_frustum.h"
+#include "asm_viewcontrol.h"
 
 
 /*
@@ -393,7 +394,12 @@ void R_SetUpFrustumIndexes (void)
 R_SetupFrame
 ===============
 */
+#if !defined(ASM486_VIEW_CONTROL)
 void R_SetupFrame (void)
+#elif defined(BENCH486)
+void R_SetupFrame_View_C (void)
+#endif
+#if !defined(ASM486_VIEW_CONTROL) || defined(BENCH486)
 {
 	int				edgecount;
 	vrect_t			vrect;
@@ -550,4 +556,5 @@ r_refdef.viewangles[2]=    0;
 
 	D_SetupFrame ();
 }
+#endif
 

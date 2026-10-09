@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-viewcontrol-c",
+  "description": "Default i486 selector settings with the original C view-control and frame-setup routines.",
+  "selectors": {
+    "ViewControlImplementation": "c"
+  }
+}

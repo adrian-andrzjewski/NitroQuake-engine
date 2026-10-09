@@ -858,6 +858,40 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("frustum sequence progress", fixture)
         self.assertIn("-benchfrustumtransform", bench)
 
+    def test_viewcontrol_setupframe_assembly_has_a_focused_profile_and_c_oracle(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = json.loads((profiles / "i486-viewcontrol-c.json").read_text(encoding="utf-8"))
+        candidate = json.loads((profiles / "i486-viewcontrol-asm.json").read_text(encoding="utf-8"))
+        self.assertEqual(candidate["schemaVersion"], 1)
+        self.assertEqual(candidate["selectors"], {"ViewControlImplementation": "asm"})
+        self.assertEqual(reference["selectors"], {"ViewControlImplementation": "c"})
+
+        dispatch = (ROOT / "src/v_viewcontrolasm.s").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/r_setupframe_asm.inc").read_text(encoding="utf-8")
+        c_source = (ROOT / "src/r_misc.c").read_text(encoding="utf-8")
+        layout = (ROOT / "src/asm_viewcontrol.h").read_text(encoding="utf-8")
+        self.assertIn('#include "r_setupframe_asm.inc"', dispatch)
+        self.assertIn(".globl _R_SetupFrame", assembly)
+        self.assertIn("_R_SetupFrame:", assembly)
+        for call in (
+            "call _R_CheckVariables",
+            "call _R_AnimateLight",
+            "call _AngleVectors",
+            "call _Mod_PointInLeaf",
+            "call _R_ViewChanged",
+            "call _R_TransformFrustum",
+            "call _R_SetSkyFrame",
+            "call _R_SetUpFrustumIndexes",
+            "call _D_SetupFrame",
+        ):
+            with self.subTest(call=call):
+                self.assertIn(call, assembly)
+        self.assertIn("void R_SetupFrame_View_C (void)", c_source)
+        self.assertIn("VC_REFDEF_AMBIENTLIGHT 144", layout)
+        self.assertIn("offsetof(viddef_t,maxwarpwidth)==VC_VID_MAXWARPWIDTH", layout)
+        self.assertIn("sizeof(edge_t)==VC_EDGE_SIZE", layout)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
         routine = re.search(

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-09-r-setupframe-assembly-port.md`](2026-10-09-r-setupframe-assembly-port.md) | 3 | renderer port / frame setup |
 | [`2026-10-09-selectable-84-alias-control-checkpoint.md`](2026-10-09-selectable-84-alias-control-checkpoint.md) | 5 | renderer port / alias-control integration |
 | [`2026-10-09-selectable-83-vesa-checkpoint.md`](2026-10-09-selectable-83-vesa-checkpoint.md) | 5 | renderer port / 83-selector VESA checkpoint |
 | [`2026-10-09-selectable-77-assembly-profile-acceptance.md`](2026-10-09-selectable-77-assembly-profile-acceptance.md) | 4 | renderer port / all-selector profile |
@@ -277,6 +278,9 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [Per-frame renderer setup](2026-10-09-r-setupframe-assembly-port.md)
+- `measured` [Verification](2026-10-09-r-setupframe-assembly-port.md)
+- `open` [Scope still open](2026-10-09-r-setupframe-assembly-port.md)
 - `measured` [Candidate identity and strict ISA gate](2026-10-09-selectable-84-alias-control-checkpoint.md)
 - `measured` [Exact entity-scene parity](2026-10-09-selectable-84-alias-control-checkpoint.md)
 - `measured` [Ownership impact and remaining C paths](2026-10-09-selectable-84-alias-control-checkpoint.md)

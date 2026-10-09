@@ -1,6 +1,33 @@
 /* Audited view/camera storage and constant contracts. */
 #ifndef ASM_VIEWCONTROL_H
 #define ASM_VIEWCONTROL_H
+
+/* Assembly-visible offsets used by the view-control module.  Keep these
+   numeric contracts paired with the offsetof/sizeof checks below. */
+#define VC_REFDEF_VIEWORG 112
+#define VC_REFDEF_VIEWANGLES 124
+#define VC_REFDEF_AMBIENTLIGHT 144
+#define VC_REFDEF_SIZE 148
+#define VC_VRECT_X 0
+#define VC_VRECT_Y 4
+#define VC_VRECT_WIDTH 8
+#define VC_VRECT_HEIGHT 12
+#define VC_VRECT_SIZE 20
+#define VC_VID_WIDTH 20
+#define VC_VID_HEIGHT 24
+#define VC_VID_ASPECT 28
+#define VC_VID_MAXWARPWIDTH 56
+#define VC_VID_MAXWARPHEIGHT 60
+#define VC_VID_SIZE 68
+#define VC_CVAR_VALUE 16
+#define VC_CVAR_SIZE 24
+#define VC_CLIENT_MAXCLIENTS 2684
+#define VC_CLIENT_WORLDMODEL 2692
+#define VC_SERVER_ACTIVE 0
+#define VC_MLEAF_CONTENTS 0
+#define VC_SURFACE_SIZE 64
+#define VC_EDGE_SIZE 32
+
 #ifndef __ASSEMBLER__
 #include <stddef.h>
 typedef char vc_pointer_size_must_match[(sizeof(void *)==4U)?1:-1];
@@ -51,6 +78,18 @@ typedef char vc_viddef_t_buffer_must_match[(offsetof(viddef_t,buffer)==0U)?1:-1]
 typedef char vc_viddef_t_rowbytes_must_match[(offsetof(viddef_t,rowbytes)==16U)?1:-1];
 typedef char vc_viddef_t_aspect_must_match[(offsetof(viddef_t,aspect)==28U)?1:-1];
 typedef char vc_viddef_t_colormap_must_match[(offsetof(viddef_t,colormap)==4U)?1:-1];
+typedef char vc_view_refdef_vieworg_must_match[(offsetof(refdef_t,vieworg)==VC_REFDEF_VIEWORG)?1:-1];
+typedef char vc_view_refdef_viewangles_must_match[(offsetof(refdef_t,viewangles)==VC_REFDEF_VIEWANGLES)?1:-1];
+typedef char vc_view_refdef_ambientlight_must_match[(offsetof(refdef_t,ambientlight)==VC_REFDEF_AMBIENTLIGHT)?1:-1];
+typedef char vc_view_vid_width_must_match[(offsetof(viddef_t,width)==VC_VID_WIDTH)?1:-1];
+typedef char vc_view_vid_height_must_match[(offsetof(viddef_t,height)==VC_VID_HEIGHT)?1:-1];
+typedef char vc_view_vid_maxwarpwidth_must_match[(offsetof(viddef_t,maxwarpwidth)==VC_VID_MAXWARPWIDTH)?1:-1];
+typedef char vc_view_vid_maxwarpheight_must_match[(offsetof(viddef_t,maxwarpheight)==VC_VID_MAXWARPHEIGHT)?1:-1];
+typedef char vc_view_client_worldmodel_must_match[(offsetof(client_state_t,worldmodel)==VC_CLIENT_WORLDMODEL)?1:-1];
+typedef char vc_view_server_active_must_match[(offsetof(server_t,active)==VC_SERVER_ACTIVE)?1:-1];
+typedef char vc_view_leaf_contents_must_match[(offsetof(mleaf_t,contents)==VC_MLEAF_CONTENTS)?1:-1];
+typedef char vc_view_surface_size_must_match[(sizeof(surf_t)==VC_SURFACE_SIZE)?1:-1];
+typedef char vc_view_edge_size_must_match[(sizeof(edge_t)==VC_EDGE_SIZE)?1:-1];
 typedef char vc_cvar_t_size_must_match[(sizeof(cvar_t)==24U)?1:-1];
 typedef char vc_cvar_t_value_must_match[(offsetof(cvar_t,value)==16U)?1:-1];
 typedef char vc_usercmd_t_size_must_match[(sizeof(usercmd_t)==24U)?1:-1];
@@ -72,6 +111,7 @@ void V_StartPitchDrift(void),V_StopPitchDrift(void),V_DriftPitch(void);
 float V_CalcBob(void);
 void V_CalcIntermissionRefdef(void),V_CalcRefdef(void);
 #ifdef BENCH486
+void R_SetupFrame_View_C(void);
 void Bench486ViewCvarSet(const char *,const char *);
 void Bench486ViewPushLights(void),Bench486ViewRender(void),Bench486ViewChase(void);
 void Bench486ViewCharacter(int,int,int);

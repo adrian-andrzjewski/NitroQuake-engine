@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #else
 #include "v_viewcontrol_release.inc"
 #endif
+#include "r_setupframe_asm.inc"
 #endif
 #if defined(BENCH486) && defined(ASM486_VIEW_CONTROL)
 .text

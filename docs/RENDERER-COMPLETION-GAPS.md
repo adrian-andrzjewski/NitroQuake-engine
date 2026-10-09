@@ -188,6 +188,14 @@ allocated bytes and normalized relocations in normal, benchmark and profiling
 builds. These builds pass the complete instruction, startup and provider gates;
 the broader initialization, effects, debug and indirect paths remain open.
 
+`R_SetupFrame` now has a selectable 486 assembly implementation in
+`src/r_setupframe_asm.inc`. Its focused C/assembly profile passed the strict
+linked executable gate and three exact scene comparisons, including a reduced
+viewport and an alternate world. Waterwarp sizing, debug-stat and multiplayer
+branches, extreme dimensions and long-run behavior remain open; the default
+release selector is still C. See the
+[`R_SetupFrame` port record](ledger/2026-10-09-r-setupframe-assembly-port.md).
+
 The current 2026-10-09 `i486-asm-selectable` inventory in
 `out/renderer-ownership-selectable-77-strict-20261009.json` uses all four
 rendering roots and finds 61 directly reachable C renderer entries, 40
