@@ -30,8 +30,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 R_CheckVariables
 ===============
 */
+#if defined(ASM486_VIEW_CONTROL) && defined(BENCH486)
+float bench486_rcheck_oldbright_c;
+extern void Bench486ViewControlFlushCaches (void);
+#endif
+
+#if !defined(ASM486_VIEW_CONTROL) || defined(BENCH486)
+#if defined(ASM486_VIEW_CONTROL)
+void R_CheckVariables_View_C (void)
+#else
 void R_CheckVariables (void)
+#endif
 {
+#if defined(ASM486_VIEW_CONTROL) && defined(BENCH486)
+	if (r_fullbright.value != bench486_rcheck_oldbright_c)
+	{
+		bench486_rcheck_oldbright_c = r_fullbright.value;
+		Bench486ViewControlFlushCaches ();
+	}
+#else
 	static float	oldbright;
 
 	if (r_fullbright.value != oldbright)
@@ -39,7 +56,9 @@ void R_CheckVariables (void)
 		oldbright = r_fullbright.value;
 		D_FlushCaches ();	// so all lighting changes
 	}
+#endif
 }
+#endif
 
 
 /*

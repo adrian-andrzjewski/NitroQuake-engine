@@ -1,7 +1,12 @@
 /* Independent original C camera algorithms; exact state, trace and ABI checks. */
 #ifdef ASM486_VIEW_CONTROL
 extern void (*bench486_view_probe)(unsigned,unsigned,const unsigned *);
+extern void R_CheckVariables_View_C (void), R_CheckVariables (void);
+extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
+		const unsigned *arguments, float *float_return);
+extern float bench486_rcheck_oldbright_c, bench486_rcheck_oldbright_asm;
 extern cvar_t lcd_x,lcd_yaw,scr_ofsx,scr_ofsy,scr_ofsz,cl_rollspeed,cl_rollangle;
+extern cvar_t r_fullbright;
 extern cvar_t cl_bob,cl_bobcycle,cl_bobup,v_kicktime,v_kickroll,v_kickpitch;
 extern cvar_t v_iyaw_cycle,v_iroll_cycle,v_ipitch_cycle,v_iyaw_level,v_iroll_level,v_ipitch_level;
 extern cvar_t v_idlescale,crosshair,cl_crossx,cl_crossy,v_centermove,v_centerspeed,scr_viewsize;
@@ -14,6 +19,18 @@ extern void CalcGunAngle_View_C(void),V_BoundOffsets_View_C(void),V_AddIdle_View
 extern void V_CalcViewRoll_View_C(void),V_CalcIntermissionRefdef_View_C(void),V_CalcRefdef_View_C(void),V_RenderView_View_C(void);
 extern void Bench486ViewFloatCall(void);
 float bench486_view_float_result;
+
+unsigned bench486_viewcontrol_flush_capture;
+unsigned bench486_viewcontrol_flush_count;
+void Bench486ViewControlFlushCaches (void)
+{
+	if (bench486_viewcontrol_flush_capture)
+	{
+		bench486_viewcontrol_flush_count++;
+		return;
+	}
+	D_FlushCaches ();
+}
 
 static cvar_t *bench486_view_controls[]={&lcd_x,&lcd_yaw,&scr_ofsx,&scr_ofsy,&scr_ofsz,
     &cl_rollspeed,&cl_rollangle,&cl_bob,&cl_bobcycle,&cl_bobup,&v_kicktime,&v_kickroll,&v_kickpitch,
@@ -50,6 +67,96 @@ static void Bench486ViewRestore(const bench486_view_state_t *s)
     Q_memcpy(&v_dmg_time,(void *)&s->damage_time,4);Q_memcpy(&v_dmg_roll,(void *)&s->damage_roll,4);Q_memcpy(&v_dmg_pitch,(void *)&s->damage_pitch,4);
     Q_memcpy(&bench486_view_float_result,(void *)&s->result,4);
     cls.demoplayback=s->demo;noclip_anglehack=s->noclip;con_forcedup=s->console;
+}
+static int Bench486RCheckNaN(unsigned bits)
+{return (bits&0x7f800000U)==0x7f800000U && (bits&0x007fffffU)!=0;}
+static int Bench486RCheckEqual(unsigned left,unsigned right)
+{
+    if(!(left&0x7fffffffU) && !(right&0x7fffffffU))return 1;
+    return left==right;
+}
+static int Bench486RCheckChanged(unsigned current,unsigned previous)
+{
+    /* The original GCC 4.7.4 object tests only FCOMS.C3: unordered is
+       therefore treated like equality. Keep that machine-code behavior. */
+    if(Bench486RCheckNaN(current)||Bench486RCheckNaN(previous))return 0;
+    return !Bench486RCheckEqual(current,previous);
+}
+static unsigned short Bench486RCheckStatus(void)
+{unsigned short status;__asm__ __volatile__("fnstsw %0":"=m"(status));return status;}
+static unsigned short Bench486RCheckControl(void)
+{unsigned short control;__asm__ __volatile__("fnstcw %0":"=m"(control));return control;}
+static void Bench486RCheckVariablesCases(void)
+{
+    static const unsigned short modes[12]={0x007f,0x047f,0x087f,0x0c7f,0x027f,0x067f,
+        0x0a7f,0x0e7f,0x037f,0x077f,0x0b7f,0x0f7f};
+    static const unsigned values[]={0x00000000U,0x00000000U,0x80000000U,0x80000000U,
+        0x3f800000U,0x3f800000U,0xbf800000U,0x7f800000U,0xff800000U,
+        0x00000001U,0x80000001U,0x7fc00000U,0x7f800001U,0x40490fdbU,0x40490fdbU};
+    unsigned short saved_cw,control,c_status,a_status,c_control,a_control;
+    unsigned saved_value,saved_c_old,saved_a_old,saved_flush_count;
+    unsigned mode,index,previous,current,expected_flush,c_flush,a_flush,c_abi,a_abi,c_old,a_old;
+    unsigned cases=0,failures=0;
+    unsigned saved_capture;
+
+    Q_memcpy(&saved_value,&r_fullbright.value,4);
+    Q_memcpy(&saved_c_old,&bench486_rcheck_oldbright_c,4);
+    Q_memcpy(&saved_a_old,&bench486_rcheck_oldbright_asm,4);
+    saved_capture=bench486_viewcontrol_flush_capture;
+    saved_flush_count=bench486_viewcontrol_flush_count;
+    __asm__ __volatile__("fnstcw %0":"=m"(saved_cw));
+    bench486_viewcontrol_flush_capture=1;
+
+    for(mode=0;mode<12;mode++)
+    {
+        control=(saved_cw&~0x0f00U)|(modes[mode]&0x0f00U);
+        __asm__ __volatile__("fldcw %0"::"m"(control));
+        Q_memcpy(&bench486_rcheck_oldbright_c,&saved_value,4);
+        Q_memcpy(&bench486_rcheck_oldbright_asm,&saved_value,4);
+        previous=saved_value;
+        for(index=0;index<sizeof(values)/sizeof(values[0]);index++)
+        {
+            int changed;
+            current=values[index];
+            Q_memcpy(&r_fullbright.value,&current,4);
+            bench486_viewcontrol_flush_count=0;
+            __asm__ __volatile__("fnclex");
+            c_abi=Bench486Call_asm486((void(*)(void))R_CheckVariables_View_C,0,NULL,NULL);
+            c_status=Bench486RCheckStatus();c_control=Bench486RCheckControl();
+            c_flush=bench486_viewcontrol_flush_count;
+            Q_memcpy(&c_old,&bench486_rcheck_oldbright_c,4);
+
+            bench486_viewcontrol_flush_count=0;
+            __asm__ __volatile__("fnclex");
+            a_abi=Bench486Call_asm486((void(*)(void))R_CheckVariables,0,NULL,NULL);
+            a_status=Bench486RCheckStatus();a_control=Bench486RCheckControl();
+            a_flush=bench486_viewcontrol_flush_count;
+            Q_memcpy(&a_old,&bench486_rcheck_oldbright_asm,4);
+
+            changed=Bench486RCheckChanged(current,previous);
+            expected_flush=changed?1:0;
+            if(changed)previous=current;
+            cases++;
+            if(c_abi||a_abi||c_control!=control||a_control!=control||
+               c_status!=a_status||c_flush!=expected_flush||a_flush!=expected_flush||
+               c_old!=previous||a_old!=previous||c_old!=a_old)
+            {
+                failures++;
+                if(failures<8)Bench486Printf("R_CheckVariables FAIL mode %u case %u ABI %x/%x flush %u/%u expected %u status %x/%x state %08x/%08x expected %08x\n",
+                    mode,index,c_abi,a_abi,c_flush,a_flush,expected_flush,c_status,a_status,c_old,a_old,previous);
+            }
+        }
+    }
+
+    __asm__ __volatile__("fldcw %0; fnclex"::"m"(saved_cw));
+    Q_memcpy(&r_fullbright.value,&saved_value,4);
+    Q_memcpy(&bench486_rcheck_oldbright_c,&saved_c_old,4);
+    Q_memcpy(&bench486_rcheck_oldbright_asm,&saved_a_old,4);
+    bench486_viewcontrol_flush_count=saved_flush_count;
+    bench486_viewcontrol_flush_capture=saved_capture;
+    if(failures)bench486_memory_failures++;
+    Bench486Printf("R_CheckVariables C/ASM compare, flush, state and ABI %s (%u cases; 12 x87 control words; %u failures)\n",
+        failures?"FAIL":"PASS",cases,failures);
 }
 typedef struct {unsigned phase,count,words[3];refdef_t reference;unsigned buffer;int rowbytes;float aspect;} bench486_view_event_t;
 static struct {unsigned count,errors;bench486_view_event_t events[20];} bench486_view_trace;
@@ -142,7 +249,8 @@ static void Bench486ViewControlCases(void)
     static bench486_view_state_t saved;unsigned short cw,control;
     static const unsigned modes[]={0x007f,0x047f,0x087f,0x0c7f,0x027f,0x067f,0x0a7f,0x0e7f,0x037f,0x077f,0x0b7f,0x0f7f};
     void (*probe)(unsigned,unsigned,const unsigned *);unsigned i,mode,step,pair,cases=0,failures=bench486_memory_failures,negative=0,hash;
-    double frametime=host_frametime;Bench486ViewSave(&saved);probe=bench486_view_probe;bench486_view_probe=Bench486ViewObserveFixture;
+    double frametime=host_frametime;Bench486ViewSave(&saved);Bench486RCheckVariablesCases();
+    failures=bench486_memory_failures;probe=bench486_view_probe;bench486_view_probe=Bench486ViewObserveFixture;
     host_frametime=0.0783;__asm__ __volatile__("fnstcw %0":"=m"(cw));
     for(i=0;i<8;i++){bench486_view_buffer.first[i]=0x5a5a5a5aU;bench486_view_buffer.last[i]=0xa5a5a5a5U;}
     for(i=0;i<sizeof(bench486_view_buffer.data);i++)bench486_view_buffer.data[i]=(byte)(i*37);

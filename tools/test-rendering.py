@@ -1539,6 +1539,26 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("spriteSetupImplementation = $SpriteSetupImplementation", bench_runner)
         self.assertIn("$SpriteSetupOnly -and $SpriteSetupImplementation -ne 'asm'", bench_runner)
 
+    def test_r_check_variables_assembly_preserves_the_compiled_reference_behavior(self) -> None:
+        assembly = (ROOT / "src/r_checkvariables_asm.inc").read_text(encoding="utf-8")
+        module = (ROOT / "src/v_viewcontrolasm.s").read_text(encoding="utf-8")
+        reference = (ROOT / "src/r_misc.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_viewcontrol.h").read_text(encoding="utf-8")
+
+        self.assertIn('#include "r_checkvariables_asm.inc"', module)
+        self.assertRegex(assembly, r"(?m)^_R_CheckVariables:")
+        self.assertIn("fcoms\tRCHECK_OLDBRIGHT", assembly)
+        self.assertIn("fnstsw\t%ax", assembly)
+        self.assertIn("testb\t$0x40,%ah", assembly)
+        self.assertIn("fstps\tRCHECK_OLDBRIGHT", assembly)
+        self.assertIn("jmp\t_D_FlushCaches", assembly)
+        self.assertIn("void R_CheckVariables_View_C (void)", reference)
+        self.assertIn("void R_CheckVariables (void)", reference)
+        self.assertIn("Bench486RCheckVariablesCases();", fixture)
+        self.assertIn("R_CheckVariables C/ASM compare", fixture)
+        self.assertIn("R_CheckVariables_View_C,0,NULL,NULL", fixture)
+        self.assertIn("R_CheckVariables,0,NULL,NULL", fixture)
+
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(RenderingComparisonTests)
