@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-09-selectable-assembly-profile-acceptance.md`](2026-10-09-selectable-assembly-profile-acceptance.md) | 3 | renderer port / combined profile |
 | [`2026-10-09-frustum-transform-assembly-port.md`](2026-10-09-frustum-transform-assembly-port.md) | 4 | renderer port / frustum |
 | [`2026-10-09-zsubmodel-polygons-assembly-port.md`](2026-10-09-zsubmodel-polygons-assembly-port.md) | 1 | renderer port / BSP |
 | [`2026-10-08-accepted-renderer-checkpoint.md`](2026-10-08-accepted-renderer-checkpoint.md) | 2 | renderer port / checkpoint |
@@ -272,6 +273,10 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [76-selector combined assembly profile acceptance (2026-10-09)](2026-10-09-selectable-assembly-profile-acceptance.md)
+- `measured` [Strict i486 executable gate](2026-10-09-selectable-assembly-profile-acceptance.md)
+- `measured` [Six-scene exact parity](2026-10-09-selectable-assembly-profile-acceptance.md)
+- `measured` [Remaining ownership and scope](2026-10-09-selectable-assembly-profile-acceptance.md)
 - `in progress` [Opt-in frustum transform candidate](2026-10-09-frustum-transform-assembly-port.md)
 - `in progress` [Paired scene parity (visual-only diagnostic)](2026-10-09-frustum-transform-assembly-port.md)
 - `in progress` [Frustum AABB-index setup extension (2026-10-09)](2026-10-09-frustum-transform-assembly-port.md)

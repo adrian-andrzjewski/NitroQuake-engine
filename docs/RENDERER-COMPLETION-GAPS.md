@@ -127,6 +127,15 @@ post-warmup frame checksums and three exact indexed-framebuffer/palette
 captures. C remains the default while broader renderer ownership work continues.
 See the [frustum port](ledger/2026-10-09-frustum-transform-assembly-port.md).
 
+The combined `i486-asm-selectable` profile passed the strict i486 executable
+gate and all six committed scenes with 76 of 77 selectors in assembly. Its
+5,921 post-warmup checksums and six indexed/palette captures matched exactly.
+The profile still leaves frustum transform in C; its independent assembly
+candidate has not yet been verified together with this 76-selector combination.
+The current ownership inventory still finds 63 directly reachable C renderer
+functions. See the
+[combined assembly-profile acceptance](ledger/2026-10-09-selectable-assembly-profile-acceptance.md).
+
 Earlier sprite/math and light-control pair reports that failed to forward the
 new selectors are invalid acceptance evidence. Their original results and
 invalidation records are retained. Current runners forward declared selectors
@@ -179,6 +188,13 @@ reachable C renderer entries. All 38 accepted assembly modules preserve their
 allocated bytes and normalized relocations in normal, benchmark and profiling
 builds. These builds pass the complete instruction, startup and provider gates;
 the broader initialization, effects, debug and indirect paths remain open.
+
+The broader 2026-10-09 `i486-asm-selectable` profile inventory in
+`out/renderer-ownership-selectable-strict-20261009.json` uses all four rendering
+roots and finds 63 directly reachable C renderer entries, 40 reachable entries
+containing 121 indirect call/jump sites, and 26 unresolved direct callees. This
+inventory includes the broader screen/update path and does not claim a complete
+call graph.
 
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`
 abort boundaries. Those functions and the linked runtime are still ISA-audited.
@@ -262,11 +278,13 @@ exemptions. Its paired emulator runs pass 6,058 exact checksums and six complete
 indexed/palette captures. See the
 [provider acceptance](ledger/2026-10-08-cwsdpmi-486-provider.md).
 
-Completion still requires the combined complete ownership profile, further
-ISA-classifier coverage, long full-renderer
-stability and corruption checks, representative gameplay and workload timings.
-Human visual/gameplay acceptance remains pending. A timing improvement is not a
-completion criterion, and no current report claims the overall goal complete.
+The 76-selector combined profile now passes all six committed scenes and the
+complete i486 executable gate. Completion still requires verifying the frustum
+candidate in that combined profile, closing direct C dependencies and indirect
+targets, further ISA-classifier coverage, long full-renderer stability and
+corruption checks, and broader gameplay scenarios. Human visual/gameplay
+acceptance remains pending. A timing improvement is not a completion criterion,
+and no current report claims the overall goal complete.
 
 The instrumented dispatch gameplay check exposed a negative legacy turbulent
 time scalar. The profiling-only subtraction is now corrected: the matched
