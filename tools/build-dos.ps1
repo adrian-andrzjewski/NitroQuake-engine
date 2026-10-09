@@ -245,10 +245,9 @@ param(
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [string]$ToolRoot,
-    # Isolated, non-promotion output for visual-only parity runs. This is
-    # intentionally limited to i486 builds with the ISA audit explicitly
-    # skipped, and the resolved path must remain below this checkout's out\.
-    [string]$VisualParityOutputRoot
+    # Isolated, non-promotion output for explicitly skipped i486 diagnostics.
+    # The resolved path must remain below this checkout's out\.
+    [string]$DiagnosticOutputRoot
 )
 
 Set-StrictMode -Version Latest
@@ -376,22 +375,22 @@ else {
     ''
 }
 $outputRoot = Join-Path $repoRoot ('out\dos' + $profileSuffix)
-if (-not [string]::IsNullOrWhiteSpace($VisualParityOutputRoot)) {
+if (-not [string]::IsNullOrWhiteSpace($DiagnosticOutputRoot)) {
     if ($CpuTarget -ne 'i486' -or -not $SkipIsaAudit) {
-        throw '-VisualParityOutputRoot is only available for explicit i486 -SkipIsaAudit builds.'
+        throw '-DiagnosticOutputRoot is only available for explicit i486 -SkipIsaAudit builds.'
     }
     $repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
-    $visualOutputRoot = if ([IO.Path]::IsPathRooted($VisualParityOutputRoot)) {
-        [IO.Path]::GetFullPath($VisualParityOutputRoot)
+    $diagnosticOutputRoot = if ([IO.Path]::IsPathRooted($DiagnosticOutputRoot)) {
+        [IO.Path]::GetFullPath($DiagnosticOutputRoot)
     } else {
-        [IO.Path]::GetFullPath((Join-Path $repoRoot $VisualParityOutputRoot))
+        [IO.Path]::GetFullPath((Join-Path $repoRoot $DiagnosticOutputRoot))
     }
     $repoOutPrefix = $repoOutRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
-    if ($visualOutputRoot -eq $repoOutRoot -or
-            -not $visualOutputRoot.StartsWith($repoOutPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Visual parity output must be a child of '$repoOutRoot'; got '$visualOutputRoot'."
+    if ($diagnosticOutputRoot -eq $repoOutRoot -or
+            -not $diagnosticOutputRoot.StartsWith($repoOutPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Diagnostic output must be a child of '$repoOutRoot'; got '$diagnosticOutputRoot'."
     }
-    $outputRoot = $visualOutputRoot
+    $outputRoot = $diagnosticOutputRoot
 }
 $objectDirectoryName = 'obj'
 if ($Benchmark -and $Instrumentation) {
@@ -437,7 +436,7 @@ if ($CpuTarget -eq 'i386') {
         throw "The i386 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet'). Refusing to build, because -Clean removes the directory it is given."
     }
 }
-elseif ([string]::IsNullOrWhiteSpace($VisualParityOutputRoot) -and
+elseif ([string]::IsNullOrWhiteSpace($DiagnosticOutputRoot) -and
         $outputRoot -ne $i486RootForThisSelectorSet) {
     throw "The i486 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet')."
 }

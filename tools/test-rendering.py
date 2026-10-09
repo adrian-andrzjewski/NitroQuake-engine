@@ -809,6 +809,18 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("C(R_TransformFrustum):", assembly)
         self.assertIn("call\tC(R_TransformFrustumCore_asm486)", assembly)
         self.assertIn("C(R_TransformFrustumCore_asm486):", assembly)
+        index_routine = re.search(
+            r"C\(R_SetUpFrustumIndexes\):(?P<body>.*?^\s*ret\s*$)",
+            assembly,
+            re.DOTALL | re.MULTILINE,
+        )
+        self.assertIsNotNone(index_routine)
+        index_body = index_routine.group("body")
+        self.assertIn("fldz", index_body)
+        self.assertIn("fcomps\tFR_CLIP_NORMAL_X(%esi,%ebx,4)", index_body)
+        self.assertIn("jp\t.Lfr_index_nonnegative", index_body)
+        self.assertIn("ja\t.Lfr_index_negative", index_body)
+        self.assertNotIn("ftst", index_body)
         self.assertIn("fchs", assembly)
         self.assertIn("faddp", assembly)
         self.assertIn("fxch", assembly)
@@ -830,6 +842,7 @@ class RenderingComparisonTests(unittest.TestCase):
             "offsetof(mplane_t, normal) == FR_SCREEN_NORMAL_X",
             "sizeof(clipplane_t) == FR_CLIP_STRIDE",
             "offsetof(clipplane_t, dist) == FR_CLIP_DIST",
+            "sizeof(r_frustum_indexes) / sizeof(r_frustum_indexes[0]) == FR_INDEX_PLANES * FR_INDEX_AXES * 2",
         ):
             with self.subTest(contract=contract):
                 self.assertIn(contract, layout)
@@ -838,6 +851,9 @@ class RenderingComparisonTests(unittest.TestCase):
         fixture = (ROOT / "src/bench486_frustum.h").read_text(encoding="utf-8")
         bench = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("R_TransformFrustumCore_C", oracle)
+        self.assertIn("R_SetUpFrustumIndexes_C", oracle)
+        self.assertIn("R_SetUpFrustumIndexes_C", fixture)
+        self.assertIn("frustum index sequence progress", fixture)
         self.assertIn("4096 continuous calls", fixture)
         self.assertIn("frustum sequence progress", fixture)
         self.assertIn("-benchfrustumtransform", bench)

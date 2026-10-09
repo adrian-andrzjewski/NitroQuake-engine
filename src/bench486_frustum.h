@@ -45,6 +45,14 @@ static fr_bench_state_t fr_bench_asm_result;
 static clipplane_t fr_bench_public_c[FR_BENCH_PLANES];
 static clipplane_t fr_bench_public_initial[FR_BENCH_PLANES];
 static unsigned fr_bench_failures;
+static clipplane_t fr_index_saved_planes[FR_BENCH_PLANES];
+static clipplane_t fr_index_original_planes[FR_BENCH_PLANES];
+static clipplane_t fr_index_c_planes[FR_BENCH_PLANES];
+static int fr_index_saved_values[FR_BENCH_PLANES * 6];
+static int fr_index_c_values[FR_BENCH_PLANES * 6];
+static int fr_index_expected[FR_BENCH_PLANES * 6];
+static int *fr_index_c_ptrs[FR_BENCH_PLANES];
+static unsigned fr_index_failures;
 
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
 		const unsigned *arguments, float *float_return);
@@ -290,6 +298,158 @@ static int Bench486FrustumPublicStep (unsigned sequence)
 	return failed;
 }
 
+static void Bench486FrustumIndexInputs (unsigned sequence)
+{
+	static const unsigned value_bits[] = {
+		0x00000000U, 0x80000000U, 0x3f800000U, 0xbf800000U,
+		0x00000001U, 0x80000001U, 0x7f800000U, 0xff800000U,
+		0x7fc00000U, 0xffc00000U, 0x3f000000U, 0xbf000000U,
+		0x7f7fffffU, 0xff7fffffU
+	};
+	unsigned i, j;
+	unsigned value_count = sizeof(value_bits) / sizeof(value_bits[0]);
+
+	for (i = 0; i < FR_BENCH_PLANES; i++)
+	{
+		Q_memset (&view_clipplanes[i], 0x6b, sizeof(view_clipplanes[i]));
+		for (j = 0; j < 3; j++)
+			view_clipplanes[i].normal[j] = Bench486FrustumFloat (
+					value_bits[(sequence * 7U + i * 11U + j * 5U) % value_count]);
+		view_clipplanes[i].dist = Bench486FrustumFloat (
+					value_bits[(sequence * 13U + i * 3U + 2U) % value_count]);
+		view_clipplanes[i].next = (clipplane_t *)(size_t)(0x1000U + i * 16U);
+	}
+}
+
+static int Bench486FrustumIndexStep (unsigned sequence)
+{
+	unsigned i, j, c_abi, asm_abi;
+	unsigned short c_status, asm_status;
+	int failed;
+
+	Bench486FrustumIndexInputs (sequence);
+	Q_memcpy (fr_index_saved_planes, view_clipplanes,
+			sizeof(fr_index_saved_planes));
+	Q_memset (r_frustum_indexes, 0xa5, sizeof(r_frustum_indexes));
+	for (i = 0; i < FR_BENCH_PLANES; i++)
+		pfrustum_indexes[i] = (int *)(size_t)(0x2000U + i * 16U);
+
+	__asm__ __volatile__ ("fnclex");
+	c_abi = Bench486Call_asm486 ((void (*)(void))R_SetUpFrustumIndexes_C,
+			0, NULL, NULL);
+	c_status = Bench486FrustumStatus ();
+	Q_memcpy (fr_index_c_values, r_frustum_indexes,
+			sizeof(fr_index_c_values));
+	Q_memcpy (fr_index_c_ptrs, pfrustum_indexes,
+			sizeof(fr_index_c_ptrs));
+	Q_memcpy (fr_index_c_planes, view_clipplanes,
+			sizeof(fr_index_c_planes));
+
+	Q_memset (r_frustum_indexes, 0x3c, sizeof(r_frustum_indexes));
+	for (i = 0; i < FR_BENCH_PLANES; i++)
+		pfrustum_indexes[i] = (int *)(size_t)(0x3000U + i * 16U);
+	__asm__ __volatile__ ("fnclex");
+	asm_abi = Bench486Call_asm486 ((void (*)(void))R_SetUpFrustumIndexes,
+			0, NULL, NULL);
+	asm_status = Bench486FrustumStatus ();
+	failed = c_abi || asm_abi || c_status != asm_status ||
+			Q_memcmp (fr_index_c_values, r_frustum_indexes,
+					sizeof(fr_index_c_values)) ||
+			Q_memcmp (fr_index_c_ptrs, pfrustum_indexes,
+					sizeof(fr_index_c_ptrs)) ||
+			Q_memcmp (fr_index_saved_planes, fr_index_c_planes,
+					sizeof(fr_index_saved_planes)) ||
+			Q_memcmp (fr_index_saved_planes, view_clipplanes,
+					sizeof(fr_index_saved_planes));
+
+	for (i = 0; i < FR_BENCH_PLANES; i++)
+	{
+		if (pfrustum_indexes[i] != &r_frustum_indexes[i * 6])
+			failed = 1;
+		for (j = 0; j < 3; j++)
+		{
+			if (view_clipplanes[i].normal[j] < 0.0f)
+			{
+				fr_index_expected[i * 6 + j] = j;
+				fr_index_expected[i * 6 + j + 3] = j + 3;
+			}
+			else
+			{
+				fr_index_expected[i * 6 + j] = j + 3;
+				fr_index_expected[i * 6 + j + 3] = j;
+			}
+		}
+	}
+	if (Q_memcmp (fr_index_expected, fr_index_c_values,
+				sizeof(fr_index_expected)) ||
+			Q_memcmp (fr_index_expected, r_frustum_indexes,
+					sizeof(fr_index_expected)))
+		failed = 1;
+
+	if (failed)
+	{
+		fr_index_failures++;
+		if (fr_index_failures < 20)
+			Bench486Printf ("frustum index case %u FAIL ABI %x/%x x87 %x/%x\n",
+					sequence, c_abi, asm_abi, c_status, asm_status);
+	}
+	return failed;
+}
+
+static void Bench486FrustumIndexCases (void)
+{
+	static const unsigned short modes[12] = {
+		0x007f, 0x047f, 0x087f, 0x0c7f, 0x027f, 0x067f,
+		0x0a7f, 0x0e7f, 0x037f, 0x077f, 0x0b7f, 0x0f7f
+	};
+	unsigned short saved_cw, control;
+	unsigned i, pattern, step, cases;
+	int *saved_ptrs[FR_BENCH_PLANES];
+	int old_failures;
+
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (saved_cw));
+	Q_memcpy (fr_index_original_planes, view_clipplanes,
+			sizeof(fr_index_saved_planes));
+	Q_memcpy (fr_index_saved_values, r_frustum_indexes,
+			sizeof(fr_index_saved_values));
+	Q_memcpy (saved_ptrs, pfrustum_indexes, sizeof(saved_ptrs));
+	old_failures = bench486_memory_failures;
+	fr_index_failures = 0;
+	cases = 0;
+
+	for (i = 0; i < 12; i++)
+	{
+		Bench486Printf ("frustum index x87 mode %u/12 begin\n", i + 1);
+		control = (saved_cw & ~0x0f00U) | (modes[i] & 0x0f00U);
+		__asm__ __volatile__ ("fldcw %0" : : "m" (control));
+		for (pattern = 0; pattern < 128; pattern++)
+		{
+			Bench486FrustumIndexStep (i * 128U + pattern);
+			cases++;
+		}
+	}
+
+	Bench486Printf ("frustum index continuous sequence begin\n");
+	for (step = 0; step < 4096; step++)
+	{
+		if ((step & 511U) == 0)
+			Bench486Printf ("frustum index sequence progress %u/4096\n", step);
+		Bench486FrustumIndexStep (step * 0x9e3779b9U);
+		cases++;
+	}
+
+	__asm__ __volatile__ ("fldcw %0" : : "m" (saved_cw));
+	Q_memcpy (view_clipplanes, fr_index_original_planes,
+			sizeof(fr_index_saved_planes));
+	Q_memcpy (r_frustum_indexes, fr_index_saved_values,
+			sizeof(fr_index_saved_values));
+	Q_memcpy (pfrustum_indexes, saved_ptrs, sizeof(saved_ptrs));
+	bench486_memory_failures += fr_index_failures;
+	Bench486Printf ("frustum indexes C/ASM exact tables and pointers, input preservation, x87 status and ABI %s (%u cases; 12 control words; 4096 continuous calls; %u failures)\n",
+			bench486_memory_failures == old_failures ? "PASS" : "FAIL",
+			cases, fr_index_failures);
+}
+
 static void Bench486FrustumCases (void)
 {
 	static const unsigned short modes[12] = {
@@ -333,6 +493,7 @@ static void Bench486FrustumCases (void)
 	}
 
 	__asm__ __volatile__ ("fldcw %0" : : "m" (saved_cw));
+	Bench486FrustumIndexCases ();
 	bench486_memory_failures += fr_bench_failures;
 	Bench486Printf ("frustum transform C/ASM exact vectors, plane distances, x87 status, guards and ABI %s (%u cases; 12 control words; 4096 continuous calls; %u failures)\n",
 			bench486_memory_failures == old_failures ? "PASS" : "FAIL",

@@ -245,7 +245,7 @@ def main() -> int:
     visual_output = os.path.join(REPO_ROOT, "out", "visual-parity-test-profile")
     visual = dump_flags(
         "-Benchmark", "-CpuTarget", "i486", "-SkipIsaAudit",
-        "-VisualParityOutputRoot", visual_output,
+        "-DiagnosticOutputRoot", visual_output,
     )
     if visual:
         expected_visual_root = "<repo>\\out\\visual-parity-test-profile"
@@ -257,7 +257,7 @@ def main() -> int:
         if visual.get("executable") != expected_visual_root + "\\qbench.exe":
             fail("the visual-only benchmark executable did not stay under its isolated output root")
     try:
-        _dump_flags("-Benchmark", "-CpuTarget", "i486", "-VisualParityOutputRoot", visual_output)
+        _dump_flags("-Benchmark", "-CpuTarget", "i486", "-DiagnosticOutputRoot", visual_output)
         fail("the isolated visual output accepted a build without explicit -SkipIsaAudit")
     except BuildFlagsError:
         pass
@@ -265,7 +265,7 @@ def main() -> int:
     try:
         _dump_flags(
             "-Benchmark", "-CpuTarget", "i486", "-SkipIsaAudit",
-            "-VisualParityOutputRoot", outside_output,
+            "-DiagnosticOutputRoot", outside_output,
         )
         fail("the visual-only output accepted a path outside this checkout's out directory")
     except BuildFlagsError:

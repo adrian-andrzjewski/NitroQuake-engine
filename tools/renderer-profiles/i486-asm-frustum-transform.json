@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "i486-asm-frustum-transform",
-  "description": "C-reference profile with R_TransformFrustum selected for i486 assembly.",
+  "description": "C-reference profile with frustum transform and AABB index setup selected for i486 assembly.",
   "selectors": {
     "TextureAxisImplementation": "c",
     "SurfaceCacheImplementation": "c",

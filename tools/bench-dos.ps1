@@ -487,7 +487,19 @@ if ($SkipIsaAudit) {
 # invitation for a runner to look for an executable the builder never wrote.
 # The builder is the only place that knows.
 Add-RunnerBuildSelectors -BuildParameters $buildParams -Command $MyInvocation.MyCommand -SessionState $ExecutionContext.SessionState
-$resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+$defaultResolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+$resolved = $defaultResolved
+if ($SkipIsaAudit -and $CpuTarget -eq 'i486') {
+    Write-Host 'DIAGNOSTIC ONLY: benchmark renderer ISA audit is skipped; this run cannot prove 486 compatibility.' -ForegroundColor Yellow
+    $profileDirectory = Split-Path -Leaf ([string]$defaultResolved.outputRoot)
+    $diagnosticOutputRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot (Join-Path 'out' ("diagnostic-bench-" + $profileDirectory))))
+    $buildParams['DiagnosticOutputRoot'] = $diagnosticOutputRoot
+    $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
+    $resolvedOutputRoot = [IO.Path]::GetFullPath([string]$resolved.outputRoot)
+    if (-not [string]::Equals($resolvedOutputRoot, $diagnosticOutputRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Diagnostic benchmark output root did not resolve as requested ('$resolvedOutputRoot' vs '$diagnosticOutputRoot')."
+    }
+}
 $benchmarkExe = $resolved.executable
 $dosbox = Resolve-DosboxExecutable -Manifest $toolManifest -ToolRoot $ToolRoot `
     -ToolsDirectory $PSScriptRoot -NoBootstrap:$NoBootstrap
@@ -543,8 +555,32 @@ $staging = New-QuakeStaging -RepoRoot $repoRoot `
 $stagingRoot = $staging.StagingRoot
 $quakeRoot = $staging.QuakeRoot
 $stagedData = $staging.StagedData
+$providerProofPath = $null
+if ($selectorVerification.diagnosticOnly) {
+    $providerProofRoot = Join-Path $resolved.outputRoot 'provider-proof'
+    $providerProofPath = Join-Path $providerProofRoot 'provider-proof.json'
+    if (-not (Test-Path -LiteralPath $providerProofPath -PathType Leaf)) {
+        if (Test-Path -LiteralPath $providerProofRoot) {
+            throw "Incomplete provider proof output already exists at '$providerProofRoot'; remove that exact generated directory and retry."
+        }
+        $providerCompiler = Join-Path (Join-Path $ToolRoot $toolManifest.djgpp.installDirectory) `
+            ($toolManifest.djgpp.compiler -replace '/', [IO.Path]::DirectorySeparatorChar)
+        $providerProofArgs = @(
+            (Join-Path $PSScriptRoot 'cws-provider-proof.py'),
+            '--executable', (Join-Path $repoRoot 'src/cwsdpmi.exe'),
+            '--compiler', $providerCompiler,
+            '--output', $providerProofRoot,
+            '--tool-root', $ToolRoot
+        )
+        & python @providerProofArgs
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $providerProofPath -PathType Leaf)) {
+            throw 'Independent DPMI-provider ISA proof failed during diagnostic benchmark setup.'
+        }
+    }
+}
 $providerVerification = Assert-RunnerDpmiProvider -CpuTarget $CpuTarget -BuildVerification $selectorVerification `
-    -ProviderPath (Join-Path $quakeRoot 'cwsdpmi.exe')
+    -ProviderPath (Join-Path $quakeRoot 'cwsdpmi.exe') `
+    -DiagnosticOnly:$selectorVerification.diagnosticOnly -ProviderProofPath $providerProofPath
 
 $benchCommand = if ($AliasProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
@@ -749,6 +785,8 @@ if ($report -notmatch '486 benchmark correctness PASS') {
 
 $result = [ordered]@{
     dosboxExitCode = $dosboxExit
+    isaAuditStatus = $selectorVerification.isaAuditStatus
+    diagnosticOnly = $selectorVerification.diagnosticOnly
     executable = $benchmarkExe
     optimizationProfile = $OptimizationProfile
     textureAxisCacheEntries = $TextureAxisCacheEntries

@@ -76,8 +76,12 @@ function Assert-RunnerBuildManifest {
         [string]$manifest.isaAuditStatus
     }
     if ($manifest.cpuTarget -eq 'i486' -and $manifestIsaAuditStatus -eq 'SKIPPED') {
-        if (-not $VisualParityOnly) {
-            throw 'The i486 renderer requires a complete ISA audit; use the explicit visual-only parity mode for framebuffer comparisons.'
+        $benchmarkDiagnosticOnly = $BuildParameters.ContainsKey('Benchmark') -and
+            [bool]$BuildParameters['Benchmark'] -and
+            $BuildParameters.ContainsKey('SkipIsaAudit') -and
+            [bool]$BuildParameters['SkipIsaAudit']
+        if (-not $VisualParityOnly -and -not $benchmarkDiagnosticOnly) {
+            throw 'The i486 renderer requires a complete ISA audit; skipped audits are allowed only for explicit visual parity or benchmark diagnostics.'
         }
         if (-not $BuildParameters.ContainsKey('SkipIsaAudit') -or
                 -not [bool]$BuildParameters['SkipIsaAudit']) {
@@ -98,7 +102,8 @@ function Assert-RunnerBuildManifest {
             selectors = $verified
             compatibility = $null
             isaAuditStatus = 'SKIPPED'
-            visualParityOnly = $true
+            visualParityOnly = [bool]$VisualParityOnly
+            diagnosticOnly = [bool]($benchmarkDiagnosticOnly -and -not $VisualParityOnly)
         }
     }
     $compatibility = $null
@@ -213,6 +218,7 @@ function Assert-RunnerBuildManifest {
         compatibility = $compatibility
         isaAuditStatus = $manifestIsaAuditStatus
         visualParityOnly = [bool]$VisualParityOnly
+        diagnosticOnly = $false
     }
 }
 
@@ -223,16 +229,19 @@ function Assert-RunnerDpmiProvider {
         [Parameter(Mandatory=$true)]$BuildVerification,
         [Parameter(Mandatory=$true)][string]$ProviderPath,
         [switch]$VisualParityOnly,
+        [switch]$DiagnosticOnly,
         [string]$ProviderProofPath)
     $hash = (Get-FileHash -LiteralPath $ProviderPath -Algorithm SHA256).Hash
     if ($CpuTarget -ne 'i486') { return [pscustomobject]@{verified=$false;cpuTarget=$CpuTarget;sha256=$hash} }
     if ($BuildVerification.isaAuditStatus -eq 'SKIPPED') {
-        if (-not $VisualParityOnly -or -not $BuildVerification.visualParityOnly) {
+        $visualMode = $VisualParityOnly -and $BuildVerification.visualParityOnly
+        $diagnosticMode = $DiagnosticOnly -and $BuildVerification.diagnosticOnly
+        if (-not $visualMode -and -not $diagnosticMode) {
             throw 'The staged DPMI provider cannot turn a skipped renderer ISA audit into an i486 compatibility pass.'
         }
         if ([string]::IsNullOrWhiteSpace($ProviderProofPath) -or
                 -not (Test-Path -LiteralPath $ProviderProofPath -PathType Leaf)) {
-            throw 'Visual-only parity requires a separate, complete maintained DPMI-provider proof.'
+            throw 'A skipped i486 renderer audit requires a separate, complete maintained DPMI-provider proof.'
         }
         $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
         $sourceProvider = [IO.Path]::GetFullPath((Join-Path $repoRoot 'src/cwsdpmi.exe'))
@@ -272,6 +281,8 @@ function Assert-RunnerDpmiProvider {
             proof = [IO.Path]::GetFullPath($ProviderProofPath); proofSha256 = $proofHash
             verificationMode = 'independent-provider-isa-proof'
             rendererIsaAuditStatus = 'SKIPPED'
+            visualParityOnly = [bool]$visualMode
+            diagnosticOnly = [bool]$diagnosticMode
         }
     }
     if ($null -eq $BuildVerification.compatibility -or

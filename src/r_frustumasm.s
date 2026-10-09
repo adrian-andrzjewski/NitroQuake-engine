@@ -235,4 +235,57 @@ C(R_TransformFrustumCore_asm486):
 	popl	%edi
 	ret
 
+/*
+ * R_SetUpFrustumIndexes: choose the AABB reject/accept corners for each
+ * transformed clip plane.  Match the C compiler's fldz/fcomps ordering so
+ * both the ordered decision and final x87 condition bits match the reference
+ * (negative zero and NaN are not less than zero).  FCOMPS pops its zero
+ * temporary; the routine uses only 486/387 instructions and preserves the
+ * i386 callee-saved registers.
+ */
+#ifdef ASM486_TRANSFORM_FRUSTUM
+.p2align 2
+.globl C(R_SetUpFrustumIndexes)
+C(R_SetUpFrustumIndexes):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	$C(view_clipplanes),%esi
+	movl	$C(r_frustum_indexes),%edi
+	movl	$C(pfrustum_indexes),%edx
+	movl	$FR_INDEX_PLANES,%ecx
+.Lfr_index_plane:
+	movl	%edi,(%edx)
+	addl	$4,%edx
+	xorl	%ebx,%ebx
+.Lfr_index_axis:
+	fldz
+	fcomps	FR_CLIP_NORMAL_X(%esi,%ebx,4)
+	fnstsw	%ax
+	sahf
+	jp	.Lfr_index_nonnegative
+	ja	.Lfr_index_negative
+.Lfr_index_nonnegative:
+	leal	FR_INDEX_HALF(%ebx),%eax
+	movl	%eax,(%edi,%ebx,4)
+	movl	%ebx,FR_INDEX_HALF_OFFSET(%edi,%ebx,4)
+	jmp	.Lfr_index_axis_next
+.Lfr_index_negative:
+	movl	%ebx,(%edi,%ebx,4)
+	leal	FR_INDEX_HALF(%ebx),%eax
+	movl	%eax,FR_INDEX_HALF_OFFSET(%edi,%ebx,4)
+.Lfr_index_axis_next:
+	incl	%ebx
+	cmpl	$FR_INDEX_AXES,%ebx
+	jne	.Lfr_index_axis
+	addl	$FR_CLIP_STRIDE,%esi
+	addl	$FR_INDEX_STRIDE,%edi
+	decl	%ecx
+	jne	.Lfr_index_plane
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+#endif
+
 #endif /* ASM486_TRANSFORM_FRUSTUM */

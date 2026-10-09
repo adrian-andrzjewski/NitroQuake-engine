@@ -224,6 +224,10 @@ void R_RenderBmodelFace_C (bedge_t *pedges, msurface_t *psurf);
 #endif
 #endif
 void R_TransformPlane (mplane_t *p, float *normal, float *dist);
+void R_SetUpFrustumIndexes (void);
+#if defined(BENCH486) && defined(ASM486_TRANSFORM_FRUSTUM)
+void R_SetUpFrustumIndexes_C (void);
+#endif
 void R_TransformFrustum (void);
 void R_SetSkyFrame (void);
 void R_DrawSurfaceBlock16 (void);

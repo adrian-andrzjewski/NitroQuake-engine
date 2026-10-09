@@ -99,9 +99,21 @@ if (-not $validationSource.Contains("`$timedemoArgs += '-VisualParityOnly'")) {
 if (-not $paritySource.Contains("`$validationArgs += '-VisualParityOnly'")) {
     throw 'render-parity-dos.ps1 does not forward VisualParityOnly to both profile runs.'
 }
-foreach ($contract in @("`$buildParams['SkipIsaAudit']", "VisualParityOutputRoot", 'cws-provider-proof.py')) {
+foreach ($contract in @("`$buildParams['SkipIsaAudit']", "DiagnosticOutputRoot", 'cws-provider-proof.py')) {
     if (-not $timedemoSource.Contains($contract)) {
         throw "timedemo-dos.ps1 is missing visual-only contract '$contract'."
+    }
+    $checks++
+}
+$benchSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'bench-dos.ps1') -Raw
+foreach ($contract in @(
+        'DIAGNOSTIC ONLY: benchmark renderer ISA audit is skipped',
+        "`$buildParams['DiagnosticOutputRoot']",
+        'diagnosticOnly = $selectorVerification.diagnosticOnly',
+        '-DiagnosticOnly:$selectorVerification.diagnosticOnly',
+        'cws-provider-proof.py')) {
+    if (-not $benchSource.Contains($contract)) {
+        throw "bench-dos.ps1 is missing diagnostic-only contract '$contract'."
     }
     $checks++
 }
@@ -202,9 +214,45 @@ try {
             $visualProvider.verificationMode -ne 'independent-provider-isa-proof') {
         throw 'Visual-only mode did not retain the independent DPMI-provider proof.'
     }
+
+    # Benchmark diagnostics may also skip the renderer audit, but only when the
+    # manifest and explicit skip flag agree. Record that as diagnostic-only and
+    # keep it separate from the visual-only parity signal.
+    $benchmarkRequest = @{}
+    foreach ($key in $skipRequest.Keys) { $benchmarkRequest[$key] = $skipRequest[$key] }
+    $benchmarkRequest['Benchmark'] = $true
+    $diagnosticVerification = Assert-RunnerBuildManifest -Resolved $resolvedFixture `
+        -BuildParameters $benchmarkRequest
+    if ($diagnosticVerification.isaAuditStatus -ne 'SKIPPED' -or
+            $diagnosticVerification.visualParityOnly -or -not $diagnosticVerification.diagnosticOnly -or
+            $null -ne $diagnosticVerification.compatibility) {
+        throw 'The benchmark diagnostic result did not preserve its skipped ISA status and diagnostic-only scope.'
+    }
+    $missingSkipRequest = @{}
+    foreach ($key in $benchmarkRequest.Keys) { $missingSkipRequest[$key] = $benchmarkRequest[$key] }
+    $missingSkipRequest.Remove('SkipIsaAudit')
+    $rejected = $false
+    try {
+        Assert-RunnerBuildManifest -Resolved $resolvedFixture -BuildParameters $missingSkipRequest | Out-Null
+    } catch { $rejected = $true }
+    if (-not $rejected) { throw 'A benchmark diagnostic accepted a skipped manifest without the explicit SkipIsaAudit selector.' }
+    $diagnosticProvider = Assert-RunnerDpmiProvider -CpuTarget i486 -BuildVerification $diagnosticVerification `
+        -ProviderPath $stage -DiagnosticOnly -ProviderProofPath $providerProofPath
+    if (-not $diagnosticProvider.verified -or -not $diagnosticProvider.diagnosticOnly -or
+            $diagnosticProvider.visualParityOnly -or
+            $diagnosticProvider.verificationMode -ne 'independent-provider-isa-proof') {
+        throw 'Benchmark diagnostics did not retain the independent DPMI-provider proof and status.'
+    }
+    $rejected = $false
+    try {
+        Assert-RunnerDpmiProvider -CpuTarget i486 -BuildVerification $diagnosticVerification `
+            -ProviderPath $stage -ProviderProofPath $providerProofPath | Out-Null
+    } catch { $rejected = $true }
+    if (-not $rejected) { throw 'A skipped-audit benchmark accepted the provider without explicit diagnostic mode.' }
+
     $manifest['isaAuditStatus'] = 'PASS'
     $manifest | ConvertTo-Json | Set-Content -LiteralPath $fixturePath
-    $checks += 3
+    $checks += 7
 
     [IO.File]::WriteAllBytes($stage,[byte[]]@(0x0f,0xa2))
     $rejected = $false

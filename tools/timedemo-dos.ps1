@@ -445,7 +445,7 @@ if ($VisualParityOnly) {
     $buildParams['SkipIsaAudit'] = $true
     $profileDirectory = Split-Path -Leaf ([string]$defaultResolved.outputRoot)
     $visualOutputRoot = Join-Path $repoRoot (Join-Path 'out' ("visual-parity-" + $profileDirectory))
-    $buildParams['VisualParityOutputRoot'] = $visualOutputRoot
+    $buildParams['DiagnosticOutputRoot'] = $visualOutputRoot
     $resolved = (& $build @buildParams -DumpFlags | Out-String) | ConvertFrom-Json
     if ([IO.Path]::GetFullPath($resolved.outputRoot) -ne [IO.Path]::GetFullPath($visualOutputRoot)) {
         throw "The builder did not honor the isolated visual parity output root '$visualOutputRoot'."

@@ -179,7 +179,7 @@ to prove a complete call graph.
 
 | Area | Remaining behavior or ownership to verify |
 |---|---|
-| BSP/world | Other optional polygon/debug passes, shared frustum mathematics, initialization and explicit indirect-target closure. `R_ZDrawSubmodelPolys` now has an assembly selector and direct cull/call-order fixture; that fixture does not test the downstream `R_RenderPoly` rasterizer. |
+| BSP/world | Other optional polygon/debug passes, remaining frustum initialization and explicit indirect-target closure. `R_ZDrawSubmodelPolys` has an assembly selector and direct cull/call-order fixture, which does not test the downstream `R_RenderPoly` rasterizer. |
 | Edge processing | Frame initialization, culled polygons and remaining C list/span forwarding entries |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |
 | Sky and particles | Combined complete-profile verification, plus dedicated particle-effect and sky scenarios |
@@ -276,14 +276,15 @@ guard verifies 120 objects and its executable. See the
 
 ## Unpromoted candidate
 
-`R_TransformFrustum` has an isolated i486 assembly candidate and a direct oracle
-fixture. The exact candidate executable passes the strict project, runtime,
-linked-object and relocated-code audits, plus 5,760 direct comparisons on
-DOSBox-X configured as an i486. A visual-only paired run then matched the C
-reference in three scenes, with 6,058 post-warmup frame-checksum comparisons
-and six exact framebuffer and palette captures. Both paired build manifests
-explicitly report `SKIPPED` for renderer ISA auditing, so this result is visual
-parity evidence only. The strict startup-source proof still cannot complete
-because the host startup check cannot locate MinGW GCC; the C selector remains
-the default. See the
-[frustum transform candidate](ledger/2026-10-09-frustum-transform-assembly-port.md).
+The opt-in frustum profile now selects assembly for both `R_TransformFrustum`
+and `R_SetUpFrustumIndexes`. The transform-only predecessor passed its direct
+fixture and strict project/runtime/linked-object/relocated-code audits. The
+extended candidate passed 5,760 transform and 5,632 AABB-index direct cases on
+DOSBox-X configured as an i486; its `r_frustumasm.obj` audit found 235
+i486-compatible instructions with no unknowns. Three paired C/assembly scenes
+matched all 3,029 post-warmup checksums and exact indexed pixels and palettes.
+The pair's renderer ISA status is explicitly `SKIPPED`, however, and the
+extended executable has not passed the full linked and relocated ISA gate. The
+strict startup-source proof still cannot complete because the host startup
+check cannot locate MinGW GCC; C remains the default. See the
+[frustum candidate and extension](ledger/2026-10-09-frustum-transform-assembly-port.md).

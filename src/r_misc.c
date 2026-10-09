@@ -353,7 +353,12 @@ void R_TransformPlane (mplane_t *p, float *normal, float *dist)
 R_SetUpFrustumIndexes
 ===============
 */
+#if !defined(ASM486_TRANSFORM_FRUSTUM) || defined(BENCH486)
+#if defined(ASM486_TRANSFORM_FRUSTUM)
+void R_SetUpFrustumIndexes_C (void)
+#else
 void R_SetUpFrustumIndexes (void)
+#endif
 {
 	int		i, j, *pindex;
 
@@ -380,6 +385,7 @@ void R_SetUpFrustumIndexes (void)
 		pindex += 6;
 	}
 }
+#endif
 
 
 /*
