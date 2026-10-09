@@ -268,6 +268,7 @@ param(
     [switch]$FusedLightMapOnly,
     [switch]$LightMapBuildOnly,
     [switch]$SurfaceCacheOnly,
+    [switch]$ParticleListOnly,
     [switch]$SurfaceDrawOnly,
     [switch]$SurfaceZGradientOnly,
     [switch]$SurfaceGradientOnly,
@@ -306,6 +307,9 @@ if ($TimeoutSeconds -lt 10) {
 }
 if ($SurfaceCacheOnly -and $SurfaceCacheImplementation -ne 'asm') {
     throw '-SurfaceCacheOnly requires -SurfaceCacheImplementation asm.'
+}
+if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
+    throw '-ParticleListOnly requires -ParticleUpdateImplementation asm.'
 }
 if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
     throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
@@ -654,6 +658,9 @@ elseif ($FusedLightMapOnly) {
 elseif ($LightMapBuildOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightmapbuild -benchexit'
 }
+elseif ($ParticleListOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticlelist -benchexit'
+}
 elseif ($SurfaceCacheOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacecache -benchexit'
 }
@@ -853,6 +860,7 @@ $result = [ordered]@{
     fusedLightMapOnly = [bool]$FusedLightMapOnly
     lightMapBuildOnly = [bool]$LightMapBuildOnly
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
+    particleListOnly = [bool]$ParticleListOnly
     surfaceDrawOnly = [bool]$SurfaceDrawOnly
     surfaceZGradientOnly = [bool]$SurfaceZGradientOnly
     surfaceGradientOnly = [bool]$SurfaceGradientOnly

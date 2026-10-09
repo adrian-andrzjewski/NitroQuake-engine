@@ -72,3 +72,16 @@ Compare the all-assembly frame streams against a matched `i486-c-reference`
 profile, then retain both selector choices and the exact scene artifacts. Keep
 the C reference available for isolated particle-state comparisons and long-run
 regression diagnosis.
+
+## `R_ClearParticles` free-list reset follow-up (2026-10-09)
+
+`ParticleUpdateImplementation=c|asm` now selects both particle initialization+and particle simulation. The original C `R_ClearParticles` loop remains the+reference and is exported as `R_ClearParticles_C` only in benchmark builds.+The assembly replacement is isolated in `src/r_particlelist.s`, with its+`particle_t` field constants in `src/asm_particlelist.h` and the existing C+layout assertions guarding the 16-byte `next` offset and 40-byte structure.+
+The i486 routine publishes `free_particles`, clears `active_particles`, links+the nodes in ascending order, and terminates the final node. It mirrors the C+loop's one-past link store and final indexed null store, so the completed pool+matches byte-for-byte. A signed nonpositive-count path retains the reference's+final indexed store for the bounded zero/negative fixture cases without looping.+The implementation uses cdecl and caller-saved `%eax`, `%ecx`, and `%edx`; it+does not modify callee-saved registers.
+
+`-ParticleListOnly` runs a direct DOSBox C/ASM fixture. It compares the complete+guarded particle pool, active/free heads, and particle count for counts+`1, 2, 3, 17, 512, 1024, 2048, 0, -1`, and uses `Bench486Call_asm486` to verify+the calling convention for both paths. The linked object is also included in the+existing i486 binary ISA gate and the pinned build-source inventory.
+
+### Validation (2026-10-09)
+
+`test-build-dos.py`, `test-rendering.py` (51 tests), and `test-isa-audit.py` passed. The release i486 build passed the object and linked executable gates: 171,204 relocated instructions, 529 startup rows, and 9,207 provider instructions were checked, with zero above-i486 instructions, unknown encodings, or exemptions. The benchmark profile passed the same complete gate for 202,319 relocated instructions.
+
+The DOSBox-X particle-list fixture passed all nine counts with zero failures. It verifies the free-list state and calling convention; matched framebuffer parity for the updated particle selector remains part of the broader renderer parity gate. The complete startup proof also requires a native Windows MinGW GCC on `PATH`; the DJGPP target compiler is intentionally rejected for that host-only step.

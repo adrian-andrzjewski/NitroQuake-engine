@@ -200,6 +200,10 @@ void R_EntityParticles (entity_t *ent)
 R_ClearParticles
 ===============
 */
+#if !defined(ASM486_PARTICLE_UPDATE) || !id386 || defined(BENCH486)
+#if defined(ASM486_PARTICLE_UPDATE) && id386 && defined(BENCH486)
+#define R_ClearParticles R_ClearParticles_C
+#endif
 void R_ClearParticles (void)
 {
 	int		i;
@@ -211,6 +215,10 @@ void R_ClearParticles (void)
 		particles[i].next = &particles[i+1];
 	particles[r_numparticles-1].next = NULL;
 }
+#if defined(ASM486_PARTICLE_UPDATE) && id386 && defined(BENCH486)
+#undef R_ClearParticles
+#endif
+#endif
 
 
 void R_ReadPointFile_f (void)

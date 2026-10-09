@@ -6677,6 +6677,9 @@ static void Bench486SpriteSetupCases (void)
 #include "bench486_chase.h"
 #include "bench486_aliascontrol.h"
 #include "bench486_worldcontrol.h"
+#if defined(BENCH486) && defined(ASM486_PARTICLE_UPDATE)
+#include "bench486_particlelist.h"
+#endif
 
 static void Bench486AliasBBoxProjectCases (void)
 {
@@ -10430,6 +10433,24 @@ static void Bench486_f (void)
 #ifdef ASM486_DYNAMIC_LIGHT_PUSH
 		Bench486PushDlightsParity ();
 #endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
+#ifdef ASM486_PARTICLE_UPDATE
+	if (COM_CheckParm ("-benchparticlelist"))
+	{
+		Bench486Printf ("particle-pool list reset compares C and 486 assembly\n");
+		Bench486ParticleListCases ();
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
