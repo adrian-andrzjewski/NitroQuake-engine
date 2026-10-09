@@ -85,6 +85,7 @@
     "PrintTimesImplementation": "c",
     "ParticleExplosion2Implementation": "c",
     "ParticleExplosionImplementation": "c",
-    "TransformPlaneImplementation": "c"
+    "TransformPlaneImplementation": "c",
+    "RocketTrailImplementation": "c"
   }
 }

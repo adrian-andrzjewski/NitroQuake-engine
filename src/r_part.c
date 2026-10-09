@@ -73,6 +73,26 @@ typedef char particle_explosion_type_values[
 		(pt_explode == 4 && pt_explode2 == 5) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_ROCKET_TRAIL) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char rocket_trail_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char rocket_trail_particle_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, ramp) == 32 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char rocket_trail_client_time_offset[
+		(offsetof(client_state_t, time) == 572 &&
+		sizeof(((client_state_t *)0)->time) == 8) ? 1 : -1];
+typedef char rocket_trail_particle_types[
+		(pt_static == 0 && pt_grav == 1 && pt_fire == 3) ? 1 : -1];
+#endif
+
 #ifdef BENCH486
 int (*bench486_particleexplosion_rand_probe) (void);
 unsigned bench486_particleexplosion_rand_calls;
@@ -632,6 +652,27 @@ void R_TeleportSplash (vec3_t org)
 			}
 }
 
+#ifdef BENCH486
+int (*bench486_rockettrail_rand_probe) (void);
+unsigned bench486_rockettrail_rand_calls;
+int bench486_rockettrail_c_tracercount;
+
+int Bench486RocketTrailRand (void)
+{
+	bench486_rockettrail_rand_calls++;
+	if (bench486_rockettrail_rand_probe)
+		return bench486_rockettrail_rand_probe ();
+	return rand ();
+}
+#define ROCKET_TRAIL_RAND() Bench486RocketTrailRand ()
+#else
+#define ROCKET_TRAIL_RAND() rand ()
+#endif
+
+#ifdef ASM486_ROCKET_TRAIL
+#define R_RocketTrail R_RocketTrail_C
+#endif
+#if !defined(ASM486_ROCKET_TRAIL) || defined(BENCH486)
 void R_RocketTrail (vec3_t start, vec3_t end, int type)
 {
 	vec3_t		vec;
@@ -639,7 +680,12 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 	int			j;
 	particle_t	*p;
 	int			dec;
+#ifdef BENCH486
+#define ROCKET_TRAIL_TRACERCOUNT bench486_rockettrail_c_tracercount
+#else
 	static int	tracercount;
+#define ROCKET_TRAIL_TRACERCOUNT tracercount
+#endif
 
 	VectorSubtract (end, start, vec);
 	len = VectorNormalize (vec);
@@ -667,27 +713,27 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 
 		switch (type)
 		{
-			case 0:	// rocket trail
-				p->ramp = (rand()&3);
+		case 0:	// rocket trail
+				p->ramp = (ROCKET_TRAIL_RAND()&3);
 				p->color = ramp3[(int)p->ramp];
 				p->type = pt_fire;
 				for (j=0 ; j<3 ; j++)
-					p->org[j] = start[j] + ((rand()%6)-3);
+					p->org[j] = start[j] + ((ROCKET_TRAIL_RAND()%6)-3);
 				break;
 
 			case 1:	// smoke smoke
-				p->ramp = (rand()&3) + 2;
+				p->ramp = (ROCKET_TRAIL_RAND()&3) + 2;
 				p->color = ramp3[(int)p->ramp];
 				p->type = pt_fire;
 				for (j=0 ; j<3 ; j++)
-					p->org[j] = start[j] + ((rand()%6)-3);
+					p->org[j] = start[j] + ((ROCKET_TRAIL_RAND()%6)-3);
 				break;
 
 			case 2:	// blood
 				p->type = pt_grav;
-				p->color = 67 + (rand()&3);
+				p->color = 67 + (ROCKET_TRAIL_RAND()&3);
 				for (j=0 ; j<3 ; j++)
-					p->org[j] = start[j] + ((rand()%6)-3);
+					p->org[j] = start[j] + ((ROCKET_TRAIL_RAND()%6)-3);
 				break;
 
 			case 3:
@@ -695,14 +741,14 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 				p->die = cl.time + 0.5;
 				p->type = pt_static;
 				if (type == 3)
-					p->color = 52 + ((tracercount&4)<<1);
+					p->color = 52 + ((ROCKET_TRAIL_TRACERCOUNT&4)<<1);
 				else
-					p->color = 230 + ((tracercount&4)<<1);
+					p->color = 230 + ((ROCKET_TRAIL_TRACERCOUNT&4)<<1);
 			
-				tracercount++;
+				ROCKET_TRAIL_TRACERCOUNT++;
 
 				VectorCopy (start, p->org);
-				if (tracercount & 1)
+				if (ROCKET_TRAIL_TRACERCOUNT & 1)
 				{
 					p->vel[0] = 30*vec[1];
 					p->vel[1] = 30*-vec[0];
@@ -714,20 +760,20 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 				}
 				break;
 
-			case 4:	// slight blood
+		case 4:	// slight blood
 				p->type = pt_grav;
-				p->color = 67 + (rand()&3);
+				p->color = 67 + (ROCKET_TRAIL_RAND()&3);
 				for (j=0 ; j<3 ; j++)
-					p->org[j] = start[j] + ((rand()%6)-3);
+					p->org[j] = start[j] + ((ROCKET_TRAIL_RAND()%6)-3);
 				len -= 3;
 				break;
 
-			case 6:	// voor trail
-				p->color = 9*16 + 8 + (rand()&3);
+		case 6:	// voor trail
+				p->color = 9*16 + 8 + (ROCKET_TRAIL_RAND()&3);
 				p->type = pt_static;
 				p->die = cl.time + 0.3;
 				for (j=0 ; j<3 ; j++)
-					p->org[j] = start[j] + ((rand()&15)-8);
+					p->org[j] = start[j] + ((ROCKET_TRAIL_RAND()&15)-8);
 				break;
 		}
 		
@@ -735,6 +781,12 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 		VectorAdd (start, vec, start);
 	}
 }
+#undef ROCKET_TRAIL_TRACERCOUNT
+#endif
+#ifdef ASM486_ROCKET_TRAIL
+#undef R_RocketTrail
+#endif
+#undef ROCKET_TRAIL_RAND
 
 
 /*

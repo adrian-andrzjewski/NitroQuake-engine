@@ -180,6 +180,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$RocketTrailImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteClipImplementation = 'c',
@@ -291,6 +293,7 @@ param(
     [switch]$ParticleListOnly,
     [switch]$ParticleExplosionOnly,
     [switch]$ParticleExplosion2Only,
+    [switch]$RocketTrailOnly,
     [switch]$ZSubmodelPolygonsOnly,
     [switch]$FrustumTransformOnly,
     [switch]$TransformPlaneOnly,
@@ -344,6 +347,9 @@ if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
 }
 if ($ParticleExplosion2Only -and $ParticleExplosion2Implementation -ne 'asm') {
     throw '-ParticleExplosion2Only requires -ParticleExplosion2Implementation asm.'
+}
+if ($RocketTrailOnly -and $RocketTrailImplementation -ne 'asm') {
+    throw '-RocketTrailOnly requires -RocketTrailImplementation asm.'
 }
 if ($ZSubmodelPolygonsOnly -and $ZSubmodelPolygonsImplementation -ne 'asm') {
     throw '-ZSubmodelPolygonsOnly requires -ZSubmodelPolygonsImplementation asm.'
@@ -513,6 +519,7 @@ $buildParams = @{
         AliasStatsImplementation = $AliasStatsImplementation
         PrintTimesImplementation = $PrintTimesImplementation
         ParticleExplosion2Implementation = $ParticleExplosion2Implementation
+        RocketTrailImplementation = $RocketTrailImplementation
         ParticleExplosionImplementation = $ParticleExplosionImplementation
         PaletteImplementation = $PaletteImplementation
         MathClosureImplementation = $MathClosureImplementation
@@ -775,6 +782,9 @@ elseif ($ParticleExplosionOnly) {
 elseif ($ParticleExplosion2Only) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion2 -benchexit'
 }
+elseif ($RocketTrailOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchrockettrail -benchexit'
+}
 elseif ($SurfaceCacheOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacecache -benchexit'
 }
@@ -956,6 +966,7 @@ $result = [ordered]@{
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     worldControlImplementation = $WorldControlImplementation
     instrumentation = [bool]$Instrumentation
@@ -1000,6 +1011,7 @@ $result = [ordered]@{
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
     particleExplosion2Only = [bool]$ParticleExplosion2Only
+    rocketTrailOnly = [bool]$RocketTrailOnly
     particleExplosionOnly = [bool]$ParticleExplosionOnly
     transformPlaneOnly = [bool]$TransformPlaneOnly
     zSubmodelPolygonsOnly = [bool]$ZSubmodelPolygonsOnly

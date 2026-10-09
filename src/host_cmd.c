@@ -6725,6 +6725,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_PARTICLE_EXPLOSION2)
 #include "bench486_particleexplosion2.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_ROCKET_TRAIL)
+#include "bench486_rockettrail.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_PARTICLE_EXPLOSION)
 #include "bench486_particleexplosion.h"
 #endif
@@ -10247,6 +10250,32 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("print-times fixture requires -PrintTimesImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchrockettrail"))
+	{
+#ifdef ASM486_ROCKET_TRAIL
+		if (!COM_CheckParm ("-benchexit"))
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("rocket-trail fixture requires -benchexit to isolate libc RNG state\n");
+			return;
+		}
+		Bench486RocketTrailCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("rocket-trail fixture requires -RocketTrailImplementation asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

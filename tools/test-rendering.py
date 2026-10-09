@@ -38,6 +38,7 @@ def load_json(text: str) -> dict:
         document["selectors"].setdefault("PrintTimesImplementation", "c")
         document["selectors"].setdefault("ParticleExplosionImplementation", "c")
         document["selectors"].setdefault("ParticleExplosion2Implementation", "c")
+        document["selectors"].setdefault("RocketTrailImplementation", "c")
         document["selectors"].setdefault("TransformPlaneImplementation", "c")
     return document
 
@@ -613,7 +614,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 83)
+        self.assertEqual(len(reference["selectors"]), 84)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -676,7 +677,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 83)
+        self.assertEqual(len(reference["selectors"]), 84)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -996,6 +997,65 @@ class RenderingComparisonTests(unittest.TestCase):
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$TransformPlaneImplementation\s*=\s*'c'",
                 f"{runner_name} must reject unsupported TransformPlane selectors",
+            )
+
+    def test_rocket_trail_profile_fixture_and_selectable_count(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        focused = load_json((profiles / "i486-asm-rocket-trail.json").read_text(encoding="utf-8"))
+        selectable90 = json.loads((profiles / "i486-asm-selectable-90.json").read_text(encoding="utf-8"))
+        selectable91 = json.loads((profiles / "i486-asm-selectable-91.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(reference["selectors"]["RocketTrailImplementation"], "c")
+        self.assertEqual(focused["id"], "i486-asm-rocket-trail")
+        expected_focused = dict(reference["selectors"])
+        expected_focused["RocketTrailImplementation"] = "asm"
+        self.assertEqual(focused["selectors"], expected_focused)
+        self.assertEqual(len(selectable90["selectors"]), 90)
+        self.assertNotIn("RocketTrailImplementation", selectable90["selectors"])
+        self.assertEqual(selectable91["id"], "i486-asm-selectable-91")
+        self.assertEqual(len(selectable91["selectors"]), 91)
+        expected91 = dict(selectable90)
+        expected91["id"] = selectable91["id"]
+        expected91["description"] = selectable91["description"]
+        expected91["selectors"] = dict(selectable90["selectors"])
+        expected91["selectors"]["RocketTrailImplementation"] = "asm"
+        self.assertEqual(selectable91, expected91)
+
+        assembly = (ROOT / "src/r_rockettrailasm.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/r_part.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_rockettrail.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("idivl\t%ecx", assembly)
+        self.assertIn("C(R_RocketTrail_asm486):", assembly)
+        self.assertIn("Bench486RocketTrailRand", assembly)
+        self.assertIn("R_RocketTrail_C", oracle)
+        self.assertIn("ASM486_ROCKET_TRAIL", selectors)
+        self.assertIn("RocketTrailImplementation", selectors)
+        self.assertIn("libc-rand-continuation", fixture)
+        self.assertIn("tracer-exhaustion", fixture)
+        self.assertIn("bench486_rockettrail_c_tracercount", fixture)
+        self.assertIn("bench486_rockettrail_asm_tracercount", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn('#include "bench486_rockettrail.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchrockettrail")', host_commands)
+        self.assertIn("Bench486RocketTrailCases ();", host_commands)
+        self.assertIn("requires -benchexit to isolate libc RNG state", host_commands)
+        self.assertIn("[switch]$RocketTrailOnly", bench_runner)
+        self.assertIn("-RocketTrailOnly requires -RocketTrailImplementation asm", bench_runner)
+        self.assertIn("+bench486 -benchrockettrail -benchexit", bench_runner)
+
+        for runner_name in ("build-dos.ps1", "bench-dos.ps1", "smoke-dos.ps1", "timedemo-dos.ps1"):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$RocketTrailImplementation\s*=\s*'c'",
+                f"{runner_name} must reject unsupported RocketTrail selectors",
             )
 
     def test_sprite_scan_left_focused_profile_changes_only_that_selector(self) -> None:

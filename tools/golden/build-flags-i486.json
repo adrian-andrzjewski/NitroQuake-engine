@@ -14,8 +14,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 47,
-  "assemblySourceCount": 47,
+  "allAssemblySourceCount": 48,
+  "assemblySourceCount": 48,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -243,6 +243,7 @@
     "r_printtimesasm.s",
     "r_publicbindingsasm.s",
     "r_renderdispatchasm.s",
+    "r_rockettrailasm.s",
     "r_skyasm.s",
     "r_spriteasm.s",
     "r_transformplaneasm.s",

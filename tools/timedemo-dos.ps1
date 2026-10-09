@@ -144,6 +144,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$RocketTrailImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
@@ -411,6 +413,7 @@ $buildParams = @{
     BspWalkImplementation                = $BspWalkImplementation
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
+    RocketTrailImplementation            = $RocketTrailImplementation
     ParticleExplosionImplementation      = $ParticleExplosionImplementation
     SpriteBeamImplementation             = $SpriteBeamImplementation
     SpriteClipImplementation             = $SpriteClipImplementation
@@ -1056,6 +1059,7 @@ $result = [ordered]@{
     bspWalkImplementation = $BspWalkImplementation
     particleUpdateImplementation = $ParticleUpdateImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     spriteBeamImplementation = $SpriteBeamImplementation
     spriteClipImplementation = $SpriteClipImplementation

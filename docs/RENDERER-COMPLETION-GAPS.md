@@ -135,6 +135,16 @@ not mean every renderer entry point is assembly: the current ownership
 inventory still finds 61 directly reachable C renderer functions. See the
 [77-selector assembly-profile acceptance](ledger/2026-10-09-selectable-77-assembly-profile-acceptance.md).
 
+`R_RocketTrail` now has a focused i486 assembly selector. Its strict candidate
+passed the complete relocated-executable, startup and provider gates, the
+16-case full-state/RNG fixture, and an exact Demo 2 pair with 980 matching
+post-warmup frame checksums and no indexed-pixel or palette differences. The
+focused profiles and traceability record are
+[here](ledger/2026-10-09-r-rockettrail-assembly-port.md). A cumulative
+91-selector candidate profile exists, but it has not had a new full-profile
+ownership inventory or complete-profile acceptance run; the 61-C-entry figure
+above remains the preceding 77-selector inventory, not a current count.
+
 Earlier sprite/math and light-control pair reports that failed to forward the
 new selectors are invalid acceptance evidence. Their original results and
 invalidation records are retained. Current runners forward declared selectors

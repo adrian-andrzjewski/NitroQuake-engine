@@ -1318,6 +1318,25 @@ def main() -> int:
             if "r_particleexplosion2asm.s" not in dump.get("assemblySources", []):
                 fail("the R_ParticleExplosion2 %s selector omits r_particleexplosion2asm.s from the source inventory" % dump_name)
 
+    rocket_trail_c = dump_flags("-RocketTrailImplementation", "c")
+    rocket_trail_asm = dump_flags("-RocketTrailImplementation", "asm")
+    if rocket_trail_c and rocket_trail_asm:
+        if rocket_trail_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_RocketTrail C selector changes the promoted i486 suffix")
+        asm_suffix = rocket_trail_asm.get("profileSuffix", "")
+        if asm_suffix.count("-rockettrailasm") != 1:
+            fail("the R_RocketTrail assembly selector lacks its profile token")
+        elif asm_suffix.replace("-rockettrailasm", "") != rocket_trail_c.get("profileSuffix"):
+            fail("the R_RocketTrail assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ROCKET_TRAIL" in rocket_trail_c.get(flags_name, []):
+                fail("the R_RocketTrail C selector enables ASM486_ROCKET_TRAIL in %s" % flags_name)
+            if "-DASM486_ROCKET_TRAIL" not in rocket_trail_asm.get(flags_name, []):
+                fail("the R_RocketTrail assembly selector omits ASM486_ROCKET_TRAIL from %s" % flags_name)
+        for dump_name, dump in (("C", rocket_trail_c), ("assembly", rocket_trail_asm)):
+            if "r_rockettrailasm.s" not in dump.get("assemblySources", []):
+                fail("the R_RocketTrail %s selector omits r_rockettrailasm.s from the source inventory" % dump_name)
+
     particle_explosion_c = dump_flags("-ParticleExplosionImplementation", "c")
     particle_explosion_asm = dump_flags("-ParticleExplosionImplementation", "asm")
     if particle_explosion_c and particle_explosion_asm:
@@ -1357,7 +1376,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 47 assembly sources (one is omitted only
+    #    included by another unit), 48 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1369,9 +1388,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 47:
+        if dump.get("allAssemblySourceCount") != 48:
             fail(
-                "%s: expected 47 assembly sources, got %r"
+                "%s: expected 48 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 
