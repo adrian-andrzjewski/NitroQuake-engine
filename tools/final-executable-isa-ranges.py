@@ -53,6 +53,25 @@ def build(args):
             inputs[key]=path
     spec=importlib.util.spec_from_file_location('final_ranges_coff',tool)
     coff=importlib.util.module_from_spec(spec);spec.loader.exec_module(coff)
+    object_sections={};external_symbols={}
+    contribution_objects={item['object'].lower() for item in report['textContributions']}
+    for key in contribution_objects:
+        if key not in proofs:raise ValueError('Linked object lacks a source CODE boundary proof: '+key)
+        native=inputs.get(key,Path(proofs[key]['object']))
+        if sha(native)!=proofs[key]['objectSha256']:
+            raise ValueError('Source boundaries belong to a different audited native object: '+key)
+        sections,symbols=coff.coff(native)
+        section_name_by_number={value['number']:name for name,value in sections.items()}
+        object_sections[key]=(native,sections,section_name_by_number)
+        for symbol in symbols:
+            # COFF external definitions are the only cross-object relocation
+            # targets resolved here. Undefined, absolute, weak, or ambiguous
+            # targets still fail closed below.
+            if symbol['storage']==2 and symbol['section']>0:
+                section_name=section_name_by_number.get(symbol['section'])
+                if section_name is not None:
+                    external_symbols.setdefault(symbol['name'],[]).append(
+                        (key,section_name,symbol['value']))
     ranges=[];data_ranges=[];bound=[];mapped={};contribution_spans=[]
     for item in report['textContributions']:
         key=item['object'].lower();section_name=item['section'];contribution_key=(key,section_name)
@@ -64,9 +83,7 @@ def build(args):
             raise ValueError('Linked input contribution falls outside executable .text: '+key+':'+item['section'])
         if key not in proofs:raise ValueError('Linked object lacks a source CODE boundary proof: '+key)
         proof=proofs[key]
-        native=inputs.get(key,Path(proof['object']))
-        if sha(native)!=proof['objectSha256']:raise ValueError('Source boundaries belong to a different audited native object: '+key)
-        sections,_=coff.coff(native)
+        native,sections,section_name_by_number=object_sections[key]
         if item['section'] not in sections or sections[item['section']]['size']!=size:
             raise ValueError('Mapped contribution size differs from the proved native section.')
         section_name=item['section'];section=sections[section_name]
@@ -103,25 +120,36 @@ def build(args):
         text_offset=address-text_vma
         linked_slice=text_bytes[text_offset:text_offset+size]
         expected=bytearray(section['bytes']);relocation_bytes=set()
-        section_name_by_number={value['number']:name for name,value in sections.items()}
         for offset,relocation_type,target_name,target_value,target_section_number in section['relocations']:
             # DATA pointers in the supported GO32 objects use DIR32 (IMAGE_REL_I386_DIR32).
-            # Resolve only section-relative targets that also have an exact
-            # mapped contribution; other relocation kinds fail closed.
+            # Resolve local section symbols directly and external symbols only
+            # through one unique, source-proved global definition. Other
+            # relocation forms fail closed.
             if relocation_type!=6 or offset<0 or offset+4>size:
                 raise ValueError('Unsupported or out-of-range relocation in mapped DATA section: '+key+':'+section_name)
             target_section=section_name_by_number.get(target_section_number)
-            target_contribution=mapped.get((key,target_section)) if target_section else None
+            target_key=key
+            resolved_value=target_value
+            if target_section_number==0:
+                definitions=external_symbols.get(target_name,[])
+                if len(definitions)!=1:
+                    reason='unresolved' if not definitions else 'ambiguous'
+                    raise ValueError(reason+' external DATA relocation target: '+key+':'+str(target_name))
+                target_key,target_section,symbol_value=definitions[0]
+                resolved_value=symbol_value+target_value
+            elif target_section_number<0:
+                target_section=None
+            target_contribution=mapped.get((target_key,target_section)) if target_section else None
             if target_contribution is None:
                 raise ValueError('DATA relocation target has no exact linked section mapping: '+key+':'+str(target_name))
-            if target_value<0 or target_value>target_contribution['size']:
+            if resolved_value<0 or resolved_value>target_contribution['size']:
                 raise ValueError('DATA relocation target offset exceeds its mapped section: '+key+':'+str(target_name))
             width_offsets=set(range(offset,offset+4))
             if relocation_bytes & width_offsets:
                 raise ValueError('Overlapping DATA relocation fields: '+key+':'+section_name)
             relocation_bytes.update(width_offsets)
             addend=int.from_bytes(section['bytes'][offset:offset+4],'little',signed=False)
-            relocated=(target_contribution['address']+target_value+addend)&0xffffffff
+            relocated=(target_contribution['address']+resolved_value+addend)&0xffffffff
             expected[offset:offset+4]=relocated.to_bytes(4,'little')
             actual=int.from_bytes(linked_slice[offset:offset+4],'little',signed=False)
             if actual!=relocated:
