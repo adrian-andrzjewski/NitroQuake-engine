@@ -146,6 +146,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$LavaSplashImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
@@ -269,6 +271,8 @@ param(
     # JSON-encoded string array for callers that need to forward multiple lines
     # across a pwsh -File process boundary without positional-argument ambiguity.
     [string]$AutoexecCommandsJson = '',
+    # Optional compact demo fixture configuration supplied by render validation.
+    [string]$DemoFixtureJson = '',
     # Record one framebuffer checksum per rendered timedemo frame. This detects
     # temporal instability and synchronization regressions that a final-frame
     # checksum cannot see.
@@ -319,6 +323,143 @@ if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameI
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
+
+function ConvertTo-DemoFixtureInteger {
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][object]$Value,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][long]$Minimum,
+        [Parameter(Mandatory = $true)][long]$Maximum
+    )
+
+    if ($Value -is [bool] -or $Value -isnot [System.ValueType]) {
+        throw "demoFixture.$Name must be an integer JSON number."
+    }
+    try { $number = [decimal]$Value }
+    catch { throw "demoFixture.$Name must be an integer JSON number." }
+    if ($number -ne [decimal]::Truncate($number) -or $number -lt $Minimum -or $number -gt $Maximum) {
+        throw "demoFixture.$Name must be an integer in [$Minimum, $Maximum]."
+    }
+    return [int]$number
+}
+
+function ConvertTo-DemoFixtureMemberName {
+    param(
+        [Parameter(Mandatory = $true)][AllowNull()][object]$Value,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if ($Value -isnot [string] -or [string]::IsNullOrWhiteSpace($Value)) {
+        throw "demoFixture.$Name must be a non-empty relative PACK member path."
+    }
+    $member = ([string]$Value).Replace('\', '/')
+    if ($member -notmatch '^[A-Za-z0-9_./-]+$' -or $member.StartsWith('/') -or
+        $member.Split('/') -contains '..' -or $member.Split('/') -contains '.' -or
+        $member.Split('/') -contains '') {
+        throw "demoFixture.$Name must be a safe relative PACK member path."
+    }
+    if ([Text.Encoding]::ASCII.GetByteCount($member) -gt 55) {
+        throw "demoFixture.$Name must fit the 55-byte PACK name limit."
+    }
+    return $member
+}
+
+function ConvertFrom-DemoFixtureJson {
+    param([string]$Json, [string]$RequestedDemoName)
+
+    if ([string]::IsNullOrWhiteSpace($Json)) { return $null }
+    if ($Json.Length -gt 4096 -or -not $Json.TrimStart().StartsWith('{')) {
+        throw '-DemoFixtureJson must be a small JSON object.'
+    }
+    try { $parsed = ConvertFrom-Json -InputObject $Json -ErrorAction Stop }
+    catch { throw "-DemoFixtureJson is invalid JSON: $($_.Exception.Message)" }
+    if ($null -eq $parsed -or $parsed -is [array] -or $parsed -isnot [pscustomobject]) {
+        throw '-DemoFixtureJson must contain one JSON object.'
+    }
+
+    $required = @(
+        'sourceMember', 'firstPostSignonRecord', 'keepPostSignonRecords',
+        'eventRecord', 'eventType', 'coordShorts', 'pakEntry'
+    )
+    $actual = @($parsed.PSObject.Properties | ForEach-Object { [string]$_.Name })
+    $missing = @($required | Where-Object { $_ -notin $actual })
+    $unknown = @($actual | Where-Object { $_ -notin $required })
+    if ($missing.Count -gt 0 -or $unknown.Count -gt 0 -or $actual.Count -ne $required.Count) {
+        throw ("-DemoFixtureJson fields must be exactly: {0}. Missing: [{1}]. Unknown: [{2}]." -f
+            ($required -join ', '), ($missing -join ', '), ($unknown -join ', '))
+    }
+
+    $sourceMember = ConvertTo-DemoFixtureMemberName -Value $parsed.sourceMember -Name 'sourceMember'
+    if (-not $sourceMember.EndsWith('.dem', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'demoFixture.sourceMember must end in .dem.'
+    }
+    $pakEntry = ConvertTo-DemoFixtureMemberName -Value $parsed.pakEntry -Name 'pakEntry'
+    $expectedEntry = "$RequestedDemoName.dem"
+    if (-not $pakEntry.Equals($expectedEntry, [StringComparison]::Ordinal) -or
+        $pakEntry.Contains('/')) {
+        throw "demoFixture.pakEntry must exactly match the case-sensitive root member '$expectedEntry' used by the timedemo command."
+    }
+
+    $firstRecord = ConvertTo-DemoFixtureInteger -Value $parsed.firstPostSignonRecord `
+        -Name 'firstPostSignonRecord' -Minimum 0 -Maximum 1000000
+    $keepRecords = ConvertTo-DemoFixtureInteger -Value $parsed.keepPostSignonRecords `
+        -Name 'keepPostSignonRecords' -Minimum 1 -Maximum 65535
+    $eventRecord = ConvertTo-DemoFixtureInteger -Value $parsed.eventRecord `
+        -Name 'eventRecord' -Minimum 0 -Maximum 1000000
+    $eventType = ConvertTo-DemoFixtureInteger -Value $parsed.eventType `
+        -Name 'eventType' -Minimum 0 -Maximum 255
+    if ($eventType -notin @(4, 10)) {
+        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4) or TE_LAVASPLASH (10).'
+    }
+    if ([long]$firstRecord + $keepRecords -gt 1000001 -or
+        $eventRecord -lt $firstRecord -or $eventRecord -ge ([long]$firstRecord + $keepRecords)) {
+        throw 'demoFixture.eventRecord must fall within the retained post-signon record prefix.'
+    }
+
+    if ($parsed.coordShorts -isnot [array] -or $parsed.coordShorts.Count -ne 3) {
+        throw 'demoFixture.coordShorts must be an array of exactly three signed 16-bit integers.'
+    }
+    $coordShorts = @()
+    for ($coordinate = 0; $coordinate -lt 3; $coordinate++) {
+        $coordShorts += ConvertTo-DemoFixtureInteger -Value $parsed.coordShorts[$coordinate] `
+            -Name "coordShorts[$coordinate]" -Minimum -32768 -Maximum 32767
+    }
+
+    return [pscustomobject]@{
+        sourceMember = $sourceMember
+        firstPostSignonRecord = $firstRecord
+        keepPostSignonRecords = $keepRecords
+        eventRecord = $eventRecord
+        eventType = $eventType
+        coordShorts = $coordShorts
+        pakEntry = $pakEntry
+    }
+}
+
+function Get-FullPathUnderDirectory {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Directory,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    $fullPath = [IO.Path]::GetFullPath($Path)
+    $rootPath = [IO.Path]::GetFullPath($Directory)
+    $separator = [string][IO.Path]::DirectorySeparatorChar
+    if (-not $rootPath.EndsWith($separator)) {
+        $rootPath += $separator
+    }
+    if (-not $fullPath.StartsWith($rootPath, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label path '$fullPath' is outside '$Directory'."
+    }
+    return $fullPath
+}
+
+$demoFixtureConfig = ConvertFrom-DemoFixtureJson -Json $DemoFixtureJson -RequestedDemoName $DemoName
+if ($null -ne $demoFixtureConfig -and $DemoName -ne [IO.Path]::GetFileNameWithoutExtension($demoFixtureConfig.pakEntry)) {
+    throw 'demoFixture.pakEntry must match -DemoName.'
+}
+
 $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
 $DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 if ($VisualParityOnly -and ($CpuTarget -ne 'i486' -or $DpmiHost -ne 'cwsdpmi')) {
@@ -418,6 +559,7 @@ $buildParams = @{
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
     BlobExplosionImplementation          = $BlobExplosionImplementation
+    LavaSplashImplementation             = $LavaSplashImplementation
     RocketTrailImplementation            = $RocketTrailImplementation
     ParticleExplosionImplementation      = $ParticleExplosionImplementation
     SpriteBeamImplementation             = $SpriteBeamImplementation
@@ -552,6 +694,127 @@ $staging = New-QuakeStaging -RepoRoot $repoRoot `
 $stagingRoot = $staging.StagingRoot
 $quakeRoot = $staging.QuakeRoot
 $stagedData = $staging.StagedData
+$demoFixtureResult = $null
+if ($null -ne $demoFixtureConfig) {
+    $stagedData = Get-FullPathUnderDirectory -Path $stagedData -Directory $stagingRoot -Label 'staged id1'
+    $pak0Path = Get-FullPathUnderDirectory -Path (Join-Path $stagedData 'pak0.pak') `
+        -Directory $stagedData -Label 'source pak0'
+    if (-not (Test-Path -LiteralPath $pak0Path -PathType Leaf)) {
+        throw "demoFixture requires staged pak0.pak at '$pak0Path'."
+    }
+
+    $pakIndices = @{}
+    foreach ($pakFile in @(Get-ChildItem -LiteralPath $stagedData -Filter 'pak*.pak' -File)) {
+        if ($pakFile.Name -match '^pak(?<index>\d+)\.pak$') {
+            $pakIndex = [int]$Matches.index
+            if ($pakIndices.ContainsKey($pakIndex)) {
+                throw "Multiple staged PAK files resolve to index $pakIndex."
+            }
+            $pakIndices[$pakIndex] = $pakFile.FullName
+        }
+    }
+    if (-not $pakIndices.ContainsKey(0)) {
+        throw 'demoFixture requires staged pak0.pak at index zero.'
+    }
+    $presentPakIndices = @($pakIndices.Keys | ForEach-Object { [int]$_ } | Sort-Object)
+    for ($expectedIndex = 0; $expectedIndex -lt $presentPakIndices.Count; $expectedIndex++) {
+        if (-not $pakIndices.ContainsKey($expectedIndex)) {
+            throw "Staged PAK indices are not contiguous; missing pak$expectedIndex.pak."
+        }
+    }
+    $nextPakIndex = [int]$presentPakIndices[-1] + 1
+    $overridePakPath = Get-FullPathUnderDirectory `
+        -Path (Join-Path $stagedData ("pak{0}.pak" -f $nextPakIndex)) `
+        -Directory $stagedData -Label 'fixture PAK override'
+    if (Test-Path -LiteralPath $overridePakPath) {
+        throw "Refusing to overwrite staged PAK '$overridePakPath'."
+    }
+
+    $fixtureWorkDirectory = Get-FullPathUnderDirectory `
+        -Path (Join-Path $stagingRoot 'demo-fixture-temp') `
+        -Directory $stagingRoot -Label 'temporary demo fixture directory'
+    $fixtureDemPath = Get-FullPathUnderDirectory `
+        -Path (Join-Path $fixtureWorkDirectory 'source-fixture.dem') `
+        -Directory $fixtureWorkDirectory -Label 'temporary demo fixture'
+    if (Test-Path -LiteralPath $fixtureWorkDirectory) {
+        throw "Refusing to reuse temporary fixture directory '$fixtureWorkDirectory'."
+    }
+    $fixtureGeneratorPath = Join-Path $PSScriptRoot 'make_blobexplosion_demo.py'
+    if (-not (Test-Path -LiteralPath $fixtureGeneratorPath -PathType Leaf)) {
+        throw "demoFixture generator was not found at '$fixtureGeneratorPath'."
+    }
+
+    New-Item -ItemType Directory -Path $fixtureWorkDirectory | Out-Null
+    $fixtureDemSha256 = $null
+    $fixtureDemBytes = $null
+    try {
+        $fixtureGeneratorArgs = @(
+            '-B', $fixtureGeneratorPath,
+            '--pak0', $pak0Path,
+            '--output', $fixtureDemPath,
+            '--member', $demoFixtureConfig.sourceMember,
+            '--first-post-signon-record', [string]$demoFixtureConfig.firstPostSignonRecord,
+            '--keep-post-signon-records', [string]$demoFixtureConfig.keepPostSignonRecords,
+            '--event-record', [string]$demoFixtureConfig.eventRecord,
+            '--event-type', [string]$demoFixtureConfig.eventType,
+            '--coord-shorts'
+        )
+        $fixtureGeneratorArgs += @($demoFixtureConfig.coordShorts | ForEach-Object { [string]$_ })
+        $fixtureGeneratorArgs += @(
+            '--pak-output', $overridePakPath,
+            '--pak-entry', $demoFixtureConfig.pakEntry
+        )
+        & python @fixtureGeneratorArgs
+        if ($LASTEXITCODE -ne 0) {
+            throw "Demo fixture generator exited with code $LASTEXITCODE."
+        }
+        if (-not (Test-Path -LiteralPath $fixtureDemPath -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $overridePakPath -PathType Leaf)) {
+            throw 'Demo fixture generator did not produce both requested artifacts.'
+        }
+        $fixtureDemInfo = Get-Item -LiteralPath $fixtureDemPath
+        $fixtureDemBytes = [int64]$fixtureDemInfo.Length
+        $fixtureDemSha256 = (Get-FileHash -LiteralPath $fixtureDemPath -Algorithm SHA256).Hash
+        $overridePakInfo = Get-Item -LiteralPath $overridePakPath
+        $overridePakSha256 = (Get-FileHash -LiteralPath $overridePakPath -Algorithm SHA256).Hash
+    }
+    finally {
+        if (Test-Path -LiteralPath $fixtureDemPath) {
+            Remove-Item -LiteralPath $fixtureDemPath -Force
+        }
+        if (Test-Path -LiteralPath $fixtureWorkDirectory) {
+            $remainingFixtureFiles = @(Get-ChildItem -LiteralPath $fixtureWorkDirectory -Force)
+            if ($remainingFixtureFiles.Count -eq 0) {
+                Remove-Item -LiteralPath $fixtureWorkDirectory -Force
+            }
+            else {
+                throw "Temporary demo fixture cleanup left unexpected files in '$fixtureWorkDirectory'."
+            }
+        }
+    }
+    if (Test-Path -LiteralPath $fixtureDemPath) {
+        throw "Temporary loose DEM still exists after fixture creation: '$fixtureDemPath'."
+    }
+
+    $demoFixtureResult = [ordered]@{
+        parameters = [ordered]@{
+            sourceMember = $demoFixtureConfig.sourceMember
+            firstPostSignonRecord = $demoFixtureConfig.firstPostSignonRecord
+            keepPostSignonRecords = $demoFixtureConfig.keepPostSignonRecords
+            eventRecord = $demoFixtureConfig.eventRecord
+            eventType = $demoFixtureConfig.eventType
+            coordShorts = @($demoFixtureConfig.coordShorts)
+            pakEntry = $demoFixtureConfig.pakEntry
+        }
+        overridePakIndex = $nextPakIndex
+        overridePakPath = $overridePakPath
+        overridePakBytes = [int64]$overridePakInfo.Length
+        overridePakSha256 = $overridePakSha256
+        temporaryDemoRemoved = $true
+        temporaryDemoBytes = $fixtureDemBytes
+        temporaryDemoSha256 = $fixtureDemSha256
+    }
+}
 
 if (-not [string]::IsNullOrWhiteSpace($AutoexecCommandsJson)) {
     if (-not $AutoexecCommandsJson.TrimStart().StartsWith('[')) {
@@ -757,12 +1020,19 @@ for ($run = 1; $run -le $Runs; $run++) {
     # Keep old binaries usable by representing an absent event record as null.
     # The parser also verifies that stored frames plus overflow equals total count.
     $blobExplosionEventData = Read-Bench486BlobExplosionEvents -Report $report
+    $lavaSplashEventData = Read-Bench486LavaSplashEvents -Report $report
     $blobExplosionEventFrames = $blobExplosionEventData.Frames
     $blobExplosionEventOverflow = $blobExplosionEventData.Overflow
+    $lavaSplashEventCount = $lavaSplashEventData.Count
+    $lavaSplashEventFrames = $lavaSplashEventData.Frames
+    $lavaSplashEventOverflow = $lavaSplashEventData.Overflow
 
     $runDiagnostics = [ordered]@{
         blobExplosionEventFrames = $blobExplosionEventFrames
         blobExplosionEventOverflow = $blobExplosionEventOverflow
+        lavaSplashEventCount = $lavaSplashEventCount
+        lavaSplashEventFrames = $lavaSplashEventFrames
+        lavaSplashEventOverflow = $lavaSplashEventOverflow
     }
     if ($FrameChecksums) {
         if (-not (Test-Path -LiteralPath $frameChecksumDosPath -PathType Leaf)) {
@@ -857,6 +1127,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         profile = $profileData
         blobExplosionEventFrames = $blobExplosionEventFrames
         blobExplosionEventOverflow = $blobExplosionEventOverflow
+        lavaSplashEventCount = $lavaSplashEventCount
+        lavaSplashEventFrames = $lavaSplashEventFrames
+        lavaSplashEventOverflow = $lavaSplashEventOverflow
         renderingDiagnostics = $runDiagnostics
     }
 }
@@ -1074,6 +1347,7 @@ $result = [ordered]@{
     particleUpdateImplementation = $ParticleUpdateImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     blobExplosionImplementation = $BlobExplosionImplementation
+    lavaSplashImplementation = $LavaSplashImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     spriteBeamImplementation = $SpriteBeamImplementation
@@ -1124,6 +1398,9 @@ $result = [ordered]@{
     dataRoot = $DataRoot
     stagingRoot = $stagingRoot
     results = $results
+}
+if ($null -ne $demoFixtureResult) {
+    $result['demoFixture'] = $demoFixtureResult
 }
 $resultPath = Join-Path $stagingRoot 'timedemo-result.json'
 $result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $resultPath -Encoding ASCII

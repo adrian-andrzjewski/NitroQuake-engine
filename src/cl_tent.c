@@ -239,6 +239,9 @@ void CL_ParseTEnt (void)
 		pos[1] = MSG_ReadCoord ();
 		pos[2] = MSG_ReadCoord ();
 		R_LavaSplash (pos);
+#ifdef BENCH486
+		Bench486RecordLavaSplashEvent ();
+#endif
 		break;
 	
 	case TE_TELEPORT:

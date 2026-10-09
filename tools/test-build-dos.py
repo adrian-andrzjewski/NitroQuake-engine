@@ -1375,6 +1375,25 @@ def main() -> int:
             if "r_blobexplosionasm.s" not in dump.get("assemblySources", []):
                 fail("the R_BlobExplosion %s selector omits r_blobexplosionasm.s from the source inventory" % dump_name)
 
+    lava_splash_c = dump_flags("-LavaSplashImplementation", "c")
+    lava_splash_asm = dump_flags("-LavaSplashImplementation", "asm")
+    if lava_splash_c and lava_splash_asm:
+        if lava_splash_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_LavaSplash C selector changes the promoted i486 suffix")
+        asm_suffix = lava_splash_asm.get("profileSuffix", "")
+        if asm_suffix.count("-lavasplashasm") != 1:
+            fail("the R_LavaSplash assembly selector lacks its profile token")
+        elif asm_suffix.replace("-lavasplashasm", "") != lava_splash_c.get("profileSuffix"):
+            fail("the R_LavaSplash assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_LAVA_SPLASH" in lava_splash_c.get(flags_name, []):
+                fail("the R_LavaSplash C selector enables ASM486_LAVA_SPLASH in %s" % flags_name)
+            if "-DASM486_LAVA_SPLASH" not in lava_splash_asm.get(flags_name, []):
+                fail("the R_LavaSplash assembly selector omits ASM486_LAVA_SPLASH from %s" % flags_name)
+        for dump_name, dump in (("C", lava_splash_c), ("assembly", lava_splash_asm)):
+            if "r_lavasplashasm.s" not in dump.get("assemblySources", []):
+                fail("the R_LavaSplash %s selector omits r_lavasplashasm.s from the source inventory" % dump_name)
+
     transform_plane_c = dump_flags("-TransformPlaneImplementation", "c")
     transform_plane_asm = dump_flags("-TransformPlaneImplementation", "asm")
     if transform_plane_c and transform_plane_asm:
@@ -1395,7 +1414,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 49 assembly sources (one is omitted only
+    #    included by another unit), 50 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1407,9 +1426,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 49:
+        if dump.get("allAssemblySourceCount") != 50:
             fail(
-                "%s: expected 49 assembly sources, got %r"
+                "%s: expected 50 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

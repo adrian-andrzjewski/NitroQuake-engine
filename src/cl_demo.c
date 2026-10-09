@@ -417,6 +417,10 @@ void CL_TimeDemo_f (void)
 
 	CL_PlayDemo_f ();
 
+	// A timedemo must end after this file; it is not another link in the
+	// interactive startdemos loop loaded by quake.rc.
+	cls.demonum = -1;
+
 #ifdef BENCH486
 	if (COM_CheckParm ("-timedemoexit") && vid.buffer)
 		Q_memset ((byte *)vid.buffer, 0, vid.rowbytes * vid.height);

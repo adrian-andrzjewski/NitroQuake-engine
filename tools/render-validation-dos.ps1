@@ -8,7 +8,9 @@
     stream for every rendered frame, a selected PCX frame, and timedemo metrics.
     Captured images are compared against committed references with configurable
     per-scenario tolerances. Repeated runs are compared frame by frame after the
-    six configured startup frames to expose nondeterministic output and temporal instability.
+    configured startup frames to expose nondeterministic output and temporal
+    instability. A pair-only scenario may omit its reference image when the
+    caller defers golden comparison to render-parity-dos.ps1.
 #>
 [CmdletBinding()]
 param(
@@ -253,6 +255,7 @@ foreach ($scene in $selectedScenarios) {
     $imageReports = New-Object System.Collections.Generic.List[object]
     $frameReports = New-Object System.Collections.Generic.List[object]
     $previousBlobExplosionEventState = $null
+    $previousLavaSplashEventState = $null
     $effectiveRuns = if ($RunsOverride -gt 0) { $RunsOverride } else { [int]$scene.repeatRuns }
     $childOutputText = ''
     $timedemoResultPath = $null
@@ -266,6 +269,36 @@ foreach ($scene in $selectedScenarios) {
     $requiredBenchEventsProperty = $scene.PSObject.Properties['requiredBenchEvents']
     if ($null -ne $requiredBenchEventsProperty -and $null -ne $requiredBenchEventsProperty.Value) {
         $requiredBenchEvents = @($requiredBenchEventsProperty.Value | ForEach-Object { [string]$_ })
+    }
+    $captureBenchEvents = @()
+    $captureBenchEventsProperty = $scene.PSObject.Properties['captureBenchEvents']
+    if ($null -ne $captureBenchEventsProperty) {
+        if ($captureBenchEventsProperty.Value -isnot [array] -or $captureBenchEventsProperty.Value.Count -eq 0) {
+            throw "Scenario '$($scene.id)' captureBenchEvents must be a non-empty JSON array."
+        }
+        foreach ($captureBenchEvent in $captureBenchEventsProperty.Value) {
+            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash')) {
+                throw "Scenario '$($scene.id)' has unsupported captureBenchEvents entry '$captureBenchEvent'."
+            }
+            $captureBenchEvents += $captureBenchEvent
+        }
+    }
+    $expectedBenchEventFrames = @{}
+    $expectedBenchEventFramesProperty = $scene.PSObject.Properties['expectedBenchEventFrames']
+    if ($null -ne $expectedBenchEventFramesProperty -and $null -ne $expectedBenchEventFramesProperty.Value) {
+        foreach ($expectedEventProperty in $expectedBenchEventFramesProperty.Value.PSObject.Properties) {
+            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash') -or
+                $expectedEventProperty.Value -isnot [array]) {
+                throw "Scenario '$($scene.id)' expectedBenchEventFrames has an invalid '$($expectedEventProperty.Name)' entry."
+            }
+            $expectedBenchEventFrames[$expectedEventProperty.Name] = @(
+                $expectedEventProperty.Value | ForEach-Object { [int]$_ }
+            )
+        }
+    }
+    if ($requiredBenchEvents -contains 'lavaSplash' -and
+        -not $expectedBenchEventFrames.ContainsKey('lavaSplash')) {
+        throw "Scenario '$($scene.id)' requires lavaSplash but does not define expectedBenchEventFrames.lavaSplash."
     }
 
     Write-Host ''
@@ -302,6 +335,14 @@ foreach ($scene in $selectedScenarios) {
         if ($effectiveAutoexecCommands.Count -gt 0) {
             $timedemoArgs += @('-AutoexecCommandsJson', (ConvertTo-Json -InputObject $effectiveAutoexecCommands -Compress))
         }
+        $demoFixtureProperty = $scene.PSObject.Properties['demoFixture']
+        if ($null -ne $demoFixtureProperty) {
+            if ($null -eq $demoFixtureProperty.Value -or $demoFixtureProperty.Value -is [array]) {
+                throw "Scenario '$($scene.id)' demoFixture must be a JSON object."
+            }
+            $demoFixtureJson = ConvertTo-Json -InputObject $demoFixtureProperty.Value -Compress -Depth 4
+            $timedemoArgs += @('-DemoFixtureJson', $demoFixtureJson)
+        }
         if ($NoBootstrap) { $timedemoArgs += '-NoBootstrap' }
         if ($SkipBuild) { $timedemoArgs += '-SkipBuild' }
         if ($VisualParityOnly) { $timedemoArgs += '-VisualParityOnly' }
@@ -333,9 +374,18 @@ foreach ($scene in $selectedScenarios) {
         }
         $timedemoJson = Get-Content -LiteralPath $timedemoResultPath -Raw | ConvertFrom-Json
 
-        $referencePath = [IO.Path]::GetFullPath((Join-Path $repoRoot ([string]$scene.reference)))
-        if (-not (Test-Path -LiteralPath $referencePath -PathType Leaf)) {
-            throw "Scenario reference image is missing: '$referencePath'."
+        $referencePath = $null
+        $referenceRelativePath = [string]$scene.reference
+        if ([string]::IsNullOrWhiteSpace($referenceRelativePath)) {
+            if (-not $SkipGoldenImageComparison) {
+                throw "Scenario '$($scene.id)' must define a reference image unless golden comparison is deferred to the exact paired-profile check."
+            }
+        }
+        else {
+            $referencePath = [IO.Path]::GetFullPath((Join-Path $repoRoot $referenceRelativePath))
+            if (-not (Test-Path -LiteralPath $referencePath -PathType Leaf)) {
+                throw "Scenario reference image is missing: '$referencePath'."
+            }
         }
 
         $previousChecksums = $null
@@ -379,6 +429,38 @@ foreach ($scene in $selectedScenarios) {
                 $null
             }
 
+            $lavaSplashFramesProperty = $diagnostics.PSObject.Properties['lavaSplashEventFrames']
+            $lavaSplashCountProperty = $diagnostics.PSObject.Properties['lavaSplashEventCount']
+            $lavaSplashOverflowProperty = $diagnostics.PSObject.Properties['lavaSplashEventOverflow']
+            $lavaSplashEventFrames = $null
+            $lavaSplashEventCount = $null
+            $lavaSplashEventOverflow = $null
+            $lavaSplashEventFramesPresent = $false
+            $lavaSplashEventCountPresent = $false
+            $lavaSplashEventOverflowPresent = $false
+            $invalidLavaSplashEventFrames = @()
+            if ($null -ne $lavaSplashFramesProperty -and $lavaSplashFramesProperty.Value -is [System.Array]) {
+                $lavaSplashEventFramesPresent = $true
+                $lavaSplashEventFrames = @($lavaSplashFramesProperty.Value | ForEach-Object { [int]$_ })
+                $invalidLavaSplashEventFrames = @($lavaSplashEventFrames | Where-Object {
+                        $_ -lt 0 -or $_ -ge $checksumStreamFrameCount
+                    })
+            }
+            if ($null -ne $lavaSplashCountProperty -and $null -ne $lavaSplashCountProperty.Value) {
+                $lavaSplashEventCountPresent = $true
+                $lavaSplashEventCount = [int]$lavaSplashCountProperty.Value
+            }
+            if ($null -ne $lavaSplashOverflowProperty -and $null -ne $lavaSplashOverflowProperty.Value) {
+                $lavaSplashEventOverflowPresent = $true
+                $lavaSplashEventOverflow = [int]$lavaSplashOverflowProperty.Value
+            }
+            $lavaSplashEventFrameSignature = if ($lavaSplashEventFramesPresent) {
+                [string]::Join(',', [string[]]$lavaSplashEventFrames)
+            }
+            else {
+                $null
+            }
+
             $blobExplosionEventRepeatParity = $null
             $blobExplosionEventRepeatComparison = $null
             if ($requiredBenchEvents -contains 'blobExplosion') {
@@ -416,6 +498,43 @@ foreach ($scene in $selectedScenarios) {
                     overflow = $blobExplosionEventOverflow
                 }
             }
+            $lavaSplashEventRepeatParity = $null
+            $lavaSplashEventRepeatComparison = $null
+            if ($requiredBenchEvents -contains 'lavaSplash') {
+                if ($null -ne $previousLavaSplashEventState) {
+                    $lavaSplashEventRepeatComparison = Compare-Bench486EventRepeat `
+                        -ReferenceFramesPresent $previousLavaSplashEventState.framesPresent `
+                        -ReferenceFramesSignature $previousLavaSplashEventState.framesSignature `
+                        -ReferenceOverflowPresent $previousLavaSplashEventState.overflowPresent `
+                        -ReferenceOverflow $previousLavaSplashEventState.overflow `
+                        -CandidateFramesPresent $lavaSplashEventFramesPresent `
+                        -CandidateFramesSignature $lavaSplashEventFrameSignature `
+                        -CandidateOverflowPresent $lavaSplashEventOverflowPresent `
+                        -CandidateOverflow $lavaSplashEventOverflow
+                    $lavaSplashEventRepeatParity = if ($lavaSplashEventRepeatComparison.exactMatch) { 'PASS' } else { 'FAIL' }
+                    if (-not $lavaSplashEventRepeatComparison.exactMatch) {
+                        $sceneStatus = 'FAIL'
+                        $failures.Add([pscustomobject]@{
+                                scenario = $scene.id
+                                test = 'repeat-lava-splash-event-stability'
+                                expected = @{
+                                    frames = $previousLavaSplashEventState.frames
+                                    overflow = $previousLavaSplashEventState.overflow
+                                }
+                                actual = @{ frames = $lavaSplashEventFrames; overflow = $lavaSplashEventOverflow }
+                                metrics = $lavaSplashEventRepeatComparison
+                                capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                            })
+                    }
+                }
+                $previousLavaSplashEventState = [pscustomobject]@{
+                    framesPresent = $lavaSplashEventFramesPresent
+                    frames = $lavaSplashEventFrames
+                    framesSignature = $lavaSplashEventFrameSignature
+                    overflowPresent = $lavaSplashEventOverflowPresent
+                    overflow = $lavaSplashEventOverflow
+                }
+            }
             $frameReports.Add([pscustomobject]@{
                     run = $run.run
                     frames = $frameData.Count
@@ -429,6 +548,12 @@ foreach ($scene in $selectedScenarios) {
                     blobExplosionEventFrames = $blobExplosionEventFrames
                     blobExplosionEventOverflow = $blobExplosionEventOverflow
                     blobExplosionEventRepeatParity = $blobExplosionEventRepeatParity
+                    lavaSplashEventCount = $lavaSplashEventCount
+                    lavaSplashEventFrames = $lavaSplashEventFrames
+                    lavaSplashEventOverflow = $lavaSplashEventOverflow
+                    lavaSplashEventRepeatParity = $lavaSplashEventRepeatParity
+                    captureBenchEvents = @($captureBenchEvents)
+                    captureBenchEventChecks = @()
                     repeatParity = $null
                 })
 
@@ -462,6 +587,93 @@ foreach ($scene in $selectedScenarios) {
                             capturedOutput = @{ timedemoResult = $timedemoResultPath }
                         })
                 }
+            }
+
+            if ($requiredBenchEvents -contains 'lavaSplash') {
+                $eventFailure = $null
+                $expectedLavaSplashEventFrames = @($expectedBenchEventFrames['lavaSplash'])
+                $expectedLavaSplashEventSignature = [string]::Join(',', [string[]]$expectedLavaSplashEventFrames)
+                $actualLavaSplashEventSignature = if ($lavaSplashEventFramesPresent) {
+                    [string]::Join(',', [string[]]$lavaSplashEventFrames)
+                }
+                else {
+                    $null
+                }
+                if (-not $lavaSplashEventFramesPresent -or -not $lavaSplashEventCountPresent -or
+                    -not $lavaSplashEventOverflowPresent) {
+                    $eventFailure = 'required lavaSplash event count/frame/overflow metadata is missing'
+                }
+                elseif ($invalidLavaSplashEventFrames.Count -gt 0) {
+                    $eventFailure = "lavaSplash event frame index/indices fall outside the total $checksumStreamFrameCount-frame checksum stream"
+                }
+                elseif ($lavaSplashEventOverflow -ne 0) {
+                    $eventFailure = "lavaSplash event metadata overflowed by $lavaSplashEventOverflow event(s)"
+                }
+                elseif ($lavaSplashEventCount -ne $expectedLavaSplashEventFrames.Count -or
+                    $lavaSplashEventFrames.Count -ne $expectedLavaSplashEventFrames.Count) {
+                    $eventFailure = "lavaSplash event count must be exactly $($expectedLavaSplashEventFrames.Count)"
+                }
+                elseif ($actualLavaSplashEventSignature -ne $expectedLavaSplashEventSignature) {
+                    $eventFailure = "lavaSplash event frame indices must be exactly '$expectedLavaSplashEventSignature'"
+                }
+                if ($null -ne $eventFailure) {
+                    $sceneStatus = 'FAIL'
+                    $failures.Add([pscustomobject]@{
+                            scenario = $scene.id
+                            test = 'required-bench-event'
+                            expected = @{ event = 'lavaSplash'; count = $expectedLavaSplashEventFrames.Count; frames = $expectedLavaSplashEventFrames; overflow = 0 }
+                            actual = @{ count = $lavaSplashEventCount; frames = $lavaSplashEventFrames; overflow = $lavaSplashEventOverflow }
+                            metrics = @{
+                                error = $eventFailure
+                                invalidFrameIndices = $invalidLavaSplashEventFrames
+                                checksumStreamFrames = $checksumStreamFrameCount
+                            }
+                            capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                        })
+                }
+            }
+
+            $captureBenchEventChecks = @()
+            foreach ($captureBenchEvent in $captureBenchEvents) {
+                $capturedFrameIndexProperty = $diagnostics.PSObject.Properties['frameCaptureIndex']
+                $capturedFrameIndex = if ($null -ne $capturedFrameIndexProperty -and
+                    $null -ne $capturedFrameIndexProperty.Value) {
+                    [int]$capturedFrameIndexProperty.Value
+                }
+                else {
+                    $null
+                }
+                $eventFrames = if ($captureBenchEvent -eq 'blobExplosion') {
+                    $blobExplosionEventFrames
+                }
+                elseif ($captureBenchEvent -eq 'lavaSplash') {
+                    $lavaSplashEventFrames
+                }
+                else {
+                    @()
+                }
+                $captureContainsEvent = $null -ne $capturedFrameIndex -and
+                    $null -ne $eventFrames -and $eventFrames -contains $capturedFrameIndex
+                $captureBenchEventChecks += [pscustomobject]@{
+                    event = $captureBenchEvent
+                    captureFrameIndex = $capturedFrameIndex
+                    eventFrameIndices = $eventFrames
+                    pass = [bool]$captureContainsEvent
+                }
+                if (-not $captureContainsEvent) {
+                    $sceneStatus = 'FAIL'
+                    $failures.Add([pscustomobject]@{
+                            scenario = $scene.id
+                            test = 'capture-bench-event'
+                            expected = @{ event = $captureBenchEvent; captureFrameInEventFrames = $true }
+                            actual = @{ captureFrameIndex = $capturedFrameIndex; eventFrameIndices = $eventFrames }
+                            metrics = @{ captureFrame = $scene.captureFrame }
+                            capturedOutput = @{ timedemoResult = $timedemoResultPath; capture = $diagnostics.frameCapturePath }
+                        })
+                }
+            }
+            if ($captureBenchEventChecks.Count -gt 0) {
+                $frameReports[$frameReports.Count - 1].captureBenchEventChecks = @($captureBenchEventChecks)
             }
 
             # CL_TimeDemo_f records one setup frame outside the measured interval.
@@ -574,12 +786,14 @@ foreach ($scene in $selectedScenarios) {
             expectedFrames = $scene.expectedFrames
             expectedChecksum = $scene.expectedChecksum
             requiredBenchEvents = $requiredBenchEvents
+            expectedBenchEventFrames = $expectedBenchEventFrames
+            captureBenchEvents = $captureBenchEvents
             captureFrame = $scene.captureFrame
             rendererSelectorProfile = if ($null -ne $rendererSelectorProfileData) { [string]$rendererSelectorProfileData.id } else { 'timedemo-defaults' }
             rendererSelectorProfilePath = $rendererSelectorProfilePathResolved
             rendererSelectors = if ($null -ne $rendererSelectorProfileData) { $rendererSelectorProfileData.selectors } else { @{} }
             tolerance = $effectiveTolerance
-            reference = [IO.Path]::GetFullPath((Join-Path $repoRoot ([string]$scene.reference)))
+            reference = $referencePath
             validationAutoexecCommands = $effectiveAutoexecCommands
             ignoredWarmupChecksumFrames = $warmupChecksumFrames
             visualParityOnly = [bool]$VisualParityOnly

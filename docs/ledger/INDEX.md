@@ -22,6 +22,7 @@ later insertion above it.
 | [`2026-10-09-print-times-assembly-port.md`](2026-10-09-print-times-assembly-port.md) | 2 | renderer port / diagnostics |
 | [`2026-10-09-r-blobexplosion-assembly-port.md`](2026-10-09-r-blobexplosion-assembly-port.md) | 4 | renderer port / particles (`C reference and behavior`; `Assembly, selector and fixture`; `Event-driven scene trace`; `Validation status`) |
 | [`2026-10-09-r-check-variables-assembly-port.md`](2026-10-09-r-check-variables-assembly-port.md) | 3 | renderer port / variable checks |
+| [`2026-10-09-r-lavasplash-assembly-port.md`](2026-10-09-r-lavasplash-assembly-port.md) | 3 | renderer port / particles (`Scope and traceability`; `Correctness fixture`; `LavaSplash validation status`) |
 | [`2026-10-09-r-rockettrail-assembly-port.md`](2026-10-09-r-rockettrail-assembly-port.md) | 3 | renderer port / particles (`Port and traceability`; `Reference fixture`; `Acceptance evidence`) |
 | [`2026-10-09-r-setupframe-assembly-port.md`](2026-10-09-r-setupframe-assembly-port.md) | 3 | renderer port / frame setup |
 | [`2026-10-09-r-transformplane-assembly-port.md`](2026-10-09-r-transformplane-assembly-port.md) | 2 | renderer port / plane math |

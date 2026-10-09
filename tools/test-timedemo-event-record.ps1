@@ -29,4 +29,25 @@ if (-not $rejectedMismatch) {
     throw 'Event parser accepted a total count inconsistent with stored frames plus overflow.'
 }
 
+$lava = Read-Bench486LavaSplashEvents -Report "lava-splash-events 1 frames 10 overflow 0`n"
+if ($lava.Count -ne 1 -or $lava.Frames.Count -ne 1 -or $lava.Frames[0] -ne 10 -or $lava.Overflow -ne 0) {
+    throw 'LavaSplash event record did not preserve the count, exact frame index, and overflow count.'
+}
+
+$lavaMissing = Read-Bench486LavaSplashEvents -Report "320 frames 1.0 seconds 320.0 fps`n"
+if ($null -ne $lavaMissing.Count -or $null -ne $lavaMissing.Frames -or $null -ne $lavaMissing.Overflow) {
+    throw 'A legacy report without the LavaSplash event record should return null event metadata.'
+}
+
+$lavaMismatchRejected = $false
+try {
+    [void](Read-Bench486LavaSplashEvents -Report "lava-splash-events 2 frames 9 overflow 0`n")
+}
+catch {
+    $lavaMismatchRejected = $true
+}
+if (-not $lavaMismatchRejected) {
+    throw 'LavaSplash event parser accepted a count inconsistent with its stored frames and overflow.'
+}
+
 Write-Output 'Timedemo event-record parser tests passed.'

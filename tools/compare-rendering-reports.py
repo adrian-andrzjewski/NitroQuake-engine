@@ -155,28 +155,51 @@ def _required_bench_events(entry: dict[str, Any], report_path: Path, scenario_id
     return sorted(required)
 
 
+def _expected_bench_event_frames(entry: dict[str, Any], report_path: Path, scenario_id: str) -> dict[str, list[int]]:
+    expected = entry.get("expectedBenchEventFrames", {})
+    if not isinstance(expected, dict):
+        raise ValueError(f"{report_path}: {scenario_id} expectedBenchEventFrames must be an object")
+    parsed: dict[str, list[int]] = {}
+    for event, frames in expected.items():
+        if event not in {"blobExplosion", "lavaSplash"}:
+            raise ValueError(f"{report_path}: {scenario_id} has unsupported expected bench event {event!r}")
+        if not isinstance(frames, list) or any(
+            not isinstance(frame, int) or isinstance(frame, bool) or frame < 0 for frame in frames
+        ):
+            raise ValueError(f"{report_path}: {scenario_id} expectedBenchEventFrames.{event} must be an array of nonnegative integers")
+        parsed[event] = frames
+    return parsed
+
+
 def _compare_required_bench_events(
     reference_run: dict[str, Any],
     candidate_run: dict[str, Any],
     required: list[str],
+    reference_expected_frames: dict[str, list[int]],
+    candidate_expected_frames: dict[str, list[int]],
     reference_checksum_frames: int | None,
     candidate_checksum_frames: int | None,
 ) -> dict[str, Any]:
     comparisons: dict[str, Any] = {}
     for event in required:
-        if event != "blobExplosion":
+        fields = {
+            "blobExplosion": ("blobExplosionEventFrames", "blobExplosionEventOverflow", None),
+            "lavaSplash": ("lavaSplashEventFrames", "lavaSplashEventOverflow", "lavaSplashEventCount"),
+        }.get(event)
+        if fields is None:
             comparisons[event] = {
                 "pass": False,
                 "error": f"unsupported required bench event {event!r}",
             }
             continue
 
-        left_frames = reference_run.get("blobExplosionEventFrames")
-        right_frames = candidate_run.get("blobExplosionEventFrames")
-        left_overflow = reference_run.get("blobExplosionEventOverflow")
-        right_overflow = candidate_run.get("blobExplosionEventOverflow")
+        frames_field, overflow_field, count_field = fields
+        left_frames = reference_run.get(frames_field)
+        right_frames = candidate_run.get(frames_field)
+        left_overflow = reference_run.get(overflow_field)
+        right_overflow = candidate_run.get(overflow_field)
 
-        def event_state(frames: Any, overflow: Any, checksum_frames: int | None) -> dict[str, Any]:
+        def event_state(run: dict[str, Any], frames: Any, overflow: Any, checksum_frames: int | None) -> dict[str, Any]:
             frames_valid = isinstance(frames, list) and all(
                 isinstance(frame, int) and not isinstance(frame, bool) for frame in frames
             )
@@ -187,22 +210,38 @@ def _compare_required_bench_events(
                 and checksum_frames_valid
                 and all(0 <= frame < checksum_frames for frame in frames)
             )
+            count = run.get(count_field) if count_field is not None else (
+                len(frames) + overflow if frames_valid and overflow_valid else None
+            )
+            count_valid = isinstance(count, int) and not isinstance(count, bool)
+            count_consistent = (
+                count_valid and frames_valid and overflow_valid and count == len(frames) + overflow
+            )
             return {
                 "frames": frames if frames_valid else None,
+                "count": count if count_valid else None,
                 "overflow": overflow if overflow_valid else None,
                 "checksumFrames": checksum_frames if checksum_frames_valid else None,
                 "dataPresent": frames_valid and overflow_valid,
+                "countConsistent": count_consistent,
                 "hasEvents": frames_valid and len(frames) > 0,
                 "noOverflow": overflow_valid and overflow == 0,
                 "frameIndicesInRange": indices_in_range,
             }
 
-        left = event_state(left_frames, left_overflow, reference_checksum_frames)
-        right = event_state(right_frames, right_overflow, candidate_checksum_frames)
+        left = event_state(reference_run, left_frames, left_overflow, reference_checksum_frames)
+        right = event_state(candidate_run, right_frames, right_overflow, candidate_checksum_frames)
         frames_match = left["frames"] == right["frames"] if left["dataPresent"] and right["dataPresent"] else False
+        expected_left = reference_expected_frames.get(event)
+        expected_right = candidate_expected_frames.get(event)
+        expectations_match = expected_left == expected_right
+        left_expected_match = expected_left is None or left["frames"] == expected_left
+        right_expected_match = expected_right is None or right["frames"] == expected_right
         event_pass = (
             left["dataPresent"]
             and right["dataPresent"]
+            and left["countConsistent"]
+            and right["countConsistent"]
             and left["hasEvents"]
             and right["hasEvents"]
             and left["noOverflow"]
@@ -210,11 +249,16 @@ def _compare_required_bench_events(
             and left["frameIndicesInRange"]
             and right["frameIndicesInRange"]
             and frames_match
+            and expectations_match
+            and left_expected_match
+            and right_expected_match
         )
         comparisons[event] = {
             "reference": left,
             "candidate": right,
             "framesMatch": frames_match,
+            "expectedFrames": {"reference": expected_left, "candidate": expected_right},
+            "expectedFramesMatch": expectations_match and left_expected_match and right_expected_match,
             "pass": event_pass,
         }
     return comparisons
@@ -263,6 +307,9 @@ def compare_reports(
         candidate_required_events = _required_bench_events(candidate_entry, candidate_report_path, scenario_id)
         required_events = sorted(set(reference_required_events) | set(candidate_required_events))
         event_requirements_match = reference_required_events == candidate_required_events
+        reference_expected_event_frames = _expected_bench_event_frames(reference_entry, reference_report_path, scenario_id)
+        candidate_expected_event_frames = _expected_bench_event_frames(candidate_entry, candidate_report_path, scenario_id)
+        expected_event_frames_match = reference_expected_event_frames == candidate_expected_event_frames
         reference_runs = _runs_by_id(reference_entry, reference_report_path, scenario_id)
         candidate_runs = _runs_by_id(candidate_entry, candidate_report_path, scenario_id)
         reference_images = reference_entry.get("imageComparisons")
@@ -298,6 +345,8 @@ def compare_reports(
                     left,
                     right,
                     required_events,
+                    reference_expected_event_frames,
+                    candidate_expected_event_frames,
                     checksum_comparison.get("referenceFrames"),
                     checksum_comparison.get("candidateFrames"),
                 )
@@ -335,6 +384,7 @@ def compare_reports(
             "pass": (
                 image_shape_ok
                 and event_requirements_match
+                and expected_event_frames_match
                 and bool(run_results)
                 and all(item.get("pass", False) for item in run_results)
             ),
@@ -349,6 +399,11 @@ def compare_reports(
                 "candidate": candidate_required_events,
                 "match": event_requirements_match,
                 "events": required_events,
+            },
+            "expectedBenchEventFrames": {
+                "reference": reference_expected_event_frames,
+                "candidate": candidate_expected_event_frames,
+                "match": expected_event_frames_match,
             },
             "runs": run_results,
         })

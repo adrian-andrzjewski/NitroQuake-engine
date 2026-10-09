@@ -182,6 +182,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$LavaSplashImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
@@ -296,6 +298,7 @@ param(
     [switch]$ParticleExplosionOnly,
     [switch]$ParticleExplosion2Only,
     [switch]$BlobExplosionOnly,
+    [switch]$LavaSplashOnly,
     [switch]$RocketTrailOnly,
     [switch]$ZSubmodelPolygonsOnly,
     [switch]$FrustumTransformOnly,
@@ -353,6 +356,9 @@ if ($ParticleExplosion2Only -and $ParticleExplosion2Implementation -ne 'asm') {
 }
 if ($BlobExplosionOnly -and $BlobExplosionImplementation -ne 'asm') {
     throw '-BlobExplosionOnly requires -BlobExplosionImplementation asm.'
+}
+if ($LavaSplashOnly -and $LavaSplashImplementation -ne 'asm') {
+    throw '-LavaSplashOnly requires -LavaSplashImplementation asm.'
 }
 if ($RocketTrailOnly -and $RocketTrailImplementation -ne 'asm') {
     throw '-RocketTrailOnly requires -RocketTrailImplementation asm.'
@@ -526,6 +532,7 @@ $buildParams = @{
         PrintTimesImplementation = $PrintTimesImplementation
         ParticleExplosion2Implementation = $ParticleExplosion2Implementation
         BlobExplosionImplementation = $BlobExplosionImplementation
+        LavaSplashImplementation = $LavaSplashImplementation
         RocketTrailImplementation = $RocketTrailImplementation
         ParticleExplosionImplementation = $ParticleExplosionImplementation
         PaletteImplementation = $PaletteImplementation
@@ -792,6 +799,9 @@ elseif ($ParticleExplosion2Only) {
 elseif ($BlobExplosionOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchblobexplosion -benchexit'
 }
+elseif ($LavaSplashOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlavasplash -benchexit'
+}
 elseif ($RocketTrailOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchrockettrail -benchexit'
 }
@@ -977,6 +987,7 @@ $result = [ordered]@{
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     blobExplosionImplementation = $BlobExplosionImplementation
+    lavaSplashImplementation = $LavaSplashImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     worldControlImplementation = $WorldControlImplementation
@@ -1023,6 +1034,7 @@ $result = [ordered]@{
     particleListOnly = [bool]$ParticleListOnly
     particleExplosion2Only = [bool]$ParticleExplosion2Only
     blobExplosionOnly = [bool]$BlobExplosionOnly
+    lavaSplashOnly = [bool]$LavaSplashOnly
     rocketTrailOnly = [bool]$RocketTrailOnly
     particleExplosionOnly = [bool]$ParticleExplosionOnly
     transformPlaneOnly = [bool]$TransformPlaneOnly

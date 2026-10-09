@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-lavasplash-asm",
+  "description": "i486 assembly LavaSplash selector for an isolated renderer parity pair.",
+  "selectors": {
+    "LavaSplashImplementation": "asm"
+  }
+}

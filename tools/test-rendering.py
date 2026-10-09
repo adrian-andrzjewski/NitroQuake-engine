@@ -48,6 +48,7 @@ def load_json(text: str) -> dict:
         document["selectors"].setdefault("ParticleExplosionImplementation", "c")
         document["selectors"].setdefault("ParticleExplosion2Implementation", "c")
         document["selectors"].setdefault("BlobExplosionImplementation", "c")
+        document["selectors"].setdefault("LavaSplashImplementation", "c")
         document["selectors"].setdefault("RocketTrailImplementation", "c")
         document["selectors"].setdefault("TransformPlaneImplementation", "c")
     return document
@@ -288,6 +289,74 @@ class RenderingComparisonTests(unittest.TestCase):
         optional = report_comparator.compare_reports(no_requirement_reference, no_requirement_candidate)
         self.assertTrue(optional["pass"])
 
+    def test_required_lavasplash_event_requires_exact_frame_and_pair_parity(self) -> None:
+        expected = {"lavaSplash": [10]}
+
+        def write_report(name: str, event: dict | None, *, expected_frames: dict = expected) -> Path:
+            checksum_path = self.root / f"{name}-checksums.txt"
+            checksum_rows = "".join(f"{frame} {123 + frame}\n" for frame in range(16))
+            checksum_path.write_text(f"{checksum_rows}frames 16 overflow 0\n", encoding="ascii")
+            image_path = self.capture(f"{name}.pcx")
+            diagnostic = {"run": 1, "frameChecksumPath": str(checksum_path)}
+            if event is not None:
+                diagnostic.update(event)
+            scenario = {
+                "scenario": "demo2-lavasplash-event",
+                "result": "PASS",
+                "reference": None,
+                "captureFrame": 10,
+                "ignoredWarmupChecksumFrames": 2,
+                "requiredBenchEvents": ["lavaSplash"],
+                "expectedBenchEventFrames": expected_frames,
+                "frameDiagnostics": [diagnostic],
+                "imageComparisons": [{"actual": {"path": str(image_path)}}],
+            }
+            report_path = self.root / f"{name}-report.json"
+            report_path.write_text(json.dumps({
+                "schemaVersion": 1,
+                "result": "PASS",
+                "cpuTarget": "i486",
+                "sourceTreeFingerprint": "fixture-tree",
+                "scenarios": [scenario],
+            }), encoding="utf-8")
+            return report_path
+
+        valid_event = {
+            "lavaSplashEventCount": 1,
+            "lavaSplashEventFrames": [10],
+            "lavaSplashEventOverflow": 0,
+        }
+        reference = write_report("lava-reference", valid_event)
+        candidate = write_report("lava-candidate", valid_event)
+        compared = report_comparator.compare_reports(reference, candidate)
+        self.assertTrue(compared["pass"])
+        run = compared["scenarios"][0]["runs"][0]
+        self.assertTrue(run["frameChecksums"]["exactMatch"])
+        self.assertTrue(run["framebuffer"]["exactMatch"])
+        self.assertTrue(run["benchEvents"]["lavaSplash"]["pass"])
+        self.assertEqual(run["benchEvents"]["lavaSplash"]["expectedFrames"]["reference"], [10])
+
+        invalid_cases = (
+            ("wrong-frame", {"lavaSplashEventCount": 1, "lavaSplashEventFrames": [9], "lavaSplashEventOverflow": 0}),
+            ("wrong-count", {"lavaSplashEventCount": 2, "lavaSplashEventFrames": [10], "lavaSplashEventOverflow": 0}),
+            ("overflow", {"lavaSplashEventCount": 2, "lavaSplashEventFrames": [10], "lavaSplashEventOverflow": 1}),
+            ("missing-count", {"lavaSplashEventFrames": [10], "lavaSplashEventOverflow": 0}),
+            ("missing-event", None),
+        )
+        for name, event_data in invalid_cases:
+            with self.subTest(case=name):
+                invalid = write_report(name, event_data)
+                result = report_comparator.compare_reports(reference, invalid)
+                self.assertFalse(result["pass"])
+                self.assertFalse(result["scenarios"][0]["runs"][0]["benchEvents"]["lavaSplash"]["pass"])
+
+        wrong_expected = write_report("wrong-expected", valid_event, expected_frames={"lavaSplash": [9]})
+        expected_result = report_comparator.compare_reports(reference, wrong_expected)
+        self.assertFalse(expected_result["pass"])
+        self.assertFalse(
+            expected_result["scenarios"][0]["runs"][0]["benchEvents"]["lavaSplash"]["expectedFramesMatch"]
+        )
+
     def test_render_validation_enforces_and_exports_required_event_data(self) -> None:
         source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("$requiredBenchEvents -contains 'blobExplosion'", source)
@@ -301,6 +370,17 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("Compare-Bench486EventRepeat", source)
         self.assertIn("repeat-blob-explosion-event-stability", source)
         self.assertIn("blobExplosionEventRepeatParity = $blobExplosionEventRepeatParity", source)
+        self.assertIn("$requiredBenchEvents -contains 'lavaSplash'", source)
+        self.assertIn("lavaSplashEventCount = $lavaSplashEventCount", source)
+        self.assertIn("expectedBenchEventFrames = $expectedBenchEventFrames", source)
+        self.assertIn("expectedLavaSplashEventFrames", source)
+        self.assertIn("repeat-lava-splash-event-stability", source)
+        self.assertLess(
+            source.index("required lavaSplash event count/frame/overflow metadata is missing"),
+            source.index("if ($SkipGoldenImageComparison)"),
+            "pair-only scenarios must enforce LavaSplash telemetry before deferring golden-image comparison",
+        )
+        self.assertIn("$lavaSplashEventFrames", source[source.index("foreach ($captureBenchEvent") :])
 
     def test_repeat_event_parity_helper_is_wired_and_covers_frames_and_overflow(self) -> None:
         source = (ROOT / "tools/bench-event-repeat.ps1").read_text(encoding="utf-8")
@@ -313,17 +393,20 @@ class RenderingComparisonTests(unittest.TestCase):
     def test_timedemo_event_parser_accepts_overflow_accounting_contract(self) -> None:
         source = (ROOT / "tools/timedemo-event-record.ps1").read_text(encoding="utf-8")
         timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        workflow_source = (ROOT / "tools/run-tests.ps1").read_text(encoding="utf-8")
         self.assertIn("$count -ne ($frames.Count + $overflow)", source)
         self.assertIn("if ($eventLines.Count -eq 0)", source)
         self.assertIn("Frames = $null", source)
         self.assertIn("Read-Bench486BlobExplosionEvents -Report $report", timedemo_source)
+        self.assertIn("Read-Bench486LavaSplashEvents -Report $report", timedemo_source)
+        self.assertIn("test-timedemo-event-record.ps1", workflow_source)
 
     def test_scenario_manifest_has_pinned_references(self) -> None:
         manifest = load_json((ROOT / "tools/render-scenarios.json").read_text(encoding="utf-8"))
         scenarios = manifest["scenarios"]
         self.assertTrue(scenarios)
         self.assertIn("host_framerate 0.0783", manifest["validationAutoexecCommands"])
-        self.assertGreater(manifest["warmupChecksumFrames"], 0)
+        self.assertGreaterEqual(manifest["warmupChecksumFrames"], 0)
         self.assertEqual(len({scene["id"] for scene in scenarios}), len(scenarios))
         scenario_by_id = {scene["id"]: scene for scene in scenarios}
         self.assertEqual(scenario_by_id["demo1-vesa-full"]["autoexecCommands"], ["d_subdiv16 1"])
@@ -350,34 +433,101 @@ class RenderingComparisonTests(unittest.TestCase):
         focused_manifest = load_json(
             (ROOT / "tools/render-scenarios-blob-explosion.json").read_text(encoding="utf-8")
         )
+        self.assertEqual(focused_manifest["warmupChecksumFrames"], 4)
         base_scenario = next(
             scene for scene in base_manifest["scenarios"]
             if scene["id"] == "demo2-entity-workload"
         )
         self.assertEqual(len(focused_manifest["scenarios"]), 1)
         focused_scenario = focused_manifest["scenarios"][0]
-
-        for key in (
-            "id",
-            "demo",
-            "quakeExtraArgs",
-            "expectedFrames",
-            "expectedChecksum",
-            "captureFrame",
-            "repeatRuns",
-            "reference",
-        ):
-            with self.subTest(field=key):
-                self.assertEqual(focused_scenario[key], base_scenario[key])
-        self.assertEqual(focused_scenario["expectedFrames"], 985)
-        self.assertEqual(focused_scenario["expectedChecksum"], 1887495667)
-        self.assertEqual(focused_scenario["captureFrame"], 169)
+        self.assertEqual(focused_scenario["id"], "demo2-blob-explosion-event")
+        self.assertEqual(focused_scenario["demo"], base_scenario["demo"])
+        self.assertEqual(focused_scenario["quakeExtraArgs"], base_scenario["quakeExtraArgs"])
+        self.assertEqual(focused_scenario["expectedFrames"], 10)
+        self.assertEqual(focused_scenario["expectedChecksum"], 2074560903)
+        self.assertEqual(focused_scenario["captureFrame"], 10)
+        self.assertGreaterEqual(focused_scenario["repeatRuns"], 2)
         self.assertEqual(
             focused_scenario["reference"],
-            "tools/golden/render/demo2-entity-workload.pcx",
+            "tools/golden/render/blob-explosion-event.pcx",
+        )
+        self.assertEqual(
+            focused_scenario["tolerance"],
+            {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0},
+        )
+        self.assertEqual(
+            focused_scenario["demoFixture"],
+            {
+                "sourceMember": "demo2.dem",
+                "firstPostSignonRecord": 4,
+                "keepPostSignonRecords": 11,
+                "eventRecord": 14,
+                "eventType": 4,
+                "coordShorts": [-2136, 17413, 9968],
+                "pakEntry": "demo2.dem",
+            },
         )
         self.assertEqual(focused_scenario["requiredBenchEvents"], ["blobExplosion"])
+        self.assertEqual(focused_scenario["captureBenchEvents"], ["blobExplosion"])
         self.assertIn("TE_TAREXPLOSION", focused_scenario["description"])
+
+    def test_lavasplash_scenario_is_pair_only_exact_and_uses_isolated_profiles(self) -> None:
+        manifest = load_json(
+            (ROOT / "tools/render-scenarios-lavasplash.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(manifest["warmupChecksumFrames"], 4)
+        self.assertEqual(len(manifest["scenarios"]), 1)
+        scene = manifest["scenarios"][0]
+        self.assertEqual(scene["id"], "demo2-lavasplash-event")
+        self.assertIn("TE_LAVASPLASH", scene["description"])
+        self.assertEqual(scene["expectedFrames"], 10)
+        self.assertEqual(scene["expectedChecksum"], 0)
+        self.assertEqual(scene["captureFrame"], 10)
+        self.assertEqual(scene["requiredBenchEvents"], ["lavaSplash"])
+        self.assertEqual(scene["expectedBenchEventFrames"], {"lavaSplash": [10]})
+        self.assertEqual(scene["captureBenchEvents"], ["lavaSplash"])
+        self.assertIsNone(scene["reference"])
+        self.assertEqual(
+            scene["tolerance"],
+            {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0},
+        )
+        self.assertEqual(
+            scene["demoFixture"],
+            {
+                "sourceMember": "demo2.dem",
+                "firstPostSignonRecord": 4,
+                "keepPostSignonRecords": 11,
+                "eventRecord": 14,
+                "eventType": 10,
+                "coordShorts": [-2136, 17413, 9968],
+                "pakEntry": "demo2.dem",
+            },
+        )
+
+        c_profile = json.loads(
+            (ROOT / "tools/renderer-profiles/i486-lavasplash-c.json").read_text(encoding="utf-8")
+        )
+        asm_profile = json.loads(
+            (ROOT / "tools/renderer-profiles/i486-lavasplash-asm.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(c_profile["selectors"], {"LavaSplashImplementation": "c"})
+        self.assertEqual(asm_profile["selectors"], {"LavaSplashImplementation": "asm"})
+        timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        self.assertRegex(
+            timedemo_source,
+            r"(?m)^\s*\[string\]\$LavaSplashImplementation\s*=\s*'c'",
+        )
+        for profile in (c_profile, asm_profile):
+            for selector in profile["selectors"]:
+                self.assertIn(selector, timedemo_source)
+        validation_source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
+        parity_source = (ROOT / "tools/render-parity-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("must define a reference image unless golden comparison is deferred", validation_source)
+        self.assertIn(
+            '"reference": null',
+            (ROOT / "tools/render-scenarios-lavasplash.json").read_text(encoding="utf-8"),
+        )
+        self.assertIn("$validationArgs += '-SkipGoldenImageComparison'", parity_source)
 
     def test_assembly_selector_profile_uses_supported_i486_paths(self) -> None:
         profile_path = ROOT / "tools/renderer-profiles/i486-asm-selectable.json"
@@ -789,7 +939,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 85)
+        self.assertEqual(len(reference["selectors"]), 86)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -852,7 +1002,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 85)
+        self.assertEqual(len(reference["selectors"]), 86)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])

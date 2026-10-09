@@ -169,6 +169,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$LavaSplashImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
@@ -495,7 +497,7 @@ $cSources = @($allCSources | Where-Object { $_.Name -notin $includedCSources })
 $allAsmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File | Sort-Object Name)
 
 # Which .s files are live, from the selector table's SelectsAsm column rather than
-# from a hand-copied list of the thirteen implementation selectors. A -Benchmark
+# from a hand-copied list of the implementation selectors. A -Benchmark
 # build compiles all of them, because the bench harness compares C against asm and
 # needs both sides present.
 $asmIsLive = $Benchmark -or (@(
@@ -588,7 +590,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 49
+$expectedAllAssemblySourceCount = 50
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {

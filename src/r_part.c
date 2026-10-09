@@ -113,6 +113,41 @@ typedef char blob_explosion_particle_types[
 		(pt_blob == 6 && pt_blob2 == 7) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_LAVA_SPLASH) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char lava_splash_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char lava_splash_particle_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, ramp) == 32 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char lava_splash_client_time_layout[
+		(offsetof(client_state_t, time) == 572 &&
+		sizeof(((client_state_t *)0)->time) == 8) ? 1 : -1];
+typedef char lava_splash_particle_type[(pt_slowgrav == 2) ? 1 : -1];
+#endif
+
+#ifdef BENCH486
+int (*bench486_lavasplash_rand_probe) (void);
+unsigned bench486_lavasplash_rand_calls;
+
+int Bench486LavaSplashRand (void)
+{
+	bench486_lavasplash_rand_calls++;
+	if (bench486_lavasplash_rand_probe)
+		return bench486_lavasplash_rand_probe ();
+	return rand ();
+}
+#define LAVA_SPLASH_RAND() Bench486LavaSplashRand ()
+#else
+#define LAVA_SPLASH_RAND() rand ()
+#endif
+
 #ifdef BENCH486
 int (*bench486_particleexplosion_rand_probe) (void);
 unsigned bench486_particleexplosion_rand_calls;
@@ -619,6 +654,10 @@ R_LavaSplash
 
 ===============
 */
+#ifdef ASM486_LAVA_SPLASH
+#define R_LavaSplash R_LavaSplash_C
+#endif
+#if !defined(ASM486_LAVA_SPLASH) || defined(BENCH486)
 void R_LavaSplash (vec3_t org)
 {
 	int			i, j, k;
@@ -637,23 +676,28 @@ void R_LavaSplash (vec3_t org)
 				p->next = active_particles;
 				active_particles = p;
 		
-				p->die = cl.time + 2 + (rand()&31) * 0.02;
-				p->color = 224 + (rand()&7);
+				p->die = cl.time + 2 + (LAVA_SPLASH_RAND()&31) * 0.02;
+				p->color = 224 + (LAVA_SPLASH_RAND()&7);
 				p->type = pt_slowgrav;
 				
-				dir[0] = j*8 + (rand()&7);
-				dir[1] = i*8 + (rand()&7);
+				dir[0] = j*8 + (LAVA_SPLASH_RAND()&7);
+				dir[1] = i*8 + (LAVA_SPLASH_RAND()&7);
 				dir[2] = 256;
 	
 				p->org[0] = org[0] + dir[0];
 				p->org[1] = org[1] + dir[1];
-				p->org[2] = org[2] + (rand()&63);
+				p->org[2] = org[2] + (LAVA_SPLASH_RAND()&63);
 	
 				VectorNormalize (dir);						
-				vel = 50 + (rand()&63);
+				vel = 50 + (LAVA_SPLASH_RAND()&63);
 				VectorScale (dir, vel, p->vel);
 			}
 }
+#endif
+#ifdef ASM486_LAVA_SPLASH
+#undef R_LavaSplash
+#endif
+#undef LAVA_SPLASH_RAND
 
 /*
 ===============

@@ -49,18 +49,63 @@ independently of optional checksum output and aligns with the checksum stream
 when checksum capture is enabled. The report line is
 `blob-explosion-events <count> frames <indices...> overflow <overflow>`.
 
-`tools/render-scenarios-blob-explosion.json` narrows the pinned
-`demo2-entity-workload` scene and requires the `blobExplosion` event. It retains
-the reference scene's 985 frames, checksum `1887495667`, capture frame 169 and
-golden PCX reference. The manifest test verifies those pinned fields and the
-required event. The host rendering test suite passed all 68 tests, including
-that manifest test, and the PowerShell event-record parser regression passed.
+`tools/render-scenarios-blob-explosion.json` defines a short event-driven
+fixture. The generator reads `demo2.dem` from `pak0.pak`, preserves source
+records 0 through 14, and appends the `TE_TAREXPLOSION` to source record 14.
+That record is the eleventh retained post-signon record: the fixture starts its
+post-signon prefix at record 4 and keeps 11 records. The event coordinates are
+protocol shorts `[-2136, 17413, 9968]` (each coordinate is in eighths of a world
+unit). The generator then appends a separate one-byte `svc_disconnect` record
+using the last retained view angles. The timedemo runner wraps the short demo in
+a tiny root-entry `demo2.dem` override at the next contiguous PAK index, hashes
+both generated artifacts, and removes the loose temporary `.dem` before
+launching Quake. This lets `timedemo demo2` reach Quake's ordinary timedemo
+completion path without copying the full game data or reading the rest of the
+source demo.
+
+The scene manifest fixes `host_framerate` at `0.0783`, runs twice by default,
+requires a non-overflowing `blobExplosion` event, and requires the capture to
+land on that event. Its C-reference baseline is 10 reported timedemo frames,
+final checksum `2074560903`, capture/checksum-stream frame index 10, and the
+committed 320x200 PCX. Image tolerance is zero for both changed pixels and mean
+channel error.
+
+The C-reference validation report at
+`out/render-validation-20261009-205727/render-validation-result.json` passed
+both runs. Each run reported 10 timedemo frames and 11 checksum records; the
+extra record is the setup frame that `CL_FinishTimeDemo` excludes from its
+reported count. Both runs recorded exactly one event at absolute checksum
+index 10, with overflow 0, and captured index 10. Both captured PCX files
+matched the committed golden exactly: all 64,000 indexed pixels and the full
+palette matched. The first four checksum records varied between the repeated
+C runs; indices 4 through 10 matched. Accordingly, this fixture manifest
+excludes only its four leading checksum records from repeat and paired-stream
+stability comparisons. The final event frame remains compared and is also
+checked against the exact golden image. These results validate the fixture,
+termination, event/capture alignment, and C-reference baseline.
+
+The paired report at `out/render-parity-20261009-211014` passed both C and
+assembly profiles for two runs each. Every run recorded one event at frame 10
+with zero overflow and 11 checksum records. After excluding the four startup
+records, all seven remaining checksums matched exactly between C and assembly.
+Both captured frames from each profile matched exactly: all 64,000 pixel
+indices and the palette bytes matched. The C and assembly profiles each
+reported a median of 12.1 fps. This verifies exact rendering parity for this
+focused BlobExplosion scene; the timing is recorded for regression context,
+not as an optimization target.
 
 ## Validation status
 
-The source, selector, direct fixture, event trace and focused scene manifest
-are wired, but runtime acceptance is still pending. No result is claimed for
-the strict i486 build and ISA gate, the direct DOSBox fixture, or the paired
-C-reference/assembly framebuffer and checksum run. All three remain
-**PENDING**; the assembly output has not yet been demonstrated equivalent in
-the target runtime.
+The combined LavaSplash and BlobExplosion assembly candidate passed the full
+executable ISA gate in `out/profile-96593b38735b634c`. The linked image
+contains 205,914 audited instructions across 367 objects, with zero post-486,
+unknown, or exempted instructions; 355 source-bound contributions and 1,635
+CODE ranges were verified. The startup proof audited 529 rows, and the
+maintained CWS DPMI provider passed with 9,207 instructions and zero
+exemptions. The paired C-reference/assembly framebuffer and checksum run
+passed as described above. The direct `Bench486BlobExplosionCases` fixture
+also passed all seven C/ASM cases in
+`out/dos-bench-20261009-215537/bench-result.json`, including full pool/list
+state, ABI, and RNG-continuation checks. This evidence establishes this
+slice's machine-code compatibility and focused scene parity; it does not
+establish completion of the broader renderer port.
