@@ -237,7 +237,8 @@ static unsigned Bench486BlobExplosionRunSide (
 	*free_result = free_particles;
 	Q_memcpy (&time_after, &cl.time, sizeof(time_after));
 	*valid = Bench486BlobExplosionStateValid (test, org) &&
-			Q_memcmp (&time_after, &test->time, sizeof(time_after)) == 0;
+			Q_memcmp (&time_after, (void *)&test->time,
+				sizeof(time_after)) == 0;
 	Q_memcpy (snapshot, &bench486_blobexplosion_fixture,
 			sizeof(bench486_blobexplosion_fixture));
 	return abi;
