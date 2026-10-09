@@ -36,6 +36,24 @@ typedef char particle_update_layout[
 		sizeof(particle_t) == 40) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_PARTICLE_EXPLOSION2) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char particle_explosion2_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char particle_explosion2_particle_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(((particle_t *)0)->die) == 4 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char particle_explosion2_client_time_offset[
+		(offsetof(client_state_t, time) == 572) ? 1 : -1];
+typedef char particle_explosion2_blob_type[(pt_blob == 6) ? 1 : -1];
+#endif
+
 #ifdef PROFILE486
 extern unsigned long bench486_gib_trail_particles;
 #endif
@@ -346,6 +364,10 @@ R_ParticleExplosion2
 
 ===============
 */
+#ifdef ASM486_PARTICLE_EXPLOSION2
+#define R_ParticleExplosion2 R_ParticleExplosion2_C
+#endif
+#if !defined(ASM486_PARTICLE_EXPLOSION2) || defined(BENCH486)
 void R_ParticleExplosion2 (vec3_t org, int colorStart, int colorLength)
 {
 	int			i, j;
@@ -373,6 +395,10 @@ void R_ParticleExplosion2 (vec3_t org, int colorStart, int colorLength)
 		}
 	}
 }
+#endif
+#ifdef ASM486_PARTICLE_EXPLOSION2
+#undef R_ParticleExplosion2
+#endif
 
 /*
 ===============

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "i486-asm-selectable",
-  "description": "Select every current renderer implementation selector that exposes an i486 assembly path. C-only and non-renderer selectors retain their timedemo defaults.",
+  "description": "Select every implementation in the current i486 assembly coverage profile.",
   "selectors": {
     "TextureAxisImplementation": "asm",
     "SurfaceCacheImplementation": "asm",
@@ -81,6 +81,8 @@
     "VisibilityImplementation": "asm",
     "PublicBindingsImplementation": "asm",
     "SkyImplementation": "asm",
-    "AliasStatsImplementation": "asm"
+    "AliasStatsImplementation": "asm",
+    "PrintTimesImplementation": "asm",
+    "ParticleExplosion2Implementation": "asm"
   }
 }

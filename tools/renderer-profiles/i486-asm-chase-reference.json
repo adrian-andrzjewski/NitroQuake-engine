@@ -84,6 +84,7 @@
     "DrawingDriverImplementation": "asm",
     "ViewControlImplementation": "asm",
     "DrawingImplementation": "asm",
-    "ChaseImplementation": "c"
+    "ChaseImplementation": "c",
+    "ParticleExplosion2Implementation": "c"
   }
 }

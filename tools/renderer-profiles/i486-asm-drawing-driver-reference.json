@@ -81,6 +81,7 @@
     "PublicBindingsImplementation": "asm",
     "SkyImplementation": "asm",
     "RenderDispatchImplementation": "asm",
-    "DrawingDriverImplementation": "c"
+    "DrawingDriverImplementation": "c",
+    "ParticleExplosion2Implementation": "c"
   }
 }

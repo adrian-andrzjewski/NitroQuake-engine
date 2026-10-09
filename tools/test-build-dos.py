@@ -1280,8 +1280,46 @@ def main() -> int:
             if "r_aliasstatsasm.s" not in dump.get("assemblySources", []):
                 fail("the R_PrintAliasStats %s selector omits r_aliasstatsasm.s from the source inventory" % dump_name)
 
+    print_times_c = dump_flags("-PrintTimesImplementation", "c")
+    print_times_asm = dump_flags("-PrintTimesImplementation", "asm")
+    if print_times_c and print_times_asm:
+        if print_times_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_PrintTimes C selector changes the promoted i486 suffix")
+        asm_suffix = print_times_asm.get("profileSuffix", "")
+        if asm_suffix.count("-printtimesasm") != 1:
+            fail("the R_PrintTimes assembly selector lacks its profile token")
+        elif asm_suffix.replace("-printtimesasm", "") != print_times_c.get("profileSuffix"):
+            fail("the R_PrintTimes assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_PRINT_TIMES" in print_times_c.get(flags_name, []):
+                fail("the R_PrintTimes C selector enables ASM486_PRINT_TIMES in %s" % flags_name)
+            if "-DASM486_PRINT_TIMES" not in print_times_asm.get(flags_name, []):
+                fail("the R_PrintTimes assembly selector omits ASM486_PRINT_TIMES from %s" % flags_name)
+        for dump_name, dump in (("C", print_times_c), ("assembly", print_times_asm)):
+            if "r_printtimesasm.s" not in dump.get("assemblySources", []):
+                fail("the R_PrintTimes %s selector omits r_printtimesasm.s from the source inventory" % dump_name)
+
+    particle_explosion2_c = dump_flags("-ParticleExplosion2Implementation", "c")
+    particle_explosion2_asm = dump_flags("-ParticleExplosion2Implementation", "asm")
+    if particle_explosion2_c and particle_explosion2_asm:
+        if particle_explosion2_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_ParticleExplosion2 C selector changes the promoted i486 suffix")
+        asm_suffix = particle_explosion2_asm.get("profileSuffix", "")
+        if asm_suffix.count("-particleexplosion2asm") != 1:
+            fail("the R_ParticleExplosion2 assembly selector lacks its profile token")
+        elif asm_suffix.replace("-particleexplosion2asm", "") != particle_explosion2_c.get("profileSuffix"):
+            fail("the R_ParticleExplosion2 assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_PARTICLE_EXPLOSION2" in particle_explosion2_c.get(flags_name, []):
+                fail("the R_ParticleExplosion2 C selector enables ASM486_PARTICLE_EXPLOSION2 in %s" % flags_name)
+            if "-DASM486_PARTICLE_EXPLOSION2" not in particle_explosion2_asm.get(flags_name, []):
+                fail("the R_ParticleExplosion2 assembly selector omits ASM486_PARTICLE_EXPLOSION2 from %s" % flags_name)
+        for dump_name, dump in (("C", particle_explosion2_c), ("assembly", particle_explosion2_asm)):
+            if "r_particleexplosion2asm.s" not in dump.get("assemblySources", []):
+                fail("the R_ParticleExplosion2 %s selector omits r_particleexplosion2asm.s from the source inventory" % dump_name)
+
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 43 assembly sources (one is omitted only
+    #    included by another unit), 45 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1293,9 +1331,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 43:
+        if dump.get("allAssemblySourceCount") != 45:
             fail(
-                "%s: expected 43 assembly sources, got %r"
+                "%s: expected 45 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

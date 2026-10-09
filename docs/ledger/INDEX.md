@@ -17,6 +17,8 @@ later insertion above it.
 | [`2026-10-09-alias-stats-assembly-port.md`](2026-10-09-alias-stats-assembly-port.md) | 3 | renderer port / alias |
 | [`2026-10-09-drawspans-dispatch-parity.md`](2026-10-09-drawspans-dispatch-parity.md) | 4 | renderer port / span dispatch |
 | [`2026-10-09-line-graph-assembly-port.md`](2026-10-09-line-graph-assembly-port.md) | 3 | renderer port / timing overlay |
+| [`2026-10-09-particle-explosion2-assembly-port.md`](2026-10-09-particle-explosion2-assembly-port.md) | 2 | renderer port / particles |
+| [`2026-10-09-print-times-assembly-port.md`](2026-10-09-print-times-assembly-port.md) | 2 | renderer port / diagnostics |
 | [`2026-10-09-r-check-variables-assembly-port.md`](2026-10-09-r-check-variables-assembly-port.md) | 3 | renderer port / variable checks |
 | [`2026-10-09-r-setupframe-assembly-port.md`](2026-10-09-r-setupframe-assembly-port.md) | 3 | renderer port / frame setup |
 | [`2026-10-09-selectable-84-alias-control-checkpoint.md`](2026-10-09-selectable-84-alias-control-checkpoint.md) | 5 | renderer port / alias-control integration |
@@ -286,6 +288,12 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [`R_ParticleExplosion2` -> i486 assembly port (2026-10-09)](2026-10-09-particle-explosion2-assembly-port.md)
+- `measured` [Particle pool semantics and ABI](2026-10-09-particle-explosion2-assembly-port.md)
+- `measured` [Full-state fixture and i486 results](2026-10-09-particle-explosion2-assembly-port.md)
+- `measured` [`R_PrintTimes` -> i486 assembly port (2026-10-09)](2026-10-09-print-times-assembly-port.md)
+- `measured` [Time conversion, formatting, and ABI](2026-10-09-print-times-assembly-port.md)
+- `measured` [Deterministic console fixture and i486 results](2026-10-09-print-times-assembly-port.md)
 - `measured` [`R_LineGraph` -> `R_LineGraph_asm486` port](2026-10-09-line-graph-assembly-port.md)
 - `measured` [Leaf behavior and ownership](2026-10-09-line-graph-assembly-port.md)
 - `measured` [Selection and oracle](2026-10-09-line-graph-assembly-port.md)

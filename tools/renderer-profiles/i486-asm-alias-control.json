@@ -85,6 +85,7 @@
     "ViewControlImplementation": "asm",
     "DrawingImplementation": "asm",
     "ChaseImplementation": "asm",
-    "AliasControlImplementation": "asm"
+    "AliasControlImplementation": "asm",
+    "ParticleExplosion2Implementation": "c"
   }
 }

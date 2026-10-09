@@ -83,6 +83,7 @@
     "RenderDispatchImplementation": "asm",
     "DrawingDriverImplementation": "asm",
     "ViewControlImplementation": "asm",
-    "DrawingImplementation": "asm"
+    "DrawingImplementation": "asm",
+    "ParticleExplosion2Implementation": "c"
   }
 }

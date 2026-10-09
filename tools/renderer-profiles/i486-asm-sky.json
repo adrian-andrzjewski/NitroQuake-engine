@@ -79,6 +79,7 @@
     "MathClosureImplementation": "asm",
     "VisibilityImplementation": "asm",
     "PublicBindingsImplementation": "asm",
-    "SkyImplementation": "asm"
+    "SkyImplementation": "asm",
+    "ParticleExplosion2Implementation": "c"
   }
 }

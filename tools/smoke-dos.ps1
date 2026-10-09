@@ -149,6 +149,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$PrintTimesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderWorldImplementation = 'c',
@@ -221,6 +223,8 @@ param(
     [string]$BspClipImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -318,6 +322,8 @@ $buildParams = @{
     FrameControlImplementation = $FrameControlImplementation
     LineGraphImplementation = $LineGraphImplementation
     AliasStatsImplementation = $AliasStatsImplementation
+    PrintTimesImplementation = $PrintTimesImplementation
+    ParticleExplosion2Implementation = $ParticleExplosion2Implementation
     PaletteImplementation = $PaletteImplementation
     MathClosureImplementation = $MathClosureImplementation
     VisibilityImplementation = $VisibilityImplementation
@@ -480,6 +486,8 @@ $result = [ordered]@{
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
+    printTimesImplementation = $PrintTimesImplementation
+    particleExplosion2Implementation = $ParticleExplosion2Implementation
     worldControlImplementation = $WorldControlImplementation
     providerVerification = $providerVerification
     renderMathImplementation = $RenderMathImplementation

@@ -74,6 +74,7 @@ $script:AssemblyBackedImplementations = @(
     'BspClipImplementation',
     'RenderWorldImplementation',
     'ParticleUpdateImplementation',
+    'ParticleExplosion2Implementation',
     'SpriteBeamImplementation',
     'SpriteClipImplementation',
     'SpriteFrameImplementation',
@@ -100,6 +101,7 @@ $script:AssemblyBackedImplementations = @(
     'ChaseImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
+    'PrintTimesImplementation',
     'WorldControlImplementation',
     'RenderFaceImplementation',
     'RenderBmodelFaceImplementation',
@@ -784,6 +786,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ParticleExplosion2Implementation'
+        Manifest   = 'particleExplosion2Implementation'
+        Suffix     = @{ 'asm' = 'particleexplosion2asm' }
+        C          = @{ 'asm' = @('ASM486_PARTICLE_EXPLOSION2') }
+        Asm        = @{ 'asm' = @('ASM486_PARTICLE_EXPLOSION2') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'SpriteBeamImplementation'
         Manifest   = 'spriteBeamImplementation'
         Suffix     = @{ 'asm' = 'spritebeamasm' }
@@ -1014,6 +1025,15 @@ $script:SelectorTable = @(
         Suffix     = @{ 'asm' = 'aliasstatsasm' }
         C          = @{ 'asm' = @('ASM486_ALIAS_STATS') }
         Asm        = @{ 'asm' = @('ASM486_ALIAS_STATS') }
+        SelectsAsm = $true
+    }
+
+    @{
+        Param      = 'PrintTimesImplementation'
+        Manifest   = 'printTimesImplementation'
+        Suffix     = @{ 'asm' = 'printtimesasm' }
+        C          = @{ 'asm' = @('ASM486_PRINT_TIMES') }
+        Asm        = @{ 'asm' = @('ASM486_PRINT_TIMES') }
         SelectsAsm = $true
     }
 
@@ -1302,6 +1322,7 @@ $script:SuffixOrder = @(
     'BspFrameCountImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleExplosion2Implementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
     'SpriteFrameImplementation'
@@ -1328,6 +1349,7 @@ $script:SuffixOrder = @(
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
+    'PrintTimesImplementation'
     'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'
@@ -1377,6 +1399,7 @@ $script:CDefineOrder = @(
     'BspFrameCountImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleExplosion2Implementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
     'SpriteFrameImplementation'
@@ -1403,6 +1426,7 @@ $script:CDefineOrder = @(
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
+    'PrintTimesImplementation'
     'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'
@@ -1485,6 +1509,7 @@ $script:AsmDefineOrder = @(
     'LightMapBuildImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleExplosion2Implementation'
     'SpriteBeamImplementation'
     'SpriteClipImplementation'
     'SpriteFrameImplementation'
@@ -1510,6 +1535,7 @@ $script:AsmDefineOrder = @(
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
+    'PrintTimesImplementation'
     'WorldControlImplementation'
     'RenderWorldImplementation'
     'RenderFaceImplementation'

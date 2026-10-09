@@ -174,6 +174,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParticleExplosion2Implementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteClipImplementation = 'c',
@@ -224,6 +226,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$PrintTimesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteDrawImplementation = 'c',
@@ -271,6 +275,7 @@ param(
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
     [switch]$AliasStatsOnly,
+    [switch]$PrintTimesOnly,
     [switch]$WorldControlOnly,
     [switch]$MipLevelOnly,
     [switch]$TextureAnimationOnly,
@@ -280,6 +285,7 @@ param(
     [switch]$LightMapBuildOnly,
     [switch]$SurfaceCacheOnly,
     [switch]$ParticleListOnly,
+    [switch]$ParticleExplosion2Only,
     [switch]$ZSubmodelPolygonsOnly,
     [switch]$FrustumTransformOnly,
     [switch]$SurfaceDrawOnly,
@@ -327,6 +333,9 @@ if ($SurfaceCacheOnly -and $SurfaceCacheImplementation -ne 'asm') {
 if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
     throw '-ParticleListOnly requires -ParticleUpdateImplementation asm.'
 }
+if ($ParticleExplosion2Only -and $ParticleExplosion2Implementation -ne 'asm') {
+    throw '-ParticleExplosion2Only requires -ParticleExplosion2Implementation asm.'
+}
 if ($ZSubmodelPolygonsOnly -and $ZSubmodelPolygonsImplementation -ne 'asm') {
     throw '-ZSubmodelPolygonsOnly requires -ZSubmodelPolygonsImplementation asm.'
 }
@@ -338,6 +347,9 @@ if ($LineGraphOnly -and $LineGraphImplementation -ne 'asm') {
 }
 if ($AliasStatsOnly -and $AliasStatsImplementation -ne 'asm') {
     throw '-AliasStatsOnly requires -AliasStatsImplementation asm.'
+}
+if ($PrintTimesOnly -and $PrintTimesImplementation -ne 'asm') {
+    throw '-PrintTimesOnly requires -PrintTimesImplementation asm.'
 }
 if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
     throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
@@ -486,6 +498,8 @@ $buildParams = @{
         FrameControlImplementation = $FrameControlImplementation
         LineGraphImplementation = $LineGraphImplementation
         AliasStatsImplementation = $AliasStatsImplementation
+        PrintTimesImplementation = $PrintTimesImplementation
+        ParticleExplosion2Implementation = $ParticleExplosion2Implementation
         PaletteImplementation = $PaletteImplementation
         MathClosureImplementation = $MathClosureImplementation
         VisibilityImplementation = $VisibilityImplementation
@@ -633,6 +647,9 @@ elseif ($AliasControlOnly) {
 elseif ($AliasStatsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasstats -benchexit'
 }
+elseif ($PrintTimesOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchprinttimes -benchexit'
+}
 elseif ($WorldControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchworldcontrol -benchexit'
 }
@@ -737,6 +754,9 @@ elseif ($LightMapBuildOnly) {
 }
 elseif ($ParticleListOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticlelist -benchexit'
+}
+elseif ($ParticleExplosion2Only) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion2 -benchexit'
 }
 elseif ($SurfaceCacheOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsurfacecache -benchexit'
@@ -913,6 +933,8 @@ $result = [ordered]@{
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
+    printTimesImplementation = $PrintTimesImplementation
+    particleExplosion2Implementation = $ParticleExplosion2Implementation
     worldControlImplementation = $WorldControlImplementation
     instrumentation = [bool]$Instrumentation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
@@ -945,6 +967,7 @@ $result = [ordered]@{
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly
     aliasStatsOnly = [bool]$AliasStatsOnly
+    printTimesOnly = [bool]$PrintTimesOnly
     worldControlOnly = [bool]$WorldControlOnly
     spriteDrawImplementation = $SpriteDrawImplementation
     textureAnimationOnly = [bool]$TextureAnimationOnly
@@ -954,6 +977,7 @@ $result = [ordered]@{
     lightMapBuildOnly = [bool]$LightMapBuildOnly
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
+    particleExplosion2Only = [bool]$ParticleExplosion2Only
     zSubmodelPolygonsOnly = [bool]$ZSubmodelPolygonsOnly
     frustumTransformOnly = [bool]$FrustumTransformOnly
     surfaceDrawOnly = [bool]$SurfaceDrawOnly

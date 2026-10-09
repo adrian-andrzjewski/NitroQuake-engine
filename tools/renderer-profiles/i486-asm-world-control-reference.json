@@ -85,6 +85,7 @@
     "ViewControlImplementation": "asm",
     "DrawingImplementation": "asm",
     "ChaseImplementation": "asm",
-    "WorldControlImplementation": "c"
+    "WorldControlImplementation": "c",
+    "ParticleExplosion2Implementation": "c"
   }
 }

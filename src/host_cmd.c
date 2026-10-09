@@ -6719,6 +6719,12 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_ALIAS_STATS)
 #include "bench486_aliasstats.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_PRINT_TIMES)
+#include "bench486_printtimes.h"
+#endif
+#if defined(BENCH486) && defined(ASM486_PARTICLE_EXPLOSION2)
+#include "bench486_particleexplosion2.h"
+#endif
 
 static void Bench486AliasBBoxProjectCases (void)
 {
@@ -10215,6 +10221,46 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("alias-stats fixture requires -AliasStatsImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchprinttimes"))
+	{
+#ifdef ASM486_PRINT_TIMES
+		Bench486PrintTimesCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("print-times fixture requires -PrintTimesImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchparticleexplosion2"))
+	{
+#ifdef ASM486_PARTICLE_EXPLOSION2
+		Bench486ParticleExplosion2Cases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("particle-explosion2 fixture requires -ParticleExplosion2Implementation asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

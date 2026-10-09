@@ -163,6 +163,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParticleExplosion2Implementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteClipImplementation = 'c',
@@ -214,6 +216,8 @@ param(
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PrintTimesImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -576,7 +580,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 43
+$expectedAllAssemblySourceCount = 45
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {

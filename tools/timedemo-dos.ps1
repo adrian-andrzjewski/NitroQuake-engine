@@ -142,6 +142,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParticleExplosion2Implementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteClipImplementation = 'c',
@@ -193,6 +195,8 @@ param(
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$PrintTimesImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -402,6 +406,7 @@ $buildParams = @{
     BspFrameCountImplementation          = $BspFrameCountImplementation
     BspWalkImplementation                = $BspWalkImplementation
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
+    ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
     SpriteBeamImplementation             = $SpriteBeamImplementation
     SpriteClipImplementation             = $SpriteClipImplementation
     SpriteFrameImplementation            = $SpriteFrameImplementation
@@ -420,6 +425,7 @@ $buildParams = @{
         TransformFrustumImplementation       = $TransformFrustumImplementation
         LineGraphImplementation              = $LineGraphImplementation
         AliasStatsImplementation             = $AliasStatsImplementation
+        PrintTimesImplementation              = $PrintTimesImplementation
         EdgeDrawingImplementation             = $EdgeDrawingImplementation
         ScanEdgesImplementation               = $ScanEdgesImplementation
         EdgeListMaintenanceImplementation     = $EdgeListMaintenanceImplementation
@@ -1038,6 +1044,7 @@ $result = [ordered]@{
     bspFrameCountImplementation = $BspFrameCountImplementation
     bspWalkImplementation = $BspWalkImplementation
     particleUpdateImplementation = $ParticleUpdateImplementation
+    particleExplosion2Implementation = $ParticleExplosion2Implementation
     spriteBeamImplementation = $SpriteBeamImplementation
     spriteClipImplementation = $SpriteClipImplementation
     spriteFrameImplementation = $SpriteFrameImplementation
@@ -1051,6 +1058,7 @@ $result = [ordered]@{
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
+    printTimesImplementation = $PrintTimesImplementation
     worldControlImplementation = $WorldControlImplementation
     providerVerification = $providerVerification
     renderMathImplementation = $RenderMathImplementation

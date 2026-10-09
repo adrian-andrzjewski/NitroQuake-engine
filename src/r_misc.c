@@ -236,6 +236,32 @@ void R_TimeGraph (void)
 R_PrintTimes
 =============
 */
+#if defined(ASM486_PRINT_TIMES)
+void R_PrintTimes (void);
+#if defined(BENCH486)
+double (*bench486_printtimes_time_probe) (void);
+
+double Bench486PrintTimesTime (void)
+{
+	if (bench486_printtimes_time_probe)
+		return bench486_printtimes_time_probe ();
+	return Sys_FloatTime ();
+}
+
+/* C oracle for the selected i486 implementation and its deterministic fixture. */
+void R_PrintTimes_C (void)
+{
+	float	r_time2;
+	float		ms;
+
+	r_time2 = Bench486PrintTimesTime ();
+	ms = 1000* (r_time2 - r_time1);
+	Con_Printf ("%5.1f ms %3i/%3i/%3i poly %3i surf\n",
+				ms, c_faceclip, r_polycount, r_drawnpolycount, c_surf);
+	c_surf = 0;
+}
+#endif
+#else
 void R_PrintTimes (void)
 {
 	float	r_time2;
@@ -249,6 +275,7 @@ void R_PrintTimes (void)
 				ms, c_faceclip, r_polycount, r_drawnpolycount, c_surf);
 	c_surf = 0;
 }
+#endif
 
 
 /*

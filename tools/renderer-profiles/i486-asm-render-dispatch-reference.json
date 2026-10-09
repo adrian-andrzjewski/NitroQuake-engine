@@ -80,6 +80,7 @@
     "VisibilityImplementation": "asm",
     "PublicBindingsImplementation": "asm",
     "SkyImplementation": "asm",
-    "RenderDispatchImplementation": "c"
+    "RenderDispatchImplementation": "c",
+    "ParticleExplosion2Implementation": "c"
   }
 }

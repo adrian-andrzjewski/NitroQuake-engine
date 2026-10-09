@@ -82,6 +82,7 @@
     "SkyImplementation": "asm",
     "RenderDispatchImplementation": "asm",
     "DrawingDriverImplementation": "asm",
-    "ViewControlImplementation": "c"
+    "ViewControlImplementation": "c",
+    "ParticleExplosion2Implementation": "c"
   }
 }
