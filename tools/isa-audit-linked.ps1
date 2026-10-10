@@ -72,6 +72,7 @@ $ScratchRoot = [IO.Path]::GetFullPath($ScratchRoot)
 New-Item -ItemType Directory -Path $ScratchRoot -Force | Out-Null
 $inputRoot = Join-Path $ScratchRoot ('isa-linked-inputs-' + $runId)
 $runtimeExtractRoot = Join-Path $ScratchRoot ('isa-archive-extract-' + $runId)
+try {
 New-Item -ItemType Directory -Path $inputRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $runtimeExtractRoot -Force | Out-Null
 
@@ -791,3 +792,19 @@ Write-Host ('  non-instruction bytes       {0}' -f $nonInstructionByteSites)
 Write-Host ('  relocation data sites       {0}' -f $relocatedDataSites)
 Write-Host ('  linked opcode report        {0}' -f $binaryInstructionDetails)
 Write-Host ('  report                      {0}' -f $reportPath)
+}
+finally {
+    # These are temporary copies of linked objects and archive members. The
+    # durable, hash-bound audit inputs and decoded instruction records live in
+    # ReportRoot, so keep ScratchRoot from growing after successful or failed runs.
+    $scratchPrefix = $ScratchRoot.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    foreach ($temporaryRoot in @($inputRoot, $runtimeExtractRoot)) {
+        $fullTemporaryRoot = [IO.Path]::GetFullPath($temporaryRoot)
+        if (-not $fullTemporaryRoot.StartsWith($scratchPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Refusing to remove ISA scratch directory outside ScratchRoot: '$fullTemporaryRoot'."
+        }
+        if (Test-Path -LiteralPath $fullTemporaryRoot -PathType Container) {
+            Remove-Item -LiteralPath $fullTemporaryRoot -Recurse -Force
+        }
+    }
+}

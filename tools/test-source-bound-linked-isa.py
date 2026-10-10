@@ -50,6 +50,9 @@ def main():
         combined=process.stdout+process.stderr
         (work/(name+'.txt')).write_text(combined,encoding='utf-8')
         assert (process.returncode==0)==expected,(name,process.stdout[-1500:],process.stderr[-1500:])
+        scratch=work/'audit-scratch'
+        for pattern in ('isa-linked-inputs-*','isa-archive-extract-*'):
+            assert not list(scratch.glob(pattern)),(name,'linked ISA audit left temporary copies',pattern)
         if failure_contains is not None:
             assert failure_contains in combined,(name,'missing expected diagnostic',failure_contains,combined[-2000:])
         if expected:
