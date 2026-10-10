@@ -109,3 +109,37 @@ also passed all seven C/ASM cases in
 state, ABI, and RNG-continuation checks. This evidence establishes this
 slice's machine-code compatibility and focused scene parity; it does not
 establish completion of the broader renderer port.
+
+## 2026-10-10 i486 release-default promotion
+
+`BlobExplosionImplementation` now defaults to assembly only when
+`CpuTarget=i486` and the caller did not explicitly choose an implementation.
+An explicit C selection remains available for reference runs; i386 stays on C.
+`tools/test-build-dos.py` passes with the new suffix and flag golden (44 C and
+42 assembly flags for i486; the i386 profile remains 37 and 35).
+
+Fresh validation used the 486DX/x87 DOSBox-X profile and retained:
+
+- `out/dos-bench-20261010-130928/bench-result.json`: all seven C/ASM fixture
+  cases passed, including full pool/list state, ABI, guards, call count and
+  libc RNG continuation. Its linked benchmark executable passed the strict
+  210,938-instruction gate with zero above-i486, unknown or exempt instructions.
+- `out/render-parity-20261010-130946/render-parity-result.json`: both profiles
+  passed twice. Each run recorded one `TE_TAREXPLOSION` at frame 10 with no
+  overflow. After excluding only the four documented startup checksum records,
+  all seven remaining frame checksums matched exactly. Both 320x200 captures
+  matched all 64,000 indexed pixels and every palette byte, with zero
+  differences. C and assembly both measured 12.1 FPS on this focused scene.
+- `out/profile-68899b4f74c77192/isa-qbench/isa-audit-linked.json`: the paired
+  assembly-profile benchmark image passed with 206,247 relocated instructions,
+  529 startup rows and the 9,207-instruction CWS DPMI provider; there were no
+  post-486, unknown or exempt instructions.
+- `out/profile-6bb5ccc5c741aec3/quake.exe` and
+  `out/profile-6bb5ccc5c741aec3/isa-quake/isa-audit-linked.json`: the normal
+  non-BENCH release build selected BlobExplosion assembly and passed with
+  171,561 relocated instructions, 529 startup rows and the same provider
+  closure, with zero post-486, unknown or exempt instructions.
+
+The three staged DOSBox game-data directories were removed after validation;
+the JSON reports, checksums and framebuffer captures remain. These checks
+promote this routine only and do not claim full renderer completion.

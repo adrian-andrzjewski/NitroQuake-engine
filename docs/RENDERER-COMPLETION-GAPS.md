@@ -156,10 +156,16 @@ above remains the preceding 77-selector inventory, not a current count.
 
 `R_BlobExplosion` now has an isolated assembly selector, a guarded direct
 C-versus-assembly fixture and a focused Demo 2 manifest requiring the
-`TE_TAREXPLOSION` event trace. The manifest unit test passes. The strict i486
-build and ISA audit, direct DOSBox fixture, and paired framebuffer/checksum run
-remain **PENDING**; no runtime parity or ISA pass is claimed. See the
-[BlobExplosion port ledger](ledger/2026-10-09-r-blobexplosion-assembly-port.md).
+`TE_TAREXPLOSION` event trace. Its seven-case DOSBox state/ABI/RNG fixture,
+two-run C-versus-assembly scene pair, and strict candidate executable audit
+pass. The pair matches all 64,000 indexed pixels and palette bytes, and all
+seven post-warmup frame checksums; the event occurs once at frame 10 without
+overflow. `R_BlobExplosion` is now the i486 release default while explicit C
+and the separate i386 profile remain available. The normal non-BENCH release
+executable also passes the full linked i486 ISA gate. This closes only the
+BlobExplosion slice; the broader renderer conversion remains incomplete. See
+the [BlobExplosion port ledger](ledger/2026-10-09-r-blobexplosion-assembly-port.md)
+for report paths and exact scope.
 
 Earlier sprite/math and light-control pair reports that failed to forward the
 new selectors are invalid acceptance evidence. Their original results and

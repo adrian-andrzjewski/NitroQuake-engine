@@ -49,7 +49,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
-    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm"
+    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-blobexplosionasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm"
 )
 
 failures: list[str] = []
@@ -193,6 +193,10 @@ def main() -> int:
             fail("the default particle-effect parser selector must remain C")
         if "parseparticleeffectasm" in default_dump.get("profileSuffix", ""):
             fail("the default particle-effect parser selector must not change the release suffix")
+        blob_explosion_define = "-DASM486_BLOB_EXPLOSION"
+        if any(blob_explosion_define not in default_dump.get(language, [])
+               for language in ("cFlags", "asmFlags")):
+            fail("the default i486 BlobExplosion selector must compile its assembly implementation")
 
     # 2. Keep the release suffix stable and use its descriptive root unless the
     #    executable or linker-map path would exceed the legacy Windows limit.
@@ -329,6 +333,7 @@ def main() -> int:
                 "-DASM486_SPRITE_SETUP",
                 "-DASM486_SPRITE_DRAW",
                 "-DASM486_SPRITE_FRAME",
+                "-DASM486_BLOB_EXPLOSION",
                 "-DASM486_MATH_CLOSURE",
                 "-DASM486_EFRAG_STORE",
             }
@@ -374,6 +379,10 @@ def main() -> int:
                 fail("the i486 release %s omit promoted efrag-store assembly" % flags_name)
             if "-DASM486_EFRAG_STORE" in i386.get(flags_name, []):
                 fail("the separate i386 %s enable i486-promoted efrag-store assembly" % flags_name)
+            if "-DASM486_BLOB_EXPLOSION" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted R_BlobExplosion assembly" % flags_name)
+            if "-DASM486_BLOB_EXPLOSION" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted R_BlobExplosion assembly" % flags_name)
 
         if "-DTARGET_I386" not in i386.get("asmFlags", []):
             fail("the i386 build does not pass -DTARGET_I386 to the assembler")
@@ -1589,13 +1598,11 @@ def main() -> int:
     blob_explosion_c = dump_flags("-BlobExplosionImplementation", "c")
     blob_explosion_asm = dump_flags("-BlobExplosionImplementation", "asm")
     if blob_explosion_c and blob_explosion_asm:
-        if blob_explosion_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_BlobExplosion C selector changes the promoted i486 suffix")
-        asm_suffix = blob_explosion_asm.get("profileSuffix", "")
-        if asm_suffix.count("-blobexplosionasm") != 1:
-            fail("the R_BlobExplosion assembly selector lacks its profile token")
-        elif asm_suffix.replace("-blobexplosionasm", "") != blob_explosion_c.get("profileSuffix"):
-            fail("the R_BlobExplosion assembly selector changes unrelated promoted suffix tokens")
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-blobexplosionasm", "", 1)
+        if blob_explosion_c.get("profileSuffix") != c_reference_suffix:
+            fail("the R_BlobExplosion C selector does not isolate the C reference profile")
+        if blob_explosion_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_BlobExplosion assembly selector does not match the i486 release profile")
         for flags_name in ("cFlags", "asmFlags"):
             if "-DASM486_BLOB_EXPLOSION" in blob_explosion_c.get(flags_name, []):
                 fail("the R_BlobExplosion C selector enables ASM486_BLOB_EXPLOSION in %s" % flags_name)

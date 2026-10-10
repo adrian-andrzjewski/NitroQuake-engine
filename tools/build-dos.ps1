@@ -313,6 +313,12 @@ if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MathClosureI
 if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('EfragStoreImplementation')) {
     $EfragStoreImplementation = 'asm'
 }
+# R_BlobExplosion passed the guarded C-versus-assembly particle-state fixture,
+# the event-driven framebuffer pair and the full i486 executable ISA audit.
+# Keep the C oracle selectable for reference builds.
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BlobExplosionImplementation')) {
+    $BlobExplosionImplementation = 'asm'
+}
 
 if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm') {
     throw '-AliasClipZImplementation asm requires -AliasClipImplementation asm.'
