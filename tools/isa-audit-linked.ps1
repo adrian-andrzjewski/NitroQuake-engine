@@ -8,9 +8,11 @@
     input objects with isa-audit.ps1, then disassembles each mapped range in the
     final executable and checks that its instruction boundaries and ISA-defining
     opcode bytes agree with the audited input object. Relocation fields may
-    differ, but opcodes and ModRM bytes may not. ScratchRoot optionally directs
-    transient object copies, archive extracts, and linked section bytes; it
-    defaults to the repository out directory.
+    differ, but opcodes and ModRM bytes may not. Hash-bound linked input copies
+    are retained beneath ReportRoot because durable reports reference them.
+    An exclusive ReportRoot lock prevents concurrent runs from mixing fixed-name
+    report files. ScratchRoot directs transient archive extracts and linked
+    section bytes; it defaults to the repository out directory.
 #>
 [CmdletBinding()]
 param(
@@ -64,15 +66,28 @@ if (-not (Test-Path -LiteralPath $objdump -PathType Leaf)) { throw "Required DJG
 if (-not (Test-Path -LiteralPath $archiver -PathType Leaf)) { throw "Required DJGPP archiver is missing: '$archiver'." }
 if (-not (Test-Path -LiteralPath $objcopy -PathType Leaf)) { throw "Required DJGPP objcopy is missing: '$objcopy'." }
 
-$runId = Get-Date -Format 'yyyyMMdd-HHmmssfff'
+$runId = (Get-Date -Format 'yyyyMMdd-HHmmssfff') + '-' + [Guid]::NewGuid().ToString('N')
 if ([string]::IsNullOrWhiteSpace($ScratchRoot)) {
     $ScratchRoot = Join-Path $repoRoot 'out'
 }
 $ScratchRoot = [IO.Path]::GetFullPath($ScratchRoot)
 New-Item -ItemType Directory -Path $ScratchRoot -Force | Out-Null
-$inputRoot = Join-Path $ScratchRoot ('isa-linked-inputs-' + $runId)
+$inputRoot = Join-Path $ReportRoot ('isa-linked-inputs-' + $runId)
 $runtimeExtractRoot = Join-Path $ScratchRoot ('isa-archive-extract-' + $runId)
+$reportLock = $null
 try {
+try {
+    $reportLockPath = Join-Path $ReportRoot '.isa-audit-linked.lock'
+    $reportLock = [IO.File]::Open($reportLockPath, [IO.FileMode]::OpenOrCreate,
+        [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+}
+catch [IO.IOException] {
+    $ioCode = $_.Exception.HResult -band 0xffff
+    if ($ioCode -in @(32, 33)) {
+        throw "Another linked ISA audit is using ReportRoot '$ReportRoot' (exclusive lock '$reportLockPath' is held)."
+    }
+    throw
+}
 New-Item -ItemType Directory -Path $inputRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $runtimeExtractRoot -Force | Out-Null
 
@@ -364,7 +379,7 @@ if ($binaryText.address -ne $mainText.address -or $binaryText.size -ne $mainText
         $mainText.address, $mainText.size, $binaryText.address, $binaryText.size)
 }
 
-$textDumpPath = Join-Path $ScratchRoot ('isa-linked-text-' + $runId + '.bin')
+$textDumpPath = Join-Path $runtimeExtractRoot ('isa-linked-text-' + $runId + '.bin')
 & $objcopy --dump-section ".text=$textDumpPath" $executable
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $textDumpPath -PathType Leaf)) {
     throw "Could not extract the executable .text bytes from '$executable'."
@@ -794,17 +809,32 @@ Write-Host ('  linked opcode report        {0}' -f $binaryInstructionDetails)
 Write-Host ('  report                      {0}' -f $reportPath)
 }
 finally {
-    # These are temporary copies of linked objects and archive members. The
-    # durable, hash-bound audit inputs and decoded instruction records live in
-    # ReportRoot, so keep ScratchRoot from growing after successful or failed runs.
-    $scratchPrefix = $ScratchRoot.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
-    foreach ($temporaryRoot in @($inputRoot, $runtimeExtractRoot)) {
-        $fullTemporaryRoot = [IO.Path]::GetFullPath($temporaryRoot)
-        if (-not $fullTemporaryRoot.StartsWith($scratchPrefix, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Refusing to remove ISA scratch directory outside ScratchRoot: '$fullTemporaryRoot'."
+    # The object copies are retained in ReportRoot because instruction and
+    # runtime-source proof reports contain their absolute paths. Only archive
+    # extracts and linked .text staging bytes are disposable.
+    try {
+        $fullTemporaryRoot = [IO.Path]::GetFullPath($runtimeExtractRoot)
+        $fullScratchRoot = [IO.Path]::GetFullPath($ScratchRoot)
+        $temporaryParent = [IO.Path]::GetFullPath((Split-Path -Parent $fullTemporaryRoot))
+        if (-not [StringComparer]::OrdinalIgnoreCase.Equals($temporaryParent, $fullScratchRoot) -or
+            (Split-Path -Leaf $fullTemporaryRoot) -notmatch '^isa-archive-extract-\d{8}-\d{9}-[0-9a-f]{32}$') {
+            throw "Refusing to remove ISA scratch directory outside its run-specific ScratchRoot child: '$fullTemporaryRoot'."
         }
         if (Test-Path -LiteralPath $fullTemporaryRoot -PathType Container) {
+            $temporaryItem = Get-Item -LiteralPath $fullTemporaryRoot -Force
+            if (($temporaryItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Refusing to remove reparse-point ISA scratch directory: '$fullTemporaryRoot'."
+            }
             Remove-Item -LiteralPath $fullTemporaryRoot -Recurse -Force
         }
+    }
+    catch {
+        # Cleanup failure must not replace the audit's actual failure or turn an
+        # already-written PASS report into a misleading process failure.
+        Write-Warning ("Could not remove transient ISA scratch directory: {0}" -f $_.Exception.Message)
+    }
+    if ($null -ne $reportLock) {
+        try { $reportLock.Dispose() }
+        catch { Write-Warning ("Could not release linked ISA report lock: {0}" -f $_.Exception.Message) }
     }
 }

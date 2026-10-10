@@ -12,6 +12,7 @@ def main():
     spec=importlib.util.spec_from_file_location('linked_boundary_test',ROOT/'tools/coff-code-data.py')
     boundary=importlib.util.module_from_spec(spec);spec.loader.exec_module(boundary)
     work=Path(tempfile.mkdtemp(prefix='source-linked-regression-',dir=ROOT/'out'))
+    retained_run_ids=set()
     def cleanup_work():
         output_root=(ROOT/'out').resolve()
         if (work.exists() and not work.is_symlink() and work.name.startswith('source-linked-regression-')
@@ -41,18 +42,36 @@ def main():
     cold_bad=fixture('cold_post486','movl $7,%eax','cmovz %ebx,%eax')
     encoded=fixture('encoded_post486','#APP\n.byte 0x0f,0x45,0xc3\n#NO_APP')
     records=[]
-    def audit(name,inputs,expected,extra=(),failure_contains=None):
+    def audit(name,inputs,expected,extra=(),failure_contains=None,hold_report_lock=False,expect_rejected_details=False):
         directory,native,index,exe,mapping=inputs;report=work/('audit-'+name)
+        lock_handle=None
+        if hold_report_lock:
+            report.mkdir(parents=True,exist_ok=True)
+            lock_handle=(report/'.isa-audit-linked.lock').open('a+b')
         command=['pwsh','-NoProfile','-File',str(ROOT/'tools/isa-audit-linked.ps1'),'-BuildRoot',str(directory),
                  '-ExecutableName',exe.name,'-MapPath',str(mapping),'-ObjectRoot',str(directory),'-ObjectNames',native.name,
                  '-ObjectCodeDataProofJson',str(index),'-ReportRoot',str(report),'-ScratchRoot',str(work/'audit-scratch'),*extra]
-        process=subprocess.run(command,capture_output=True,text=True)
+        try:
+            process=subprocess.run(command,capture_output=True,text=True)
+        finally:
+            if lock_handle is not None:lock_handle.close()
         combined=process.stdout+process.stderr
         (work/(name+'.txt')).write_text(combined,encoding='utf-8')
         assert (process.returncode==0)==expected,(name,process.stdout[-1500:],process.stderr[-1500:])
         scratch=work/'audit-scratch'
-        for pattern in ('isa-linked-inputs-*','isa-archive-extract-*'):
-            assert not list(scratch.glob(pattern)),(name,'linked ISA audit left temporary copies',pattern)
+        assert not list(scratch.glob('isa-archive-extract-*')),(name,'linked ISA audit left archive extraction data')
+        assert not list(scratch.glob('isa-linked-inputs-*')),(name,'linked ISA audit left retained proof inputs in transient scratch')
+        input_roots=list(report.glob('isa-linked-inputs-*'))
+        if hold_report_lock:
+            assert not input_roots,(name,'locked report root was modified before the audit failed',input_roots)
+        else:
+            assert len(input_roots)==1 and input_roots[0].is_dir(),(name,'linked ISA audit did not retain its report-bound input objects',input_roots)
+            input_root=input_roots[0].resolve()
+            match=re.fullmatch(r'isa-linked-inputs-\d{8}-\d{9}-([0-9a-f]{32})',input_roots[0].name)
+            assert match,(name,'linked ISA input directory lacks a GUID-unique run id',input_roots[0].name)
+            assert match.group(1) not in retained_run_ids,(name,'linked ISA run id collided',match.group(1))
+            retained_run_ids.add(match.group(1))
+            assert list(input_root.glob('*.obj')),(name,'linked ISA report retained no copied input objects')
         if failure_contains is not None:
             assert failure_contains in combined,(name,'missing expected diagnostic',failure_contains,combined[-2000:])
         if expected:
@@ -61,16 +80,40 @@ def main():
             assert result['instructionAudit']['linkedInstructionsVerified']>0
             assert result['linkedTextCoverage']['continuous']
             assert result['linkedTextCoverage']['bytes']==int(result['executableText']['size'],16)
+            object_audit=Path(result['instructionAudit']['inputObjectAudit'])
+            detail_path=Path(result['instructionAudit']['inputInstructionDetailsJsonl'])
+            assert object_audit.is_file() and detail_path.is_file(),(name,'linked ISA report points to missing audit artifacts',object_audit,detail_path)
+            details=[json.loads(line) for line in detail_path.read_text(encoding='utf-8').splitlines() if line]
+            assert details,(name,'passing linked ISA report has no per-instruction evidence')
+            for detail in details:
+                object_path=Path(detail['path'])
+                assert object_path.is_file(),(name,'per-instruction evidence references a missing object',object_path)
+                assert object_path.resolve().is_relative_to(input_root),(name,'per-instruction object is outside retained report inputs',object_path,input_root)
+        elif not hold_report_lock:
+            # Rejected ISA audits also persist their disassembly before raising.
+            # Validate every path they wrote instead of checking only PASS runs.
+            detail_path=report/'isa-audit-linked-instructions.jsonl'
+            if detail_path.is_file():
+                details=[json.loads(line) for line in detail_path.read_text(encoding='utf-8').splitlines() if line]
+                for detail in details:
+                    object_path=Path(detail['path'])
+                    assert object_path.is_file(),(name,'rejected audit evidence references a missing object',object_path)
+                    assert object_path.resolve().is_relative_to(input_root),(name,'rejected audit object is outside retained report inputs',object_path,input_root)
+                if expect_rejected_details:
+                    assert details,(name,'rejected linked ISA audit emitted an empty instruction evidence file')
+            elif expect_rejected_details:
+                raise AssertionError((name,'rejected linked ISA audit did not persist its instruction evidence file',detail_path))
         records.append(dict(name=name,passed=expected,rejected=not expected))
     audit('exact_i486_and_literal_data',good,True)
     good_report=json.loads((work/'audit-exact_i486_and_literal_data'/'isa-audit-linked.json').read_text(encoding='utf-8-sig'))
     assert any(item['section']=='.text.unlikely' for item in good_report['textContributions'])
     assert good_report['textFillSpans']
-    audit('post486_object',bad,False)
+    audit('post486_object',bad,False,expect_rejected_details=True)
     audit('post486_wrapped_text_unlikely',cold_bad,False)
     audit('post486_inline_bytes',encoded,False)
     audit('instruction_exemption_forbidden',good,False,['-Exempt','fixture.obj:_fixture:1'])
     audit('range_exemption_forbidden',good,False,['-ExemptRange','fixture.obj:.text:0:1'])
+    audit('report_root_locked',good,False,failure_contains='Another linked ISA audit is using ReportRoot',hold_report_lock=True)
     directory,native,index,exe,mapping=good
     original_exe=exe.read_bytes();original_map=mapping.read_text(encoding='latin1');original_object=native.read_bytes()
     last,pages=struct.unpack_from('<HH',original_exe,2);base=pages*512-(512-last if last else 0)
