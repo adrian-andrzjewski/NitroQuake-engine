@@ -14,6 +14,8 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-10-d-drawparticle-assembly-port.md`](2026-10-10-d-drawparticle-assembly-port.md) | 6 | renderer port / particle rasterization (`Traceability and scope`; `x87 conversion and clipping parity`; `Direct differential fixture`; `Paired scene parity`; `Strict i486 audit`; `Reproduction and limits`) |
+| [`2026-10-10-r-entityparticles-assembly-port.md`](2026-10-10-r-entityparticles-assembly-port.md) | 5 | renderer port / entity particles (`Reference behavior and assembly mapping`; `Direct C/assembly fixture`; `Paired rendered-frame parity`; `i486 machine-code evidence`; `Traceability and reproduction`) |
 | [`2026-10-10-r-teleportsplash-assembly-port.md`](2026-10-10-r-teleportsplash-assembly-port.md) | 2 | renderer port / particles (`Port mapping and contract`; `TeleportSplash validation status`) |
 | [`2026-10-10-r-runparticleeffect-assembly-port.md`](2026-10-10-r-runparticleeffect-assembly-port.md) | 5 | renderer port / particles (`C reference and assembly behavior`; `Selector and direct fixture`; `Paired frame parity`; `ISA evidence and remaining scope`; `RPE test commands`) |
 | [`2026-10-09-alias-stats-assembly-port.md`](2026-10-09-alias-stats-assembly-port.md) | 3 | renderer port / alias |
@@ -295,6 +297,15 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [`D_DrawParticle` -> verification of the existing i486 rasterizer (2026-10-10)](2026-10-10-d-drawparticle-assembly-port.md)
+- `measured` [104 direct C/ASM comparisons across four x87 rounding modes](2026-10-10-d-drawparticle-assembly-port.md)
+- `measured` [Exact two-repeat `demo2-wizspike-event` frame and palette parity](2026-10-10-d-drawparticle-assembly-port.md)
+- `measured` [Strict i486 executable, startup, and provider audits](2026-10-10-d-drawparticle-assembly-port.md)
+- `open` [Full renderer ownership, broader particle stress, sky coverage, and FPU-less 486SX scope](2026-10-10-d-drawparticle-assembly-port.md)
+- `measured` [`R_EntityParticles` -> i486 assembly port (2026-10-10)](2026-10-10-r-entityparticles-assembly-port.md)
+- `measured` [Exact particle-list, RNG-continuation and ABI fixture](2026-10-10-r-entityparticles-assembly-port.md)
+- `measured` [Exact two-repeat `demo2` entity-particle event frame parity](2026-10-10-r-entityparticles-assembly-port.md)
+- `measured` [Strict i486 executable, startup, and provider audits](2026-10-10-r-entityparticles-assembly-port.md)
 - `measured` [`R_RunParticleEffect` -> i486 assembly port (2026-10-10)](2026-10-10-r-runparticleeffect-assembly-port.md)
 - `measured` [12-case direct state/RNG/ABI fixture and strict i486 executable audit](2026-10-10-r-runparticleeffect-assembly-port.md)
 - `measured` [Exact two-run `TE_WIZSPIKE` frame and event parity](2026-10-10-r-runparticleeffect-assembly-port.md)

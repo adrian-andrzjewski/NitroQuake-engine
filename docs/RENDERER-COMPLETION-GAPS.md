@@ -115,9 +115,18 @@ The C-reference and assembly profiles pass the six-scene pair twice each, with
 11,842 exact post-warmup frame checksums and twelve exact indexed/palette
 captures. The candidate binary passes the complete relocated, startup, and
 provider ISA gate without exemptions. Per-scene timings differ by at most
-0.021%; the broader all-assembly profile and dedicated particle-effect stress
+0.021%; the broader all-assembly profile and broader particle-effect stress
 scenarios remain open. See the
 [particle port](ledger/2026-10-06-particle-update-assembly-port.md).
+
+The pre-existing 32-bit `D_DrawParticle` assembly rasterizer now has a
+selectable C oracle and a focused parity record. Its direct fixture passed 104
+comparisons across four x87 rounding modes; the strict `demo2-wizspike-event`
+pair matched seven post-warmup checksums and all indexed framebuffer and
+palette bytes on both repeats. The strict i486 executable and support-code
+audits passed. This verifies the existing rasterizer and does not count as a
+new assembly conversion; see the
+[`D_DrawParticle` verification ledger](ledger/2026-10-10-d-drawparticle-assembly-port.md).
 
 The opt-in frustum profile now selects assembly for both `R_TransformFrustum`
 and `R_SetUpFrustumIndexes`. Its strict paired i486 run passed the complete
@@ -232,7 +241,7 @@ to prove a complete call graph.
 | BSP/world | Other optional polygon/debug passes, remaining frustum initialization and explicit indirect-target closure. `R_ZDrawSubmodelPolys` has an assembly selector and direct cull/call-order fixture, which does not test the downstream `R_RenderPoly` rasterizer. |
 | Edge processing | Frame initialization, culled polygons and remaining C list/span forwarding entries |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |
-| Sky and particles | Combined complete-profile verification, plus dedicated particle-effect and sky scenarios |
+| Sky and particles | Combined complete-profile verification, broader particle-effect stress/sequence scenarios, and sky scenes. The focused `D_DrawParticle` event-scene parity is accepted; it does not close these wider gates. |
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | Damage/bonus/init support, combined-profile verification and initialization/indirect dependencies |
