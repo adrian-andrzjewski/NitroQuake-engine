@@ -308,6 +308,11 @@ if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameI
 if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MathClosureImplementation')) {
     $MathClosureImplementation = 'asm'
 }
+# R_StoreEfrags passed the exact C-versus-assembly state and ABI fixture and
+# the complete i486 executable gate; keep the C oracle selectable.
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('EfragStoreImplementation')) {
+    $EfragStoreImplementation = 'asm'
+}
 
 if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm') {
     throw '-AliasClipZImplementation asm requires -AliasClipImplementation asm.'

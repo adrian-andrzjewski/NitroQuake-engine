@@ -49,7 +49,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
-    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm"
+    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm"
 )
 
 failures: list[str] = []
@@ -330,6 +330,7 @@ def main() -> int:
                 "-DASM486_SPRITE_DRAW",
                 "-DASM486_SPRITE_FRAME",
                 "-DASM486_MATH_CLOSURE",
+                "-DASM486_EFRAG_STORE",
             }
             # Paths differ between the targets by design, and the link list
             # carries the output executable as its last argument.
@@ -369,6 +370,10 @@ def main() -> int:
                 fail("the i486 release %s omit promoted math-closure assembly" % flags_name)
             if "-DASM486_MATH_CLOSURE" in i386.get(flags_name, []):
                 fail("the separate i386 %s enable i486-promoted math-closure assembly" % flags_name)
+            if "-DASM486_EFRAG_STORE" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted efrag-store assembly" % flags_name)
+            if "-DASM486_EFRAG_STORE" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted efrag-store assembly" % flags_name)
 
         if "-DTARGET_I386" not in i386.get("asmFlags", []):
             fail("the i386 build does not pass -DTARGET_I386 to the assembler")
@@ -689,7 +694,10 @@ def main() -> int:
     alias_control_reference = dump_flags(*alias_control_args, "-AliasControlImplementation", "c")
     alias_control_candidate = dump_flags(*alias_control_args, "-AliasControlImplementation", "asm")
     if alias_control_reference and alias_control_candidate:
-        if alias_control_candidate["profileSuffix"] != alias_control_reference["profileSuffix"] + "-aliascontrolasm":
+        reference_suffix = alias_control_reference.get("profileSuffix", "")
+        candidate_suffix = alias_control_candidate.get("profileSuffix", "")
+        token_suffix = "-aliascontrolasm"
+        if candidate_suffix.count(token_suffix) != 1 or candidate_suffix.replace(token_suffix, "", 1) != reference_suffix:
             fail("alias control assembly does not isolate its profile")
         for language in ("cFlags", "asmFlags"):
             if "-DASM486_ALIAS_CONTROL" in alias_control_reference[language] or "-DASM486_ALIAS_CONTROL" not in alias_control_candidate[language]:
@@ -697,7 +705,10 @@ def main() -> int:
     world_control_c = dump_flags("-WorldControlImplementation", "c")
     world_control_asm = dump_flags("-WorldControlImplementation", "asm")
     if world_control_c and world_control_asm:
-        if world_control_asm["profileSuffix"] != world_control_c["profileSuffix"] + "-worldcontrolasm":
+        reference_suffix = world_control_c.get("profileSuffix", "")
+        candidate_suffix = world_control_asm.get("profileSuffix", "")
+        token_suffix = "-worldcontrolasm"
+        if candidate_suffix.count(token_suffix) != 1 or candidate_suffix.replace(token_suffix, "", 1) != reference_suffix:
             fail("world control assembly does not isolate its profile")
         for language in ("cFlags", "asmFlags"):
             if "-DASM486_WORLD_CONTROL" in world_control_c[language] or "-DASM486_WORLD_CONTROL" not in world_control_asm[language]:
@@ -1070,10 +1081,11 @@ def main() -> int:
     efrag_store_c = dump_flags("-EfragStoreImplementation", "c")
     efrag_store_asm = dump_flags("-EfragStoreImplementation", "asm")
     if efrag_store_c and efrag_store_asm:
-        if efrag_store_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the efrag-store C selector changes the retained i486 profile suffix")
-        if "efragstoreasm" not in efrag_store_asm.get("profileSuffix", ""):
-            fail("the efrag-store assembly selector does not add its profile token")
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-efragstoreasm", "", 1)
+        if efrag_store_c.get("profileSuffix") != c_reference_suffix:
+            fail("the efrag-store C selector does not isolate the C reference profile")
+        if efrag_store_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the efrag-store assembly selector does not match the i486 release profile")
         for flags_name in ("cFlags", "asmFlags"):
             if "-DASM486_EFRAG_STORE" in efrag_store_c.get(flags_name, []):
                 fail("the efrag-store C selector enables ASM486_EFRAG_STORE in %s" % flags_name)

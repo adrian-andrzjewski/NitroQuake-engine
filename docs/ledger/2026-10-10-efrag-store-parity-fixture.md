@@ -7,8 +7,8 @@ Status: validated on 2026-10-10 with the strict i486 profile and DOSBox-X.
 `src/r_efrag.c:R_StoreEfrags` is the C reference for
 `src/asm486_experiments.s:R_StoreEfrags_asm486`. With
 `ASM486_EFRAG_STORE` and `BENCH486` selected, the C function is retained as
-`R_StoreEfrags_C`; the production public entry keeps its existing selector and
-binding behavior.
+`R_StoreEfrags_C`; the existing selector binding chooses the assembly body for
+assembly profiles, while the C reference remains selectable.
 
 `src/bench486_efragstore.h` compares the reference and assembly functions from
 identical inputs. It covers an empty list, all three supported model types,
@@ -32,6 +32,10 @@ ISA gate: 212,072 relocated instructions, 529 startup CODE rows, and 9,207
 provider instructions, with zero above-i486, unknown, or exempt instructions.
 Both this fixture and the math-closure fixture used executable SHA256
 `809E75A22E36053FE62B97454FC944B17DCEF88B609D0582EB259185D4169CC1`.
+
+Following that parity and ISA proof, `EfragStoreImplementation` now defaults to
+assembly for i486 release builds. Explicit C selection and the separate i386
+profile retain the reference implementation.
 
 Runtime result: `out/dos-bench-20261010-122057/bench-result.json`. The matching
 build and machine-code proof are under
