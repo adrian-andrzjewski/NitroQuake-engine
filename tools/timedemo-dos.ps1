@@ -210,6 +210,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenNotifyImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenCenterStringImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -1427,6 +1429,7 @@ $result = [ordered]@{
     spriteOrientationImplementation = $SpriteOrientationImplementation
     consoleImplementation = $ConsoleImplementation
     screenNotifyImplementation = $ScreenNotifyImplementation
+    screenCenterStringImplementation = $ScreenCenterStringImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation

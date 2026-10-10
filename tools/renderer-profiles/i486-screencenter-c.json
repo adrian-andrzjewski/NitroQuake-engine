@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-screencenter-c",
+  "description": "Reference selectors for exact SCR_DrawCenterString comparison; keeps the character drawing backend assembly-owned.",
+  "selectors": {
+    "ScreenNotifyImplementation": "asm",
+    "ScreenCenterStringImplementation": "c"
+  }
+}

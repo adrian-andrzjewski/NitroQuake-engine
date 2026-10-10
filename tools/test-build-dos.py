@@ -48,7 +48,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # build-dos.ps1 computes it from the selector defaults, and this literal is the
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
-    "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
+    "-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
     "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-bspwalkasm-blobexplosionasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm"
 )
 
@@ -676,6 +676,7 @@ def main() -> int:
         ("DrawingImplementation", "ASM486_DRAWING", "drawingasm"),
         ("ConsoleImplementation", "ASM486_CONSOLE_INPUT", "consoleinputasm"),
         ("ScreenNotifyImplementation", "ASM486_SCREEN_NOTIFY", "screennotifyasm"),
+        ("ScreenCenterStringImplementation", "ASM486_SCREEN_CENTER_STRING", "screencenterasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
     ):
         reference = dump_flags("-" + selector, "c")
@@ -708,6 +709,12 @@ def main() -> int:
     for name, dump in (("C", screen_notify_reference), ("assembly", screen_notify_candidate)):
         if dump and "screen_notifyasm.s" not in dump.get("assemblySources", []):
             fail("the SCR_DrawNotifyString %s selector omits screen_notifyasm.s from the source inventory" % name)
+
+    screen_center_reference = dump_flags("-ScreenCenterStringImplementation", "c")
+    screen_center_candidate = dump_flags("-ScreenCenterStringImplementation", "asm")
+    for name, dump in (("C", screen_center_reference), ("assembly", screen_center_candidate)):
+        if dump and "screen_centerasm.s" not in dump.get("assemblySources", []):
+            fail("the SCR_DrawCenterString %s selector omits screen_centerasm.s from the source inventory" % name)
 
     for value_name, value in (("C", "c"), ("assembly", "asm")):
         damage_parse = dump_flags("-DamageParseImplementation", value)
@@ -1685,7 +1692,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 58 assembly sources (one is omitted only
+    #    included by another unit), 59 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1697,9 +1704,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 58:
+        if dump.get("allAssemblySourceCount") != 59:
             fail(
-                "%s: expected 58 assembly sources, got %r"
+                "%s: expected 59 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

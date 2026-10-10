@@ -16,6 +16,7 @@ later insertion above it.
 |---|---:|---|
 | [`2026-10-10-screen-calc-fov-assembly-port.md`](2026-10-10-screen-calc-fov-assembly-port.md) | 6 | renderer port / view projection (`Original C behavior and selector boundary`; `Assembly mapping`; `Direct C/assembly and ABI fixture`; `i486 instruction evidence`; `Paired framebuffer evidence`; `CalcFov traceability and reproduction`) |
 | [`2026-10-10-d-drawzspans-assembly-parity.md`](2026-10-10-d-drawzspans-assembly-parity.md) | 5 | renderer port / depth spans (`Traceability and scope`; `Arithmetic, stores, and ABI`; `Direct differential fixture`; `Strict i486 audit`; `Reproduction and limits`) |
+| [`2026-10-10-screen-center-string-assembly-parity.md`](2026-10-10-screen-center-string-assembly-parity.md) | 4 | renderer port / centered messages (`SCR_DrawCenterString reference and assembly boundary`; `x87 arithmetic, state and calling convention`; `18-case C/assembly differential fixture`; `Strict 486DX+x87 executable evidence`) |
 | [`2026-10-10-render-poly-assembly-parity.md`](2026-10-10-render-poly-assembly-parity.md) | 4 | renderer port / polygon projection (`Original routine and assembly behavior`; `Direct differential oracle`; `Strict i486 and paired-run evidence`; `Traceability and reproduction`) |
 | [`2026-10-10-con-drawinput-assembly-port.md`](2026-10-10-con-drawinput-assembly-port.md) | 5 | renderer port / console input overlay (`Original C behavior and ownership boundary`; `Assembly mapping and x87 behavior`; `Direct C/assembly fixture`; `ISA validation and current status`; `Traceability and remaining scope`) |
 | [`2026-10-10-d-drawparticle-assembly-port.md`](2026-10-10-d-drawparticle-assembly-port.md) | 6 | renderer port / particle rasterization (`Traceability and scope`; `x87 conversion and clipping parity`; `Direct differential fixture`; `Paired scene parity`; `Strict i486 audit`; `Reproduction and limits`) |
@@ -334,6 +335,9 @@ other axis: one row per renderer region, newest entry first.
 - `open` [Remaining view initialization dependencies and full profile parity](2026-10-10-v-init-assembly-port.md)
 - `measured` [`Con_DrawInput` console-input overlay passes exact direct C/ASM/public parity across 21 cases and four x87 rounding modes](2026-10-10-con-drawinput-assembly-port.md)
 - `measured` [Strict linked-object, final-executable, startup and provider i486 audits pass with zero violations or exemptions](2026-10-10-con-drawinput-assembly-port.md)
+- `measured` [`SCR_DrawCenterString` exact 18-case C/assembly/public parity across 12 x87 settings](2026-10-10-screen-center-string-assembly-parity.md)
+- `measured` [Strict linked executable, startup and CWSDPMI provider audits pass with zero violations or exemptions](2026-10-10-screen-center-string-assembly-parity.md)
+- `open` [Complete-scene parity and broader screen/rendering ownership](2026-10-10-screen-center-string-assembly-parity.md)
 - `measured` [`SCR_DrawNotifyString` -> i486 assembly port with 19 exact direct cases and i486 execution (2026-10-10)](2026-10-10-scr-drawnotifystring-assembly-port.md)
 - `measured` [Strict project-object, linked/runtime, final-executable, startup and CWSDPMI i486 audits pass with zero violations or exemptions](2026-10-10-scr-drawnotifystring-assembly-port.md)
 - `open` [Combined-profile/full-scene parity and remaining screen ownership](2026-10-10-scr-drawnotifystring-assembly-port.md)

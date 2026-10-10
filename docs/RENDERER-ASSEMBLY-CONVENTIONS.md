@@ -2,11 +2,13 @@
 
 ## Ownership and module structure
 
-The target is 32-bit i486 protected-mode code with the original x87 floating
-point behavior. An i486 DX/DX2/DX4 or an i486 system with a compatible x87 FPU
-is required. This is not a software-FPU implementation for an unassisted SX.
-The application loader and DPMI provider have separately verified 16-bit code;
-they do not change the renderer's 32-bit calling convention.
+The instruction target is 32-bit i486 protected-mode code with the original
+x87 floating-point behavior. The selected execution profile is a 486DX with
+x87 enabled, represented by `tools/dosbox-x-486-high.conf` (`cputype=486`,
+`fpu=true`). An i486-compatible x87 FPU is required; a 486SX without one is
+outside this profile. The application loader and DPMI provider have separately
+verified 16-bit code; they do not change the renderer's 32-bit calling
+convention.
 
 Each conversion has a selector, a maintained `.s` module or named assembly
 region, independently retained original C, a direct fixture and a paired

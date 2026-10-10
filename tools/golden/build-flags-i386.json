@@ -4,18 +4,18 @@
   "mtune": "-mtune=i386",
   "optimizationProfile": "aggressive",
   "optimizationLevel": "-O3",
-  "profileSuffix": "-i386-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm",
-  "outputRoot": "<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm",
-  "objectRoot": "<repo>\\out\\obj-350dc53ac0f97632-obj",
-  "executable": "<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe",
+  "profileSuffix": "-i386-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm",
+  "outputRoot": "<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm",
+  "objectRoot": "<repo>\\out\\obj-fb15f678f2622889-obj",
+  "executable": "<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe",
   "manifest": "build-manifest.json",
   "cSourceCount": 83,
   "standaloneCSourceCount": 82,
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 58,
-  "assemblySourceCount": 58,
+  "allAssemblySourceCount": 59,
+  "assemblySourceCount": 59,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -116,9 +116,9 @@
     "-s",
     "<objects>",
     "-lm",
-    "-Wl,-Map=<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe.map",
+    "-Wl,-Map=<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe.map",
     "-o",
-    "<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe"
+    "<repo>\\out\\dos-i386-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm\\quake.exe"
   ],
   "cSources": [
     "cd_audio.c",
@@ -252,6 +252,7 @@
     "r_visibilityasm.s",
     "r_worldcontrolasm.s",
     "r_zsubmodelasm.s",
+    "screen_centerasm.s",
     "screen_fovasm.s",
     "screen_notifyasm.s",
     "snd_mixa.s",

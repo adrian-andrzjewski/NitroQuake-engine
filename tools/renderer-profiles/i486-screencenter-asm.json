@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-screencenter-asm",
+  "description": "Focused assembly candidate for SCR_DrawCenterString with the same character drawing backend as the C oracle profile.",
+  "selectors": {
+    "ScreenNotifyImplementation": "asm",
+    "ScreenCenterStringImplementation": "asm"
+  }
+}

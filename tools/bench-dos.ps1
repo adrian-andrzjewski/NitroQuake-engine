@@ -244,6 +244,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenNotifyImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenCenterStringImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -298,6 +300,7 @@ param(
     [switch]$ViewControlOnly,
     [switch]$ConsoleInputOnly,
     [switch]$ScreenNotifyOnly,
+    [switch]$ScreenCenterStringOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -394,6 +397,9 @@ if ($ConsoleInputOnly -and $ConsoleImplementation -ne 'asm') {
 }
 if ($ScreenNotifyOnly -and $ScreenNotifyImplementation -ne 'asm') {
     throw '-ScreenNotifyOnly requires -ScreenNotifyImplementation asm.'
+}
+if ($ScreenCenterStringOnly -and $ScreenCenterStringImplementation -ne 'asm') {
+    throw '-ScreenCenterStringOnly requires -ScreenCenterStringImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -805,6 +811,9 @@ elseif ($ConsoleInputOnly) {
 elseif ($ScreenNotifyOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenotify -benchexit'
 }
+elseif ($ScreenCenterStringOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcenterstring -benchexit'
+}
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
 }
@@ -1130,6 +1139,7 @@ $result = [ordered]@{
     drawingImplementation = $DrawingImplementation
     consoleImplementation = $ConsoleImplementation
     screenNotifyImplementation = $ScreenNotifyImplementation
+    screenCenterStringImplementation = $ScreenCenterStringImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation

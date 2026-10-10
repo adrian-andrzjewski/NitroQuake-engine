@@ -2460,6 +2460,63 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("-ScreenNotifyOnly requires -ScreenNotifyImplementation asm.", runner)
         self.assertIn("-benchscreenotify", runner)
 
+    def test_screen_center_string_selector_has_a_focused_reference_and_assembly_profile(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-screencenter-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screencenter-asm.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(reference["id"], "i486-screencenter-c")
+        self.assertEqual(candidate["id"], "i486-screencenter-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ScreenCenterStringImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenCenterStringImplementation"], "asm")
+        self.assertEqual(
+            {name for name, value in candidate["selectors"].items()
+             if reference["selectors"][name] != value},
+            {"ScreenCenterStringImplementation"},
+        )
+
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_centerasm.s").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screencenter.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        self.assertIn("ASM486_SCREEN_CENTER_STRING", selectors)
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        self.assertIn("SCR_DrawCenterString_Screen_C", source)
+        self.assertIn("remaining--", source)
+        self.assertIn("SCR_DrawCenterString_Screen_C", fixture)
+        self.assertIn("SCR_DrawCenterString_asm486", fixture)
+        self.assertIn("SCR_DrawCenterString,", fixture)
+        self.assertIn("Bench486ScreenCenterStringCharacter", fixture)
+        self.assertIn("bench486_screen_center_frame.after", fixture)
+        self.assertIn("positive-intermission-budget", fixture)
+        self.assertIn("fractional-intermission-budget", fixture)
+        self.assertIn("high-bit-height", fixture)
+        self.assertIn("cw_before", fixture)
+        self.assertIn("cw_after", fixture)
+        self.assertIn("COM_CheckParm (\"-benchcenterstring\")", host_commands)
+        self.assertIn("Bench486ScreenCenterCases ();", host_commands)
+        for runner_name in (
+            "build-dos.ps1",
+            "bench-dos.ps1",
+            "timedemo-dos.ps1",
+            "smoke-dos.ps1",
+            "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ScreenCenterStringImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenCenterStringImplementation with a C default",
+            )
+        runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("-ScreenCenterStringOnly requires -ScreenCenterStringImplementation asm.", runner)
+        self.assertIn("-benchcenterstring", runner)
+
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
         routine = re.search(

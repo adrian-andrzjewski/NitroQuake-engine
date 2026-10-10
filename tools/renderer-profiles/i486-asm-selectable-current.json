@@ -87,6 +87,7 @@
     "DrawingImplementation": "asm",
     "ConsoleImplementation": "asm",
     "ScreenNotifyImplementation": "asm",
+    "ScreenCenterStringImplementation": "asm",
     "RenderWorldImplementation": "asm",
     "RenderFaceImplementation": "asm",
     "RenderBmodelFaceImplementation": "asm",

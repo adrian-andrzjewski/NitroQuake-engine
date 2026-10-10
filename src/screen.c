@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 #include "asm_screenfov.h"
 #include "asm_screennotify.h"
+#include "asm_screencenter.h"
 
 // only the refresh window will be updated unless these variables are flagged 
 int			scr_copytop;
@@ -124,7 +125,16 @@ void SCR_EraseCenterString (void)
 	Draw_TileClear (0, y,vid.width, 8*scr_erase_lines);
 }
 
-void SCR_DrawCenterString (void)
+#if defined(ASM486_SCREEN_CENTER_STRING) && defined(BENCH486)
+#define SCR_CENTER_DRAW_CHARACTER Bench486ScreenCenterStringCharacter
+#define SCR_DRAW_CENTER_STRING_C SCR_DrawCenterString_Screen_C
+#elif !defined(ASM486_SCREEN_CENTER_STRING)
+#define SCR_CENTER_DRAW_CHARACTER Draw_Character
+#define SCR_DRAW_CENTER_STRING_C SCR_DrawCenterString
+#endif
+
+#if !defined(ASM486_SCREEN_CENTER_STRING) || defined(BENCH486)
+void SCR_DRAW_CENTER_STRING_C (void)
 {
 	char	*start;
 	int		l;
@@ -155,7 +165,7 @@ void SCR_DrawCenterString (void)
 		x = (vid.width - l*8)/2;
 		for (j=0 ; j<l ; j++, x+=8)
 		{
-			Draw_Character (x, y, start[j]);	
+			SCR_CENTER_DRAW_CHARACTER (x, y, start[j]);
 			if (!remaining--)
 				return;
 		}
@@ -170,6 +180,10 @@ void SCR_DrawCenterString (void)
 		start++;		// skip the \n
 	} while (1);
 }
+#endif
+
+#undef SCR_DRAW_CENTER_STRING_C
+#undef SCR_CENTER_DRAW_CHARACTER
 
 void SCR_CheckDrawCenterString (void)
 {
@@ -220,8 +234,9 @@ float SCREEN_CALC_FOV_C (float fov_x, float width, float height)
                 return a;
         }
 }
-#undef SCREEN_CALC_FOV_ERROR
 #endif
+
+#undef SCREEN_CALC_FOV_ERROR
 #undef SCREEN_CALC_FOV_C
 
 /*

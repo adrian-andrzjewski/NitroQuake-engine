@@ -4,18 +4,18 @@
   "mtune": "-mtune=i486",
   "optimizationProfile": "aggressive",
   "optimizationLevel": "-O3",
-  "profileSuffix": "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-bspwalkasm-blobexplosionasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm",
-  "outputRoot": "<repo>\\out\\profile-d34ccbfb64f12b23",
-  "objectRoot": "<repo>\\out\\profile-d34ccbfb64f12b23\\obj",
-  "executable": "<repo>\\out\\profile-d34ccbfb64f12b23\\quake.exe",
+  "profileSuffix": "-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-bspwalkasm-blobexplosionasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm",
+  "outputRoot": "<repo>\\out\\profile-8e933ddb9caebf33",
+  "objectRoot": "<repo>\\out\\profile-8e933ddb9caebf33\\obj",
+  "executable": "<repo>\\out\\profile-8e933ddb9caebf33\\quake.exe",
   "manifest": "build-manifest.json",
   "cSourceCount": 83,
   "standaloneCSourceCount": 82,
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 58,
-  "assemblySourceCount": 58,
+  "allAssemblySourceCount": 59,
+  "assemblySourceCount": 59,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -132,9 +132,9 @@
     "-s",
     "<objects>",
     "-lm",
-    "-Wl,-Map=<repo>\\out\\profile-d34ccbfb64f12b23\\quake.exe.map",
+    "-Wl,-Map=<repo>\\out\\profile-8e933ddb9caebf33\\quake.exe.map",
     "-o",
-    "<repo>\\out\\profile-d34ccbfb64f12b23\\quake.exe"
+    "<repo>\\out\\profile-8e933ddb9caebf33\\quake.exe"
   ],
   "cSources": [
     "cd_audio.c",
@@ -268,6 +268,7 @@
     "r_visibilityasm.s",
     "r_worldcontrolasm.s",
     "r_zsubmodelasm.s",
+    "screen_centerasm.s",
     "screen_fovasm.s",
     "screen_notifyasm.s",
     "snd_mixa.s",

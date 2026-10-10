@@ -72,6 +72,8 @@ param(
     [string]$ConsoleImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScreenNotifyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScreenCenterStringImplementation = 'c',
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [string]$DataRoot,
@@ -226,6 +228,7 @@ $report = [ordered]@{
     cpuTarget       = $CpuTarget
     consoleImplementation = $ConsoleImplementation
     screenNotifyImplementation = $ScreenNotifyImplementation
+    screenCenterStringImplementation = $ScreenCenterStringImplementation
     buildSelectorVerification = $selectorVerification
     providerVerification = $providerVerification
     frames          = $Frames

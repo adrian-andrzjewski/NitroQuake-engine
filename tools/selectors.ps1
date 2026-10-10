@@ -111,6 +111,7 @@ $script:AssemblyBackedImplementations = @(
     'DrawingImplementation',
     'ConsoleImplementation',
     'ScreenNotifyImplementation',
+    'ScreenCenterStringImplementation',
     'ChaseImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
@@ -1184,6 +1185,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ScreenCenterStringImplementation'
+        Manifest   = 'screenCenterStringImplementation'
+        Suffix     = @{ 'asm' = 'screencenterasm' }
+        C          = @{ 'asm' = @('ASM486_SCREEN_CENTER_STRING') }
+        Asm        = @{ 'asm' = @('ASM486_SCREEN_CENTER_STRING') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'RenderWorldImplementation'
         Manifest   = 'renderWorldImplementation'
         Suffix     = @{ 'asm' = 'renderworldasm' }
@@ -1485,6 +1495,7 @@ $script:SuffixOrder = @(
     'DrawingImplementation'
     'ConsoleImplementation'
     'ScreenNotifyImplementation'
+    'ScreenCenterStringImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1575,6 +1586,7 @@ $script:CDefineOrder = @(
     'DrawingImplementation'
     'ConsoleImplementation'
     'ScreenNotifyImplementation'
+    'ScreenCenterStringImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1697,6 +1709,7 @@ $script:AsmDefineOrder = @(
     'DrawingImplementation'
     'ConsoleImplementation'
     'ScreenNotifyImplementation'
+    'ScreenCenterStringImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'

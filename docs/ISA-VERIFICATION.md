@@ -9,6 +9,11 @@ the embedded 16-bit startup code and the maintained CWSDPMI provider. An unknown
 the i486/387 target fails the build. `-SkipIsaAudit` produces an explicitly
 unverified artifact which the normal i486 execution runners reject.
 
+The selected execution profile is a 486DX with x87 enabled, represented by
+`tools/dosbox-x-486-high.conf` (`cputype=486`, `fpu=true`). `CpuTarget=i486`
+remains the strict instruction-set floor; the x87 instructions used by Quake
+are permitted on this profile.
+
 For framebuffer diagnosis only, `render-parity-dos.ps1 -VisualParityOnly`
 allows paired C/reference and assembly runs to use fresh i486-targeted binaries
 with the renderer ISA audit skipped. It writes those binaries to a separate

@@ -136,6 +136,16 @@ unknowns or exemptions. This is routine-level depth-buffer evidence; a full
 scene pair remains outside this slice. See the
 [z-span parity ledger](ledger/2026-10-10-d-drawzspans-assembly-parity.md).
 
+`SCR_DrawCenterString` now has a retained C oracle and a selectable i486
+assembly implementation. Eighteen deterministic cases passed across four x87
+rounding modes and three precision settings, with exact guarded-framebuffer,
+character-call, ABI and x87-state comparisons. The strict executable, startup
+and CWSDPMI audits passed with zero violations or exemptions; the exact fixture
+run used the selected 486DX+x87 DOSBox-X profile. This verifies one overlay
+routine; complete-scene parity and broader screen/rendering ownership remain
+open. See the
+[center-string parity ledger](ledger/2026-10-10-screen-center-string-assembly-parity.md).
+
 The opt-in frustum profile now selects assembly for both `R_TransformFrustum`
 and `R_SetUpFrustumIndexes`. Its strict paired i486 run passed the complete
 relocated executable, startup and CWSDPMI provider gates with zero instruction
