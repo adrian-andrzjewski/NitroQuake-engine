@@ -14,8 +14,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 57,
-  "assemblySourceCount": 57,
+  "allAssemblySourceCount": 58,
+  "assemblySourceCount": 58,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -252,6 +252,7 @@
     "r_visibilityasm.s",
     "r_worldcontrolasm.s",
     "r_zsubmodelasm.s",
+    "screen_fovasm.s",
     "screen_notifyasm.s",
     "snd_mixa.s",
     "surf16.s",

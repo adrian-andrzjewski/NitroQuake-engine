@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_screenfov.h"
 #include "asm_screennotify.h"
 
 // only the refresh window will be updated unless these variables are flagged 
@@ -193,22 +194,35 @@ void SCR_CheckDrawCenterString (void)
 CalcFov
 ====================
 */
-float CalcFov (float fov_x, float width, float height)
+#if defined(ASM486_VIEW_CONTROL)
+#define SCREEN_CALC_FOV_C CalcFov_C
+#else
+#define SCREEN_CALC_FOV_C CalcFov
+#endif
+#if !defined(ASM486_VIEW_CONTROL) || defined(BENCH486)
+#if defined(BENCH486) && defined(ASM486_VIEW_CONTROL)
+#define SCREEN_CALC_FOV_ERROR Bench486CalcFovSysError
+#else
+#define SCREEN_CALC_FOV_ERROR Sys_Error
+#endif
+float SCREEN_CALC_FOV_C (float fov_x, float width, float height)
 {
-        float   a;
-        float   x;
-
         if (fov_x < 1 || fov_x > 179)
-                Sys_Error ("Bad fov: %f", fov_x);
+                SCREEN_CALC_FOV_ERROR ("Bad fov: %f", fov_x);
 
-        x = width/tan(fov_x/360*M_PI);
-
-        a = atan (height/x);
-
-        a = a*360/M_PI;
-
-        return a;
+        /* Keep this original C expression as the differential oracle. */
+        {
+                float x;
+                float a;
+                x = width/tan(fov_x/360*M_PI);
+                a = atan (height/x);
+                a = a*360/M_PI;
+                return a;
+        }
 }
+#undef SCREEN_CALC_FOV_ERROR
+#endif
+#undef SCREEN_CALC_FOV_C
 
 /*
 =================
@@ -244,7 +258,11 @@ static void SCR_CalcRefdef (void)
 		Cvar_Set ("fov","170");
 
 	r_refdef.fov_x = scr_fov.value;
+#ifdef ASM486_VIEW_CONTROL
+	r_refdef.fov_y = CalcFov_asm486 (r_refdef.fov_x, r_refdef.vrect.width, r_refdef.vrect.height);
+#else
 	r_refdef.fov_y = CalcFov (r_refdef.fov_x, r_refdef.vrect.width, r_refdef.vrect.height);
+#endif
 
 // intermission is always full screen	
 	if (cl.intermission)

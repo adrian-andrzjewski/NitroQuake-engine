@@ -2270,6 +2270,26 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("sizeof(edge_t)==VC_EDGE_SIZE", layout)
         self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
 
+    def test_calc_fov_assembly_matches_the_c_oracle_under_x87_modes(self) -> None:
+        assembly = (ROOT / "src/screen_fovasm.s").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        layout = (ROOT / "src/asm_screenfov.h").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_viewcontrol.h").read_text(encoding="utf-8")
+
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("C(CalcFov_asm486):", assembly)
+        for instruction in ("fcoms", "fnstsw", "fptan", "fpatan", "fdivrs"):
+            with self.subTest(instruction=instruction):
+                self.assertIn(instruction, assembly)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        self.assertIn("#define SCREEN_CALC_FOV_C CalcFov_C", source)
+        self.assertIn("CalcFov_asm486 (r_refdef.fov_x", source)
+        self.assertIn("Bench486CalcFovSysError", layout)
+        self.assertIn("CalcFov C/ASM exact result, error, x87-mode and ABI", fixture)
+        self.assertIn("12 x87 control words", fixture)
+        self.assertIn("Bench486CalcFovCases();", fixture)
+
     def test_console_input_selector_has_a_focused_reference_and_assembly_profile(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-consoleinput-c.json").read_text(encoding="utf-8"))

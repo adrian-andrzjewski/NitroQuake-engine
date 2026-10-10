@@ -692,6 +692,11 @@ def main() -> int:
                 if "-D" + define not in candidate.get(language, []):
                     fail(selector + " omits its assembly define from " + language)
 
+    for value_name, value in (("C", "c"), ("assembly", "asm")):
+        view_control = dump_flags("-ViewControlImplementation", value)
+        if view_control and "screen_fovasm.s" not in view_control.get("assemblySources", []):
+            fail("the view-control %s selector omits screen_fovasm.s from the source inventory" % value_name)
+
     console_input_reference = dump_flags("-ConsoleImplementation", "c")
     console_input_candidate = dump_flags("-ConsoleImplementation", "asm")
     for name, dump in (("C", console_input_reference), ("assembly", console_input_candidate)):
@@ -1680,7 +1685,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 57 assembly sources (one is omitted only
+    #    included by another unit), 58 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1692,9 +1697,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 57:
+        if dump.get("allAssemblySourceCount") != 58:
             fail(
-                "%s: expected 57 assembly sources, got %r"
+                "%s: expected 58 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

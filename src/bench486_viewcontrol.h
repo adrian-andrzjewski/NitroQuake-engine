@@ -1,5 +1,6 @@
 /* Independent original C camera algorithms; exact state, trace and ABI checks. */
 #ifdef ASM486_VIEW_CONTROL
+#include "asm_screenfov.h"
 extern void (*bench486_view_probe)(unsigned,unsigned,const unsigned *);
 extern void R_CheckVariables_View_C (void), R_CheckVariables (void);
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
@@ -86,6 +87,102 @@ static unsigned short Bench486RCheckStatus(void)
 {unsigned short status;__asm__ __volatile__("fnstsw %0":"=m"(status));return status;}
 static unsigned short Bench486RCheckControl(void)
 {unsigned short control;__asm__ __volatile__("fnstcw %0":"=m"(control));return control;}
+unsigned bench486_calcfov_error_calls;
+const char *bench486_calcfov_error_message;
+unsigned bench486_calcfov_error_bits[2];
+void Bench486CalcFovSysError(const char *message,double value)
+{
+    bench486_calcfov_error_calls++;
+    bench486_calcfov_error_message=message;
+    Q_memcpy(bench486_calcfov_error_bits,&value,8);
+}
+typedef struct {unsigned calls,message_hash,bits[2];} bench486_calcfov_error_t;
+static unsigned Bench486CalcFovHash(const char *s)
+{
+    unsigned hash=2166136261U;
+    if(!s)return 0;
+    while(*s)hash=(hash^(byte)*s++)*16777619U;
+    return hash;
+}
+static void Bench486CalcFovResetError(void)
+{
+    bench486_calcfov_error_calls=0;
+    bench486_calcfov_error_message=NULL;
+    bench486_calcfov_error_bits[0]=bench486_calcfov_error_bits[1]=0;
+}
+static void Bench486CalcFovCaptureError(bench486_calcfov_error_t *capture)
+{
+    capture->calls=bench486_calcfov_error_calls;
+    capture->message_hash=Bench486CalcFovHash(bench486_calcfov_error_message);
+    capture->bits[0]=bench486_calcfov_error_bits[0];
+    capture->bits[1]=bench486_calcfov_error_bits[1];
+}
+static void Bench486CalcFovCases(void)
+{
+    static const unsigned inputs[][4]={
+        {0x3f7fffffU,0x43a00000U,0x43480000U,1}, /* just below 1 degree */
+        {0x3f800000U,0x43a00000U,0x43480000U,0},
+        {0x3f800001U,0x43a00000U,0x43480000U,0},
+        {0x41200000U,0x43800000U,0x43100000U,0}, /* 10 degrees, 256x144 */
+        {0x41f00000U,0x44a00000U,0x44340000U,0}, /* 30 degrees, 1280x720 */
+        {0x42340000U,0x43a00000U,0x43480000U,0}, /* 45 degrees */
+        {0x42b40000U,0x44200000U,0x43f00000U,0}, /* 90 degrees, 640x480 */
+        {0x42f00000U,0x44f00000U,0x44870000U,0}, /* 120 degrees, 1920x1080 */
+        {0x432a0000U,0x44f00000U,0x44870000U,0}, /* 170 degrees */
+        {0x4332ffffU,0x43a00000U,0x43480000U,0}, /* just below 179 degrees */
+        {0x43330000U,0x43a00000U,0x43480000U,0}, /* exactly 179 degrees */
+        {0x43330001U,0x43a00000U,0x43480000U,1}, /* just above 179 degrees */
+        {0x43340000U,0x43a00000U,0x43480000U,1}, /* 180 degrees */
+        {0xbf800000U,0x43a00000U,0x43480000U,1}, /* negative field of view */
+        {0x42b40000U,0x00000000U,0x43f00000U,0}, /* zero width */
+        {0x42b40000U,0x44200000U,0x00000000U,0}, /* zero height */
+        {0x42b40000U,0xc3a00000U,0x43480000U,0}  /* signed width behavior */
+    };
+    static const unsigned short modes[12]={0x007f,0x047f,0x087f,0x0c7f,0x027f,0x067f,
+        0x0a7f,0x0e7f,0x037f,0x077f,0x0b7f,0x0f7f};
+    unsigned short saved_cw,control,c_status,a_status,c_control,a_control;
+    unsigned args[3],c_bits,a_bits,expected_message;
+    unsigned mode,index,c_abi,a_abi,cases=0,failures=0;
+    bench486_calcfov_error_t c_error,a_error;
+    const unsigned expected_hash=Bench486CalcFovHash("Bad fov: %f");
+    __asm__ __volatile__("fnstcw %0":"=m"(saved_cw));
+    for(mode=0;mode<12;mode++)
+    {
+        control=(saved_cw&~0x0f00U)|(modes[mode]&0x0f00U);
+        __asm__ __volatile__("fldcw %0"::"m"(control));
+        for(index=0;index<sizeof(inputs)/sizeof(inputs[0]);index++)
+        {
+            float c_value=0,a_value=0;
+            args[0]=inputs[index][0];args[1]=inputs[index][1];args[2]=inputs[index][2];
+            expected_message=inputs[index][3]?expected_hash:0;
+            __asm__ __volatile__("fnclex");
+            Bench486CalcFovResetError();
+            c_abi=Bench486Call_asm486((void(*)(void))CalcFov_C,3,args,&c_value);
+            c_status=Bench486RCheckStatus();c_control=Bench486RCheckControl();
+            Bench486CalcFovCaptureError(&c_error);Q_memcpy(&c_bits,&c_value,4);
+
+            __asm__ __volatile__("fnclex");
+            Bench486CalcFovResetError();
+            a_abi=Bench486Call_asm486((void(*)(void))CalcFov_asm486,3,args,&a_value);
+            a_status=Bench486RCheckStatus();a_control=Bench486RCheckControl();
+            Bench486CalcFovCaptureError(&a_error);Q_memcpy(&a_bits,&a_value,4);
+            cases++;
+            if(c_abi||a_abi||c_control!=control||a_control!=control||c_status!=a_status||
+               c_bits!=a_bits||Q_memcmp(&c_error,&a_error,sizeof(c_error))||
+               c_error.message_hash!=expected_message||c_error.calls!=inputs[index][3])
+            {
+                failures++;
+                if(failures<8)Bench486Printf("CalcFov C/ASM FAIL mode %u case %u ABI %x/%x result %08x/%08x status %04x/%04x error %u/%u message %08x/%08x\n",
+                    mode,index,c_abi,a_abi,c_bits,a_bits,c_status,a_status,c_error.calls,a_error.calls,
+                    c_error.message_hash,a_error.message_hash);
+            }
+        }
+    }
+    __asm__ __volatile__("fldcw %0; fnclex"::"m"(saved_cw));
+    if(failures)bench486_memory_failures++;
+    Bench486Printf("CalcFov C/ASM exact result, error, x87-mode and ABI %s (%u cases; 12 x87 control words; %u failures)\n",
+        failures?"FAIL":"PASS",cases,failures);
+}
 static void Bench486RCheckVariablesCases(void)
 {
     static const unsigned short modes[12]={0x007f,0x047f,0x087f,0x0c7f,0x027f,0x067f,
@@ -249,7 +346,7 @@ static void Bench486ViewControlCases(void)
     static bench486_view_state_t saved;unsigned short cw,control;
     static const unsigned modes[]={0x007f,0x047f,0x087f,0x0c7f,0x027f,0x067f,0x0a7f,0x0e7f,0x037f,0x077f,0x0b7f,0x0f7f};
     void (*probe)(unsigned,unsigned,const unsigned *);unsigned i,mode,step,pair,cases=0,failures=bench486_memory_failures,negative=0,hash;
-    double frametime=host_frametime;Bench486ViewSave(&saved);Bench486RCheckVariablesCases();
+    double frametime=host_frametime;Bench486ViewSave(&saved);Bench486CalcFovCases();Bench486RCheckVariablesCases();
     failures=bench486_memory_failures;probe=bench486_view_probe;bench486_view_probe=Bench486ViewObserveFixture;
     host_frametime=0.0783;__asm__ __volatile__("fnstcw %0":"=m"(cw));
     for(i=0;i<8;i++){bench486_view_buffer.first[i]=0x5a5a5a5aU;bench486_view_buffer.last[i]=0xa5a5a5a5U;}
