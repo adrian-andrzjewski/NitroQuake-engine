@@ -6950,6 +6950,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_PARSE_PARTICLE_EFFECT)
 #include "bench486_parseparticleeffect.h"
 #endif
+#ifdef BENCH486
+#include "bench486_forwardspans.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_ENTITY_PARTICLES)
 #include "bench486_entityparticles.h"
 #endif
@@ -10016,6 +10019,21 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchforwardspans"))
+	{
+		Bench486ForwardSpansCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchlinegraph"))
 	{
 #ifdef ASM486_LINE_GRAPH
@@ -11397,6 +11415,7 @@ static void Bench486_f (void)
 #endif
 #ifdef ASM486_WORLD_CONTROL
 	Bench486WorldControlCases ();
+	Bench486ForwardSpansCases ();
 #endif
 	Bench486Printf ("alias-transform-final experiment compares the C clipped vertex helper with\n");
 	Bench486Printf ("the register-held 486 x87 transform and lighting helper\n");

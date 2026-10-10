@@ -1570,6 +1570,39 @@ class RenderingComparisonTests(unittest.TestCase):
                 f"{runner_name} must reject unsupported PrintTimes selectors",
             )
 
+    def test_forward_span_fixture_has_c_oracle_guards_and_isolated_runner(self) -> None:
+        assembly = (ROOT / "src/r_edgea.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/r_edge.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_forwardspans.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
+
+        self.assertIn(".globl C(R_GenerateSpans_asm486)", assembly)
+        self.assertIn("C(R_GenerateSpans_asm486):", assembly)
+        self.assertIn("void R_LeadingEdge_C (edge_t *edge)", oracle)
+        self.assertIn("void R_GenerateSpans_C (void)", oracle)
+        self.assertIn("bmodel-legacy-constant-boundary", fixture)
+        self.assertIn("bmodel-bottom-double-boundary", fixture)
+        self.assertIn("bmodel-top-double-boundary", fixture)
+        self.assertIn("bmodel-fu-fixed-point-boundary", fixture)
+        self.assertIn("bmodel-slope-tiebreak-wins", fixture)
+        self.assertIn("fractional-u-pixel-boundary", fixture)
+        self.assertIn(".double\t0.99", assembly)
+        self.assertIn(".double\t1.01", assembly)
+        self.assertIn("fmull\tdouble_point_99", assembly)
+        self.assertIn("fmull\tdouble_1_point_01", assembly)
+        self.assertIn("the compiled C oracle keeps fu in extended x87 precision", assembly)
+        self.assertNotIn("fstps\tLtemp", assembly)
+        self.assertIn("BFS_GUARD_WORDS", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn('#include "bench486_forwardspans.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchforwardspans")', host_commands)
+        self.assertIn("Bench486ForwardSpansCases ();", host_commands)
+        self.assertIn("[switch]$ForwardSpansOnly", bench_runner)
+        self.assertIn("+bench486 -benchforwardspans -benchexit", bench_runner)
+        self.assertIn('"_R_GenerateSpans_asm486": "r_edgea.s"', ownership)
+
     def test_particle_explosion2_profile_fixture_and_selectable_count(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))

@@ -65,8 +65,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.data
 Ltemp:					.long	0
 float_1_div_0100000h:	.long	0x35800000	// 1.0/(float)0x100000
-float_point_999:		.single	0.999
-float_1_point_001:		.single	1.001
+double_point_99:		.double	0.99
+double_1_point_01:		.double	1.01
 
 	.text
 
@@ -443,7 +443,9 @@ Lgs_trailing:
 
 
 .globl C(R_GenerateSpans)
+.globl C(R_GenerateSpans_asm486)
 C(R_GenerateSpans):
+C(R_GenerateSpans_asm486):
 	pushl	%ebp				// preserve caller's stack frame
 	pushl	%edi
 	pushl	%esi				// preserve register variables
@@ -644,8 +646,7 @@ incl	C(bench486_edge_sort_iters)
 	movl	et_u(%ebx),%eax
 	subl	$0xFFFFF,%eax
 	movl	%eax,Ltemp
-	fildl	Ltemp
-
+	fildl	Ltemp	// the compiled C oracle keeps fu in extended x87 precision
 	fmuls	float_1_div_0100000h // fu = (float)(edge->u - 0xFFFFF) *
 								//      (1.0 / 0x100000);
 
@@ -673,7 +674,7 @@ incl	C(bench486_edge_sort_iters)
 								//  fu*surf2->d_zistepu | newzi | fu
 	fld		%st(2)				// newzi | fv*surf2->d_zistepv |
 								//  fu*surf2->d_zistepu | newzi | fu
-	fmuls	float_point_999		// newzibottom | fv*surf2->d_zistepv |
+	fmull	double_point_99		// newzibottom | fv*surf2->d_zistepv |
 								//  fu*surf2->d_zistepu | newzi | fu
 
 	fxch	%st(2)				// fu*surf2->d_zistepu | fv*surf2->d_zistepv |
@@ -690,7 +691,7 @@ incl	C(bench486_edge_sort_iters)
 	fcomp	%st(1)				// testzi | newzi | fu
 
 	fxch	%st(1)				// newzi | testzi | fu
-	fmuls	float_1_point_001	// newzitop | testzi | fu
+	fmull	double_1_point_01	// newzitop | testzi | fu
 	fxch	%st(1)				// testzi | newzitop | fu
 
 	fnstsw	%ax
@@ -884,8 +885,7 @@ Lzcheck_for_newtop:
 	movl	et_u(%ebx),%eax
 	subl	$0xFFFFF,%eax
 	movl	%eax,Ltemp
-	fildl	Ltemp
-
+	fildl	Ltemp	// the compiled C oracle keeps fu in extended x87 precision
 	fmuls	float_1_div_0100000h // fu = (float)(edge->u - 0xFFFFF) *
 								//      (1.0 / 0x100000);
 
@@ -913,7 +913,7 @@ Lzcheck_for_newtop:
 								//  fu*surf2->d_zistepu | newzi | fu
 	fld		%st(2)				// newzi | fv*surf2->d_zistepv |
 								//  fu*surf2->d_zistepu | newzi | fu
-	fmuls	float_point_999		// newzibottom | fv*surf2->d_zistepv |
+	fmull	double_point_99		// newzibottom | fv*surf2->d_zistepv |
 								//  fu*surf2->d_zistepu | newzi | fu
 
 	fxch	%st(2)				// fu*surf2->d_zistepu | fv*surf2->d_zistepv |
@@ -930,7 +930,7 @@ Lzcheck_for_newtop:
 	fcomp	%st(1)				// testzi | newzi | fu
 
 	fxch	%st(1)				// newzi | testzi | fu
-	fmuls	float_1_point_001	// newzitop | testzi | fu
+	fmull	double_1_point_01	// newzitop | testzi | fu
 	fxch	%st(1)				// testzi | newzitop | fu
 
 	fnstsw	%ax

@@ -81,7 +81,8 @@ def pdrawfunc_fixture(root: Path, extra_setter_listing: str = "",
                       extra_consumer_listing: str = "",
                       clobber_forward_register: bool = False,
                       duplicate_pointer_load_relocations: bool = False,
-                      with_local_setter_labels: bool = False) -> tuple[dict, str, Path]:
+                      with_local_setter_labels: bool = False,
+                      extra_span_alias: str = "") -> tuple[dict, str, Path]:
     objects = root / "obj"
     (root / "src").mkdir()
     objects.mkdir()
@@ -145,6 +146,8 @@ def pdrawfunc_fixture(root: Path, extra_setter_listing: str = "",
         + "1000: c3 ret\n"
         + object_header("r_edgea")
         + symbol(0, "_R_GenerateSpans")
+        + symbol(1, "_R_GenerateSpans_asm486")
+        + (symbol(2, extra_span_alias) if extra_span_alias else "")
         + "00000000 <_R_GenerateSpans>:\n"
         + "   0: c3 ret\n"
         + object_header("r_publicbindingsasm")
@@ -290,11 +293,31 @@ class RendererOwnershipTests(unittest.TestCase):
                  "object": "r_publicbindingsasm.obj", "language": "assembly"},
             ])
             self.assertEqual(proof["implementations"], [
-                {"symbol": "_R_GenerateSpans", "source": "r_edgea.s",
+                {"symbol": "_R_GenerateSpans_asm486", "source": "r_edgea.s",
                  "object": "r_edgea.obj", "language": "assembly"},
                 {"symbol": "_R_GenerateSpansBackward_asm486", "source": "asm486_experiments.s",
                  "object": "asm486_experiments.obj", "language": "assembly"},
             ])
+            entries = {entry["symbol"]: entry for entry in report["rendererEntries"]}
+            self.assertEqual(entries["_R_GenerateSpans_asm486"], {
+                "symbol": "_R_GenerateSpans_asm486", "source": "r_edgea.s",
+                "object": "r_edgea.obj", "offset": "0x0", "language": "assembly",
+                "rendererOwned": True, "calls": [], "indirectTransfers": [],
+            })
+            self.assertEqual(entries["_R_GenerateSpans"]["offset"],
+                             entries["_R_GenerateSpans_asm486"]["offset"])
+
+    def test_pdrawfunc_closure_rejects_an_unexpected_private_span_alias(self):
+        with tempfile.TemporaryDirectory(prefix="quake-pdrawfunc-ownership-") as directory:
+            root = Path(directory)
+            manifest, listing, objects = pdrawfunc_fixture(
+                root, extra_span_alias="_R_GenerateSpansFast_asm486")
+            with patch.object(ownership.subprocess, "run", return_value=SimpleNamespace(stdout=listing)):
+                with self.assertRaisesRegex(
+                        ValueError,
+                        "unexpected span aliases: _R_GenerateSpansFast_asm486"):
+                    ownership.inventory(manifest, objects, root, root / "objdump.exe",
+                                        ["_R_RenderView"], [])
 
     def test_local_assembly_labels_do_not_truncate_selected_function(self):
         with tempfile.TemporaryDirectory(prefix="quake-pdrawfunc-local-labels-") as directory:

@@ -562,14 +562,18 @@ void R_TrailingEdge (surf_t *surf, edge_t *edge)
 #endif
 
 
-#if	!id386
+#if !id386 || defined(BENCH486)
 
 /*
 ==============
 R_LeadingEdge
 ==============
 */
+#ifdef BENCH486
+void R_LeadingEdge_C (edge_t *edge)
+#else
 void R_LeadingEdge (edge_t *edge)
+#endif
 {
 	espan_t			*span;
 	surf_t			*surf, *surf2;
@@ -697,7 +701,11 @@ gotposition:
 R_GenerateSpans
 ==============
 */
+#ifdef BENCH486
+void R_GenerateSpans_C (void)
+#else
 void R_GenerateSpans (void)
+#endif
 {
 	edge_t			*edge;
 	surf_t			*surf;
@@ -716,19 +724,31 @@ void R_GenerateSpans (void)
 		// it has a left surface, so a surface is going away for this span
 			surf = &surfaces[edge->surfs[0]];
 
+#if defined(BENCH486) && defined(ASM486_BACKWARD_SPANS)
+			R_TrailingEdge_C (surf, edge);
+#else
 			R_TrailingEdge (surf, edge);
+#endif
 
 			if (!edge->surfs[1])
 				continue;
 		}
 
+#ifdef BENCH486
+		R_LeadingEdge_C (edge);
+#else
 		R_LeadingEdge (edge);
+#endif
 	}
 
+#if defined(BENCH486) && defined(ASM486_BACKWARD_SPANS)
+	R_CleanupSpan_C ();
+#else
 	R_CleanupSpan ();
+#endif
 }
 
-#endif	// !id386
+#endif	// !id386 || BENCH486
 
 
 /*

@@ -244,6 +244,10 @@ PDRAW_FUNC_TARGETS = {
     "_R_GenerateSpans": "r_edgea.s",
     "_R_GenerateSpansBackward": "r_publicbindingsasm.s",
 }
+PDRAW_FUNC_PRIVATE_ALIASES = {
+    "_R_GenerateSpans_asm486": "r_edgea.s",
+    "_R_GenerateSpansBackward_asm486": "asm486_experiments.s",
+}
 
 
 def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
@@ -269,6 +273,21 @@ def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
     missing_sources = sorted(required_sources - selected_assembly)
     if missing_sources:
         raise ValueError("_pdrawfunc closure requires assembly sources: " + ", ".join(missing_sources))
+
+    span_aliases = {
+        symbol for unit in units.values() for symbol in unit["symbols"]
+        if symbol.startswith("_R_GenerateSpans") and symbol.endswith("_asm486")
+    }
+    expected_aliases = set(PDRAW_FUNC_PRIVATE_ALIASES)
+    unexpected_aliases = sorted(span_aliases - expected_aliases)
+    missing_aliases = sorted(expected_aliases - span_aliases)
+    if unexpected_aliases:
+        raise ValueError("_pdrawfunc closure found unexpected span aliases: " + ", ".join(unexpected_aliases))
+    if missing_aliases:
+        raise ValueError("_pdrawfunc closure requires private span aliases: " + ", ".join(missing_aliases))
+
+    for symbol, source in PDRAW_FUNC_PRIVATE_ALIASES.items():
+        _renderer_function(symbol, source, entries, units, "_pdrawfunc")
 
     setter_entry, setter = _renderer_function(
         "_R_BeginEdgeFrame", "r_worldcontrolasm.s", entries, units, "_pdrawfunc")
@@ -418,6 +437,11 @@ def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
     backward_impl, _ = _renderer_function(
         "_R_GenerateSpansBackward_asm486", "asm486_experiments.s", entries, units, "_pdrawfunc")
     forward_entry = entries["_R_GenerateSpans"]
+    forward_impl, _ = _renderer_function(
+        "_R_GenerateSpans_asm486", "r_edgea.s", entries, units, "_pdrawfunc")
+    if (forward_entry["object"] != forward_impl["object"] or
+            forward_entry["offset"] != forward_impl["offset"]):
+        raise ValueError("_pdrawfunc forward target must alias _R_GenerateSpans_asm486 at the same address")
     backward_transfers = [instruction for instruction in backward_public_function["instructions"]
                           if instruction["operation"] in {"call", "jmp"}]
     if (backward_public["calls"] != ["_R_GenerateSpansBackward_asm486"] or
@@ -446,7 +470,7 @@ def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
         },
         "targets": targets,
         "implementations": [
-            {key: forward_entry[key] for key in ("symbol", "source", "object", "language")},
+            {key: forward_impl[key] for key in ("symbol", "source", "object", "language")},
             {key: backward_impl[key] for key in ("symbol", "source", "object", "language")},
         ],
         "proof": "structural disassembly and DIR32 relocations show _R_BeginEdgeFrame selects only these two assembly span entries and both _R_ScanEdges_asm486 indirect calls reload _pdrawfunc immediately before transfer; writers outside the selected setter are not enumerated",

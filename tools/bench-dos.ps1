@@ -317,6 +317,7 @@ param(
     [switch]$DamageParseOnly,
     [switch]$ParticleExplosionOnly,
     [switch]$ParseParticleEffectOnly,
+    [switch]$ForwardSpansOnly,
     [switch]$RunParticleEffectOnly,
     [switch]$EntityParticlesOnly,
     [switch]$ParticleExplosion2Only,
@@ -893,6 +894,9 @@ elseif ($ParticleExplosionOnly) {
 elseif ($ParseParticleEffectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparseparticleeffect -benchexit'
 }
+elseif ($ForwardSpansOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchforwardspans -benchexit'
+}
 elseif ($RunParticleEffectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchrunparticleeffect -benchexit'
 }
@@ -1172,6 +1176,7 @@ $result = [ordered]@{
     rocketTrailOnly = [bool]$RocketTrailOnly
     particleExplosionOnly = [bool]$ParticleExplosionOnly
     parseParticleEffectOnly = [bool]$ParseParticleEffectOnly
+    forwardSpansOnly = [bool]$ForwardSpansOnly
     runParticleEffectOnly = [bool]$RunParticleEffectOnly
     entityParticlesOnly = [bool]$EntityParticlesOnly
     transformPlaneOnly = [bool]$TransformPlaneOnly
