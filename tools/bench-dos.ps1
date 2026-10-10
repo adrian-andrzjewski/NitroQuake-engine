@@ -182,6 +182,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParseParticleEffectImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RunParticleEffectImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$EntityParticlesImplementation = 'c',
@@ -314,6 +316,7 @@ param(
     [switch]$ParticleDrawOnly,
     [switch]$DamageParseOnly,
     [switch]$ParticleExplosionOnly,
+    [switch]$ParseParticleEffectOnly,
     [switch]$RunParticleEffectOnly,
     [switch]$EntityParticlesOnly,
     [switch]$ParticleExplosion2Only,
@@ -386,6 +389,12 @@ if ($ScreenNotifyOnly -and $ScreenNotifyImplementation -ne 'asm') {
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
+}
+if ($ParseParticleEffectOnly -and $ParseParticleEffectImplementation -ne 'asm') {
+    throw '-ParseParticleEffectOnly requires -ParseParticleEffectImplementation asm.'
+}
+if ($ParseParticleEffectOnly -and $RunParticleEffectImplementation -ne 'c') {
+    throw '-ParseParticleEffectOnly requires -RunParticleEffectImplementation c so both parser paths use the C emitter.'
 }
 if ($RunParticleEffectOnly -and $RunParticleEffectImplementation -ne 'asm') {
     throw '-RunParticleEffectOnly requires -RunParticleEffectImplementation asm.'
@@ -576,6 +585,7 @@ $buildParams = @{
         AliasStatsImplementation = $AliasStatsImplementation
         PrintTimesImplementation = $PrintTimesImplementation
         ParticleExplosion2Implementation = $ParticleExplosion2Implementation
+        ParseParticleEffectImplementation = $ParseParticleEffectImplementation
         RunParticleEffectImplementation = $RunParticleEffectImplementation
         EntityParticlesImplementation = $EntityParticlesImplementation
         BlobExplosionImplementation = $BlobExplosionImplementation
@@ -880,6 +890,9 @@ elseif ($DamageParseOnly) {
 elseif ($ParticleExplosionOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion -benchexit'
 }
+elseif ($ParseParticleEffectOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparseparticleeffect -benchexit'
+}
 elseif ($RunParticleEffectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchrunparticleeffect -benchexit'
 }
@@ -1104,6 +1117,7 @@ $result = [ordered]@{
     teleportSplashImplementation = $TeleportSplashImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
+    parseParticleEffectImplementation = $ParseParticleEffectImplementation
     runParticleEffectImplementation = $RunParticleEffectImplementation
     entityParticlesImplementation = $EntityParticlesImplementation
     worldControlImplementation = $WorldControlImplementation
@@ -1157,6 +1171,7 @@ $result = [ordered]@{
     teleportSplashOnly = [bool]$TeleportSplashOnly
     rocketTrailOnly = [bool]$RocketTrailOnly
     particleExplosionOnly = [bool]$ParticleExplosionOnly
+    parseParticleEffectOnly = [bool]$ParseParticleEffectOnly
     runParticleEffectOnly = [bool]$RunParticleEffectOnly
     entityParticlesOnly = [bool]$EntityParticlesOnly
     transformPlaneOnly = [bool]$TransformPlaneOnly

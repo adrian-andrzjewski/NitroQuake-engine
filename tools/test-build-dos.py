@@ -185,6 +185,14 @@ def main() -> int:
             fail("the default damage-parse selector must remain C and leave ASM486_V_PARSE_DAMAGE undefined")
         if "vparsedamageasm" in default_dump.get("profileSuffix", ""):
             fail("the default damage-parse selector must not change the release suffix")
+        parse_particle_effect_define = "-DASM486_PARSE_PARTICLE_EFFECT"
+        if any(
+            parse_particle_effect_define in default_dump.get(language, [])
+            for language in ("cFlags", "asmFlags")
+        ):
+            fail("the default particle-effect parser selector must remain C")
+        if "parseparticleeffectasm" in default_dump.get("profileSuffix", ""):
+            fail("the default particle-effect parser selector must not change the release suffix")
 
     # 2. Keep the release suffix stable and use its descriptive root unless the
     #    executable or linker-map path would exceed the legacy Windows limit.
@@ -1519,6 +1527,28 @@ def main() -> int:
             if "r_runparticleeffectasm.s" not in dump.get("assemblySources", []):
                 fail("the R_RunParticleEffect %s selector omits r_runparticleeffectasm.s from the source inventory" % dump_name)
 
+    parse_particle_effect_c = dump_flags("-ParseParticleEffectImplementation", "c")
+    parse_particle_effect_asm = dump_flags("-ParseParticleEffectImplementation", "asm")
+    if parse_particle_effect_c and parse_particle_effect_asm:
+        if parse_particle_effect_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_ParseParticleEffect C selector changes the promoted i486 suffix")
+        asm_suffix = parse_particle_effect_asm.get("profileSuffix", "")
+        if asm_suffix.count("-parseparticleeffectasm") != 1:
+            fail("the R_ParseParticleEffect assembly selector lacks its profile token")
+        elif asm_suffix.replace("-parseparticleeffectasm", "") != parse_particle_effect_c.get("profileSuffix"):
+            fail("the R_ParseParticleEffect assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_PARSE_PARTICLE_EFFECT" in parse_particle_effect_c.get(flags_name, []):
+                fail("the R_ParseParticleEffect C selector enables ASM486_PARSE_PARTICLE_EFFECT in %s" % flags_name)
+            if "-DASM486_PARSE_PARTICLE_EFFECT" not in parse_particle_effect_asm.get(flags_name, []):
+                fail("the R_ParseParticleEffect assembly selector omits ASM486_PARSE_PARTICLE_EFFECT from %s" % flags_name)
+            for dump_name, dump in (("C", parse_particle_effect_c), ("assembly", parse_particle_effect_asm)):
+                if "-DASM486_RUN_PARTICLE_EFFECT" in dump.get(flags_name, []):
+                    fail("the R_ParseParticleEffect %s selector unexpectedly enables the separate R_RunParticleEffect assembly implementation in %s" % (dump_name, flags_name))
+        for dump_name, dump in (("C", parse_particle_effect_c), ("assembly", parse_particle_effect_asm)):
+            if "r_parseparticleeffectasm.s" not in dump.get("assemblySources", []):
+                fail("the R_ParseParticleEffect %s selector omits r_parseparticleeffectasm.s from the source inventory" % dump_name)
+
     entity_particles_c = dump_flags("-EntityParticlesImplementation", "c")
     entity_particles_asm = dump_flags("-EntityParticlesImplementation", "asm")
     if entity_particles_c and entity_particles_asm:
@@ -1615,7 +1645,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 56 assembly sources (one is omitted only
+    #    included by another unit), 57 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1627,9 +1657,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 56:
+        if dump.get("allAssemblySourceCount") != 57:
             fail(
-                "%s: expected 56 assembly sources, got %r"
+                "%s: expected 57 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

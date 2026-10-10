@@ -507,6 +507,10 @@ R_ParseParticleEffect
 Parse an effect out of the server message
 ===============
 */
+#ifdef ASM486_PARSE_PARTICLE_EFFECT
+#define R_ParseParticleEffect R_ParseParticleEffect_C
+#endif
+#if !defined(ASM486_PARSE_PARTICLE_EFFECT) || defined(BENCH486)
 void R_ParseParticleEffect (void)
 {
 	vec3_t		org, dir;
@@ -526,6 +530,10 @@ else
 	
 	R_RunParticleEffect (org, dir, color, count);
 }
+#endif
+#ifdef ASM486_PARSE_PARTICLE_EFFECT
+#undef R_ParseParticleEffect
+#endif
 	
 /*
 ===============

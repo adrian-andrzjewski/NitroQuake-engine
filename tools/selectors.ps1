@@ -76,6 +76,7 @@ $script:AssemblyBackedImplementations = @(
     'ParticleUpdateImplementation',
     'ParticleDrawImplementation',
     'ParticleExplosionImplementation',
+    'ParseParticleEffectImplementation',
     'RunParticleEffectImplementation',
     'EntityParticlesImplementation',
     'ParticleExplosion2Implementation',
@@ -824,6 +825,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ParseParticleEffectImplementation'
+        Manifest   = 'parseParticleEffectImplementation'
+        Suffix     = @{ 'asm' = 'parseparticleeffectasm' }
+        C          = @{ 'asm' = @('ASM486_PARSE_PARTICLE_EFFECT') }
+        Asm        = @{ 'asm' = @('ASM486_PARSE_PARTICLE_EFFECT') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'RunParticleEffectImplementation'
         Manifest   = 'runParticleEffectImplementation'
         Suffix     = @{ 'asm' = 'runparticleeffectasm' }
@@ -1452,6 +1462,7 @@ $script:SuffixOrder = @(
     'ParticleUpdateImplementation'
     'ParticleDrawImplementation'
     'ParticleExplosionImplementation'
+    'ParseParticleEffectImplementation'
     'RunParticleEffectImplementation'
     'EntityParticlesImplementation'
     'ParticleExplosion2Implementation'
@@ -1541,6 +1552,7 @@ $script:CDefineOrder = @(
     'ParticleUpdateImplementation'
     'ParticleDrawImplementation'
     'ParticleExplosionImplementation'
+    'ParseParticleEffectImplementation'
     'RunParticleEffectImplementation'
     'EntityParticlesImplementation'
     'ParticleExplosion2Implementation'
@@ -1663,6 +1675,7 @@ $script:AsmDefineOrder = @(
     'ParticleUpdateImplementation'
     'ParticleDrawImplementation'
     'ParticleExplosionImplementation'
+    'ParseParticleEffectImplementation'
     'RunParticleEffectImplementation'
     'EntityParticlesImplementation'
     'ParticleExplosion2Implementation'

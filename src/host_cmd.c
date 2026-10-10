@@ -6947,6 +6947,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_RUN_PARTICLE_EFFECT)
 #include "bench486_runparticleeffect.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_PARSE_PARTICLE_EFFECT)
+#include "bench486_parseparticleeffect.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_ENTITY_PARTICLES)
 #include "bench486_entityparticles.h"
 #endif
@@ -10573,6 +10576,31 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("run-particle-effect fixture requires -RunParticleEffectImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchparseparticleeffect"))
+	{
+#ifdef ASM486_PARSE_PARTICLE_EFFECT
+#ifdef ASM486_RUN_PARTICLE_EFFECT
+		bench486_memory_failures++;
+		Bench486Printf ("parse-particle-effect fixture requires -RunParticleEffectImplementation c so both parser paths use the C emitter\n");
+#else
+		Bench486ParseParticleEffectCases ();
+#endif
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("parse-particle-effect fixture requires -ParseParticleEffectImplementation asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

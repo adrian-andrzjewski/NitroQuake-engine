@@ -59,12 +59,21 @@ The RenderPoly fixture and ownership tests provide function-level evidence;
 they do not establish full renderer framebuffer parity or completion of the
 larger C-to-assembly migration. The C selector remains the release default.
 
+`R_ParseParticleEffect` is the next function-level slice. Its assembly decoder
+continues to use the existing `MSG_ReadCoord`, `MSG_ReadChar`, and
+`MSG_ReadByte` helpers, then calls the existing C `R_RunParticleEffect`
+emitter. The `ParseParticleEffectOnly` benchmark profile requires that C
+emitter on both paths, isolating packet parsing and preserving the original
+read-count, bad-read, signed-byte, and 255-to-1024 behavior. This fixture is
+not a full-framebuffer comparison.
+
 ## Traceability and reproduction
 
 | Original behavior | Assembly replacement | Correctness evidence |
 |---|---|---|
 | `R_RenderPoly` transform, near clipping and projection in `src/r_draw.c` | `R_RenderPoly_asm486` in `src/asm486_experiments.s` | BENCH-only direct C/assembly capture in `src/bench486_renderpoly.h` |
 | `D_DrawPoly` handoff boundary in `src/d_edge.c` | Same callback boundary after the assembly projection | 168 raw-bit C/ASM pairs, descriptor and ABI checks |
+| `R_ParseParticleEffect` packet reads and count decoding in `src/r_part.c` | `R_ParseParticleEffect_asm486` in `src/r_parseparticleeffectasm.s` | BENCH-only C/ASM state comparison in `src/bench486_parseparticleeffect.h`, including complete counts and packet lengths 0 through 10 |
 | Renderer ownership and selected function-pointer dispatch | Exact build-object report from `tools/renderer-ownership.py` | 16 host tests and automatic `bench-dos.ps1` invocation |
 
 Run the host checks and the strict paired benchmark from `quake/`:
