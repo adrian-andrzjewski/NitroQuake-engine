@@ -200,8 +200,6 @@ param(
     [string]$TextureSpanTailStores = 'control',
     [ValidateSet('control', 'norowcross')]
     [string]$TextureSpanRowPath = 'control',
-    [ValidateSet('control', 'unroll8')]
-    [string]$ZSpanNegativeUnroll = 'control',
     [string]$AliasProjectImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$AliasBBoxProjectImplementation = 'asm',

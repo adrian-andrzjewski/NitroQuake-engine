@@ -42,16 +42,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //	shldl $16,%edx,%eax		// %eax = (%eax << 16) | (%edx >> 16)
 //	rorl  $16,%eax			// swap the halves back into pixel order
 //
-// which, given that %eax holds a masked high word and %edx holds the running
-// 1/z sample, computes exactly
+// which, given that %eax holds one depth high word and %edx holds the next
+// running 1/z sample, packs the same two words as the 386 fallback below.
 //
 //	%eax = (%eax & 0x0000FFFF) | (%edx & 0xFFFF0000)
 //
 // SHLD is an i486 instruction and does not exist on a 386, so the i386 build
-// computes the same value directly.  %esi is the scratch: inside the span loop
-// it is written once to preserve the pixel count (see LFMiddle/LFNegMiddle),
-// read once at the LFLast/LFNegLast odd-pixel test, and restored before return.
-// Nothing in between touches it, so it is free for exactly this purpose.
+// computes the same value directly.  That fallback uses %esi as scratch, so
+// the remaining pixel count is saved on the stack across its pair loop and
+// restored for the final odd-pixel test.
 //
 // The two spellings must stay bit-identical; the i386 timedemo framebuffer
 // checksum is what checks it, and it is why the mask goes on %eax rather than on
@@ -831,7 +830,7 @@ LClampNeg:
 	jmp		LZDrawNeg
 
 
-#define pzspans	4+16
+#define pzspans	4+20
 
 .globl C(D_DrawZSpans)
 C(D_DrawZSpans):
@@ -839,6 +838,11 @@ C(D_DrawZSpans):
 	pushl	%edi
 	pushl	%esi				// preserve register variables
 	pushl	%ebx
+	subl	$4,%esp			// local saved and truncate-mode x87 control words
+	fnstcw	0(%esp)
+	movw	0(%esp),%ax
+	orw	$0x0c00,%ax			// C float-to-int casts truncate toward zero
+	movw	%ax,2(%esp)
 
 	flds	C(d_zistepu)
 	movl	C(d_zistepu),%eax
@@ -847,8 +851,10 @@ C(D_DrawZSpans):
 	jz		LFNegSpan
 
 	fmuls	Float2ToThe31nd
+	fldcw	2(%esp)
 	fistpl	izistep		// note: we are relying on FP exceptions being turned
 						// off here to avoid range problems
+	fldcw	0(%esp)
 	movl	izistep,%ebx	// remains loaded for all spans
 	testl	%ebx,%ebx
 	jz		LZeroStepSpanLoop
@@ -885,9 +891,11 @@ movl	espan_t_count(%ebp),%ecx
 #endif
 
 	fmuls	Float2ToThe31nd
+	fldcw	2(%esp)
 	fistpl	izi			// note: we are relying on FP exceptions being turned
 						// off here to avoid problems when the span is closer
 						// than 1/(2**31)
+	fldcw	0(%esp)
 	movl	izi,%edx
 
 // at this point:
@@ -909,131 +917,42 @@ LZDraw:
 	movw	%ax,(%edi)
 	addl	$2,%edi
 
-// do middle a pair of aligned dwords at a time
+// Keep the remaining pixel count on the stack: the i386 packing fallback
+// uses %esi as scratch, while the odd-pixel test needs the original count.
 LFMiddle:
-	movl	%ecx,%esi
-	shrl	$1,%ecx				// count / 2
-	jz		LFLast				// no aligned dwords to do
-	shrl	$1,%ecx				// (count / 2) / 2
-	jnc		LFMiddleLoop		// even number of aligned dwords to do
-
+	pushl	%ecx
+	shrl	$1,%ecx				// aligned dword count = pixels / 2
+	jz		LFPairDone
+LFMiddleLoop:
 	movl	%edx,%eax
+	testl	%eax,%eax
+	js		LFNegativeDepthPair
 	addl	%ebx,%edx
 	shrl	$16,%eax
 	ZPACK16
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
 	addl	$4,%edi
-	andl	%ecx,%ecx
-	jz		LFLast
-
-// The first pair in the hot loop is packed with 486 SHLD/ROR instead of
-// using the scratch register for a masked high word; the word order is the
-// same and the following pair keeps the existing carry schedule.
-LFMiddleLoop:
-	testl	$1,%ecx
-	jz		LFMiddleCheck
-
-LFMiddleSingle:
-	movl	%edx,%eax
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,(%edi)
-	addl	%ebx,%edx
-	// The second pair uses the previous pair's high word and the current
-	// sample.  SHLD/ROR replaces the scratch-register mask/OR sequence;
-	// advance the cursor after the store so the next iteration sees the same
-	// sample as the original schedule.
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,4(%edi)
-	addl	%ebx,%edx
-	addl	$8,%edi
-
 	decl	%ecx
-	jz		LFLast
+	jnz		LFMiddleLoop
+	jmp		LFPairDone
 
-LFMiddleCheck:
-	testl	$2,%ecx
-	jz		LFMiddleQuad
-
-LFMiddlePair:
-	movl	%edx,%eax
+// The C oracle's signed `izi >> 16` sign-extends before ORing in the second
+// sample. For negative inverse depth, that makes the packed second word 0xffff.
+// This matters for SURF_DRAWBACKGROUND, whose historical inverse depth is -0.9.
+LFNegativeDepthPair:
 	addl	%ebx,%edx
 	shrl	$16,%eax
 	ZPACK16
+	orl	$0xffff0000,%eax
 	movl	%eax,(%edi)
 	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,4(%edi)
-	addl	%ebx,%edx
+	addl	$4,%edi
+	decl	%ecx
+	jnz		LFMiddleLoop
 
-	movl	%edx,%eax
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,8(%edi)
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,12(%edi)
-	addl	%ebx,%edx
-	addl	$16,%edi
-
-	subl	$2,%ecx
-	jz		LFLast
-
-LFMiddleQuad:
-	movl	%edx,%eax
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,(%edi)
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,4(%edi)
-	addl	%ebx,%edx
-
-	movl	%edx,%eax
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,8(%edi)
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,12(%edi)
-	addl	%ebx,%edx
-
-	movl	%edx,%eax
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,16(%edi)
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,20(%edi)
-	addl	%ebx,%edx
-
-	movl	%edx,%eax
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,24(%edi)
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,28(%edi)
-	addl	%ebx,%edx
-	addl	$32,%edi
-
-	subl	$4,%ecx
-	jnz		LFMiddleQuad
-
+LFPairDone:
+	popl	%esi				// recover remaining pixels for LFLast
 LFLast:
 // do the last, unaligned pixel, if there is one
 	testl	$1,%esi			// is there an odd pixel left to do?
@@ -1049,8 +968,10 @@ LFSpanDone:
 	jmp		LFDone
 LFNegSpan:
 	fmuls	FloatMinus2ToThe31nd
+	fldcw	2(%esp)
 	fistpl	izistep		// note: we are relying on FP exceptions being turned
 						// off here to avoid range problems
+	fldcw	0(%esp)
 	movl	izistep,%ebx	// remains loaded for all spans
 	testl	%ebx,%ebx
 	jz		LZeroStepSpanLoop
@@ -1078,9 +999,11 @@ LFNegSpanLoop:
 	jz		LClampNeg
 
 	fmuls	Float2ToThe31nd
+	fldcw	2(%esp)
 	fistpl	izi			// note: we are relying on FP exceptions being turned
 						// off here to avoid problems when the span is closer
 						// than 1/(2**31)
+	fldcw	0(%esp)
 	movl	izi,%edx
 
 // at this point:
@@ -1102,92 +1025,38 @@ LZDrawNeg:
 	movw	%ax,(%edi)
 	addl	$2,%edi
 
-// do middle a pair of aligned dwords at a time
+// Keep the remaining count out of %esi while the 386 packing fallback runs.
 LFNegMiddle:
-	movl	%ecx,%esi
-	shrl	$1,%ecx				// count / 2
-	jz		LFNegLast			// no aligned dwords to do
-	shrl	$1,%ecx				// (count / 2) / 2
-	jnc		LFNegMiddleLoop		// even number of aligned dwords to do
-
+	pushl	%ecx
+	shrl	$1,%ecx
+	jz		LFNegPairDone
+LFNegMiddleLoop:
 	movl	%edx,%eax
+	testl	%eax,%eax
+	js		LFNegNegativeDepthPair
 	subl	%ebx,%edx
 	shrl	$16,%eax
 	ZPACK16
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
 	addl	$4,%edi
-	andl	%ecx,%ecx
-	jz		LFNegLast
-
-// Mirror the 486 SHLD/ROR pair packing for the negative-gradient path.
-LFNegMiddleLoop:
-#ifdef ASM486_ZSPAN_NEG_UNROLL8
-	testl	$1,%ecx
-	jz		LFNegMiddleUnrolled
-
-LFNegMiddleSingle:
-	movl	%edx,%eax
-	subl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,(%edi)
-	subl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,4(%edi)
-	subl	%ebx,%edx
-	addl	$8,%edi
-
 	decl	%ecx
-	jz		LFNegLast
+	jnz		LFNegMiddleLoop
+	jmp		LFNegPairDone
 
-LFNegMiddleUnrolled:
-	movl	%edx,%eax
+LFNegNegativeDepthPair:
 	subl	%ebx,%edx
 	shrl	$16,%eax
 	ZPACK16
+	orl	$0xffff0000,%eax
 	movl	%eax,(%edi)
 	subl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,4(%edi)
-	subl	%ebx,%edx
-
-	movl	%edx,%eax
-	subl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,8(%edi)
-	subl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,12(%edi)
-	subl	%ebx,%edx
-	addl	$16,%edi
-
-	subl	$2,%ecx
-	jnz		LFNegMiddleUnrolled
-
-#else
-LFNegMiddleControl:
-	movl	%edx,%eax
-	subl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,(%edi)
-	subl	%ebx,%edx
-
-	movl	%edx,%eax
-	subl	%ebx,%edx
-	shrl	$16,%eax
-	ZPACK16
-	movl	%eax,4(%edi)
-	subl	%ebx,%edx
-	addl	$8,%edi
+	addl	$4,%edi
 	decl	%ecx
-	jnz		LFNegMiddleControl
-#endif
+	jnz		LFNegMiddleLoop
+
+LFNegPairDone:
+	popl	%esi
 
 LFNegLast:
 // do the last, unaligned pixel, if there is one
@@ -1225,7 +1094,9 @@ LZeroStepSpanLoop:
 	jz		LZeroStepClamp
 
 	fmuls	Float2ToThe31nd
+	fldcw	2(%esp)
 	fistpl	izi
+	fldcw	0(%esp)
 	movl	izi,%edx
 	jmp		LZeroStepStore
 
@@ -1236,8 +1107,39 @@ LZeroStepClamp:
 LZeroStepStore:
 	movl	%edx,%eax
 	shrl	$16,%eax
+	testl	%edx,%edx
+	js		LZeroStepNegativeStore
 	rep
 	stosw
+	jmp		LZeroStepDone
+
+// Match the C pair packer's sign extension for negative background depth:
+// after an optional alignment pixel, each pair is [depth-high-word, 0xffff].
+LZeroStepNegativeStore:
+	testl	$2,%edi
+	jz		LZeroStepNegativePairs
+	movl	%edx,%eax
+	shrl	$16,%eax
+	movw	%ax,(%edi)
+	addl	$2,%edi
+	decl	%ecx
+LZeroStepNegativePairs:
+	cmpl	$2,%ecx
+	jb		LZeroStepNegativeLast
+	movl	%edx,%eax
+	shrl	$16,%eax
+	orl	$0xffff0000,%eax
+	movl	%eax,(%edi)
+	addl	$4,%edi
+	subl	$2,%ecx
+	jmp		LZeroStepNegativePairs
+LZeroStepNegativeLast:
+	testl	%ecx,%ecx
+	jz		LZeroStepDone
+	movl	%edx,%eax
+	shrl	$16,%eax
+	movw	%ax,(%edi)
+LZeroStepDone:
 
 	movl	espan_t_pnext(%ebp),%ebp
 	testl	%ebp,%ebp
@@ -1246,6 +1148,8 @@ LZeroStepStore:
 	jmp		LFDone
 
 LFDone:
+	fldcw	0(%esp)
+	addl	$4,%esp
 	popl	%ebx				// restore register variables
 	popl	%esi
 	popl	%edi

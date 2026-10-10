@@ -507,14 +507,18 @@ void D_DrawSpans8 (espan_t *pspan)
 #endif
 
 
-#if	!id386
+#if	!id386 || defined(BENCH486)
 
 /*
 =============
 D_DrawZSpans
 =============
 */
+#ifdef BENCH486
+void D_DrawZSpans_C (espan_t *pspan)
+#else
 void D_DrawZSpans (espan_t *pspan)
+#endif
 {
 	int				count, doublecount, izistep;
 	int				izi;

@@ -6956,6 +6956,7 @@ static void Bench486SpriteSetupCases (void)
 #endif
 #ifdef BENCH486
 #include "bench486_forwardspans.h"
+#include "bench486_zspans.h"
 #endif
 #if defined(BENCH486) && defined(ASM486_EFRAG_STORE)
 #include "bench486_efragstore.h"
@@ -10029,6 +10030,21 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchforwardspans"))
 	{
 		Bench486ForwardSpansCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchzspans"))
+	{
+		Bench486ZSpansCases ();
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);

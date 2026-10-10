@@ -71,8 +71,6 @@ param(
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
-    [ValidateSet('control', 'unroll8')]
-    [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
     [string]$SurfaceBlockMip0Rows = 'unroll16',
     [ValidateSet('control', 'fast')]

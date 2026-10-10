@@ -128,6 +128,14 @@ audits passed. This verifies the existing rasterizer and does not count as a
 new assembly conversion; see the
 [`D_DrawParticle` verification ledger](ledger/2026-10-10-d-drawparticle-assembly-port.md).
 
+The existing `D_DrawZSpans` assembly path now has a retained BENCH486 C oracle
+and passed 117 exact guarded-buffer comparisons, including Quake's negative
+`SURF_DRAWBACKGROUND` depth. Its selected executable, startup loader and
+runtime-provider checks passed the strict i486 ISA gate with zero violations,
+unknowns or exemptions. This is routine-level depth-buffer evidence; a full
+scene pair remains outside this slice. See the
+[z-span parity ledger](ledger/2026-10-10-d-drawzspans-assembly-parity.md).
+
 The opt-in frustum profile now selects assembly for both `R_TransformFrustum`
 and `R_SetUpFrustumIndexes`. Its strict paired i486 run passed the complete
 relocated executable, startup and CWSDPMI provider gates with zero instruction

@@ -171,6 +171,9 @@ extern unsigned int single_cw __asm__("single_cw");
 #endif
 void D_DrawSpans16 (espan_t *pspans);
 void D_DrawZSpans (espan_t *pspans);
+#ifdef BENCH486
+void D_DrawZSpans_C (espan_t *pspans);
+#endif
 void Turbulent8 (espan_t *pspan);
 #if defined(ASM486_TURBULENT_SCAN) && defined(BENCH486)
 void Turbulent8_C (espan_t *pspan);

@@ -390,16 +390,6 @@ $script:SelectorTable = @(
     }
 
     @{
-        Param      = 'ZSpanNegativeUnroll'
-        Manifest   = 'zSpanNegativeUnroll'
-        # 'control' resolves to the four-times unroll, so both values are named.
-        Suffix     = @{ 'control' = 'zneg4'; 'unroll8' = 'zneg8' }
-        C          = @{}
-        Asm        = @{ 'unroll8' = @('ASM486_ZSPAN_NEG_UNROLL8') }
-        SelectsAsm = $false
-    }
-
-    @{
         Param      = 'SurfaceBlockMip0Rows'
         Manifest   = 'surfaceBlockMip0Rows'
         Suffix     = @{ 'unroll4' = 'surf0rows4'; 'unroll8' = 'surf0rows8'; 'unroll16' = 'surf0rows16' }
@@ -1420,7 +1410,6 @@ $script:SuffixOrder = @(
     'TextureSpanLoadOrder'
     'TextureSpanAddressing'
     'AliasSpanAddressing'
-    'ZSpanNegativeUnroll'
     'SurfaceBlockMip0Rows'
     'SurfaceBlockMip0HorizontalFlat'
     'SurfaceBlockMip1Rows'
@@ -1738,7 +1727,6 @@ $script:AsmDefineOrder = @(
     'TextureSpanLoadOrder'
     'TextureSpanAddressing'
     'AliasSpanAddressing'
-    'ZSpanNegativeUnroll'
     'SurfaceBlockMip0Rows'
     'SurfaceBlockMip0HorizontalFlat'
     'SurfaceBlockMip1Rows'

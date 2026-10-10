@@ -56,8 +56,6 @@ param(
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
-    [ValidateSet('control', 'unroll8')]
-    [string]$ZSpanNegativeUnroll = 'control',
     [ValidateSet('control', 'unroll4', 'unroll8', 'unroll16')]
     [string]$SurfaceBlockMip0Rows = 'unroll16',
     [ValidateSet('control', 'fast')]
@@ -262,6 +260,7 @@ param(
     [switch]$MemoryOnly,
     [switch]$FillRectOnly,
     [switch]$ZPointOnly,
+    [switch]$ZSpansOnly,
     [switch]$SkySpanOnly,
     [switch]$WarpScreenOnly,
     [switch]$SolidSurfaceOnly,
@@ -531,7 +530,6 @@ $buildParams = @{
         TextureSpanLoadOrder = $TextureSpanLoadOrder
         TextureSpanAddressing = $TextureSpanAddressing
         AliasSpanAddressing = $AliasSpanAddressing
-        ZSpanNegativeUnroll = $ZSpanNegativeUnroll
         SurfaceBlockMip0Rows = $SurfaceBlockMip0Rows
         SurfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
         SurfaceBlockMip1Rows = $SurfaceBlockMip1Rows
@@ -870,6 +868,9 @@ elseif ($FillRectOnly) {
 elseif ($ZPointOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchzpoint -benchexit'
 }
+elseif ($ZSpansOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchzspans -benchexit'
+}
 elseif ($SkySpanOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchskyspan -benchexit'
 }
@@ -1058,7 +1059,6 @@ $result = [ordered]@{
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
     aliasSpanAddressing = $AliasSpanAddressing
-    zSpanNegativeUnroll = $ZSpanNegativeUnroll
     surfaceBlockMip0Rows = $SurfaceBlockMip0Rows
     surfaceBlockMip0HorizontalFlat = $SurfaceBlockMip0HorizontalFlat
     surfaceBlockMip1Rows = $SurfaceBlockMip1Rows
@@ -1201,6 +1201,7 @@ $result = [ordered]@{
     particleExplosionOnly = [bool]$ParticleExplosionOnly
     parseParticleEffectOnly = [bool]$ParseParticleEffectOnly
     forwardSpansOnly = [bool]$ForwardSpansOnly
+    zSpansOnly = [bool]$ZSpansOnly
     runParticleEffectOnly = [bool]$RunParticleEffectOnly
     entityParticlesOnly = [bool]$EntityParticlesOnly
     transformPlaneOnly = [bool]$TransformPlaneOnly

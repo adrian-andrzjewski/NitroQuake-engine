@@ -1610,6 +1610,37 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("+bench486 -benchforwardspans -benchexit", bench_runner)
         self.assertIn('"_R_GenerateSpans_asm486": "r_edgea.s"', ownership)
 
+    def test_zspan_fixture_compares_assembly_to_retained_c_oracle(self) -> None:
+        assembly = (ROOT / "src/d_draw.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/d_scan.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_zspans.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("C(D_DrawZSpans):", assembly)
+        self.assertIn("#if\t!id386 || defined(BENCH486)", oracle)
+        self.assertIn("void D_DrawZSpans_C (espan_t *pspan)", oracle)
+        self.assertIn("truncate-boundary", fixture)
+        self.assertIn("vertical-gradient", fixture)
+        self.assertIn("background-depth", fixture)
+        self.assertIn("BZS_GUARD_WORDS", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn("Q_memcmp (&bench486_zspans_c_buffer", fixture)
+        self.assertIn("orw\t$0x0c00,%ax", assembly)
+        self.assertIn("LFPairDone:", assembly)
+        self.assertIn("LFNegPairDone:", assembly)
+        self.assertIn("LFNegativeDepthPair:", assembly)
+        self.assertIn("LZeroStepNegativeStore:", assembly)
+        self.assertIn('#include "bench486_zspans.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchzspans")', host_commands)
+        self.assertIn("Bench486ZSpansCases ();", host_commands)
+        self.assertIn("[switch]$ZSpansOnly", bench_runner)
+        self.assertIn("+bench486 -benchzspans -benchexit", bench_runner)
+        for runner_name in ("build-dos.ps1", "bench-dos.ps1", "smoke-dos.ps1",
+                "timedemo-dos.ps1", "selectors.ps1"):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertNotIn("ZSpanNegativeUnroll", runner)
+
     def test_screen_update_and_assembly_are_in_renderer_ownership_closure(self) -> None:
         bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
 

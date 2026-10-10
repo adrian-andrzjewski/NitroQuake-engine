@@ -959,12 +959,11 @@ The 16-pixel texture-span store loop is independently selectable with
 .\tools\build-dos.ps1 -Benchmark -TextureSpanStores loop
 ~~~
 
-The negative-gradient Z-span loop is selectable with
-`-ZSpanNegativeUnroll unroll8|control`. `control` is the production
-default; `unroll8` retains the eight-pixel experiment for matched correctness
-and timing comparisons. The experiment was rejected after three matched runs:
-both variants completed 969 frames with checksum `1047377823`, while control
-measured `59.408069` seconds median and `unroll8` measured `59.408076` seconds.
+The old negative-gradient Z-span unroll selector has been retired with the
+direct, auditable pair loop in `src/d_draw.s`. The earlier timing comparison is
+historical only: both variants completed 969 frames with checksum `1047377823`,
+while control measured `59.408069` seconds median and `unroll8` measured
+`59.408076` seconds. The `-ZSpanNegativeUnroll` option is no longer accepted.
 
 The follow-up `PROFILE486` run (`out\dos-timedemo-20260928-060116`) completed
 969 frames with checksum `1047377823`. Its instrumented self-time ranking was
@@ -972,11 +971,6 @@ texture spans 28.11%, alias models 13.38%, world BSP 11.49%, surface cache
 10.03%, Z spans 9.37%, and edge scanning 9.00%. The instrumented 67.271233
 second duration is attribution evidence, not a release timing claim; texture
 span work is the next optimization target.
-
-~~~powershell
-.\tools\build-dos.ps1 -Benchmark -ZSpanNegativeUnroll unroll8
-.\tools\build-dos.ps1 -Benchmark -ZSpanNegativeUnroll control
-~~~
 
 `word` is now the production default.  It preserves the original texture/DDA
 sampling order and packs adjacent destination pixels with 16-bit stores in the

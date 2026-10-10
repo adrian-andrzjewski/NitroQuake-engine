@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-10-screen-calc-fov-assembly-port.md`](2026-10-10-screen-calc-fov-assembly-port.md) | 6 | renderer port / view projection (`Original C behavior and selector boundary`; `Assembly mapping`; `Direct C/assembly and ABI fixture`; `i486 instruction evidence`; `Paired framebuffer evidence`; `CalcFov traceability and reproduction`) |
+| [`2026-10-10-d-drawzspans-assembly-parity.md`](2026-10-10-d-drawzspans-assembly-parity.md) | 5 | renderer port / depth spans (`Traceability and scope`; `Arithmetic, stores, and ABI`; `Direct differential fixture`; `Strict i486 audit`; `Reproduction and limits`) |
 | [`2026-10-10-render-poly-assembly-parity.md`](2026-10-10-render-poly-assembly-parity.md) | 4 | renderer port / polygon projection (`Original routine and assembly behavior`; `Direct differential oracle`; `Strict i486 and paired-run evidence`; `Traceability and reproduction`) |
 | [`2026-10-10-con-drawinput-assembly-port.md`](2026-10-10-con-drawinput-assembly-port.md) | 5 | renderer port / console input overlay (`Original C behavior and ownership boundary`; `Assembly mapping and x87 behavior`; `Direct C/assembly fixture`; `ISA validation and current status`; `Traceability and remaining scope`) |
 | [`2026-10-10-d-drawparticle-assembly-port.md`](2026-10-10-d-drawparticle-assembly-port.md) | 6 | renderer port / particle rasterization (`Traceability and scope`; `x87 conversion and clipping parity`; `Direct differential fixture`; `Paired scene parity`; `Strict i486 audit`; `Reproduction and limits`) |
@@ -506,6 +507,9 @@ other axis: one row per renderer region, newest entry first.
 
 ### z-spans
 
+- `measured` [`D_DrawZSpans` -> exact i486 assembly parity (2026-10-10)](2026-10-10-d-drawzspans-assembly-parity.md)
+- `measured` [117 exact C/assembly guarded depth-buffer cases, including negative background depth](2026-10-10-d-drawzspans-assembly-parity.md)
+- `measured` [Complete linked i486 audit with zero violations or exemptions](2026-10-10-d-drawzspans-assembly-parity.md)
 - `measured` [`z-spans` is the last unpriced region above 2%: **42,031,372 pixels, 3 instructions each, at 1.24 cycles ...](2026-10-03-region-pricing-sweep.md)
 - `rejected` [Precomputed `izistep` for the Z-span prologue (2026-09-29) — rejected, and the estimate was wrong in the ...](2026-09-29-harness-and-cost-model.md)
 - `rejected` [Z-span x87 prologue (2026-09-29) — measured, and the idea does not survive](2026-09-29-harness-and-cost-model.md)
