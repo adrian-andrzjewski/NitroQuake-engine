@@ -3,6 +3,9 @@
    transfer must preserve their caller arguments, registers and return address.
 */
 #ifdef ASM486_PUBLIC_BINDINGS
+#if defined(BENCH486) && defined(ASM486_RENDER_POLY)
+#include "bench486_renderpoly.h"
+#endif
 void D_CalcGradients (msurface_t *pface);
 void D_CalcGradients_asm486 (msurface_t *pface);
 void D_DrawSurfacesCalcGradients_asm486 (msurface_t *pface);
@@ -295,6 +298,13 @@ static void Bench486PublicBindingsCases (void)
                    failed ? "FAIL":"PASS",pairs-1,failed);
 #if defined(PROFILE486) && defined(ASM486_ALIAS_LINE_SCAN)
     Bench486PublicLineProfileCases();
+#endif
+#if defined(BENCH486) && defined(ASM486_RENDER_POLY)
+#ifdef ASM486_DRAWING_DRIVER
+    Bench486Printf("render-poly direct C/ASM fixture SKIP (assembly D_DrawPoly has no capture hook)\n");
+#else
+    Bench486RenderPolyCases();
+#endif
 #endif
 }
 #endif

@@ -2862,6 +2862,10 @@ C(R_RenderBmodelFace_asm486):
 	.double 0.01
 .Lrpx_near_clip_float:
 	.long 0x3c23d70a
+.Lrpx_reciprocal_numerator:
+	.long 0x3f800000
+.Lrpx_near_clip_reciprocal:
+	.long 0x42c80000
 
 	.text
 	.globl C(R_RenderPoly_asm486)
@@ -3175,13 +3179,19 @@ C(R_RenderPoly_asm486):
 	fcompl	.Lrpx_near_clip_double
 	fnstsw	%ax
 	testb	$1,%ah
-	je	.Lrpx_near_clip_done
+	je	.Lrpx_near_clip_not_applied
 	movl	.Lrpx_near_clip_float,%eax
 	movl	%eax,RPX_TRANSFORMED+8(%ebp)
-	.Lrpx_near_clip_done:
-	fld1
-	fdivs	RPX_TRANSFORMED+8(%ebp)
+	// GCC folds the clamped 1.0 / 0.01f path to the exact float 100.0f.
+	flds	.Lrpx_near_clip_reciprocal
 	fstpt	RPX_LZI(%ebp)
+	jmp	.Lrpx_lzi_ready
+.Lrpx_near_clip_not_applied:
+	// Match GCC's C-reference reverse divide: float 1.0 / transformed z.
+	flds	RPX_TRANSFORMED+8(%ebp)
+	fdivrs	.Lrpx_reciprocal_numerator
+	fstpt	RPX_LZI(%ebp)
+.Lrpx_lzi_ready:
 	fldt	RPX_LZI(%ebp)
 	fcoms	C(r_nearzi)
 	fnstsw	%ax

@@ -2089,6 +2089,51 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("{ (void (*)(void))R_ZDrawSubmodelPolys, (void (*)(void))R_ZDrawSubmodelPolys_asm486 }", public_fixture)
         self.assertIn("#if !defined(ASM486_PUBLIC_BINDINGS)", oracle)
 
+    def test_render_poly_has_direct_raw_bit_c_assembly_oracle(self) -> None:
+        fixture = (ROOT / "src/bench486_renderpoly.h").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
+        reference = (ROOT / "src/r_draw.c").read_text(encoding="utf-8")
+        draw_driver = (ROOT / "src/d_edge.c").read_text(encoding="utf-8")
+        public_fixture = (ROOT / "src/bench486_publicbindings.h").read_text(encoding="utf-8")
+
+        self.assertIn("#define RPP_EXPECTED_PAIRS 168", fixture)
+        self.assertIn("static const unsigned short control_words[12]", fixture)
+        self.assertIn("Bench486RenderPolyFloatBits", fixture)
+        self.assertIn("RPP_DIFFER (\"C/ASM.x87_status_except_C1\"", fixture)
+        self.assertIn("c->x87_status & ~0x0200U", fixture)
+        self.assertIn("a->x87_status & ~0x0200U", fixture)
+        self.assertIn("c1_differences++", fixture)
+        self.assertIn("0x0041U", fixture)
+        self.assertIn('RPP_DIFFER ("C.x87_invalid_or_stack_fault_expected_clear"', fixture)
+        self.assertIn('RPP_DIFFER ("ASM.x87_invalid_or_stack_fault_expected_clear"', fixture)
+        self.assertNotIn("x87_status_with_exception_flags", fixture)
+        self.assertIn("render-poly x87 C1 differences=%u first geometry=%u axis=%u plane=%u CW=%04x C-FSW=%04x ASM-FSW=%04x", fixture)
+        diagnostic_formats = re.findall(r'Bench486Printf \("([^"\n]*render-poly[^"\n]*)"', fixture)
+        self.assertTrue(diagnostic_formats)
+        for format_string in diagnostic_formats:
+            expanded = re.sub(r"%08x", "ffffffff", format_string)
+            expanded = re.sub(r"%04x", "ffff", expanded)
+            expanded = expanded.replace("%x", "ffffffff")
+            # The fixture's counters are bounded by 168 pairs, signed values
+            # are indices/axis values, and field labels are under 64 bytes.
+            expanded = expanded.replace("%u", "168")
+            expanded = expanded.replace("%d", "-32768")
+            expanded = expanded.replace("%s", "x" * 64 if "first=%s[" in format_string else "FAIL")
+            self.assertLess(len(expanded), 192, format_string)
+        self.assertIn("extern medge_t *r_pedge", fixture)
+        self.assertIn("saved->current_edge = r_pedge", fixture)
+        self.assertIn("r_pedge = saved->current_edge", fixture)
+        self.assertIn('RPP_DIFFER ("C/ASM.global.r_pedge"', fixture)
+        self.assertIn("R_RenderPoly_C", reference)
+        self.assertIn("lzi = 1.0 / transformed[2];", reference)
+        self.assertIn("fdivrs\t.Lrpx_reciprocal_numerator", assembly)
+        self.assertIn(".Lrpx_near_clip_reciprocal:", assembly)
+        self.assertIn(".long 0x42c80000", assembly)
+        self.assertIn("defined(BENCH486) && defined(ASM486_PUBLIC_BINDINGS)", draw_driver)
+        self.assertIn("bench486_renderpoly_draw_hook ();", draw_driver)
+        self.assertIn('#include "bench486_renderpoly.h"', public_fixture)
+        self.assertIn("Bench486RenderPolyCases();", public_fixture)
+
     def test_frustum_transform_assembly_has_an_isolated_profile_and_guarded_oracle(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))

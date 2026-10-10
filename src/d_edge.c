@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "d_local.h"
 #include "asm_drawingdriver.h"
+#if defined(BENCH486) && defined(ASM486_PUBLIC_BINDINGS) && \
+		defined(ASM486_RENDER_POLY)
+extern void (*bench486_renderpoly_draw_hook)(void);
+#endif
 
 #if defined(ASM486_SURFACE_GRADIENTS) || defined(ASM486_SURFACE_DISPATCH)
 int			d_gradient_miplevel;
@@ -430,6 +434,11 @@ D_DrawPoly
 void D_DrawPoly (void)
 {
 // this driver takes spans, not polygons
+#if defined(BENCH486) && defined(ASM486_PUBLIC_BINDINGS) && \
+		defined(ASM486_RENDER_POLY)
+	if (bench486_renderpoly_draw_hook)
+		bench486_renderpoly_draw_hook ();
+#endif
 }
 #endif
 

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-10-render-poly-assembly-parity.md`](2026-10-10-render-poly-assembly-parity.md) | 4 | renderer port / polygon projection (`Original routine and assembly behavior`; `Direct differential oracle`; `Strict i486 and paired-run evidence`; `Traceability and reproduction`) |
 | [`2026-10-10-con-drawinput-assembly-port.md`](2026-10-10-con-drawinput-assembly-port.md) | 5 | renderer port / console input overlay (`Original C behavior and ownership boundary`; `Assembly mapping and x87 behavior`; `Direct C/assembly fixture`; `ISA validation and current status`; `Traceability and remaining scope`) |
 | [`2026-10-10-d-drawparticle-assembly-port.md`](2026-10-10-d-drawparticle-assembly-port.md) | 6 | renderer port / particle rasterization (`Traceability and scope`; `x87 conversion and clipping parity`; `Direct differential fixture`; `Paired scene parity`; `Strict i486 audit`; `Reproduction and limits`) |
 | [`2026-10-10-r-entityparticles-assembly-port.md`](2026-10-10-r-entityparticles-assembly-port.md) | 5 | renderer port / entity particles (`Reference behavior and assembly mapping`; `Direct C/assembly fixture`; `Paired rendered-frame parity`; `i486 machine-code evidence`; `Traceability and reproduction`) |
