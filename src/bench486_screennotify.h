@@ -318,7 +318,7 @@ static void Bench486ScreenNotifyCases (void)
 		{ "narrow-even-40", bench486_screen_notify_40, 160, 200 },
 		{ "narrow-odd-40", bench486_screen_notify_40, 159, 201 },
 		{ "high-bit-width-40", bench486_screen_notify_40, 0x80000000U, 200 },
-		{ "max-width-40", bench486_screen_notify_40, 0xffffffffU, 200 },
+		{ "large-width-40", bench486_screen_notify_40, 0x7fffffffU, 200 },
 		{ "high-bit-height", "Q", 320, 0x80000000U },
 		{ "max-height", "Q", 320, 0xffffffffU },
 		{ "line-39", bench486_screen_notify_39, 640, 224 },

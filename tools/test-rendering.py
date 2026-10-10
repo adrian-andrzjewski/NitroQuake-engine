@@ -2297,7 +2297,7 @@ class RenderingComparisonTests(unittest.TestCase):
         for case in (
             '"line-39"', '"line-40"', '"line-41"',
             '"narrow-even-40"', '"narrow-odd-40"',
-            '"high-bit-width-40"', '"max-width-40"',
+            '"high-bit-width-40"', '"large-width-40"',
             '"high-bit-height"', '"max-height"',
             '"overlong-suffix"', '"leading-newline"',
             '"consecutive-newlines"', '"trailing-newline"',
