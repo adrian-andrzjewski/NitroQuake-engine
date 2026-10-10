@@ -226,6 +226,8 @@ Invoke-Gate -Name 'test-teleportsplash-fixture (assembly source contract)' -Kind
     -Command @('python', '-B', 'tools/test-teleportsplash.py') | Out-Null
 Invoke-Gate -Name 'test-runparticleeffect-fixture (assembly source contract)' -Kind 'host' `
     -Command @('python', '-B', 'tools/test-runparticleeffect.py') | Out-Null
+Invoke-Gate -Name 'test-entityparticles-fixture (assembly source contract)' -Kind 'host' `
+    -Command @('python', '-B', 'tools/test-entityparticles.py') | Out-Null
 Invoke-Gate -Name 'test-timedemo-event-record (BENCH486 event report parser)' -Kind 'host' `
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-timedemo-event-record.ps1') | Out-Null
 Invoke-Gate -Name 'test-rendering-reports (exact C/ASM parity report comparator)' -Kind 'host' -Command @('python', 'tools/test-rendering-reports.py') | Out-Null

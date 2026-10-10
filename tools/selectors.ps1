@@ -76,6 +76,7 @@ $script:AssemblyBackedImplementations = @(
     'ParticleUpdateImplementation',
     'ParticleExplosionImplementation',
     'RunParticleEffectImplementation',
+    'EntityParticlesImplementation',
     'ParticleExplosion2Implementation',
     'BlobExplosionImplementation',
     'LavaSplashImplementation',
@@ -811,6 +812,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'EntityParticlesImplementation'
+        Manifest   = 'entityParticlesImplementation'
+        Suffix     = @{ 'asm' = 'entityparticlesasm' }
+        C          = @{ 'asm' = @('ASM486_ENTITY_PARTICLES') }
+        Asm        = @{ 'asm' = @('ASM486_ENTITY_PARTICLES') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'ParticleExplosion2Implementation'
         Manifest   = 'particleExplosion2Implementation'
         Suffix     = @{ 'asm' = 'particleexplosion2asm' }
@@ -1394,6 +1404,7 @@ $script:SuffixOrder = @(
     'ParticleUpdateImplementation'
     'ParticleExplosionImplementation'
     'RunParticleEffectImplementation'
+    'EntityParticlesImplementation'
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'
@@ -1478,6 +1489,7 @@ $script:CDefineOrder = @(
     'ParticleUpdateImplementation'
     'ParticleExplosionImplementation'
     'RunParticleEffectImplementation'
+    'EntityParticlesImplementation'
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'
@@ -1595,6 +1607,7 @@ $script:AsmDefineOrder = @(
     'ParticleUpdateImplementation'
     'ParticleExplosionImplementation'
     'RunParticleEffectImplementation'
+    'EntityParticlesImplementation'
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'

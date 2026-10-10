@@ -1375,6 +1375,25 @@ def main() -> int:
             if "r_runparticleeffectasm.s" not in dump.get("assemblySources", []):
                 fail("the R_RunParticleEffect %s selector omits r_runparticleeffectasm.s from the source inventory" % dump_name)
 
+    entity_particles_c = dump_flags("-EntityParticlesImplementation", "c")
+    entity_particles_asm = dump_flags("-EntityParticlesImplementation", "asm")
+    if entity_particles_c and entity_particles_asm:
+        if entity_particles_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the R_EntityParticles C selector changes the promoted i486 suffix")
+        asm_suffix = entity_particles_asm.get("profileSuffix", "")
+        if asm_suffix.count("-entityparticlesasm") != 1:
+            fail("the R_EntityParticles assembly selector lacks its profile token")
+        elif asm_suffix.replace("-entityparticlesasm", "") != entity_particles_c.get("profileSuffix"):
+            fail("the R_EntityParticles assembly selector changes unrelated promoted suffix tokens")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ENTITY_PARTICLES" in entity_particles_c.get(flags_name, []):
+                fail("the R_EntityParticles C selector enables ASM486_ENTITY_PARTICLES in %s" % flags_name)
+            if "-DASM486_ENTITY_PARTICLES" not in entity_particles_asm.get(flags_name, []):
+                fail("the R_EntityParticles assembly selector omits ASM486_ENTITY_PARTICLES from %s" % flags_name)
+        for dump_name, dump in (("C", entity_particles_c), ("assembly", entity_particles_asm)):
+            if "r_entityparticlesasm.s" not in dump.get("assemblySources", []):
+                fail("the R_EntityParticles %s selector omits r_entityparticlesasm.s from the source inventory" % dump_name)
+
     blob_explosion_c = dump_flags("-BlobExplosionImplementation", "c")
     blob_explosion_asm = dump_flags("-BlobExplosionImplementation", "asm")
     if blob_explosion_c and blob_explosion_asm:
@@ -1464,9 +1483,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 52:
+        if dump.get("allAssemblySourceCount") != 53:
             fail(
-                "%s: expected 52 assembly sources, got %r"
+                "%s: expected 53 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

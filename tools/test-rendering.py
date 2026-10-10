@@ -793,6 +793,25 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn('"reference": null', manifest_text)
         self.assertIn("$validationArgs += '-SkipGoldenImageComparison'", parity_source)
 
+    def test_entity_particles_event_command_fits_the_dos_psp_tail(self) -> None:
+        manifest = json.loads(
+            (ROOT / "tools/render-scenarios-entityparticles.json").read_text(encoding="utf-8")
+        )
+        scene = manifest["scenarios"][0]
+        self.assertEqual(scene["quakeExtraArgs"], "-benchentityparticlesframe 10")
+        command_tail = (
+            "-timedemoexit -framechecksums -framecapture 10 -nosound "
+            f"-nocdaudio {scene['quakeExtraArgs']} +timedemo {scene['demo']}"
+        )
+        self.assertEqual(len(command_tail.encode("ascii")), 112, command_tail)
+        self.assertLessEqual(len(command_tail.encode("ascii")), 126, command_tail)
+
+        timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("$dosPspCommandTailMaxBytes = 126", timedemo_source)
+        self.assertIn("[Text.Encoding]::ASCII.GetByteCount($quakeCommandTail)", timedemo_source)
+        self.assertIn("if ($quakeCommandTailBytes -gt $dosPspCommandTailMaxBytes)", timedemo_source)
+        self.assertIn("cd \\quake", timedemo_source)
+
     def test_assembly_selector_profile_uses_supported_i486_paths(self) -> None:
         profile_path = ROOT / "tools/renderer-profiles/i486-asm-selectable.json"
         profile = load_json(profile_path.read_text(encoding="utf-8"))

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-entityparticles-asm",
+  "description": "i486 assembly R_EntityParticles selector for an isolated renderer parity pair.",
+  "selectors": {
+    "EntityParticlesImplementation": "asm"
+  }
+}

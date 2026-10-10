@@ -108,4 +108,33 @@ if (-not $runParticleEffectMismatchRejected) {
     throw 'R_RunParticleEffect event parser accepted a count inconsistent with its stored frames and overflow.'
 }
 
+$entityParticles = Read-Bench486EntityParticlesEvents -Report "entity-particles-events 1 frames 10 overflow 0`n"
+if ($entityParticles.Count -ne 1 -or $entityParticles.Frames.Count -ne 1 -or
+    $entityParticles.Frames[0] -ne 10 -or $entityParticles.Overflow -ne 0) {
+    throw 'R_EntityParticles event record did not preserve the count, exact frame index, and overflow count.'
+}
+
+$entityParticlesEmpty = Read-Bench486EntityParticlesEvents -Report "entity-particles-events 0 frames overflow 0`n"
+if ($entityParticlesEmpty.Count -ne 0 -or $entityParticlesEmpty.Frames.Count -ne 0 -or
+    $entityParticlesEmpty.Overflow -ne 0) {
+    throw 'Explicit zero-event R_EntityParticles record was not distinguished as an empty event list.'
+}
+
+$entityParticlesMissing = Read-Bench486EntityParticlesEvents -Report "320 frames 1.0 seconds 320.0 fps`n"
+if ($null -ne $entityParticlesMissing.Count -or $null -ne $entityParticlesMissing.Frames -or
+    $null -ne $entityParticlesMissing.Overflow) {
+    throw 'A legacy report without the R_EntityParticles event record should return null event metadata.'
+}
+
+$entityParticlesMismatchRejected = $false
+try {
+    [void](Read-Bench486EntityParticlesEvents -Report "entity-particles-events 2 frames 10 overflow 0`n")
+}
+catch {
+    $entityParticlesMismatchRejected = $true
+}
+if (-not $entityParticlesMismatchRejected) {
+    throw 'R_EntityParticles event parser accepted a count inconsistent with its stored frames and overflow.'
+}
+
 Write-Output 'Timedemo event-record parser tests passed.'

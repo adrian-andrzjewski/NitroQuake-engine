@@ -280,7 +280,7 @@ $previousRunParticleEffectEventState = $null
             throw "Scenario '$($scene.id)' captureBenchEvents must be a non-empty JSON array."
         }
         foreach ($captureBenchEvent in $captureBenchEventsProperty.Value) {
-            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect')) {
+            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect', 'entityParticles')) {
                 throw "Scenario '$($scene.id)' has unsupported captureBenchEvents entry '$captureBenchEvent'."
             }
             $captureBenchEvents += $captureBenchEvent
@@ -290,13 +290,22 @@ $previousRunParticleEffectEventState = $null
     $expectedBenchEventFramesProperty = $scene.PSObject.Properties['expectedBenchEventFrames']
     if ($null -ne $expectedBenchEventFramesProperty -and $null -ne $expectedBenchEventFramesProperty.Value) {
         foreach ($expectedEventProperty in $expectedBenchEventFramesProperty.Value.PSObject.Properties) {
-            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect') -or
+            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect', 'entityParticles') -or
                 $expectedEventProperty.Value -isnot [array]) {
                 throw "Scenario '$($scene.id)' expectedBenchEventFrames has an invalid '$($expectedEventProperty.Name)' entry."
             }
             $expectedBenchEventFrames[$expectedEventProperty.Name] = @(
                 $expectedEventProperty.Value | ForEach-Object { [int]$_ }
             )
+        }
+    }
+    $expectedChecksumStreamFrames = $null
+    $expectedChecksumStreamFramesProperty = $scene.PSObject.Properties['expectedChecksumStreamFrames']
+    if ($null -ne $expectedChecksumStreamFramesProperty -and
+        $null -ne $expectedChecksumStreamFramesProperty.Value) {
+        $expectedChecksumStreamFrames = [int]$expectedChecksumStreamFramesProperty.Value
+        if ($expectedChecksumStreamFrames -le 0) {
+            throw "Scenario '$($scene.id)' expectedChecksumStreamFrames must be a positive integer."
         }
     }
     if ($requiredBenchEvents -contains 'lavaSplash' -and
@@ -310,6 +319,10 @@ $previousRunParticleEffectEventState = $null
     if ($requiredBenchEvents -contains 'runParticleEffect' -and
         -not $expectedBenchEventFrames.ContainsKey('runParticleEffect')) {
         throw "Scenario '$($scene.id)' requires runParticleEffect but does not define expectedBenchEventFrames.runParticleEffect."
+    }
+    if ($requiredBenchEvents -contains 'entityParticles' -and
+        -not $expectedBenchEventFrames.ContainsKey('entityParticles')) {
+        throw "Scenario '$($scene.id)' requires entityParticles but does not define expectedBenchEventFrames.entityParticles."
     }
 
     Write-Host ''
@@ -415,6 +428,18 @@ $previousRunParticleEffectEventState = $null
             # stream. Warmup exclusion affects only post-warmup stability metrics.
             $checksumStreamFrameCount = $frameData.Checksums.Count
             $checksumPostWarmupFrameCount = [math]::Max(0, $checksumStreamFrameCount - $warmupChecksumFrames)
+            if ($null -ne $expectedChecksumStreamFrames -and
+                $checksumStreamFrameCount -ne $expectedChecksumStreamFrames) {
+                $sceneStatus = 'FAIL'
+                $failures.Add([pscustomobject]@{
+                        scenario = $scene.id
+                        test = 'expected-checksum-stream-frame-count'
+                        expected = $expectedChecksumStreamFrames
+                        actual = $checksumStreamFrameCount
+                        metrics = @{ frameChecksumPath = $frameData.Path; timedemoFrames = $run.frames }
+                        capturedOutput = @{ timedemoResult = $timedemoResultPath; frameChecksums = $frameData.Path }
+                    })
+            }
             $blobExplosionFramesProperty = $diagnostics.PSObject.Properties['blobExplosionEventFrames']
             $blobExplosionOverflowProperty = $diagnostics.PSObject.Properties['blobExplosionEventOverflow']
             $blobExplosionEventFrames = $null
@@ -531,6 +556,38 @@ $previousRunParticleEffectEventState = $null
             }
             $runParticleEffectEventFrameSignature = if ($runParticleEffectEventFramesPresent) {
                 [string]::Join(',', [string[]]$runParticleEffectEventFrames)
+            }
+            else {
+                $null
+            }
+
+            $entityParticlesFramesProperty = $diagnostics.PSObject.Properties['entityParticlesEventFrames']
+            $entityParticlesCountProperty = $diagnostics.PSObject.Properties['entityParticlesEventCount']
+            $entityParticlesOverflowProperty = $diagnostics.PSObject.Properties['entityParticlesEventOverflow']
+            $entityParticlesEventFrames = $null
+            $entityParticlesEventCount = $null
+            $entityParticlesEventOverflow = $null
+            $entityParticlesEventFramesPresent = $false
+            $entityParticlesEventCountPresent = $false
+            $entityParticlesEventOverflowPresent = $false
+            $invalidEntityParticlesEventFrames = @()
+            if ($null -ne $entityParticlesFramesProperty -and $entityParticlesFramesProperty.Value -is [System.Array]) {
+                $entityParticlesEventFramesPresent = $true
+                $entityParticlesEventFrames = @($entityParticlesFramesProperty.Value | ForEach-Object { [int]$_ })
+                $invalidEntityParticlesEventFrames = @($entityParticlesEventFrames | Where-Object {
+                        $_ -lt 0 -or $_ -ge $checksumStreamFrameCount
+                    })
+            }
+            if ($null -ne $entityParticlesCountProperty -and $null -ne $entityParticlesCountProperty.Value) {
+                $entityParticlesEventCountPresent = $true
+                $entityParticlesEventCount = [int]$entityParticlesCountProperty.Value
+            }
+            if ($null -ne $entityParticlesOverflowProperty -and $null -ne $entityParticlesOverflowProperty.Value) {
+                $entityParticlesEventOverflowPresent = $true
+                $entityParticlesEventOverflow = [int]$entityParticlesOverflowProperty.Value
+            }
+            $entityParticlesEventFrameSignature = if ($entityParticlesEventFramesPresent) {
+                [string]::Join(',', [string[]]$entityParticlesEventFrames)
             }
             else {
                 $null
@@ -709,6 +766,9 @@ $previousRunParticleEffectEventState = $null
                     runParticleEffectEventFrames = $runParticleEffectEventFrames
                     runParticleEffectEventOverflow = $runParticleEffectEventOverflow
                     runParticleEffectEventRepeatParity = $runParticleEffectEventRepeatParity
+                    entityParticlesEventCount = $entityParticlesEventCount
+                    entityParticlesEventFrames = $entityParticlesEventFrames
+                    entityParticlesEventOverflow = $entityParticlesEventOverflow
                     captureBenchEvents = @($captureBenchEvents)
                     captureBenchEventChecks = @()
                     repeatParity = $null
@@ -877,6 +937,50 @@ $previousRunParticleEffectEventState = $null
                 }
             }
 
+            if ($requiredBenchEvents -contains 'entityParticles') {
+                $eventFailure = $null
+                $expectedEntityParticlesEventFrames = @($expectedBenchEventFrames['entityParticles'])
+                $expectedEntityParticlesEventSignature = [string]::Join(',', [string[]]$expectedEntityParticlesEventFrames)
+                $actualEntityParticlesEventSignature = if ($entityParticlesEventFramesPresent) {
+                    [string]::Join(',', [string[]]$entityParticlesEventFrames)
+                }
+                else {
+                    $null
+                }
+                if (-not $entityParticlesEventFramesPresent -or -not $entityParticlesEventCountPresent -or
+                    -not $entityParticlesEventOverflowPresent) {
+                    $eventFailure = 'required entityParticles event count/frame/overflow metadata is missing'
+                }
+                elseif ($invalidEntityParticlesEventFrames.Count -gt 0) {
+                    $eventFailure = "entityParticles event frame index/indices fall outside the total $checksumStreamFrameCount-frame checksum stream"
+                }
+                elseif ($entityParticlesEventOverflow -ne 0) {
+                    $eventFailure = "entityParticles event metadata overflowed by $entityParticlesEventOverflow event(s)"
+                }
+                elseif ($entityParticlesEventCount -ne $expectedEntityParticlesEventFrames.Count -or
+                    $entityParticlesEventFrames.Count -ne $expectedEntityParticlesEventFrames.Count) {
+                    $eventFailure = "entityParticles event count must be exactly $($expectedEntityParticlesEventFrames.Count)"
+                }
+                elseif ($actualEntityParticlesEventSignature -ne $expectedEntityParticlesEventSignature) {
+                    $eventFailure = "entityParticles event frame indices must be exactly '$expectedEntityParticlesEventSignature'"
+                }
+                if ($null -ne $eventFailure) {
+                    $sceneStatus = 'FAIL'
+                    $failures.Add([pscustomobject]@{
+                            scenario = $scene.id
+                            test = 'required-bench-event'
+                            expected = @{ event = 'entityParticles'; count = $expectedEntityParticlesEventFrames.Count; frames = $expectedEntityParticlesEventFrames; overflow = 0 }
+                            actual = @{ count = $entityParticlesEventCount; frames = $entityParticlesEventFrames; overflow = $entityParticlesEventOverflow }
+                            metrics = @{
+                                error = $eventFailure
+                                invalidFrameIndices = $invalidEntityParticlesEventFrames
+                                checksumStreamFrames = $checksumStreamFrameCount
+                            }
+                            capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                        })
+                }
+            }
+
             $captureBenchEventChecks = @()
             foreach ($captureBenchEvent in $captureBenchEvents) {
                 $capturedFrameIndexProperty = $diagnostics.PSObject.Properties['frameCaptureIndex']
@@ -898,6 +1002,9 @@ $previousRunParticleEffectEventState = $null
                 }
                 elseif ($captureBenchEvent -eq 'runParticleEffect') {
                     $runParticleEffectEventFrames
+                }
+                elseif ($captureBenchEvent -eq 'entityParticles') {
+                    $entityParticlesEventFrames
                 }
                 else {
                     @()
@@ -1034,6 +1141,7 @@ $previousRunParticleEffectEventState = $null
             quakeExtraArgs = $scene.quakeExtraArgs
             repeatRuns = $effectiveRuns
             expectedFrames = $scene.expectedFrames
+            expectedChecksumStreamFrames = $expectedChecksumStreamFrames
             expectedChecksum = $scene.expectedChecksum
             requiredBenchEvents = $requiredBenchEvents
             expectedBenchEventFrames = $expectedBenchEventFrames

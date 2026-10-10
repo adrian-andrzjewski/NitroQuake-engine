@@ -93,6 +93,23 @@ typedef char run_particle_effect_type_values[
 		(pt_slowgrav == 2 && pt_explode == 4 && pt_explode2 == 5) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_ENTITY_PARTICLES) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char entity_particles_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char entity_particles_layout[
+		(offsetof(entity_t, origin) == 84 &&
+		sizeof(((entity_t *)0)->origin) == 12 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char entity_particles_client_time_layout[
+		(offsetof(client_state_t, time) == 572 &&
+		sizeof(((client_state_t *)0)->time) == 8) ? 1 : -1];
+#endif
+
 #if (defined(ASM486_ROCKET_TRAIL) || defined(BENCH486)) && id386
 #include <stddef.h>
 typedef char rocket_trail_i386_pointer_size[
@@ -318,12 +335,38 @@ R_EntityParticles
 #define NUMVERTEXNORMALS	162
 extern	float	r_avertexnormals[NUMVERTEXNORMALS][3];
 vec3_t	avelocities[NUMVERTEXNORMALS];
-static qboolean avelocities_initialized;
+qboolean avelocities_initialized;
 float	beamlength = 16;
 vec3_t	avelocity = {23, 7, 3};
 float	partstep = 0.01;
 float	timescale = 0.01;
 
+#ifdef BENCH486
+int (*bench486_entityparticles_rand_probe) (void);
+unsigned bench486_entityparticles_rand_calls;
+
+int Bench486EntityParticlesRand (void)
+{
+	bench486_entityparticles_rand_calls++;
+	if (bench486_entityparticles_rand_probe)
+		return bench486_entityparticles_rand_probe ();
+	return rand ();
+}
+
+void Bench486EntityParticlesResetState (void)
+{
+	avelocities_initialized = false;
+}
+
+#define ENTITY_PARTICLES_RAND() Bench486EntityParticlesRand ()
+#else
+#define ENTITY_PARTICLES_RAND() rand ()
+#endif
+
+#ifdef ASM486_ENTITY_PARTICLES
+#define R_EntityParticles R_EntityParticles_C
+#endif
+#if !defined(ASM486_ENTITY_PARTICLES) || defined(BENCH486)
 void R_EntityParticles (entity_t *ent)
 {
 	int			i;
@@ -342,7 +385,7 @@ void R_EntityParticles (entity_t *ent)
 	{
 		avelocity_values = &avelocities[0][0];
 		for (i=0 ; i<NUMVERTEXNORMALS*3 ; i++)
-			avelocity_values[i] = (rand()&255) * 0.01;
+			avelocity_values[i] = (ENTITY_PARTICLES_RAND()&255) * 0.01;
 		avelocities_initialized = true;
 	}
 
@@ -376,6 +419,11 @@ void R_EntityParticles (entity_t *ent)
 		p->org[2] = ent->origin[2] + r_avertexnormals[i][2]*dist + forward[2]*beamlength;			
 	}
 }
+#endif
+#ifdef ASM486_ENTITY_PARTICLES
+#undef R_EntityParticles
+#endif
+#undef ENTITY_PARTICLES_RAND
 
 
 /*

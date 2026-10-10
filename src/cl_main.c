@@ -439,6 +439,36 @@ SetPal(2);
 CL_RelinkEntities
 ===============
 */
+#ifdef BENCH486
+/* The timedemo checksum hook advances this immediately after rendering.  Its
+ * current value is therefore the zero-based index of the frame being linked. */
+extern unsigned long Bench486TimedemoRenderedFrameCount (void);
+extern void Bench486RecordEntityParticlesEvent (void);
+
+static int bench486_entity_particles_frame = -2;
+static qboolean bench486_entity_particles_injected;
+
+static int CL_BenchEntityParticlesFrame (void)
+{
+	int parm;
+
+	if (bench486_entity_particles_frame != -2)
+		return bench486_entity_particles_frame;
+
+	parm = COM_CheckParm ("-benchentityparticlesframe");
+	if (!parm || parm + 1 >= com_argc)
+		bench486_entity_particles_frame = -1;
+	else
+	{
+		bench486_entity_particles_frame = Q_atoi (com_argv[parm + 1]);
+		if (bench486_entity_particles_frame < 0)
+			bench486_entity_particles_frame = -1;
+	}
+
+	return bench486_entity_particles_frame;
+}
+#endif
+
 void CL_RelinkEntities (void)
 {
 	entity_t	*ent;
@@ -448,6 +478,10 @@ void CL_RelinkEntities (void)
 	float		bobjrotate;
 	vec3_t		oldorg;
 	dlight_t	*dl;
+#ifdef BENCH486
+	int			bench_entity_particles_frame;
+	qboolean	bench_inject_entity_particles;
+#endif
 
 // determine partial update time	
 	frac = CL_LerpPoint ();
@@ -476,6 +510,14 @@ void CL_RelinkEntities (void)
 	}
 	
 	bobjrotate = anglemod(100*cl.time);
+
+#ifdef BENCH486
+	bench_entity_particles_frame = CL_BenchEntityParticlesFrame ();
+	bench_inject_entity_particles = !bench486_entity_particles_injected &&
+			bench_entity_particles_frame >= 0 &&
+			Bench486TimedemoRenderedFrameCount () ==
+				(unsigned long)bench_entity_particles_frame;
+#endif
 	
 // start on the entity after the world
 	for (i=1,ent=cl_entities+1 ; i<cl.num_entities ; i++,ent++)
@@ -531,6 +573,24 @@ void CL_RelinkEntities (void)
 		if (ent->model->flags & EF_ROTATE)
 			ent->angles[1] = bobjrotate;
 
+#ifdef BENCH486
+		if (bench_inject_entity_particles &&
+				!bench486_entity_particles_injected)
+		{
+			int saved_effects = ent->effects;
+
+			/* Use the first model-backed entity updated for this demo record.
+			 * Force the ordinary EF_BRIGHTFIELD dispatch once, then restore the
+			 * network-visible flags before processing other entity effects. */
+			ent->effects |= EF_BRIGHTFIELD;
+			if (ent->effects & EF_BRIGHTFIELD)
+				R_EntityParticles (ent);
+			ent->effects = saved_effects;
+			Bench486RecordEntityParticlesEvent ();
+			bench486_entity_particles_injected = true;
+		}
+		else
+#endif
 		if (ent->effects & EF_BRIGHTFIELD)
 			R_EntityParticles (ent);
 #ifdef QUAKE2

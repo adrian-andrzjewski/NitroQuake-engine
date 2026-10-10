@@ -161,7 +161,7 @@ def _expected_bench_event_frames(entry: dict[str, Any], report_path: Path, scena
         raise ValueError(f"{report_path}: {scenario_id} expectedBenchEventFrames must be an object")
     parsed: dict[str, list[int]] = {}
     for event, frames in expected.items():
-        if event not in {"blobExplosion", "lavaSplash", "teleportSplash", "runParticleEffect"}:
+        if event not in {"blobExplosion", "lavaSplash", "teleportSplash", "runParticleEffect", "entityParticles"}:
             raise ValueError(f"{report_path}: {scenario_id} has unsupported expected bench event {event!r}")
         if not isinstance(frames, list) or any(
             not isinstance(frame, int) or isinstance(frame, bool) or frame < 0 for frame in frames
@@ -190,6 +190,11 @@ def _compare_required_bench_events(
                 "runParticleEffectEventFrames",
                 "runParticleEffectEventOverflow",
                 "runParticleEffectEventCount",
+            ),
+            "entityParticles": (
+                "entityParticlesEventFrames",
+                "entityParticlesEventOverflow",
+                "entityParticlesEventCount",
             ),
         }.get(event)
         if fields is None:
@@ -316,6 +321,17 @@ def compare_reports(
         reference_expected_event_frames = _expected_bench_event_frames(reference_entry, reference_report_path, scenario_id)
         candidate_expected_event_frames = _expected_bench_event_frames(candidate_entry, candidate_report_path, scenario_id)
         expected_event_frames_match = reference_expected_event_frames == candidate_expected_event_frames
+        reference_expected_checksum_frames = reference_entry.get("expectedChecksumStreamFrames")
+        candidate_expected_checksum_frames = candidate_entry.get("expectedChecksumStreamFrames")
+        for label, count in (
+            ("reference", reference_expected_checksum_frames),
+            ("candidate", candidate_expected_checksum_frames),
+        ):
+            if count is not None and (
+                not isinstance(count, int) or isinstance(count, bool) or count <= 0
+            ):
+                raise ValueError(f"{scenario_id}: {label} expectedChecksumStreamFrames must be a positive integer")
+        expected_checksum_frames_match = reference_expected_checksum_frames == candidate_expected_checksum_frames
         reference_runs = _runs_by_id(reference_entry, reference_report_path, scenario_id)
         candidate_runs = _runs_by_id(candidate_entry, candidate_report_path, scenario_id)
         reference_images = reference_entry.get("imageComparisons")
@@ -342,6 +358,17 @@ def compare_reports(
                     left_checksum = _artifact_path(reference_report_path, left.get("frameChecksumPath"), "frame checksum")
                     right_checksum = _artifact_path(candidate_report_path, right.get("frameChecksumPath"), "frame checksum")
                     run_result["frameChecksums"] = _compare_streams(left_checksum, right_checksum, ignored_reference)
+                    if reference_expected_checksum_frames is not None:
+                        reference_frames = run_result["frameChecksums"].get("referenceFrames")
+                        candidate_frames = run_result["frameChecksums"].get("candidateFrames")
+                        run_result["expectedChecksumStreamFrames"] = {
+                            "expected": reference_expected_checksum_frames,
+                            "reference": reference_frames,
+                            "candidate": candidate_frames,
+                            "pass": expected_checksum_frames_match
+                            and reference_frames == reference_expected_checksum_frames
+                            and candidate_frames == candidate_expected_checksum_frames,
+                        }
                 except (OSError, ValueError) as exc:
                     run_result["checksumError"] = str(exc)
 
@@ -376,6 +403,7 @@ def compare_reports(
                 run_result.get("frameChecksums", {}).get("exactMatch", False)
                 and run_result.get("framebuffer", {}).get("exactMatch", False)
                 and all(item.get("pass", False) for item in run_result.get("benchEvents", {}).values())
+                and run_result.get("expectedChecksumStreamFrames", {}).get("pass", True)
                 and "checksumError" not in run_result
                 and "imageError" not in run_result
             )
@@ -391,6 +419,7 @@ def compare_reports(
                 image_shape_ok
                 and event_requirements_match
                 and expected_event_frames_match
+                and expected_checksum_frames_match
                 and bool(run_results)
                 and all(item.get("pass", False) for item in run_results)
             ),
@@ -410,6 +439,11 @@ def compare_reports(
                 "reference": reference_expected_event_frames,
                 "candidate": candidate_expected_event_frames,
                 "match": expected_event_frames_match,
+            },
+            "expectedChecksumStreamFrames": {
+                "reference": reference_expected_checksum_frames,
+                "candidate": candidate_expected_checksum_frames,
+                "match": expected_checksum_frames_match,
             },
             "runs": run_results,
         })

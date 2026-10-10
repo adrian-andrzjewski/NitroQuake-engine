@@ -156,6 +156,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$RunParticleEffectImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$EntityParticlesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteClipImplementation = 'c',
@@ -563,6 +565,7 @@ $buildParams = @{
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
     RunParticleEffectImplementation      = $RunParticleEffectImplementation
+    EntityParticlesImplementation        = $EntityParticlesImplementation
     BlobExplosionImplementation          = $BlobExplosionImplementation
     LavaSplashImplementation             = $LavaSplashImplementation
     TeleportSplashImplementation         = $TeleportSplashImplementation
@@ -941,10 +944,22 @@ $loadBlock = if ($hdpmiLoadLine) { "$hdpmiLoadLine`r`n" } else { '' }
 $quakeExtras = if ([string]::IsNullOrWhiteSpace($QuakeExtraArgs)) { '' } else { ' ' + $QuakeExtraArgs.Trim() }
 $frameChecksumOptions = if ($FrameChecksums) { ' -framechecksums' } else { '' }
 $frameCaptureOption = if ($FrameCaptureIndex -ge 0) { " -framecapture $FrameCaptureIndex" } else { '' }
+$quakeCommandTail = "-timedemoexit$fpsStatsOptions$frameChecksumOptions$frameCaptureOption -nosound -nocdaudio$quakeExtras +timedemo $DemoName"
+$quakeCommandLine = "$executableName $quakeCommandTail"
+$dosPspCommandTailMaxBytes = 126
+$quakeCommandTailBytes = [Text.Encoding]::ASCII.GetByteCount($quakeCommandTail)
+if ($quakeCommandTailBytes -gt $dosPspCommandTailMaxBytes) {
+    throw ("Timedemo DOS command tail is {0} bytes; maximum is {1}. Reduce -QuakeExtraArgs or " +
+        "use a shorter supported command-line option.") -f $quakeCommandTailBytes, $dosPspCommandTailMaxBytes
+}
+# DOS stores only command arguments in the 126-byte PSP tail; the executable name
+# is excluded. The batch changes to \quake, so -basedir \quake is redundant.
+# Timedemo playback does not consume live mouse/joystick input; omitting those
+# switches keeps event-enabled command tails within the DOS limit.
 @"
 @echo off
 cd \quake
-$loadBlock$probeBlock$executableName -basedir \quake -timedemoexit$fpsStatsOptions$frameChecksumOptions$frameCaptureOption -nosound -nojoy -nomouse -nocdaudio$quakeExtras +timedemo $DemoName
+$loadBlock$probeBlock$quakeCommandLine
 exit
 "@ | Set-Content -LiteralPath $batchPath -Encoding ASCII
 
@@ -1029,6 +1044,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     $lavaSplashEventData = Read-Bench486LavaSplashEvents -Report $report
     $teleportSplashEventData = Read-Bench486TeleportSplashEvents -Report $report
     $runParticleEffectEventData = Read-Bench486RunParticleEffectEvents -Report $report
+    $entityParticlesEventData = Read-Bench486EntityParticlesEvents -Report $report
     $blobExplosionEventFrames = $blobExplosionEventData.Frames
     $blobExplosionEventOverflow = $blobExplosionEventData.Overflow
     $lavaSplashEventCount = $lavaSplashEventData.Count
@@ -1040,6 +1056,9 @@ for ($run = 1; $run -le $Runs; $run++) {
     $runParticleEffectEventCount = $runParticleEffectEventData.Count
     $runParticleEffectEventFrames = $runParticleEffectEventData.Frames
     $runParticleEffectEventOverflow = $runParticleEffectEventData.Overflow
+    $entityParticlesEventCount = $entityParticlesEventData.Count
+    $entityParticlesEventFrames = $entityParticlesEventData.Frames
+    $entityParticlesEventOverflow = $entityParticlesEventData.Overflow
 
     $runDiagnostics = [ordered]@{
         blobExplosionEventFrames = $blobExplosionEventFrames
@@ -1053,6 +1072,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         runParticleEffectEventCount = $runParticleEffectEventCount
         runParticleEffectEventFrames = $runParticleEffectEventFrames
         runParticleEffectEventOverflow = $runParticleEffectEventOverflow
+        entityParticlesEventCount = $entityParticlesEventCount
+        entityParticlesEventFrames = $entityParticlesEventFrames
+        entityParticlesEventOverflow = $entityParticlesEventOverflow
     }
     if ($FrameChecksums) {
         if (-not (Test-Path -LiteralPath $frameChecksumDosPath -PathType Leaf)) {
@@ -1378,6 +1400,7 @@ $result = [ordered]@{
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     runParticleEffectImplementation = $RunParticleEffectImplementation
+    entityParticlesImplementation = $EntityParticlesImplementation
     spriteBeamImplementation = $SpriteBeamImplementation
     spriteClipImplementation = $SpriteClipImplementation
     spriteFrameImplementation = $SpriteFrameImplementation

@@ -180,6 +180,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$RunParticleEffectImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$EntityParticlesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',
@@ -301,6 +303,7 @@ param(
     [switch]$ParticleListOnly,
     [switch]$ParticleExplosionOnly,
     [switch]$RunParticleEffectOnly,
+    [switch]$EntityParticlesOnly,
     [switch]$ParticleExplosion2Only,
     [switch]$BlobExplosionOnly,
     [switch]$LavaSplashOnly,
@@ -359,6 +362,9 @@ if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
 }
 if ($RunParticleEffectOnly -and $RunParticleEffectImplementation -ne 'asm') {
     throw '-RunParticleEffectOnly requires -RunParticleEffectImplementation asm.'
+}
+if ($EntityParticlesOnly -and $EntityParticlesImplementation -ne 'asm') {
+    throw '-EntityParticlesOnly requires -EntityParticlesImplementation asm.'
 }
 if ($ParticleExplosion2Only -and $ParticleExplosion2Implementation -ne 'asm') {
     throw '-ParticleExplosion2Only requires -ParticleExplosion2Implementation asm.'
@@ -544,6 +550,7 @@ $buildParams = @{
         PrintTimesImplementation = $PrintTimesImplementation
         ParticleExplosion2Implementation = $ParticleExplosion2Implementation
         RunParticleEffectImplementation = $RunParticleEffectImplementation
+        EntityParticlesImplementation = $EntityParticlesImplementation
         BlobExplosionImplementation = $BlobExplosionImplementation
         LavaSplashImplementation = $LavaSplashImplementation
         TeleportSplashImplementation = $TeleportSplashImplementation
@@ -810,6 +817,9 @@ elseif ($ParticleExplosionOnly) {
 elseif ($RunParticleEffectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchrunparticleeffect -benchexit'
 }
+elseif ($EntityParticlesOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchentityparticles -benchexit'
+}
 elseif ($ParticleExplosion2Only) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion2 -benchexit'
 }
@@ -1012,6 +1022,7 @@ $result = [ordered]@{
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
     runParticleEffectImplementation = $RunParticleEffectImplementation
+    entityParticlesImplementation = $EntityParticlesImplementation
     worldControlImplementation = $WorldControlImplementation
     instrumentation = [bool]$Instrumentation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
@@ -1061,6 +1072,7 @@ $result = [ordered]@{
     rocketTrailOnly = [bool]$RocketTrailOnly
     particleExplosionOnly = [bool]$ParticleExplosionOnly
     runParticleEffectOnly = [bool]$RunParticleEffectOnly
+    entityParticlesOnly = [bool]$EntityParticlesOnly
     transformPlaneOnly = [bool]$TransformPlaneOnly
     zSubmodelPolygonsOnly = [bool]$ZSubmodelPolygonsOnly
     frustumTransformOnly = [bool]$FrustumTransformOnly

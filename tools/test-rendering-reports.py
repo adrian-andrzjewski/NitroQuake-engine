@@ -116,6 +116,40 @@ class RenderReportComparisonTests(unittest.TestCase):
         self.assertFalse(framebuffer["exactMatch"])
         self.assertEqual(framebuffer["metrics"]["pixelIndexMismatches"], 1)
 
+    def test_compares_entity_particles_event_and_exact_checksum_stream_length(self) -> None:
+        reference = self.make_report("c-reference")
+        candidate = self.make_report("assembly")
+        for report_path in (reference, candidate):
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            scenario = report["scenarios"][0]
+            scenario["expectedChecksumStreamFrames"] = 3
+            scenario["requiredBenchEvents"] = ["entityParticles"]
+            scenario["expectedBenchEventFrames"] = {"entityParticles": [2]}
+            scenario["frameDiagnostics"][0].update(
+                {
+                    "entityParticlesEventCount": 1,
+                    "entityParticlesEventFrames": [2],
+                    "entityParticlesEventOverflow": 0,
+                }
+            )
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+
+        result = comparison.compare_reports(reference, candidate)
+        self.assertTrue(result["pass"], json.dumps(result, indent=2))
+        run = result["scenarios"][0]["runs"][0]
+        self.assertTrue(run["benchEvents"]["entityParticles"]["pass"])
+        self.assertTrue(run["expectedChecksumStreamFrames"]["pass"])
+
+        candidate_report = json.loads(candidate.read_text(encoding="utf-8"))
+        candidate_report["scenarios"][0]["frameDiagnostics"][0]["entityParticlesEventFrames"] = [1]
+        candidate_report["scenarios"][0]["expectedChecksumStreamFrames"] = 4
+        candidate.write_text(json.dumps(candidate_report), encoding="utf-8")
+        result = comparison.compare_reports(reference, candidate)
+        self.assertFalse(result["pass"])
+        run = result["scenarios"][0]["runs"][0]
+        self.assertFalse(run["benchEvents"]["entityParticles"]["pass"])
+        self.assertFalse(run["expectedChecksumStreamFrames"]["pass"])
+
     def test_unpinned_source_reports_require_explicit_diagnostic_override(self) -> None:
         reference = self.make_report("c-reference", source_tree=None)
         candidate = self.make_report("assembly", source_tree=None)
