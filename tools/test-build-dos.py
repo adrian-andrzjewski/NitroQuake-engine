@@ -49,7 +49,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
-    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-spriteframeasm-spritedrawasm-spritesetupasm"
+    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm"
 )
 
 failures: list[str] = []
@@ -329,6 +329,7 @@ def main() -> int:
                 "-DASM486_SPRITE_SETUP",
                 "-DASM486_SPRITE_DRAW",
                 "-DASM486_SPRITE_FRAME",
+                "-DASM486_MATH_CLOSURE",
             }
             # Paths differ between the targets by design, and the link list
             # carries the output executable as its last argument.
@@ -364,6 +365,10 @@ def main() -> int:
                 fail("the i486 release %s omit promoted sprite-frame assembly" % flags_name)
             if "-DASM486_SPRITE_FRAME" in i386.get(flags_name, []):
                 fail("the separate i386 %s enable i486-promoted sprite frame" % flags_name)
+            if "-DASM486_MATH_CLOSURE" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted math-closure assembly" % flags_name)
+            if "-DASM486_MATH_CLOSURE" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted math-closure assembly" % flags_name)
 
         if "-DTARGET_I386" not in i386.get("asmFlags", []):
             fail("the i386 build does not pass -DTARGET_I386 to the assembler")
@@ -652,9 +657,10 @@ def main() -> int:
         reference = dump_flags("-" + selector, "c")
         candidate = dump_flags("-" + selector, "asm")
         if reference and candidate:
-            if reference.get("profileSuffix") != RELEASE_I486_SUFFIX:
-                fail(selector + " changes the reference suffix")
-            if candidate.get("profileSuffix") != RELEASE_I486_SUFFIX + "-" + token:
+            reference_suffix = reference.get("profileSuffix", "")
+            candidate_suffix = candidate.get("profileSuffix", "")
+            token_suffix = "-" + token
+            if candidate_suffix.count(token_suffix) != 1 or candidate_suffix.replace(token_suffix, "", 1) != reference_suffix:
                 fail(selector + " does not isolate its assembly profile")
             for language in ("cFlags", "asmFlags"):
                 if "-D" + define in reference.get(language, []):

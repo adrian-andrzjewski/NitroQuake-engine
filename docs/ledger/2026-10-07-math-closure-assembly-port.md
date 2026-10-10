@@ -21,6 +21,15 @@ terminating `BOPS_Error` entry is inspected separately; this fixture does not
 claim to execute it. Evidence:
 `out/math-closure-worktree-20261007/out/dos-bench-20261007-170852`.
 
+The 2026-10-10 strict i486 release-profile run repeated the fixture under
+DOSBox-X with `cputype=486`, `fpu=true`, and fixed 33,445 cycles. All 29,184
+direct cases and 8,192 sequential frames passed. The linked executable, 529
+startup CODE rows, and 9,207-instruction runtime provider passed the complete
+ISA gate with zero above-i486, unknown, or exempt instructions. The runtime
+result is `out/dos-bench-20261010-122029/bench-result.json`; the matching
+executable and ISA reports are under
+`out/profile-ae438ae7269d8e33/isa-qbench/`.
+
 ## Scene equivalence and integration
 
 The focused actual-selector pair passed three demo scenes twice per profile:
@@ -48,6 +57,7 @@ release builds, keeps benchmark oracles, and gives the perpendicular-vector
 oracle its own C normalization call. That integration passed the combined
 six-scene pair, with 11,842 exact frame comparisons and twelve exact captures;
 see [combined parity](2026-10-07-all-selectable-combined-parity.md).
-The new selector defaults to C; the all-selectable
-profile selects assembly. Complete-renderer ownership and human acceptance
-remain pending.
+The 486DX + x87 release profile now defaults `MathClosureImplementation` to
+assembly; an explicit C selector and the separate i386 profile retain the C
+reference. The all-selectable profile also selects assembly. Complete-renderer
+ownership and human acceptance remain pending.

@@ -305,6 +305,9 @@ if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawIm
 if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
     $SpriteFrameImplementation = 'asm'
 }
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MathClosureImplementation')) {
+    $MathClosureImplementation = 'asm'
+}
 
 if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm') {
     throw '-AliasClipZImplementation asm requires -AliasClipImplementation asm.'
