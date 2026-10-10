@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-11-r-parseparticleeffect-assembly-port.md`](2026-10-11-r-parseparticleeffect-assembly-port.md) | 4 | renderer port / particle packet decoder (`Reference and assembly mapping`; `Direct C/assembly fixture`; `Strict 486DX+x87 executable evidence`; `Traceability and reproduction`) |
 | [`2026-10-11-screen-erase-center-string-assembly-port.md`](2026-10-11-screen-erase-center-string-assembly-port.md) | 4 | renderer port / centered-message erase (`Reference and selector boundary`; `x87 arithmetic and the 486DX target`; `Exact differential fixture`; `Strict executable evidence`) |
 | [`2026-10-10-screen-calc-fov-assembly-port.md`](2026-10-10-screen-calc-fov-assembly-port.md) | 6 | renderer port / view projection (`Original C behavior and selector boundary`; `Assembly mapping`; `Direct C/assembly and ABI fixture`; `i486 instruction evidence`; `Paired framebuffer evidence`; `CalcFov traceability and reproduction`) |
 | [`2026-10-10-d-drawzspans-assembly-parity.md`](2026-10-10-d-drawzspans-assembly-parity.md) | 5 | renderer port / depth spans (`Traceability and scope`; `Arithmetic, stores, and ABI`; `Direct differential fixture`; `Strict i486 audit`; `Reproduction and limits`) |

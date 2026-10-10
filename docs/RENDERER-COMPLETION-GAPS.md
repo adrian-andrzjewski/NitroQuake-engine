@@ -265,7 +265,7 @@ to prove a complete call graph.
 | BSP/world | Other optional polygon/debug passes, remaining frustum initialization and explicit indirect-target closure. `R_ZDrawSubmodelPolys` has an assembly selector and direct cull/call-order fixture, which does not test the downstream `R_RenderPoly` rasterizer. |
 | Edge processing | Frame initialization, culled polygons and remaining C list/span forwarding entries |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |
-| Sky and particles | Combined complete-profile verification, broader particle-effect stress/sequence scenarios, and sky scenes. The focused `D_DrawParticle` event-scene parity is accepted; it does not close these wider gates. |
+| Sky and particles | Combined complete-profile verification, broader particle-effect stress/sequence scenarios, and sky scenes. `R_ParseParticleEffect` now has exact parser-state parity across complete/truncated packets and x87 rounding modes, but still needs event-to-frame coverage. The focused `D_DrawParticle` event-scene parity does not close these wider gates. |
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |

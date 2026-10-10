@@ -47,6 +47,7 @@
     "ParticleUpdateImplementation": "asm",
     "ParticleDrawImplementation": "asm",
     "ParticleExplosionImplementation": "asm",
+    "ParseParticleEffectImplementation": "asm",
     "RunParticleEffectImplementation": "asm",
     "EntityParticlesImplementation": "asm",
     "ParticleExplosion2Implementation": "asm",

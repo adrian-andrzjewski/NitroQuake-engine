@@ -24,7 +24,7 @@ the i486/387 target fails the build. `-SkipIsaAudit` produces an explicitly
 unverified artifact which the normal i486 execution runners reject.
 
 The selected execution profile is a 486DX with x87 enabled, represented by
-`tools/dosbox-x-486-high.conf` (`cputype=486`, `fpu=true`). `CpuTarget=i486`
+`tools/dosbox-x-486-high.conf` (`cputype=486`, `fpu=387`). `CpuTarget=i486`
 remains the strict instruction-set floor; the x87 instructions used by Quake
 are permitted on this profile.
 

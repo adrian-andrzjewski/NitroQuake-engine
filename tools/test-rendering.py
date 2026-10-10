@@ -1776,6 +1776,37 @@ class RenderingComparisonTests(unittest.TestCase):
                 f"{runner_name} must reject unsupported ParticleExplosion selectors",
             )
 
+    def test_parse_particle_effect_has_exact_fixture_and_cumulative_asm_selection(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        cumulative = load_json((profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8"))
+        self.assertEqual(cumulative["selectors"]["ParseParticleEffectImplementation"], "asm")
+
+        assembly = (ROOT / "src/r_parseparticleeffectasm.s").read_text(encoding="utf-8")
+        oracle = (ROOT / "src/r_part.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_parseparticleeffect.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        build_script = (ROOT / "tools/build-dos.ps1").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("C(R_ParseParticleEffect_asm486):", assembly)
+        self.assertIn("R_ParseParticleEffect_C", oracle)
+        self.assertIn("ASM486_PARSE_PARTICLE_EFFECT", selectors)
+        self.assertRegex(
+            build_script,
+            r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+            r"\[string\]\$ParseParticleEffectImplementation\s*=\s*'c'",
+        )
+        self.assertIn("BPPE_PACKET_BYTES 11", fixture)
+        self.assertIn("%d complete, 11 truncated, four x87 rounding modes", fixture)
+        self.assertIn("Bench486ParseParticleEffectCases ();", host_commands)
+        self.assertIn('COM_CheckParm ("-benchparseparticleeffect")', host_commands)
+        self.assertIn("[switch]$ParseParticleEffectOnly", bench_runner)
+        self.assertIn("-ParseParticleEffectOnly requires -RunParticleEffectImplementation c", bench_runner)
+        self.assertIn("+bench486 -benchparseparticleeffect -benchexit", bench_runner)
+
     def test_blob_explosion_profile_fixture_and_selectable_count(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
