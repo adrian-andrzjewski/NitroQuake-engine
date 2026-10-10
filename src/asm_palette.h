@@ -3,6 +3,8 @@
 #define p_client_shifts 292
 #define p_client_previous 356
 #define p_shift_bytes 16
+#define p_shift_bonus 2
+#define p_shift_destcolor 0
 #define p_shift_percent 12
 #define p_shift_count 4
 #define p_cvar_value 16

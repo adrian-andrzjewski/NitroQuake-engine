@@ -824,6 +824,40 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("-benchvparsedamage -benchexit", source)
         self.assertIn("damageParseOnly = [bool]$DamageParseOnly", source)
 
+    def test_bonus_flash_is_covered_by_palette_assembly_and_exact_fixture(self) -> None:
+        source = (ROOT / "src/view.c").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/v_paletteasm.s").read_text(encoding="utf-8")
+        layout = (ROOT / "src/asm_palette.h").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_palette.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("CSHIFT_BONUS==p_shift_bonus", source)
+        self.assertIn("void V_BonusFlash_C (void)", source)
+        self.assertIn("void V_BonusFlash_f (void)", source)
+        self.assertIn("#define p_shift_bonus 2", layout)
+        self.assertIn("#define p_shift_destcolor 0", layout)
+        self.assertIn("C(V_BonusFlash_asm486):", assembly)
+        for store in (
+            "$215,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_destcolor",
+            "$186,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_destcolor+4",
+            "$69,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_destcolor+8",
+            "$50,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_percent",
+        ):
+            with self.subTest(store=store):
+                self.assertIn(store, assembly)
+        self.assertIn("Bench486BonusFlashCases", fixture)
+        self.assertIn("V_BonusFlash_C", fixture)
+        self.assertIn("V_BonusFlash_asm486", fixture)
+        self.assertIn("V_BonusFlash_f", fixture)
+        self.assertIn("Bench486PaletteRead(state,i)", fixture)
+        self.assertIn("Bench486PaletteWrite(state,i)", fixture)
+        self.assertIn('COM_CheckParm ("-benchpalette")', host_commands)
+        self.assertIn("[switch]$PaletteOnly", runner)
+        self.assertIn("if ($PaletteOnly -and $PaletteImplementation -ne 'asm')", runner)
+        self.assertIn("-benchpalette -benchexit", runner)
+        self.assertIn("paletteOnly = [bool]$PaletteOnly", runner)
+
     def test_damage_parse_profiles_isolate_the_new_assembly_candidate(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))

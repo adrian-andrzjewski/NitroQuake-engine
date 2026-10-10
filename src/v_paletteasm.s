@@ -201,6 +201,21 @@ C(V_CalcPowerupCshift_asm486):
         ret
 
         .p2align 4,,15
+        .globl C(V_BonusFlash_asm486)
+#ifdef ASM486_PALETTE
+        .globl C(V_BonusFlash_f)
+C(V_BonusFlash_f):
+#endif
+C(V_BonusFlash_asm486):
+// V_BonusFlash_f: install the original pickup/bonus shift in cl.cshifts.
+// Four integer stores preserve the exact C field values and touch no other state.
+        movl    $215,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_destcolor
+        movl    $186,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_destcolor+4
+        movl    $69,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_destcolor+8
+        movl    $50,C(cl)+p_client_shifts+p_shift_bonus*p_shift_bytes+p_shift_percent
+        ret
+
+        .p2align 4,,15
         .globl C(V_UpdatePalette_asm486)
 #ifdef ASM486_PALETTE
         .globl C(V_UpdatePalette)

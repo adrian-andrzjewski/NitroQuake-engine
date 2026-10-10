@@ -1,6 +1,6 @@
 # `V_ParseDamage` -> i486 assembly port (2026-10-10)
 
-## Reference behavior and assembly mapping
+## Damage packet behavior and assembly mapping
 
 `src/view.c:V_ParseDamage_C` remains the reference implementation. It reads the
 armor and blood bytes plus three damage coordinates, computes and caps the
@@ -23,7 +23,7 @@ damage direction dot products retain the live x87 precision and multiply order
 observed in the reference compiler output; this avoids one-ULP differences in
 the stored kick values.
 
-## Direct C/assembly fixture
+## Direct damage parsing and ABI fixture
 
 `src/bench486_vdamage.h` compares the original C function and assembly with
 guarded client, entity, parser, and message state. It checks state bytes,
@@ -35,7 +35,7 @@ failures. That direct fixture run used the explicitly diagnostic
 `-SkipIsaAudit` build path; the strict instruction proof below comes from the
 separate paired-profile builds.
 
-## Paired rendered-frame parity
+## Paired damage-event frame parity
 
 `tools/render-scenarios-svcdamage.json` describes a deterministic short `demo2`
 prefix. Its fixture builder injects one fixed `svc_damage` packet, and the
@@ -54,7 +54,7 @@ temporary files were written beneath
 `out/render-parity-vparsedamage-20261010-1`; those validation outputs are
 removed after the recorded checks to conserve disk space.
 
-## i486 machine-code evidence
+## Damage parser i486 instruction evidence
 
 The strict C-reference profile decoded 167,457 source-object instructions and
 205,754 linked/runtime instructions. The strict assembly profile decoded
@@ -67,7 +67,7 @@ instructions, the 7 `exit16` instructions, and the 9,207-instruction CWSDPMI
 provider proof also passed with zero exemptions. These audits were bound to
 the same source-tree fingerprint as the paired capture.
 
-## Traceability and reproduction
+## Damage parser traceability and reproduction
 
 | Reference behavior | Assembly implementation | Correctness evidence | Compatibility evidence |
 | --- | --- | --- | --- |

@@ -27,7 +27,9 @@ typedef char palette_client_layout[(offsetof(client_state_t,items)==p_client_ite
     offsetof(client_state_t,cshifts)==p_client_shifts &&
     offsetof(client_state_t,prev_cshifts)==p_client_previous) ? 1 : -1];
 typedef char palette_shift_layout[(sizeof(cshift_t)==p_shift_bytes &&
-    offsetof(cshift_t,percent)==p_shift_percent && NUM_CSHIFTS==p_shift_count) ? 1 : -1];
+    offsetof(cshift_t,destcolor)==p_shift_destcolor &&
+    offsetof(cshift_t,percent)==p_shift_percent && NUM_CSHIFTS==p_shift_count &&
+    CSHIFT_BONUS==p_shift_bonus) ? 1 : -1];
 typedef char palette_cvar_vid_layout[(offsetof(cvar_t,value)==p_cvar_value &&
     offsetof(viddef_t,recalc_refdef)==p_vid_recalc && sizeof(void*)==4) ? 1 : -1];
 typedef char palette_item_layout[(IT_QUAD==p_item_quad && IT_SUIT==p_item_suit &&
@@ -38,6 +40,15 @@ void BuildGammaTable (float g);
 void BuildGammaTable_C (float g);
 qboolean V_CheckGamma_C (void);
 void V_CalcPowerupCshift_C (void);
+#ifdef BENCH486
+void V_BonusFlash_C (void);
+#endif
+#if defined(BENCH486) || defined(ASM486_PALETTE)
+void V_BonusFlash_asm486 (void);
+#endif
+#if defined(ASM486_PALETTE)
+void V_BonusFlash_f (void);
+#endif
 
 #include "r_local.h"
 #include "asm_viewcontrol.h"
@@ -516,13 +527,25 @@ V_BonusFlash_f
 When you run over an item, the server sends this command
 ==================
 */
+#if !defined(ASM486_PALETTE) || defined(BENCH486)
+#ifdef BENCH486
+void V_BonusFlash_C (void)
+#else
 void V_BonusFlash_f (void)
+#endif
 {
 	cl.cshifts[CSHIFT_BONUS].destcolor[0] = 215;
 	cl.cshifts[CSHIFT_BONUS].destcolor[1] = 186;
 	cl.cshifts[CSHIFT_BONUS].destcolor[2] = 69;
 	cl.cshifts[CSHIFT_BONUS].percent = 50;
 }
+#endif
+#if defined(BENCH486) && !defined(ASM486_PALETTE)
+void V_BonusFlash_f (void)
+{
+	V_BonusFlash_C ();
+}
+#endif
 
 /*
 =============

@@ -369,6 +369,9 @@ if ($ParticleDrawOnly -and $ParticleDrawImplementation -ne 'asm') {
 if ($DamageParseOnly -and $DamageParseImplementation -ne 'asm') {
     throw '-DamageParseOnly requires -DamageParseImplementation asm.'
 }
+if ($PaletteOnly -and $PaletteImplementation -ne 'asm') {
+    throw '-PaletteOnly requires -PaletteImplementation asm.'
+}
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
 }

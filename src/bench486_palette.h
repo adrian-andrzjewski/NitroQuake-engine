@@ -8,6 +8,9 @@ extern void V_SetContentsColor_C (int contents);
 extern void V_SetContentsColor_asm486 (int contents);
 extern void V_CalcPowerupCshift_C (void);
 extern void V_CalcPowerupCshift_asm486 (void);
+extern void V_BonusFlash_C (void);
+extern void V_BonusFlash_f (void);
+extern void V_BonusFlash_asm486 (void);
 extern void V_UpdatePalette_C (void);
 extern void V_UpdatePalette_asm486 (void);
 extern void Bench486PaletteSetHook (void (*hook)(byte *));
@@ -71,13 +74,50 @@ static void Bench486PaletteWrite (bench486_palette_state_t *state, int assembly)
     else Bench486GammaState_C(&state->oldgamma,1);
 }
 
+static void Bench486BonusFlashCases (void)
+{
+    static client_state_t saved,initial,expected,c_state;
+    unsigned pattern,index,c_abi,a_abi,public_abi,cases=0,failures=0;
+
+    Q_memcpy(&saved,&cl,sizeof(cl));
+    for(pattern=0;pattern<256;pattern++)
+    {
+        for(index=0;index<sizeof(cl);index++)
+            ((byte *)&cl)[index]=(byte)(pattern*73U+index*37U+(index>>4));
+        Q_memcpy(&initial,&cl,sizeof(cl));
+        Q_memcpy(&expected,&initial,sizeof(cl));
+        expected.cshifts[CSHIFT_BONUS].destcolor[0]=215;
+        expected.cshifts[CSHIFT_BONUS].destcolor[1]=186;
+        expected.cshifts[CSHIFT_BONUS].destcolor[2]=69;
+        expected.cshifts[CSHIFT_BONUS].percent=50;
+
+        c_abi=Bench486Call_asm486(V_BonusFlash_C,0,NULL,NULL);
+        Q_memcpy(&c_state,&cl,sizeof(cl));
+        Q_memcpy(&cl,&initial,sizeof(cl));
+        a_abi=Bench486Call_asm486(V_BonusFlash_asm486,0,NULL,NULL);
+        if(c_abi || a_abi || Q_memcmp(&c_state,&expected,sizeof(cl)) ||
+                Q_memcmp(&cl,&expected,sizeof(cl)))
+            failures++;
+
+        Q_memcpy(&cl,&initial,sizeof(cl));
+        public_abi=Bench486Call_asm486(V_BonusFlash_f,0,NULL,NULL);
+        if(public_abi || Q_memcmp(&cl,&expected,sizeof(cl)))
+            failures++;
+        cases++;
+    }
+    Q_memcpy(&cl,&saved,sizeof(cl));
+    if(failures) bench486_memory_failures++;
+    Bench486Printf("bonus flash C/ASM/public state and ABI %s (%u patterns; %u failures)\n",
+            failures?"FAIL":"PASS",cases,failures);
+}
+
 static void Bench486PaletteStep (int sequence, unsigned short cw,
         bench486_palette_state_t *reference, bench486_palette_state_t *assembly)
 {
     static const float gammas[]={1,0.7f,0.5f,1.2f,2,3,1.000001f,0.999999f};
     static const double times[]={0,0.0783,0.0001,1.0,0.01,10.0,0.005,0.0000000001};
     byte c_output[768];
-    unsigned c_abi, a_abi;
+    unsigned c_abi, a_abi, bonus_abi;
     int c_calls, i, itemmask;
 
     itemmask=sequence & 15;
@@ -94,10 +134,11 @@ static void Bench486PaletteStep (int sequence, unsigned short cw,
             state->shifts[CSHIFT_DAMAGE].destcolor[0]=255;
             state->shifts[CSHIFT_DAMAGE].destcolor[1]=50;
             state->shifts[CSHIFT_DAMAGE].destcolor[2]=25;
-            state->shifts[CSHIFT_BONUS].percent=50;
-            state->shifts[CSHIFT_BONUS].destcolor[0]=215;
-            state->shifts[CSHIFT_BONUS].destcolor[1]=186;
-            state->shifts[CSHIFT_BONUS].destcolor[2]=69;
+            Bench486PaletteWrite(state,i);
+            bonus_abi=Bench486Call_asm486(i?V_BonusFlash_asm486:V_BonusFlash_C,
+                    0,NULL,NULL);
+            Bench486PaletteRead(state,i);
+            if(bonus_abi) bench486_memory_failures++;
         }
         if(sequence%7==0)
         {
@@ -168,6 +209,7 @@ static void Bench486PaletteCases (void)
     bench486_palette_capture.last=0x486b2468;
     bench486_palette_stack_failures=0;
     before=bench486_memory_failures; direct=frames=0;
+    Bench486BonusFlashCases();
     /* V_Init calls the public getter before this startup command executes. */
     for(i=0 ; i<256 ; i++) if(gammatable[i]!=(byte)i)
     {
