@@ -73,6 +73,26 @@ typedef char particle_explosion_type_values[
 		(pt_explode == 4 && pt_explode2 == 5) ? 1 : -1];
 #endif
 
+#if (defined(ASM486_RUN_PARTICLE_EFFECT) || defined(BENCH486)) && id386
+#include <stddef.h>
+typedef char run_particle_effect_i386_pointer_size[
+		(sizeof(void *) == 4) ? 1 : -1];
+typedef char run_particle_effect_particle_layout[
+		(offsetof(particle_t, org) == 0 &&
+		offsetof(particle_t, color) == 12 &&
+		offsetof(particle_t, type) == 13 &&
+		offsetof(particle_t, next) == 16 &&
+		offsetof(particle_t, vel) == 20 &&
+		offsetof(particle_t, ramp) == 32 &&
+		offsetof(particle_t, die) == 36 &&
+		sizeof(particle_t) == 40) ? 1 : -1];
+typedef char run_particle_effect_client_time_layout[
+		(offsetof(client_state_t, time) == 572 &&
+		sizeof(((client_state_t *)0)->time) == 8) ? 1 : -1];
+typedef char run_particle_effect_type_values[
+		(pt_slowgrav == 2 && pt_explode == 4 && pt_explode2 == 5) ? 1 : -1];
+#endif
+
 #if (defined(ASM486_ROCKET_TRAIL) || defined(BENCH486)) && id386
 #include <stddef.h>
 typedef char rocket_trail_i386_pointer_size[
@@ -181,6 +201,22 @@ int Bench486ParticleExplosionRand (void)
 #define PARTICLE_EXPLOSION_RAND() Bench486ParticleExplosionRand ()
 #else
 #define PARTICLE_EXPLOSION_RAND() rand ()
+#endif
+
+#ifdef BENCH486
+int (*bench486_runparticleeffect_rand_probe) (void);
+unsigned bench486_runparticleeffect_rand_calls;
+
+int Bench486RunParticleEffectRand (void)
+{
+	bench486_runparticleeffect_rand_calls++;
+	if (bench486_runparticleeffect_rand_probe)
+		return bench486_runparticleeffect_rand_probe ();
+	return rand ();
+}
+#define RUN_PARTICLE_EFFECT_RAND() Bench486RunParticleEffectRand ()
+#else
+#define RUN_PARTICLE_EFFECT_RAND() rand ()
 #endif
 
 #ifdef PROFILE486
@@ -614,6 +650,10 @@ R_RunParticleEffect
 
 ===============
 */
+#ifdef ASM486_RUN_PARTICLE_EFFECT
+#define R_RunParticleEffect R_RunParticleEffect_C
+#endif
+#if !defined(ASM486_RUN_PARTICLE_EFFECT) || defined(BENCH486)
 void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 {
 	int			i, j;
@@ -632,14 +672,14 @@ void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 		{	// rocket explosion
 			p->die = cl.time + 5;
 			p->color = ramp1[0];
-			p->ramp = rand()&3;
+			p->ramp = RUN_PARTICLE_EFFECT_RAND()&3;
 			if (i & 1)
 			{
 				p->type = pt_explode;
 				for (j=0 ; j<3 ; j++)
 				{
-					p->org[j] = org[j] + ((rand()%32)-16);
-					p->vel[j] = (rand()%512)-256;
+					p->org[j] = org[j] + ((RUN_PARTICLE_EFFECT_RAND()%32)-16);
+					p->vel[j] = (RUN_PARTICLE_EFFECT_RAND()%512)-256;
 				}
 			}
 			else
@@ -647,24 +687,29 @@ void R_RunParticleEffect (vec3_t org, vec3_t dir, int color, int count)
 				p->type = pt_explode2;
 				for (j=0 ; j<3 ; j++)
 				{
-					p->org[j] = org[j] + ((rand()%32)-16);
-					p->vel[j] = (rand()%512)-256;
+					p->org[j] = org[j] + ((RUN_PARTICLE_EFFECT_RAND()%32)-16);
+					p->vel[j] = (RUN_PARTICLE_EFFECT_RAND()%512)-256;
 				}
 			}
 		}
 		else
 		{
-			p->die = cl.time + 0.1*(rand()%5);
-			p->color = (color&~7) + (rand()&7);
+			p->die = cl.time + 0.1*(RUN_PARTICLE_EFFECT_RAND()%5);
+			p->color = (color&~7) + (RUN_PARTICLE_EFFECT_RAND()&7);
 			p->type = pt_slowgrav;
 			for (j=0 ; j<3 ; j++)
 			{
-				p->org[j] = org[j] + ((rand()&15)-8);
+				p->org[j] = org[j] + ((RUN_PARTICLE_EFFECT_RAND()&15)-8);
 				p->vel[j] = dir[j]*15;// + (rand()%300)-150;
 			}
 		}
 	}
 }
+#endif
+#ifdef ASM486_RUN_PARTICLE_EFFECT
+#undef R_RunParticleEffect
+#endif
+#undef RUN_PARTICLE_EFFECT_RAND
 
 
 /*

@@ -493,6 +493,12 @@ static unsigned long bench486_teleport_splash_event_stored_count;
 static unsigned long bench486_teleport_splash_event_overflow;
 static unsigned long bench486_teleport_splash_event_frames[
 		BENCH486_TELEPORT_SPLASH_EVENT_MAX];
+#define BENCH486_RUN_PARTICLE_EFFECT_EVENT_MAX 32
+static unsigned long bench486_run_particle_effect_event_count;
+static unsigned long bench486_run_particle_effect_event_stored_count;
+static unsigned long bench486_run_particle_effect_event_overflow;
+static unsigned long bench486_run_particle_effect_event_frames[
+		BENCH486_RUN_PARTICLE_EFFECT_EVENT_MAX];
 static int bench486_timedemo_frame_capture_index = -1;
 static qboolean bench486_timedemo_frame_checksums_enabled;
 static int bench486_timedemo_frame_checksum_handle = -1;
@@ -578,6 +584,9 @@ void Bench486ResetTimedemoFrameChecksums (int enabled)
 	bench486_teleport_splash_event_count = 0;
 	bench486_teleport_splash_event_stored_count = 0;
 	bench486_teleport_splash_event_overflow = 0;
+	bench486_run_particle_effect_event_count = 0;
+	bench486_run_particle_effect_event_stored_count = 0;
+	bench486_run_particle_effect_event_overflow = 0;
 	bench486_timedemo_frame_checksums_enabled = enabled != 0;
 	bench486_timedemo_frame_capture_index = -1;
 	parm = COM_CheckParm ("-framecapture");
@@ -621,6 +630,18 @@ void Bench486RecordTeleportSplashEvent (void)
 	else
 		bench486_teleport_splash_event_overflow++;
 	bench486_teleport_splash_event_count++;
+}
+
+void Bench486RecordRunParticleEffectEvent (void)
+{
+	if (bench486_run_particle_effect_event_stored_count <
+			BENCH486_RUN_PARTICLE_EFFECT_EVENT_MAX)
+		bench486_run_particle_effect_event_frames[
+				bench486_run_particle_effect_event_stored_count++] =
+				bench486_timedemo_rendered_frame_count;
+	else
+		bench486_run_particle_effect_event_overflow++;
+	bench486_run_particle_effect_event_count++;
 }
 
 void Bench486TimedemoFrameChecksumRecord (void)
@@ -1987,6 +2008,17 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 				bench486_teleport_splash_event_frames[event]);
 	text_length += sprintf (text + text_length, " overflow %lu\n",
 			bench486_teleport_splash_event_overflow);
+	Con_Printf ("%s", text);
+	if (report_handle != -1)
+		Sys_FileWrite (report_handle, text, text_length);
+
+	text_length = sprintf (text, "run-particle-effect-events %lu frames",
+			bench486_run_particle_effect_event_count);
+	for (event = 0 ; event < bench486_run_particle_effect_event_stored_count ; event++)
+		text_length += sprintf (text + text_length, " %lu",
+				bench486_run_particle_effect_event_frames[event]);
+	text_length += sprintf (text + text_length, " overflow %lu\n",
+			bench486_run_particle_effect_event_overflow);
 	Con_Printf ("%s", text);
 	if (report_handle != -1)
 		Sys_FileWrite (report_handle, text, text_length);
@@ -6833,6 +6865,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_PARTICLE_EXPLOSION)
 #include "bench486_particleexplosion.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_RUN_PARTICLE_EFFECT)
+#include "bench486_runparticleeffect.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_BLOB_EXPLOSION)
 #include "bench486_blobexplosion.h"
 #endif
@@ -10427,6 +10462,32 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("particle-explosion fixture requires -ParticleExplosionImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchrunparticleeffect"))
+	{
+#ifdef ASM486_RUN_PARTICLE_EFFECT
+		if (!COM_CheckParm ("-benchexit"))
+		{
+			bench486_memory_failures++;
+			Bench486Printf ("run-particle-effect fixture requires -benchexit to isolate libc RNG state\n");
+		}
+		else
+			Bench486RunParticleEffectCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("run-particle-effect fixture requires -RunParticleEffectImplementation asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

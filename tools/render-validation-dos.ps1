@@ -255,9 +255,10 @@ foreach ($scene in $selectedScenarios) {
     $referencePath = $null
     $imageReports = New-Object System.Collections.Generic.List[object]
     $frameReports = New-Object System.Collections.Generic.List[object]
-    $previousBlobExplosionEventState = $null
-    $previousLavaSplashEventState = $null
-    $previousTeleportSplashEventState = $null
+$previousBlobExplosionEventState = $null
+$previousLavaSplashEventState = $null
+$previousTeleportSplashEventState = $null
+$previousRunParticleEffectEventState = $null
     $effectiveRuns = if ($RunsOverride -gt 0) { $RunsOverride } else { [int]$scene.repeatRuns }
     $childOutputText = ''
     $timedemoResultPath = $null
@@ -279,7 +280,7 @@ foreach ($scene in $selectedScenarios) {
             throw "Scenario '$($scene.id)' captureBenchEvents must be a non-empty JSON array."
         }
         foreach ($captureBenchEvent in $captureBenchEventsProperty.Value) {
-            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash', 'teleportSplash')) {
+            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect')) {
                 throw "Scenario '$($scene.id)' has unsupported captureBenchEvents entry '$captureBenchEvent'."
             }
             $captureBenchEvents += $captureBenchEvent
@@ -289,7 +290,7 @@ foreach ($scene in $selectedScenarios) {
     $expectedBenchEventFramesProperty = $scene.PSObject.Properties['expectedBenchEventFrames']
     if ($null -ne $expectedBenchEventFramesProperty -and $null -ne $expectedBenchEventFramesProperty.Value) {
         foreach ($expectedEventProperty in $expectedBenchEventFramesProperty.Value.PSObject.Properties) {
-            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash', 'teleportSplash') -or
+            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect') -or
                 $expectedEventProperty.Value -isnot [array]) {
                 throw "Scenario '$($scene.id)' expectedBenchEventFrames has an invalid '$($expectedEventProperty.Name)' entry."
             }
@@ -305,6 +306,10 @@ foreach ($scene in $selectedScenarios) {
     if ($requiredBenchEvents -contains 'teleportSplash' -and
         -not $expectedBenchEventFrames.ContainsKey('teleportSplash')) {
         throw "Scenario '$($scene.id)' requires teleportSplash but does not define expectedBenchEventFrames.teleportSplash."
+    }
+    if ($requiredBenchEvents -contains 'runParticleEffect' -and
+        -not $expectedBenchEventFrames.ContainsKey('runParticleEffect')) {
+        throw "Scenario '$($scene.id)' requires runParticleEffect but does not define expectedBenchEventFrames.runParticleEffect."
     }
 
     Write-Host ''
@@ -499,6 +504,38 @@ foreach ($scene in $selectedScenarios) {
                 $null
             }
 
+            $runParticleEffectFramesProperty = $diagnostics.PSObject.Properties['runParticleEffectEventFrames']
+            $runParticleEffectCountProperty = $diagnostics.PSObject.Properties['runParticleEffectEventCount']
+            $runParticleEffectOverflowProperty = $diagnostics.PSObject.Properties['runParticleEffectEventOverflow']
+            $runParticleEffectEventFrames = $null
+            $runParticleEffectEventCount = $null
+            $runParticleEffectEventOverflow = $null
+            $runParticleEffectEventFramesPresent = $false
+            $runParticleEffectEventCountPresent = $false
+            $runParticleEffectEventOverflowPresent = $false
+            $invalidRunParticleEffectEventFrames = @()
+            if ($null -ne $runParticleEffectFramesProperty -and $runParticleEffectFramesProperty.Value -is [System.Array]) {
+                $runParticleEffectEventFramesPresent = $true
+                $runParticleEffectEventFrames = @($runParticleEffectFramesProperty.Value | ForEach-Object { [int]$_ })
+                $invalidRunParticleEffectEventFrames = @($runParticleEffectEventFrames | Where-Object {
+                        $_ -lt 0 -or $_ -ge $checksumStreamFrameCount
+                    })
+            }
+            if ($null -ne $runParticleEffectCountProperty -and $null -ne $runParticleEffectCountProperty.Value) {
+                $runParticleEffectEventCountPresent = $true
+                $runParticleEffectEventCount = [int]$runParticleEffectCountProperty.Value
+            }
+            if ($null -ne $runParticleEffectOverflowProperty -and $null -ne $runParticleEffectOverflowProperty.Value) {
+                $runParticleEffectEventOverflowPresent = $true
+                $runParticleEffectEventOverflow = [int]$runParticleEffectOverflowProperty.Value
+            }
+            $runParticleEffectEventFrameSignature = if ($runParticleEffectEventFramesPresent) {
+                [string]::Join(',', [string[]]$runParticleEffectEventFrames)
+            }
+            else {
+                $null
+            }
+
             $blobExplosionEventRepeatParity = $null
             $blobExplosionEventRepeatComparison = $null
             if ($requiredBenchEvents -contains 'blobExplosion') {
@@ -610,6 +647,43 @@ foreach ($scene in $selectedScenarios) {
                     overflow = $teleportSplashEventOverflow
                 }
             }
+            $runParticleEffectEventRepeatParity = $null
+            $runParticleEffectEventRepeatComparison = $null
+            if ($requiredBenchEvents -contains 'runParticleEffect') {
+                if ($null -ne $previousRunParticleEffectEventState) {
+                    $runParticleEffectEventRepeatComparison = Compare-Bench486EventRepeat `
+                        -ReferenceFramesPresent $previousRunParticleEffectEventState.framesPresent `
+                        -ReferenceFramesSignature $previousRunParticleEffectEventState.framesSignature `
+                        -ReferenceOverflowPresent $previousRunParticleEffectEventState.overflowPresent `
+                        -ReferenceOverflow $previousRunParticleEffectEventState.overflow `
+                        -CandidateFramesPresent $runParticleEffectEventFramesPresent `
+                        -CandidateFramesSignature $runParticleEffectEventFrameSignature `
+                        -CandidateOverflowPresent $runParticleEffectEventOverflowPresent `
+                        -CandidateOverflow $runParticleEffectEventOverflow
+                    $runParticleEffectEventRepeatParity = if ($runParticleEffectEventRepeatComparison.exactMatch) { 'PASS' } else { 'FAIL' }
+                    if (-not $runParticleEffectEventRepeatComparison.exactMatch) {
+                        $sceneStatus = 'FAIL'
+                        $failures.Add([pscustomobject]@{
+                                scenario = $scene.id
+                                test = 'repeat-run-particle-effect-event-stability'
+                                expected = @{
+                                    frames = $previousRunParticleEffectEventState.frames
+                                    overflow = $previousRunParticleEffectEventState.overflow
+                                }
+                                actual = @{ frames = $runParticleEffectEventFrames; overflow = $runParticleEffectEventOverflow }
+                                metrics = $runParticleEffectEventRepeatComparison
+                                capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                            })
+                    }
+                }
+                $previousRunParticleEffectEventState = [pscustomobject]@{
+                    framesPresent = $runParticleEffectEventFramesPresent
+                    frames = $runParticleEffectEventFrames
+                    framesSignature = $runParticleEffectEventFrameSignature
+                    overflowPresent = $runParticleEffectEventOverflowPresent
+                    overflow = $runParticleEffectEventOverflow
+                }
+            }
             $frameReports.Add([pscustomobject]@{
                     run = $run.run
                     frames = $frameData.Count
@@ -631,6 +705,10 @@ foreach ($scene in $selectedScenarios) {
                     teleportSplashEventFrames = $teleportSplashEventFrames
                     teleportSplashEventOverflow = $teleportSplashEventOverflow
                     teleportSplashEventRepeatParity = $teleportSplashEventRepeatParity
+                    runParticleEffectEventCount = $runParticleEffectEventCount
+                    runParticleEffectEventFrames = $runParticleEffectEventFrames
+                    runParticleEffectEventOverflow = $runParticleEffectEventOverflow
+                    runParticleEffectEventRepeatParity = $runParticleEffectEventRepeatParity
                     captureBenchEvents = @($captureBenchEvents)
                     captureBenchEventChecks = @()
                     repeatParity = $null
@@ -755,6 +833,49 @@ foreach ($scene in $selectedScenarios) {
                         })
                 }
             }
+            if ($requiredBenchEvents -contains 'runParticleEffect') {
+                $eventFailure = $null
+                $expectedRunParticleEffectEventFrames = @($expectedBenchEventFrames['runParticleEffect'])
+                $expectedRunParticleEffectEventSignature = [string]::Join(',', [string[]]$expectedRunParticleEffectEventFrames)
+                $actualRunParticleEffectEventSignature = if ($runParticleEffectEventFramesPresent) {
+                    [string]::Join(',', [string[]]$runParticleEffectEventFrames)
+                }
+                else {
+                    $null
+                }
+                if (-not $runParticleEffectEventFramesPresent -or -not $runParticleEffectEventCountPresent -or
+                    -not $runParticleEffectEventOverflowPresent) {
+                    $eventFailure = 'required runParticleEffect event count/frame/overflow metadata is missing'
+                }
+                elseif ($invalidRunParticleEffectEventFrames.Count -gt 0) {
+                    $eventFailure = "runParticleEffect event frame index/indices fall outside the total $checksumStreamFrameCount-frame checksum stream"
+                }
+                elseif ($runParticleEffectEventOverflow -ne 0) {
+                    $eventFailure = "runParticleEffect event metadata overflowed by $runParticleEffectEventOverflow event(s)"
+                }
+                elseif ($runParticleEffectEventCount -ne $expectedRunParticleEffectEventFrames.Count -or
+                    $runParticleEffectEventFrames.Count -ne $expectedRunParticleEffectEventFrames.Count) {
+                    $eventFailure = "runParticleEffect event count must be exactly $($expectedRunParticleEffectEventFrames.Count)"
+                }
+                elseif ($actualRunParticleEffectEventSignature -ne $expectedRunParticleEffectEventSignature) {
+                    $eventFailure = "runParticleEffect event frame indices must be exactly '$expectedRunParticleEffectEventSignature'"
+                }
+                if ($null -ne $eventFailure) {
+                    $sceneStatus = 'FAIL'
+                    $failures.Add([pscustomobject]@{
+                            scenario = $scene.id
+                            test = 'required-bench-event'
+                            expected = @{ event = 'runParticleEffect'; count = $expectedRunParticleEffectEventFrames.Count; frames = $expectedRunParticleEffectEventFrames; overflow = 0 }
+                            actual = @{ count = $runParticleEffectEventCount; frames = $runParticleEffectEventFrames; overflow = $runParticleEffectEventOverflow }
+                            metrics = @{
+                                error = $eventFailure
+                                invalidFrameIndices = $invalidRunParticleEffectEventFrames
+                                checksumStreamFrames = $checksumStreamFrameCount
+                            }
+                            capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                        })
+                }
+            }
 
             $captureBenchEventChecks = @()
             foreach ($captureBenchEvent in $captureBenchEvents) {
@@ -774,6 +895,9 @@ foreach ($scene in $selectedScenarios) {
                 }
                 elseif ($captureBenchEvent -eq 'teleportSplash') {
                     $teleportSplashEventFrames
+                }
+                elseif ($captureBenchEvent -eq 'runParticleEffect') {
+                    $runParticleEffectEventFrames
                 }
                 else {
                     @()

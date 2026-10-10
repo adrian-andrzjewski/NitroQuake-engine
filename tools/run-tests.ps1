@@ -33,9 +33,10 @@
       3. test-video-dos.py      host-compiled harness over vid_ext.c and three
                                 vid_vga/vid_dos functions.  Seconds.
       3a. test-rendering.py, test_blobexplosion_demo_fixture.py,
-          test-lavasplash.py, and test-timedemo-event-record.ps1 host checks
-          for PCX/frame comparisons, PACK/.dem, LavaSplash source contracts,
-          and BENCH486 event-report parsing. Seconds.
+          test-lavasplash.py, test-teleportsplash.py,
+          test-runparticleeffect.py, and test-timedemo-event-record.ps1 host
+          checks for frame comparisons, particle source contracts, and event
+          report parsing. Seconds.
       3b. test-rendering-reports.py exact paired-profile report comparisons.
       3c. test-renderer-ownership.py compiler clones and direct root traces.
       4. build-dos.ps1         compiles, and now carries the blocking ISA gate,
@@ -223,6 +224,8 @@ Invoke-Gate -Name 'test-lavasplash-fixture (assembly source contract)' -Kind 'ho
     -Command @('python', '-B', 'tools/test-lavasplash.py') | Out-Null
 Invoke-Gate -Name 'test-teleportsplash-fixture (assembly source contract)' -Kind 'host' `
     -Command @('python', '-B', 'tools/test-teleportsplash.py') | Out-Null
+Invoke-Gate -Name 'test-runparticleeffect-fixture (assembly source contract)' -Kind 'host' `
+    -Command @('python', '-B', 'tools/test-runparticleeffect.py') | Out-Null
 Invoke-Gate -Name 'test-timedemo-event-record (BENCH486 event report parser)' -Kind 'host' `
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-timedemo-event-record.ps1') | Out-Null
 Invoke-Gate -Name 'test-rendering-reports (exact C/ASM parity report comparator)' -Kind 'host' -Command @('python', 'tools/test-rendering-reports.py') | Out-Null

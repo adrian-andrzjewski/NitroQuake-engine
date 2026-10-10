@@ -75,6 +75,7 @@ $script:AssemblyBackedImplementations = @(
     'RenderWorldImplementation',
     'ParticleUpdateImplementation',
     'ParticleExplosionImplementation',
+    'RunParticleEffectImplementation',
     'ParticleExplosion2Implementation',
     'BlobExplosionImplementation',
     'LavaSplashImplementation',
@@ -801,6 +802,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'RunParticleEffectImplementation'
+        Manifest   = 'runParticleEffectImplementation'
+        Suffix     = @{ 'asm' = 'runparticleeffectasm' }
+        C          = @{ 'asm' = @('ASM486_RUN_PARTICLE_EFFECT') }
+        Asm        = @{ 'asm' = @('ASM486_RUN_PARTICLE_EFFECT') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'ParticleExplosion2Implementation'
         Manifest   = 'particleExplosion2Implementation'
         Suffix     = @{ 'asm' = 'particleexplosion2asm' }
@@ -1383,6 +1393,7 @@ $script:SuffixOrder = @(
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
     'ParticleExplosionImplementation'
+    'RunParticleEffectImplementation'
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'
@@ -1466,6 +1477,7 @@ $script:CDefineOrder = @(
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
     'ParticleExplosionImplementation'
+    'RunParticleEffectImplementation'
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'
@@ -1582,6 +1594,7 @@ $script:AsmDefineOrder = @(
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
     'ParticleExplosionImplementation'
+    'RunParticleEffectImplementation'
     'ParticleExplosion2Implementation'
     'BlobExplosionImplementation'
     'LavaSplashImplementation'

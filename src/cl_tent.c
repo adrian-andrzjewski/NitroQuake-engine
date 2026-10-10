@@ -131,6 +131,9 @@ void CL_ParseTEnt (void)
 		pos[1] = MSG_ReadCoord ();
 		pos[2] = MSG_ReadCoord ();
 		R_RunParticleEffect (pos, vec3_origin, 20, 30);
+#ifdef BENCH486
+		Bench486RecordRunParticleEffectEvent ();
+#endif
 		S_StartSound (-1, 0, cl_sfx_wizhit, pos, 1, 1);
 		break;
 		

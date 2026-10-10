@@ -425,6 +425,74 @@ class RenderingComparisonTests(unittest.TestCase):
             expected_result["scenarios"][0]["runs"][0]["benchEvents"]["teleportSplash"]["expectedFramesMatch"]
         )
 
+    def test_required_run_particle_effect_event_requires_exact_frame_and_pair_parity(self) -> None:
+        expected = {"runParticleEffect": [10]}
+
+        def write_report(name: str, event: dict | None, *, expected_frames: dict = expected) -> Path:
+            checksum_path = self.root / f"{name}-checksums.txt"
+            checksum_rows = "".join(f"{frame} {123 + frame}\n" for frame in range(16))
+            checksum_path.write_text(f"{checksum_rows}frames 16 overflow 0\n", encoding="ascii")
+            image_path = self.capture(f"{name}.pcx")
+            diagnostic = {"run": 1, "frameChecksumPath": str(checksum_path)}
+            if event is not None:
+                diagnostic.update(event)
+            scenario = {
+                "scenario": "demo2-wizspike-event",
+                "result": "PASS",
+                "reference": None,
+                "captureFrame": 10,
+                "ignoredWarmupChecksumFrames": 2,
+                "requiredBenchEvents": ["runParticleEffect"],
+                "expectedBenchEventFrames": expected_frames,
+                "frameDiagnostics": [diagnostic],
+                "imageComparisons": [{"actual": {"path": str(image_path)}}],
+            }
+            report_path = self.root / f"{name}-report.json"
+            report_path.write_text(json.dumps({
+                "schemaVersion": 1,
+                "result": "PASS",
+                "cpuTarget": "i486",
+                "sourceTreeFingerprint": "fixture-tree",
+                "scenarios": [scenario],
+            }), encoding="utf-8")
+            return report_path
+
+        valid_event = {
+            "runParticleEffectEventCount": 1,
+            "runParticleEffectEventFrames": [10],
+            "runParticleEffectEventOverflow": 0,
+        }
+        reference = write_report("run-particle-effect-reference", valid_event)
+        candidate = write_report("run-particle-effect-candidate", valid_event)
+        compared = report_comparator.compare_reports(reference, candidate)
+        self.assertTrue(compared["pass"])
+        run = compared["scenarios"][0]["runs"][0]
+        self.assertTrue(run["frameChecksums"]["exactMatch"])
+        self.assertTrue(run["framebuffer"]["exactMatch"])
+        self.assertTrue(run["benchEvents"]["runParticleEffect"]["pass"])
+        self.assertEqual(run["benchEvents"]["runParticleEffect"]["expectedFrames"]["reference"], [10])
+
+        invalid_cases = (
+            ("wrong-frame", {"runParticleEffectEventCount": 1, "runParticleEffectEventFrames": [9], "runParticleEffectEventOverflow": 0}),
+            ("wrong-count", {"runParticleEffectEventCount": 2, "runParticleEffectEventFrames": [10], "runParticleEffectEventOverflow": 0}),
+            ("overflow", {"runParticleEffectEventCount": 2, "runParticleEffectEventFrames": [10], "runParticleEffectEventOverflow": 1}),
+            ("missing-count", {"runParticleEffectEventFrames": [10], "runParticleEffectEventOverflow": 0}),
+            ("missing-event", None),
+        )
+        for name, event_data in invalid_cases:
+            with self.subTest(case=name):
+                invalid = write_report(name, event_data)
+                result = report_comparator.compare_reports(reference, invalid)
+                self.assertFalse(result["pass"])
+                self.assertFalse(result["scenarios"][0]["runs"][0]["benchEvents"]["runParticleEffect"]["pass"])
+
+        wrong_expected = write_report("wrong-expected", valid_event, expected_frames={"runParticleEffect": [9]})
+        expected_result = report_comparator.compare_reports(reference, wrong_expected)
+        self.assertFalse(expected_result["pass"])
+        self.assertFalse(
+            expected_result["scenarios"][0]["runs"][0]["benchEvents"]["runParticleEffect"]["expectedFramesMatch"]
+        )
+
     def test_render_validation_enforces_and_exports_required_event_data(self) -> None:
         source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("$requiredBenchEvents -contains 'blobExplosion'", source)
@@ -460,6 +528,17 @@ class RenderingComparisonTests(unittest.TestCase):
             source.index("if ($SkipGoldenImageComparison)"),
             "pair-only scenarios must enforce TeleportSplash telemetry before deferring golden-image comparison",
         )
+        self.assertIn("$requiredBenchEvents -contains 'runParticleEffect'", source)
+        self.assertIn("runParticleEffectEventCount = $runParticleEffectEventCount", source)
+        self.assertIn("runParticleEffectEventFrames = $runParticleEffectEventFrames", source)
+        self.assertIn("runParticleEffectEventOverflow = $runParticleEffectEventOverflow", source)
+        self.assertIn("repeat-run-particle-effect-event-stability", source)
+        self.assertIn("$runParticleEffectEventFrames", source[source.index("foreach ($captureBenchEvent") :])
+        self.assertLess(
+            source.index("required runParticleEffect event count/frame/overflow metadata is missing"),
+            source.index("if ($SkipGoldenImageComparison)"),
+            "pair-only scenarios must enforce R_RunParticleEffect telemetry before deferring golden-image comparison",
+        )
 
     def test_repeat_event_parity_helper_is_wired_and_covers_frames_and_overflow(self) -> None:
         source = (ROOT / "tools/bench-event-repeat.ps1").read_text(encoding="utf-8")
@@ -479,6 +558,7 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("Read-Bench486BlobExplosionEvents -Report $report", timedemo_source)
         self.assertIn("Read-Bench486LavaSplashEvents -Report $report", timedemo_source)
         self.assertIn("Read-Bench486TeleportSplashEvents -Report $report", timedemo_source)
+        self.assertIn("Read-Bench486RunParticleEffectEvents -Report $report", timedemo_source)
         self.assertIn("test-timedemo-event-record.ps1", workflow_source)
 
     def test_scenario_manifest_has_pinned_references(self) -> None:
@@ -645,13 +725,71 @@ class RenderingComparisonTests(unittest.TestCase):
         timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
         self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$TeleportSplashImplementation\s*=\s*'c'")
         self.assertIn("Read-Bench486TeleportSplashEvents -Report $report", timedemo_source)
-        self.assertIn("if ($eventType -notin @(4, 10, 11))", timedemo_source)
+        self.assertIn("if ($eventType -notin @(4, 7, 10, 11))", timedemo_source)
         self.assertIn("TE_TELEPORT (11)", timedemo_source)
+        self.assertIn("TE_WIZSPIKE (7)", timedemo_source)
         self.assertIn("TeleportSplashImplementation", timedemo_source)
         validation_source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("$referencePath = $null", validation_source)
         parity_source = (ROOT / "tools/render-parity-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("must define a reference image unless golden comparison is deferred", validation_source)
+        self.assertIn('"reference": null', manifest_text)
+        self.assertIn("$validationArgs += '-SkipGoldenImageComparison'", parity_source)
+
+    def test_run_particle_effect_scenario_is_pair_only_exact_and_uses_isolated_profiles(self) -> None:
+        manifest_text = (ROOT / "tools/render-scenarios-runparticleeffect.json").read_text(encoding="utf-8")
+        manifest = json.loads(manifest_text)
+        self.assertEqual(manifest["warmupChecksumFrames"], 4)
+        self.assertEqual(len(manifest["scenarios"]), 1)
+        scene = manifest["scenarios"][0]
+        self.assertEqual(scene["id"], "demo2-wizspike-event")
+        self.assertIn("TE_WIZSPIKE", scene["description"])
+        self.assertIn("R_RunParticleEffect", scene["description"])
+        self.assertEqual(scene["expectedFrames"], 10)
+        self.assertEqual(scene["expectedChecksum"], 0)
+        self.assertEqual(scene["captureFrame"], 10)
+        self.assertGreaterEqual(scene["repeatRuns"], 2)
+        self.assertEqual(scene["requiredBenchEvents"], ["runParticleEffect"])
+        self.assertEqual(scene["expectedBenchEventFrames"], {"runParticleEffect": [10]})
+        self.assertEqual(scene["captureBenchEvents"], ["runParticleEffect"])
+        self.assertIsNone(scene["reference"])
+        self.assertEqual(scene["tolerance"], {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0})
+        self.assertEqual(
+            scene["demoFixture"],
+            {
+                "sourceMember": "demo2.dem",
+                "firstPostSignonRecord": 4,
+                "keepPostSignonRecords": 11,
+                "eventRecord": 14,
+                "eventType": 7,
+                "coordShorts": [-2136, 17413, 9968],
+                "pakEntry": "demo2.dem",
+            },
+        )
+
+        c_profile = json.loads(
+            (ROOT / "tools/renderer-profiles/i486-runparticleeffect-c.json").read_text(encoding="utf-8")
+        )
+        asm_profile = json.loads(
+            (ROOT / "tools/renderer-profiles/i486-runparticleeffect-asm.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(c_profile["selectors"], {"RunParticleEffectImplementation": "c"})
+        self.assertEqual(asm_profile["selectors"], {"RunParticleEffectImplementation": "asm"})
+        timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$RunParticleEffectImplementation\s*=\s*'c'")
+        self.assertIn("Read-Bench486RunParticleEffectEvents -Report $report", timedemo_source)
+        self.assertIn("if ($eventType -notin @(4, 7, 10, 11))", timedemo_source)
+        self.assertIn("TE_WIZSPIKE (7)", timedemo_source)
+        for profile in (c_profile, asm_profile):
+            for selector in profile["selectors"]:
+                self.assertIn(selector, timedemo_source)
+        validation_source = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
+        parity_source = (ROOT / "tools/render-parity-dos.ps1").read_text(encoding="utf-8")
+        self.assertLess(
+            validation_source.index("required runParticleEffect event count/frame/overflow metadata is missing"),
+            validation_source.index("if ($SkipGoldenImageComparison)"),
+            "pair-only scenarios must enforce R_RunParticleEffect telemetry before deferring golden-image comparison",
+        )
         self.assertIn('"reference": null', manifest_text)
         self.assertIn("$validationArgs += '-SkipGoldenImageComparison'", parity_source)
 

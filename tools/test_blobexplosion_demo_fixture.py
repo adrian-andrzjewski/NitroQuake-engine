@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import struct
 import subprocess
@@ -81,6 +82,20 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp.cleanup()
+
+    def test_supported_event_values_match_quake_protocol(self) -> None:
+        protocol = (TOOLS.parent / "src" / "protocol.h").read_text(encoding="utf-8")
+        for name, value in (
+            ("TE_TAREXPLOSION", fixture.TE_TAREXPLOSION),
+            ("TE_WIZSPIKE", fixture.TE_WIZSPIKE),
+            ("TE_LAVASPLASH", fixture.TE_LAVASPLASH),
+            ("TE_TELEPORT", fixture.TE_TELEPORT),
+        ):
+            with self.subTest(event=name):
+                match = re.search(rf"(?m)^#define\s+{name}\s+(\d+)\b", protocol)
+                self.assertIsNotNone(match, f"missing {name} in src/protocol.h")
+                assert match is not None
+                self.assertEqual(value, int(match.group(1)))
 
     def test_preserves_signon_and_selected_post_signon_prefix_and_wraps_pak(self) -> None:
         output = self.root / "short.dem"
@@ -192,6 +207,26 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
         expected = bytes((fixture.SVC_TEMP_ENTITY, fixture.TE_TELEPORT))
         expected += struct.pack("<hhh", -2136, 17413, 9968)
         self.assertEqual(info.event_type, fixture.TE_TELEPORT)
+        self.assertEqual(result[3][0], self.source_records[3][0] + expected)
+        self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
+
+    def test_injects_exact_wizspike_message_bytes(self) -> None:
+        output = self.root / "wizspike.dem"
+        info = fixture.create_blob_demo(
+            self.pak0,
+            output,
+            member_name=MEMBER_NAME,
+            first_post_signon_record=2,
+            keep_post_signon_records=3,
+            event_record=3,
+            event_type=fixture.TE_WIZSPIKE,
+            coord_shorts=(-2136, 17413, 9968),
+        )
+
+        _, result = read_demo(output)
+        expected = bytes((fixture.SVC_TEMP_ENTITY, fixture.TE_WIZSPIKE))
+        expected += struct.pack("<hhh", -2136, 17413, 9968)
+        self.assertEqual(info.event_type, fixture.TE_WIZSPIKE)
         self.assertEqual(result[3][0], self.source_records[3][0] + expected)
         self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
 

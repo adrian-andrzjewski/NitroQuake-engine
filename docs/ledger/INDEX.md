@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-10-r-teleportsplash-assembly-port.md`](2026-10-10-r-teleportsplash-assembly-port.md) | 2 | renderer port / particles (`Port mapping and contract`; `TeleportSplash validation status`) |
+| [`2026-10-10-r-runparticleeffect-assembly-port.md`](2026-10-10-r-runparticleeffect-assembly-port.md) | 5 | renderer port / particles (`C reference and assembly behavior`; `Selector and direct fixture`; `Paired frame parity`; `ISA evidence and remaining scope`; `RPE test commands`) |
 | [`2026-10-09-alias-stats-assembly-port.md`](2026-10-09-alias-stats-assembly-port.md) | 3 | renderer port / alias |
 | [`2026-10-09-drawspans-dispatch-parity.md`](2026-10-09-drawspans-dispatch-parity.md) | 4 | renderer port / span dispatch |
 | [`2026-10-09-line-graph-assembly-port.md`](2026-10-09-line-graph-assembly-port.md) | 3 | renderer port / timing overlay |
@@ -294,6 +295,10 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [`R_RunParticleEffect` -> i486 assembly port (2026-10-10)](2026-10-10-r-runparticleeffect-assembly-port.md)
+- `measured` [12-case direct state/RNG/ABI fixture and strict i486 executable audit](2026-10-10-r-runparticleeffect-assembly-port.md)
+- `measured` [Exact two-run `TE_WIZSPIKE` frame and event parity](2026-10-10-r-runparticleeffect-assembly-port.md)
+- `open` [486SX FPU scope and the remaining renderer migration](2026-10-10-r-runparticleeffect-assembly-port.md)
 - `measured` [`R_ParticleExplosion2` -> i486 assembly port (2026-10-09)](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Particle pool semantics and ABI](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Full-state fixture and i486 results](2026-10-09-particle-explosion2-assembly-port.md)

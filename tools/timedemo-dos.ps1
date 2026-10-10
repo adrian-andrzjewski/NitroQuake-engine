@@ -154,6 +154,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$RunParticleEffectImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$SpriteBeamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SpriteClipImplementation = 'c',
@@ -410,8 +412,8 @@ function ConvertFrom-DemoFixtureJson {
         -Name 'eventRecord' -Minimum 0 -Maximum 1000000
     $eventType = ConvertTo-DemoFixtureInteger -Value $parsed.eventType `
         -Name 'eventType' -Minimum 0 -Maximum 255
-    if ($eventType -notin @(4, 10, 11)) {
-        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4), TE_LAVASPLASH (10), or TE_TELEPORT (11).'
+    if ($eventType -notin @(4, 7, 10, 11)) {
+        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4), TE_WIZSPIKE (7), TE_LAVASPLASH (10), or TE_TELEPORT (11).'
     }
     if ([long]$firstRecord + $keepRecords -gt 1000001 -or
         $eventRecord -lt $firstRecord -or $eventRecord -ge ([long]$firstRecord + $keepRecords)) {
@@ -560,6 +562,7 @@ $buildParams = @{
     BspWalkImplementation                = $BspWalkImplementation
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
+    RunParticleEffectImplementation      = $RunParticleEffectImplementation
     BlobExplosionImplementation          = $BlobExplosionImplementation
     LavaSplashImplementation             = $LavaSplashImplementation
     TeleportSplashImplementation         = $TeleportSplashImplementation
@@ -1025,6 +1028,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     $blobExplosionEventData = Read-Bench486BlobExplosionEvents -Report $report
     $lavaSplashEventData = Read-Bench486LavaSplashEvents -Report $report
     $teleportSplashEventData = Read-Bench486TeleportSplashEvents -Report $report
+    $runParticleEffectEventData = Read-Bench486RunParticleEffectEvents -Report $report
     $blobExplosionEventFrames = $blobExplosionEventData.Frames
     $blobExplosionEventOverflow = $blobExplosionEventData.Overflow
     $lavaSplashEventCount = $lavaSplashEventData.Count
@@ -1033,6 +1037,9 @@ for ($run = 1; $run -le $Runs; $run++) {
     $teleportSplashEventCount = $teleportSplashEventData.Count
     $teleportSplashEventFrames = $teleportSplashEventData.Frames
     $teleportSplashEventOverflow = $teleportSplashEventData.Overflow
+    $runParticleEffectEventCount = $runParticleEffectEventData.Count
+    $runParticleEffectEventFrames = $runParticleEffectEventData.Frames
+    $runParticleEffectEventOverflow = $runParticleEffectEventData.Overflow
 
     $runDiagnostics = [ordered]@{
         blobExplosionEventFrames = $blobExplosionEventFrames
@@ -1043,6 +1050,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         teleportSplashEventCount = $teleportSplashEventCount
         teleportSplashEventFrames = $teleportSplashEventFrames
         teleportSplashEventOverflow = $teleportSplashEventOverflow
+        runParticleEffectEventCount = $runParticleEffectEventCount
+        runParticleEffectEventFrames = $runParticleEffectEventFrames
+        runParticleEffectEventOverflow = $runParticleEffectEventOverflow
     }
     if ($FrameChecksums) {
         if (-not (Test-Path -LiteralPath $frameChecksumDosPath -PathType Leaf)) {
@@ -1143,6 +1153,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         teleportSplashEventCount = $teleportSplashEventCount
         teleportSplashEventFrames = $teleportSplashEventFrames
         teleportSplashEventOverflow = $teleportSplashEventOverflow
+        runParticleEffectEventCount = $runParticleEffectEventCount
+        runParticleEffectEventFrames = $runParticleEffectEventFrames
+        runParticleEffectEventOverflow = $runParticleEffectEventOverflow
         renderingDiagnostics = $runDiagnostics
     }
 }
@@ -1364,6 +1377,7 @@ $result = [ordered]@{
     teleportSplashImplementation = $TeleportSplashImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
+    runParticleEffectImplementation = $RunParticleEffectImplementation
     spriteBeamImplementation = $SpriteBeamImplementation
     spriteClipImplementation = $SpriteClipImplementation
     spriteFrameImplementation = $SpriteFrameImplementation

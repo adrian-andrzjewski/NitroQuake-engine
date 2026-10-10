@@ -123,3 +123,45 @@ function Read-Bench486TeleportSplashEvents {
         Overflow = $overflow
     }
 }
+
+function Read-Bench486RunParticleEffectEvents {
+    param([Parameter(Mandatory = $true)][string]$Report)
+
+    $eventLines = [regex]::Matches($Report, '(?m)^run-particle-effect-events\b.*$')
+    if ($eventLines.Count -gt 1) {
+        throw 'Timedemo report contains more than one run-particle-effect-events record.'
+    }
+    if ($eventLines.Count -eq 0) {
+        return [pscustomobject]@{
+            Count = $null
+            Frames = $null
+            Overflow = $null
+        }
+    }
+
+    $eventMatch = [regex]::Match(
+        $eventLines[0].Value,
+        '^run-particle-effect-events\s+(?<count>\d+)\s+frames(?<frameTokens>(?:\s+\d+)*)\s+overflow\s+(?<overflow>\d+)\s*$')
+    if (-not $eventMatch.Success) {
+        throw 'Timedemo report contains a malformed run-particle-effect-events record.'
+    }
+
+    $frames = New-Object 'System.Collections.Generic.List[int]'
+    $frameTokenText = $eventMatch.Groups['frameTokens'].Value.Trim()
+    if ($frameTokenText.Length -gt 0) {
+        foreach ($frameToken in ($frameTokenText -split '\s+')) {
+            $frames.Add([int]$frameToken)
+        }
+    }
+    $count = [int]$eventMatch.Groups['count'].Value
+    $overflow = [int]$eventMatch.Groups['overflow'].Value
+    if ($count -ne ($frames.Count + $overflow)) {
+        throw "Timedemo report declares $count run-particle-effect event(s) but lists $($frames.Count) frame index/indices with overflow $overflow."
+    }
+
+    return [pscustomobject]@{
+        Count = $count
+        Frames = $frames
+        Overflow = $overflow
+    }
+}

@@ -79,4 +79,33 @@ if (-not $teleportMismatchRejected) {
     throw 'TeleportSplash event parser accepted a count inconsistent with its stored frames and overflow.'
 }
 
+$runParticleEffect = Read-Bench486RunParticleEffectEvents -Report "run-particle-effect-events 1 frames 10 overflow 0`n"
+if ($runParticleEffect.Count -ne 1 -or $runParticleEffect.Frames.Count -ne 1 -or
+    $runParticleEffect.Frames[0] -ne 10 -or $runParticleEffect.Overflow -ne 0) {
+    throw 'R_RunParticleEffect event record did not preserve the count, exact frame index, and overflow count.'
+}
+
+$runParticleEffectEmpty = Read-Bench486RunParticleEffectEvents -Report "run-particle-effect-events 0 frames overflow 0`n"
+if ($runParticleEffectEmpty.Count -ne 0 -or $runParticleEffectEmpty.Frames.Count -ne 0 -or
+    $runParticleEffectEmpty.Overflow -ne 0) {
+    throw 'Explicit zero-event R_RunParticleEffect record was not distinguished as an empty event list.'
+}
+
+$runParticleEffectMissing = Read-Bench486RunParticleEffectEvents -Report "320 frames 1.0 seconds 320.0 fps`n"
+if ($null -ne $runParticleEffectMissing.Count -or $null -ne $runParticleEffectMissing.Frames -or
+    $null -ne $runParticleEffectMissing.Overflow) {
+    throw 'A legacy report without the R_RunParticleEffect event record should return null event metadata.'
+}
+
+$runParticleEffectMismatchRejected = $false
+try {
+    [void](Read-Bench486RunParticleEffectEvents -Report "run-particle-effect-events 2 frames 10 overflow 0`n")
+}
+catch {
+    $runParticleEffectMismatchRejected = $true
+}
+if (-not $runParticleEffectMismatchRejected) {
+    throw 'R_RunParticleEffect event parser accepted a count inconsistent with its stored frames and overflow.'
+}
+
 Write-Output 'Timedemo event-record parser tests passed.'
