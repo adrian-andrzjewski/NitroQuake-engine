@@ -701,6 +701,10 @@ $ownershipArgs = @(
     '--manifest', [string]$selectorVerification.manifest,
     '--object-root', $manifestObjectRoot,
     '--objdump', $objdumpPath,
+    '--root', '_R_RenderView',
+    '--root', '_V_RenderView',
+    '--root', '_V_UpdatePalette',
+    '--root', '_SCR_UpdateScreen',
     '--output-json', $ownershipReport
 )
 & python @ownershipArgs

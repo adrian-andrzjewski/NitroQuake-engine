@@ -20,6 +20,14 @@ SYMBOL = re.compile(r"^\[\s*\d+\]\(sec\s+[1-9]\d*\).*?0x([0-9a-fA-F]+) (\S+)$")
 INSTRUCTION = re.compile(r"^\s*([0-9a-fA-F]+):\s+(?:[0-9a-fA-F]{2}\s+)+\s*(\S+)(?:\s+(.*))?$")
 RELOCATION = re.compile(r"^\s*([0-9a-fA-F]+):\s+(DISP32|DIR32)\s+(\S+)\s*$", re.IGNORECASE)
 RENDER_SUPPORT = {"Mod_PointInLeaf", "Mod_LeafPVS", "Mod_DecompressVis"}
+RENDERER_SOURCES = {
+    "view.c", "draw.c", "mathlib.c", "math.s", "chase.c",
+    "screen.c", "screen_fovasm.s", "screen_notifyasm.s",
+    "asm486_experiments.s",
+}
+DEFAULT_ROOTS = [
+    "_R_RenderView", "_V_RenderView", "_V_UpdatePalette", "_SCR_UpdateScreen",
+]
 
 D_DRAWSPANS_TARGETS = {
     "_D_DrawSpans8": "d_draw.s",
@@ -30,6 +38,12 @@ D_DRAWSPANS_TARGETS = {
 def original_function(symbol: str) -> str:
     """Map GCC clone symbols back to the C definition that owns their code."""
     return re.sub(r"\.(?:part|constprop|isra|cold|split)(?:\.[0-9]+)?(?:\..*)?$", "", symbol.lstrip("_"))
+
+
+def is_c_function_clone(symbol: str, source: str, source_functions: set[str]) -> bool:
+    """Distinguish GCC's local C clones from storage-class-6 assembly labels."""
+    base = original_function(symbol)
+    return source.endswith(".c") and symbol.lstrip("_") != base and base in source_functions
 
 
 def c_functions(path: Path) -> set[str]:
@@ -52,7 +66,7 @@ def c_functions(path: Path) -> set[str]:
 
 
 def renderer_source(name: str, symbol: str) -> bool:
-    return (name.startswith(("r_", "d_", "v_")) or name in {"view.c", "draw.c", "mathlib.c", "math.s", "chase.c", "asm486_experiments.s"}
+    return (name.startswith(("r_", "d_", "v_")) or name in RENDERER_SOURCES
             or (name == "model.c" and original_function(symbol) in RENDER_SUPPORT))
 
 
@@ -520,7 +534,9 @@ def inventory(manifest: dict, objects: Path, repo: Path, objdump: Path, roots: l
                     raise ValueError(
                         f"objdump header {match[2]} in {name} has unclassified or unsupported "
                         f"COFF storage class {storage_class!r}")
-                if storage_class != 6:
+                source = source_by_object[name]
+                is_c_clone = is_c_function_clone(match[2], source, c_names.get(source, set()))
+                if storage_class != 6 or is_c_clone:
                     current = unit["functions"].setdefault(int(match[1], 16), {
                         "displaySymbol": match[2], "calls": {}, "indirectTransfers": [],
                         "instructions": [], "relocations": [],
@@ -652,7 +668,7 @@ def main() -> int:
     try:
         manifest = json.loads(args.manifest.read_text(encoding="utf-8-sig"))
         report = inventory(manifest, args.object_root, repo, args.objdump,
-                           args.root or ["_R_RenderView", "_V_RenderView", "_V_UpdatePalette"], args.boundary)
+                           args.root or DEFAULT_ROOTS, args.boundary)
         report["manifest"] = str(args.manifest.resolve())
         report["executable"] = manifest["executable"]
         args.output_json.parent.mkdir(parents=True, exist_ok=True)

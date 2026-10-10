@@ -22,6 +22,13 @@ rendering = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = rendering
 SPEC.loader.exec_module(rendering)
 
+OWNERSHIP_TOOL = Path(__file__).with_name("renderer-ownership.py")
+OWNERSHIP_SPEC = importlib.util.spec_from_file_location("renderer_ownership", OWNERSHIP_TOOL)
+assert OWNERSHIP_SPEC and OWNERSHIP_SPEC.loader
+renderer_ownership = importlib.util.module_from_spec(OWNERSHIP_SPEC)
+sys.modules[OWNERSHIP_SPEC.name] = renderer_ownership
+OWNERSHIP_SPEC.loader.exec_module(renderer_ownership)
+
 REPORT_COMPARATOR_TOOL = Path(__file__).with_name("compare-rendering-reports.py")
 REPORT_COMPARATOR_SPEC = importlib.util.spec_from_file_location(
     "compare_rendering_reports", REPORT_COMPARATOR_TOOL
@@ -1602,6 +1609,21 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("[switch]$ForwardSpansOnly", bench_runner)
         self.assertIn("+bench486 -benchforwardspans -benchexit", bench_runner)
         self.assertIn('"_R_GenerateSpans_asm486": "r_edgea.s"', ownership)
+
+    def test_screen_update_and_assembly_are_in_renderer_ownership_closure(self) -> None:
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertTrue(renderer_ownership.renderer_source("screen.c", "_SCR_UpdateScreen"))
+        self.assertTrue(renderer_ownership.renderer_source("screen_fovasm.s", "_CalcFov_asm486"))
+        self.assertTrue(renderer_ownership.renderer_source("screen_notifyasm.s", "_SCR_DrawNotifyString"))
+        self.assertTrue(renderer_ownership.is_c_function_clone(
+            "_SCR_UpdateScreen.part.0", "screen.c", {"SCR_UpdateScreen"}))
+        self.assertFalse(renderer_ownership.is_c_function_clone(
+            "_SCR_UpdateScreen", "screen.c", {"SCR_UpdateScreen"}))
+        self.assertFalse(renderer_ownership.is_c_function_clone(
+            ".Lscreen_update_done", "screen.c", {"SCR_UpdateScreen"}))
+        for root in renderer_ownership.DEFAULT_ROOTS:
+            self.assertIn(f"'--root', '{root}'", bench_runner)
 
     def test_particle_explosion2_profile_fixture_and_selectable_count(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
