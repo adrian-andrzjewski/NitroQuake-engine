@@ -142,6 +142,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParticleDrawImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',
@@ -563,6 +565,7 @@ $buildParams = @{
     BspFrameCountImplementation          = $BspFrameCountImplementation
     BspWalkImplementation                = $BspWalkImplementation
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
+    ParticleDrawImplementation           = $ParticleDrawImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
     RunParticleEffectImplementation      = $RunParticleEffectImplementation
     EntityParticlesImplementation        = $EntityParticlesImplementation
@@ -946,14 +949,11 @@ $frameChecksumOptions = if ($FrameChecksums) { ' -framechecksums' } else { '' }
 $frameCaptureOption = if ($FrameCaptureIndex -ge 0) { " -framecapture $FrameCaptureIndex" } else { '' }
 $quakeCommandTail = "-timedemoexit$fpsStatsOptions$frameChecksumOptions$frameCaptureOption -nosound -nocdaudio$quakeExtras +timedemo $DemoName"
 $quakeCommandLine = "$executableName $quakeCommandTail"
-$dosPspCommandTailMaxBytes = 126
-$quakeCommandTailBytes = [Text.Encoding]::ASCII.GetByteCount($quakeCommandTail)
-if ($quakeCommandTailBytes -gt $dosPspCommandTailMaxBytes) {
-    throw ("Timedemo DOS command tail is {0} bytes; maximum is {1}. Reduce -QuakeExtraArgs or " +
-        "use a shorter supported command-line option.") -f $quakeCommandTailBytes, $dosPspCommandTailMaxBytes
-}
-# DOS stores only command arguments in the 126-byte PSP tail; the executable name
-# is excluded. The batch changes to \quake, so -basedir \quake is redundant.
+# DOS stores the argument tail in the PSP, including the separating space after
+# the executable name. Validate those exact bytes before DOSBox starts.
+$quakeCommandTailBytes = Assert-DosPspCommandTail -CommandTail (' ' + $quakeCommandTail)
+# The executable name is excluded from the PSP tail. The batch changes to
+# \quake, so -basedir \quake is redundant.
 # Timedemo playback does not consume live mouse/joystick input; omitting those
 # switches keeps event-enabled command tails within the DOS limit.
 @"
@@ -1393,6 +1393,7 @@ $result = [ordered]@{
     bspFrameCountImplementation = $BspFrameCountImplementation
     bspWalkImplementation = $BspWalkImplementation
     particleUpdateImplementation = $ParticleUpdateImplementation
+    particleDrawImplementation = $ParticleDrawImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     blobExplosionImplementation = $BlobExplosionImplementation
     lavaSplashImplementation = $LavaSplashImplementation

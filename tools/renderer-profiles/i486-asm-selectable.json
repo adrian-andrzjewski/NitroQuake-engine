@@ -47,6 +47,7 @@
     "BspClipImplementation": "asm",
     "BspWalkImplementation": "asm",
     "ParticleUpdateImplementation": "asm",
+    "ParticleDrawImplementation": "asm",
     "SpriteBeamImplementation": "asm",
     "SpriteClipImplementation": "asm",
     "SpriteFrameImplementation": "asm",

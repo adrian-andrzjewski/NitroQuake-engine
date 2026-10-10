@@ -176,6 +176,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParticleDrawImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RunParticleEffectImplementation = 'c',
@@ -301,6 +303,7 @@ param(
     [switch]$LightMapBuildOnly,
     [switch]$SurfaceCacheOnly,
     [switch]$ParticleListOnly,
+    [switch]$ParticleDrawOnly,
     [switch]$ParticleExplosionOnly,
     [switch]$RunParticleEffectOnly,
     [switch]$EntityParticlesOnly,
@@ -356,6 +359,9 @@ if ($SurfaceCacheOnly -and $SurfaceCacheImplementation -ne 'asm') {
 }
 if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
     throw '-ParticleListOnly requires -ParticleUpdateImplementation asm.'
+}
+if ($ParticleDrawOnly -and $ParticleDrawImplementation -ne 'asm') {
+    throw '-ParticleDrawOnly requires -ParticleDrawImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -811,6 +817,9 @@ elseif ($LightMapBuildOnly) {
 elseif ($ParticleListOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticlelist -benchexit'
 }
+elseif ($ParticleDrawOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticledraw -benchexit'
+}
 elseif ($ParticleExplosionOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion -benchexit'
 }
@@ -876,6 +885,19 @@ elseif ($TurbulentScanOnly) {
 }
 else {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchexit'
+}
+$benchCommandSeparatorIndex = $benchCommand.IndexOf(' ')
+if ($benchCommandSeparatorIndex -le 0) {
+    throw "Could not locate the executable/argument separator in benchmark command '$benchCommand'."
+}
+# DOS's PSP tail starts at the separator after the executable; count that byte too.
+$benchCommandTail = $benchCommand.Substring($benchCommandSeparatorIndex)
+$benchCommandTailBytes = [Text.Encoding]::ASCII.GetByteCount($benchCommandTail)
+$dosPspCommandTailMaxBytes = 126
+if ($benchCommandTailBytes -gt $dosPspCommandTailMaxBytes) {
+    throw ("Benchmark DOS command tail is {0} ASCII bytes including the leading separator; " +
+        "the PSP limit is {1}: {2}") -f `
+        $benchCommandTailBytes, $dosPspCommandTailMaxBytes, $benchCommand
 }
 $batchPath = Join-Path $quakeRoot 'bench.bat'
 @"
@@ -1016,6 +1038,7 @@ $result = [ordered]@{
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    particleDrawImplementation = $ParticleDrawImplementation
     blobExplosionImplementation = $BlobExplosionImplementation
     lavaSplashImplementation = $LavaSplashImplementation
     teleportSplashImplementation = $TeleportSplashImplementation
@@ -1065,6 +1088,7 @@ $result = [ordered]@{
     lightMapBuildOnly = [bool]$LightMapBuildOnly
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
+    particleDrawOnly = [bool]$ParticleDrawOnly
     particleExplosion2Only = [bool]$ParticleExplosion2Only
     blobExplosionOnly = [bool]$BlobExplosionOnly
     lavaSplashOnly = [bool]$LavaSplashOnly

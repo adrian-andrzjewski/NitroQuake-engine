@@ -229,6 +229,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern DP_u
 	.extern DP_v
 	.extern DP_32768
+	.extern DP_CW
 	.extern DP_Pix
 	.extern DP_EntryTable
 	.extern	pbase

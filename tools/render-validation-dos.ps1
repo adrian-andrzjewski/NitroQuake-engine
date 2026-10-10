@@ -106,6 +106,12 @@ if (-not [string]::IsNullOrWhiteSpace($RendererSelectorProfile)) {
             throw "Renderer selector '$($selector.Name)' is not a parameter of timedemo-dos.ps1."
         }
     }
+    # Older checked-in profiles predate newer selectors. Resolve omissions to
+    # the reference implementation so adding a selector cannot silently turn
+    # every focused profile into an assembly candidate.
+    if ($null -eq $rendererSelectorProfileData.selectors.PSObject.Properties['ParticleDrawImplementation']) {
+        $rendererSelectorProfileData.selectors | Add-Member -NotePropertyName ParticleDrawImplementation -NotePropertyValue 'c'
+    }
     $rendererSelectorProfilePathResolved = $profilePath
 }
 if ([string]::IsNullOrWhiteSpace($ScenarioFile)) {

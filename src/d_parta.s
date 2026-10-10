@@ -27,7 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_ifacea.h"
 #include "asm_draw.h"
 
-#if	id386
+#if id386 && (defined(ASM486_PARTICLE_DRAW) || defined(BENCH486) || \
+		!defined(ASM486_PARTICLE_DRAW_C))
 
 //----------------------------------------------------------------------
 // 8-bpp particle drawing code.
@@ -44,8 +45,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define P	12+4
 
 	.p2align 4,,15
+#if defined(ASM486_PARTICLE_DRAW) || !defined(ASM486_PARTICLE_DRAW_C)
 .globl C(D_DrawParticle)
 C(D_DrawParticle):
+#endif
+#if defined(BENCH486)
+.globl C(D_DrawParticle_asm486)
+C(D_DrawParticle_asm486):
+#endif
 	pushl	%ebp				// preserve caller's stack frame
 	pushl	%edi				// preserve register variables
 	pushl	%ebx
@@ -76,24 +83,22 @@ C(D_DrawParticle):
 	faddp	%st(0),%st(1) // dot0 + dot1 | dot2 | local[0] | local[1] |
 						  //  local[2]
 	faddp	%st(0),%st(1) // z | local[0] | local[1] | local[2]
-	fld		%st(0)		// z | z | local[0] | local[1] |
-						//  local[2]
-	fdivrs	float_1		// 1/z | z | local[0] | local[1] | local[2]
-	fxch	%st(1)		// z | 1/z | local[0] | local[1] | local[2]
-
 //	if (transformed[2] < PARTICLE_Z_CLIP)
 //		return;
-	fcomps	float_particle_z_clip	// 1/z | local[0] | local[1] | local[2]
-	fxch	%st(3)					// local[2] | local[0] | local[1] | 1/z
+	// Compare a duplicate so the original z remains available for projection.
+	// This avoids the C path's otherwise-unobservable 1/0 on clipped input.
+	fld		%st(0)		// z | z | local[0] | local[1] | local[2]
+	fcomps	float_particle_z_clip	// z | local[0] | local[1] | local[2]
+	fnstsw	%ax
+	testb	$1,%ah
+	jnz		LPop4AndDone
+	fdivrs	float_1		// 1/z | local[0] | local[1] | local[2]
+	fxch	%st(3)				// local[2] | local[0] | local[1] | 1/z
 
 	flds	C(r_pup)	// r_pup[0] | local[2] | local[0] | local[1] | 1/z
 	fmul	%st(2),%st(0)	// dot0 | local[2] | local[0] | local[1] | 1/z 
 	flds	C(r_pup)+4	// r_pup[1] | dot0 | local[2] | local[0] |
 						//  local[1] | 1/z 
-
-	fnstsw	%ax
-	testb	$1,%ah
-	jnz		LPop6AndDone
 
 //	transformed[1] = DotProduct(local, r_pup);
 	fmul	%st(4),%st(0)	// dot1 | dot0 | local[2] | local[0] | local[1] | 1/z 
@@ -137,10 +142,17 @@ C(D_DrawParticle):
 	fmuls	DP_32768		// 1/z * 0x8000 | v | u
 	fxch	%st(2)			// u | v | 1/z * 0x8000
 
-// FIXME: use Terje's fp->int trick here?
-// FIXME: check we're getting proper rounding here
+	// The C casts truncate independently of the caller's x87 rounding mode.
+	// FISTP follows RC, so temporarily select round-toward-zero for each cast.
+	fnstcw	DP_CW
+	movw	DP_CW,%bp
+	andw	$0xf3ff,%bp
+	orw		$0x0c00,%bp
+	movw	%bp,DP_CW+2
+	fldcw	DP_CW+2
 	fistpl	DP_u			// v | 1/z * 0x8000
 	fistpl	DP_v			// 1/z * 0x8000
+	fldcw	DP_CW
 
 	movl	DP_u,%eax
 	movl	DP_v,%edx
@@ -173,7 +185,14 @@ C(D_DrawParticle):
 	movl	C(viewspantable)(,%edx,4),%edi	// point to the pixel row
 	movl	C(zspantable)(,%edx,4),%edx
 
+	fnstcw	DP_CW
+	movw	DP_CW,%bp
+	andw	$0xf3ff,%bp
+	orw		$0x0c00,%bp
+	movw	%bp,DP_CW+2
+	fldcw	DP_CW+2
 	fistpl	izi
+	fldcw	DP_CW
 
 	addl	%eax,%edi
 	leal	(%edx,%eax,2),%edx
@@ -455,12 +474,12 @@ LDone:
 	popl	%ebp				// restore the caller's stack frame
 	ret
 
-LPop6AndDone:
+LPop4AndDone:
 	fstp	%st(0)
 	fstp	%st(0)
 	fstp	%st(0)
-	fstp	%st(0)
-	fstp	%st(0)
+	jmp		LPop1AndDone
+
 LPop1AndDone:
 	fstp	%st(0)
 	jmp		LDone

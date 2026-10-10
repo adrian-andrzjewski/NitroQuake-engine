@@ -213,6 +213,8 @@ Invoke-Gate -Name 'test-build-dos (flag/suffix golden pins)' -Kind 'host' -Comma
 Invoke-Gate -Name 'test-runner-selectors (requested versus built)' -Kind 'host' -Command @('pwsh', '-NoProfile', '-File', 'tools/test-runner-selectors.ps1') | Out-Null
 Invoke-Gate -Name 'test-render-progress (live timedemo output)' -Kind 'host' `
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-render-progress.ps1') | Out-Null
+Invoke-Gate -Name 'test-timedemo-command-tail (DOS PSP bound/preflight)' -Kind 'host' `
+    -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-timedemo-command-tail.ps1') | Out-Null
 Invoke-Gate -Name 'test-build-fingerprints (instruction inputs and flags)' -Kind 'host' -Command @('pwsh', '-NoProfile', '-File', 'tools/test-build-fingerprints.ps1') | Out-Null
 Invoke-Gate -Name 'test-isa-audit (486 opcode classifier)' -Kind 'host' -Command @('python', 'tools/test-isa-audit.py') | Out-Null
 Invoke-Gate -Name 'test-sysinfo-dos (sys_dos report path)' -Kind 'host' -Command @('python', 'tools/test-sysinfo-dos.py') | Out-Null

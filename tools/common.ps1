@@ -786,6 +786,32 @@ function ConvertTo-ProcessArgument {
     return '"' + $Value.Replace('"', '\"') + '"'
 }
 
+function Assert-DosPspCommandTail {
+    <#
+    .SYNOPSIS
+        Reject a DOS executable argument tail that cannot fit in its PSP.
+
+    .DESCRIPTION
+        DOS reserves one byte for the tail length and one byte for the final
+        carriage return in the 128-byte PSP command-tail area. This leaves 126
+        argument bytes. The executable name is not part of this value; callers
+        must pass the exact PSP tail, including the normally present separating
+        space after the executable name. ASCII is used because the generated DOS
+        batch file is ASCII too.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$CommandTail)
+
+    $dosPspCommandTailMaxBytes = 126
+    $commandTailBytes = [Text.Encoding]::ASCII.GetByteCount($CommandTail)
+    if ($commandTailBytes -gt $dosPspCommandTailMaxBytes) {
+        throw ("DOS command argument tail is {0} ASCII bytes; the PSP limit is {1}. " +
+            "Shorten the command-line options or move supported settings into autoexec.cfg.") -f `
+            $commandTailBytes, $dosPspCommandTailMaxBytes
+    }
+    return $commandTailBytes
+}
+
 function Invoke-DosboxProcess {
     <#
     .SYNOPSIS

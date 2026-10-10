@@ -1299,6 +1299,121 @@ def main() -> int:
             if "r_printtimesasm.s" not in dump.get("assemblySources", []):
                 fail("the R_PrintTimes %s selector omits r_printtimesasm.s from the source inventory" % dump_name)
 
+    particle_draw_c = dump_flags("-ParticleDrawImplementation", "c")
+    particle_draw_asm = dump_flags("-ParticleDrawImplementation", "asm")
+    if particle_draw_c and particle_draw_asm:
+        if particle_draw_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the D_DrawParticle assembly default changes the promoted i486 suffix")
+        c_suffix = particle_draw_c.get("profileSuffix", "")
+        if c_suffix.count("-particledrawc") != 1:
+            fail("the D_DrawParticle C oracle lacks its isolated profile token")
+        elif c_suffix.replace("-particledrawc", "") != particle_draw_asm.get("profileSuffix"):
+            fail("the D_DrawParticle C oracle changes unrelated promoted suffix tokens")
+        if particle_draw_c.get("outputRoot") == particle_draw_asm.get("outputRoot"):
+            fail("the D_DrawParticle C oracle shares the assembly output root")
+        for flags_name in ("cFlags", "asmFlags"):
+            c_flags = particle_draw_c.get(flags_name, [])
+            asm_flags = particle_draw_asm.get(flags_name, [])
+            if "-DASM486_PARTICLE_DRAW_C" not in c_flags:
+                fail("the D_DrawParticle C selector omits ASM486_PARTICLE_DRAW_C from %s" % flags_name)
+            if "-DASM486_PARTICLE_DRAW" in c_flags:
+                fail("the D_DrawParticle C selector enables ASM486_PARTICLE_DRAW in %s" % flags_name)
+            if "-DASM486_PARTICLE_DRAW" not in asm_flags:
+                fail("the D_DrawParticle assembly selector omits ASM486_PARTICLE_DRAW from %s" % flags_name)
+            if "-DASM486_PARTICLE_DRAW_C" in asm_flags:
+                fail("the D_DrawParticle assembly selector enables ASM486_PARTICLE_DRAW_C in %s" % flags_name)
+        if "d_parta.s" not in particle_draw_c.get("assemblySources", []):
+            fail("the D_DrawParticle C oracle omits d_parta.s from the assembly source inventory")
+        if "d_parta.s" not in particle_draw_asm.get("assemblySources", []):
+            fail("the D_DrawParticle assembly path omits d_parta.s from the assembly source inventory")
+
+    focused_particle_profiles = {}
+    for value in ("c", "asm"):
+        profile_path = os.path.join(
+            REPO_ROOT, "tools", "renderer-profiles", "i486-particledraw-%s.json" % value
+        )
+        if not os.path.isfile(profile_path):
+            fail("missing focused D_DrawParticle %s profile %s" % (value, profile_path))
+            continue
+        try:
+            with open(profile_path, "r", encoding="utf-8") as handle:
+                focused_particle_profiles[value] = json.load(handle)
+        except (OSError, json.JSONDecodeError) as error:
+            fail("could not read focused D_DrawParticle %s profile: %s" % (value, error))
+
+    if len(focused_particle_profiles) == 2:
+        particle_c_profile = focused_particle_profiles["c"]
+        particle_asm_profile = focused_particle_profiles["asm"]
+        c_selectors = particle_c_profile.get("selectors", {})
+        asm_selectors = particle_asm_profile.get("selectors", {})
+        if particle_c_profile.get("id") != "i486-particledraw-c":
+            fail("the focused D_DrawParticle C profile has an unexpected id")
+        if particle_asm_profile.get("id") != "i486-particledraw-asm":
+            fail("the focused D_DrawParticle assembly profile has an unexpected id")
+        if c_selectors.get("ParticleDrawImplementation") != "c":
+            fail("the focused D_DrawParticle C profile does not select the C oracle")
+        if asm_selectors.get("ParticleDrawImplementation") != "asm":
+            fail("the focused D_DrawParticle assembly profile does not select assembly")
+        selector_differences = {
+            key for key in set(c_selectors) | set(asm_selectors)
+            if c_selectors.get(key) != asm_selectors.get(key)
+        }
+        if selector_differences != {"ParticleDrawImplementation"}:
+            fail(
+                "focused D_DrawParticle profiles differ in selectors %r; expected only ParticleDrawImplementation"
+                % sorted(selector_differences)
+            )
+        c_reference_path = os.path.join(
+            REPO_ROOT, "tools", "renderer-profiles", "i486-c-reference.json"
+        )
+        try:
+            with open(c_reference_path, "r", encoding="utf-8") as handle:
+                c_reference_selectors = json.load(handle).get("selectors", {})
+            if c_selectors != c_reference_selectors:
+                fail("the focused D_DrawParticle C profile has drifted from the shared C-reference selectors")
+        except (OSError, json.JSONDecodeError) as error:
+            fail("could not read the shared C-reference selector profile: %s" % error)
+        for profile in (particle_c_profile, particle_asm_profile):
+            if "render-scenarios-runparticleeffect.json" not in profile.get("description", ""):
+                fail("a focused D_DrawParticle profile does not name its exact event scenario")
+
+    particle_scenario_path = os.path.join(REPO_ROOT, "tools", "render-scenarios-runparticleeffect.json")
+    if not os.path.isfile(particle_scenario_path):
+        fail("the exact R_RunParticleEffect event scenario manifest is missing")
+    else:
+        try:
+            with open(particle_scenario_path, "r", encoding="utf-8") as handle:
+                particle_scenario_manifest = json.load(handle)
+            particle_scenarios = particle_scenario_manifest.get("scenarios", [])
+            if len(particle_scenarios) != 1:
+                fail("the R_RunParticleEffect event scenario manifest must contain exactly one scenario")
+            else:
+                scene = particle_scenarios[0]
+                exact_tolerance = {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0}
+                if scene.get("id") != "demo2-wizspike-event":
+                    fail("the D_DrawParticle parity scenario is not the known demo2 particle event")
+                if "R_RunParticleEffect" not in scene.get("description", ""):
+                    fail("the D_DrawParticle parity scenario does not route its event through R_RunParticleEffect")
+                if scene.get("requiredBenchEvents") != ["runParticleEffect"]:
+                    fail("the D_DrawParticle parity scenario does not require the R_RunParticleEffect event")
+                if scene.get("expectedBenchEventFrames") != {"runParticleEffect": [10]}:
+                    fail("the D_DrawParticle parity scenario does not pin its particle event to frame 10")
+                if scene.get("expectedFrames") != 10 or scene.get("captureFrame") != 10:
+                    fail("the D_DrawParticle parity scenario no longer captures the exact 10-frame event")
+                if scene.get("tolerance") != exact_tolerance:
+                    fail("the D_DrawParticle event scenario is no longer an exact pixel comparison")
+        except (OSError, json.JSONDecodeError) as error:
+            fail("could not read the D_DrawParticle event scenario manifest: %s" % error)
+
+    parity_source_path = os.path.join(REPO_ROOT, "tools", "render-parity-dos.ps1")
+    try:
+        with open(parity_source_path, "r", encoding="utf-8") as handle:
+            parity_source = handle.read()
+        if "[string]$ScenarioFile" not in parity_source or "'-ScenarioFile', $pairScenarioFile" not in parity_source:
+            fail("the paired render harness does not accept and forward the exact event scenario file")
+    except OSError as error:
+        fail("could not read the paired render harness source: %s" % error)
+
     particle_explosion2_c = dump_flags("-ParticleExplosion2Implementation", "c")
     particle_explosion2_asm = dump_flags("-ParticleExplosion2Implementation", "asm")
     if particle_explosion2_c and particle_explosion2_asm:

@@ -47,6 +47,7 @@
     "BspClipImplementation": "c",
     "BspWalkImplementation": "c",
     "ParticleUpdateImplementation": "c",
+    "ParticleDrawImplementation": "c",
     "SpriteBeamImplementation": "c",
     "SpriteClipImplementation": "c",
     "SpriteFrameImplementation": "c",

@@ -144,11 +144,12 @@ entryvec_table_16:	.long	0, Entry2_16, Entry3_16, Entry4_16
 //-------------------------------------------------------
 // local variables for d_parta.s
 //-------------------------------------------------------
-.globl	DP_Count, DP_u, DP_v, DP_32768, DP_Pix, DP_EntryTable
+.globl	DP_Count, DP_u, DP_v, DP_32768, DP_CW, DP_Pix, DP_EntryTable
 DP_Count:		.long	0
 DP_u:			.long	0
 DP_v:			.long	0
 DP_32768:		.single	32768.0
+DP_CW:			.long	0
 DP_Pix:			.long	0
 
 

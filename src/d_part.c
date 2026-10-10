@@ -50,14 +50,19 @@ void D_StartParticles (void)
 #endif
 
 
-#if	!id386
+#if !id386
+#define D_DRAW_PARTICLE_C_NAME D_DrawParticle
+#elif defined(BENCH486) || defined(ASM486_PARTICLE_DRAW_C)
+#define D_DRAW_PARTICLE_C_NAME D_DrawParticle_C
+#endif
 
+#ifdef D_DRAW_PARTICLE_C_NAME
 /*
 ==============
-D_DrawParticle
+D_DrawParticle_C
 ==============
 */
-void D_DrawParticle (particle_t *pparticle)
+void D_DRAW_PARTICLE_C_NAME (particle_t *pparticle)
 {
 	vec3_t	local, transformed;
 	float	zi;
@@ -207,8 +212,17 @@ void D_DrawParticle (particle_t *pparticle)
 		break;
 	}
 }
+#endif
 
-#endif	// !id386
+#if id386 && defined(ASM486_PARTICLE_DRAW_C)
+/* The original C rasterizer is the selectable implementation in this build. */
+void D_DrawParticle (particle_t *pparticle)
+{
+	D_DrawParticle_C (pparticle);
+}
+#endif
+
+#undef D_DRAW_PARTICLE_C_NAME
 
 
 /* Independent pinned C algorithms are test-only. */

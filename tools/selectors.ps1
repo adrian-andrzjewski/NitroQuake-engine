@@ -74,6 +74,7 @@ $script:AssemblyBackedImplementations = @(
     'BspClipImplementation',
     'RenderWorldImplementation',
     'ParticleUpdateImplementation',
+    'ParticleDrawImplementation',
     'ParticleExplosionImplementation',
     'RunParticleEffectImplementation',
     'EntityParticlesImplementation',
@@ -794,6 +795,23 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ParticleDrawImplementation'
+        Manifest   = 'particleDrawImplementation'
+        # Assembly is the existing 32-bit runtime path; keep it on the base
+        # profile suffix and give the explicit C oracle its own output tree.
+        Suffix     = @{ 'c' = 'particledrawc' }
+        C          = @{
+            'c'   = @('ASM486_PARTICLE_DRAW_C')
+            'asm' = @('ASM486_PARTICLE_DRAW')
+        }
+        Asm        = @{
+            'c'   = @('ASM486_PARTICLE_DRAW_C')
+            'asm' = @('ASM486_PARTICLE_DRAW')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'ParticleExplosionImplementation'
         Manifest   = 'particleExplosionImplementation'
         Suffix     = @{ 'asm' = 'particleexplosionasm' }
@@ -1402,6 +1420,7 @@ $script:SuffixOrder = @(
     'BspFrameCountImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleDrawImplementation'
     'ParticleExplosionImplementation'
     'RunParticleEffectImplementation'
     'EntityParticlesImplementation'
@@ -1487,6 +1506,7 @@ $script:CDefineOrder = @(
     'BspFrameCountImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleDrawImplementation'
     'ParticleExplosionImplementation'
     'RunParticleEffectImplementation'
     'EntityParticlesImplementation'
@@ -1605,6 +1625,7 @@ $script:AsmDefineOrder = @(
     'LightMapBuildImplementation'
     'BspWalkImplementation'
     'ParticleUpdateImplementation'
+    'ParticleDrawImplementation'
     'ParticleExplosionImplementation'
     'RunParticleEffectImplementation'
     'EntityParticlesImplementation'

@@ -51,6 +51,7 @@ def load_json(text: str) -> dict:
         document["selectors"].setdefault("LavaSplashImplementation", "c")
         document["selectors"].setdefault("RocketTrailImplementation", "c")
         document["selectors"].setdefault("TransformPlaneImplementation", "c")
+        document["selectors"].setdefault("ParticleDrawImplementation", "c")
     return document
 
 
@@ -503,6 +504,8 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("$_ -lt 0 -or $_ -ge $checksumStreamFrameCount", source)
         self.assertIn("checksumFramesAfterWarmup = $checksumPostWarmupFrameCount", source)
         self.assertIn("outside the total $checksumStreamFrameCount-frame checksum stream", source)
+        self.assertIn("$rendererSelectorProfileData.selectors.PSObject.Properties['ParticleDrawImplementation']", source)
+        self.assertIn("NotePropertyValue 'c'", source)
         self.assertIn("Compare-Bench486EventRepeat", source)
         self.assertIn("repeat-blob-explosion-event-stability", source)
         self.assertIn("blobExplosionEventRepeatParity = $blobExplosionEventRepeatParity", source)
@@ -803,13 +806,14 @@ class RenderingComparisonTests(unittest.TestCase):
             "-timedemoexit -framechecksums -framecapture 10 -nosound "
             f"-nocdaudio {scene['quakeExtraArgs']} +timedemo {scene['demo']}"
         )
-        self.assertEqual(len(command_tail.encode("ascii")), 112, command_tail)
-        self.assertLessEqual(len(command_tail.encode("ascii")), 126, command_tail)
+        psp_tail = " " + command_tail
+        self.assertEqual(len(psp_tail.encode("ascii")), 113, psp_tail)
+        self.assertLessEqual(len(psp_tail.encode("ascii")), 126, psp_tail)
 
         timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
-        self.assertIn("$dosPspCommandTailMaxBytes = 126", timedemo_source)
-        self.assertIn("[Text.Encoding]::ASCII.GetByteCount($quakeCommandTail)", timedemo_source)
-        self.assertIn("if ($quakeCommandTailBytes -gt $dosPspCommandTailMaxBytes)", timedemo_source)
+        common_source = (ROOT / "tools/common.ps1").read_text(encoding="utf-8")
+        self.assertIn("Assert-DosPspCommandTail -CommandTail (' ' + $quakeCommandTail)", timedemo_source)
+        self.assertIn("$dosPspCommandTailMaxBytes = 126", common_source)
         self.assertIn("cd \\quake", timedemo_source)
 
     def test_assembly_selector_profile_uses_supported_i486_paths(self) -> None:
@@ -1222,7 +1226,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 86)
+        self.assertEqual(len(reference["selectors"]), 87)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1285,7 +1289,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 86)
+        self.assertEqual(len(reference["selectors"]), 87)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1366,7 +1370,7 @@ class RenderingComparisonTests(unittest.TestCase):
         expected_focused["PrintTimesImplementation"] = "asm"
         self.assertEqual(focused["selectors"], expected_focused)
         self.assertNotIn("PrintTimesImplementation", selectable86["selectors"])
-        self.assertEqual(len(selectable["selectors"]), 83)
+        self.assertEqual(len(selectable["selectors"]), 84)
         self.assertEqual(selectable["selectors"]["PrintTimesImplementation"], "asm")
         self.assertEqual(len(selectable87["selectors"]), 87)
         self.assertEqual(selectable87["id"], "i486-asm-selectable-87")
@@ -1450,7 +1454,7 @@ class RenderingComparisonTests(unittest.TestCase):
         expected_focused = dict(reference["selectors"])
         expected_focused["ParticleExplosion2Implementation"] = "asm"
         self.assertEqual(focused["selectors"], expected_focused)
-        self.assertEqual(len(selectable["selectors"]), 83)
+        self.assertEqual(len(selectable["selectors"]), 84)
         self.assertEqual(selectable["selectors"]["ParticleExplosion2Implementation"], "asm")
         self.assertEqual(len(selectable87["selectors"]), 87)
         self.assertNotIn("ParticleExplosion2Implementation", selectable87["selectors"])
@@ -1510,7 +1514,7 @@ class RenderingComparisonTests(unittest.TestCase):
         expected_focused = dict(reference["selectors"])
         expected_focused["ParticleExplosionImplementation"] = "asm"
         self.assertEqual(focused["selectors"], expected_focused)
-        self.assertEqual(len(selectable["selectors"]), 83)
+        self.assertEqual(len(selectable["selectors"]), 84)
         self.assertEqual(selectable["selectors"]["ParticleExplosionImplementation"], "asm")
         self.assertEqual(len(selectable88["selectors"]), 88)
         self.assertNotIn("ParticleExplosionImplementation", selectable88["selectors"])
@@ -1625,7 +1629,7 @@ class RenderingComparisonTests(unittest.TestCase):
         expected_focused = dict(reference["selectors"])
         expected_focused["TransformPlaneImplementation"] = "asm"
         self.assertEqual(focused["selectors"], expected_focused)
-        self.assertEqual(len(selectable["selectors"]), 83)
+        self.assertEqual(len(selectable["selectors"]), 84)
         self.assertEqual(selectable["selectors"]["TransformPlaneImplementation"], "asm")
         self.assertEqual(len(selectable89["selectors"]), 89)
         self.assertNotIn("TransformPlaneImplementation", selectable89["selectors"])
@@ -1789,6 +1793,7 @@ class RenderingComparisonTests(unittest.TestCase):
             expected = "c" if name in {
                 "BspClipImplementation",
                 "BspPlaneDotImplementation",
+                "ParticleDrawImplementation",
                 "ParticleUpdateImplementation",
                 "SpriteOrientationImplementation",
                 "RenderMathImplementation",
@@ -1833,6 +1838,7 @@ class RenderingComparisonTests(unittest.TestCase):
             "EfragStoreImplementation",
             "EmitCachedEdgeImplementation",
             "RenderPolyImplementation",
+            "ParticleDrawImplementation",
             "SpriteOrientationImplementation",
             "RenderMathImplementation",
             "AnimatedLightImplementation",
