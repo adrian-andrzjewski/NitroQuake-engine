@@ -11168,11 +11168,10 @@ C(R_DrawParticles_asm486):
 	fstps	pt_vel+4(%ebx)
 	fld	%st(0)
 	fmuls	pt_vel+8(%ebx)
-	fstps	pt_vel+8(%ebx)
-	fstp	%st(0)
-	flds	pt_vel+8(%ebx)
+	/* C retains the Z product in x87 precision through the gravity subtraction. */
 	fsubs	-36(%ebp)
 	fstps	pt_vel+8(%ebx)
+	fstp	%st(0)
 	jmp	.Lparticle_next
 
 .Lparticle_explode2:
@@ -11209,11 +11208,10 @@ C(R_DrawParticles_asm486):
 	fstps	pt_vel+4(%ebx)
 	fld	%st(0)
 	fmuls	pt_vel+8(%ebx)
-	fstps	pt_vel+8(%ebx)
-	fstp	%st(0)
-	flds	pt_vel+8(%ebx)
+	/* Match C's single final store after the following gravity subtraction. */
 	fsubs	-36(%ebp)
 	fstps	pt_vel+8(%ebx)
+	fstp	%st(0)
 	jmp	.Lparticle_next
 
 .Lparticle_blob:
@@ -11228,11 +11226,10 @@ C(R_DrawParticles_asm486):
 	fstps	pt_vel+4(%ebx)
 	fld	%st(0)
 	fmuls	pt_vel+8(%ebx)
-	fstps	pt_vel+8(%ebx)
-	fstp	%st(0)
-	flds	pt_vel+8(%ebx)
+	/* C retains the Z product in x87 precision through the gravity subtraction. */
 	fsubs	-36(%ebp)
 	fstps	pt_vel+8(%ebx)
+	fstp	%st(0)
 	jmp	.Lparticle_next
 
 .Lparticle_blob2:

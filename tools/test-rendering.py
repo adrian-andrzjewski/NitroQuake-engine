@@ -3088,6 +3088,46 @@ class RenderingComparisonTests(unittest.TestCase):
             traceability,
         )
 
+    def test_particle_update_has_multiframe_exact_c_asm_fixture_and_runner(self) -> None:
+        fixture = (ROOT / "src/bench486_particleupdate.h").read_text(encoding="utf-8")
+        host = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
+        traceability = (ROOT / "docs/ledger/2026-10-10-particle-update-parity-fixture.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("R_DrawParticles_C", fixture)
+        self.assertIn("R_DrawParticles_asm486", fixture)
+        self.assertIn("BPU_FRAME_COUNT 10", fixture)
+        self.assertIn("BPU_MODE_COUNT 4", fixture)
+        self.assertIn("pt_slowgrav", fixture)
+        self.assertIn("Bench486ParticleDrawPrepareBuffers", fixture)
+        self.assertIn("Bench486ParticleUpdateCompareAssembly", fixture)
+        self.assertIn("particle-update depthbuffer mismatch", fixture)
+        self.assertIn("particle-update list/projection/CW mismatch", fixture)
+        for start, end in (
+            (".Lparticle_explode_velocity:", ".Lparticle_explode2:"),
+            (".Lparticle_explode2_velocity:", ".Lparticle_blob:"),
+            (".Lparticle_blob:", ".Lparticle_blob2:"),
+        ):
+            with self.subTest(block=start):
+                block = assembly[assembly.index(start):assembly.index(end, assembly.index(start))]
+                self.assertLess(block.index("fmuls\tpt_vel+8(%ebx)"),
+                                block.index("fsubs\t-36(%ebp)"))
+                self.assertLess(block.index("fsubs\t-36(%ebp)"),
+                                block.index("fstps\tpt_vel+8(%ebx)"))
+        self.assertIn('#include "bench486_particleupdate.h"', host)
+        self.assertIn('COM_CheckParm ("-benchparticleupdate")', host)
+        self.assertIn("[switch]$ParticleUpdateOnly", runner)
+        self.assertIn("$ParticleUpdateOnly -and $ParticleUpdateImplementation -ne 'asm'", runner)
+        self.assertIn("-benchparticleupdate -benchexit", runner)
+        self.assertIn("particleUpdateOnly = [bool]$ParticleUpdateOnly", runner)
+        self.assertIn("R_DrawParticles_C", traceability)
+        self.assertIn("R_DrawParticles_asm486", traceability)
+        self.assertIn("40 frames across four x87 rounding modes", traceability)
+        self.assertIn("-ParticleUpdateImplementation asm -ParticleDrawImplementation asm -ParticleUpdateOnly", traceability)
+
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(RenderingComparisonTests)

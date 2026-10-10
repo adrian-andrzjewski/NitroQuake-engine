@@ -315,6 +315,7 @@ param(
     [switch]$SurfaceCacheOnly,
     [switch]$ParticleListOnly,
     [switch]$ParticleDrawOnly,
+    [switch]$ParticleUpdateOnly,
     [switch]$DamageParseOnly,
     [switch]$ParticleExplosionOnly,
     [switch]$ParseParticleEffectOnly,
@@ -376,6 +377,12 @@ if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
 }
 if ($ParticleDrawOnly -and $ParticleDrawImplementation -ne 'asm') {
     throw '-ParticleDrawOnly requires -ParticleDrawImplementation asm.'
+}
+if ($ParticleUpdateOnly -and $ParticleUpdateImplementation -ne 'asm') {
+    throw '-ParticleUpdateOnly requires -ParticleUpdateImplementation asm.'
+}
+if ($ParticleUpdateOnly -and $ParticleDrawImplementation -ne 'asm') {
+    throw '-ParticleUpdateOnly requires -ParticleDrawImplementation asm for its framebuffer oracle.'
 }
 if ($DamageParseOnly -and $DamageParseImplementation -ne 'asm') {
     throw '-DamageParseOnly requires -DamageParseImplementation asm.'
@@ -892,6 +899,9 @@ elseif ($ParticleListOnly) {
 elseif ($ParticleDrawOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticledraw -benchexit'
 }
+elseif ($ParticleUpdateOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleupdate -benchexit'
+}
 elseif ($DamageParseOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvparsedamage -benchexit'
 }
@@ -1122,6 +1132,7 @@ $result = [ordered]@{
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     particleDrawImplementation = $ParticleDrawImplementation
+    particleUpdateImplementation = $ParticleUpdateImplementation
     damageParseImplementation = $DamageParseImplementation
     blobExplosionImplementation = $BlobExplosionImplementation
     lavaSplashImplementation = $LavaSplashImplementation
@@ -1176,6 +1187,7 @@ $result = [ordered]@{
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
     particleDrawOnly = [bool]$ParticleDrawOnly
+    particleUpdateOnly = [bool]$ParticleUpdateOnly
     damageParseOnly = [bool]$DamageParseOnly
     particleExplosion2Only = [bool]$ParticleExplosion2Only
     blobExplosionOnly = [bool]$BlobExplosionOnly

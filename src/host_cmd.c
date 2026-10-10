@@ -6920,6 +6920,10 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_PARTICLE_DRAW)
 #include "bench486_particledraw.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_PARTICLE_UPDATE) && \
+		defined(ASM486_PARTICLE_DRAW)
+#include "bench486_particleupdate.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_DRAW_Z_SUBMODEL_POLYS)
 #include "bench486_zsubmodel.h"
 #endif
@@ -11165,6 +11169,24 @@ static void Bench486_f (void)
 	{
 		Bench486Printf ("particle rasterizer compares the retained C routine with 486 assembly\n");
 		Bench486ParticleDrawCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+#endif
+#if defined(BENCH486) && defined(ASM486_PARTICLE_UPDATE) && \
+		defined(ASM486_PARTICLE_DRAW)
+	if (COM_CheckParm ("-benchparticleupdate"))
+	{
+		Bench486ParticleUpdateCases ();
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);

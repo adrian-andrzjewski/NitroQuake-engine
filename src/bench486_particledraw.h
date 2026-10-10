@@ -4,15 +4,7 @@
 
 #ifdef ASM486_PARTICLE_DRAW
 
-#define BPD_ROWS 48
-#define BPD_COLOR_STRIDE 80
-#define BPD_DEPTH_STRIDE 64
-#define BPD_COLOR_GUARD 32
-#define BPD_DEPTH_GUARD 16
-#define BPD_COLOR_BYTES (BPD_COLOR_STRIDE * BPD_ROWS)
-#define BPD_DEPTH_WORDS (BPD_DEPTH_STRIDE * BPD_ROWS)
-#define BPD_COLOR_TOTAL (BPD_COLOR_GUARD + BPD_COLOR_BYTES + BPD_COLOR_GUARD)
-#define BPD_DEPTH_TOTAL (BPD_DEPTH_GUARD + BPD_DEPTH_WORDS + BPD_DEPTH_GUARD)
+#include "bench486_particledraw_layout.h"
 
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
 		const unsigned *arguments, float *float_result);
@@ -534,16 +526,6 @@ static void Bench486ParticleDrawCases (void)
 	Bench486Printf ("particle-draw C/ASM %s (%lu direct cases; repeated streams in four rounding modes; %lu failures)\n",
 			failures ? "FAIL" : "PASS", cases_run, failures);
 }
-
-#undef BPD_ROWS
-#undef BPD_COLOR_STRIDE
-#undef BPD_DEPTH_STRIDE
-#undef BPD_COLOR_GUARD
-#undef BPD_DEPTH_GUARD
-#undef BPD_COLOR_BYTES
-#undef BPD_DEPTH_WORDS
-#undef BPD_COLOR_TOTAL
-#undef BPD_DEPTH_TOTAL
 
 #endif /* ASM486_PARTICLE_DRAW */
 #endif /* BENCH486_PARTICLEDRAW_H */
