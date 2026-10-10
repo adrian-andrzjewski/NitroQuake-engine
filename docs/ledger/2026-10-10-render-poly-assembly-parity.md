@@ -78,4 +78,6 @@ rtk proxy pwsh -NoProfile -Command '.\tools\bench-dos.ps1 -NoBootstrap -CpuTarge
 The build manifest, machine-code reports, ownership report and DOSBox result are
 written under the profile-specific directory in `out/`. Keep the manifest and
 reports together when retaining evidence; generated audit JSONL files may be
-compressed in place after the run finishes.
+compressed in place after the run finishes. The linked ISA auditor removes its
+temporary object copies and archive-member extracts from `out/` after both
+successful and rejected audits.
