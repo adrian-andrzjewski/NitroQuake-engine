@@ -29,7 +29,7 @@ typedef char palette_client_layout[(offsetof(client_state_t,items)==p_client_ite
 typedef char palette_shift_layout[(sizeof(cshift_t)==p_shift_bytes &&
     offsetof(cshift_t,destcolor)==p_shift_destcolor &&
     offsetof(cshift_t,percent)==p_shift_percent && NUM_CSHIFTS==p_shift_count &&
-    CSHIFT_BONUS==p_shift_bonus) ? 1 : -1];
+    CSHIFT_BONUS==p_shift_bonus && sizeof(int)==4) ? 1 : -1];
 typedef char palette_cvar_vid_layout[(offsetof(cvar_t,value)==p_cvar_value &&
     offsetof(viddef_t,recalc_refdef)==p_vid_recalc && sizeof(void*)==4) ? 1 : -1];
 typedef char palette_item_layout[(IT_QUAD==p_item_quad && IT_SUIT==p_item_suit &&
@@ -42,12 +42,15 @@ qboolean V_CheckGamma_C (void);
 void V_CalcPowerupCshift_C (void);
 #ifdef BENCH486
 void V_BonusFlash_C (void);
+void V_cshift_f_C (void);
 #endif
 #if defined(BENCH486) || defined(ASM486_PALETTE)
 void V_BonusFlash_asm486 (void);
+void V_cshift_f_asm486 (void);
 #endif
 #if defined(ASM486_PALETTE)
 void V_BonusFlash_f (void);
+void V_cshift_f (void);
 #endif
 
 #include "r_local.h"
@@ -511,13 +514,25 @@ void V_ParseDamage (void)
 V_cshift_f
 ==================
 */
+#if !defined(ASM486_PALETTE) || defined(BENCH486)
+#ifdef BENCH486
+void V_cshift_f_C (void)
+#else
 void V_cshift_f (void)
+#endif
 {
 	cshift_empty.destcolor[0] = atoi(Cmd_Argv(1));
 	cshift_empty.destcolor[1] = atoi(Cmd_Argv(2));
 	cshift_empty.destcolor[2] = atoi(Cmd_Argv(3));
 	cshift_empty.percent = atoi(Cmd_Argv(4));
 }
+#endif
+#if defined(BENCH486) && !defined(ASM486_PALETTE)
+void V_cshift_f (void)
+{
+	V_cshift_f_C ();
+}
+#endif
 
 
 /*

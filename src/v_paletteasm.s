@@ -201,6 +201,48 @@ C(V_CalcPowerupCshift_asm486):
         ret
 
         .p2align 4,,15
+        .globl C(V_cshift_f_asm486)
+#ifdef ASM486_PALETTE
+        .globl C(V_cshift_f)
+C(V_cshift_f):
+#endif
+C(V_cshift_f_asm486):
+// V_cshift_f: store the same four atoi(Cmd_Argv(n)) results, in source order.
+// Each helper call is cdecl; only caller-scratch EAX is used, preserving callee-saved registers.
+        pushl   $1
+        call    C(Cmd_Argv)
+        addl    $4,%esp
+        pushl   %eax
+        call    C(atoi)
+        addl    $4,%esp
+        movl    %eax,C(cshift_empty)+p_shift_destcolor
+
+        pushl   $2
+        call    C(Cmd_Argv)
+        addl    $4,%esp
+        pushl   %eax
+        call    C(atoi)
+        addl    $4,%esp
+        movl    %eax,C(cshift_empty)+p_shift_destcolor+4
+
+        pushl   $3
+        call    C(Cmd_Argv)
+        addl    $4,%esp
+        pushl   %eax
+        call    C(atoi)
+        addl    $4,%esp
+        movl    %eax,C(cshift_empty)+p_shift_destcolor+8
+
+        pushl   $4
+        call    C(Cmd_Argv)
+        addl    $4,%esp
+        pushl   %eax
+        call    C(atoi)
+        addl    $4,%esp
+        movl    %eax,C(cshift_empty)+p_shift_percent
+        ret
+
+        .p2align 4,,15
         .globl C(V_BonusFlash_asm486)
 #ifdef ASM486_PALETTE
         .globl C(V_BonusFlash_f)

@@ -858,6 +858,37 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("-benchpalette -benchexit", runner)
         self.assertIn("paletteOnly = [bool]$PaletteOnly", runner)
 
+    def test_cshift_command_preserves_atoi_and_contents_shift_behavior(self) -> None:
+        source = (ROOT / "src/view.c").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/v_paletteasm.s").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_palette.h").read_text(encoding="utf-8")
+
+        self.assertIn("void V_cshift_f_C (void)", source)
+        self.assertIn("void V_cshift_f_asm486 (void);", source)
+        self.assertIn("void V_cshift_f (void);", source)
+        self.assertIn("sizeof(int)==4", source)
+        self.assertIn("C(V_cshift_f_asm486):", assembly)
+        self.assertIn("C(V_cshift_f):", assembly)
+        self.assertEqual(assembly.count("call    C(Cmd_Argv)"), 4)
+        self.assertEqual(assembly.count("call    C(atoi)"), 4)
+        for offset in ("p_shift_destcolor", "p_shift_destcolor+4",
+                "p_shift_destcolor+8", "p_shift_percent"):
+            with self.subTest(offset=offset):
+                self.assertIn("C(cshift_empty)+" + offset, assembly)
+        self.assertIn("Cmd_TokenizeString(command)", fixture)
+        self.assertIn("Bench486CshiftCases", fixture)
+        self.assertIn("V_SetContentsColor_C", fixture)
+        self.assertIn("V_SetContentsColor_asm486", fixture)
+        for case in (
+            '"v_cshift 12 -3 255 96"',
+            '"v_cshift +17junk -08 0x10 +40tail"',
+            '"v_cshift 21"',
+            '"v_cshift -2147483648 2147483647 -2147483647 2147483646"',
+            '"v_cshift"',
+        ):
+            with self.subTest(case=case):
+                self.assertIn(case, fixture)
+
     def test_damage_parse_profiles_isolate_the_new_assembly_candidate(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))

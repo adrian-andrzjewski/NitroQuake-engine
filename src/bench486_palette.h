@@ -11,6 +11,9 @@ extern void V_CalcPowerupCshift_asm486 (void);
 extern void V_BonusFlash_C (void);
 extern void V_BonusFlash_f (void);
 extern void V_BonusFlash_asm486 (void);
+extern void V_cshift_f_C (void);
+extern void V_cshift_f (void);
+extern void V_cshift_f_asm486 (void);
 extern void V_UpdatePalette_C (void);
 extern void V_UpdatePalette_asm486 (void);
 extern void Bench486PaletteSetHook (void (*hook)(byte *));
@@ -111,6 +114,104 @@ static void Bench486BonusFlashCases (void)
             failures?"FAIL":"PASS",cases,failures);
 }
 
+static unsigned Bench486CshiftCall (void (*function)(void), const char *line,
+        const cshift_t *initial, cshift_t *result)
+{
+    static char command[128];
+    unsigned abi;
+
+    /* These legacy Quake helpers predate const-qualified source arguments. */
+    Q_memcpy(&cshift_empty,(void *)initial,sizeof(cshift_empty));
+    Q_strcpy(command,(char *)line);
+    Cmd_TokenizeString(command);
+    abi=Bench486Call_asm486(function,0,NULL,NULL);
+    Q_memcpy(result,&cshift_empty,sizeof(*result));
+    return abi;
+}
+
+static void Bench486CshiftCases (void)
+{
+    static const struct {
+        const char *line;
+        int color[3],percent;
+    } cases[]={
+        {"v_cshift 12 -3 255 96",{12,-3,255},96},
+        {"v_cshift +17junk -08 0x10 +40tail",{17,-8,0},40},
+        {"v_cshift nope -4 9x -1",{0,-4,9},-1},
+        {"v_cshift 21",{21,0,0},0},
+        {"v_cshift 300 -10 0 999 ignored",{300,-10,0},999},
+        {"v_cshift -2147483648 2147483647 -2147483647 2147483646",
+            {(-2147483647-1),2147483647,-2147483647},2147483646},
+        {"v_cshift",{0,0,0},0}
+    };
+    static cshift_t saved,initial,expected,c_result,a_result,public_result;
+    static client_state_t saved_client,expected_client,c_client,a_client,public_client;
+    static char saved_command[1024];
+    unsigned c_abi,a_abi,public_abi,c_set_abi,a_set_abi,public_set_abi;
+    unsigned args[1],cases_run=0,failures=0;
+    int i;
+
+    Q_memcpy(&saved,&cshift_empty,sizeof(saved));
+    Q_memcpy(&saved_client,&cl,sizeof(cl));
+    saved_command[0]=0;
+    if(Cmd_Argc()>0)
+    {
+        Q_strcpy(saved_command,Cmd_Argv(0));
+        if(Cmd_Argc()>1 && Cmd_Args() && Cmd_Args()[0])
+        {
+            strcat(saved_command," ");
+            strcat(saved_command,Cmd_Args());
+        }
+    }
+
+    for(i=0;i<sizeof(cases)/sizeof(cases[0]);i++)
+    {
+        initial.destcolor[0]=101+i;
+        initial.destcolor[1]=121+i;
+        initial.destcolor[2]=141+i;
+        initial.percent=161+i;
+        expected=initial;
+        expected.destcolor[0]=cases[i].color[0];
+        expected.destcolor[1]=cases[i].color[1];
+        expected.destcolor[2]=cases[i].color[2];
+        expected.percent=cases[i].percent;
+
+        Q_memcpy(&cl,&saved_client,sizeof(cl));
+        c_abi=Bench486CshiftCall(V_cshift_f_C,cases[i].line,&initial,&c_result);
+        expected_client=saved_client;
+        expected_client.cshifts[CSHIFT_CONTENTS]=expected;
+        args[0]=CONTENTS_EMPTY;
+        c_set_abi=Bench486Call_asm486((void (*)(void))V_SetContentsColor_C,1,args,NULL);
+        Q_memcpy(&c_client,&cl,sizeof(cl));
+
+        Q_memcpy(&cl,&saved_client,sizeof(cl));
+        a_abi=Bench486CshiftCall(V_cshift_f_asm486,cases[i].line,&initial,&a_result);
+        a_set_abi=Bench486Call_asm486((void (*)(void))V_SetContentsColor_asm486,1,args,NULL);
+        Q_memcpy(&a_client,&cl,sizeof(cl));
+
+        Q_memcpy(&cl,&saved_client,sizeof(cl));
+        public_abi=Bench486CshiftCall(V_cshift_f,cases[i].line,&initial,&public_result);
+        public_set_abi=Bench486Call_asm486((void (*)(void))V_SetContentsColor_asm486,1,args,NULL);
+        Q_memcpy(&public_client,&cl,sizeof(cl));
+        if(c_abi || a_abi || public_abi || c_set_abi || a_set_abi || public_set_abi ||
+                Q_memcmp(&c_result,&expected,sizeof(expected)) ||
+                Q_memcmp(&a_result,&expected,sizeof(expected)) ||
+                Q_memcmp(&public_result,&expected,sizeof(expected)) ||
+                Q_memcmp(&c_client,&expected_client,sizeof(cl)) ||
+                Q_memcmp(&a_client,&expected_client,sizeof(cl)) ||
+                Q_memcmp(&public_client,&expected_client,sizeof(cl)))
+            failures++;
+        cases_run++;
+    }
+
+    Q_memcpy(&cshift_empty,&saved,sizeof(saved));
+    Q_memcpy(&cl,&saved_client,sizeof(cl));
+    Cmd_TokenizeString(saved_command);
+    if(failures) bench486_memory_failures++;
+    Bench486Printf("v_cshift C/ASM/public state, contents shift and ABI %s (%u token cases; %u failures)\n",
+            failures?"FAIL":"PASS",cases_run,failures);
+}
+
 static void Bench486PaletteStep (int sequence, unsigned short cw,
         bench486_palette_state_t *reference, bench486_palette_state_t *assembly)
 {
@@ -209,6 +310,7 @@ static void Bench486PaletteCases (void)
     bench486_palette_capture.last=0x486b2468;
     bench486_palette_stack_failures=0;
     before=bench486_memory_failures; direct=frames=0;
+    Bench486CshiftCases();
     Bench486BonusFlashCases();
     /* V_Init calls the public getter before this startup command executes. */
     for(i=0 ; i<256 ; i++) if(gammatable[i]!=(byte)i)
