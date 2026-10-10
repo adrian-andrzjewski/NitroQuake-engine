@@ -6911,6 +6911,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 #include "bench486_screencenter.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_SCREEN_ERASE_CENTER_STRING)
+#include "bench486_screenerase.h"
+#endif
 #include "asm_drawing.h"
 #include "bench486_drawing.h"
 #include "asm_chase.h"
@@ -10908,6 +10911,26 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchcentererase"))
+	{
+#ifdef ASM486_SCREEN_ERASE_CENTER_STRING
+		Bench486ScreenEraseCenterCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("screen erase fixture requires ScreenEraseCenterStringImplementation=asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 
 	if (COM_CheckParm ("-benchdrawingdriver"))
 	{
@@ -11490,6 +11513,9 @@ static void Bench486_f (void)
 #endif
 #ifdef ASM486_SCREEN_CENTER_STRING
 	Bench486ScreenCenterCases ();
+#endif
+#ifdef ASM486_SCREEN_ERASE_CENTER_STRING
+	Bench486ScreenEraseCenterCases ();
 #endif
 #ifdef ASM486_DRAWING
 	Bench486DrawingCases ();

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-screenerasecenter-c",
+  "description": "Reference selector for exact SCR_EraseCenterString comparison.",
+  "selectors": {
+    "ScreenEraseCenterStringImplementation": "c"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-screenerasecenter-asm",
+  "description": "Focused assembly candidate for SCR_EraseCenterString exact state and call-trace comparison.",
+  "selectors": {
+    "ScreenEraseCenterStringImplementation": "asm"
+  }
+}

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-11-screen-erase-center-string-assembly-port.md`](2026-10-11-screen-erase-center-string-assembly-port.md) | 4 | renderer port / centered-message erase (`Reference and selector boundary`; `x87 arithmetic and the 486DX target`; `Exact differential fixture`; `Strict executable evidence`) |
 | [`2026-10-10-screen-calc-fov-assembly-port.md`](2026-10-10-screen-calc-fov-assembly-port.md) | 6 | renderer port / view projection (`Original C behavior and selector boundary`; `Assembly mapping`; `Direct C/assembly and ABI fixture`; `i486 instruction evidence`; `Paired framebuffer evidence`; `CalcFov traceability and reproduction`) |
 | [`2026-10-10-d-drawzspans-assembly-parity.md`](2026-10-10-d-drawzspans-assembly-parity.md) | 5 | renderer port / depth spans (`Traceability and scope`; `Arithmetic, stores, and ABI`; `Direct differential fixture`; `Strict i486 audit`; `Reproduction and limits`) |
 | [`2026-10-10-screen-center-string-assembly-parity.md`](2026-10-10-screen-center-string-assembly-parity.md) | 4 | renderer port / centered messages (`SCR_DrawCenterString reference and assembly boundary`; `x87 arithmetic, state and calling convention`; `18-case C/assembly differential fixture`; `Strict 486DX+x87 executable evidence`) |
@@ -338,6 +339,9 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [`SCR_DrawCenterString` exact 18-case C/assembly/public parity across 12 x87 settings](2026-10-10-screen-center-string-assembly-parity.md)
 - `measured` [Strict linked executable, startup and CWSDPMI provider audits pass with zero violations or exemptions](2026-10-10-screen-center-string-assembly-parity.md)
 - `open` [Complete-scene parity and broader screen/rendering ownership](2026-10-10-screen-center-string-assembly-parity.md)
+- `measured` [`SCR_EraseCenterString` exact 252-call C/assembly/public parity across 12 x87 settings](2026-10-11-screen-erase-center-string-assembly-port.md)
+- `measured` [Strict linked executable, startup and CWSDPMI provider audits pass with zero violations or exemptions](2026-10-11-screen-erase-center-string-assembly-port.md)
+- `open` [Full-scene parity and remaining renderer ownership](2026-10-11-screen-erase-center-string-assembly-port.md)
 - `measured` [`SCR_DrawNotifyString` -> i486 assembly port with 19 exact direct cases and i486 execution (2026-10-10)](2026-10-10-scr-drawnotifystring-assembly-port.md)
 - `measured` [Strict project-object, linked/runtime, final-executable, startup and CWSDPMI i486 audits pass with zero violations or exemptions](2026-10-10-scr-drawnotifystring-assembly-port.md)
 - `open` [Combined-profile/full-scene parity and remaining screen ownership](2026-10-10-scr-drawnotifystring-assembly-port.md)

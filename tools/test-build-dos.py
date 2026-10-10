@@ -34,6 +34,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -147,6 +148,45 @@ def main() -> int:
     ):
         if contract not in build_script:
             fail("the normal release build is missing linked ISA contract %r" % contract)
+
+    # The selected hardware contract is an 80486DX with its 387-compatible x87.
+    # Keep the emulator profile and its timedemo hash pin aligned so the runtime
+    # fixture cannot silently fall back to a 486SX/no-FPU configuration.
+    dosbox_profile_path = os.path.join(REPO_ROOT, "tools", "dosbox-x-486-high.conf")
+    try:
+        with open(dosbox_profile_path, "rb") as handle:
+            dosbox_profile_bytes = handle.read()
+        dosbox_profile_text = dosbox_profile_bytes.decode("ascii").replace("\r\n", "\n")
+        in_cpu_section = False
+        cpu_options: dict[str, str] = {}
+        for line in dosbox_profile_text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("[") and stripped.endswith("]"):
+                in_cpu_section = stripped.lower() == "[cpu]"
+            elif in_cpu_section and stripped and not stripped.startswith("#") and "=" in stripped:
+                key, value = stripped.split("=", 1)
+                cpu_options[key.strip().lower()] = value.strip().lower()
+        if cpu_options.get("cputype") != "486":
+            fail("the DOSBox-X compatibility profile must set cputype=486")
+        if cpu_options.get("fpu") != "387":
+            fail("the DOSBox-X compatibility profile must set fpu=387 for the 486DX x87 contract")
+
+        profile_hash = hashlib.sha256(dosbox_profile_text.encode("ascii")).hexdigest().upper()
+        with open(os.path.join(REPO_ROOT, "tools", "timedemo-dos.ps1"), "r", encoding="utf-8") as handle:
+            timedemo_script = handle.read()
+        hash_match = re.search(
+            r"ExpectedProfileSha256\s*=\s*'([0-9A-Fa-f]{64})'", timedemo_script
+        )
+        if hash_match is None:
+            fail("the timedemo DOSBox profile hash pin is missing or malformed")
+        elif hash_match.group(1).upper() != profile_hash:
+            fail(
+                "the DOSBox-X 486 profile hash is %s, but timedemo-dos.ps1 pins %s"
+                % (profile_hash, hash_match.group(1).upper())
+            )
+    except (OSError, UnicodeDecodeError) as error:
+        fail("could not verify the DOSBox-X 486DX/x87 profile: %s" % error)
+
     with open(os.path.join(REPO_ROOT, "tools", "verify-executable-isa.ps1"), "r", encoding="utf-8") as handle:
         verification_script = handle.read()
     for contract in ("isa-audit-linked.ps1", "final-executable-isa-ranges.py", "startup-linked-proof.py",
@@ -249,6 +289,29 @@ def main() -> int:
     i386 = dump_flags("-CpuTarget", "i386")
     compare("i486", i486, load_golden("i486"))
     compare("i386", i386, load_golden("i386"))
+
+    # Do not rely on the goldens alone for the CPU/FPU identity: explicitly
+    # assert the hardware choice and GCC's x87 code-generation mode.
+    for target_name, target_flags, expected_cpu_model in (
+        ("i486", i486, "486DX"),
+        ("i386", i386, "386"),
+    ):
+        if not target_flags:
+            continue
+        if target_flags.get("cpuModel") != expected_cpu_model:
+            fail(
+                "%s cpuModel is %r; expected %r"
+                % (target_name, target_flags.get("cpuModel"), expected_cpu_model)
+            )
+        if target_flags.get("fpuModel") != "387-compatible" or target_flags.get("fpuRequired") is not True:
+            fail("%s must require a 387-compatible x87 FPU" % target_name)
+        if target_flags.get("floatingPointMode") != "387":
+            fail("%s floatingPointMode must stay 387" % target_name)
+        c_flags = target_flags.get("cFlags", [])
+        if c_flags.count("-mfpmath=387") != 1:
+            fail("%s must pass exactly one -mfpmath=387 C compiler flag" % target_name)
+        if any(flag in c_flags for flag in ("-msoft-float", "-mno-80387", "-mfpmath=sse")):
+            fail("%s C flags disable the required 387-compatible x87" % target_name)
 
     expected_source_flags = {
         "r_main.c": ["-fno-jump-tables"],
@@ -677,6 +740,7 @@ def main() -> int:
         ("ConsoleImplementation", "ASM486_CONSOLE_INPUT", "consoleinputasm"),
         ("ScreenNotifyImplementation", "ASM486_SCREEN_NOTIFY", "screennotifyasm"),
         ("ScreenCenterStringImplementation", "ASM486_SCREEN_CENTER_STRING", "screencenterasm"),
+        ("ScreenEraseCenterStringImplementation", "ASM486_SCREEN_ERASE_CENTER_STRING", "screeneraseasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
     ):
         reference = dump_flags("-" + selector, "c")
@@ -715,6 +779,12 @@ def main() -> int:
     for name, dump in (("C", screen_center_reference), ("assembly", screen_center_candidate)):
         if dump and "screen_centerasm.s" not in dump.get("assemblySources", []):
             fail("the SCR_DrawCenterString %s selector omits screen_centerasm.s from the source inventory" % name)
+
+    screen_erase_reference = dump_flags("-ScreenEraseCenterStringImplementation", "c")
+    screen_erase_candidate = dump_flags("-ScreenEraseCenterStringImplementation", "asm")
+    for name, dump in (("C", screen_erase_reference), ("assembly", screen_erase_candidate)):
+        if dump and "screen_eraseasm.s" not in dump.get("assemblySources", []):
+            fail("the SCR_EraseCenterString %s selector omits screen_eraseasm.s from the source inventory" % name)
 
     for value_name, value in (("C", "c"), ("assembly", "asm")):
         damage_parse = dump_flags("-DamageParseImplementation", value)
@@ -1692,7 +1762,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 59 assembly sources (one is omitted only
+    #    included by another unit), 60 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1704,9 +1774,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 59:
+        if dump.get("allAssemblySourceCount") != 60:
             fail(
-                "%s: expected 59 assembly sources, got %r"
+                "%s: expected 60 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

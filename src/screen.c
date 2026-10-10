@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 #include "asm_screenfov.h"
 #include "asm_screennotify.h"
+#include "asm_screenerase.h"
 #include "asm_screencenter.h"
 
 // only the refresh window will be updated unless these variables are flagged 
@@ -106,7 +107,14 @@ void SCR_CenterPrint (char *str)
 	}
 }
 
-void SCR_EraseCenterString (void)
+#if defined(ASM486_SCREEN_ERASE_CENTER_STRING) && defined(BENCH486)
+#define SCREEN_ERASE_CENTER_C SCR_EraseCenterString_Screen_C
+#elif !defined(ASM486_SCREEN_ERASE_CENTER_STRING)
+#define SCREEN_ERASE_CENTER_C SCR_EraseCenterString
+#endif
+
+#if !defined(ASM486_SCREEN_ERASE_CENTER_STRING) || defined(BENCH486)
+void SCREEN_ERASE_CENTER_C (void)
 {
 	int		y;
 
@@ -122,8 +130,15 @@ void SCR_EraseCenterString (void)
 		y = 48;
 
 	scr_copytop = 1;
+#if defined(BENCH486) && defined(ASM486_SCREEN_ERASE_CENTER_STRING)
+	Bench486ScreenEraseTileClear (0, y,vid.width, 8*scr_erase_lines);
+#else
 	Draw_TileClear (0, y,vid.width, 8*scr_erase_lines);
+#endif
 }
+#endif
+
+#undef SCREEN_ERASE_CENTER_C
 
 #if defined(ASM486_SCREEN_CENTER_STRING) && defined(BENCH486)
 #define SCR_CENTER_DRAW_CHARACTER Bench486ScreenCenterStringCharacter

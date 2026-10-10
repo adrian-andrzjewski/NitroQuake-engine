@@ -212,6 +212,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenCenterStringImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenEraseCenterStringImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -306,7 +308,7 @@ param(
     # This constant is the hash of the profile with its line endings NORMALISED to
     # LF, not of the bytes on disk. See Get-TextFileHash below: hashing the working
     # copy made the promotion gate depend on the machine's git configuration.
-    [string]$ExpectedProfileSha256 = '74C9AFF673AB7990BAE76170B6F235E363BE4901E3DA77AFBA4076E2DF5961B1',
+    [string]$ExpectedProfileSha256 = '2B93E3A471D7E8578BB08DB65165ECF68605824604155E387500695E6611F7D3',
     [int]$ExpectedFrames = 969,
     [uint32]$ExpectedChecksum = 1047377823,
     [switch]$AllowGateOverride
@@ -1430,6 +1432,7 @@ $result = [ordered]@{
     consoleImplementation = $ConsoleImplementation
     screenNotifyImplementation = $ScreenNotifyImplementation
     screenCenterStringImplementation = $ScreenCenterStringImplementation
+    screenEraseCenterStringImplementation = $ScreenEraseCenterStringImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation

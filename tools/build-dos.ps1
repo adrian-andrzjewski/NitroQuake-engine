@@ -235,6 +235,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenCenterStringImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenEraseCenterStringImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -623,7 +625,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 59
+$expectedAllAssemblySourceCount = 60
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {
@@ -674,11 +676,18 @@ try {
     # in any other respect.
     $marchFlag = "-march=$CpuTarget"
     $mtuneFlag = "-mtune=$CpuTarget"
+    $cpuModel = if ($CpuTarget -eq 'i486') { '486DX' } else { '386' }
+    # Quake's renderer and supporting math require an x87.  Make the intended
+    # 486DX-compatible floating-point instruction family explicit instead of
+    # relying on GCC's target defaults.
+    $fpuModel = '387-compatible'
+    $floatingPointMode = '387'
     $cFlags = @(
         "-I$sourceRoot",
         $optimizationLevel,
         $marchFlag,
         $mtuneFlag,
+        '-mfpmath=387',
         '-falign-loops=8',
         '-falign-jumps=16',
         '-falign-functions=8',
@@ -776,6 +785,10 @@ try {
         # that the dump does not depend on the compile loop having run.
         [ordered]@{
             cpuTarget = $CpuTarget
+            cpuModel = $cpuModel
+            fpuModel = $fpuModel
+            fpuRequired = $true
+            floatingPointMode = $floatingPointMode
             march = $marchFlag
             mtune = $mtuneFlag
             optimizationProfile = $OptimizationProfile
@@ -1177,6 +1190,10 @@ try {
         compiler = $version
         target = $toolManifest.djgpp.target
         cpuTarget = $CpuTarget
+        cpuModel = $cpuModel
+        fpuModel = $fpuModel
+        fpuRequired = $true
+        floatingPointMode = $floatingPointMode
         march = $marchFlag
         mtune = $mtuneFlag
         cSourceCount = $allCSources.Count

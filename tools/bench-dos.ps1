@@ -246,6 +246,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenCenterStringImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenEraseCenterStringImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -301,6 +303,7 @@ param(
     [switch]$ConsoleInputOnly,
     [switch]$ScreenNotifyOnly,
     [switch]$ScreenCenterStringOnly,
+    [switch]$ScreenEraseCenterStringOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -400,6 +403,9 @@ if ($ScreenNotifyOnly -and $ScreenNotifyImplementation -ne 'asm') {
 }
 if ($ScreenCenterStringOnly -and $ScreenCenterStringImplementation -ne 'asm') {
     throw '-ScreenCenterStringOnly requires -ScreenCenterStringImplementation asm.'
+}
+if ($ScreenEraseCenterStringOnly -and $ScreenEraseCenterStringImplementation -ne 'asm') {
+    throw '-ScreenEraseCenterStringOnly requires -ScreenEraseCenterStringImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -814,6 +820,9 @@ elseif ($ScreenNotifyOnly) {
 elseif ($ScreenCenterStringOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcenterstring -benchexit'
 }
+elseif ($ScreenEraseCenterStringOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcentererase -benchexit'
+}
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
 }
@@ -1140,6 +1149,7 @@ $result = [ordered]@{
     consoleImplementation = $ConsoleImplementation
     screenNotifyImplementation = $ScreenNotifyImplementation
     screenCenterStringImplementation = $ScreenCenterStringImplementation
+    screenEraseCenterStringImplementation = $ScreenEraseCenterStringImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation

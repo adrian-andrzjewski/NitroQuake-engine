@@ -1,5 +1,9 @@
 {
   "cpuTarget": "i486",
+  "cpuModel": "486DX",
+  "fpuModel": "387-compatible",
+  "fpuRequired": true,
+  "floatingPointMode": "387",
   "march": "-march=i486",
   "mtune": "-mtune=i486",
   "optimizationProfile": "aggressive",
@@ -14,13 +18,14 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 59,
-  "assemblySourceCount": 59,
+  "allAssemblySourceCount": 60,
+  "assemblySourceCount": 60,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
     "-march=i486",
     "-mtune=i486",
+    "-mfpmath=387",
     "-falign-loops=8",
     "-falign-jumps=16",
     "-falign-functions=8",
@@ -269,6 +274,7 @@
     "r_worldcontrolasm.s",
     "r_zsubmodelasm.s",
     "screen_centerasm.s",
+    "screen_eraseasm.s",
     "screen_fovasm.s",
     "screen_notifyasm.s",
     "snd_mixa.s",

@@ -1,5 +1,19 @@
 # Reproducing the i486 executable proof
 
+## Selected CPU and FPU contract
+
+The selected hardware target is an Intel 80486DX-class processor with its
+integrated, 80387-compatible x87 FPU present and enabled. A 486SX without an FPU
+is outside this execution target. The instruction contract is the 486 integer
+ISA plus the 387 x87 instruction set; Pentium and later instructions remain
+forbidden.
+
+The pinned DOSBox-X execution profile sets `cputype=486` and `fpu=387` to model
+that target. DOSBox-X's CPU model is representative only and does not enforce
+instruction-set limits, so the object and linked-code audits below remain the
+compatibility gate. The i486 build target and its golden flag manifest identify
+the same hardware/FPU contract.
+
 ## Build and instruction verification
 
 Run `tools/build-dos.ps1 -NoBootstrap` after installing the toolchain described
