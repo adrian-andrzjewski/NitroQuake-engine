@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-vparsedamage-c",
+  "description": "Focused i486 reference profile using the original C V_ParseDamage implementation.",
+  "selectors": {
+    "DamageParseImplementation": "c"
+  }
+}

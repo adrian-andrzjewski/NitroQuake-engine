@@ -244,7 +244,7 @@ to prove a complete call graph.
 | Sky and particles | Combined complete-profile verification, broader particle-effect stress/sequence scenarios, and sky scenes. The focused `D_DrawParticle` event-scene parity is accepted; it does not close these wider gates. |
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
-| View and drawing support | Damage/bonus/init support, combined-profile verification and initialization/indirect dependencies |
+| View and drawing support | `V_ParseDamage` has an accepted focused assembly slice; bonus/init support, combined-profile verification and initialization/indirect dependencies remain |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

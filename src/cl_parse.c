@@ -780,6 +780,9 @@ void CL_ParseServerMessage (void)
 			
 		case svc_damage:
 			V_ParseDamage ();
+#ifdef BENCH486
+			Bench486RecordSvcDamageEvent ();
+#endif
 			break;
 			
 		case svc_serverinfo:

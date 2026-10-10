@@ -286,7 +286,7 @@ $previousRunParticleEffectEventState = $null
             throw "Scenario '$($scene.id)' captureBenchEvents must be a non-empty JSON array."
         }
         foreach ($captureBenchEvent in $captureBenchEventsProperty.Value) {
-            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect', 'entityParticles')) {
+            if ($captureBenchEvent -isnot [string] -or $captureBenchEvent -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect', 'entityParticles', 'svcDamage')) {
                 throw "Scenario '$($scene.id)' has unsupported captureBenchEvents entry '$captureBenchEvent'."
             }
             $captureBenchEvents += $captureBenchEvent
@@ -296,7 +296,7 @@ $previousRunParticleEffectEventState = $null
     $expectedBenchEventFramesProperty = $scene.PSObject.Properties['expectedBenchEventFrames']
     if ($null -ne $expectedBenchEventFramesProperty -and $null -ne $expectedBenchEventFramesProperty.Value) {
         foreach ($expectedEventProperty in $expectedBenchEventFramesProperty.Value.PSObject.Properties) {
-            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect', 'entityParticles') -or
+            if ($expectedEventProperty.Name -notin @('blobExplosion', 'lavaSplash', 'teleportSplash', 'runParticleEffect', 'entityParticles', 'svcDamage') -or
                 $expectedEventProperty.Value -isnot [array]) {
                 throw "Scenario '$($scene.id)' expectedBenchEventFrames has an invalid '$($expectedEventProperty.Name)' entry."
             }
@@ -329,6 +329,10 @@ $previousRunParticleEffectEventState = $null
     if ($requiredBenchEvents -contains 'entityParticles' -and
         -not $expectedBenchEventFrames.ContainsKey('entityParticles')) {
         throw "Scenario '$($scene.id)' requires entityParticles but does not define expectedBenchEventFrames.entityParticles."
+    }
+    if ($requiredBenchEvents -contains 'svcDamage' -and
+        -not $expectedBenchEventFrames.ContainsKey('svcDamage')) {
+        throw "Scenario '$($scene.id)' requires svcDamage but does not define expectedBenchEventFrames.svcDamage."
     }
 
     Write-Host ''
@@ -599,6 +603,38 @@ $previousRunParticleEffectEventState = $null
                 $null
             }
 
+            $svcDamageFramesProperty = $diagnostics.PSObject.Properties['svcDamageEventFrames']
+            $svcDamageCountProperty = $diagnostics.PSObject.Properties['svcDamageEventCount']
+            $svcDamageOverflowProperty = $diagnostics.PSObject.Properties['svcDamageEventOverflow']
+            $svcDamageEventFrames = $null
+            $svcDamageEventCount = $null
+            $svcDamageEventOverflow = $null
+            $svcDamageEventFramesPresent = $false
+            $svcDamageEventCountPresent = $false
+            $svcDamageEventOverflowPresent = $false
+            $invalidSvcDamageEventFrames = @()
+            if ($null -ne $svcDamageFramesProperty -and $svcDamageFramesProperty.Value -is [System.Array]) {
+                $svcDamageEventFramesPresent = $true
+                $svcDamageEventFrames = @($svcDamageFramesProperty.Value | ForEach-Object { [int]$_ })
+                $invalidSvcDamageEventFrames = @($svcDamageEventFrames | Where-Object {
+                        $_ -lt 0 -or $_ -ge $checksumStreamFrameCount
+                    })
+            }
+            if ($null -ne $svcDamageCountProperty -and $null -ne $svcDamageCountProperty.Value) {
+                $svcDamageEventCountPresent = $true
+                $svcDamageEventCount = [int]$svcDamageCountProperty.Value
+            }
+            if ($null -ne $svcDamageOverflowProperty -and $null -ne $svcDamageOverflowProperty.Value) {
+                $svcDamageEventOverflowPresent = $true
+                $svcDamageEventOverflow = [int]$svcDamageOverflowProperty.Value
+            }
+            $svcDamageEventFrameSignature = if ($svcDamageEventFramesPresent) {
+                [string]::Join(',', [string[]]$svcDamageEventFrames)
+            }
+            else {
+                $null
+            }
+
             $blobExplosionEventRepeatParity = $null
             $blobExplosionEventRepeatComparison = $null
             if ($requiredBenchEvents -contains 'blobExplosion') {
@@ -775,6 +811,9 @@ $previousRunParticleEffectEventState = $null
                     entityParticlesEventCount = $entityParticlesEventCount
                     entityParticlesEventFrames = $entityParticlesEventFrames
                     entityParticlesEventOverflow = $entityParticlesEventOverflow
+                    svcDamageEventCount = $svcDamageEventCount
+                    svcDamageEventFrames = $svcDamageEventFrames
+                    svcDamageEventOverflow = $svcDamageEventOverflow
                     captureBenchEvents = @($captureBenchEvents)
                     captureBenchEventChecks = @()
                     repeatParity = $null
@@ -987,6 +1026,50 @@ $previousRunParticleEffectEventState = $null
                 }
             }
 
+            if ($requiredBenchEvents -contains 'svcDamage') {
+                $eventFailure = $null
+                $expectedSvcDamageEventFrames = @($expectedBenchEventFrames['svcDamage'])
+                $expectedSvcDamageEventSignature = [string]::Join(',', [string[]]$expectedSvcDamageEventFrames)
+                $actualSvcDamageEventSignature = if ($svcDamageEventFramesPresent) {
+                    [string]::Join(',', [string[]]$svcDamageEventFrames)
+                }
+                else {
+                    $null
+                }
+                if (-not $svcDamageEventFramesPresent -or -not $svcDamageEventCountPresent -or
+                    -not $svcDamageEventOverflowPresent) {
+                    $eventFailure = 'required svcDamage event count/frame/overflow metadata is missing'
+                }
+                elseif ($invalidSvcDamageEventFrames.Count -gt 0) {
+                    $eventFailure = "svcDamage event frame index/indices fall outside the total $checksumStreamFrameCount-frame checksum stream"
+                }
+                elseif ($svcDamageEventOverflow -ne 0) {
+                    $eventFailure = "svcDamage event metadata overflowed by $svcDamageEventOverflow event(s)"
+                }
+                elseif ($svcDamageEventCount -ne $expectedSvcDamageEventFrames.Count -or
+                    $svcDamageEventFrames.Count -ne $expectedSvcDamageEventFrames.Count) {
+                    $eventFailure = "svcDamage event count must be exactly $($expectedSvcDamageEventFrames.Count)"
+                }
+                elseif ($actualSvcDamageEventSignature -ne $expectedSvcDamageEventSignature) {
+                    $eventFailure = "svcDamage event frame indices must be exactly '$expectedSvcDamageEventSignature'"
+                }
+                if ($null -ne $eventFailure) {
+                    $sceneStatus = 'FAIL'
+                    $failures.Add([pscustomobject]@{
+                            scenario = $scene.id
+                            test = 'required-bench-event'
+                            expected = @{ event = 'svcDamage'; count = $expectedSvcDamageEventFrames.Count; frames = $expectedSvcDamageEventFrames; overflow = 0 }
+                            actual = @{ count = $svcDamageEventCount; frames = $svcDamageEventFrames; overflow = $svcDamageEventOverflow }
+                            metrics = @{
+                                error = $eventFailure
+                                invalidFrameIndices = $invalidSvcDamageEventFrames
+                                checksumStreamFrames = $checksumStreamFrameCount
+                            }
+                            capturedOutput = @{ timedemoResult = $timedemoResultPath }
+                        })
+                }
+            }
+
             $captureBenchEventChecks = @()
             foreach ($captureBenchEvent in $captureBenchEvents) {
                 $capturedFrameIndexProperty = $diagnostics.PSObject.Properties['frameCaptureIndex']
@@ -1011,6 +1094,9 @@ $previousRunParticleEffectEventState = $null
                 }
                 elseif ($captureBenchEvent -eq 'entityParticles') {
                     $entityParticlesEventFrames
+                }
+                elseif ($captureBenchEvent -eq 'svcDamage') {
+                    $svcDamageEventFrames
                 }
                 else {
                     @()

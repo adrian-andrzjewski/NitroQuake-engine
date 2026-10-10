@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-vparsedamage-asm",
+  "description": "Focused i486 candidate profile using the 486-compatible V_ParseDamage assembly implementation.",
+  "selectors": {
+    "DamageParseImplementation": "asm"
+  }
+}

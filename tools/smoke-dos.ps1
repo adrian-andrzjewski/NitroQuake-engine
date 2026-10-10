@@ -228,6 +228,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleDrawImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DamageParseImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',

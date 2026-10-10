@@ -178,6 +178,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleDrawImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DamageParseImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RunParticleEffectImplementation = 'c',
@@ -304,6 +306,7 @@ param(
     [switch]$SurfaceCacheOnly,
     [switch]$ParticleListOnly,
     [switch]$ParticleDrawOnly,
+    [switch]$DamageParseOnly,
     [switch]$ParticleExplosionOnly,
     [switch]$RunParticleEffectOnly,
     [switch]$EntityParticlesOnly,
@@ -362,6 +365,9 @@ if ($ParticleListOnly -and $ParticleUpdateImplementation -ne 'asm') {
 }
 if ($ParticleDrawOnly -and $ParticleDrawImplementation -ne 'asm') {
     throw '-ParticleDrawOnly requires -ParticleDrawImplementation asm.'
+}
+if ($DamageParseOnly -and $DamageParseImplementation -ne 'asm') {
+    throw '-DamageParseOnly requires -DamageParseImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -820,6 +826,9 @@ elseif ($ParticleListOnly) {
 elseif ($ParticleDrawOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticledraw -benchexit'
 }
+elseif ($DamageParseOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvparsedamage -benchexit'
+}
 elseif ($ParticleExplosionOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchparticleexplosion -benchexit'
 }
@@ -1039,6 +1048,7 @@ $result = [ordered]@{
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     particleDrawImplementation = $ParticleDrawImplementation
+    damageParseImplementation = $DamageParseImplementation
     blobExplosionImplementation = $BlobExplosionImplementation
     lavaSplashImplementation = $LavaSplashImplementation
     teleportSplashImplementation = $TeleportSplashImplementation
@@ -1089,6 +1099,7 @@ $result = [ordered]@{
     surfaceCacheOnly = [bool]$SurfaceCacheOnly
     particleListOnly = [bool]$ParticleListOnly
     particleDrawOnly = [bool]$ParticleDrawOnly
+    damageParseOnly = [bool]$DamageParseOnly
     particleExplosion2Only = [bool]$ParticleExplosion2Only
     blobExplosionOnly = [bool]$BlobExplosionOnly
     lavaSplashOnly = [bool]$LavaSplashOnly

@@ -41,6 +41,7 @@ void V_CalcPowerupCshift_C (void);
 
 #include "r_local.h"
 #include "asm_viewcontrol.h"
+#include "asm_vdamage.h"
 /* Same process-lifetime camera latches, shared with independent test oracles. */
 float viewcontrol_oldyaw,viewcontrol_oldpitch,viewcontrol_oldz;
 #if defined(BENCH486) && defined(ASM486_VIEW_CONTROL)
@@ -407,7 +408,14 @@ qboolean V_CheckGamma (void)
 V_ParseDamage
 ===============
 */
-void V_ParseDamage (void)
+#if defined(BENCH486) || defined(ASM486_V_PARSE_DAMAGE)
+#define V_PARSE_DAMAGE_C_NAME V_ParseDamage_C
+#else
+#define V_PARSE_DAMAGE_C_NAME V_ParseDamage
+#endif
+
+#if defined(BENCH486) || !defined(ASM486_V_PARSE_DAMAGE)
+void V_PARSE_DAMAGE_C_NAME (void)
 {
 	int		armor, blood;
 	vec3_t	from;
@@ -471,6 +479,20 @@ void V_ParseDamage (void)
 
 	v_dmg_time = v_kicktime.value;
 }
+#undef V_PARSE_DAMAGE_C_NAME
+#endif /* BENCH486 || !ASM486_V_PARSE_DAMAGE */
+
+#if defined(ASM486_V_PARSE_DAMAGE)
+void V_ParseDamage (void)
+{
+	V_ParseDamage_asm486 ();
+}
+#elif defined(BENCH486)
+void V_ParseDamage (void)
+{
+	V_ParseDamage_C ();
+}
+#endif
 
 
 /*

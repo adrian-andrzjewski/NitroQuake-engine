@@ -728,7 +728,7 @@ class RenderingComparisonTests(unittest.TestCase):
         timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
         self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$TeleportSplashImplementation\s*=\s*'c'")
         self.assertIn("Read-Bench486TeleportSplashEvents -Report $report", timedemo_source)
-        self.assertIn("if ($eventType -notin @(4, 7, 10, 11))", timedemo_source)
+        self.assertIn("if ($eventType -notin @(4, 7, 10, 11, 19))", timedemo_source)
         self.assertIn("TE_TELEPORT (11)", timedemo_source)
         self.assertIn("TE_WIZSPIKE (7)", timedemo_source)
         self.assertIn("TeleportSplashImplementation", timedemo_source)
@@ -781,7 +781,7 @@ class RenderingComparisonTests(unittest.TestCase):
         timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
         self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$RunParticleEffectImplementation\s*=\s*'c'")
         self.assertIn("Read-Bench486RunParticleEffectEvents -Report $report", timedemo_source)
-        self.assertIn("if ($eventType -notin @(4, 7, 10, 11))", timedemo_source)
+        self.assertIn("if ($eventType -notin @(4, 7, 10, 11, 19))", timedemo_source)
         self.assertIn("TE_WIZSPIKE (7)", timedemo_source)
         for profile in (c_profile, asm_profile):
             for selector in profile["selectors"]:
@@ -815,6 +815,42 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("Assert-DosPspCommandTail -CommandTail (' ' + $quakeCommandTail)", timedemo_source)
         self.assertIn("$dosPspCommandTailMaxBytes = 126", common_source)
         self.assertIn("cd \\quake", timedemo_source)
+
+    def test_damage_parse_benchmark_is_explicit_and_assembly_only(self) -> None:
+        source = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertRegex(source, r"(?m)^\s*\[string\]\$DamageParseImplementation\s*=\s*'c'")
+        self.assertIn("[switch]$DamageParseOnly", source)
+        self.assertIn("if ($DamageParseOnly -and $DamageParseImplementation -ne 'asm')", source)
+        self.assertIn("-benchvparsedamage -benchexit", source)
+        self.assertIn("damageParseOnly = [bool]$DamageParseOnly", source)
+
+    def test_damage_parse_profiles_isolate_the_new_assembly_candidate(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        c_profile = json.loads((profiles / "i486-vparsedamage-c.json").read_text(encoding="utf-8"))
+        asm_profile = json.loads((profiles / "i486-vparsedamage-asm.json").read_text(encoding="utf-8"))
+        self.assertEqual(c_profile["id"], "i486-vparsedamage-c")
+        self.assertEqual(asm_profile["id"], "i486-vparsedamage-asm")
+        self.assertEqual(c_profile["selectors"], {"DamageParseImplementation": "c"})
+        self.assertEqual(asm_profile["selectors"], {"DamageParseImplementation": "asm"})
+        self.assertEqual(reference["selectors"].get("DamageParseImplementation", "c"), "c")
+
+        timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$DamageParseImplementation\s*=\s*'c'")
+        self.assertRegex(timedemo_source, r"(?m)^\s*DamageParseImplementation\s*=\s*\$DamageParseImplementation\s*$")
+        self.assertIn("damageParseImplementation = $DamageParseImplementation", timedemo_source)
+
+        scenario = json.loads((ROOT / "tools/render-scenarios-svcdamage.json").read_text(encoding="utf-8"))
+        damage_scenario = scenario["scenarios"][0]
+        self.assertEqual(damage_scenario["requiredBenchEvents"], ["svcDamage"])
+        self.assertEqual(damage_scenario["expectedBenchEventFrames"], {"svcDamage": [10]})
+        self.assertEqual(damage_scenario["captureBenchEvents"], ["svcDamage"])
+        self.assertEqual(damage_scenario["reference"], None)
+        self.assertEqual(scenario["defaultTolerance"], {
+            "channel": 0,
+            "maxChangedPixelFraction": 0,
+            "maxMeanAbsoluteError": 0,
+        })
 
     def test_assembly_selector_profile_uses_supported_i486_paths(self) -> None:
         profile_path = ROOT / "tools/renderer-profiles/i486-asm-selectable.json"

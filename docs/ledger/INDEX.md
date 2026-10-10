@@ -18,6 +18,7 @@ later insertion above it.
 | [`2026-10-10-r-entityparticles-assembly-port.md`](2026-10-10-r-entityparticles-assembly-port.md) | 5 | renderer port / entity particles (`Reference behavior and assembly mapping`; `Direct C/assembly fixture`; `Paired rendered-frame parity`; `i486 machine-code evidence`; `Traceability and reproduction`) |
 | [`2026-10-10-r-teleportsplash-assembly-port.md`](2026-10-10-r-teleportsplash-assembly-port.md) | 2 | renderer port / particles (`Port mapping and contract`; `TeleportSplash validation status`) |
 | [`2026-10-10-r-runparticleeffect-assembly-port.md`](2026-10-10-r-runparticleeffect-assembly-port.md) | 5 | renderer port / particles (`C reference and assembly behavior`; `Selector and direct fixture`; `Paired frame parity`; `ISA evidence and remaining scope`; `RPE test commands`) |
+| [`2026-10-10-v-parsedamage-assembly-port.md`](2026-10-10-v-parsedamage-assembly-port.md) | 5 | renderer port / view damage parsing (`Reference behavior and assembly mapping`; `Direct C/assembly fixture`; `Paired rendered-frame parity`; `i486 machine-code evidence`; `Traceability and reproduction`) |
 | [`2026-10-09-alias-stats-assembly-port.md`](2026-10-09-alias-stats-assembly-port.md) | 3 | renderer port / alias |
 | [`2026-10-09-drawspans-dispatch-parity.md`](2026-10-09-drawspans-dispatch-parity.md) | 4 | renderer port / span dispatch |
 | [`2026-10-09-line-graph-assembly-port.md`](2026-10-09-line-graph-assembly-port.md) | 3 | renderer port / timing overlay |

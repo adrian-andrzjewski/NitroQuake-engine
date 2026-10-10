@@ -161,7 +161,14 @@ def _expected_bench_event_frames(entry: dict[str, Any], report_path: Path, scena
         raise ValueError(f"{report_path}: {scenario_id} expectedBenchEventFrames must be an object")
     parsed: dict[str, list[int]] = {}
     for event, frames in expected.items():
-        if event not in {"blobExplosion", "lavaSplash", "teleportSplash", "runParticleEffect", "entityParticles"}:
+        if event not in {
+            "blobExplosion",
+            "lavaSplash",
+            "teleportSplash",
+            "runParticleEffect",
+            "entityParticles",
+            "svcDamage",
+        }:
             raise ValueError(f"{report_path}: {scenario_id} has unsupported expected bench event {event!r}")
         if not isinstance(frames, list) or any(
             not isinstance(frame, int) or isinstance(frame, bool) or frame < 0 for frame in frames
@@ -195,6 +202,11 @@ def _compare_required_bench_events(
                 "entityParticlesEventFrames",
                 "entityParticlesEventOverflow",
                 "entityParticlesEventCount",
+            ),
+            "svcDamage": (
+                "svcDamageEventFrames",
+                "svcDamageEventOverflow",
+                "svcDamageEventCount",
             ),
         }.get(event)
         if fields is None:

@@ -1,4 +1,4 @@
-"""Small format-level tests for deterministic Quake temp-entity demo fixtures."""
+"""Format-level tests for deterministic Quake server-event demo fixtures."""
 
 from __future__ import annotations
 
@@ -90,6 +90,7 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
             ("TE_WIZSPIKE", fixture.TE_WIZSPIKE),
             ("TE_LAVASPLASH", fixture.TE_LAVASPLASH),
             ("TE_TELEPORT", fixture.TE_TELEPORT),
+            ("svc_damage", fixture.SVC_DAMAGE),
         ):
             with self.subTest(event=name):
                 match = re.search(rf"(?m)^#define\s+{name}\s+(\d+)\b", protocol)
@@ -189,6 +190,66 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
         self.assertEqual(info.event_type, fixture.TE_LAVASPLASH)
         self.assertEqual(result[3][0], self.source_records[3][0] + expected)
         self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
+
+    def test_injects_exact_svc_damage_message_bytes(self) -> None:
+        output = self.root / "svcdamage.dem"
+        info = fixture.create_blob_demo(
+            self.pak0,
+            output,
+            member_name=MEMBER_NAME,
+            first_post_signon_record=2,
+            keep_post_signon_records=3,
+            event_record=3,
+            event_type=fixture.SVC_DAMAGE,
+            coord_shorts=(-2136, 17413, 9968),
+        )
+
+        _, result = read_demo(output)
+        expected = bytes((
+            fixture.SVC_DAMAGE,
+            fixture.SVC_DAMAGE_ARMOR,
+            fixture.SVC_DAMAGE_BLOOD,
+        )) + struct.pack("<hhh", -2136, 17413, 9968)
+        self.assertEqual(info.event_type, fixture.SVC_DAMAGE)
+        self.assertEqual(result[3][0], self.source_records[3][0] + expected)
+        self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
+
+    def test_cli_accepts_svc_damage_selector(self) -> None:
+        args = fixture._parse_args(
+            [
+                "--pak0", "pak0.pak",
+                "--output", "svcdamage.dem",
+                "--first-post-signon-record", "4",
+                "--keep-post-signon-records", "11",
+                "--event-record", "14",
+                "--event-type", "19",
+            ]
+        )
+        self.assertEqual(args.event_type, fixture.SVC_DAMAGE)
+
+    def test_svc_damage_scenario_targets_the_dispatched_event_frame(self) -> None:
+        profile = json.loads((TOOLS / "render-scenarios-svcdamage.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(profile["scenarios"]), 1)
+        scenario = profile["scenarios"][0]
+        self.assertIn("svcDamage", scenario["id"])
+        self.assertEqual(scenario["expectedFrames"], 10)
+        self.assertEqual(scenario["captureFrame"], 10)
+        self.assertEqual(scenario["repeatRuns"], 2)
+        self.assertEqual(scenario["requiredBenchEvents"], ["svcDamage"])
+        self.assertEqual(scenario["expectedBenchEventFrames"], {"svcDamage": [10]})
+        self.assertEqual(scenario["captureBenchEvents"], ["svcDamage"])
+        self.assertIsNone(scenario["reference"])
+
+        fixture_config = scenario["demoFixture"]
+        self.assertEqual(fixture_config["sourceMember"], "demo2.dem")
+        self.assertEqual(fixture_config["firstPostSignonRecord"], 4)
+        self.assertEqual(fixture_config["keepPostSignonRecords"], 11)
+        self.assertEqual(fixture_config["eventRecord"], 14)
+        self.assertEqual(fixture_config["eventType"], fixture.SVC_DAMAGE)
+        self.assertEqual(fixture_config["coordShorts"], [-2136, 17413, 9968])
+        self.assertEqual(fixture_config["pakEntry"], "demo2.dem")
+        self.assertEqual(fixture.SVC_DAMAGE_ARMOR, 24)
+        self.assertEqual(fixture.SVC_DAMAGE_BLOOD, 48)
 
     def test_injects_exact_teleport_message_bytes(self) -> None:
         output = self.root / "teleport.dem"

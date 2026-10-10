@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a short Quake demo with one selected temp-entity event.
+"""Create a short Quake demo with one selected server event.
 
 The source demo is read in-place from a PACK archive. Only the requested
 prefix is copied into the output demo, so this does not duplicate game data.
@@ -21,12 +21,16 @@ PAK_ENTRY_BYTES = 64
 PAK_NAME_BYTES = 56
 MAX_MSGLEN = 8000  # Quake's MAX_MSGLEN
 SVC_TEMP_ENTITY = 23
+SVC_DAMAGE = 19
 SVC_DISCONNECT = 2
+SVC_DAMAGE_ARMOR = 24
+SVC_DAMAGE_BLOOD = 48
 TE_TAREXPLOSION = 4
 TE_WIZSPIKE = 7
 TE_LAVASPLASH = 10
 TE_TELEPORT = 11
 SUPPORTED_TEMP_ENTITY_EVENTS = (TE_TAREXPLOSION, TE_WIZSPIKE, TE_LAVASPLASH, TE_TELEPORT)
+SUPPORTED_DEMO_EVENTS = SUPPORTED_TEMP_ENTITY_EVENTS + (SVC_DAMAGE,)
 MAX_DEMO_TRACK_LINE = 128
 
 
@@ -121,15 +125,23 @@ def _read_track_line(stream: BinaryIO, remaining: int) -> tuple[bytes, int]:
     return bytes(line), remaining
 
 
-def _encode_temp_entity_event(event_type: int, coord_shorts: Iterable[int]) -> bytes:
-    if event_type not in SUPPORTED_TEMP_ENTITY_EVENTS:
-        raise ValueError(f"unsupported temp-entity type {event_type}")
+def _encode_demo_event(event_type: int, coord_shorts: Iterable[int]) -> bytes:
     coords = tuple(coord_shorts)
     if len(coords) != 3:
         raise ValueError("exactly three coordinate shorts are required")
     for coord in coords:
         if not -32768 <= coord <= 32767:
             raise ValueError(f"coordinate short {coord} is outside signed 16-bit range")
+
+    if event_type == SVC_DAMAGE:
+        # svc_damage is opcode, armor byte, blood byte, then three protocol coords.
+        # Keep the damage magnitudes fixed so paired renderer runs receive identical
+        # damage-feedback state and the fixture remains byte-for-byte deterministic.
+        return bytes((SVC_DAMAGE, SVC_DAMAGE_ARMOR, SVC_DAMAGE_BLOOD)) + struct.pack(
+            "<hhh", *coords
+        )
+    if event_type not in SUPPORTED_TEMP_ENTITY_EVENTS:
+        raise ValueError(f"unsupported temp-entity type {event_type}")
     return bytes((SVC_TEMP_ENTITY, event_type)) + struct.pack("<hhh", *coords)
 
 
@@ -166,7 +178,7 @@ def create_blob_demo(
     if output_path.exists():
         raise FileExistsError(f"refusing to overwrite existing output: {output_path}")
 
-    event_bytes = _encode_temp_entity_event(event_type, coord_shorts)
+    event_bytes = _encode_demo_event(event_type, coord_shorts)
     member = find_pack_member(pak_path, member_name)
     source_records = 0
     written_bytes = 0
@@ -282,7 +294,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Extract a short prefix from a demo stored inside pak0.pak and append "
-            "one supported Quake temp-entity message to a chosen record."
+            "one supported Quake server message to a chosen record."
         ),
         epilog=(
             "CL_GetMessage reads one demo record at most once per host frame after "
@@ -321,9 +333,13 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--event-type",
         type=int,
-        choices=SUPPORTED_TEMP_ENTITY_EVENTS,
+        choices=SUPPORTED_DEMO_EVENTS,
         default=TE_TAREXPLOSION,
-        help="Quake temp-entity type (4=TAREXPLOSION, 7=WIZSPIKE, 10=LAVASPLASH, 11=TELEPORT; default: %(default)s)",
+        help=(
+            "Quake event type (4=TAREXPLOSION, 7=WIZSPIKE, 10=LAVASPLASH, "
+            "11=TELEPORT, 19=svc_damage with fixed armor=24/blood=48; "
+            "default: %(default)s)"
+        ),
     )
     parser.add_argument(
         "--coord-shorts",

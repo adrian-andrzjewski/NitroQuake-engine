@@ -137,4 +137,33 @@ if (-not $entityParticlesMismatchRejected) {
     throw 'R_EntityParticles event parser accepted a count inconsistent with its stored frames and overflow.'
 }
 
+$svcDamage = Read-Bench486SvcDamageEvents -Report "svc-damage-events 1 frames 10 overflow 0`n"
+if ($svcDamage.Count -ne 1 -or $svcDamage.Frames.Count -ne 1 -or
+    $svcDamage.Frames[0] -ne 10 -or $svcDamage.Overflow -ne 0) {
+    throw 'svc_damage event record did not preserve the count, exact frame index, and overflow count.'
+}
+
+$svcDamageEmpty = Read-Bench486SvcDamageEvents -Report "svc-damage-events 0 frames overflow 0`n"
+if ($svcDamageEmpty.Count -ne 0 -or $svcDamageEmpty.Frames.Count -ne 0 -or
+    $svcDamageEmpty.Overflow -ne 0) {
+    throw 'Explicit zero-event svc_damage record was not distinguished as an empty event list.'
+}
+
+$svcDamageMissing = Read-Bench486SvcDamageEvents -Report "320 frames 1.0 seconds 320.0 fps`n"
+if ($null -ne $svcDamageMissing.Count -or $null -ne $svcDamageMissing.Frames -or
+    $null -ne $svcDamageMissing.Overflow) {
+    throw 'A legacy report without the svc_damage event record should return null event metadata.'
+}
+
+$svcDamageMismatchRejected = $false
+try {
+    [void](Read-Bench486SvcDamageEvents -Report "svc-damage-events 2 frames 10 overflow 0`n")
+}
+catch {
+    $svcDamageMismatchRejected = $true
+}
+if (-not $svcDamageMismatchRejected) {
+    throw 'svc_damage event parser accepted a count inconsistent with its stored frames and overflow.'
+}
+
 Write-Output 'Timedemo event-record parser tests passed.'

@@ -14,8 +14,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 53,
-  "assemblySourceCount": 53,
+  "allAssemblySourceCount": 54,
+  "assemblySourceCount": 54,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -255,6 +255,7 @@
     "surf8.s",
     "sys_dosa.s",
     "v_chaseasm.s",
+    "v_damageparse.s",
     "v_paletteasm.s",
     "v_viewcontrolasm.s",
     "worlda.s"

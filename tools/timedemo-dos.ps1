@@ -144,6 +144,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleDrawImplementation = 'asm',
     [ValidateSet('c', 'asm')]
+    [string]$DamageParseImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',
@@ -416,8 +418,8 @@ function ConvertFrom-DemoFixtureJson {
         -Name 'eventRecord' -Minimum 0 -Maximum 1000000
     $eventType = ConvertTo-DemoFixtureInteger -Value $parsed.eventType `
         -Name 'eventType' -Minimum 0 -Maximum 255
-    if ($eventType -notin @(4, 7, 10, 11)) {
-        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4), TE_WIZSPIKE (7), TE_LAVASPLASH (10), or TE_TELEPORT (11).'
+    if ($eventType -notin @(4, 7, 10, 11, 19)) {
+        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4), TE_WIZSPIKE (7), TE_LAVASPLASH (10), TE_TELEPORT (11), or svc_damage (19).'
     }
     if ([long]$firstRecord + $keepRecords -gt 1000001 -or
         $eventRecord -lt $firstRecord -or $eventRecord -ge ([long]$firstRecord + $keepRecords)) {
@@ -566,6 +568,7 @@ $buildParams = @{
     BspWalkImplementation                = $BspWalkImplementation
     ParticleUpdateImplementation         = $ParticleUpdateImplementation
     ParticleDrawImplementation           = $ParticleDrawImplementation
+    DamageParseImplementation            = $DamageParseImplementation
     ParticleExplosion2Implementation     = $ParticleExplosion2Implementation
     RunParticleEffectImplementation      = $RunParticleEffectImplementation
     EntityParticlesImplementation        = $EntityParticlesImplementation
@@ -1059,6 +1062,10 @@ for ($run = 1; $run -le $Runs; $run++) {
     $entityParticlesEventCount = $entityParticlesEventData.Count
     $entityParticlesEventFrames = $entityParticlesEventData.Frames
     $entityParticlesEventOverflow = $entityParticlesEventData.Overflow
+    $svcDamageEventData = Read-Bench486SvcDamageEvents -Report $report
+    $svcDamageEventCount = $svcDamageEventData.Count
+    $svcDamageEventFrames = $svcDamageEventData.Frames
+    $svcDamageEventOverflow = $svcDamageEventData.Overflow
 
     $runDiagnostics = [ordered]@{
         blobExplosionEventFrames = $blobExplosionEventFrames
@@ -1075,6 +1082,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         entityParticlesEventCount = $entityParticlesEventCount
         entityParticlesEventFrames = $entityParticlesEventFrames
         entityParticlesEventOverflow = $entityParticlesEventOverflow
+        svcDamageEventCount = $svcDamageEventCount
+        svcDamageEventFrames = $svcDamageEventFrames
+        svcDamageEventOverflow = $svcDamageEventOverflow
     }
     if ($FrameChecksums) {
         if (-not (Test-Path -LiteralPath $frameChecksumDosPath -PathType Leaf)) {
@@ -1178,6 +1188,9 @@ for ($run = 1; $run -le $Runs; $run++) {
         runParticleEffectEventCount = $runParticleEffectEventCount
         runParticleEffectEventFrames = $runParticleEffectEventFrames
         runParticleEffectEventOverflow = $runParticleEffectEventOverflow
+        svcDamageEventCount = $svcDamageEventCount
+        svcDamageEventFrames = $svcDamageEventFrames
+        svcDamageEventOverflow = $svcDamageEventOverflow
         renderingDiagnostics = $runDiagnostics
     }
 }
@@ -1394,6 +1407,7 @@ $result = [ordered]@{
     bspWalkImplementation = $BspWalkImplementation
     particleUpdateImplementation = $ParticleUpdateImplementation
     particleDrawImplementation = $ParticleDrawImplementation
+    damageParseImplementation = $DamageParseImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     blobExplosionImplementation = $BlobExplosionImplementation
     lavaSplashImplementation = $LavaSplashImplementation

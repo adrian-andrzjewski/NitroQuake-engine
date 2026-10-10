@@ -176,6 +176,15 @@ def main() -> int:
             "unqualified build keeps producing the release artefact"
             % default_dump.get("cpuTarget")
         )
+    if default_dump:
+        damage_parse_define = "-DASM486_V_PARSE_DAMAGE"
+        if any(
+            damage_parse_define in default_dump.get(language, [])
+            for language in ("cFlags", "asmFlags")
+        ):
+            fail("the default damage-parse selector must remain C and leave ASM486_V_PARSE_DAMAGE undefined")
+        if "vparsedamageasm" in default_dump.get("profileSuffix", ""):
+            fail("the default damage-parse selector must not change the release suffix")
 
     # 2. Keep the release suffix stable and use its descriptive root unless the
     #    executable or linker-map path would exceed the legacy Windows limit.
@@ -626,6 +635,7 @@ def main() -> int:
         ("RenderDispatchImplementation", "ASM486_RENDER_DISPATCH", "dispatchasm"),
         ("DrawingDriverImplementation", "ASM486_DRAWING_DRIVER", "driverasm"),
         ("ViewControlImplementation", "ASM486_VIEW_CONTROL", "viewcontrolasm"),
+        ("DamageParseImplementation", "ASM486_V_PARSE_DAMAGE", "vparsedamageasm"),
         ("DrawingImplementation", "ASM486_DRAWING", "drawingasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
     ):
@@ -641,6 +651,11 @@ def main() -> int:
                     fail(selector + " leaks its assembly define into C selection")
                 if "-D" + define not in candidate.get(language, []):
                     fail(selector + " omits its assembly define from " + language)
+
+    for value_name, value in (("C", "c"), ("assembly", "asm")):
+        damage_parse = dump_flags("-DamageParseImplementation", value)
+        if damage_parse and "v_damageparse.s" not in damage_parse.get("assemblySources", []):
+            fail("the damage-parse %s selector omits v_damageparse.s from the source inventory" % value_name)
 
     alias_control_args = ["-AliasPrepareImplementation", "asm", "-AliasBBoxProjectImplementation", "asm", "-AliasMatrixCompositionImplementation", "asm", "-AliasSetupLightingImplementation", "asm", "-AliasSetupFrameImplementation", "asm", "-AliasSetupSkinImplementation", "asm"]
     alias_control_reference = dump_flags(*alias_control_args, "-AliasControlImplementation", "c")
@@ -1586,7 +1601,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 52 assembly sources (one is omitted only
+    #    included by another unit), 53 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1598,9 +1613,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 53:
+        if dump.get("allAssemblySourceCount") != 54:
             fail(
-                "%s: expected 53 assembly sources, got %r"
+                "%s: expected 54 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

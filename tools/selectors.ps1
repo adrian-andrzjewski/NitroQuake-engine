@@ -106,6 +106,7 @@ $script:AssemblyBackedImplementations = @(
     'RenderDispatchImplementation',
     'DrawingDriverImplementation',
     'ViewControlImplementation',
+    'DamageParseImplementation',
     'DrawingImplementation',
     'ChaseImplementation',
     'AliasControlImplementation',
@@ -1100,6 +1101,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'DamageParseImplementation'
+        Manifest   = 'damageParseImplementation'
+        Suffix     = @{ 'asm' = 'vparsedamageasm' }
+        C          = @{ 'asm' = @('ASM486_V_PARSE_DAMAGE') }
+        Asm        = @{ 'asm' = @('ASM486_V_PARSE_DAMAGE') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'ChaseImplementation'
         Manifest   = 'chaseImplementation'
         Suffix     = @{ 'asm' = 'chaseasm' }
@@ -1451,6 +1461,7 @@ $script:SuffixOrder = @(
     'RenderDispatchImplementation'
     'DrawingDriverImplementation'
     'ViewControlImplementation'
+    'DamageParseImplementation'
     'DrawingImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
@@ -1537,6 +1548,7 @@ $script:CDefineOrder = @(
     'RenderDispatchImplementation'
     'DrawingDriverImplementation'
     'ViewControlImplementation'
+    'DamageParseImplementation'
     'DrawingImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
@@ -1655,6 +1667,7 @@ $script:AsmDefineOrder = @(
     'RenderDispatchImplementation'
     'DrawingDriverImplementation'
     'ViewControlImplementation'
+    'DamageParseImplementation'
     'DrawingImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'

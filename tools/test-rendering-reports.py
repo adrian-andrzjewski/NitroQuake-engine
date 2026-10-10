@@ -150,6 +150,37 @@ class RenderReportComparisonTests(unittest.TestCase):
         self.assertFalse(run["benchEvents"]["entityParticles"]["pass"])
         self.assertFalse(run["expectedChecksumStreamFrames"]["pass"])
 
+    def test_compares_svc_damage_dispatch_frame(self) -> None:
+        reference = self.make_report("c-reference")
+        candidate = self.make_report("assembly")
+        for report_path in (reference, candidate):
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            scenario = report["scenarios"][0]
+            scenario["expectedChecksumStreamFrames"] = 3
+            scenario["requiredBenchEvents"] = ["svcDamage"]
+            scenario["expectedBenchEventFrames"] = {"svcDamage": [2]}
+            scenario["frameDiagnostics"][0].update(
+                {
+                    "svcDamageEventCount": 1,
+                    "svcDamageEventFrames": [2],
+                    "svcDamageEventOverflow": 0,
+                }
+            )
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+
+        result = comparison.compare_reports(reference, candidate)
+        self.assertTrue(result["pass"], json.dumps(result, indent=2))
+        self.assertTrue(
+            result["scenarios"][0]["runs"][0]["benchEvents"]["svcDamage"]["pass"]
+        )
+
+        candidate_report = json.loads(candidate.read_text(encoding="utf-8"))
+        candidate_report["scenarios"][0]["frameDiagnostics"][0]["svcDamageEventFrames"] = [1]
+        candidate.write_text(json.dumps(candidate_report), encoding="utf-8")
+        result = comparison.compare_reports(reference, candidate)
+        self.assertFalse(result["pass"])
+        self.assertFalse(result["scenarios"][0]["runs"][0]["benchEvents"]["svcDamage"]["pass"])
+
     def test_unpinned_source_reports_require_explicit_diagnostic_override(self) -> None:
         reference = self.make_report("c-reference", source_tree=None)
         candidate = self.make_report("assembly", source_tree=None)
