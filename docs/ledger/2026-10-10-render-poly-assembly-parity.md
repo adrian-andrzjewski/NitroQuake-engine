@@ -65,7 +65,7 @@ larger C-to-assembly migration. The C selector remains the release default.
 |---|---|---|
 | `R_RenderPoly` transform, near clipping and projection in `src/r_draw.c` | `R_RenderPoly_asm486` in `src/asm486_experiments.s` | BENCH-only direct C/assembly capture in `src/bench486_renderpoly.h` |
 | `D_DrawPoly` handoff boundary in `src/d_edge.c` | Same callback boundary after the assembly projection | 168 raw-bit C/ASM pairs, descriptor and ABI checks |
-| Renderer ownership and selected function-pointer dispatch | Exact build-object report from `tools/renderer-ownership.py` | 15 host tests and automatic `bench-dos.ps1` invocation |
+| Renderer ownership and selected function-pointer dispatch | Exact build-object report from `tools/renderer-ownership.py` | 16 host tests and automatic `bench-dos.ps1` invocation |
 
 Run the host checks and the strict paired benchmark from `quake/`:
 
