@@ -319,6 +319,12 @@ if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('EfragStoreIm
 if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BlobExplosionImplementation')) {
     $BlobExplosionImplementation = 'asm'
 }
+# R_RecursiveWorldNode preserves the 969-frame reference checksum across three
+# runs and its captured 320x200 output is byte-identical to C. Keep C selectable;
+# the measured 0.86% slowdown is acceptable for the verified i486 assembly path.
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BspWalkImplementation')) {
+    $BspWalkImplementation = 'asm'
+}
 
 if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm') {
     throw '-AliasClipZImplementation asm requires -AliasClipImplementation asm.'

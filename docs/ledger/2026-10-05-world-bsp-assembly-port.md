@@ -6,8 +6,9 @@ renderer conversion complete.
 
 ## `R_RecursiveWorldNode` now has a selectable assembly walk
 
-`BspWalkImplementation=c|asm` selects the recursive traversal. The default C
-path retains the original routine as a reference. The i386/i486 GNU assembly
+`BspWalkImplementation=c|asm` selects the recursive traversal. Assembly is
+now the i486 release default; the original C routine remains explicitly
+selectable as the reference, and i386 remains on C. The i386/i486 GNU assembly
 entry uses the existing `regparm(2)` interface and owns visibility and solid
 culls, frustum-mask application, front/back recursion, leaf mark-surface
 updates, efrag dispatch, BSP keys, visible-face selection, render ordering, and
@@ -20,7 +21,7 @@ Compile-time offset checks in `src/r_bsp.c` protect the node, leaf, surface,
 client-state, model, and polygon layouts read by the assembly. PROFILE486 builds
 retain the BSP node counters and the `R_RenderFace` timing scope through small C
 callbacks. The original C traversal remains separately selectable and the C
-selector remains the release default.
+selector remains available for reference builds.
 
 The first full run produced checksum `184024924` instead of the reference
 `1047377823`. The x87 `FTST` used to choose the front child left its operand on
@@ -36,19 +37,37 @@ release passed DOS smoke and three timedemo runs:
 
 The C samples were collected in an alternating comparison before the
 assembly-only register pass; that pass does not change the C build. The final
-assembly median is 0.8555% slower than the C median, so the assembly selector
-stays opt-in and C remains the release default.
+assembly median is 0.8555% slower than the C median. This small regression is
+accepted for the verified 486-compatible traversal; no speedup is claimed.
 
 The final instrumented timedemo also completed 969 frames with checksum
 `1047377823` in `80.428509 s`; it reported 375,707 BSP nodes, 59,096 leaves,
 201,258 internal nodes, and 670,748 surface tests. The instrumentation run is
 diagnostic, not a release timing.
 
-The release ISA gate reported 168 enforced above-i486 instructions against the
-170-instruction baseline, with no unclassified instructions. The selector
-manifest test passed without changing the default i486/i386 flag lists. The C
-default passed smoke and the pinned checksum; its 104-artifact release hash
-pin was refreshed and then verified.
+The initial release ISA gate reported 168 enforced above-i486 instructions
+against the 170-instruction baseline, with no unclassified instructions. The
+initial C default passed smoke and the pinned checksum; its 104-artifact release
+hash pin was refreshed and then verified.
+
+## 2026-10-10 i486 release-default promotion
+
+The i486 build now defaults `BspWalkImplementation` to assembly while explicit
+C and the separate i386 C path remain available. The promotion follows the
+three 969-frame checksum-matched timedemos and the byte-identical 320x200 C and
+assembly PCX captures recorded above. The measured 0.8555% slowdown is accepted
+because performance is secondary to verified target compatibility and
+rendering parity.
+
+The current selector contract is pinned by `tools/test-build-dos.py`; the full
+normal i486 release executable was rebuilt and checked by the source-bound ISA
+gate for the promoted selector. `tools/test-build-dos.py` passed with the
+45/43 i486 flag lists; the separate i386 profile remains at 37/35. The release
+image and report are `out/profile-d34ccbfb64f12b23/quake.exe` and
+`out/profile-d34ccbfb64f12b23/isa-quake/isa-audit-linked.json`. The gate
+verified 171,755 relocated instructions across 340 source-bound contributions,
+529 startup rows, and 9,207 CWS DPMI-provider instructions, with zero
+post-486, unknown, or exempt instructions.
 
 ## Remaining world-BSP closure
 

@@ -49,7 +49,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     "-memasm-fillrectasm-zpointasm-zneg4-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
-    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-blobexplosionasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm"
+    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-bspwalkasm-blobexplosionasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm"
 )
 
 failures: list[str] = []
@@ -197,6 +197,10 @@ def main() -> int:
         if any(blob_explosion_define not in default_dump.get(language, [])
                for language in ("cFlags", "asmFlags")):
             fail("the default i486 BlobExplosion selector must compile its assembly implementation")
+        bsp_walk_define = "-DASM486_BSP_WALK"
+        if any(bsp_walk_define not in default_dump.get(language, [])
+               for language in ("cFlags", "asmFlags")):
+            fail("the default i486 BSP-walk selector must compile its assembly implementation")
 
     # 2. Keep the release suffix stable and use its descriptive root unless the
     #    executable or linker-map path would exceed the legacy Windows limit.
@@ -334,6 +338,7 @@ def main() -> int:
                 "-DASM486_SPRITE_DRAW",
                 "-DASM486_SPRITE_FRAME",
                 "-DASM486_BLOB_EXPLOSION",
+                "-DASM486_BSP_WALK",
                 "-DASM486_MATH_CLOSURE",
                 "-DASM486_EFRAG_STORE",
             }
@@ -383,6 +388,10 @@ def main() -> int:
                 fail("the i486 release %s omit promoted R_BlobExplosion assembly" % flags_name)
             if "-DASM486_BLOB_EXPLOSION" in i386.get(flags_name, []):
                 fail("the separate i386 %s enable i486-promoted R_BlobExplosion assembly" % flags_name)
+            if "-DASM486_BSP_WALK" not in i486.get(flags_name, []):
+                fail("the i486 release %s omit promoted R_RecursiveWorldNode assembly" % flags_name)
+            if "-DASM486_BSP_WALK" in i386.get(flags_name, []):
+                fail("the separate i386 %s enable i486-promoted R_RecursiveWorldNode assembly" % flags_name)
 
         if "-DTARGET_I386" not in i386.get("asmFlags", []):
             fail("the i386 build does not pass -DTARGET_I386 to the assembler")
@@ -531,10 +540,11 @@ def main() -> int:
     bsp_walk_c = dump_flags("-BspWalkImplementation", "c")
     bsp_walk_asm = dump_flags("-BspWalkImplementation", "asm")
     if bsp_walk_c and bsp_walk_asm:
-        if bsp_walk_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the BSP-walk C selector changes the retained i486 profile suffix")
-        if "bspwalkasm" not in bsp_walk_asm.get("profileSuffix", ""):
-            fail("the BSP-walk assembly selector does not add its profile token")
+        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-bspwalkasm", "", 1)
+        if bsp_walk_c.get("profileSuffix") != c_reference_suffix:
+            fail("the BSP-walk C selector does not isolate the C reference profile")
+        if bsp_walk_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the BSP-walk assembly selector does not match the i486 release profile")
         for flags_name in ("cFlags", "asmFlags"):
             if "-DASM486_BSP_WALK" in bsp_walk_c.get(flags_name, []):
                 fail("the BSP-walk C selector enables ASM486_BSP_WALK in %s" % flags_name)
