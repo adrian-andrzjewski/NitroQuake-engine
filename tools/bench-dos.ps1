@@ -659,6 +659,33 @@ if (-not (Test-Path -LiteralPath $benchmarkExe -PathType Leaf)) {
 }
 $selectorVerification = Assert-RunnerBuildManifest -Resolved $resolved -BuildParameters $buildParams
 
+# Keep a compact ownership/call-closure proof beside the selected build. This
+# reports which renderer entries remain C-owned and verifies selected indirect
+# dispatch targets from the exact objects used for the benchmark executable.
+# qbench and qprof share an output root, so bind the report to the executable.
+$ownershipReportName = 'renderer-ownership-{0}.json' -f `
+    [IO.Path]::GetFileNameWithoutExtension([string]$resolved.executable)
+$ownershipReport = Join-Path ([string]$resolved.outputRoot) $ownershipReportName
+$ownershipManifest = Get-Content -LiteralPath ([string]$selectorVerification.manifest) -Raw | ConvertFrom-Json
+$manifestObjectRoot = [IO.Path]::GetFullPath([string]$ownershipManifest.objectRoot)
+$resolvedObjectRoot = [IO.Path]::GetFullPath([string]$resolved.objectRoot)
+if (-not [string]::Equals($manifestObjectRoot, $resolvedObjectRoot, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Renderer ownership object root '$manifestObjectRoot' differs from resolved build root '$resolvedObjectRoot'."
+}
+$objdumpPath = Join-Path (Join-Path $ToolRoot $toolManifest.djgpp.installDirectory) `
+    ($toolManifest.djgpp.objdump -replace '/', [IO.Path]::DirectorySeparatorChar)
+$ownershipArgs = @(
+    (Join-Path $PSScriptRoot 'renderer-ownership.py'),
+    '--manifest', [string]$selectorVerification.manifest,
+    '--object-root', $manifestObjectRoot,
+    '--objdump', $objdumpPath,
+    '--output-json', $ownershipReport
+)
+& python @ownershipArgs
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $ownershipReport -PathType Leaf)) {
+    throw 'Renderer ownership and selected-dispatch proof failed for the benchmark build.'
+}
+
 # The staging directory is UTC-stamped, so it cannot already exist; New-QuakeStaging
 # refuses rather than overwrites.  The data-root and pak checks, the same-volume check
 # and the hardlinking are in there; the note on why paks and nothing else is on that

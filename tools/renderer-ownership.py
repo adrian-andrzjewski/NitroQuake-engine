@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 HEADER = re.compile(r"^([0-9a-fA-F]+) <([^>]+)>:")
-SYMBOL = re.compile(r"^\[\s*\d+\]\(sec\s+1\).*?0x([0-9a-fA-F]+) (\S+)$")
+SYMBOL = re.compile(r"^\[\s*\d+\]\(sec\s+[1-9]\d*\).*?0x([0-9a-fA-F]+) (\S+)$")
 INSTRUCTION = re.compile(r"^\s*([0-9a-fA-F]+):\s+(?:[0-9a-fA-F]{2}\s+)+\s*(\S+)(?:\s+(.*))?$")
 RELOCATION = re.compile(r"^\s*([0-9a-fA-F]+):\s+(DISP32|DIR32)\s+(\S+)\s*$", re.IGNORECASE)
 RENDER_SUPPORT = {"Mod_PointInLeaf", "Mod_LeafPVS", "Mod_DecompressVis"}
@@ -68,16 +68,29 @@ def _branch_target(instruction: dict) -> int | None:
     return int(match[1], 16) if match else None
 
 
+def _writes_register(instruction: dict, register: str) -> bool:
+    """Conservatively detect explicit writes to one GPR in an instruction."""
+    operation = instruction["operation"].lower()
+    operands = [part.strip() for part in instruction["operands"].split(",") if part.strip()]
+    if not operands or operation.startswith(("cmp", "test", "push", "call", "jmp", "ret", "j")):
+        return False
+    if operation.startswith("xchg"):
+        return f"%{register}" in operands
+    if operation.startswith("set"):
+        return operands[-1] == f"%{register}"
+    return operands[-1] == f"%{register}"
+
+
 def _renderer_function(symbol: str, source: str, entries: dict[str, dict],
-                       units: dict[str, dict]) -> tuple[dict, dict]:
+                       units: dict[str, dict], closure: str = "d_drawspans") -> tuple[dict, dict]:
     entry = entries.get(symbol)
     if entry is None or entry["source"] != source or entry["language"] != "assembly":
-        raise ValueError(f"d_drawspans closure requires assembly entry {symbol} from {source}")
+        raise ValueError(f"{closure} closure requires assembly entry {symbol} from {source}")
     unit = units[entry["object"]]
     address = unit["symbols"].get(symbol)
     function = unit["functions"].get(address)
     if function is None:
-        raise ValueError(f"d_drawspans closure cannot inspect {symbol} in {entry['object']}")
+        raise ValueError(f"{closure} closure cannot inspect {symbol} in {entry['object']}")
     return entry, function
 
 
@@ -227,6 +240,219 @@ def resolve_d_drawspans_targets(manifest: dict, units: dict[str, dict],
     }]
 
 
+PDRAW_FUNC_TARGETS = {
+    "_R_GenerateSpans": "r_edgea.s",
+    "_R_GenerateSpansBackward": "r_publicbindingsasm.s",
+}
+
+
+def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
+                              entries: dict[str, dict]) -> list[dict]:
+    """Prove the selected edge-span dispatcher has only its two asm targets.
+
+    The selected R_BeginEdgeFrame assembly entry chooses between the forward
+    and backward span functions and stores that address in pdrawfunc. The
+    selected R_ScanEdges assembly entry must load that pointer immediately
+    before each of its two indirect calls. The backward public entry is a
+    small assembly tail binding to R_GenerateSpansBackward_asm486.
+    """
+    if (manifest.get("worldControlImplementation") != "asm" or
+            manifest.get("scanEdgesImplementation") != "asm" or
+            manifest.get("backwardSpansImplementation") != "asm"):
+        return []
+
+    required_sources = {
+        "r_worldcontrolasm.s", "asm486_experiments.s", "r_edgea.s",
+        "r_publicbindingsasm.s",
+    }
+    selected_assembly = set(manifest.get("assemblySources", []))
+    missing_sources = sorted(required_sources - selected_assembly)
+    if missing_sources:
+        raise ValueError("_pdrawfunc closure requires assembly sources: " + ", ".join(missing_sources))
+
+    setter_entry, setter = _renderer_function(
+        "_R_BeginEdgeFrame", "r_worldcontrolasm.s", entries, units, "_pdrawfunc")
+    consumer_entry, consumer = _renderer_function(
+        "_R_ScanEdges_asm486", "asm486_experiments.s", entries, units, "_pdrawfunc")
+
+    target_relocations = [relocation for relocation in setter["relocations"]
+                          if relocation["symbol"] in PDRAW_FUNC_TARGETS]
+    target_counts = {symbol: sum(relocation["symbol"] == symbol for relocation in target_relocations)
+                     for symbol in PDRAW_FUNC_TARGETS}
+    if target_counts != {"_R_GenerateSpans": 1, "_R_GenerateSpansBackward": 1}:
+        raise ValueError("_pdrawfunc closure requires exactly one forward and one backward span assignment")
+    unexpected_targets = [relocation["symbol"] for relocation in setter["relocations"]
+                          if relocation["symbol"].startswith("_R_GenerateSpans") and
+            relocation["symbol"] not in PDRAW_FUNC_TARGETS]
+    if unexpected_targets:
+        raise ValueError("_pdrawfunc closure found unexpected span targets: " +
+                         ", ".join(sorted(set(unexpected_targets))))
+
+    pointer_stores = [relocation for relocation in setter["relocations"]
+                      if relocation["symbol"].lower() == "_pdrawfunc"]
+    if len(pointer_stores) != 1:
+        raise ValueError("_pdrawfunc closure expected one pointer store in _R_BeginEdgeFrame")
+
+    target_instructions: dict[str, dict] = {}
+    target_registers: dict[str, str] = {}
+    for relocation in target_relocations:
+        if relocation["type"] != "DIR32":
+            raise ValueError(f"_pdrawfunc closure target {relocation['symbol']} requires a DIR32 address relocation")
+        instruction = _instruction_at(setter, int(relocation["instructionOffset"], 16))
+        match = (re.fullmatch(r"\$0x[0-9a-fA-F]+,%([a-z0-9]+)",
+                              instruction["operands"].replace(" ", ""))
+                 if instruction and instruction["operation"] in {"mov", "movl"} else None)
+        if match is None:
+            raise ValueError(f"_pdrawfunc closure target {relocation['symbol']} is not loaded from its address")
+        target_instructions[relocation["symbol"]] = instruction
+        target_registers[relocation["symbol"]] = match[1]
+
+    store_relocation = pointer_stores[0]
+    if store_relocation["type"] != "DIR32":
+        raise ValueError("_pdrawfunc closure requires a DIR32 relocation for the global pointer store")
+    store_instruction = _instruction_at(setter, int(store_relocation["instructionOffset"], 16))
+    store_match = (re.fullmatch(r"%([a-z0-9]+),0x[0-9a-fA-F]+",
+                                store_instruction["operands"].replace(" ", ""))
+                   if store_instruction and store_instruction["operation"] in {"mov", "movl"} else None)
+    if store_match is None:
+        raise ValueError("_pdrawfunc closure pointer store does not write the selected register")
+    selected_register = store_match[1]
+    if any(register != selected_register for register in target_registers.values()):
+        raise ValueError("_pdrawfunc closure target loads do not feed the shared pointer store")
+
+    instructions = setter["instructions"]
+    index_by_offset = {int(instruction["offset"], 16): index
+                       for index, instruction in enumerate(instructions)}
+    forward = target_instructions["_R_GenerateSpans"]
+    backward = target_instructions["_R_GenerateSpansBackward"]
+    store_offset = int(store_instruction["offset"], 16)
+    forward_index = index_by_offset[int(forward["offset"], 16)]
+    backward_index = index_by_offset[int(backward["offset"], 16)]
+    store_index = index_by_offset[store_offset]
+    backward_address = int(backward["offset"], 16)
+    selector_branches = [instruction for instruction in instructions
+                         if instruction["operation"].startswith("j") and
+                         _branch_target(instruction) == backward_address]
+    store_branches = [instruction for instruction in instructions
+                      if instruction["operation"].startswith("j") and
+                      _branch_target(instruction) == store_offset]
+    if (not forward_index < store_index < backward_index or
+            len(selector_branches) != 1 or len(store_branches) != 1 or
+            selector_branches[0]["operation"] in {"jmp", "jmpq"}):
+        raise ValueError("_pdrawfunc closure could not identify the forward/backward selection paths")
+    selector_index = index_by_offset[int(selector_branches[0]["offset"], 16)]
+    merge_index = index_by_offset[int(store_branches[0]["offset"], 16)]
+    if (selector_index + 1 != forward_index or merge_index <= backward_index or
+            store_branches[0]["operation"] != "jmp" or
+            not any(instruction["operation"].startswith("ret")
+                    for instruction in instructions[store_index + 1:backward_index]) or
+            any(instruction["operation"].startswith("j")
+                for instruction in instructions[forward_index + 1:store_index]) or
+            any(instruction["operation"].startswith("j")
+                for instruction in instructions[backward_index + 1:merge_index]) or
+            any(instruction["operation"].startswith("j") and
+                _branch_target(instruction) in {
+                    int(item["offset"], 16)
+                    for item in instructions[forward_index:store_index + 1] +
+                    instructions[backward_index:merge_index + 1]
+                } and
+                instruction not in selector_branches + store_branches
+                for instruction in instructions)):
+        raise ValueError("_pdrawfunc closure found a branch bypassing or splitting target selection")
+    if (any(_writes_register(instruction, selected_register)
+            for instruction in instructions[forward_index + 1:store_index]) or
+            any(_writes_register(instruction, selected_register)
+                for instruction in instructions[backward_index + 1:merge_index])):
+        raise ValueError("_pdrawfunc closure found a selected-register clobber before the pointer store")
+
+    pointer_loads = [relocation for relocation in consumer["relocations"]
+                     if relocation["symbol"].lower() == "_pdrawfunc"]
+    if len(pointer_loads) != 2:
+        raise ValueError("_pdrawfunc closure expected two pointer loads in _R_ScanEdges_asm486")
+    pointer_load_offsets = [int(relocation["instructionOffset"], 16)
+                            for relocation in pointer_loads]
+    if len(set(pointer_load_offsets)) != len(pointer_load_offsets):
+        raise ValueError("_pdrawfunc closure found duplicate pointer-load relocation records")
+    call_instructions = [instruction for instruction in consumer["instructions"]
+                         if instruction["operation"] == "call" and
+                         instruction["operands"].replace(" ", "").startswith("*")]
+    if len(call_instructions) != 2:
+        raise ValueError("_pdrawfunc closure expected two indirect calls in _R_ScanEdges_asm486")
+    if len(consumer_entry["indirectTransfers"]) != 2:
+        raise ValueError("_pdrawfunc closure found an unpaired indirect transfer in _R_ScanEdges_asm486")
+
+    call_offsets = []
+    for relocation in pointer_loads:
+        if relocation["type"] != "DIR32":
+            raise ValueError("_pdrawfunc closure requires DIR32 relocations for pointer loads")
+        load_instruction = _instruction_at(consumer, int(relocation["instructionOffset"], 16))
+        if (load_instruction is None or load_instruction["operation"] not in {"mov", "movl"} or
+                re.fullmatch(r"0x[0-9a-fA-F]+,%eax", load_instruction["operands"].replace(" ", "")) is None):
+            raise ValueError("_pdrawfunc closure found an unexpected _R_ScanEdges_asm486 pointer load")
+        load_index = consumer["instructions"].index(load_instruction)
+        if load_index + 1 >= len(consumer["instructions"]):
+            raise ValueError("_pdrawfunc closure found no indirect call after a pointer load")
+        call_instruction = consumer["instructions"][load_index + 1]
+        if call_instruction["operation"] != "call" or call_instruction["operands"].replace(" ", "") != "*%eax":
+            raise ValueError("_pdrawfunc closure found no call through the loaded _pdrawfunc pointer")
+        call_address = int(call_instruction["offset"], 16)
+        if any(instruction["operation"].startswith("j") and _branch_target(instruction) == call_address
+               for instruction in consumer["instructions"]):
+            raise ValueError("_pdrawfunc closure found a branch that bypasses a pointer load")
+        call_offset = "0x" + call_instruction["offset"]
+        if not any(item["offset"] == call_offset and item["instruction"] == "call *%eax"
+                   for item in consumer_entry["indirectTransfers"]):
+            raise ValueError("_pdrawfunc closure call does not match the reported indirect transfer")
+        call_offsets.append(call_offset)
+    if (len(set(call_offsets)) != len(call_offsets) or
+            {int(offset, 16) for offset in call_offsets} !=
+            {int(instruction["offset"], 16) for instruction in call_instructions}):
+        raise ValueError("_pdrawfunc closure did not pair each unique pointer load with one unique indirect call")
+
+    targets = []
+    for symbol, source in sorted(PDRAW_FUNC_TARGETS.items()):
+        target_entry, _ = _renderer_function(symbol, source, entries, units, "_pdrawfunc")
+        targets.append({key: target_entry[key] for key in ("symbol", "source", "object", "language")})
+    backward_public, backward_public_function = _renderer_function(
+        "_R_GenerateSpansBackward", "r_publicbindingsasm.s", entries, units, "_pdrawfunc")
+    backward_impl, _ = _renderer_function(
+        "_R_GenerateSpansBackward_asm486", "asm486_experiments.s", entries, units, "_pdrawfunc")
+    forward_entry = entries["_R_GenerateSpans"]
+    backward_transfers = [instruction for instruction in backward_public_function["instructions"]
+                          if instruction["operation"] in {"call", "jmp"}]
+    if (backward_public["calls"] != ["_R_GenerateSpansBackward_asm486"] or
+            backward_public_function["indirectTransfers"] or
+            len(backward_transfers) != 1 or
+            backward_transfers[0]["operation"] != "jmp"):
+        raise ValueError("_pdrawfunc closure requires the backward public entry to tail-transfer to its asm implementation")
+    return [{
+        "pointer": "_pdrawfunc",
+        "consumer": consumer_entry["symbol"],
+        "consumerSource": consumer_entry["source"],
+        "consumerObject": consumer_entry["object"],
+        "callSiteOffsets": call_offsets,
+        "setter": setter_entry["symbol"],
+        "setterSource": setter_entry["source"],
+        "setterObject": setter_entry["object"],
+        "selectionAssignments": [
+            {"target": "_R_GenerateSpans", "offset": "0x" + forward["offset"]},
+            {"target": "_R_GenerateSpansBackward", "offset": "0x" + backward["offset"]},
+        ],
+        "pointerStoreOffset": "0x" + store_instruction["offset"],
+        "profile": {
+            "worldControlImplementation": manifest["worldControlImplementation"],
+            "scanEdgesImplementation": manifest["scanEdgesImplementation"],
+            "backwardSpansImplementation": manifest["backwardSpansImplementation"],
+        },
+        "targets": targets,
+        "implementations": [
+            {key: forward_entry[key] for key in ("symbol", "source", "object", "language")},
+            {key: backward_impl[key] for key in ("symbol", "source", "object", "language")},
+        ],
+        "proof": "structural disassembly and DIR32 relocations show _R_BeginEdgeFrame selects only these two assembly span entries and both _R_ScanEdges_asm486 indirect calls reload _pdrawfunc immediately before transfer; writers outside the selected setter are not enumerated",
+    }]
+
+
 def inventory(manifest: dict, objects: Path, repo: Path, objdump: Path, roots: list[str], boundaries: list[str]) -> dict:
     source_by_object = {Path(name).stem + ".obj": name
                         for name in manifest["cSources"] + manifest["assemblySources"]}
@@ -246,7 +472,9 @@ def inventory(manifest: dict, objects: Path, repo: Path, objdump: Path, roots: l
             file_match = re.match(r"^(.+\.obj):\s+file format\s+coff-go32", line)
             if file_match:
                 name = Path(file_match[1]).name
-                unit = units.setdefault(name, {"symbols": {}, "functions": {}})
+                unit = units.setdefault(name, {
+                    "symbols": {}, "symbolClasses": {}, "functions": {},
+                })
                 current = last_instruction = None
                 continue
             if unit is None:
@@ -254,13 +482,25 @@ def inventory(manifest: dict, objects: Path, repo: Path, objdump: Path, roots: l
             match = SYMBOL.match(line)
             if match:
                 unit["symbols"][match[2]] = int(match[1], 16)
+                storage_class = re.search(r"\(scl\s+(\d+)\)", line)
+                unit["symbolClasses"][match[2]] = int(storage_class[1]) if storage_class else None
                 continue
             match = HEADER.match(line)
             if match:
-                current = unit["functions"].setdefault(int(match[1], 16), {
-                    "displaySymbol": match[2], "calls": {}, "indirectTransfers": [],
-                    "instructions": [], "relocations": [],
-                })
+                # DJGPP objdump labels local assembler branches with storage
+                # class 6 as disassembly headers. They split one machine-code
+                # routine into display blocks; keep those instructions and
+                # relocations in the enclosing global/static function.
+                storage_class = unit["symbolClasses"].get(match[2])
+                if storage_class not in {2, 3, 6}:
+                    raise ValueError(
+                        f"objdump header {match[2]} in {name} has unclassified or unsupported "
+                        f"COFF storage class {storage_class!r}")
+                if storage_class != 6:
+                    current = unit["functions"].setdefault(int(match[1], 16), {
+                        "displaySymbol": match[2], "calls": {}, "indirectTransfers": [],
+                        "instructions": [], "relocations": [],
+                    })
                 last_instruction = None
                 continue
             if current is None:
@@ -351,6 +591,11 @@ def inventory(manifest: dict, objects: Path, repo: Path, objdump: Path, roots: l
         unreachable = [symbol for symbol in (proof["consumer"], proof["setter"]) if symbol not in seen]
         if unreachable:
             raise ValueError("d_drawspans closure is outside the production renderer path: " + ", ".join(unreachable))
+    selected_indirect_target_sets = resolve_pdrawfunc_targets(manifest, units, entries)
+    for proof in selected_indirect_target_sets:
+        unreachable = [symbol for symbol in (proof["consumer"], proof["setter"]) if symbol not in seen]
+        if unreachable:
+            raise ValueError("_pdrawfunc closure is outside the production renderer path: " + ", ".join(unreachable))
     return {
         "schemaVersion": 1, "purpose": "renderer-machine-code-ownership-inventory",
         "completeCallGraph": False,
@@ -361,10 +606,12 @@ def inventory(manifest: dict, objects: Path, repo: Path, objdump: Path, roots: l
         "directlyReachableRendererC": pending,
         "directlyReachableIndirectTransfers": [entries[name] for name in sorted(seen) if entries[name]["indirectTransfers"]],
         "selectedSetterTargetSets": selected_setter_target_sets,
+        "selectedIndirectTargetSets": selected_indirect_target_sets,
         "unresolvedDirectCallees": sorted(unresolved),
         "summary": {"rendererEntries": len(owned), "directlyReachableEntries": len(seen),
                     "directlyReachableRendererC": len(pending), "unresolvedDirectCallees": len(unresolved),
-                    "selectedSetterTargetSets": len(selected_setter_target_sets)},
+                    "selectedSetterTargetSets": len(selected_setter_target_sets),
+                    "selectedIndirectTargetSets": len(selected_indirect_target_sets)},
     }
 
 
