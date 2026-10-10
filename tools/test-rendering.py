@@ -889,6 +889,34 @@ class RenderingComparisonTests(unittest.TestCase):
             with self.subTest(case=case):
                 self.assertIn(case, fixture)
 
+    def test_v_init_assembly_preserves_registration_order_and_gamma_setup(self) -> None:
+        source = (ROOT / "src/view.c").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/v_viewcontrolasm.s").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_vinit.h").read_text(encoding="utf-8")
+        host = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+
+        self.assertIn("void V_Init_View_C (void)", source)
+        self.assertIn("V_INIT_BUILD_GAMMA BuildGammaTable_C", source)
+        self.assertIn("V_Init_SetBenchHooks", source)
+        self.assertIn("V_Init_ClearBenchHooks", source)
+        self.assertRegex(assembly, r"(?m)^_V_Init_asm486:")
+        body = re.search(
+            r"(?m)^_V_Init_asm486:(?P<body>.*?^\s*ret\s*$)", assembly, re.DOTALL
+        )
+        self.assertIsNotNone(body)
+        self.assertEqual(body.group("body").count("call V_INIT_ADD_COMMAND"), 3)
+        self.assertEqual(body.group("body").count("call V_INIT_REGISTER_VARIABLE"), 26)
+        self.assertRegex(
+            body.group("body"),
+            r"pushl \$0x3f800000\s+call _BuildGammaTable\s+addl \$4,%esp",
+        )
+        self.assertNotRegex(body.group("body"), r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        self.assertIn("BVINIT_PRE_GAMMA_CVAR_COUNT 25", fixture)
+        self.assertIn("BVINIT_CVAR_COUNT 26", fixture)
+        self.assertIn("Bench486VInitCases (void)", fixture)
+        self.assertIn('#include "bench486_vinit.h"', host)
+        self.assertGreaterEqual(host.count("Bench486VInitCases ();"), 2)
+
     def test_damage_parse_profiles_isolate_the_new_assembly_candidate(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = json.loads((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))

@@ -6901,6 +6901,7 @@ static void Bench486SpriteSetupCases (void)
 #include "bench486_drawingdriver.h"
 #include "asm_viewcontrol.h"
 #include "bench486_viewcontrol.h"
+#include "bench486_vinit.h"
 #include "asm_drawing.h"
 #include "bench486_drawing.h"
 #include "asm_chase.h"
@@ -10753,6 +10754,7 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchviewcontrol"))
 	{
 		Bench486ViewControlCases ();
+		Bench486VInitCases ();
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
@@ -11312,6 +11314,7 @@ static void Bench486_f (void)
 #endif
 #ifdef ASM486_VIEW_CONTROL
 	Bench486ViewControlCases ();
+	Bench486VInitCases ();
 #endif
 #ifdef ASM486_DRAWING
 	Bench486DrawingCases ();

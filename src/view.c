@@ -58,7 +58,41 @@ void V_cshift_f (void);
 #include "asm_vdamage.h"
 /* Same process-lifetime camera latches, shared with independent test oracles. */
 float viewcontrol_oldyaw,viewcontrol_oldpitch,viewcontrol_oldz;
-#if defined(BENCH486) && defined(ASM486_VIEW_CONTROL)
+#if defined(BENCH486)
+typedef void (*v_init_add_command_hook_t)(char *,void (*)(void));
+typedef void (*v_init_register_variable_hook_t)(cvar_t *);
+static v_init_add_command_hook_t v_init_add_command_hook;
+static v_init_register_variable_hook_t v_init_register_variable_hook;
+
+void V_Init_SetBenchHooks(v_init_add_command_hook_t add_command,
+        v_init_register_variable_hook_t register_variable)
+{
+	v_init_add_command_hook=add_command;
+	v_init_register_variable_hook=register_variable;
+}
+
+void V_Init_ClearBenchHooks(void)
+{
+	v_init_add_command_hook=NULL;
+	v_init_register_variable_hook=NULL;
+}
+
+void V_Init_BenchAddCommand(char *name,void (*function)(void))
+{
+	if(v_init_add_command_hook)
+		v_init_add_command_hook(name,function);
+	else
+		Cmd_AddCommand(name,function);
+}
+
+void V_Init_BenchRegisterVariable(cvar_t *variable)
+{
+	if(v_init_register_variable_hook)
+		v_init_register_variable_hook(variable);
+	else
+		Cvar_RegisterVariable(variable);
+}
+
 void (*bench486_view_probe)(unsigned,unsigned,const unsigned *);
 static int Bench486ViewObserve(unsigned phase,unsigned count,const unsigned *words)
 {if(!bench486_view_probe)return 0;bench486_view_probe(phase,count,words);return 1;}
@@ -1132,46 +1166,70 @@ void V_RenderView (void)
 V_Init
 =============
 */
+#if !defined(ASM486_VIEW_CONTROL) || defined(BENCH486)
+#if defined(BENCH486)
+void V_Init_View_C (void)
+#else
+void V_Init (void)
+#endif
+{
+#if defined(BENCH486) && defined(ASM486_VIEW_CONTROL)
+	#define V_INIT_ADD_COMMAND V_Init_BenchAddCommand
+	#define V_INIT_REGISTER_VARIABLE V_Init_BenchRegisterVariable
+	#define V_INIT_BUILD_GAMMA BuildGammaTable_C
+#else
+	#define V_INIT_ADD_COMMAND Cmd_AddCommand
+	#define V_INIT_REGISTER_VARIABLE Cvar_RegisterVariable
+	#define V_INIT_BUILD_GAMMA BuildGammaTable
+#endif
+	V_INIT_ADD_COMMAND ("v_cshift", V_cshift_f);	
+	V_INIT_ADD_COMMAND ("bf", V_BonusFlash_f);
+	V_INIT_ADD_COMMAND ("centerview", V_StartPitchDrift);
+
+	V_INIT_REGISTER_VARIABLE (&lcd_x);
+	V_INIT_REGISTER_VARIABLE (&lcd_yaw);
+
+	V_INIT_REGISTER_VARIABLE (&v_centermove);
+	V_INIT_REGISTER_VARIABLE (&v_centerspeed);
+
+	V_INIT_REGISTER_VARIABLE (&v_iyaw_cycle);
+	V_INIT_REGISTER_VARIABLE (&v_iroll_cycle);
+	V_INIT_REGISTER_VARIABLE (&v_ipitch_cycle);
+	V_INIT_REGISTER_VARIABLE (&v_iyaw_level);
+	V_INIT_REGISTER_VARIABLE (&v_iroll_level);
+	V_INIT_REGISTER_VARIABLE (&v_ipitch_level);
+
+	V_INIT_REGISTER_VARIABLE (&v_idlescale);
+	V_INIT_REGISTER_VARIABLE (&crosshair);
+	V_INIT_REGISTER_VARIABLE (&cl_crossx);
+	V_INIT_REGISTER_VARIABLE (&cl_crossy);
+
+	V_INIT_REGISTER_VARIABLE (&scr_ofsx);
+	V_INIT_REGISTER_VARIABLE (&scr_ofsy);
+	V_INIT_REGISTER_VARIABLE (&scr_ofsz);
+	V_INIT_REGISTER_VARIABLE (&cl_rollspeed);
+	V_INIT_REGISTER_VARIABLE (&cl_rollangle);
+	V_INIT_REGISTER_VARIABLE (&cl_bob);
+	V_INIT_REGISTER_VARIABLE (&cl_bobcycle);
+	V_INIT_REGISTER_VARIABLE (&cl_bobup);
+
+	V_INIT_REGISTER_VARIABLE (&v_kicktime);
+	V_INIT_REGISTER_VARIABLE (&v_kickroll);
+	V_INIT_REGISTER_VARIABLE (&v_kickpitch);	
+	
+	V_INIT_BUILD_GAMMA (1.0);	// no gamma yet
+	V_INIT_REGISTER_VARIABLE (&v_gamma);
+}
+#undef V_INIT_ADD_COMMAND
+#undef V_INIT_REGISTER_VARIABLE
+#undef V_INIT_BUILD_GAMMA
+#endif
+#if defined(BENCH486) && !defined(ASM486_VIEW_CONTROL)
 void V_Init (void)
 {
-	Cmd_AddCommand ("v_cshift", V_cshift_f);	
-	Cmd_AddCommand ("bf", V_BonusFlash_f);
-	Cmd_AddCommand ("centerview", V_StartPitchDrift);
-
-	Cvar_RegisterVariable (&lcd_x);
-	Cvar_RegisterVariable (&lcd_yaw);
-
-	Cvar_RegisterVariable (&v_centermove);
-	Cvar_RegisterVariable (&v_centerspeed);
-
-	Cvar_RegisterVariable (&v_iyaw_cycle);
-	Cvar_RegisterVariable (&v_iroll_cycle);
-	Cvar_RegisterVariable (&v_ipitch_cycle);
-	Cvar_RegisterVariable (&v_iyaw_level);
-	Cvar_RegisterVariable (&v_iroll_level);
-	Cvar_RegisterVariable (&v_ipitch_level);
-
-	Cvar_RegisterVariable (&v_idlescale);
-	Cvar_RegisterVariable (&crosshair);
-	Cvar_RegisterVariable (&cl_crossx);
-	Cvar_RegisterVariable (&cl_crossy);
-
-	Cvar_RegisterVariable (&scr_ofsx);
-	Cvar_RegisterVariable (&scr_ofsy);
-	Cvar_RegisterVariable (&scr_ofsz);
-	Cvar_RegisterVariable (&cl_rollspeed);
-	Cvar_RegisterVariable (&cl_rollangle);
-	Cvar_RegisterVariable (&cl_bob);
-	Cvar_RegisterVariable (&cl_bobcycle);
-	Cvar_RegisterVariable (&cl_bobup);
-
-	Cvar_RegisterVariable (&v_kicktime);
-	Cvar_RegisterVariable (&v_kickroll);
-	Cvar_RegisterVariable (&v_kickpitch);	
-	
-	BuildGammaTable (1.0);	// no gamma yet
-	Cvar_RegisterVariable (&v_gamma);
+	V_Init_View_C ();
 }
+#endif
 
 
 
