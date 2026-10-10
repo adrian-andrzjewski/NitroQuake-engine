@@ -2225,6 +2225,90 @@ class RenderingComparisonTests(unittest.TestCase):
                 f"{runner_name} must expose ConsoleImplementation with a C default",
             )
 
+    def test_screen_notify_selector_has_a_focused_reference_and_assembly_profile(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-screennotify-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screennotify-asm.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(reference["id"], "i486-screennotify-c")
+        self.assertEqual(candidate["id"], "i486-screennotify-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ScreenNotifyImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenNotifyImplementation"], "asm")
+        self.assertEqual(
+            {name for name, value in candidate["selectors"].items()
+             if reference["selectors"][name] != value},
+            {"ScreenNotifyImplementation"},
+        )
+
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_notifyasm.s").read_text(encoding="utf-8")
+        self.assertIn("ASM486_SCREEN_NOTIFY", selectors)
+        self.assertIn(".arch i486", assembly)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        for runner_name in (
+            "build-dos.ps1",
+            "bench-dos.ps1",
+            "timedemo-dos.ps1",
+            "smoke-dos.ps1",
+            "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ScreenNotifyImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenNotifyImplementation with a C default",
+            )
+
+    def test_screen_notify_fixture_pins_x87_layout_and_line_consumption(self) -> None:
+        assembly = (ROOT / "src/screen_notifyasm.s").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screennotify.h").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        for instruction in (
+            "fildl   C(vid)+sn_vid_height_offset",
+            "orw     $0x0300,%ax",
+            "fmull   .Lscreen_notify_point_35",
+            "faddl   .Lscreen_notify_two_32",
+            "fistpl  -20(%ebp)",
+            "fldcw   -14(%ebp)",
+            "movsbl  (%ebx,%esi),%eax",
+            "cmpl    $40,%esi",
+            "subl    %eax,%edi",
+            "shrl    $1,%edi",
+        ):
+            with self.subTest(instruction=instruction):
+                self.assertIn(instruction, assembly)
+        self.assertIn("SCR_DrawNotifyString_Screen_C", source)
+        self.assertIn("while (*start && *start != '\\n')", source)
+        self.assertIn("SCR_DrawNotifyString_Screen_C", fixture)
+        self.assertIn("SCR_DrawNotifyString_asm486", fixture)
+        self.assertIn("SCR_DrawNotifyString,", fixture)
+        self.assertIn("(unsigned)x > BSN_ROW_BYTES - 8U", fixture)
+        self.assertIn("(unsigned)y > BSN_FRAME_ROWS - 8U", fixture)
+        self.assertIn("precision_bits[3]", fixture)
+        self.assertIn("precision_count = ((test_case->width | test_case->height) & 0x80000000U) ? 3 : 1", fixture)
+        self.assertIn("control_word_before", fixture)
+        self.assertIn("control_word_after", fixture)
+        self.assertIn("control_word_probe_changed", fixture)
+        self.assertIn("abi & 0x20U", fixture)
+        for case in (
+            '"line-39"', '"line-40"', '"line-41"',
+            '"narrow-even-40"', '"narrow-odd-40"',
+            '"high-bit-width-40"', '"max-width-40"',
+            '"high-bit-height"', '"max-height"',
+            '"overlong-suffix"', '"leading-newline"',
+            '"consecutive-newlines"', '"trailing-newline"',
+            '"signed-high-bytes"',
+        ):
+            with self.subTest(case=case):
+                self.assertIn(case, fixture)
+        self.assertIn("rounding_names[4]", fixture)
+        self.assertIn("-ScreenNotifyOnly requires -ScreenNotifyImplementation asm.", runner)
+        self.assertIn("-benchscreenotify", runner)
+
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
         routine = re.search(

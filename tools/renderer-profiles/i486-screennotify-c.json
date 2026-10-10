@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-screennotify-c",
+  "description": "Default i486 selector settings with the original C SCR_DrawNotifyString implementation.",
+  "selectors": {
+    "ScreenNotifyImplementation": "c"
+  }
+}

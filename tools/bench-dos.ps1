@@ -242,6 +242,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ConsoleImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenNotifyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -294,6 +296,7 @@ param(
     [switch]$DrawingDriverOnly,
     [switch]$ViewControlOnly,
     [switch]$ConsoleInputOnly,
+    [switch]$ScreenNotifyOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -377,6 +380,9 @@ if ($PaletteOnly -and $PaletteImplementation -ne 'asm') {
 }
 if ($ConsoleInputOnly -and $ConsoleImplementation -ne 'asm') {
     throw '-ConsoleInputOnly requires -ConsoleImplementation asm.'
+}
+if ($ScreenNotifyOnly -and $ScreenNotifyImplementation -ne 'asm') {
+    throw '-ScreenNotifyOnly requires -ScreenNotifyImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -742,6 +748,9 @@ elseif ($ViewControlOnly) {
 elseif ($ConsoleInputOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchconsoleinput -benchexit'
 }
+elseif ($ScreenNotifyOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenotify -benchexit'
+}
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
 }
@@ -1055,6 +1064,7 @@ $result = [ordered]@{
     viewControlImplementation = $ViewControlImplementation
     drawingImplementation = $DrawingImplementation
     consoleImplementation = $ConsoleImplementation
+    screenNotifyImplementation = $ScreenNotifyImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation

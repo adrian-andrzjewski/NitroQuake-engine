@@ -39,6 +39,8 @@
           report parsing. Seconds.
       3b. test-rendering-reports.py exact paired-profile report comparisons.
       3c. test-renderer-ownership.py compiler clones and direct root traces.
+      3d. test-renderer-profile-completeness.ps1 checks the cumulative assembly
+          profile against every SelectsAsm implementation in selectors.ps1.
       4. build-dos.ps1         compiles, and now carries the blocking ISA gate,
                                 so a build that emits a regressing above-target
                                 instruction stops here rather than at promotion.
@@ -234,6 +236,8 @@ Invoke-Gate -Name 'test-timedemo-event-record (BENCH486 event report parser)' -K
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-timedemo-event-record.ps1') | Out-Null
 Invoke-Gate -Name 'test-rendering-reports (exact C/ASM parity report comparator)' -Kind 'host' -Command @('python', 'tools/test-rendering-reports.py') | Out-Null
 Invoke-Gate -Name 'test-renderer-ownership (compiler clones and call traces)' -Kind 'host' -Command @('python', 'tools/test-renderer-ownership.py') | Out-Null
+Invoke-Gate -Name 'test-renderer-profile-completeness (current cumulative asm profile)' -Kind 'host' `
+    -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-renderer-profile-completeness.ps1') | Out-Null
 
 # ---- 4: build, carrying the blocking ISA gate. ----------------------------
 Invoke-Gate -Name "build-dos ($CpuTarget; includes the blocking ISA gate)" -Kind 'build' `

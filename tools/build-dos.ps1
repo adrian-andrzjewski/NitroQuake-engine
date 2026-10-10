@@ -231,6 +231,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ConsoleImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenNotifyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -588,12 +590,9 @@ if ($Clean) {
 	}
 }
 
-# The inventory pin.  The expected counts come from the golden manifest for this
-# target rather than from literals here, so there is one place to edit when a
-# source is legitimately added or removed instead of four: this script, the two
-# manifests, and tools\test-build-dos.py.  The pin itself is unchanged -- a
-# source file appearing or disappearing without the manifest being updated still
-# fails the build, which is the point of the guard.
+# The inventory pin. The expected counts are literal here for -DumpFlags and are
+# independently mirrored in the target manifests and tools\test-build-dos.py.
+# Update all of them when a source is legitimately added or removed.
 #
 # -DumpFlags stays pure and does NOT read the manifest: tools\test-build-dos.py
 # drives it and then compares its output against the manifest, so having it read
@@ -602,7 +601,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 55
+$expectedAllAssemblySourceCount = 56
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {

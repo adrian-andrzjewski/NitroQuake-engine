@@ -638,6 +638,7 @@ def main() -> int:
         ("DamageParseImplementation", "ASM486_V_PARSE_DAMAGE", "vparsedamageasm"),
         ("DrawingImplementation", "ASM486_DRAWING", "drawingasm"),
         ("ConsoleImplementation", "ASM486_CONSOLE_INPUT", "consoleinputasm"),
+        ("ScreenNotifyImplementation", "ASM486_SCREEN_NOTIFY", "screennotifyasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
     ):
         reference = dump_flags("-" + selector, "c")
@@ -658,6 +659,12 @@ def main() -> int:
     for name, dump in (("C", console_input_reference), ("assembly", console_input_candidate)):
         if dump and "con_inputasm.s" not in dump.get("assemblySources", []):
             fail("the Con_DrawInput %s selector omits con_inputasm.s from the source inventory" % name)
+
+    screen_notify_reference = dump_flags("-ScreenNotifyImplementation", "c")
+    screen_notify_candidate = dump_flags("-ScreenNotifyImplementation", "asm")
+    for name, dump in (("C", screen_notify_reference), ("assembly", screen_notify_candidate)):
+        if dump and "screen_notifyasm.s" not in dump.get("assemblySources", []):
+            fail("the SCR_DrawNotifyString %s selector omits screen_notifyasm.s from the source inventory" % name)
 
     for value_name, value in (("C", "c"), ("assembly", "asm")):
         damage_parse = dump_flags("-DamageParseImplementation", value)
@@ -1608,7 +1615,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 55 assembly sources (one is omitted only
+    #    included by another unit), 56 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1620,9 +1627,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 55:
+        if dump.get("allAssemblySourceCount") != 56:
             fail(
-                "%s: expected 55 assembly sources, got %r"
+                "%s: expected 56 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

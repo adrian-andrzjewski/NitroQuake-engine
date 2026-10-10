@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-screennotify-asm",
+  "description": "Default i486 selector settings with the focused SCR_DrawNotifyString assembly candidate.",
+  "selectors": {
+    "ScreenNotifyImplementation": "asm"
+  }
+}

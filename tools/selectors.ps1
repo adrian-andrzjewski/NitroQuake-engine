@@ -109,6 +109,7 @@ $script:AssemblyBackedImplementations = @(
     'DamageParseImplementation',
     'DrawingImplementation',
     'ConsoleImplementation',
+    'ScreenNotifyImplementation',
     'ChaseImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
@@ -1174,6 +1175,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ScreenNotifyImplementation'
+        Manifest   = 'screenNotifyImplementation'
+        Suffix     = @{ 'asm' = 'screennotifyasm' }
+        C          = @{ 'asm' = @('ASM486_SCREEN_NOTIFY') }
+        Asm        = @{ 'asm' = @('ASM486_SCREEN_NOTIFY') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'RenderWorldImplementation'
         Manifest   = 'renderWorldImplementation'
         Suffix     = @{ 'asm' = 'renderworldasm' }
@@ -1474,6 +1484,7 @@ $script:SuffixOrder = @(
     'DamageParseImplementation'
     'DrawingImplementation'
     'ConsoleImplementation'
+    'ScreenNotifyImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1562,6 +1573,7 @@ $script:CDefineOrder = @(
     'DamageParseImplementation'
     'DrawingImplementation'
     'ConsoleImplementation'
+    'ScreenNotifyImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1682,6 +1694,7 @@ $script:AsmDefineOrder = @(
     'DamageParseImplementation'
     'DrawingImplementation'
     'ConsoleImplementation'
+    'ScreenNotifyImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'

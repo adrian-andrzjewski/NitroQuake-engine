@@ -6905,6 +6905,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
 #include "bench486_console_input.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_SCREEN_NOTIFY)
+#include "bench486_screennotify.h"
+#endif
 #include "asm_drawing.h"
 #include "bench486_drawing.h"
 #include "asm_chase.h"
@@ -10780,6 +10783,20 @@ static void Bench486_f (void)
 		return;
 	}
 
+	if (COM_CheckParm ("-benchscreenotify"))
+	{
+#ifdef ASM486_SCREEN_NOTIFY
+		Bench486ScreenNotifyCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("screen notify fixture requires ScreenNotifyImplementation=asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
+		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+
 	if (COM_CheckParm ("-benchdrawingdriver"))
 	{
 		Bench486DrawingDriverCases ();
@@ -11337,6 +11354,9 @@ static void Bench486_f (void)
 #endif
 #ifdef ASM486_CONSOLE_INPUT
 	Bench486ConsoleInputCases ();
+#endif
+#ifdef ASM486_SCREEN_NOTIFY
+	Bench486ScreenNotifyCases ();
 #endif
 #ifdef ASM486_DRAWING
 	Bench486DrawingCases ();

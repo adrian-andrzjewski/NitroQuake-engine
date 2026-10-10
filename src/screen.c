@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "r_local.h"
+#include "asm_screennotify.h"
 
 // only the refresh window will be updated unless these variables are flagged 
 int			scr_copytop;
@@ -703,7 +704,16 @@ void SCR_EndLoadingPlaque (void)
 char	*scr_notifystring;
 qboolean	scr_drawdialog;
 
-void SCR_DrawNotifyString (void)
+#if defined(ASM486_SCREEN_NOTIFY) && defined(BENCH486)
+#define SCR_NOTIFY_DRAW_CHARACTER Bench486ScreenNotifyCharacter
+#define SCR_DRAW_NOTIFY_C SCR_DrawNotifyString_Screen_C
+#elif !defined(ASM486_SCREEN_NOTIFY)
+#define SCR_NOTIFY_DRAW_CHARACTER Draw_Character
+#define SCR_DRAW_NOTIFY_C SCR_DrawNotifyString
+#endif
+
+#if !defined(ASM486_SCREEN_NOTIFY) || defined(BENCH486)
+void SCR_DRAW_NOTIFY_C (void)
 {
 	char	*start;
 	int		l;
@@ -722,8 +732,8 @@ void SCR_DrawNotifyString (void)
 				break;
 		x = (vid.width - l*8)/2;
 		for (j=0 ; j<l ; j++, x+=8)
-			Draw_Character (x, y, start[j]);	
-			
+			SCR_NOTIFY_DRAW_CHARACTER (x, y, start[j]);
+
 		y += 8;
 
 		while (*start && *start != '\n')
@@ -734,6 +744,10 @@ void SCR_DrawNotifyString (void)
 		start++;		// skip the \n
 	} while (1);
 }
+#endif
+
+#undef SCR_DRAW_NOTIFY_C
+#undef SCR_NOTIFY_DRAW_CHARACTER
 
 /*
 ==================
