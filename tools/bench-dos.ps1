@@ -305,6 +305,7 @@ param(
     [switch]$AliasStatsOnly,
     [switch]$PrintTimesOnly,
     [switch]$WorldControlOnly,
+    [switch]$EfragStoreOnly,
     [switch]$MipLevelOnly,
     [switch]$TextureAnimationOnly,
     [switch]$LightMapNormalizeOnly,
@@ -435,6 +436,9 @@ if ($AliasStatsOnly -and $AliasStatsImplementation -ne 'asm') {
 }
 if ($PrintTimesOnly -and $PrintTimesImplementation -ne 'asm') {
     throw '-PrintTimesOnly requires -PrintTimesImplementation asm.'
+}
+if ($EfragStoreOnly -and $EfragStoreImplementation -ne 'asm') {
+    throw '-EfragStoreOnly requires -EfragStoreImplementation asm.'
 }
 if ($SurfaceDrawOnly -and $SurfaceDrawImplementation -ne 'asm') {
     throw '-SurfaceDrawOnly requires -SurfaceDrawImplementation asm.'
@@ -773,6 +777,9 @@ elseif ($PrintTimesOnly) {
 }
 elseif ($WorldControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchworldcontrol -benchexit'
+}
+elseif ($EfragStoreOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchefragstore -benchexit'
 }
 elseif ($ChaseOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchchase -benchexit'
@@ -1159,6 +1166,7 @@ $result = [ordered]@{
     aliasStatsOnly = [bool]$AliasStatsOnly
     printTimesOnly = [bool]$PrintTimesOnly
     worldControlOnly = [bool]$WorldControlOnly
+    efragStoreOnly = [bool]$EfragStoreOnly
     spriteDrawImplementation = $SpriteDrawImplementation
     textureAnimationOnly = [bool]$TextureAnimationOnly
     lightMapNormalizeOnly = [bool]$LightMapNormalizeOnly

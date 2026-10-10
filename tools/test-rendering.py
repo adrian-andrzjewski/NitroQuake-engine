@@ -3054,6 +3054,40 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("R_CheckVariables_View_C,0,NULL,NULL", fixture)
         self.assertIn("R_CheckVariables,0,NULL,NULL", fixture)
 
+    def test_efrag_store_has_exact_c_asm_state_fixture_and_isolated_runner(self) -> None:
+        source = (ROOT / "src/r_efrag.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_efragstore.h").read_text(encoding="utf-8")
+        host = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        traceability = (ROOT / "docs/ledger/2026-10-10-efrag-store-parity-fixture.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("R_STORE_EFRAGS_C_ENTRY R_StoreEfrags_C", source)
+        self.assertIn("void R_StoreEfrags_asm486 (efrag_t **ppefrag);", source)
+        self.assertIn("void R_StoreEfrags_C (efrag_t **ppefrag)", fixture)
+        self.assertIn("R_StoreEfrags_asm486", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn("Q_memcpy (result->visible, cl_visedicts", fixture)
+        self.assertIn("MAX_VISEDICTS - 1", fixture)
+        self.assertIn('"mixed-types-duplicates-visible"', fixture)
+        self.assertIn('"one-slot-left"', fixture)
+        self.assertIn('"full-capacity"', fixture)
+        self.assertIn("bench486_efragstore_c_result", fixture)
+        self.assertIn("bench486_efragstore_asm_result", fixture)
+        self.assertIn('#include "bench486_efragstore.h"', host)
+        self.assertIn('COM_CheckParm ("-benchefragstore")', host)
+        self.assertGreaterEqual(host.count("Bench486EfragStoreCases ();"), 2)
+        self.assertIn("[switch]$EfragStoreOnly", runner)
+        self.assertIn("$EfragStoreOnly -and $EfragStoreImplementation -ne 'asm'", runner)
+        self.assertIn("+bench486 -benchefragstore -benchexit", runner)
+        self.assertIn("efragStoreOnly = [bool]$EfragStoreOnly", runner)
+        self.assertIn("R_StoreEfrags_C", traceability)
+        self.assertIn(
+            "-EfragStoreOnly -EfragStoreImplementation asm -MathClosureImplementation asm",
+            traceability,
+        )
+
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(RenderingComparisonTests)

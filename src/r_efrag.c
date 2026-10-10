@@ -263,15 +263,16 @@ R_StoreEfrags
 // FIXME: a lot of this goes away with edge-based
 ================
 */
-#ifdef ASM486_EFRAG_STORE
-#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_EFRAG_STORE)
-void R_StoreEfrags (efrag_t **ppefrag)
-{
-	R_StoreEfrags_asm486 (ppefrag);
-}
-#endif /* public entry is assembly-owned when selected */
+#if defined(ASM486_EFRAG_STORE)
+#if defined(BENCH486)
+#define R_STORE_EFRAGS_C_ENTRY R_StoreEfrags_C
+#endif
 #else
-void R_StoreEfrags (efrag_t **ppefrag)
+#define R_STORE_EFRAGS_C_ENTRY R_StoreEfrags
+#endif
+
+#ifdef R_STORE_EFRAGS_C_ENTRY
+void R_STORE_EFRAGS_C_ENTRY (efrag_t **ppefrag)
 {
 	entity_t	*pent;
 	model_t		*clmodel;
@@ -307,6 +308,16 @@ void R_StoreEfrags (efrag_t **ppefrag)
 		}
 	}
 }
+#undef R_STORE_EFRAGS_C_ENTRY
+#endif
+
+#ifdef ASM486_EFRAG_STORE
+#if !defined(ASM486_PUBLIC_BINDINGS) || !defined(ASM486_EFRAG_STORE)
+void R_StoreEfrags (efrag_t **ppefrag)
+{
+	R_StoreEfrags_asm486 (ppefrag);
+}
+#endif /* public entry is assembly-owned when selected */
 #endif
 
 

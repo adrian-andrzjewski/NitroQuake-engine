@@ -6953,6 +6953,9 @@ static void Bench486SpriteSetupCases (void)
 #ifdef BENCH486
 #include "bench486_forwardspans.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_EFRAG_STORE)
+#include "bench486_efragstore.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_ENTITY_PARTICLES)
 #include "bench486_entityparticles.h"
 #endif
@@ -10632,6 +10635,26 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchefragstore"))
+	{
+#ifdef ASM486_EFRAG_STORE
+		Bench486EfragStoreCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("efrag-store fixture requires -EfragStoreImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchentityparticles"))
 	{
 #ifdef ASM486_ENTITY_PARTICLES
@@ -11416,6 +11439,9 @@ static void Bench486_f (void)
 #ifdef ASM486_WORLD_CONTROL
 	Bench486WorldControlCases ();
 	Bench486ForwardSpansCases ();
+#endif
+#ifdef ASM486_EFRAG_STORE
+	Bench486EfragStoreCases ();
 #endif
 	Bench486Printf ("alias-transform-final experiment compares the C clipped vertex helper with\n");
 	Bench486Printf ("the register-held 486 x87 transform and lighting helper\n");
