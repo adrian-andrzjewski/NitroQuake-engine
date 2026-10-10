@@ -108,6 +108,7 @@ $script:AssemblyBackedImplementations = @(
     'ViewControlImplementation',
     'DamageParseImplementation',
     'DrawingImplementation',
+    'ConsoleImplementation',
     'ChaseImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
@@ -1164,6 +1165,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ConsoleImplementation'
+        Manifest   = 'consoleImplementation'
+        Suffix     = @{ 'asm' = 'consoleinputasm' }
+        C          = @{ 'asm' = @('ASM486_CONSOLE_INPUT') }
+        Asm        = @{ 'asm' = @('ASM486_CONSOLE_INPUT') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'RenderWorldImplementation'
         Manifest   = 'renderWorldImplementation'
         Suffix     = @{ 'asm' = 'renderworldasm' }
@@ -1463,6 +1473,7 @@ $script:SuffixOrder = @(
     'ViewControlImplementation'
     'DamageParseImplementation'
     'DrawingImplementation'
+    'ConsoleImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1550,6 +1561,7 @@ $script:CDefineOrder = @(
     'ViewControlImplementation'
     'DamageParseImplementation'
     'DrawingImplementation'
+    'ConsoleImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1669,6 +1681,7 @@ $script:AsmDefineOrder = @(
     'ViewControlImplementation'
     'DamageParseImplementation'
     'DrawingImplementation'
+    'ConsoleImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'

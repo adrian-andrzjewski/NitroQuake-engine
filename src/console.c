@@ -48,10 +48,14 @@ int			con_vislines;
 qboolean	con_debuglog;
 
 #define		MAXCMDLINE	256
+#include "asm_consoleinput.h"
 extern	char	key_lines[32][MAXCMDLINE];
 extern	int		edit_line;
 extern	int		key_linepos;
 		
+
+typedef char console_input_key_lines_layout_must_match[
+		(sizeof(key_lines) == 32U * ci_key_line_bytes) ? 1 : -1];
 
 qboolean	con_initialized;
 
@@ -472,7 +476,14 @@ Con_DrawInput
 The input line scrolls horizontally if typing goes beyond the right edge
 ================
 */
-void Con_DrawInput (void)
+#if defined(ASM486_CONSOLE_INPUT) && defined(BENCH486)
+#define CON_DRAW_INPUT_C Con_DrawInput_Console_C
+#else
+#define CON_DRAW_INPUT_C Con_DrawInput
+#endif
+
+#if !defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
+void CON_DRAW_INPUT_C (void)
 {
 	int		y;
 	int		i;
@@ -503,6 +514,9 @@ void Con_DrawInput (void)
 // remove cursor
 	key_lines[edit_line][key_linepos] = 0;
 }
+#endif
+
+#undef CON_DRAW_INPUT_C
 
 
 /*

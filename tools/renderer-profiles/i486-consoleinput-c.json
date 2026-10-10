@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-consoleinput-c",
+  "description": "Default i486 selector settings with the original C Con_DrawInput implementation.",
+  "selectors": {
+    "ConsoleImplementation": "c"
+  }
+}

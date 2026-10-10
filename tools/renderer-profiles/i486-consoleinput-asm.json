@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-consoleinput-asm",
+  "description": "Default i486 selector settings with the focused Con_DrawInput assembly candidate.",
+  "selectors": {
+    "ConsoleImplementation": "asm"
+  }
+}

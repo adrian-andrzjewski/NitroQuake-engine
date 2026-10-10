@@ -245,7 +245,7 @@ to prove a complete call graph.
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |
-| Screen and overlays | `screen.c` is omitted from the direct renderer-ownership classification; audit `_SCR_UpdateScreen`, console/notify/status-bar overlays and their drawing/support calls |
+| Screen and overlays | `Con_DrawInput` now has a selectable i486 assembly entry. Its 21-case x four-x87-mode DOSBox-X fixture passed exact C/ASM/public state and indexed-framebuffer comparisons, and the selected executable, linked support/runtime objects, startup code, and CWSDPMI provider passed strict i486 audits with zero violations or exemptions. The routine still calls the separately owned `Draw_Character` backend. Other console drawing and notify paths, status-bar/menu overlays, and `screen.c` including `_SCR_UpdateScreen` remain open for ownership and full-scene parity review. |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

@@ -68,6 +68,8 @@ param(
     [string]$Scenario = 'localmp',
     [ValidateRange(1, 256)]
     [int]$Frames = 64,
+    [ValidateSet('c', 'asm')]
+    [string]$ConsoleImplementation = 'c',
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [string]$DataRoot,
@@ -220,6 +222,7 @@ $ok = (-not $timedOut) -and ($null -ne $quakeExit) -and ($quakeExit -eq 0)
 $report = [ordered]@{
     scenario        = $Scenario
     cpuTarget       = $CpuTarget
+    consoleImplementation = $ConsoleImplementation
     buildSelectorVerification = $selectorVerification
     providerVerification = $providerVerification
     frames          = $Frames

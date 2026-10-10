@@ -208,6 +208,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ConsoleImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -1425,6 +1427,7 @@ $result = [ordered]@{
     spriteDrawImplementation = $SpriteDrawImplementation
     spriteSetupImplementation = $SpriteSetupImplementation
     spriteOrientationImplementation = $SpriteOrientationImplementation
+    consoleImplementation = $ConsoleImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation

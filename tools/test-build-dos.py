@@ -637,6 +637,7 @@ def main() -> int:
         ("ViewControlImplementation", "ASM486_VIEW_CONTROL", "viewcontrolasm"),
         ("DamageParseImplementation", "ASM486_V_PARSE_DAMAGE", "vparsedamageasm"),
         ("DrawingImplementation", "ASM486_DRAWING", "drawingasm"),
+        ("ConsoleImplementation", "ASM486_CONSOLE_INPUT", "consoleinputasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
     ):
         reference = dump_flags("-" + selector, "c")
@@ -651,6 +652,12 @@ def main() -> int:
                     fail(selector + " leaks its assembly define into C selection")
                 if "-D" + define not in candidate.get(language, []):
                     fail(selector + " omits its assembly define from " + language)
+
+    console_input_reference = dump_flags("-ConsoleImplementation", "c")
+    console_input_candidate = dump_flags("-ConsoleImplementation", "asm")
+    for name, dump in (("C", console_input_reference), ("assembly", console_input_candidate)):
+        if dump and "con_inputasm.s" not in dump.get("assemblySources", []):
+            fail("the Con_DrawInput %s selector omits con_inputasm.s from the source inventory" % name)
 
     for value_name, value in (("C", "c"), ("assembly", "asm")):
         damage_parse = dump_flags("-DamageParseImplementation", value)
@@ -1601,7 +1608,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 53 assembly sources (one is omitted only
+    #    included by another unit), 55 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1613,9 +1620,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 54:
+        if dump.get("allAssemblySourceCount") != 55:
             fail(
-                "%s: expected 54 assembly sources, got %r"
+                "%s: expected 55 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

@@ -240,6 +240,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$DrawingImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ConsoleImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -291,6 +293,7 @@ param(
     [switch]$RenderDispatchOnly,
     [switch]$DrawingDriverOnly,
     [switch]$ViewControlOnly,
+    [switch]$ConsoleInputOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -371,6 +374,9 @@ if ($DamageParseOnly -and $DamageParseImplementation -ne 'asm') {
 }
 if ($PaletteOnly -and $PaletteImplementation -ne 'asm') {
     throw '-PaletteOnly requires -PaletteImplementation asm.'
+}
+if ($ConsoleInputOnly -and $ConsoleImplementation -ne 'asm') {
+    throw '-ConsoleInputOnly requires -ConsoleImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -733,6 +739,9 @@ elseif ($DrawingOnly) {
 elseif ($ViewControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchviewcontrol -benchexit'
 }
+elseif ($ConsoleInputOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchconsoleinput -benchexit'
+}
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
 }
@@ -1045,6 +1054,7 @@ $result = [ordered]@{
     drawingDriverImplementation = $DrawingDriverImplementation
     viewControlImplementation = $ViewControlImplementation
     drawingImplementation = $DrawingImplementation
+    consoleImplementation = $ConsoleImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
@@ -1087,6 +1097,7 @@ $result = [ordered]@{
     renderDispatchOnly = [bool]$RenderDispatchOnly
     drawingDriverOnly = [bool]$DrawingDriverOnly
     viewControlOnly = [bool]$ViewControlOnly
+    consoleInputOnly = [bool]$ConsoleInputOnly
     drawingOnly = [bool]$DrawingOnly
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly

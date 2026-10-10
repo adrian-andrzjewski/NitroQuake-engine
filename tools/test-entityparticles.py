@@ -105,7 +105,7 @@ class EntityParticlesSourceContractTests(unittest.TestCase):
 
         for target in ("i386", "i486"):
             golden = json.loads(read("tools/golden/build-flags-%s.json" % target))
-            self.assertEqual(golden["allAssemblySourceCount"], 54)
+            self.assertEqual(golden["allAssemblySourceCount"], 55)
             self.assertIn("r_entityparticlesasm.s", golden["assemblySources"])
 
 

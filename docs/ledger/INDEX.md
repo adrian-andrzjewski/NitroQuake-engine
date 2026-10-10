@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-10-con-drawinput-assembly-port.md`](2026-10-10-con-drawinput-assembly-port.md) | 5 | renderer port / console input overlay (`Original C behavior and ownership boundary`; `Assembly mapping and x87 behavior`; `Direct C/assembly fixture`; `ISA validation and current status`; `Traceability and remaining scope`) |
 | [`2026-10-10-d-drawparticle-assembly-port.md`](2026-10-10-d-drawparticle-assembly-port.md) | 6 | renderer port / particle rasterization (`Traceability and scope`; `x87 conversion and clipping parity`; `Direct differential fixture`; `Paired scene parity`; `Strict i486 audit`; `Reproduction and limits`) |
 | [`2026-10-10-r-entityparticles-assembly-port.md`](2026-10-10-r-entityparticles-assembly-port.md) | 5 | renderer port / entity particles (`Reference behavior and assembly mapping`; `Direct C/assembly fixture`; `Paired rendered-frame parity`; `i486 machine-code evidence`; `Traceability and reproduction`) |
 | [`2026-10-10-r-teleportsplash-assembly-port.md`](2026-10-10-r-teleportsplash-assembly-port.md) | 2 | renderer port / particles (`Port mapping and contract`; `TeleportSplash validation status`) |
@@ -328,6 +329,8 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [Strict i486 audit for the view-control profile](2026-10-10-v-init-assembly-port.md)
 - `measured` [V_Init traceability and reproduction](2026-10-10-v-init-assembly-port.md)
 - `open` [Remaining view initialization dependencies and full profile parity](2026-10-10-v-init-assembly-port.md)
+- `measured` [`Con_DrawInput` console-input overlay passes exact direct C/ASM/public parity across 21 cases and four x87 rounding modes](2026-10-10-con-drawinput-assembly-port.md)
+- `measured` [Strict linked-object, final-executable, startup and provider i486 audits pass with zero violations or exemptions](2026-10-10-con-drawinput-assembly-port.md)
 - `measured` [`R_ParticleExplosion2` -> i486 assembly port (2026-10-09)](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Particle pool semantics and ABI](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Full-state fixture and i486 results](2026-10-09-particle-explosion2-assembly-port.md)

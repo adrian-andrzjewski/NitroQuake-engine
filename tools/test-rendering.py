@@ -2192,6 +2192,39 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("sizeof(edge_t)==VC_EDGE_SIZE", layout)
         self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
 
+    def test_console_input_selector_has_a_focused_reference_and_assembly_profile(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-consoleinput-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-consoleinput-asm.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(reference["id"], "i486-consoleinput-c")
+        self.assertEqual(candidate["id"], "i486-consoleinput-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ConsoleImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ConsoleImplementation"], "asm")
+        changed = {
+            name for name, value in candidate["selectors"].items()
+            if reference["selectors"][name] != value
+        }
+        self.assertEqual(changed, {"ConsoleImplementation"})
+
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        self.assertIn("ASM486_CONSOLE_INPUT", selectors)
+        for runner_name in (
+            "build-dos.ps1",
+            "bench-dos.ps1",
+            "timedemo-dos.ps1",
+            "smoke-dos.ps1",
+            "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ConsoleImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ConsoleImplementation with a C default",
+            )
+
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
         routine = re.search(

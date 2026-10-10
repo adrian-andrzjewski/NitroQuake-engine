@@ -6902,6 +6902,9 @@ static void Bench486SpriteSetupCases (void)
 #include "asm_viewcontrol.h"
 #include "bench486_viewcontrol.h"
 #include "bench486_vinit.h"
+#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+#include "bench486_console_input.h"
+#endif
 #include "asm_drawing.h"
 #include "bench486_drawing.h"
 #include "asm_chase.h"
@@ -10754,7 +10757,23 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchviewcontrol"))
 	{
 		Bench486ViewControlCases ();
+	#ifdef ASM486_VIEW_CONTROL
 		Bench486VInitCases ();
+	#endif
+		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
+		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+
+	if (COM_CheckParm ("-benchconsoleinput"))
+	{
+#ifdef ASM486_CONSOLE_INPUT
+		Bench486ConsoleInputCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("console input fixture requires ConsoleImplementation=asm\n");
+#endif
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
@@ -11315,6 +11334,9 @@ static void Bench486_f (void)
 #ifdef ASM486_VIEW_CONTROL
 	Bench486ViewControlCases ();
 	Bench486VInitCases ();
+#endif
+#ifdef ASM486_CONSOLE_INPUT
+	Bench486ConsoleInputCases ();
 #endif
 #ifdef ASM486_DRAWING
 	Bench486DrawingCases ();
