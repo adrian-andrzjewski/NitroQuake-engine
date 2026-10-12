@@ -6914,6 +6914,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_SCREEN_ERASE_CENTER_STRING)
 #include "bench486_screenerase.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_SCREEN_CONSOLE_SETUP)
+#include "bench486_screenconsolesetup.h"
+#endif
 #include "asm_drawing.h"
 #include "bench486_drawing.h"
 #include "asm_chase.h"
@@ -10875,6 +10878,26 @@ static void Bench486_f (void)
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchscreenconsolesetup"))
+	{
+#ifdef ASM486_SCREEN_CONSOLE_SETUP
+		Bench486ScreenConsoleSetupCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("screen console setup fixture requires ScreenConsoleSetupImplementation=asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
 		return;
 	}
 

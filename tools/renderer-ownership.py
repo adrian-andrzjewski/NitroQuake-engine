@@ -23,6 +23,7 @@ RENDER_SUPPORT = {"Mod_PointInLeaf", "Mod_LeafPVS", "Mod_DecompressVis"}
 RENDERER_SOURCES = {
     "view.c", "draw.c", "mathlib.c", "math.s", "chase.c",
     "screen.c", "screen_fovasm.s", "screen_notifyasm.s", "screen_eraseasm.s",
+    "screen_consolesetupasm.s",
     "asm486_experiments.s",
 }
 DEFAULT_ROOTS = [

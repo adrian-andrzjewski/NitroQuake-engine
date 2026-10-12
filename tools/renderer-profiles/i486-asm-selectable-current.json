@@ -90,6 +90,7 @@
     "ScreenNotifyImplementation": "asm",
     "ScreenCenterStringImplementation": "asm",
     "ScreenEraseCenterStringImplementation": "asm",
+    "ScreenConsoleSetupImplementation": "asm",
     "RenderWorldImplementation": "asm",
     "RenderFaceImplementation": "asm",
     "RenderBmodelFaceImplementation": "asm",

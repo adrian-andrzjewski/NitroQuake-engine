@@ -1647,6 +1647,8 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertTrue(renderer_ownership.renderer_source("screen.c", "_SCR_UpdateScreen"))
         self.assertTrue(renderer_ownership.renderer_source("screen_fovasm.s", "_CalcFov_asm486"))
         self.assertTrue(renderer_ownership.renderer_source("screen_notifyasm.s", "_SCR_DrawNotifyString"))
+        self.assertTrue(renderer_ownership.renderer_source(
+            "screen_consolesetupasm.s", "_SCR_SetUpToDrawConsole"))
         self.assertTrue(renderer_ownership.is_c_function_clone(
             "_SCR_UpdateScreen.part.0", "screen.c", {"SCR_UpdateScreen"}))
         self.assertFalse(renderer_ownership.is_c_function_clone(
@@ -2618,6 +2620,39 @@ class RenderingComparisonTests(unittest.TestCase):
         runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("-ScreenEraseCenterStringOnly requires -ScreenEraseCenterStringImplementation asm.", runner)
         self.assertIn("-benchcentererase", runner)
+
+    def test_screen_console_setup_selector_has_c_default_and_focused_benchmark(self) -> None:
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        build = (ROOT / "tools/build-dos.ps1").read_text(encoding="utf-8")
+        runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_consolesetupasm.s").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screenconsolesetup.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        cumulative = json.loads((ROOT / "tools/renderer-profiles/i486-asm-selectable-current.json").read_text(encoding="utf-8"))
+
+        self.assertIn("ScreenConsoleSetupImplementation", selectors)
+        self.assertIn("ASM486_SCREEN_CONSOLE_SETUP", selectors)
+        self.assertRegex(
+            build,
+            r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+            r"\[string\]\$ScreenConsoleSetupImplementation\s*=\s*'c'",
+        )
+        self.assertRegex(
+            runner,
+            r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+            r"\[string\]\$ScreenConsoleSetupImplementation\s*=\s*'c'",
+        )
+        self.assertIn("-ScreenConsoleSetupOnly requires -ScreenConsoleSetupImplementation asm.", runner)
+        self.assertIn("-benchscreenconsolesetup", runner)
+        self.assertIn("SCR_SetUpToDrawConsole", source)
+        self.assertIn("SCR_SetUpToDrawConsole", fixture)
+        self.assertIn("asm486", fixture)
+        self.assertEqual(cumulative["selectors"]["ScreenConsoleSetupImplementation"], "asm")
+        self.assertIn(".arch i486", assembly)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        self.assertIn('COM_CheckParm ("-benchscreenconsolesetup")', host_commands)
+        self.assertIn("Bench486ScreenConsoleSetupCases ();", host_commands)
 
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")

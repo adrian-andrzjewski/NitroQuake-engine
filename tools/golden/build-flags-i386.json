@@ -18,8 +18,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 60,
-  "assemblySourceCount": 60,
+  "allAssemblySourceCount": 61,
+  "assemblySourceCount": 61,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -258,6 +258,7 @@
     "r_worldcontrolasm.s",
     "r_zsubmodelasm.s",
     "screen_centerasm.s",
+    "screen_consolesetupasm.s",
     "screen_eraseasm.s",
     "screen_fovasm.s",
     "screen_notifyasm.s",

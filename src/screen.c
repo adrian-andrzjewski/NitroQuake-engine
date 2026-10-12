@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_screennotify.h"
 #include "asm_screenerase.h"
 #include "asm_screencenter.h"
+#include "asm_screenconsolesetup.h"
 
 // only the refresh window will be updated unless these variables are flagged 
 int			scr_copytop;
@@ -492,9 +493,22 @@ void SCR_DrawLoading (void)
 SCR_SetUpToDrawConsole
 ==================
 */
-void SCR_SetUpToDrawConsole (void)
+#if defined(ASM486_SCREEN_CONSOLE_SETUP) && defined(BENCH486)
+#define SCR_CONSOLE_SETUP_C SCR_SetUpToDrawConsole_Screen_C
+#define SCR_CONSOLE_SETUP_CHECK_RESIZE Bench486ScreenConsoleSetupCheckResize
+#define SCR_CONSOLE_SETUP_TILE_CLEAR Bench486ScreenConsoleSetupTileClear
+#define SCR_CONSOLE_SETUP_SBAR_CHANGED Bench486ScreenConsoleSetupSbarChanged
+#elif !defined(ASM486_SCREEN_CONSOLE_SETUP)
+#define SCR_CONSOLE_SETUP_C SCR_SetUpToDrawConsole
+#define SCR_CONSOLE_SETUP_CHECK_RESIZE Con_CheckResize
+#define SCR_CONSOLE_SETUP_TILE_CLEAR Draw_TileClear
+#define SCR_CONSOLE_SETUP_SBAR_CHANGED Sbar_Changed
+#endif
+
+#if !defined(ASM486_SCREEN_CONSOLE_SETUP) || defined(BENCH486)
+void SCR_CONSOLE_SETUP_C (void)
 {
-	Con_CheckResize ();
+	SCR_CONSOLE_SETUP_CHECK_RESIZE ();
 	
 	if (scr_drawloading)
 		return;		// never a console with loading plaque
@@ -529,17 +543,23 @@ void SCR_SetUpToDrawConsole (void)
 	if (clearconsole++ < vid.numpages)
 	{
 		scr_copytop = 1;
-		Draw_TileClear (0,(int)scr_con_current,vid.width, vid.height - (int)scr_con_current);
-		Sbar_Changed ();
+		SCR_CONSOLE_SETUP_TILE_CLEAR (0,(int)scr_con_current,vid.width, vid.height - (int)scr_con_current);
+		SCR_CONSOLE_SETUP_SBAR_CHANGED ();
 	}
 	else if (clearnotify++ < vid.numpages)
 	{
 		scr_copytop = 1;
-		Draw_TileClear (0,0,vid.width, con_notifylines);
+		SCR_CONSOLE_SETUP_TILE_CLEAR (0,0,vid.width, con_notifylines);
 	}
 	else
 		con_notifylines = 0;
 }
+#endif
+
+#undef SCR_CONSOLE_SETUP_C
+#undef SCR_CONSOLE_SETUP_CHECK_RESIZE
+#undef SCR_CONSOLE_SETUP_TILE_CLEAR
+#undef SCR_CONSOLE_SETUP_SBAR_CHANGED
 	
 /*
 ==================
