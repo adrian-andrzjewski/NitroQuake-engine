@@ -417,6 +417,7 @@ static void Bench486ScreenCenterCases (void)
 		{ "five-lines", "A\nB\nC\nD\nE", 640, 240, 5, 0, 0.0f, 0.0f, 8.0f },
 		{ "line-40", bench486_screen_center_line_40, 640, 224, 1, 0, 0.0f, 0.0f, 8.0f },
 		{ "overlong-suffix", bench486_screen_center_overlong, 641, 201, 2, 0, 0.0f, 0.0f, 8.0f },
+		{ "narrow-view-40-char-line", bench486_screen_center_line_40, 240, 200, 1, 0, 0.0f, 0.0f, 8.0f },
 		{ "signed-high-bytes", bench486_screen_center_high_bits, 321, 239, 1, 0, 0.0f, 0.0f, 8.0f },
 		{ "wide-offscreen-center", "Q", 2048, 200, 1, 0, 0.0f, 0.0f, 8.0f },
 		{ "high-bit-width", "Q", 0x80000000U, 200, 1, 0, 0.0f, 0.0f, 8.0f },

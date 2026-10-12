@@ -48,34 +48,48 @@ callee-saved registers, and leaves the x87 stack balanced. The fixture checks
 register preservation and control-word preservation for the C, assembly, and
 public-entry calls.
 
-## 18-case C/assembly differential fixture
+## 19-case C/assembly differential fixture
 
-Eighteen deterministic cases cover empty and ordinary strings, wrapped and
+Nineteen deterministic cases cover empty and ordinary strings, wrapped and
 five-line text, a 40-character line, the overlong-line suffix, signed high-byte
 glyphs, wide off-screen centering, high-bit and maximum unsigned dimensions,
 480-line output, and zero, positive, negative, and fractional intermission
-budgets. Each case runs under four x87 rounding modes and three
-precision-control settings. The fixture compares every byte of the guarded
-indexed framebuffer, every character call and its coordinates, ABI probe
-results, x87 control words, and guard regions.
+budgets. `narrow-view-40-char-line` makes a 40-character line wider than a
+240-pixel view and pins the C expression's unsigned wrap before division.
+Each case runs under four x87 rounding modes and three precision-control
+settings. The fixture compares every byte of the guarded indexed framebuffer,
+every character call and its coordinates, ABI probe results, x87 control words,
+and guard regions.
 
-The exact 18-case by 12-mode matrix passed with zero mismatches under DOSBox-X.
+The exact 19-case by 12-mode matrix passed with zero mismatches under DOSBox-X.
 The runtime fixture also reports progress after each case with the saved video
 state restored, so the 480-line case cannot make the progress message draw into
 the smaller test framebuffer. The high-bit scenarios were chosen so the C
 reference's centered coordinates remain representable; maximum-width cases
 return on a zero print budget before the C loop increment can overflow.
 
+On 2026-10-12, the narrow-view case confirmed that `vid.width` is unsigned:
+`vid.width - l*8` wraps modulo 2^32 before the logical divide by two. The
+assembly retains `shrl`; signed division would disagree with the C oracle for
+this view. The strict run passed all 19 cases, all 12 x87 modes, and the live
+8-bit/16-bit `Draw_Character` framebuffer routes. Its log and run report are
+`out/dos-bench-20261012-191700/quake/BENCH486.TXT` and
+`out/dos-bench-20261012-191700/bench-result.json`.
+
 ## Strict 486DX+x87 executable evidence
 
-The strict `-ScreenCenterStringOnly` build decoded 173,281 instructions across
-141 project objects. Its linked proof covered 376 exact native or annotated
-objects and decoded all 211,578 linked instructions from the relocated
+The latest strict `-ScreenCenterStringOnly` build decoded 172,543 instructions
+across 143 project objects. Its linked proof covered 378 exact native or
+annotated objects and verified all 210,840 linked instructions in the relocated
 executable. Both audits found zero above-i486 or unknown instructions, byte
 mismatches, or exemptions. The actual DOSBox-X run used the 486DX+x87 profile
-above and passed all 18 fixture cases.
+above and passed all 19 fixture cases.
 
 The same build passed the startup and provider proofs: all 1,660 loaded startup
 bytes and 529 instruction rows, plus 9,207 CWSDPMI instructions and its one
-runtime branch variant, with zero instruction exemptions. Complete-scene parity
-and the broader renderer migration remain open; this is a routine-level result.
+runtime branch variant, with zero instruction exemptions. A separate exact
+`demo2-entity-workload` comparison also matched all 64,000 indexed pixels and
+the palette, with 986 frame checks and zero changed pixels; its report is
+`out/render-validation-center-asm-final-demo2-20261012/render-validation-result.json`.
+Complete-scene parity and the broader renderer migration remain open; these are
+routine-level and one-scene results.

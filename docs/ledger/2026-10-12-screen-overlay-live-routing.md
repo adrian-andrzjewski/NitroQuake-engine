@@ -12,7 +12,7 @@ drawing during integration runs.
 | Original entry | Assembly path | Live backend | Direct evidence |
 |---|---|---|---|
 | `SCR_DrawNotifyString` | `screen_notifyasm.s` | `Draw_Character` | 19 cases, four rounding modes, high-bit dimensions at three precisions, plus exact live framebuffer route |
-| `SCR_DrawCenterString` | `screen_centerasm.s` | `Draw_Character` | 18 cases across 12 x87 control words, plus exact 8-bit and 16-bit live framebuffer routes |
+| `SCR_DrawCenterString` | `screen_centerasm.s` | `Draw_Character` | 19 cases across 12 x87 control words, plus exact 8-bit and 16-bit live framebuffer routes |
 | `SCR_EraseCenterString` | `screen_eraseasm.s` | `Draw_TileClear` | 252 direct C/assembly/public cases across 12 x87 control words |
 
 The C implementations remain the selectable reference. `Draw_Character` and
@@ -24,14 +24,21 @@ entries and their actual backend calls.
 Each focused `bench-dos.ps1` run used `CpuTarget=i486` and DOSBox-X's 486DX+x87
 profile. All three direct fixtures passed with zero mismatches. Each selected
 binary passed project-object, linked-object, relocated-executable, startup,
-and CWSDPMI provider audits. The linked instruction totals were 210,817 for
-erase, 211,250 for centered string, and 211,696 for notify string; the audits
-reported zero above-i486 instructions, unknown encodings, or exemptions. The
-startup proof covered all 1,660 loaded bytes and 529 code rows; the provider
-proof covered 9,207 instructions.
+and CWSDPMI provider audits. In that initial overlay tranche, the linked
+instruction totals were 210,817 for erase, 211,250 for centered string, and
+211,696 for notify string; the audits reported zero above-i486 instructions,
+unknown encodings, or exemptions. The centered-string total was superseded by
+the focused follow-up below. The startup proof covered all 1,660 loaded bytes
+and 529 code rows; the provider proof covered 9,207 instructions.
 
 The fixture-scoped routing static checks and the focused screen selector tests
 also passed (6 tests).
+
+The centered-string follow-up added `narrow-view-40-char-line` to verify the
+unsigned wrap in `(vid.width - line_length*8) / 2`. Its strict rerun decoded
+172,543 project-object instructions and verified all 210,840 linked
+instructions, with zero above-i486, unknown, or exempt instructions. The
+19-case fixture and both live character-drawing routes passed exactly.
 
 ## Exact scene pair
 

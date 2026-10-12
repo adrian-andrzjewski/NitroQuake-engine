@@ -92,7 +92,8 @@ C(SCR_DrawCenterString_asm486):
 
 .Lscreen_center_scan_done:
 	movl	%esi,-24(%ebp)
-	// vid.width is unsigned; subtraction and division retain modulo-2^32 rules.
+	// vid.width is unsigned. The C expression (vid.width - l*8) / 2
+	// therefore wraps the subtraction modulo 2^32 before unsigned division.
 	movl	C(vid)+sc_vid_width_offset,%edi
 	leal	(,%esi,8),%eax
 	subl	%eax,%edi
