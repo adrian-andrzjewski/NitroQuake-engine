@@ -2,18 +2,49 @@
 #ifdef ASM486_DRAWING
 unsigned bench486_drawing_pointer_result;
 typedef struct {unsigned first[8];byte data[10496];unsigned last[8];} bench486_drawing_buffer_t;
-static bench486_drawing_buffer_t bench486_drawing_video,bench486_drawing_console;
-static struct {unsigned first[8];byte data[2560];unsigned last[8];} bench486_drawing_direct;
-static struct {unsigned first[8];byte data[16384];unsigned last[8];} bench486_drawing_chars;
-static struct {unsigned first[8];int width,height;byte data[768];unsigned last[8];} bench486_drawing_pic;
-static struct {unsigned first[8];int width,height;byte data[64000];unsigned last[8];} bench486_drawing_conback;
-static struct {unsigned first[8];int width,height;byte data[64];unsigned last[8];} bench486_drawing_tile;
-static struct {unsigned first[8];int width,height;byte data[576];unsigned last[8];} bench486_drawing_disc;
-static byte bench486_drawing_translation[256];
-static char bench486_drawing_string[10],bench486_drawing_path[64];
-static vrect_t bench486_drawing_rect;
+typedef struct {unsigned first[8];byte data[2560];unsigned last[8];} bench486_drawing_direct_t;
+typedef struct {unsigned first[8];byte data[16384];unsigned last[8];} bench486_drawing_chars_t;
+typedef struct {unsigned first[8];int width,height;byte data[768];unsigned last[8];} bench486_drawing_pic_t;
+typedef struct {unsigned first[8];int width,height;byte data[64000];unsigned last[8];} bench486_drawing_conback_t;
+typedef struct {unsigned first[8];int width,height;byte data[64];unsigned last[8];} bench486_drawing_tile_t;
+typedef struct {unsigned first[8];int width,height;byte data[576];unsigned last[8];} bench486_drawing_disc_t;
 typedef struct {unsigned phase,count,words[5];} bench486_drawing_event_t;
-static struct {unsigned count,errors;bench486_drawing_event_t events[32];} bench486_drawing_trace;
+typedef struct {unsigned count,errors;bench486_drawing_event_t events[32];} bench486_drawing_trace_t;
+typedef struct {
+    viddef_t video;rectdesc_t descriptor;byte *characters;qpic_t *disc,*tile;
+    cachepic_t cache[128];int cache_count,pixel_bytes;unsigned result;
+    byte framebuffer[10496],console[10496],direct[2560],version[4096];
+    int picture_width,picture_height;unsigned short palette[256];
+} bench486_drawing_state_t;
+typedef struct {
+    bench486_drawing_buffer_t video,console;
+    bench486_drawing_direct_t direct;
+    bench486_drawing_chars_t chars;
+    bench486_drawing_pic_t pic;
+    bench486_drawing_conback_t conback;
+    bench486_drawing_tile_t tile;
+    bench486_drawing_disc_t disc;
+    byte translation[256];
+    char string[10],path[64];
+    vrect_t rect;
+    bench486_drawing_trace_t trace;
+    bench486_drawing_state_t saved,initial,c_state,a_state;
+    byte c_trace[sizeof(bench486_drawing_trace_t)];
+} bench486_drawing_workspace_t;
+static bench486_drawing_workspace_t *bench486_drawing_workspace;
+#define bench486_drawing_video (bench486_drawing_workspace->video)
+#define bench486_drawing_console (bench486_drawing_workspace->console)
+#define bench486_drawing_direct (bench486_drawing_workspace->direct)
+#define bench486_drawing_chars (bench486_drawing_workspace->chars)
+#define bench486_drawing_pic (bench486_drawing_workspace->pic)
+#define bench486_drawing_conback (bench486_drawing_workspace->conback)
+#define bench486_drawing_tile (bench486_drawing_workspace->tile)
+#define bench486_drawing_disc (bench486_drawing_workspace->disc)
+#define bench486_drawing_translation (bench486_drawing_workspace->translation)
+#define bench486_drawing_string (bench486_drawing_workspace->string)
+#define bench486_drawing_path (bench486_drawing_workspace->path)
+#define bench486_drawing_rect (bench486_drawing_workspace->rect)
+#define bench486_drawing_trace (bench486_drawing_workspace->trace)
 static unsigned Bench486DrawingStringHash(const char *s)
 {unsigned hash=2166136261U;while(*s)hash=(hash^(byte)*s++)*16777619U;return hash;}
 static unsigned Bench486DrawingFixture(unsigned phase,unsigned count,const unsigned *words)
@@ -34,12 +65,6 @@ static unsigned Bench486DrawingFixture(unsigned phase,unsigned count,const unsig
     /* SwapPic is traced; fixture headers already contain canonical little-endian dimensions. */
     return 0;
 }
-typedef struct {
-    viddef_t video;rectdesc_t descriptor;byte *characters;qpic_t *disc,*tile;
-    cachepic_t cache[128];int cache_count,pixel_bytes;unsigned result;
-    byte framebuffer[10496],console[10496],direct[2560],version[4096];
-    int picture_width,picture_height;unsigned short palette[256];
-} bench486_drawing_state_t;
 static void Bench486DrawingSave(bench486_drawing_state_t *s)
 {
     Q_memset(s,0,sizeof(*s));Q_memcpy(&s->video,&vid,sizeof(vid));Q_memcpy(&s->descriptor,&r_rectdesc,sizeof(r_rectdesc));
@@ -131,19 +156,22 @@ static void Bench486DrawingInputs(unsigned pair,unsigned pattern,unsigned sequen
 }
 static void Bench486DrawingStep(unsigned pair,unsigned pattern,unsigned sequence)
 {
-    static bench486_drawing_state_t initial,c_state,a_state;static byte c_trace[sizeof(bench486_drawing_trace)];
+    bench486_drawing_state_t *initial=&bench486_drawing_workspace->initial;
+    bench486_drawing_state_t *c_state=&bench486_drawing_workspace->c_state;
+    bench486_drawing_state_t *a_state=&bench486_drawing_workspace->a_state;
+    byte *c_trace=bench486_drawing_workspace->c_trace;
     unsigned args[5],pointer_args[2],c_abi,a_abi,i;int failed;const bench486_drawing_pair_t *p=&bench486_drawing_pairs[pair];
-    Bench486DrawingInputs(pair,pattern,sequence,args);Bench486DrawingSave(&initial);Q_memset(&bench486_drawing_trace,0,sizeof(bench486_drawing_trace));
+    Bench486DrawingInputs(pair,pattern,sequence,args);Bench486DrawingSave(initial);Q_memset(&bench486_drawing_trace,0,sizeof(bench486_drawing_trace));
     pointer_args[0]=(unsigned)p->c;pointer_args[1]=args[0];
     c_abi=Bench486Call_asm486(p->pointer?Bench486DrawingPointerCall:p->c,p->pointer?2:p->words,p->pointer?pointer_args:args,NULL);
-    Bench486DrawingSave(&c_state);Q_memcpy(c_trace,&bench486_drawing_trace,sizeof(c_trace));failed=!Bench486DrawingGuards();
-    Bench486DrawingRestore(&initial);Q_memset(&bench486_drawing_trace,0,sizeof(bench486_drawing_trace));pointer_args[0]=(unsigned)p->a;
+    Bench486DrawingSave(c_state);Q_memcpy(c_trace,&bench486_drawing_trace,sizeof(bench486_drawing_trace));failed=!Bench486DrawingGuards();
+    Bench486DrawingRestore(initial);Q_memset(&bench486_drawing_trace,0,sizeof(bench486_drawing_trace));pointer_args[0]=(unsigned)p->a;
     a_abi=Bench486Call_asm486(p->pointer?Bench486DrawingPointerCall:p->a,p->pointer?2:p->words,p->pointer?pointer_args:args,NULL);
-    Bench486DrawingSave(&a_state);
+    Bench486DrawingSave(a_state);
     failed|=c_abi || a_abi || !Bench486DrawingGuards() || bench486_drawing_trace.errors ||
-        Q_memcmp(c_trace,&bench486_drawing_trace,sizeof(c_trace)) || Q_memcmp(&c_state,&a_state,sizeof(c_state));
+        Q_memcmp(c_trace,&bench486_drawing_trace,sizeof(bench486_drawing_trace)) || Q_memcmp(c_state,a_state,sizeof(*c_state));
     if(failed){bench486_memory_failures++;if(bench486_memory_failures<24){
-        for(i=0;i<sizeof(c_state);i++)if(((byte *)&c_state)[i]!=((byte *)&a_state)[i])break;
+        for(i=0;i<sizeof(*c_state);i++)if(((byte *)c_state)[i]!=((byte *)a_state)[i])break;
         Bench486Printf("drawing %s FAIL pattern %u ABI %x/%x state-byte %u trace %u\n",p->name,pattern,c_abi,a_abi,i,bench486_drawing_trace.count);}}
 }
 #define DRAWING_INIT_GUARDS(object) do {for(i=0;i<8;i++){object.first[i]=0x5a5a5a5aU;object.last[i]=0xa5a5a5a5U;}}while(0)
@@ -160,10 +188,13 @@ static unsigned Bench486DrawingImmutable(void)
 }
 static void Bench486DrawingCases(void)
 {
-    static bench486_drawing_state_t saved;unsigned short cw,control;
+    bench486_drawing_state_t *saved;int hunk_mark;unsigned short cw,control;
     static const unsigned modes[]={0x007f,0x047f,0x087f,0x0c7f,0x027f,0x067f,0x0a7f,0x0e7f,0x037f,0x077f,0x0b7f,0x0f7f};
     unsigned (*probe)(unsigned,unsigned,const unsigned *);unsigned i,mode,step,pair,cases=0,negative=0,hash,failures=bench486_memory_failures;
-    Bench486DrawingSave(&saved);probe=bench486_drawing_probe;bench486_drawing_probe=Bench486DrawingFixture;
+    hunk_mark=Hunk_LowMark();
+    bench486_drawing_workspace=Hunk_AllocName(sizeof(*bench486_drawing_workspace),"drawtest");
+    saved=&bench486_drawing_workspace->saved;
+    Bench486DrawingSave(saved);probe=bench486_drawing_probe;bench486_drawing_probe=Bench486DrawingFixture;
     __asm__ __volatile__("fnstcw %0":"=m"(cw));
     DRAWING_INIT_GUARDS(bench486_drawing_video);DRAWING_INIT_GUARDS(bench486_drawing_console);DRAWING_INIT_GUARDS(bench486_drawing_direct);
     DRAWING_INIT_GUARDS(bench486_drawing_chars);DRAWING_INIT_GUARDS(bench486_drawing_pic);DRAWING_INIT_GUARDS(bench486_drawing_conback);
@@ -182,7 +213,8 @@ static void Bench486DrawingCases(void)
     DRAWING_NEGATIVE_GUARDS(bench486_drawing_video);DRAWING_NEGATIVE_GUARDS(bench486_drawing_console);DRAWING_NEGATIVE_GUARDS(bench486_drawing_direct);
     DRAWING_NEGATIVE_GUARDS(bench486_drawing_chars);DRAWING_NEGATIVE_GUARDS(bench486_drawing_pic);DRAWING_NEGATIVE_GUARDS(bench486_drawing_conback);
     DRAWING_NEGATIVE_GUARDS(bench486_drawing_tile);DRAWING_NEGATIVE_GUARDS(bench486_drawing_disc);if(negative!=128)bench486_memory_failures++;
-    bench486_drawing_probe=probe;Bench486DrawingRestore(&saved);
+    bench486_drawing_probe=probe;Bench486DrawingRestore(saved);
+    bench486_drawing_workspace=NULL;Hunk_FreeToLowMark(hunk_mark);
     Bench486Printf("framebuffer drawing exact pixels/cache/console/tile/trace/ABI %s (18 entries; %u cases; 12 control words; 8192 sequence calls; %u guard checks; %u failures)\n",
         failures==bench486_memory_failures?"PASS":"FAIL",cases,negative,bench486_memory_failures-failures);
 }

@@ -69,16 +69,25 @@ typedef struct
 	byte bytes[28];
 } bench486_screen_notify_x87_environment_t;
 
+typedef struct
+{
+	bench486_screen_notify_frame_t frame;
+	bench486_screen_notify_result_t reference;
+	bench486_screen_notify_result_t candidate;
+	bench486_screen_notify_call_t calls[BSN_MAX_CALLS];
+} bench486_screen_notify_workspace_t;
+
 static struct
 {
 	unsigned before[4];
 	byte pixels[BSN_FONT_BYTES];
 	unsigned after[4];
 } bench486_screen_notify_font;
-static bench486_screen_notify_frame_t bench486_screen_notify_frame;
-static bench486_screen_notify_result_t bench486_screen_notify_reference;
-static bench486_screen_notify_result_t bench486_screen_notify_candidate;
-static bench486_screen_notify_call_t bench486_screen_notify_calls[BSN_MAX_CALLS];
+static bench486_screen_notify_workspace_t *bench486_screen_notify_workspace;
+#define bench486_screen_notify_frame (bench486_screen_notify_workspace->frame)
+#define bench486_screen_notify_reference (bench486_screen_notify_workspace->reference)
+#define bench486_screen_notify_candidate (bench486_screen_notify_workspace->candidate)
+#define bench486_screen_notify_calls (bench486_screen_notify_workspace->calls)
 static unsigned bench486_screen_notify_call_count;
 static unsigned bench486_screen_notify_trace_overflow;
 static char bench486_screen_notify_first_failure[192];
@@ -385,8 +394,12 @@ static void Bench486ScreenNotifyCases (void)
 	unsigned case_index, precision, precision_count, rounding, failures, difference;
 	unsigned live_route_failures;
 	unsigned short control_word;
+	int hunk_mark;
 	const bench486_screen_notify_case_t *test_case;
 
+	hunk_mark = Hunk_LowMark ();
+	bench486_screen_notify_workspace = Hunk_AllocName (
+			sizeof(*bench486_screen_notify_workspace), "scrnotify");
 	Bench486ScreenNotifySaveEnvironment (&bench486_screen_notify_saved_environment);
 	bench486_screen_notify_saved_control_word = Bench486ScreenNotifyGetControlWord ();
 	Q_memcpy (&bench486_screen_notify_saved_video, &vid, sizeof(vid));
@@ -472,6 +485,9 @@ static void Bench486ScreenNotifyCases (void)
 	bench486_memory_failures += failures;
 	Bench486Printf ("screen notify cases %u RC modes 4, PC modes 3 for high-bit dimensions; failures %u\n",
 			(unsigned)(sizeof(cases) / sizeof(cases[0])), failures);
+	bench486_screen_notify_fixture_active = 0;
+	bench486_screen_notify_workspace = NULL;
+	Hunk_FreeToLowMark (hunk_mark);
 }
 
 #endif /* BENCH486 && ASM486_SCREEN_NOTIFY */
