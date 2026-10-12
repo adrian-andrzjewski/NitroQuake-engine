@@ -30,8 +30,41 @@ fit that instruction's surrounding call path, and the screenshot's mounted
 executable was not identified. The scan-edge selector has not been established
 as the cause or fix for the fault or the reported frame smear.
 
+## Matched-frame verification (2026-10-12)
+
+The C-reference and candidate profiles were cloned from
+`i486-c-reference.json`; `ScanEdgesImplementation` was the only selector
+changed (`c` to `asm`). The deterministic DOSBox-X pair is retained in
+`out/render-parity-edge-scan-20261012/render-parity-result.json`. It passed
+`demo1-vga-full`, `demo2-entity-workload`, and `demo3-world-workload`, with two
+runs per scene. All 6,058 post-warmup frame checksums matched, and all six
+320x200 indexed framebuffer and palette captures were exact: zero pixel-index
+or palette-byte differences. The source-tree fingerprint matched before and
+after the pair.
+
+The recorded median rates were 12.1509 FPS C / 12.1456 FPS assembly for Demo 1,
+12.2418 / 12.2362 for Demo 2, and 11.7007 / 11.6956 for Demo 3. This is a
+0.04-0.05% slowdown in these samples, not a meaningful regression or a speed
+claim. The C entry remains available as the oracle and default.
+
+The paired build used `-VisualParityOnly`, so its own ISA field is `SKIPPED`.
+A separate strict i486 build used `-ScanEdgesImplementation asm`; its manifest
+confirms that selector and its complete executable gate passed: 172,480
+project-object instructions, 210,777 linked and relocated instructions, 529
+startup CODE rows, and 9,207 provider instructions, with zero post-i486,
+unknown, or exempt instructions. Evidence is under
+`out/profile-2c95169922010483/isa-qbench/`.
+
+The broad BENCH486 qbench run for that build reached its 180-second timeout
+while running the generic surface-cache microbenchmark; it produced no final
+`bench-result.json`. This is not a scan-edge parity failure. The scene pair's
+timedemo measurements above are the completed performance regression evidence
+for this slice.
+
 ## Remaining edge-scan closure
 
-Brush-entity polygon clipping, `R_RenderPoly`, remaining render-time helpers,
-and matched-frame visual acceptance remain open. Keep C selectable and default
-until exact-frame output and a meaningful speed improvement are established.
+Brush-entity polygon clipping, `R_RenderPoly`, and remaining render-time helpers
+remain open. Matched-frame output for `R_ScanEdges` is now verified; that does
+not close these other edge and renderer dependencies. Keep C selectable and
+default while the broader i486 assembly profile and its render-time closure are
+validated.
