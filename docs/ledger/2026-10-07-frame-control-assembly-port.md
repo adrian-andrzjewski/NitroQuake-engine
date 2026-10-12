@@ -71,3 +71,37 @@ Run `tools/bench-dos.ps1 -NoBootstrap -FrameControlImplementation asm
 -RunsOverride 2` for complete-frame comparisons. Supply the same explicit
 `-DataRoot` for isolated checkouts. The normal build audits the selected objects,
 runtime inputs and relocated executable bytes before either runner executes.
+
+## 2026-10-12 startup and strict-parity follow-up
+
+The frame-control-only i486 build and DOSBox-X fixture completed with exit code
+0. The direct viewport/projection/bounds/visibility/ABI/guard fixture passed
+22,528 exact cases, including 8,192 continuous visibility steps, with zero
+failures. Its `bench-result.json` records `isaAuditStatus: PASS` and
+`diagnosticOnly: false`.
+
+The current `R_ViewChanged` cleanup matches the C oracle's 20-byte stack
+recovery before restoring preserved registers and tail-calling
+`D_ViewChanged`. A temporary 24-byte cleanup had displaced the tail-call stack;
+the corrected source reached the deterministic demo capture successfully.
+This records runtime evidence for the existing committed assembly and does not
+add a new renderer implementation.
+
+The selected FrameControl candidate then matched its C reference on the
+`demo2-svc-particle-parser-event` scenario. All seven post-warmup per-frame
+checksums matched after excluding four startup frames. The 320x200 PCX captures
+also matched at zero tolerance: 64,000 pixels compared, zero changed pixels,
+zero channel error, and identical palettes. The short timedemo measured
+11.685300 FPS for the candidate and 11.684979 FPS for C; this ten-frame sample
+is not evidence of a performance gain.
+
+The run's strict i486 gate passed for the selected build (174,868 instructions
+in 143 objects), linked runtime inputs (213,165 instructions in 378 objects),
+the relocated executable (213,165 instructions), embedded startup (529 code
+rows), and the DPMI provider (9,207 instructions), with zero post-i486,
+unknown, or exempted instructions. Reports and captures are under
+`out/diag-framecontrol-rview-stack20-20261012`,
+`out/diag-c-reference-nosound-lookup-20261012`,
+`out/dos-bench-20261012-120041`, the captures in
+`out/dos-timedemo-20261012-113057` and `out/dos-timedemo-20261012-114426`,
+and the two `out/paired-framecontrol-event-*-20261012.json` comparison reports.
