@@ -8,8 +8,14 @@
 #define BSC_FONT_BYTES 16384
 #define BSC_ROW_BYTES 672
 #define BSC_FRAME_ROWS 256
-#define BSC_FRAME_BYTES (BSC_ROW_BYTES * BSC_FRAME_ROWS)
+/* Holds the centered 640x480 title line at the 16-bit 1280-byte stride. */
+#define BSC_FRAME_BYTES (256U * 1024U)
 #define BSC_MAX_CALLS 512
+
+/* Assembly uses the trace hook only while its direct parity fixture runs. */
+int bench486_screen_center_fixture_active;
+/* The C oracle uses this flag to reach the same production glyph renderer. */
+int bench486_screen_center_live_character_active;
 
 #include "asm_screencenter.h"
 
@@ -68,10 +74,8 @@ static struct
 	byte pixels[BSC_FONT_BYTES];
 	unsigned after[4];
 } bench486_screen_center_font;
-static bench486_screen_center_frame_t bench486_screen_center_frame;
 static bench486_screen_center_result_t bench486_screen_center_reference;
 static bench486_screen_center_result_t bench486_screen_center_candidate;
-static bench486_screen_center_call_t bench486_screen_center_calls[BSC_MAX_CALLS];
 static unsigned bench486_screen_center_call_count;
 static unsigned bench486_screen_center_trace_overflow;
 static viddef_t bench486_screen_center_saved_video;
@@ -102,7 +106,15 @@ static void Bench486ScreenCenterInitData (void)
 		bench486_screen_center_font.after[i] = 0x486e4200U + i;
 	}
 	for (i = 0; i < BSC_FONT_BYTES; i++)
-		bench486_screen_center_font.pixels[i] = (byte)(1U + (i * 37U + (i >> 5)) % 255U);
+	{
+		unsigned pattern;
+
+		pattern = i * 37U + (i >> 5);
+		/* Quake conchars uses zero for transparent pixels. Keep this font
+		   deterministic while exercising both store and skip branches. */
+		bench486_screen_center_font.pixels[i] =
+				(pattern & 3U) == 0 ? 0 : (byte)(1U + pattern % 255U);
+	}
 	for (i = 0; i < 40; i++)
 		bench486_screen_center_line_40[i] = (char)('A' + i % 26);
 	bench486_screen_center_line_40[40] = 0;
@@ -116,11 +128,17 @@ static void Bench486ScreenCenterInitData (void)
 /* Record each character request and render it into the guarded indexed frame. */
 void Bench486ScreenCenterStringCharacter (int x, int y, int num)
 {
+	if (bench486_screen_center_live_character_active)
+	{
+		Draw_Character (x, y, num);
+		return;
+	}
+
 	if (bench486_screen_center_call_count < BSC_MAX_CALLS)
 	{
-		bench486_screen_center_calls[bench486_screen_center_call_count].x = x;
-		bench486_screen_center_calls[bench486_screen_center_call_count].y = y;
-		bench486_screen_center_calls[bench486_screen_center_call_count].character = num;
+		bench486_screen_center_candidate.calls[bench486_screen_center_call_count].x = x;
+		bench486_screen_center_candidate.calls[bench486_screen_center_call_count].y = y;
+		bench486_screen_center_candidate.calls[bench486_screen_center_call_count].character = num;
 		bench486_screen_center_call_count++;
 	}
 	else
@@ -164,17 +182,19 @@ static void Bench486ScreenCenterRestoreEnvironment (
 static void Bench486ScreenCenterPrepare (
 		const bench486_screen_center_case_t *test_case)
 {
+	bench486_screen_center_frame_t *frame;
 	unsigned i;
+	frame = &bench486_screen_center_candidate.frame;
 
 	for (i = 0; i < BSC_GUARD_WORDS; i++)
 	{
-		bench486_screen_center_frame.before[i] = 0x486e5100U + i;
-		bench486_screen_center_frame.after[i] = 0x5a13d900U + i;
+		frame->before[i] = 0x486e5100U + i;
+		frame->after[i] = 0x5a13d900U + i;
 	}
 	for (i = 0; i < BSC_FRAME_BYTES; i++)
-		bench486_screen_center_frame.pixels[i] = (byte)(0x43U + i * 29U);
+		frame->pixels[i] = (byte)(0x43U + i * 29U);
 
-	vid.buffer = bench486_screen_center_frame.pixels;
+	vid.buffer = frame->pixels;
 	vid.colormap = NULL;
 	vid.colormap16 = NULL;
 	vid.fullbright = 0;
@@ -184,7 +204,7 @@ static void Bench486ScreenCenterPrepare (
 	vid.aspect = 1.0f;
 	vid.numpages = 1;
 	vid.recalc_refdef = 0;
-	vid.conbuffer = bench486_screen_center_frame.pixels;
+	vid.conbuffer = frame->pixels;
 	vid.conrowbytes = BSC_ROW_BYTES;
 	vid.conwidth = test_case->width;
 	vid.conheight = BSC_FRAME_ROWS;
@@ -203,8 +223,6 @@ static void Bench486ScreenCenterPrepare (
 	scr_printspeed.value = test_case->speed;
 	bench486_screen_center_call_count = 0;
 	bench486_screen_center_trace_overflow = 0;
-	Q_memset (bench486_screen_center_calls, 0,
-			sizeof(bench486_screen_center_calls));
 }
 
 static void Bench486ScreenCenterRestoreState (void)
@@ -225,11 +243,16 @@ static void Bench486ScreenCenterRestoreState (void)
 static void Bench486ScreenCenterCapture (bench486_screen_center_result_t *result,
 		unsigned abi, unsigned short cw_before, unsigned short cw_after)
 {
-	Q_memset (result, 0, sizeof(*result));
-	Q_memcpy (&result->frame, &bench486_screen_center_frame,
-			sizeof(result->frame));
-	Q_memcpy (result->calls, bench486_screen_center_calls,
-			bench486_screen_center_call_count * sizeof(result->calls[0]));
+	/* The candidate frame doubles as the active draw buffer. Keep it in place
+	   after the assembly run; snapshot it only when retaining the C oracle. */
+	if (result != &bench486_screen_center_candidate)
+	{
+		Q_memset (result, 0, sizeof(*result));
+		Q_memcpy (&result->frame, &bench486_screen_center_candidate.frame,
+				sizeof(result->frame));
+		Q_memcpy (result->calls, bench486_screen_center_candidate.calls,
+				bench486_screen_center_call_count * sizeof(result->calls[0]));
+	}
 	result->call_count = bench486_screen_center_call_count;
 	result->trace_overflow = bench486_screen_center_trace_overflow;
 	result->abi = abi;
@@ -243,8 +266,8 @@ static int Bench486ScreenCenterGuardsIntact (void)
 	unsigned i;
 
 	for (i = 0; i < BSC_GUARD_WORDS; i++)
-		if (bench486_screen_center_frame.before[i] != 0x486e5100U + i ||
-				bench486_screen_center_frame.after[i] != 0x5a13d900U + i)
+		if (bench486_screen_center_candidate.frame.before[i] != 0x486e5100U + i ||
+				bench486_screen_center_candidate.frame.after[i] != 0x5a13d900U + i)
 			return 0;
 	for (i = 0; i < 4; i++)
 		if (bench486_screen_center_font.before[i] != 0x486e4100U + i ||
@@ -263,7 +286,9 @@ static unsigned Bench486ScreenCenterRun (
 
 	Bench486ScreenCenterPrepare (test_case);
 	cw_before = Bench486ScreenCenterGetControlWord ();
+	bench486_screen_center_fixture_active = 1;
 	abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_screen_center_fixture_active = 0;
 	cw_after = Bench486ScreenCenterGetControlWord ();
 	Bench486ScreenCenterCapture (result, abi, cw_before, cw_after);
 	if ((abi & 0x20U) || cw_before != cw_after)
@@ -303,6 +328,82 @@ static unsigned Bench486ScreenCenterDifference (
 				((const byte *)&candidate->frame)[i])
 			return 0x80000000U | i;
 	return 0;
+}
+
+/* Verify that the fixture-disabled assembly branch reaches the real glyph
+   renderer and produces the same indexed framebuffer as the C algorithm. */
+static unsigned Bench486ScreenCenterLiveCharacterCase (void)
+{
+	static const bench486_screen_center_case_t test_cases[] = {
+		{ "live-vga-draw-character-route", "\002the Necropolis", 320, 200, 1, 0,
+			0.0f, 0.0f, 8.0f },
+		{ "live-vesa-draw-character-route", "\002the Necropolis", 640, 480, 1, 0,
+			0.0f, 0.0f, 8.0f }
+	};
+	unsigned abi, failures, difference, pixel_bytes, stride, i, mode;
+	unsigned short cw_before, cw_after;
+	unsigned short saved_8to16[256];
+
+	failures = 0;
+	Q_memcpy (saved_8to16, d_8to16table, sizeof(saved_8to16));
+	for (i = 0; i < 256; i++)
+		d_8to16table[i] = (unsigned short)(i * 251U + 0x4861U);
+	for (mode = 0; mode < sizeof(test_cases) / sizeof(test_cases[0]); mode++)
+	{
+		for (pixel_bytes = 1; pixel_bytes <= 2; pixel_bytes++)
+		{
+			stride = test_cases[mode].width * pixel_bytes;
+			Bench486ScreenCenterPrepare (&test_cases[mode]);
+			vid.rowbytes = stride;
+			vid.conrowbytes = stride;
+			r_pixbytes = (int)pixel_bytes;
+			if (bench486_screen_center_saved_characters)
+				draw_chars = bench486_screen_center_saved_characters;
+			bench486_screen_center_live_character_active = 1;
+			bench486_screen_center_fixture_active = 0;
+			cw_before = Bench486ScreenCenterGetControlWord ();
+			abi = Bench486Call_asm486 (SCR_DrawCenterString_Screen_C, 0, NULL, NULL);
+			cw_after = Bench486ScreenCenterGetControlWord ();
+			bench486_screen_center_live_character_active = 0;
+			Bench486ScreenCenterCapture (&bench486_screen_center_reference, abi,
+					cw_before, cw_after);
+			if (abi || cw_before != cw_after || !Bench486ScreenCenterGuardsIntact ())
+				failures++;
+
+			Bench486ScreenCenterPrepare (&test_cases[mode]);
+			vid.rowbytes = stride;
+			vid.conrowbytes = stride;
+			r_pixbytes = (int)pixel_bytes;
+			if (bench486_screen_center_saved_characters)
+				draw_chars = bench486_screen_center_saved_characters;
+			bench486_screen_center_fixture_active = 0;
+			cw_before = Bench486ScreenCenterGetControlWord ();
+			abi = Bench486Call_asm486 (SCR_DrawCenterString_asm486, 0, NULL, NULL);
+			cw_after = Bench486ScreenCenterGetControlWord ();
+			Bench486ScreenCenterCapture (&bench486_screen_center_candidate, abi,
+					cw_before, cw_after);
+			if (abi || cw_before != cw_after || !Bench486ScreenCenterGuardsIntact ())
+				failures++;
+
+			difference = Bench486ScreenCenterDifference (
+					&bench486_screen_center_reference,
+					&bench486_screen_center_candidate);
+			if (difference)
+			{
+				failures++;
+				Bench486Printf ("screen center live Draw_Character mode %u pixel bytes %u difference %u\n",
+						mode, pixel_bytes, difference);
+			}
+		}
+	}
+	Q_memcpy (d_8to16table, saved_8to16, sizeof(saved_8to16));
+	Bench486ScreenCenterRestoreState ();
+	if (failures)
+		Bench486Printf ("screen center live Draw_Character route FAIL failures %u\n",
+				failures);
+	else
+		Bench486Printf ("screen center live Draw_Character 8/16-bit routes exact framebuffer parity PASS\n");
+	return failures;
 }
 
 static void Bench486ScreenCenterCases (void)
@@ -417,6 +518,7 @@ static void Bench486ScreenCenterCases (void)
 				case_index + 1, (unsigned)(sizeof(cases) / sizeof(cases[0])), failures);
 	}
 
+	failures += Bench486ScreenCenterLiveCharacterCase ();
 	Bench486ScreenCenterRestoreState ();
 	Bench486ScreenCenterRestoreEnvironment (&bench486_screen_center_saved_environment);
 	bench486_memory_failures += failures;

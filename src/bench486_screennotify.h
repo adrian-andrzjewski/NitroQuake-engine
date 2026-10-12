@@ -11,6 +11,9 @@
 #define BSN_FRAME_BYTES (BSN_ROW_BYTES * BSN_FRAME_ROWS)
 #define BSN_MAX_CALLS 512
 
+/* Assembly uses the trace hook only while its direct parity fixture runs. */
+int bench486_screen_notify_fixture_active;
+
 extern void SCR_DrawNotifyString_Screen_C (void);
 extern void SCR_DrawNotifyString_asm486 (void);
 extern void SCR_DrawNotifyString (void);
@@ -78,6 +81,7 @@ static bench486_screen_notify_result_t bench486_screen_notify_candidate;
 static bench486_screen_notify_call_t bench486_screen_notify_calls[BSN_MAX_CALLS];
 static unsigned bench486_screen_notify_call_count;
 static unsigned bench486_screen_notify_trace_overflow;
+static char bench486_screen_notify_first_failure[192];
 static viddef_t bench486_screen_notify_saved_video;
 static byte *bench486_screen_notify_saved_characters;
 static char *bench486_screen_notify_saved_text;
@@ -152,7 +156,7 @@ static void Bench486ScreenNotifyPrepare (
 {
 	unsigned i;
 
-	Q_memset (&bench486_screen_notify_frame, 0, sizeof(bench486_screen_notify_frame));
+	/* The guards and every framebuffer byte are initialized below. */
 	for (i = 0; i < BSN_GUARD_WORDS; i++)
 	{
 		bench486_screen_notify_frame.before[i] = 0x486e3100U + i;
@@ -180,9 +184,14 @@ static void Bench486ScreenNotifyCapture (
 		bench486_screen_notify_result_t *result, unsigned abi,
 		unsigned short control_word_before, unsigned short control_word_after)
 {
-	Q_memset (result, 0, sizeof(*result));
-	Q_memcpy (&result->frame, &bench486_screen_notify_frame,
-			sizeof(result->frame));
+	unsigned i;
+	byte *destination;
+	const byte *source;
+
+	destination = (byte *)&result->frame;
+	source = (const byte *)&bench486_screen_notify_frame;
+	for (i = 0; i < sizeof(result->frame); i++)
+		destination[i] = source[i];
 	Q_memcpy (&result->video, &vid, sizeof(vid));
 	result->characters = draw_chars;
 	result->text = scr_notifystring;
@@ -247,15 +256,19 @@ static unsigned Bench486ScreenNotifyRun (
 
 	Bench486ScreenNotifyPrepare (test_case);
 	control_word_before = Bench486ScreenNotifyGetControlWord ();
+	bench486_screen_notify_fixture_active = 1;
 	abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_screen_notify_fixture_active = 0;
 	control_word_after = Bench486ScreenNotifyGetControlWord ();
 	Bench486ScreenNotifyCapture (result, abi, control_word_before,
 			control_word_after);
 	if ((abi & 0x20U) || control_word_before != control_word_after)
 	{
-		Bench486Printf ("screen notify x87 CW FAIL case %s implementation %s before %04x after %04x probe %u\n",
-				test_case->name, implementation, control_word_before,
-				control_word_after, abi & 0x20U);
+		if (!bench486_screen_notify_first_failure[0])
+			sprintf (bench486_screen_notify_first_failure,
+					"screen notify x87 CW FAIL case %s implementation %s before %04x after %04x probe %u",
+					test_case->name, implementation, control_word_before,
+					control_word_after, abi & 0x20U);
 		return 1;
 	}
 	return abi || result->trace_overflow || !Bench486ScreenNotifyGuardsIntact ();
@@ -308,6 +321,38 @@ static unsigned Bench486ScreenNotifyDifference (
 	return 0;
 }
 
+/* Exercise the assembly's production Draw_Character branch. The main fixture
+   activates the trace hook to compare character calls; this safe one-glyph
+   case explicitly leaves it disabled and compares the resulting framebuffer. */
+static unsigned Bench486ScreenNotifyLiveCharacterCase (void)
+{
+	static const bench486_screen_notify_case_t test_case = {
+		"live-draw-character-route", "Q", 320, 200
+	};
+	unsigned abi;
+	unsigned short control_word_before, control_word_after;
+
+	Bench486ScreenNotifyRun (&test_case, "C oracle",
+			SCR_DrawNotifyString_Screen_C,
+			&bench486_screen_notify_reference);
+	Bench486ScreenNotifyPrepare (&test_case);
+	control_word_before = Bench486ScreenNotifyGetControlWord ();
+	bench486_screen_notify_fixture_active = 0;
+	abi = Bench486Call_asm486 (SCR_DrawNotifyString_asm486, 0, NULL, NULL);
+	bench486_screen_notify_fixture_active = 0;
+	control_word_after = Bench486ScreenNotifyGetControlWord ();
+	Bench486ScreenNotifyCapture (&bench486_screen_notify_candidate, abi,
+			control_word_before, control_word_after);
+	if (abi || control_word_before != control_word_after ||
+			!Bench486ScreenNotifyBytesEqual (
+					&bench486_screen_notify_reference.frame,
+					&bench486_screen_notify_candidate.frame,
+					sizeof(bench486_screen_notify_reference.frame)) ||
+			!Bench486ScreenNotifyGuardsIntact ())
+		return 1;
+	return 0;
+}
+
 static void Bench486ScreenNotifyCases (void)
 {
 	static const bench486_screen_notify_case_t cases[] = {
@@ -338,6 +383,7 @@ static void Bench486ScreenNotifyCases (void)
 	static const char *precision_names[3] = { "single", "double", "extended" };
 	static const unsigned short precision_bits[3] = { 0x0000, 0x0200, 0x0300 };
 	unsigned case_index, precision, precision_count, rounding, failures, difference;
+	unsigned live_route_failures;
 	unsigned short control_word;
 	const bench486_screen_notify_case_t *test_case;
 
@@ -349,6 +395,7 @@ static void Bench486ScreenNotifyCases (void)
 	bench486_screen_notify_saved_pixel_bytes = r_pixbytes;
 	Bench486ScreenNotifyInitData ();
 	failures = 0;
+	bench486_screen_notify_first_failure[0] = 0;
 	Bench486Printf ("screen notify begin cases %u RC modes 4; PC modes 3 for high-bit dimensions\n",
 			(unsigned)(sizeof(cases) / sizeof(cases[0])));
 
@@ -383,9 +430,11 @@ static void Bench486ScreenNotifyCases (void)
 				if (difference)
 				{
 					failures++;
-					Bench486Printf ("screen notify mismatch %s/%s/%s detail %u\n",
-							test_case->name, precision_name,
-							rounding_names[rounding], difference);
+					if (!bench486_screen_notify_first_failure[0])
+						sprintf (bench486_screen_notify_first_failure,
+								"screen notify mismatch %s/%s/%s detail %u",
+								test_case->name, precision_name,
+								rounding_names[rounding], difference);
 				}
 				Bench486ScreenNotifySetControlWord (control_word);
 				failures += Bench486ScreenNotifyRun (test_case, "public entry",
@@ -397,19 +446,29 @@ static void Bench486ScreenNotifyCases (void)
 				if (difference)
 				{
 					failures++;
-					Bench486Printf ("screen notify public mismatch %s/%s/%s detail %u\n",
-							test_case->name, precision_name,
-							rounding_names[rounding], difference);
+					if (!bench486_screen_notify_first_failure[0])
+						sprintf (bench486_screen_notify_first_failure,
+								"screen notify public mismatch %s/%s/%s detail %u",
+								test_case->name, precision_name,
+								rounding_names[rounding], difference);
 				}
+				Bench486ScreenNotifySetControlWord (
+						bench486_screen_notify_saved_control_word);
 			}
 		}
 	}
+	live_route_failures = Bench486ScreenNotifyLiveCharacterCase ();
 
 	Q_memcpy (&vid, &bench486_screen_notify_saved_video, sizeof(vid));
 	draw_chars = bench486_screen_notify_saved_characters;
 	scr_notifystring = bench486_screen_notify_saved_text;
 	r_pixbytes = bench486_screen_notify_saved_pixel_bytes;
 	Bench486ScreenNotifyRestoreEnvironment (&bench486_screen_notify_saved_environment);
+	if (bench486_screen_notify_first_failure[0])
+		Bench486Printf ("%s\n", bench486_screen_notify_first_failure);
+	Bench486Printf ("screen notify live Draw_Character route exact framebuffer parity %s\n",
+			live_route_failures ? "FAIL" : "PASS");
+	failures += live_route_failures;
 	bench486_memory_failures += failures;
 	Bench486Printf ("screen notify cases %u RC modes 4, PC modes 3 for high-bit dimensions; failures %u\n",
 			(unsigned)(sizeof(cases) / sizeof(cases[0])), failures);

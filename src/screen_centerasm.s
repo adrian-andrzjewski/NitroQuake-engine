@@ -107,7 +107,13 @@ C(SCR_DrawCenterString_asm486):
 	pushl	-20(%ebp)
 	pushl	%edi
 #ifdef BENCH486
+	cmpl	$0,C(bench486_screen_center_fixture_active)
+	je	.Lscreen_center_real_character
 	call	C(Bench486ScreenCenterStringCharacter)
+	jmp	.Lscreen_center_character_call_done
+.Lscreen_center_real_character:
+	call	C(Draw_Character)
+.Lscreen_center_character_call_done:
 #else
 	call	C(Draw_Character)
 #endif

@@ -92,7 +92,13 @@ C(SCR_DrawNotifyString_asm486):
     pushl   -20(%ebp)
     pushl   %edi
 #ifdef BENCH486
+    cmpl    $0,C(bench486_screen_notify_fixture_active)
+    je      .Lscreen_notify_real_character
     call    C(Bench486ScreenNotifyCharacter)
+    jmp     .Lscreen_notify_character_call_done
+.Lscreen_notify_real_character:
+    call    C(Draw_Character)
+.Lscreen_notify_character_call_done:
 #else
     call    C(Draw_Character)
 #endif

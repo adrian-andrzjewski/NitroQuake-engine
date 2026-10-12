@@ -66,7 +66,13 @@ C(SCR_EraseCenterString_asm486):
 	pushl	%eax      // Y
 	pushl	$0         // X
 #ifdef BENCH486
+	cmpl	$0,C(bench486_screen_erase_fixture_active)
+	je	.Lscreen_erase_real_tile_clear
 	call	C(Bench486ScreenEraseTileClear)
+	jmp	.Lscreen_erase_tile_clear_done
+.Lscreen_erase_real_tile_clear:
+	call	C(Draw_TileClear)
+.Lscreen_erase_tile_clear_done:
 #else
 	call	C(Draw_TileClear)
 #endif

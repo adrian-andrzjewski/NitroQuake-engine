@@ -6,6 +6,9 @@
 
 #define BSE_GUARD_WORDS 4
 
+/* Assembly uses the trace hook only while its direct parity fixture runs. */
+int bench486_screen_erase_fixture_active;
+
 #include "asm_screenerase.h"
 
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
@@ -214,7 +217,9 @@ static unsigned Bench486ScreenEraseRun (
 
 	Bench486ScreenErasePrepare (test_case);
 	cw_before = Bench486ScreenEraseGetControlWord ();
+	bench486_screen_erase_fixture_active = 1;
 	abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_screen_erase_fixture_active = 0;
 	cw_after = Bench486ScreenEraseGetControlWord ();
 	Bench486ScreenEraseCapture (result, abi, cw_before, cw_after);
 	/* Con_Printf uses live video dimensions. Restore them before the fixture
