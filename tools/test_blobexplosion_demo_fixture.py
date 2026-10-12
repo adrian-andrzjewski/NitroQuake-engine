@@ -90,6 +90,7 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
             ("TE_WIZSPIKE", fixture.TE_WIZSPIKE),
             ("TE_LAVASPLASH", fixture.TE_LAVASPLASH),
             ("TE_TELEPORT", fixture.TE_TELEPORT),
+            ("svc_particle", fixture.SVC_PARTICLE),
             ("svc_damage", fixture.SVC_DAMAGE),
         ):
             with self.subTest(event=name):
@@ -211,6 +212,27 @@ class BlobExplosionDemoFixtureTests(unittest.TestCase):
             fixture.SVC_DAMAGE_BLOOD,
         )) + struct.pack("<hhh", -2136, 17413, 9968)
         self.assertEqual(info.event_type, fixture.SVC_DAMAGE)
+        self.assertEqual(result[3][0], self.source_records[3][0] + expected)
+        self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
+
+    def test_injects_exact_svc_particle_packet_bytes(self) -> None:
+        output = self.root / "svc-particle.dem"
+        info = fixture.create_blob_demo(
+            self.pak0,
+            output,
+            member_name=MEMBER_NAME,
+            first_post_signon_record=2,
+            keep_post_signon_records=3,
+            event_record=3,
+            event_type=fixture.SVC_PARTICLE,
+            coord_shorts=(-2136, 17413, 9968),
+        )
+
+        _, result = read_demo(output)
+        expected = bytes((fixture.SVC_PARTICLE,))
+        expected += struct.pack("<hhh", -2136, 17413, 9968)
+        expected += bytes((0x80, 0x7F, 0xFF, 255, 0xE1))
+        self.assertEqual(info.event_type, fixture.SVC_PARTICLE)
         self.assertEqual(result[3][0], self.source_records[3][0] + expected)
         self.assertEqual(result[-1][0], bytes((fixture.SVC_DISCONNECT,)))
 
@@ -341,6 +363,42 @@ class BlobExplosionWorkflowWiringTests(unittest.TestCase):
         self.assertIn("$result['demoFixture'] = $demoFixtureResult", runner)
         self.assertIn("'--event-type', [string]$demoFixtureConfig.eventType", runner)
         self.assertIn("lavaSplashImplementation = $LavaSplashImplementation", runner)
+
+    def test_svc_particle_scenario_dispatches_the_assembly_parser_on_capture_frame(self) -> None:
+        manifest = json.loads(
+            (TOOLS / "render-scenarios-parseparticleeffect.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(manifest["scenarios"]), 1)
+        scene = manifest["scenarios"][0]
+        self.assertEqual(scene["id"], "demo2-svc-particle-parser-event")
+        self.assertIn("R_ParseParticleEffect", scene["description"])
+        self.assertEqual(scene["expectedFrames"], 10)
+        self.assertEqual(scene["captureFrame"], 10)
+        self.assertEqual(scene["requiredBenchEvents"], ["runParticleEffect"])
+        self.assertEqual(scene["expectedBenchEventFrames"], {"runParticleEffect": [10]})
+        self.assertEqual(scene["captureBenchEvents"], ["runParticleEffect"])
+        self.assertIsNone(scene["reference"])
+        self.assertEqual(scene["demoFixture"]["eventType"], fixture.SVC_PARTICLE)
+        self.assertEqual(scene["demoFixture"]["coordShorts"], [-2136, 17413, 9968])
+
+        c_profile = json.loads(
+            (TOOLS / "renderer-profiles/i486-parseparticleeffect-c.json").read_text(encoding="utf-8")
+        )
+        asm_profile = json.loads(
+            (TOOLS / "renderer-profiles/i486-parseparticleeffect-asm.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(c_profile["selectors"], {
+            "ParseParticleEffectImplementation": "c",
+            "RunParticleEffectImplementation": "c",
+        })
+        self.assertEqual(asm_profile["selectors"], {
+            "ParseParticleEffectImplementation": "asm",
+            "RunParticleEffectImplementation": "c",
+        })
+        parser = (TOOLS.parent / "src" / "cl_parse.c").read_text(encoding="utf-8")
+        particle_case = parser.split("case svc_particle:", 1)[1].split("case svc_spawnbaseline:", 1)[0]
+        self.assertIn("R_ParseParticleEffect ();", particle_case)
+        self.assertIn("Bench486RecordRunParticleEffectEvent ();", particle_case)
 
     def test_timedemo_rejects_mixed_case_pak_entry_before_staging(self) -> None:
         powershell = shutil.which("pwsh") or shutil.which("powershell")

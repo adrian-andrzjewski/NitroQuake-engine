@@ -156,6 +156,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleExplosionImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParseParticleEffectImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$RunParticleEffectImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$EntityParticlesImplementation = 'c',
@@ -426,8 +428,11 @@ function ConvertFrom-DemoFixtureJson {
         -Name 'eventRecord' -Minimum 0 -Maximum 1000000
     $eventType = ConvertTo-DemoFixtureInteger -Value $parsed.eventType `
         -Name 'eventType' -Minimum 0 -Maximum 255
-    if ($eventType -notin @(4, 7, 10, 11, 19)) {
-        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4), TE_WIZSPIKE (7), TE_LAVASPLASH (10), TE_TELEPORT (11), or svc_damage (19).'
+    if ($eventType -eq 18) {
+        # svc_particle packet payload is fixed by make_blobexplosion_demo.py.
+    }
+    elseif ($eventType -notin @(4, 7, 10, 11, 19)) {
+        throw 'demoFixture.eventType must be TE_TAREXPLOSION (4), TE_WIZSPIKE (7), TE_LAVASPLASH (10), TE_TELEPORT (11), svc_particle (18), or svc_damage (19).'
     }
     if ([long]$firstRecord + $keepRecords -gt 1000001 -or
         $eventRecord -lt $firstRecord -or $eventRecord -ge ([long]$firstRecord + $keepRecords)) {
@@ -1415,6 +1420,7 @@ $result = [ordered]@{
     particleDrawImplementation = $ParticleDrawImplementation
     damageParseImplementation = $DamageParseImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
+    parseParticleEffectImplementation = $ParseParticleEffectImplementation
     blobExplosionImplementation = $BlobExplosionImplementation
     lavaSplashImplementation = $LavaSplashImplementation
     teleportSplashImplementation = $TeleportSplashImplementation

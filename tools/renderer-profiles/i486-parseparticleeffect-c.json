@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "i486-parseparticleeffect-c",
+  "description": "C-reference R_ParseParticleEffect selector with the shared C particle emitter for an isolated event parity pair.",
+  "selectors": {
+    "ParseParticleEffectImplementation": "c",
+    "RunParticleEffectImplementation": "c"
+  }
+}

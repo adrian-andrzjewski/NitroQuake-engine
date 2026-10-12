@@ -22,6 +22,7 @@ PAK_NAME_BYTES = 56
 MAX_MSGLEN = 8000  # Quake's MAX_MSGLEN
 SVC_TEMP_ENTITY = 23
 SVC_DAMAGE = 19
+SVC_PARTICLE = 18
 SVC_DISCONNECT = 2
 SVC_DAMAGE_ARMOR = 24
 SVC_DAMAGE_BLOOD = 48
@@ -30,7 +31,7 @@ TE_WIZSPIKE = 7
 TE_LAVASPLASH = 10
 TE_TELEPORT = 11
 SUPPORTED_TEMP_ENTITY_EVENTS = (TE_TAREXPLOSION, TE_WIZSPIKE, TE_LAVASPLASH, TE_TELEPORT)
-SUPPORTED_DEMO_EVENTS = SUPPORTED_TEMP_ENTITY_EVENTS + (SVC_DAMAGE,)
+SUPPORTED_DEMO_EVENTS = SUPPORTED_TEMP_ENTITY_EVENTS + (SVC_PARTICLE, SVC_DAMAGE)
 MAX_DEMO_TRACK_LINE = 128
 
 
@@ -139,6 +140,13 @@ def _encode_demo_event(event_type: int, coord_shorts: Iterable[int]) -> bytes:
         # damage-feedback state and the fixture remains byte-for-byte deterministic.
         return bytes((SVC_DAMAGE, SVC_DAMAGE_ARMOR, SVC_DAMAGE_BLOOD)) + struct.pack(
             "<hhh", *coords
+        )
+    if event_type == SVC_PARTICLE:
+        # svc_particle carries three protocol coords, three signed direction
+        # bytes, count and color. Use the 255 sentinel (1024 particles) and
+        # high-bit signed directions to exercise the assembly parser in-game.
+        return bytes((SVC_PARTICLE,)) + struct.pack("<hhh", *coords) + bytes(
+            (0x80, 0x7F, 0xFF, 255, 0xE1)
         )
     if event_type not in SUPPORTED_TEMP_ENTITY_EVENTS:
         raise ValueError(f"unsupported temp-entity type {event_type}")
@@ -337,7 +345,8 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         default=TE_TAREXPLOSION,
         help=(
             "Quake event type (4=TAREXPLOSION, 7=WIZSPIKE, 10=LAVASPLASH, "
-            "11=TELEPORT, 19=svc_damage with fixed armor=24/blood=48; "
+            "11=TELEPORT, 18=svc_particle with fixed signed directions/count/color, "
+            "19=svc_damage with fixed armor=24/blood=48; "
             "default: %(default)s)"
         ),
     )

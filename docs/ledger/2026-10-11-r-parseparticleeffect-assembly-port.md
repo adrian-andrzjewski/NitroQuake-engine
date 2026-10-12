@@ -47,19 +47,48 @@ CWSDPMI provider proof covered 9,207 instructions. The complete executable ISA
 gate passed. The build manifest records `CpuTarget=i486`, parser assembly,
 C particle emitter, source-bound ISA proof, and `isaAuditStatus=PASS`.
 
-The rendering source suite passed 94 tests after adding the parser profile
-regression, and the build-profile suite passed its pinned i486/i386 flag checks.
-The parser fixture is function/state parity rather than a framebuffer comparison.
-Its particle-event contribution still needs full paired gameplay-scene
-coverage, and broader renderer parity and ownership remain open.
+At the original parser-port checkpoint, the rendering source suite passed 94
+tests and the build-profile suite passed its pinned i486/i386 flag checks. The
+event-to-frame gap from that checkpoint is now closed by the paired scene below.
+
+## Deterministic event-to-frame parity
+
+`tools/render-scenarios-parseparticleeffect.json` injects one protocol
+`svc_particle` packet (event type 18) into a deterministic 10-frame `demo2`
+prefix. Its signed direction bytes exercise high-bit values, and count 255
+exercises the original 1024-particle sentinel. `i486-parseparticleeffect-c.json`
+and `i486-parseparticleeffect-asm.json` differ only in the parser selector; both
+keep `R_RunParticleEffect` on the C implementation to isolate packet parsing.
+
+The paired DOSBox-X run passed twice per profile on the configured 486 target.
+Each run recorded exactly one `runParticleEffect` event at frame 10 with no
+overflow. After four warmup checksums, all seven remaining frame checksums
+matched exactly in both runs. The frame-10 320x200 indexed framebuffer matched
+exactly: zero pixel-index differences across 64,000 pixels and zero palette
+byte differences. The paired report is
+`out/parseparticleeffect-event-parity-20261012/render-parity-result.json`.
+
+Both executables passed the complete i486 audit. The C executable verified
+208,939 relocated instructions and the assembly candidate verified 209,179;
+each proof covered 235 installed runtime objects, startup code, and the 9,207
+instruction CWSDPMI provider, with zero above-i486 instructions and zero
+exemptions. The report records `isaAuditStatus=PASS` for both profiles.
+
+The focused demo fixture suite passed 15 tests. The broader rendering test
+file ran 99 tests; 98 passed, and one unrelated cumulative-selector assertion
+failed because its profile expects `AliasProjectImplementation=c` while the
+timedemo runner default is `asm`.
 
 ## Traceability and reproduction
 
 | Original behavior | Assembly replacement | Correctness evidence |
 |---|---|---|
 | `R_ParseParticleEffect` in `src/r_part.c` | `R_ParseParticleEffect` in `src/r_parseparticleeffectasm.s` | `src/bench486_parseparticleeffect.h`, invoked by `-benchparseparticleeffect` |
+| `svc_particle` dispatch and parser event in `src/cl_parse.c` | The selectable parser call remains the common dispatch point | `tools/render-scenarios-parseparticleeffect.json`; exact event frame, checksums and framebuffer comparison |
 
 `tools/test-rendering.py` guards the C reference, cumulative selector, fixture,
 and focused runner contract. `tools/test-build-dos.py` checks the parser
 selector's C and assembly flag sets. The strict emulator command above
-reproduces the machine-code and 88-case state checks.
+reproduces the machine-code and 88-case state checks; `tools/render-parity-dos.ps1`
+with the parser profiles and scenario manifest reproduces the event-to-frame
+comparison.

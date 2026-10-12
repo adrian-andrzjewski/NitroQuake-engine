@@ -843,6 +843,9 @@ void CL_ParseServerMessage (void)
 			
 		case svc_particle:
 			R_ParseParticleEffect ();
+#ifdef BENCH486
+			Bench486RecordRunParticleEffectEvent ();
+#endif
 			break;
 
 		case svc_spawnbaseline:

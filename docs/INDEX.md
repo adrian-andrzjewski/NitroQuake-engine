@@ -34,7 +34,7 @@ Operational documents, one experiment ledger, and a rule about how to cite them.
 | [`RENDERER-ASSEMBLY-CONVENTIONS.md`](RENDERER-ASSEMBLY-CONVENTIONS.md) | Assembly ownership, ABI, arithmetic, modules and acceptance rules | New |
 | [`RENDERER-COMPLETION-GAPS.md`](RENDERER-COMPLETION-GAPS.md) | Accepted conversions and remaining ownership/scenario gates | New |
 | [`ledger/2026-10-10-d-drawzspans-assembly-parity.md`](ledger/2026-10-10-d-drawzspans-assembly-parity.md) | `D_DrawZSpans` exact C/assembly depth-buffer parity and i486 audit | New |
-| [`ledger/2026-10-11-r-parseparticleeffect-assembly-port.md`](ledger/2026-10-11-r-parseparticleeffect-assembly-port.md) | `R_ParseParticleEffect` exact parser-state fixture and i486 audit | New |
+| [`ledger/2026-10-11-r-parseparticleeffect-assembly-port.md`](ledger/2026-10-11-r-parseparticleeffect-assembly-port.md) | `R_ParseParticleEffect` parser-state fixture, exact event-scene parity and i486 audit | New |
 | [`ledger/2026-10-10-screen-center-string-assembly-parity.md`](ledger/2026-10-10-screen-center-string-assembly-parity.md) | `SCR_DrawCenterString` C/assembly parity and i486 audit | New |
 | [`ledger/2026-10-10-d-drawparticle-assembly-port.md`](ledger/2026-10-10-d-drawparticle-assembly-port.md) | Existing `D_DrawParticle` assembly path, C oracle and exact parity evidence | New |
 | [`ledger/2026-10-09-r-blobexplosion-assembly-port.md`](ledger/2026-10-09-r-blobexplosion-assembly-port.md) | `R_BlobExplosion` traceability and pending acceptance gates | New |

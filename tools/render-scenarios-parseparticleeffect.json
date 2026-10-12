@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "validationAutoexecCommands": [
+    "host_framerate 0.0783"
+  ],
+  "warmupChecksumFrames": 4,
+  "defaultTolerance": {
+    "channel": 0,
+    "maxChangedPixelFraction": 0,
+    "maxMeanAbsoluteError": 0
+  },
+  "scenarios": [
+    {
+      "id": "demo2-svc-particle-parser-event",
+      "description": "Short deterministic demo2 prefix with one injected svc_particle packet routed through R_ParseParticleEffect and captured at its dispatched frame",
+      "demo": "demo2",
+      "quakeExtraArgs": "",
+      "expectedFrames": 10,
+      "expectedChecksum": 0,
+      "captureFrame": 10,
+      "repeatRuns": 2,
+      "requiredBenchEvents": ["runParticleEffect"],
+      "expectedBenchEventFrames": {
+        "runParticleEffect": [10]
+      },
+      "captureBenchEvents": ["runParticleEffect"],
+      "reference": null,
+      "tolerance": {
+        "channel": 0,
+        "maxChangedPixelFraction": 0,
+        "maxMeanAbsoluteError": 0
+      },
+      "demoFixture": {
+        "sourceMember": "demo2.dem",
+        "firstPostSignonRecord": 4,
+        "keepPostSignonRecords": 11,
+        "eventRecord": 14,
+        "eventType": 18,
+        "coordShorts": [-2136, 17413, 9968],
+        "pakEntry": "demo2.dem"
+      }
+    }
+  ]
+}

@@ -735,7 +735,7 @@ class RenderingComparisonTests(unittest.TestCase):
         timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
         self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$TeleportSplashImplementation\s*=\s*'c'")
         self.assertIn("Read-Bench486TeleportSplashEvents -Report $report", timedemo_source)
-        self.assertIn("if ($eventType -notin @(4, 7, 10, 11, 19))", timedemo_source)
+        self.assertIn("elseif ($eventType -notin @(4, 7, 10, 11, 19))", timedemo_source)
         self.assertIn("TE_TELEPORT (11)", timedemo_source)
         self.assertIn("TE_WIZSPIKE (7)", timedemo_source)
         self.assertIn("TeleportSplashImplementation", timedemo_source)
@@ -788,7 +788,7 @@ class RenderingComparisonTests(unittest.TestCase):
         timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
         self.assertRegex(timedemo_source, r"(?m)^\s*\[string\]\$RunParticleEffectImplementation\s*=\s*'c'")
         self.assertIn("Read-Bench486RunParticleEffectEvents -Report $report", timedemo_source)
-        self.assertIn("if ($eventType -notin @(4, 7, 10, 11, 19))", timedemo_source)
+        self.assertIn("elseif ($eventType -notin @(4, 7, 10, 11, 19))", timedemo_source)
         self.assertIn("TE_WIZSPIKE (7)", timedemo_source)
         for profile in (c_profile, asm_profile):
             for selector in profile["selectors"]:
