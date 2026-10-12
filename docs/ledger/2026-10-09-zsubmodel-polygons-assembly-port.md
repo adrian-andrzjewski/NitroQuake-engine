@@ -54,6 +54,43 @@ directly with the same DOSBox-X 486 profile and passed the focused fixture.
 This host-tool proof remains an environment limitation; it is not an ISA
 failure in the renderer executable.
 
+## 2026-10-12 strict rerun and scene-pair limit
+
+The standard wrapper now completes the focused i486 gate with:
+
+```powershell
+rtk pwsh -NoProfile -File tools/bench-dos.ps1 `
+  -ZSubmodelPolygonsOnly `
+  -ZSubmodelPolygonsImplementation asm `
+  -CpuTarget i486 -TimeoutSeconds 180
+```
+
+`out/dos-bench-20261012-132910/quake/BENCH486.TXT` records all 12 x87 control
+word settings, progress through 4,096 continuous calls, and a pass for 4,483
+exact cases with zero failures. The DOSBox window can remain visually quiet
+after its short `486 benchmark begin` marker because the fixture's detailed
+progress and result are written to `BENCH486.TXT`.
+
+The strict executable gate passed for this build: 172,785 project-object
+instructions, 211,082 relocated executable instructions, 529 embedded startup
+instructions, and 9,207 CWSDPMI provider instructions were audited with zero
+post-i486 instructions, unknown instructions, or exemptions. The retained
+`out/dos-bench-20261012-132910/bench-result.json` records the i486 target and
+provider verification.
+
+A C/assembly selector pair also completed the three standard DOSBox-X scenes
+twice each in `out/render-parity-zsubmodel-20261012`: all 6,058 compared
+post-warmup checksums, six 320x200 indexed framebuffer captures, and six
+palettes matched exactly. This is only a surrounding-renderer stability check.
+It does **not** demonstrate pixel parity for `R_ZDrawSubmodelPolys`: the DOS
+span driver sets `r_drawpolys` false, and the BENCH-only
+`bench486_renderpolys 1` command explicitly reports that polygon rendering is
+unavailable and leaves edge scanning enabled. The focused callback fixture
+also records `R_RenderPoly` calls instead of rasterizing them. The optional
+polygon driver's rendered output therefore remains unverified by these scene
+captures. The pair report is visual-parity-only and skips its own ISA audit;
+the separate strict build above supplies the ISA evidence.
+
 To reproduce the flag and source checks, run `rtk python
 tools/test-build-dos.py` and `rtk python tools/test-rendering.py`. With a Windows
 host GCC available to the assembler proof, run

@@ -262,7 +262,7 @@ to prove a complete call graph.
 
 | Area | Remaining behavior or ownership to verify |
 |---|---|
-| BSP/world | Other optional polygon/debug passes, remaining frustum initialization and explicit indirect-target closure. `R_ZDrawSubmodelPolys` has an assembly selector and direct cull/call-order fixture, which does not test the downstream `R_RenderPoly` rasterizer. |
+| BSP/world | Other optional polygon/debug passes, remaining frustum initialization and explicit indirect-target closure. `R_ZDrawSubmodelPolys` has an assembly selector and a direct cull/call-order fixture, but that fixture intercepts `R_RenderPoly`; the DOS span driver keeps `r_drawpolys` false, so the standard scene pair does not exercise this optional path or verify its rendered pixels. See the [Z-submodel polygon ledger](ledger/2026-10-09-zsubmodel-polygons-assembly-port.md). |
 | Edge processing | Frame initialization, culled polygons and remaining C list/span forwarding entries |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |
 | Sky and particles | Combined complete-profile verification, broader particle-effect stress/sequence scenarios, and sky scenes. `R_ParseParticleEffect` now has exact parser-state parity across complete/truncated packets and x87 rounding modes, plus a paired `svc_particle` event-to-frame scene with exact framebuffer and checksum parity. The focused `D_DrawParticle` event-scene parity and parser scene do not close the wider stress/sequence and sky gates. |
