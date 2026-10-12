@@ -31,11 +31,12 @@ C(bench486_driver_probe): .long 0
     cmpl $0,C(bench486_driver_probe)
     je .Ldriver_call_real\@
     movl %esp,%eax
+    subl $4,%esp
     pushl %eax
     pushl $\words
     pushl $\phase
     call *C(bench486_driver_probe)
-    addl $12,%esp
+    addl $16,%esp
     jmp .Ldriver_call_done\@
 .Ldriver_call_real\@:
 #endif
@@ -48,6 +49,10 @@ C(bench486_driver_probe): .long 0
 .p2align 2
 .globl C(D_Init)
 C(D_Init):
+    pushl %ebp
+    movl %esp,%ebp
+    andl $-16,%esp
+    subl $12,%esp
     movl $1,C(r_skydirect)
     pushl $C(d_subdiv16)
     DRIVER_CALL 1,1,C(Cvar_RegisterVariable)
@@ -63,6 +68,8 @@ C(D_Init):
     movl $1,C(r_recursiveaffinetriangles)
     movl $1,C(r_pixbytes)
     movl $0x3f800000,C(r_aliasuvscale)
+    movl %ebp,%esp
+    popl %ebp
     ret
 
 /* These eight entry points are intentional original software-driver no-ops.
@@ -171,6 +178,10 @@ C(D_SetupFrame):
 .p2align 2
 .globl C(D_Patch)
 C(D_Patch):
+    pushl %ebp
+    movl %esp,%ebp
+    andl $-16,%esp
+    subl $8,%esp
     cmpl $0,C(d_driver_protectset8)
     jne .Ldriver_patch_done
     movl $C(D_PolysetAff8End),%eax
@@ -181,6 +192,8 @@ C(D_Patch):
     addl $8,%esp
     movl $1,C(d_driver_protectset8)
 .Ldriver_patch_done:
+    movl %ebp,%esp
+    popl %ebp
     ret
 
 .p2align 2

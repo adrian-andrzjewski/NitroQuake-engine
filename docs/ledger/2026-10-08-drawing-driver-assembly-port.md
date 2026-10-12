@@ -54,3 +54,26 @@ selects assembly. The release inventory finds 29 reachable C renderer routines.
 Indirect targets and compiler clones still require a closure review; full
 renderer ownership, strict automatic runtime verification, dedicated scene and
 full-frame soak/gameplay acceptance remain outstanding.
+
+## 2026-10-12 outgoing-call stack-alignment follow-up
+
+`D_Init` and `D_Patch` now establish aligned cdecl call frames before invoking
+the C registration and writable-code helpers, then restore the exact incoming
+stack pointer. The benchmark-only call observer reserves its stack-alignment
+slot while preserving the arguments recorded by the C oracle.
+
+The focused i486 `DrawingDriverImplementation=asm` run passed 18,176 exact
+state comparisons over thirteen entries, twelve x87 control words, 8,192
+sequence calls, and forty guard checks, with zero failures. The selected build
+passed the object, linked-runtime, relocated executable, startup, and provider
+ISA gates: 173,277 project-object instructions, 211,574 linked instructions,
+529 startup CODE rows, and 9,207 provider instructions; zero post-i486,
+unknown, or exempt instructions.
+
+The paired C-reference/assembly profile run used identical sources and passed
+`demo1-vga-full`, `demo2-entity-workload`, and `demo3-world-workload` twice
+each. All 6,058 post-warmup frame checksums and six indexed framebuffer plus
+palette captures matched exactly. Evidence is in
+`out/render-parity-driver-stack-20261012`. That pair was run with
+`-VisualParityOnly`; its own ISA status is SKIPPED. The separate focused build
+above supplies the strict ISA proof for this drawing-driver source change.

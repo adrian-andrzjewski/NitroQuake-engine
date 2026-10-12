@@ -214,11 +214,13 @@ void R_ShowSubDiv (void);
 void (*prealspandrawer)(void);
 surfcache_t	*D_CacheSurface (msurface_t *surface, int miplevel);
 surfcache_t	*D_SCAlloc (int width, int size);
+#if defined(BENCH486) && (defined(ASM486_SURFACE_CACHE_CHECK) || defined(ASM486_DRAWING_DRIVER))
+extern int sc_size;
+extern surfcache_t *sc_base;
+#endif
 #ifdef ASM486_SURFACE_CACHE_CHECK
 surfcache_t *D_SCAlloc_asm486 (int width, int size);
 #ifdef BENCH486
-extern int sc_size;
-extern surfcache_t *sc_base;
 surfcache_t *D_SCAlloc_C (int width, int size);
 surfcache_t *D_CacheSurface_C (msurface_t *surface, int miplevel);
 #endif

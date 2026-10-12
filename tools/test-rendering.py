@@ -2341,6 +2341,27 @@ class RenderingComparisonTests(unittest.TestCase):
                 self.assertIn("subl\t$24, %esp", body)
                 self.assertEqual(tailcall_cleanup, ["20", "20"])
 
+    def test_drawingdriver_outgoing_calls_align_and_restore_the_cdecl_stack(self) -> None:
+        source = (ROOT / "src/d_driverasm.s").read_text(encoding="utf-8")
+        macro = source.split(".macro DRIVER_CALL", 1)[1].split(".endm", 1)[0]
+        self.assertIn("subl $4,%esp", macro)
+        self.assertIn("pushl %eax", macro)
+        self.assertIn("addl $16,%esp", macro)
+
+        d_init = source.split("C(D_Init):", 1)[1].split("DRIVER_NOOP", 1)[0]
+        self.assertIn("pushl %ebp", d_init)
+        self.assertIn("andl $-16,%esp", d_init)
+        self.assertIn("subl $12,%esp", d_init)
+        self.assertEqual(d_init.count("DRIVER_CALL 1,1"), 3)
+        self.assertRegex(d_init, r"movl %ebp,%esp\s+popl %ebp\s+ret")
+
+        d_patch = source.split("C(D_Patch):", 1)[1].split("C(D_ViewChanged):", 1)[0]
+        self.assertIn("andl $-16,%esp", d_patch)
+        self.assertIn("subl $8,%esp", d_patch)
+        self.assertIn("DRIVER_CALL 2,2", d_patch)
+        self.assertRegex(d_patch, r"movl %ebp,%esp\s+popl %ebp\s+ret")
+        self.assertNotRegex(source, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+
     def test_viewcontrol_setupframe_assembly_has_a_focused_profile_and_c_oracle(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-viewcontrol-c.json").read_text(encoding="utf-8"))
