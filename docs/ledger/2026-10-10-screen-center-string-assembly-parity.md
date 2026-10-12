@@ -93,3 +93,44 @@ the palette, with 986 frame checks and zero changed pixels; its report is
 `out/render-validation-center-asm-final-demo2-20261012/render-validation-result.json`.
 Complete-scene parity and the broader renderer migration remain open; these are
 routine-level and one-scene results.
+
+## 2026-10-12 live-title coverage and cumulative integration check
+
+The live `Draw_Character` fixture now includes the exact Demo 2 level title,
+`\002the Grisly Grotto`, in both 8-bit and 16-bit output modes. The strict
+`-ScreenCenterStringOnly -DrawingImplementation asm` run passed all 19 cases
+under 4 rounding modes and 3 precision modes, including the live character
+routes. Its updated log and ISA report are
+`out/dos-bench-20261012-201422/quake/BENCH486.TXT` and
+`out/dos-bench-20261012-201422/bench-result.json`.
+
+The cumulative Demo 2 check exposed an unresolved integration failure. With
+the same selector map, changing only `DrawingImplementation` from `asm` to `c`
+changed the result from an early timedemo exit to an exact scene pass:
+
+| Candidate | Result | Evidence |
+| --- | --- | --- |
+| Center-string assembly + drawing assembly | DOSBox-X exited without producing `timedemo.txt`; no frame records; validation stopped after 50.55 s | `out/render-validation-current-center-asm-demo2-20261012/render-validation-result.json` |
+| Center-string assembly + drawing C | 985 frames, 986 checksum rows, all 64,000 pixels and palette exact; zero changed pixels; 12.04 FPS | `out/render-validation-current-center-asm-drawing-c-demo2-strict-20261012/render-validation-result.json` |
+
+The successful integration candidate's selector map is saved at
+`out/diagnostic-profiles/i486-current-center-asm-drawing-c.json`; a comparison
+against `i486-current-center-string-asm.json` found `DrawingImplementation`
+was the sole selector difference. This narrows the failure to the interaction
+between the centered-string and drawing assembly selections. It does not yet
+identify a specific drawing routine or calling pattern, so the all-assembly
+drawing combination is not accepted as scene-integrated.
+
+The successful C-drawing candidate passed the complete strict 486 gate:
+143 project objects / 223,591 instructions, 378 linked objects / 261,888
+instructions, and all 261,888 relocated opcodes. The audit found zero
+post-i486 or unknown instructions, exemptions, undecoded bytes, or relocation
+data sites. Startup proof covered 1,660 loaded bytes and 529 code rows; the
+CWSDPMI provider proof covered 9,207 instructions with zero exemptions. The
+timedemo used `tools/golden/render/demo2-entity-workload.pcx` and matched it
+exactly. The report is
+`out/render-validation-current-center-asm-drawing-c-demo2-strict-20261012/render-validation-result.json`.
+
+This result verifies an assembly-heavy integrated profile with the C drawing
+backend. It does not close the drawing-assembly integration failure or establish
+parity for the complete renderer workload set.

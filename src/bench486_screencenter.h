@@ -337,6 +337,8 @@ static unsigned Bench486ScreenCenterLiveCharacterCase (void)
 	static const bench486_screen_center_case_t test_cases[] = {
 		{ "live-vga-draw-character-route", "\002the Necropolis", 320, 200, 1, 0,
 			0.0f, 0.0f, 8.0f },
+		{ "live-demo2-level-title", "\002the Grisly Grotto", 320, 200, 1, 0,
+			0.0f, 0.0f, 8.0f },
 		{ "live-vesa-draw-character-route", "\002the Necropolis", 640, 480, 1, 0,
 			0.0f, 0.0f, 8.0f }
 	};
