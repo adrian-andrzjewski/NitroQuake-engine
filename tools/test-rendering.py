@@ -2322,6 +2322,25 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("frustum sequence progress", fixture)
         self.assertIn("-benchfrustumtransform", bench)
 
+    def test_framecontrol_viewchanged_tailcall_restores_its_full_stack_frame(self) -> None:
+        for source_name in (
+            "r_framecontrol_release.inc",
+            "r_framecontrol_profile.inc",
+        ):
+            with self.subTest(source=source_name):
+                source = (ROOT / "src" / source_name).read_text(encoding="utf-8")
+                body = source.split("_R_ViewChanged:", 1)[1].split("/* R_MarkLeaves", 1)[0]
+                tailcall_cleanup = re.findall(
+                    r"addl\s+\$(\d+),\s*%esp[^\n]*\n"
+                    r"\s*popl\s+%ebx[^\n]*\n"
+                    r"\s*popl\s+%esi[^\n]*\n"
+                    r"[^\n]*D_ViewChanged[^\n]*\n"
+                    r"\s*jmp\s+_D_ViewChanged",
+                    body,
+                )
+                self.assertIn("subl\t$24, %esp", body)
+                self.assertEqual(tailcall_cleanup, ["20", "20"])
+
     def test_viewcontrol_setupframe_assembly_has_a_focused_profile_and_c_oracle(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-viewcontrol-c.json").read_text(encoding="utf-8"))
