@@ -233,12 +233,14 @@ C(R_RenderFace):
 .p2align 2
 .globl C(R_DrawParticles)
 C(R_DrawParticles):
+#ifdef PROFILE486
     pushl %ebp
     movl %esp,%ebp
-#ifdef PROFILE486
     /* -4 particle count; -8 gib count; -12 entry active flag;
        -24..-17 start time. The active flag is latched before starting particles. */
     subl $24,%esp
+    /* Keep locals EBP-relative and align every outgoing call, including the timer. */
+    andl $-16,%esp
     movl $0,-4(%ebp)
     movl $0,-8(%ebp)
     movl C(bench486_profile_frame_active),%eax
@@ -248,9 +250,14 @@ C(R_DrawParticles):
     DISPATCH_TIME
     fstpl -24(%ebp)
 .Ldispatch_particle_no_start_time:
+#else
+    /* Match GCC's no-profile C adapter frame and its outgoing call alignment. */
+    subl $12,%esp
 #endif
     DISPATCH_CALL 13,0,C(D_StartParticles)
 #ifdef PROFILE486
+    /* Six argument words need eight bytes of padding from an aligned stack. */
+    subl $8,%esp
     leal -8(%ebp),%eax
     pushl %eax
     leal -4(%ebp),%eax
@@ -264,10 +271,10 @@ C(R_DrawParticles):
     fstps (%esp)
 #ifdef PROFILE486
     DISPATCH_CALL 12,6,C(R_DrawParticles_asm486)
-    addl $24,%esp
+    addl $32,%esp
 #else
     DISPATCH_CALL 12,4,C(R_DrawParticles_asm486)
-    addl $16,%esp
+    addl $28,%esp
 #endif
     DISPATCH_CALL 14,0,C(D_EndParticles)
 #ifdef PROFILE486
@@ -283,7 +290,9 @@ C(R_DrawParticles):
     fstpl C(bench486_particle_seconds)
 .Ldispatch_particle_return:
 #endif
+#ifdef PROFILE486
     leave
+#endif
     ret
 #endif
 #endif

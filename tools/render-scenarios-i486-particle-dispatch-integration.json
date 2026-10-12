@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "validationAutoexecCommands": [
+    "host_framerate 0.0783",
+    "con_notifytime -1"
+  ],
+  "warmupChecksumFrames": 6,
+  "defaultTolerance": {
+    "channel": 2,
+    "maxChangedPixelFraction": 0.0005,
+    "maxMeanAbsoluteError": 0.5
+  },
+  "scenarios": [
+    {
+      "id": "demo1-vga-full",
+      "description": "Demo 1, forced VGA mode 13h, full viewport",
+      "demo": "demo1",
+      "quakeExtraArgs": "-condebug",
+      "expectedFrames": 969,
+      "expectedChecksum": 1047377823,
+      "captureFrame": 169,
+      "repeatRuns": 2,
+      "tolerance": {
+        "channel": 2,
+        "maxChangedPixelFraction": 0.001,
+        "maxMeanAbsoluteError": 0.12
+      },
+      "reference": "tools/golden/render/demo1-vga-full.pcx"
+    }
+  ]
+}
