@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "validationAutoexecCommands": [
+    "host_framerate 0.0783"
+  ],
+  "warmupChecksumFrames": 6,
+  "defaultTolerance": {
+    "channel": 2,
+    "maxChangedPixelFraction": 0.0005,
+    "maxMeanAbsoluteError": 0.5
+  },
+  "scenarios": [
+    {
+      "id": "demo1-vesa-full-rsetupframe-warp-0",
+      "description": "demo1-vesa-full setup-frame stress: waterwarp=0, counters enabled, negative ambient, reduced viewport",
+      "demo": "demo1",
+      "quakeExtraArgs": "",
+      "autoexecCommands": [
+        "d_subdiv16 1",
+        "r_waterwarp 0",
+        "r_numsurfs 1",
+        "r_numedges 1",
+        "r_ambient -16",
+        "viewsize 50"
+      ],
+      "expectedFrames": 969,
+      "expectedChecksum": 885630476,
+      "captureFrame": 169,
+      "repeatRuns": 1,
+      "reference": "tools/golden/render/demo1-viewcontrol-waterwarp-stress.pcx",
+      "tolerance": {
+        "channel": 0,
+        "maxChangedPixelFraction": 0,
+        "maxMeanAbsoluteError": 0
+      }
+    },
+    {
+      "id": "demo1-vesa-full-rsetupframe-warp-1",
+      "description": "demo1-vesa-full setup-frame stress: waterwarp=1, counters enabled, negative ambient, reduced viewport",
+      "demo": "demo1",
+      "quakeExtraArgs": "",
+      "autoexecCommands": [
+        "d_subdiv16 1",
+        "r_waterwarp 1",
+        "r_numsurfs 1",
+        "r_numedges 1",
+        "r_ambient -16",
+        "viewsize 50"
+      ],
+      "expectedFrames": 969,
+      "expectedChecksum": 885630476,
+      "captureFrame": 169,
+      "repeatRuns": 1,
+      "reference": "tools/golden/render/demo1-viewcontrol-waterwarp-stress.pcx",
+      "tolerance": {
+        "channel": 0,
+        "maxChangedPixelFraction": 0,
+        "maxMeanAbsoluteError": 0
+      }
+    },
+    {
+      "id": "demo2-entity-workload-rsetupframe-warp-0",
+      "description": "demo2-entity-workload setup-frame stress: waterwarp=0, counters enabled, negative ambient, reduced viewport",
+      "demo": "demo2",
+      "quakeExtraArgs": "",
+      "expectedFrames": 985,
+      "expectedChecksum": 1843917972,
+      "captureFrame": 169,
+      "repeatRuns": 1,
+      "reference": "tools/golden/render/demo2-viewcontrol-waterwarp-stress.pcx",
+      "autoexecCommands": [
+        "r_waterwarp 0",
+        "r_numsurfs 1",
+        "r_numedges 1",
+        "r_ambient -16",
+        "viewsize 50"
+      ],
+      "tolerance": {
+        "channel": 0,
+        "maxChangedPixelFraction": 0,
+        "maxMeanAbsoluteError": 0
+      }
+    },
+    {
+      "id": "demo2-entity-workload-rsetupframe-warp-1",
+      "description": "demo2-entity-workload setup-frame stress: waterwarp=1, counters enabled, negative ambient, reduced viewport",
+      "demo": "demo2",
+      "quakeExtraArgs": "",
+      "expectedFrames": 985,
+      "expectedChecksum": 1843917972,
+      "captureFrame": 169,
+      "repeatRuns": 1,
+      "reference": "tools/golden/render/demo2-viewcontrol-waterwarp-stress.pcx",
+      "autoexecCommands": [
+        "r_waterwarp 1",
+        "r_numsurfs 1",
+        "r_numedges 1",
+        "r_ambient -16",
+        "viewsize 50"
+      ],
+      "tolerance": {
+        "channel": 0,
+        "maxChangedPixelFraction": 0,
+        "maxMeanAbsoluteError": 0
+      }
+    }
+  ]
+}

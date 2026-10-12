@@ -241,9 +241,13 @@ the broader initialization, effects, debug and indirect paths remain open.
 `R_SetupFrame` now has a selectable 486 assembly implementation in
 `src/r_setupframe_asm.inc`. Its focused C/assembly profile passed the strict
 linked executable gate and three exact scene comparisons, including a reduced
-viewport and an alternate world. Waterwarp sizing, debug-stat and multiplayer
-branches, extreme dimensions and long-run behavior remain open; the default
-release selector is still C. See the
+viewport and an alternate world. A four-case stress pair now also covers
+waterwarp off/on, debug counters, negative ambient and reduced viewport, with
+3,888 exact post-warmup checksums and exact indexed/palette captures. The
+waterwarp-enabled demo2 path changes 210 checksums while C and assembly remain
+identical. Multiplayer cvar enforcement, waterwarp sizing across modes,
+extreme dimensions and long-run behavior remain open; the default release
+selector is still C. See the
 [`R_SetupFrame` port record](ledger/2026-10-09-r-setupframe-assembly-port.md).
 
 The current 2026-10-09 `i486-asm-selectable` inventory in

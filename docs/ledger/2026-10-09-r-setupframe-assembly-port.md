@@ -56,13 +56,62 @@ flag checks. The view-control object disassembly was inspected alongside the
 linked executable audit; it contains only 486 integer/control instructions and
 387-compatible x87 operations.
 
+## Waterwarp and frame-state stress extension (2026-10-12)
+
+`tools/render-scenarios-viewcontrol-waterwarp.json` adds four exact-tolerance
+stress scenarios for the same C and assembly profiles. Both `demo1` and
+`demo2` run with waterwarp disabled and enabled, `r_numsurfs 1`, `r_numedges 1`,
+`r_ambient -16`, and `viewsize 50`; `demo1` also uses `d_subdiv16 1`. The
+manifest records one run per case, a frame-169 PCX golden for each demo, and
+the final expected checksum for each replay.
+
+The C/assembly pair passed all four cases: 3,888 post-warmup checksum records
+matched exactly, all four 320x200 captures matched every pixel index and
+palette byte, and there was no edge overflow. The enabled waterwarp path was
+observably exercised by `demo2`: toggling waterwarp changed 210 later
+post-warmup checksum records (starting at record 459) in both C and assembly;
+the C and assembly streams still matched exactly for each setting. `demo1`
+produced no changed records when toggled, so it is retained as an exact
+regression case rather than evidence that its replay enters a waterwarp area.
+Reference goldens are SHA-256 `78763F76315FB7BC8D72982B9C3B7F1471B6DD95B4682FAD0A2BC618F9CF0B1C`
+for `demo1` and `B210C2A8224854C91D0987476C2E9FAFA2E9A729FD6478F8EAA56880833ED9E3`
+for `demo2`.
+
+The stress-pair DOSBox rates were approximately 17.64 FPS for `demo1` and
+18.20/17.97 FPS for `demo2` with waterwarp off/on. These runs enabled counters
+and used a reduced viewport, so they are not comparable to the normal-scene
+rates above and are recorded only as workload observations. The separate
+strict i486 candidate build for the same assembly selector passed the complete
+source-object, linked-image, startup, and CWSDPMI-provider gates with zero
+above-i486 instructions, unknown instructions, exemptions, or unverified
+bytes. Its candidate qbench SHA-256 is
+`98092915B89BEC6592505302B4696F47D7CB7A2B2A72DB4CCE001828450BE558`.
+
+Reproduce the deterministic stress pair with:
+
+```powershell
+rtk pwsh -NoProfile -File tools/render-parity-dos.ps1 `
+  -ReferenceProfile tools/renderer-profiles/i486-viewcontrol-c.json `
+  -CandidateProfile tools/renderer-profiles/i486-viewcontrol-asm.json `
+  -ScenarioFile tools/render-scenarios-viewcontrol-waterwarp.json `
+  -RunsOverride 1 -OutputRoot out/render-parity-rsetupframe-waterwarp-repro-20261012 `
+  -TimeoutSeconds 600 -VisualParityOnly -NoBootstrap
+```
+
+`-VisualParityOnly` skips the in-run ISA gate. Rebuild and run the complete
+strict i486 executable audit separately using the assembly profile and
+`CpuTarget=i486`; the captured strict result is under
+`out/profile-809cad5829aff636/isa-qbench`.
+
 ## Scope still open
 
-This is focused coverage, not complete renderer acceptance. Waterwarp sizing,
-debug-stat branches, multiplayer cvar enforcement, extreme dimensions,
-long-running state stability, and broader gameplay/effect scenes still need
-dedicated tests. The default release selector remains C. DOSBox-X's i486 mode
-is emulator evidence rather than a genuine 486 hardware run.
+This is focused coverage, not complete renderer acceptance. The waterwarp
+toggle, debug counters, negative ambient value, and reduced viewport now have
+stress-pair evidence, but waterwarp sizing across modes, multiplayer cvar
+enforcement, malformed/extreme dimensions, long-running state stability, and
+broader gameplay/effect scenes still need dedicated tests. The default release
+selector remains C. DOSBox-X's i486 mode is emulator evidence rather than a
+genuine 486 hardware run.
 
 To rebuild and repeat all strict checks, use a fresh output root:
 
