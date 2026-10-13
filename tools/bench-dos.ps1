@@ -222,6 +222,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LineGraphImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$TimeGraphImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$PaletteImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MathClosureImplementation = 'c',
@@ -294,6 +296,7 @@ param(
     [switch]$LightControlOnly,
     [switch]$FrameControlOnly,
     [switch]$LineGraphOnly,
+    [switch]$TimeGraphOnly,
     [switch]$PaletteOnly,
     [switch]$MathClosureOnly,
     [switch]$VisibilityOnly,
@@ -610,6 +613,7 @@ $buildParams = @{
         PointLightImplementation = $PointLightImplementation
         FrameControlImplementation = $FrameControlImplementation
         LineGraphImplementation = $LineGraphImplementation
+        TimeGraphImplementation = $TimeGraphImplementation
         AliasStatsImplementation = $AliasStatsImplementation
         PrintTimesImplementation = $PrintTimesImplementation
         ParticleExplosion2Implementation = $ParticleExplosion2Implementation
@@ -858,6 +862,9 @@ elseif ($FrameControlOnly) {
 }
 elseif ($LineGraphOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlinegraph -benchexit'
+}
+elseif ($TimeGraphOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchtimegraph -benchexit'
 }
 elseif ($LightControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchlightcontrol -benchexit'
@@ -1146,6 +1153,7 @@ $result = [ordered]@{
     pointLightImplementation = $PointLightImplementation
     frameControlImplementation = $FrameControlImplementation
     lineGraphImplementation = $LineGraphImplementation
+    timeGraphImplementation = $TimeGraphImplementation
     paletteImplementation = $PaletteImplementation
     mathClosureImplementation = $MathClosureImplementation
     visibilityImplementation = $VisibilityImplementation
@@ -1196,6 +1204,7 @@ $result = [ordered]@{
     lightControlOnly = [bool]$LightControlOnly
     frameControlOnly = [bool]$FrameControlOnly
     lineGraphOnly = [bool]$LineGraphOnly
+    timeGraphOnly = [bool]$TimeGraphOnly
     paletteOnly = [bool]$PaletteOnly
     mathClosureOnly = [bool]$MathClosureOnly
     visibilityOnly = [bool]$VisibilityOnly

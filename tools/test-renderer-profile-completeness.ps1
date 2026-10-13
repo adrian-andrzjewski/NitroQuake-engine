@@ -33,19 +33,35 @@ if ($duplicateNames.Count -gt 0) {
     throw 'Selector table has duplicate assembly selectors: ' + ($duplicateNames -join ', ')
 }
 
+$selectorByName = @{}
+foreach ($selector in $script:SelectorTable) {
+    $selectorByName[[string]$selector.Param] = $selector
+}
 $actualProperties = @($selectorsProperty.Value.PSObject.Properties)
 $actualNames = @($actualProperties | ForEach-Object { [string]$_.Name })
 $missing = @($requiredNames | Where-Object { $_ -notin $actualNames })
-$extra = @($actualNames | Where-Object { $_ -notin $requiredNames })
-$nonAssemblyValues = @($actualProperties | Where-Object { [string]$_.Value -cne 'asm' } |
+$unknown = @($actualNames | Where-Object { -not $selectorByName.ContainsKey($_) })
+$nonAssemblyValues = @($actualProperties | Where-Object {
+        $selectorByName.ContainsKey([string]$_.Name) -and
+        $selectorByName[[string]$_.Name].SelectsAsm -eq $true -and
+        [string]$_.Value -cne 'asm'
+    } |
     ForEach-Object { '{0}={1}' -f $_.Name, $_.Value })
+$invalidValues = @($actualProperties | Where-Object {
+        if (-not $selectorByName.ContainsKey([string]$_.Name)) { return $false }
+        $selector = $selectorByName[[string]$_.Name]
+        $knownValues = @($selector.Suffix.Keys) + @($selector.C.Keys) + @($selector.Asm.Keys)
+        [string]$_.Value -notin $knownValues
+    } | ForEach-Object { '{0}={1}' -f $_.Name, $_.Value })
 
-if ($missing.Count -gt 0 -or $extra.Count -gt 0 -or $nonAssemblyValues.Count -gt 0) {
+if ($missing.Count -gt 0 -or $unknown.Count -gt 0 -or
+    $nonAssemblyValues.Count -gt 0 -or $invalidValues.Count -gt 0) {
     $details = @()
     if ($missing.Count -gt 0) { $details += 'missing SelectsAsm selectors: ' + ($missing -join ', ') }
-    if ($extra.Count -gt 0) { $details += 'extra selectors: ' + ($extra -join ', ') }
+    if ($unknown.Count -gt 0) { $details += 'unknown selectors: ' + ($unknown -join ', ') }
     if ($nonAssemblyValues.Count -gt 0) { $details += 'selectors not set to asm: ' + ($nonAssemblyValues -join ', ') }
+    if ($invalidValues.Count -gt 0) { $details += 'invalid selector values: ' + ($invalidValues -join ', ') }
     throw 'Cumulative assembly profile is incomplete: ' + ($details -join '; ')
 }
 
-Write-Host ("PASS: {0} current SelectsAsm selectors are present exactly once and set to asm." -f $requiredNames.Count) -ForegroundColor Green
+Write-Host ("PASS: {0} current SelectsAsm selectors are present and set to asm; all other profile selectors are known and valid." -f $requiredNames.Count) -ForegroundColor Green

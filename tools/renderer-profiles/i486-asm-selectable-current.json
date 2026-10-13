@@ -73,6 +73,7 @@
     "PointLightImplementation": "asm",
     "FrameControlImplementation": "asm",
     "LineGraphImplementation": "asm",
+    "TimeGraphImplementation": "asm",
     "PaletteImplementation": "asm",
     "MathClosureImplementation": "asm",
     "VisibilityImplementation": "asm",

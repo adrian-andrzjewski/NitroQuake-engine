@@ -190,6 +190,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$LineGraphImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$TimeGraphImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$PaletteImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$MathClosureImplementation = 'c',
@@ -607,6 +609,7 @@ $buildParams = @{
         TransformFrustumImplementation       = $TransformFrustumImplementation
         TransformPlaneImplementation         = $TransformPlaneImplementation
         LineGraphImplementation              = $LineGraphImplementation
+        TimeGraphImplementation              = $TimeGraphImplementation
         AliasStatsImplementation             = $AliasStatsImplementation
         PrintTimesImplementation              = $PrintTimesImplementation
         EdgeDrawingImplementation             = $EdgeDrawingImplementation
@@ -1454,6 +1457,7 @@ $result = [ordered]@{
     pointLightImplementation = $PointLightImplementation
     frameControlImplementation = $FrameControlImplementation
     lineGraphImplementation = $LineGraphImplementation
+    timeGraphImplementation = $TimeGraphImplementation
     paletteImplementation = $PaletteImplementation
     mathClosureImplementation = $MathClosureImplementation
     visibilityImplementation = $VisibilityImplementation

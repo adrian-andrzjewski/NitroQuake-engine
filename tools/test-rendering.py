@@ -50,6 +50,7 @@ def load_json(text: str) -> dict:
         and isinstance(document.get("selectors"), dict)
     ):
         document["selectors"].setdefault("LineGraphImplementation", "c")
+        document["selectors"].setdefault("TimeGraphImplementation", "c")
         document["selectors"].setdefault("AliasStatsImplementation", "c")
         document["selectors"].setdefault("PrintTimesImplementation", "c")
         document["selectors"].setdefault("ParticleExplosionImplementation", "c")
@@ -1362,7 +1363,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 87)
+        self.assertEqual(len(reference["selectors"]), 88)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1413,9 +1414,51 @@ class RenderingComparisonTests(unittest.TestCase):
             self.assertRegex(
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$TimeGraphImplementation\s*=\s*'c'",
+                f"{runner_name} must reject unsupported TimeGraph selectors",
+            )
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$PaletteImplementation\s*=\s*'c'",
                 f"{runner_name} must retain PaletteImplementation validation",
             )
+
+    def test_timegraph_profile_fixture_and_cumulative_asm_selection(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        focused = load_json((profiles / "i486-asm-time-graph.json").read_text(encoding="utf-8"))
+        cumulative = json.loads(
+            (profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(reference["selectors"]), 88)
+        self.assertEqual(focused["id"], "i486-asm-time-graph")
+        self.assertEqual(focused["selectors"]["TimeGraphImplementation"], "asm")
+        expected_focused = dict(reference["selectors"])
+        expected_focused["TimeGraphImplementation"] = "asm"
+        self.assertEqual(focused["selectors"], expected_focused)
+        self.assertEqual(cumulative["selectors"]["TimeGraphImplementation"], "asm")
+
+        assembly = (ROOT / "src/r_timegraphasm.s").read_text(encoding="utf-8")
+        source = (ROOT / "src/r_misc.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_timegraph.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("C(R_TimeGraph_asm486):", assembly)
+        self.assertIn("R_TimeGraph_C_Work", source)
+        self.assertIn("ASM486_TIME_GRAPH", selectors)
+        self.assertIn("#define TG_FIXTURE_FRAMES         257", fixture)
+        self.assertIn("Bench486TimeGraphBuildExpected", fixture)
+        self.assertIn("Bench486TimeGraphCanariesAreValid", fixture)
+        self.assertIn("timegraph progress", fixture)
+        self.assertIn('#include "bench486_timegraph.h"', host_commands)
+        self.assertIn('COM_CheckParm ("-benchtimegraph")', host_commands)
+        self.assertIn("Bench486TimeGraphCases ();", host_commands)
+        self.assertIn("[switch]$TimeGraphOnly", bench_runner)
+        self.assertIn("+bench486 -benchtimegraph -benchexit", bench_runner)
 
     def test_alias_stats_profile_fixture_and_selectable_count(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
@@ -1425,7 +1468,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 87)
+        self.assertEqual(len(reference["selectors"]), 88)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])

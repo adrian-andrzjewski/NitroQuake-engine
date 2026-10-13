@@ -6942,6 +6942,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_LINE_GRAPH)
 #include "bench486_linegraph.h"
 #endif
+#if defined(BENCH486)
+#include "bench486_timegraph.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_ALIAS_STATS)
 #include "bench486_aliasstats.h"
 #endif
@@ -10074,6 +10077,21 @@ static void Bench486_f (void)
 		bench486_memory_failures++;
 		Bench486Printf ("line-graph fixture requires -LineGraphImplementation asm\n");
 #endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchtimegraph"))
+	{
+		Bench486TimeGraphCases ();
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);

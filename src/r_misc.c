@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 #include <stddef.h>
 #include "asm_draw.h"
+#include "asm_timegraph.h"
+#include "r_timegraph_state.h"
 #include "asm_frustum.h"
 #include "asm_transformplane.h"
 #include "asm_viewcontrol.h"
@@ -191,17 +193,64 @@ R_TimeGraph
 Performance monitoring tool
 ==============
 */
-#define	MAX_TIMINGS		100
 extern float mouse_x, mouse_y;
-void R_TimeGraph (void)
+
+r_timegraph_state_t r_timegraph_state;
+
+#if defined(ASM486_TIME_GRAPH)
+typedef char timegraph_state_timex_must_match[
+		(offsetof(r_timegraph_state_t, timex) == TG_STATE_TIMEX) ? 1 : -1];
+typedef char timegraph_state_timings_must_match[
+		(offsetof(r_timegraph_state_t, timings) == TG_STATE_TIMINGS) ? 1 : -1];
+typedef char timegraph_state_size_must_match[
+		(sizeof(r_timegraph_state_t) == TG_STATE_SIZE) ? 1 : -1];
+typedef char timegraph_refdef_vrect_x_must_match[
+		(offsetof(refdef_t, vrect.x) == TG_REFDEF_VRECT_X) ? 1 : -1];
+typedef char timegraph_refdef_vrect_y_must_match[
+		(offsetof(refdef_t, vrect.y) == TG_REFDEF_VRECT_Y) ? 1 : -1];
+typedef char timegraph_refdef_vrect_width_must_match[
+		(offsetof(refdef_t, vrect.width) == TG_REFDEF_VRECT_WIDTH) ? 1 : -1];
+typedef char timegraph_refdef_vrect_height_must_match[
+		(offsetof(refdef_t, vrect.height) == TG_REFDEF_VRECT_HEIGHT) ? 1 : -1];
+typedef char timegraph_graphheight_value_must_match[
+		(offsetof(cvar_t, value) == TG_GRAPHHEIGHT_VALUE) ? 1 : -1];
+#endif
+
+#if defined(BENCH486)
+static int bench486_timegraph_clock_enabled;
+static double bench486_timegraph_clock_value;
+
+double Bench486TimeGraphTime (void)
 {
-	static	int		timex;
+	if (bench486_timegraph_clock_enabled)
+		return bench486_timegraph_clock_value;
+	return Sys_FloatTime ();
+}
+
+void Bench486TimeGraphSetClock (int enabled, double value)
+{
+	bench486_timegraph_clock_enabled = enabled;
+	bench486_timegraph_clock_value = value;
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_LINE_GRAPH)
+#define R_TIMEGRAPH_LINE_GRAPH R_LineGraph_C
+#else
+#define R_TIMEGRAPH_LINE_GRAPH R_LineGraph
+#endif
+
+static void R_TimeGraph_C_Work (void)
+{
 	int		a;
 	float	r_time2;
-	static byte	r_timings[MAX_TIMINGS];
 	int		x;
-	
+
+#if defined(BENCH486)
+	r_time2 = Bench486TimeGraphTime ();
+#else
 	r_time2 = Sys_FloatTime ();
+#endif
 
 	a = (r_time2-r_time1)/0.01;
 //a = fabs(mouse_y * 0.05);
@@ -209,27 +258,43 @@ void R_TimeGraph (void)
 //a = fabs(velocity[0])/20;
 //a = ((int)fabs(origin[0])/8)%20;
 //a = (cl.idealpitch + 30)/5;
-	r_timings[timex] = a;
-	a = timex;
+	r_timegraph_state.timings[r_timegraph_state.timex] = a;
+	a = r_timegraph_state.timex;
 
-	if (r_refdef.vrect.width <= MAX_TIMINGS)
+	if (r_refdef.vrect.width <= TG_MAX_TIMINGS)
 		x = r_refdef.vrect.width-1;
 	else
 		x = r_refdef.vrect.width -
-				(r_refdef.vrect.width - MAX_TIMINGS)/2;
+				(r_refdef.vrect.width - TG_MAX_TIMINGS)/2;
 	do
 	{
-		R_LineGraph (x, r_refdef.vrect.height-2, r_timings[a]);
+		R_TIMEGRAPH_LINE_GRAPH (x, r_refdef.vrect.height-2,
+				r_timegraph_state.timings[a]);
 		if (x==0)
 			break;		// screen too small to hold entire thing
 		x--;
 		a--;
 		if (a == -1)
-			a = MAX_TIMINGS-1;
-	} while (a != timex);
+			a = TG_MAX_TIMINGS-1;
+	} while (a != r_timegraph_state.timex);
 
-	timex = (timex+1)%MAX_TIMINGS;
+	r_timegraph_state.timex = (r_timegraph_state.timex+1)%TG_MAX_TIMINGS;
 }
+
+#if defined(ASM486_TIME_GRAPH)
+void R_TimeGraph (void);
+#if defined(BENCH486)
+void R_TimeGraph_C (void)
+{
+	R_TimeGraph_C_Work ();
+}
+#endif
+#else
+void R_TimeGraph (void)
+{
+	R_TimeGraph_C_Work ();
+}
+#endif
 
 
 /*

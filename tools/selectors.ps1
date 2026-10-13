@@ -99,6 +99,7 @@ $script:AssemblyBackedImplementations = @(
     'PointLightImplementation',
     'FrameControlImplementation',
     'LineGraphImplementation',
+    'TimeGraphImplementation',
     'PaletteImplementation',
     'MathClosureImplementation',
     'VisibilityImplementation',
@@ -1034,6 +1035,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'TimeGraphImplementation'
+        Manifest   = 'timeGraphImplementation'
+        Suffix     = @{ 'asm' = 'timegraphasm' }
+        C          = @{ 'asm' = @('ASM486_TIME_GRAPH') }
+        Asm        = @{ 'asm' = @('ASM486_TIME_GRAPH') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'PaletteImplementation'
         Manifest   = 'paletteImplementation'
         Suffix     = @{ 'asm' = 'paletteasm' }
@@ -1503,6 +1513,7 @@ $script:SuffixOrder = @(
     'PointLightImplementation'
     'FrameControlImplementation'
     'LineGraphImplementation'
+    'TimeGraphImplementation'
     'PaletteImplementation'
     'MathClosureImplementation'
     'VisibilityImplementation'
@@ -1596,6 +1607,7 @@ $script:CDefineOrder = @(
     'PointLightImplementation'
     'FrameControlImplementation'
     'LineGraphImplementation'
+    'TimeGraphImplementation'
     'PaletteImplementation'
     'MathClosureImplementation'
     'VisibilityImplementation'
@@ -1758,6 +1770,7 @@ $script:AsmDefineOrder = @(
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'LineGraphImplementation'
+    'TimeGraphImplementation'
     'TurbulentImplementation'
     'TurbulentScanImplementation'
     'TextureSpanStores'
