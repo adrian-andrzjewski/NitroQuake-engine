@@ -168,13 +168,13 @@ passed the complete relocated-executable, startup and provider gates, the
 post-warmup frame checksums and no indexed-pixel or palette differences. The
 focused profiles and traceability record are
 [here](ledger/2026-10-09-r-rockettrail-assembly-port.md). A cumulative
-The current cumulative candidate selects 106 assembly implementations. Its
-fresh four-root ownership inventory lists 206 renderer-owned entries on direct
-root traces: 190 assembly and 16 C (about 92.2% of this bounded reachable set).
-This is not a percentage of the complete renderer: the call graph is
-incomplete, 58 direct callees are unresolved, and indirect transfers still
-require explicit target review. The inventory is retained at
-`out/screen-refdef-parity-20261013-064203/renderer-ownership-asm.json`.
+The current cumulative candidate selects 108 assembly implementations. Its
+fresh four-root BENCH486 ownership report lists 639 renderer
+entries, of which 367 are directly reachable (345 assembly and 22 C), with 59
+unresolved direct callees. This is a bounded trace, not a complete renderer
+percentage: the report includes test hooks, and indirect transfers still need
+explicit target review. It is retained at
+`out/render-parity-screen-overlays-20261013/renderer-ownership-candidate.json`.
 
 `R_BlobExplosion` now has an isolated assembly selector, a guarded direct
 C-versus-assembly fixture and a focused Demo 2 manifest requiring the
@@ -230,6 +230,16 @@ for this overlay has been recorded. An expanded quiet-NaN draw case did not
 reach its fixture summary and remains unresolved, so it is excluded from the
 accepted fixture. See the
 [`SCR_DrawRam` port ledger](ledger/2026-10-13-screen-drawram-assembly-port.md).
+
+The `SCR_UpdateScreen` overlay decision tree now has a selectable assembly
+dispatcher. Its eight-case branch/state fixture passed, and the C and assembly
+profiles matched two repeat-stable Demo 1 runs: 1,928 post-warmup frame
+checksum comparisons, two exact 320x200 indexed captures, and zero palette
+differences. Both selected builds passed strict i486 object, linked-executable,
+startup, and CWSDPMI audits with zero violations or exemptions. This converts
+dispatch only: `_SCR_UpdateScreen` and the console, status-bar, menu, fade, and
+other called drawing routines remain C-owned. See the
+[`SCR_UpdateScreen` overlay-dispatch ledger](ledger/2026-10-13-screen-overlays-assembly-port.md).
 
 ## Remaining machine-code ownership
 
@@ -313,7 +323,7 @@ to prove a complete call graph.
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |
-| Screen and overlays | `Con_DrawInput` and `SCR_DrawNotifyString` now have selectable i486 assembly entries with exact direct C/ASM/public state and indexed-framebuffer fixtures; both selected executables and their linked support/runtime objects, startup code and CWSDPMI provider passed strict i486 audits with zero violations or exemptions. `Con_DrawInput` still calls the separately owned `Draw_Character` backend. Combined-profile/full-scene parity, other console drawing paths, status-bar/menu overlays, and `screen.c` including `_SCR_UpdateScreen` remain open for ownership review. See the [notify-string port record](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md). |
+| Screen and overlays | `Con_DrawInput`, `SCR_DrawNotifyString`, `SCR_DrawRam`, and the `SCR_UpdateScreen` overlay dispatch have selectable i486 assembly paths with direct fixtures; the dispatch also passed two-run exact Demo 1 framebuffer parity and strict cumulative audits. `_SCR_UpdateScreen` itself and its console/status-bar/menu/fade drawing callees remain C-owned. Full screen/update coverage, combined-profile stress scenes, and remaining ownership review stay open. See the [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), and [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md) ledgers. |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

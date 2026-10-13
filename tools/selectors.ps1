@@ -117,6 +117,7 @@ $script:AssemblyBackedImplementations = @(
     'ScreenConsoleSetupImplementation',
     'ScreenRefdefImplementation',
     'ScreenDrawRamImplementation',
+    'ScreenOverlaysImplementation',
     'ChaseImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
@@ -1244,6 +1245,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ScreenOverlaysImplementation'
+        Manifest   = 'screenOverlaysImplementation'
+        Suffix     = @{ 'asm' = 'screenoverlaysasm' }
+        C          = @{ 'asm' = @('ASM486_SCREEN_OVERLAYS') }
+        Asm        = @{ 'asm' = @('ASM486_SCREEN_OVERLAYS') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'RenderWorldImplementation'
         Manifest   = 'renderWorldImplementation'
         Suffix     = @{ 'asm' = 'renderworldasm' }
@@ -1551,6 +1561,7 @@ $script:SuffixOrder = @(
     'ScreenConsoleSetupImplementation'
     'ScreenRefdefImplementation'
     'ScreenDrawRamImplementation'
+    'ScreenOverlaysImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1647,6 +1658,7 @@ $script:CDefineOrder = @(
     'ScreenConsoleSetupImplementation'
     'ScreenRefdefImplementation'
     'ScreenDrawRamImplementation'
+    'ScreenOverlaysImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1774,6 +1786,7 @@ $script:AsmDefineOrder = @(
     'ScreenConsoleSetupImplementation'
     'ScreenRefdefImplementation'
     'ScreenDrawRamImplementation'
+    'ScreenOverlaysImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'

@@ -16,6 +16,113 @@
 int bench486_screen_center_fixture_active;
 /* The C oracle uses this flag to reach the same production glyph renderer. */
 int bench486_screen_center_live_character_active;
+/* Opt-in DOSBox trace around the real Draw_Character call path. */
+int bench486_screen_center_trace_active = -1;
+static unsigned bench486_renderer_trace_sequence;
+extern void Con_DebugLog (char *file, char *fmt, ...);
+
+void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character)
+{
+	const char *phase_name;
+
+	if (bench486_screen_center_trace_active < 0)
+		bench486_screen_center_trace_active =
+				COM_CheckParm ("-benchcentercalltrace") != 0;
+	if (!bench486_screen_center_trace_active)
+		return;
+	bench486_renderer_trace_sequence++;
+	switch (phase)
+	{
+	case -1: phase_name = "center-entry"; break;
+	case 0: phase_name = "center-draw-before"; break;
+	case 1: phase_name = "center-draw-after"; break;
+	case 2: phase_name = "center-return"; break;
+	case 3: phase_name = "draw-entry"; break;
+	case 4: phase_name = "draw-return"; break;
+	case 5: phase_name = "screen-update-entry"; break;
+	case 6: phase_name = "screen-pre-render"; break;
+	case 7: phase_name = "screen-post-render"; break;
+	case 8: phase_name = "screen-pre-overlay"; break;
+	case 9: phase_name = "screen-before-center"; break;
+	case 10: phase_name = "screen-after-center"; break;
+	case 11: phase_name = "screen-post-overlay"; break;
+	case 12: phase_name = "screen-post-palette"; break;
+	case 13: phase_name = "screen-post-update"; break;
+	case 14: phase_name = "host-frame-entry"; break;
+	case 15: phase_name = "host-pre-screen"; break;
+	case 16: phase_name = "host-post-screen"; break;
+	case 17: phase_name = "host-post-checksum"; break;
+	case 18: phase_name = "host-pre-filter"; break;
+	case 19: phase_name = "host-filter-rejected"; break;
+	case 20: phase_name = "host-filter-accepted"; break;
+	case 21: phase_name = "host-post-command"; break;
+	case 22: phase_name = "host-post-client-read"; break;
+	case 23: phase_name = "client-before-get"; break;
+	case 24: phase_name = "client-after-get"; break;
+	case 25: phase_name = "client-before-parse"; break;
+	case 26: phase_name = "client-after-parse"; break;
+	case 27: phase_name = "parse-command"; break;
+	case 28: phase_name = "parse-fast-update-return"; break;
+	case 29: phase_name = "parse-command-return"; break;
+	case 30: phase_name = "parse-message-end"; break;
+	case 31: phase_name = "serverinfo-entry"; break;
+	case 32: phase_name = "serverinfo-models-touched"; break;
+	case 33: phase_name = "serverinfo-sounds-touched"; break;
+	case 34: phase_name = "serverinfo-models-loaded"; break;
+	case 35: phase_name = "serverinfo-sounds-loaded"; break;
+	case 36: phase_name = "serverinfo-newmap-entry"; break;
+	case 37: phase_name = "serverinfo-newmap-return"; break;
+	case 38: phase_name = "serverinfo-return"; break;
+	case 39: phase_name = "model-load-entry"; break;
+	case 40: phase_name = "model-file-begin"; break;
+	case 41: phase_name = "model-file-return"; break;
+	case 42: phase_name = "model-brush-entry"; break;
+	case 43: phase_name = "model-brush-vertices"; break;
+	case 44: phase_name = "model-brush-edges"; break;
+	case 45: phase_name = "model-brush-surfedges"; break;
+	case 46: phase_name = "model-brush-textures"; break;
+	case 47: phase_name = "model-brush-lighting"; break;
+	case 48: phase_name = "model-brush-planes"; break;
+	case 49: phase_name = "model-brush-texinfo"; break;
+	case 50: phase_name = "model-brush-faces"; break;
+	case 51: phase_name = "model-brush-marksurfaces"; break;
+	case 52: phase_name = "model-brush-visibility"; break;
+	case 53: phase_name = "model-brush-leafs"; break;
+	case 54: phase_name = "model-brush-nodes"; break;
+	case 55: phase_name = "model-brush-clipnodes"; break;
+	case 56: phase_name = "model-brush-entities"; break;
+	case 57: phase_name = "model-brush-submodels"; break;
+	case 58: phase_name = "model-brush-hull0"; break;
+	case 59: phase_name = "model-brush-return"; break;
+	case 60: phase_name = "model-load-return"; break;
+	case 61: phase_name = "model-load-vertex-allocation-begin"; break;
+	case 62: phase_name = "model-load-vertex-allocation-return"; break;
+	case 63: phase_name = "leaf-load-loop-return"; break;
+	case 64: phase_name = "node-load-entry"; break;
+	case 65: phase_name = "node-load-count"; break;
+	case 66: phase_name = "node-load-allocation-begin"; break;
+	case 67: phase_name = "node-load-allocation-return"; break;
+	case 68: phase_name = "node-load-pointers-set"; break;
+	case 69: phase_name = "node-load-loop-return"; break;
+	case 70: phase_name = "node-load-before-parent-link"; break;
+	case 71: phase_name = "node-load-after-parent-link"; break;
+	case 72: phase_name = "hunk-low-allocation-entry"; break;
+	case 73: phase_name = "hunk-low-allocation-capacity"; break;
+	case 74: phase_name = "hunk-low-cache-free-return"; break;
+	case 75: phase_name = "hunk-low-clear-return"; break;
+	case 76: phase_name = "hunk-low-allocation-return"; break;
+	case 77: phase_name = "hunk-high-allocation-entry"; break;
+	case 78: phase_name = "hunk-high-allocation-capacity"; break;
+	case 79: phase_name = "hunk-high-cache-free-begin"; break;
+	case 80: phase_name = "hunk-high-cache-free-return"; break;
+	case 81: phase_name = "hunk-high-allocation-return"; break;
+	default: phase_name = "unknown"; break;
+	}
+	/* Con_Printf would recursively call SCR_UpdateScreen before sign-on. */
+	Con_DebugLog ("RTRACE.LOG",
+			"renderer trace %u %s x %d y %d glyph %d\n",
+			bench486_renderer_trace_sequence, phase_name, x, y, character);
+}
 
 #include "asm_screencenter.h"
 

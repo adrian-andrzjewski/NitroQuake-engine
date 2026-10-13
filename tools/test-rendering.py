@@ -2882,7 +2882,7 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
         self.assertIn("FLT_MANT_DIG == 24", header)
         self.assertIn("SCR_DrawRam_Screen_C", source)
-        self.assertIn("SCR_DrawRam_asm486 ();", source)
+        self.assertIn("SCR_DrawRam_asm486 ()", source)
         self.assertIn("BSDR_FRAME_BYTES", fixture)
         self.assertIn("bench486_screen_drawram_expected", fixture)
         self.assertIn("Bench486Call_asm486", fixture)
@@ -2904,6 +2904,70 @@ class RenderingComparisonTests(unittest.TestCase):
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenDrawRamImplementation\s*=\s*'c'",
                 f"{runner_name} must expose ScreenDrawRamImplementation with a C default",
+            )
+
+    def test_screen_overlay_dispatch_selector_has_c_and_i486_profiles(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-screen-overlays-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screen-overlays-asm.json").read_text(encoding="utf-8"))
+        current = load_json((profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8"))
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_overlaysasm.s").read_text(encoding="utf-8")
+        header = (ROOT / "src/asm_screenoverlays.h").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screenoverlays.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        timedemo_runner = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        validation_runner = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
+        parity_runner = (ROOT / "tools/render-parity-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertEqual(reference["id"], "i486-screen-overlays-c")
+        self.assertEqual(candidate["id"], "i486-screen-overlays-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ScreenOverlaysImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenOverlaysImplementation"], "asm")
+        self.assertEqual(current["selectors"]["ScreenOverlaysImplementation"], "asm")
+        self.assertEqual(
+            {name for name, value in candidate["selectors"].items()
+             if reference["selectors"][name] != value},
+            {"ScreenOverlaysImplementation"},
+        )
+        self.assertIn("ASM486_SCREEN_OVERLAYS", selectors)
+        self.assertIn(".arch i486", assembly)
+        self.assertIn("_Sbar_IntermissionOverlay", assembly)
+        self.assertIn("_SCR_DrawNotifyString", assembly)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        self.assertIn("SO_CLIENT_INTERMISSION", header)
+        self.assertIn("SCR_DrawScreenOverlays_Screen_C", source)
+        self.assertIn("SCR_DrawScreenOverlays_asm486", source)
+        self.assertIn("dialog-priority", fixture)
+        self.assertIn("intermission-two-menu", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn("screen_overlaysasm.s", ownership)
+        self.assertIn('COM_CheckParm ("-benchscreenoverlays")', host_commands)
+        self.assertIn("Bench486ScreenOverlaysCases ();", host_commands)
+        self.assertIn("-ScreenOverlaysOnly requires -ScreenOverlaysImplementation asm.", bench_runner)
+        self.assertIn("+bench486 -benchscreenoverlays -benchexit", bench_runner)
+        self.assertIn("[string]$LocalOutputDirectoryName", timedemo_runner)
+        self.assertIn("$buildParams['LocalOutputDirectoryName'] = $LocalOutputDirectoryName", timedemo_runner)
+        self.assertIn("[string]$LocalOutputDirectoryPrefix", validation_runner)
+        self.assertIn("$timedemoArgs += @('-LocalOutputDirectoryName', $localOutputDirectoryName)", validation_runner)
+        self.assertIn("[string]$LocalOutputDirectoryPrefix", parity_runner)
+        self.assertIn("$validationArgs += @('-LocalOutputDirectoryPrefix', $profile.LocalPrefix)", parity_runner)
+        self.assertIn("LocalPrefix = \"$LocalOutputDirectoryPrefix-r\"", parity_runner)
+        self.assertIn("LocalPrefix = \"$LocalOutputDirectoryPrefix-a\"", parity_runner)
+        for runner_name in (
+            "build-dos.ps1", "bench-dos.ps1", "timedemo-dos.ps1",
+            "smoke-dos.ps1", "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ScreenOverlaysImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenOverlaysImplementation with a C default",
             )
 
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:

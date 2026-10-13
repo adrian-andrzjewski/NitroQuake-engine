@@ -17,6 +17,7 @@ param(
     [string[]]$Scenario = @(),
     [string]$ScenarioFile,
     [string]$OutputRoot,
+    [string]$LocalOutputDirectoryPrefix,
     [string]$ToolRoot,
     [string]$DataRoot,
     [string]$RendererSelectorProfile,
@@ -63,6 +64,15 @@ function Invoke-StreamingTimedemo {
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if ($VisualParityOnly -and $CpuTarget -ne 'i486') {
     throw '-VisualParityOnly is supported only for the i486 visual comparison path.'
+}
+if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryPrefix)) {
+    if ($VisualParityOnly) {
+        throw '-LocalOutputDirectoryPrefix cannot be combined with -VisualParityOnly.'
+    }
+    if ($LocalOutputDirectoryPrefix -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$' -or
+            $LocalOutputDirectoryPrefix.Contains('..')) {
+        throw "Invalid local output directory prefix '$LocalOutputDirectoryPrefix'; use one simple name without path separators."
+    }
 }
 $timedemoScript = Join-Path $PSScriptRoot 'timedemo-dos.ps1'
 $rendererSelectorProfileData = $null
@@ -380,6 +390,14 @@ $previousRunParticleEffectEventState = $null
         if ($NoBootstrap) { $timedemoArgs += '-NoBootstrap' }
         if ($SkipBuild) { $timedemoArgs += '-SkipBuild' }
         if ($VisualParityOnly) { $timedemoArgs += '-VisualParityOnly' }
+        if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryPrefix)) {
+            $localOutputDirectoryName = "$LocalOutputDirectoryPrefix-$($scene.id)"
+            if ($localOutputDirectoryName -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$' -or
+                    $localOutputDirectoryName.Contains('..')) {
+                throw "Scenario '$($scene.id)' produces an invalid local output directory name '$localOutputDirectoryName'."
+            }
+            $timedemoArgs += @('-LocalOutputDirectoryName', $localOutputDirectoryName)
+        }
         if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $timedemoArgs += @('-ToolRoot', $ToolRoot) }
         if (-not [string]::IsNullOrWhiteSpace($DataRoot)) { $timedemoArgs += @('-DataRoot', $DataRoot) }
         $timedemoArgs += @('-CpuTarget', $CpuTarget)

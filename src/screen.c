@@ -28,6 +28,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_screenconsolesetup.h"
 #include "asm_screenrefdef.h"
 #include "asm_screendrawram.h"
+#include "asm_screenoverlays.h"
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+extern int bench486_screen_center_trace_active;
+extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character);
+#endif
 
 // only the refresh window will be updated unless these variables are flagged 
 int			scr_copytop;
@@ -352,7 +358,6 @@ SCR_REFDEF_LINKAGE void SCR_REFDEF_ENTRY (void)
 #undef SCR_REFDEF_BUILD_C
 #undef SCR_REFDEF_LINKAGE
 #undef SCR_REFDEF_ENTRY
-
 
 
 /*
@@ -914,6 +919,88 @@ void SCR_BringDownConsole (void)
 }
 
 
+#if defined(ASM486_SCREEN_OVERLAYS) && defined(BENCH486)
+#define SCR_SCREEN_OVERLAYS_C SCR_DrawScreenOverlays_Screen_C
+#elif !defined(ASM486_SCREEN_OVERLAYS)
+#define SCR_SCREEN_OVERLAYS_C SCR_DrawScreenOverlays
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define SCREEN_OVERLAY_CALL(event, call) \
+	do { \
+		if (bench486_screen_overlays_fixture_active) \
+			Bench486ScreenOverlaysRecordCall (event); \
+		else \
+			call; \
+	} while (0)
+#else
+#define SCREEN_OVERLAY_CALL(event, call) do { call; } while (0)
+#endif
+
+void SCR_SCREEN_OVERLAYS_C (unsigned trace_update_index,
+		qboolean trace_this_update)
+{
+#if !defined(BENCH486) || !defined(ASM486_SCREEN_CENTER_STRING)
+	(void)trace_update_index;
+	(void)trace_this_update;
+#endif
+	if (scr_drawdialog)
+	{
+		SCREEN_OVERLAY_CALL (SO_EVENT_SBAR_DRAW, Sbar_Draw ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_FADE_SCREEN, Draw_FadeScreen ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_NOTIFY_STRING, SCR_DrawNotifyString ());
+		scr_copyeverything = true;
+	}
+	else if (scr_drawloading)
+	{
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_LOADING, SCR_DrawLoading ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_SBAR_DRAW, Sbar_Draw ());
+	}
+	else if (cl.intermission == 1 && key_dest == key_game)
+	{
+		SCREEN_OVERLAY_CALL (SO_EVENT_INTERMISSION, Sbar_IntermissionOverlay ());
+	}
+	else if (cl.intermission == 2 && key_dest == key_game)
+	{
+		SCREEN_OVERLAY_CALL (SO_EVENT_FINALE, Sbar_FinaleOverlay ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_CHECK_CENTER, SCR_CheckDrawCenterString ());
+	}
+	else if (cl.intermission == 3 && key_dest == key_game)
+	{
+		SCREEN_OVERLAY_CALL (SO_EVENT_CHECK_CENTER, SCR_CheckDrawCenterString ());
+	}
+	else
+	{
+#if defined(ASM486_SCREEN_DRAW_RAM)
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_RAM, SCR_DrawRam_asm486 ());
+#else
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_RAM, SCR_DrawRam ());
+#endif
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_NET, SCR_DrawNet ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_TURTLE, SCR_DrawTurtle ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_PAUSE, SCR_DrawPause ());
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (trace_this_update)
+			Bench486ScreenCenterTraceGlyph (9, trace_update_index, 0, 0);
+#endif
+		SCREEN_OVERLAY_CALL (SO_EVENT_CHECK_CENTER, SCR_CheckDrawCenterString ());
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (trace_this_update)
+			Bench486ScreenCenterTraceGlyph (10, trace_update_index, 0, 0);
+#endif
+		SCREEN_OVERLAY_CALL (SO_EVENT_SBAR_DRAW, Sbar_Draw ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_CONSOLE, SCR_DrawConsole ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_MENU_DRAW, M_Draw ());
+	}
+}
+
+#undef SCREEN_OVERLAY_CALL
+#endif
+
+#undef SCR_SCREEN_OVERLAYS_C
+
+
 /*
 ==================
 SCR_UpdateScreen
@@ -929,9 +1016,28 @@ void SCR_UpdateScreen (void)
 {
 	static float	oldscr_viewsize;
 	static float	oldlcd_x;
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	static unsigned bench486_trace_update_count;
+	unsigned bench486_trace_update_index;
+	qboolean bench486_trace_this_update;
+#endif
 	vrect_t		vrect;
 #ifdef PROFILE486
 	double		bench486_render_start;
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	bench486_trace_this_update = false;
+	bench486_trace_update_index = 0;
+	if (bench486_screen_center_trace_active && cls.demoplayback &&
+			!scr_disabled_for_loading && !scr_skipupdate && !block_drawing &&
+			bench486_trace_update_count < 8)
+	{
+		bench486_trace_update_count++;
+		bench486_trace_update_index = bench486_trace_update_count;
+		bench486_trace_this_update = true;
+		Bench486ScreenCenterTraceGlyph (5, bench486_trace_update_index, 0, 0);
+	}
 #endif
 	
 	if (scr_skipupdate || block_drawing)
@@ -1022,7 +1128,15 @@ void SCR_UpdateScreen (void)
 		bench486_render_start = Sys_FloatTime ();
 #endif
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_VIEW);
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_update)
+		Bench486ScreenCenterTraceGlyph (6, bench486_trace_update_index, 0, 0);
+	#endif
 	V_RenderView ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_update)
+		Bench486ScreenCenterTraceGlyph (7, bench486_trace_update_index, 0, 0);
+	#endif
 	BENCH486_PROFILE_LEAVE ();
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
@@ -1034,47 +1148,30 @@ void SCR_UpdateScreen (void)
 	D_EnableBackBufferAccess ();	// of all overlay stuff if drawing directly
 
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_OVERLAY);
-	if (scr_drawdialog)
-	{
-		Sbar_Draw ();
-		Draw_FadeScreen ();
-		SCR_DrawNotifyString ();
-		scr_copyeverything = true;
-	}
-	else if (scr_drawloading)
-	{
-		SCR_DrawLoading ();
-		Sbar_Draw ();
-	}
-	else if (cl.intermission == 1 && key_dest == key_game)
-	{
-		Sbar_IntermissionOverlay ();
-	}
-	else if (cl.intermission == 2 && key_dest == key_game)
-	{
-		Sbar_FinaleOverlay ();
-		SCR_CheckDrawCenterString ();
-	}
-	else if (cl.intermission == 3 && key_dest == key_game)
-	{
-		SCR_CheckDrawCenterString ();
-	}
-	else
-	{
-#if defined(ASM486_SCREEN_DRAW_RAM)
-		SCR_DrawRam_asm486 ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_update)
+		Bench486ScreenCenterTraceGlyph (8, bench486_trace_update_index, 0, 0);
+	#endif
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	#if defined(ASM486_SCREEN_OVERLAYS)
+	SCR_DrawScreenOverlays_asm486 (bench486_trace_update_index,
+			bench486_trace_this_update);
+	#else
+	SCR_DrawScreenOverlays (bench486_trace_update_index,
+			bench486_trace_this_update);
+	#endif
 #else
-		SCR_DrawRam ();
+	#if defined(ASM486_SCREEN_OVERLAYS)
+	SCR_DrawScreenOverlays_asm486 (0, false);
+	#else
+	SCR_DrawScreenOverlays (0, false);
+	#endif
 #endif
-		SCR_DrawNet ();
-		SCR_DrawTurtle ();
-		SCR_DrawPause ();
-		SCR_CheckDrawCenterString ();
-		Sbar_Draw ();
-		SCR_DrawConsole ();
-		M_Draw ();
-	}
 
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_update)
+		Bench486ScreenCenterTraceGlyph (11, bench486_trace_update_index, 0, 0);
+	#endif
 	D_DisableBackBufferAccess ();	// for adapters that can't stay mapped in
 									//  for linear writes all the time
 	if (pconupdate)
@@ -1085,6 +1182,10 @@ void SCR_UpdateScreen (void)
 
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PALETTE);
 	V_UpdatePalette ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_update)
+		Bench486ScreenCenterTraceGlyph (12, bench486_trace_update_index, 0, 0);
+	#endif
 	BENCH486_PROFILE_LEAVE ();
 
 //
@@ -1121,6 +1222,10 @@ void SCR_UpdateScreen (void)
 	
 		VID_Update (&vrect);
 	}
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_update)
+		Bench486ScreenCenterTraceGlyph (13, bench486_trace_update_index, 0, 0);
+	#endif
 }
 
 

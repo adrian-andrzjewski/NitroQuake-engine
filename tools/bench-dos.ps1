@@ -257,6 +257,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenDrawRamImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenOverlaysImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -317,6 +319,7 @@ param(
     [switch]$ScreenConsoleSetupOnly,
     [switch]$ScreenRefdefOnly,
     [switch]$ScreenDrawRamOnly,
+    [switch]$ScreenOverlaysOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -428,6 +431,9 @@ if ($ScreenRefdefOnly -and $ScreenRefdefImplementation -ne 'asm') {
 }
 if ($ScreenDrawRamOnly -and $ScreenDrawRamImplementation -ne 'asm') {
     throw '-ScreenDrawRamOnly requires -ScreenDrawRamImplementation asm.'
+}
+if ($ScreenOverlaysOnly -and $ScreenOverlaysImplementation -ne 'asm') {
+    throw '-ScreenOverlaysOnly requires -ScreenOverlaysImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -862,6 +868,9 @@ elseif ($ScreenRefdefOnly) {
 elseif ($ScreenDrawRamOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenram -benchexit'
 }
+elseif ($ScreenOverlaysOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenoverlays -benchexit'
+}
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
 }
@@ -1196,6 +1205,7 @@ $result = [ordered]@{
     screenConsoleSetupImplementation = $ScreenConsoleSetupImplementation
     screenRefdefImplementation = $ScreenRefdefImplementation
     screenDrawRamImplementation = $ScreenDrawRamImplementation
+    screenOverlaysImplementation = $ScreenOverlaysImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
@@ -1245,6 +1255,7 @@ $result = [ordered]@{
     screenConsoleSetupOnly = [bool]$ScreenConsoleSetupOnly
     screenRefdefOnly = [bool]$ScreenRefdefOnly
     screenDrawRamOnly = [bool]$ScreenDrawRamOnly
+    screenOverlaysOnly = [bool]$ScreenOverlaysOnly
     drawingOnly = [bool]$DrawingOnly
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly

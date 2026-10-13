@@ -96,6 +96,7 @@
     "ScreenConsoleSetupImplementation": "asm",
     "ScreenRefdefImplementation": "asm",
     "ScreenDrawRamImplementation": "asm",
+    "ScreenOverlaysImplementation": "asm",
     "RenderWorldImplementation": "asm",
     "RenderFaceImplementation": "asm",
     "RenderBmodelFaceImplementation": "asm",

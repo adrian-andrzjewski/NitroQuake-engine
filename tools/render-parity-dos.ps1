@@ -15,6 +15,7 @@ param(
     [string[]]$Scenario = @(),
     [string]$ScenarioFile,
     [string]$OutputRoot,
+    [string]$LocalOutputDirectoryPrefix,
     [string]$ToolRoot,
     [string]$DataRoot,
     [ValidateSet('i486', 'i386')]
@@ -39,6 +40,15 @@ if ($VisualParityOnly -and $CpuTarget -ne 'i486') {
 }
 if ($VisualParityOnly) {
     Write-Host 'VISUAL PARITY ONLY: renderer ISA status will be reported as SKIPPED; this comparison does not certify 486 compatibility.' -ForegroundColor Yellow
+}
+if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryPrefix)) {
+    if ($VisualParityOnly) {
+        throw '-LocalOutputDirectoryPrefix cannot be combined with -VisualParityOnly.'
+    }
+    if ($LocalOutputDirectoryPrefix -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$' -or
+            $LocalOutputDirectoryPrefix.Contains('..')) {
+        throw "Invalid local output directory prefix '$LocalOutputDirectoryPrefix'; use one simple name without path separators."
+    }
 }
 $referencePath = if ([IO.Path]::IsPathRooted($ReferenceProfile)) {
     [IO.Path]::GetFullPath($ReferenceProfile)
@@ -107,8 +117,8 @@ if (-not $KeepTransientNotifications) {
 
 $sourceTreeBefore = Get-SourceTreeFingerprint -RepoRoot $repoRoot
 foreach ($profile in @(
-    [pscustomobject]@{ Label = 'C reference'; Path = $referencePath; Output = $referenceOutput },
-    [pscustomobject]@{ Label = 'Assembly candidate'; Path = $candidatePath; Output = $candidateOutput }
+    [pscustomobject]@{ Label = 'C reference'; Path = $referencePath; Output = $referenceOutput; LocalPrefix = "$LocalOutputDirectoryPrefix-r" },
+    [pscustomobject]@{ Label = 'Assembly candidate'; Path = $candidatePath; Output = $candidateOutput; LocalPrefix = "$LocalOutputDirectoryPrefix-a" }
 )) {
     Write-Host ''
     Write-Host ('=' * 78)
@@ -124,6 +134,9 @@ foreach ($profile in @(
     )
     $validationArgs += @('-ScenarioFile', $pairScenarioFile)
     if ($Scenario.Count -gt 0) { $validationArgs += @('-Scenario', ($Scenario -join ',')) }
+    if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryPrefix)) {
+        $validationArgs += @('-LocalOutputDirectoryPrefix', $profile.LocalPrefix)
+    }
     if ($RunsOverride -gt 0) { $validationArgs += @('-RunsOverride', [string]$RunsOverride) }
     if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $validationArgs += @('-ToolRoot', $ToolRoot) }
     if (-not [string]::IsNullOrWhiteSpace($DataRoot)) { $validationArgs += @('-DataRoot', $DataRoot) }

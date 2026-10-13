@@ -5,6 +5,7 @@ param(
     [switch]$NoBootstrap,
     [string]$ToolRoot,
     [string]$DataRoot,
+    [string]$LocalOutputDirectoryName,
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [ValidateSet('baseline', 'aggressive')]
@@ -223,6 +224,8 @@ param(
     [string]$ScreenRefdefImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScreenDrawRamImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScreenOverlaysImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -628,6 +631,9 @@ $buildParams = @{
 }
 
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
+if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName)) {
+    $buildParams['LocalOutputDirectoryName'] = $LocalOutputDirectoryName
+}
 
 # Resolve the same executable variant that will be used for the run. If this is
 # deferred until a stale-build rebuild, the earlier DumpFlags call points at
@@ -926,6 +932,9 @@ else {
 
 if ($FrameCaptureIndex -ge 0 -and -not $FrameChecksums) {
     throw '-FrameCaptureIndex requires -FrameChecksums.'
+}
+if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName) -and $VisualParityOnly) {
+    throw '-LocalOutputDirectoryName cannot be combined with -VisualParityOnly.'
 }
 
 $sha256Host = [Security.Cryptography.SHA256]::Create()
@@ -1451,6 +1460,7 @@ $result = [ordered]@{
     screenConsoleSetupImplementation = $ScreenConsoleSetupImplementation
     screenRefdefImplementation = $ScreenRefdefImplementation
     screenDrawRamImplementation = $ScreenDrawRamImplementation
+    screenOverlaysImplementation = $ScreenOverlaysImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation

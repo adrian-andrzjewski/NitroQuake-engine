@@ -1830,7 +1830,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 64 assembly sources (one is omitted only
+    #    included by another unit), 65 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1842,9 +1842,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 64:
+        if dump.get("allAssemblySourceCount") != 65:
             fail(
-                "%s: expected 64 assembly sources, got %r"
+                "%s: expected 65 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 
