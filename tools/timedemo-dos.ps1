@@ -232,6 +232,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenNetImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -1484,6 +1486,7 @@ $result = [ordered]@{
     screenDrawRamImplementation = $ScreenDrawRamImplementation
     screenOverlaysImplementation = $ScreenOverlaysImplementation
     screenUpdateImplementation = $ScreenUpdateImplementation
+    screenNetImplementation = $ScreenNetImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation

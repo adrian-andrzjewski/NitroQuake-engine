@@ -27,6 +27,7 @@ RENDERER_SOURCES = {
     "screen.c", "screen_fovasm.s", "screen_notifyasm.s", "screen_eraseasm.s",
     "screen_consolesetupasm.s", "screen_refdefasm.s",
     "screen_drawramasm.s", "screen_overlaysasm.s", "screen_updateasm.s",
+    "screen_netasm.s",
     "asm486_experiments.s",
 }
 DEFAULT_ROOTS = [

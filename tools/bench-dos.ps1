@@ -261,6 +261,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenNetImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -323,6 +325,7 @@ param(
     [switch]$ScreenDrawRamOnly,
     [switch]$ScreenOverlaysOnly,
     [switch]$ScreenUpdateOnly,
+    [switch]$ScreenNetOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -440,6 +443,9 @@ if ($ScreenOverlaysOnly -and $ScreenOverlaysImplementation -ne 'asm') {
 }
 if ($ScreenUpdateOnly -and $ScreenUpdateImplementation -ne 'asm') {
     throw '-ScreenUpdateOnly requires -ScreenUpdateImplementation asm.'
+}
+if ($ScreenNetOnly -and $ScreenNetImplementation -ne 'asm') {
+    throw '-ScreenNetOnly requires -ScreenNetImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -880,6 +886,9 @@ elseif ($ScreenOverlaysOnly) {
 elseif ($ScreenUpdateOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenupdate -benchexit'
 }
+elseif ($ScreenNetOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreennet -benchexit'
+}
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
 }
@@ -1216,6 +1225,7 @@ $result = [ordered]@{
     screenDrawRamImplementation = $ScreenDrawRamImplementation
     screenOverlaysImplementation = $ScreenOverlaysImplementation
     screenUpdateImplementation = $ScreenUpdateImplementation
+    screenNetImplementation = $ScreenNetImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
@@ -1267,6 +1277,7 @@ $result = [ordered]@{
     screenDrawRamOnly = [bool]$ScreenDrawRamOnly
     screenOverlaysOnly = [bool]$ScreenOverlaysOnly
     screenUpdateOnly = [bool]$ScreenUpdateOnly
+    screenNetOnly = [bool]$ScreenNetOnly
     drawingOnly = [bool]$DrawingOnly
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly

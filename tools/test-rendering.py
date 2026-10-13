@@ -3808,6 +3808,61 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("40 frames across four x87 rounding modes", traceability)
         self.assertIn("-ParticleUpdateImplementation asm -ParticleDrawImplementation asm -ParticleUpdateOnly", traceability)
 
+    def test_screen_net_selector_has_c_and_i486_profiles(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-screen-net-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screen-net-asm.json").read_text(encoding="utf-8"))
+        current = load_json((profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8"))
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_netasm.s").read_text(encoding="utf-8")
+        header = (ROOT / "src/asm_screennet.h").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screennet.h").read_text(encoding="utf-8")
+        overlay_assembly = (ROOT / "src/screen_overlaysasm.s").read_text(encoding="utf-8")
+        ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertEqual(reference["id"], "i486-screen-net-c")
+        self.assertEqual(candidate["id"], "i486-screen-net-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ScreenNetImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenNetImplementation"], "asm")
+        self.assertEqual(current["selectors"]["ScreenNetImplementation"], "asm")
+        self.assertEqual(
+            {name for name, value in candidate["selectors"].items()
+             if reference["selectors"][name] != value},
+            {"ScreenNetImplementation"},
+        )
+        self.assertIn("ASM486_SCREEN_NET", selectors)
+        self.assertIn(".arch i486", assembly)
+        self.assertIn("fsubs", assembly)
+        self.assertIn("fcompl", assembly)
+        self.assertIn("SCR_DrawNet_Screen_C", source)
+        self.assertIn("SCR_DrawNet_asm486", source)
+        self.assertIn("SN_CL_LAST_RECEIVED_MESSAGE", header)
+        self.assertIn("BSN_CASE_COUNT 10U", fixture)
+        self.assertIn('"fninit"', fixture)
+        self.assertIn("SW %04x/%04x", fixture)
+        self.assertIn("unordered-current-time", fixture)
+        self.assertIn("demo-playback-stale", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn("_SCR_DrawNet_asm486", overlay_assembly)
+        self.assertIn("screen_netasm.s", ownership)
+        self.assertIn("-ScreenNetOnly requires -ScreenNetImplementation asm.", bench_runner)
+        self.assertIn("+bench486 -benchscreennet -benchexit", bench_runner)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        for runner_name in (
+            "build-dos.ps1", "bench-dos.ps1", "timedemo-dos.ps1",
+            "smoke-dos.ps1", "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ScreenNetImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenNetImplementation with a C default",
+            )
+
 
 if __name__ == "__main__":
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(RenderingComparisonTests)

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_screendrawram.h"
 #include "asm_screenoverlays.h"
 #include "asm_screenupdate.h"
+#include "asm_screennet.h"
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 extern int bench486_screen_center_trace_active;
@@ -487,15 +488,38 @@ void SCR_DrawTurtle (void)
 SCR_DrawNet
 ==============
 */
-void SCR_DrawNet (void)
+#if defined(ASM486_SCREEN_NET) && defined(BENCH486)
+#define SCR_DRAW_NET_C SCR_DrawNet_Screen_C
+#elif !defined(ASM486_SCREEN_NET)
+#define SCR_DRAW_NET_C SCR_DrawNet
+#endif
+
+#if !defined(ASM486_SCREEN_NET) || defined(BENCH486)
+#if defined(BENCH486) && defined(ASM486_SCREEN_NET)
+#define SCR_DRAW_NET_PIC(x, y, pic) \
+	do { \
+		if (bench486_screen_net_fixture_active) \
+			Bench486ScreenNetRecordDrawPic (x, y, pic); \
+		else \
+			Draw_Pic (x, y, pic); \
+	} while (0)
+#else
+#define SCR_DRAW_NET_PIC(x, y, pic) Draw_Pic (x, y, pic)
+#endif
+
+void SCR_DRAW_NET_C (void)
 {
 	if (realtime - cl.last_received_message < 0.3)
 		return;
 	if (cls.demoplayback)
 		return;
 
-	Draw_Pic (scr_vrect.x+64, scr_vrect.y, scr_net);
+	SCR_DRAW_NET_PIC (scr_vrect.x+64, scr_vrect.y, scr_net);
 }
+#endif
+
+#undef SCR_DRAW_NET_PIC
+#undef SCR_DRAW_NET_C
 
 /*
 ==============
@@ -987,7 +1011,11 @@ void SCR_SCREEN_OVERLAYS_C (unsigned trace_update_index,
 #else
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_RAM, SCR_DrawRam ());
 #endif
+#if defined(ASM486_SCREEN_NET)
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_NET, SCR_DrawNet_asm486 ());
+#else
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_NET, SCR_DrawNet ());
+#endif
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_TURTLE, SCR_DrawTurtle ());
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_PAUSE, SCR_DrawPause ());
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
