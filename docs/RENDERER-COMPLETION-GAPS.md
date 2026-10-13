@@ -168,9 +168,13 @@ passed the complete relocated-executable, startup and provider gates, the
 post-warmup frame checksums and no indexed-pixel or palette differences. The
 focused profiles and traceability record are
 [here](ledger/2026-10-09-r-rockettrail-assembly-port.md). A cumulative
-91-selector candidate profile exists, but it has not had a new full-profile
-ownership inventory or complete-profile acceptance run; the 61-C-entry figure
-above remains the preceding 77-selector inventory, not a current count.
+The current cumulative candidate selects 106 assembly implementations. Its
+fresh four-root ownership inventory lists 206 renderer-owned entries on direct
+root traces: 190 assembly and 16 C (about 92.2% of this bounded reachable set).
+This is not a percentage of the complete renderer: the call graph is
+incomplete, 58 direct callees are unresolved, and indirect transfers still
+require explicit target review. The inventory is retained at
+`out/screen-refdef-parity-20261013-064203/renderer-ownership-asm.json`.
 
 `R_BlobExplosion` now has an isolated assembly selector, a guarded direct
 C-versus-assembly fixture and a focused Demo 2 manifest requiring the
