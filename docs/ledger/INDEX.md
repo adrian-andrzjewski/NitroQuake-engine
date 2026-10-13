@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-13-alias-projection-turbulent-span-parity.md`](2026-10-13-alias-projection-turbulent-span-parity.md) | 4 | renderer port / alias projection and turbulent spans (`Original-to-assembly traceability`; `Direct differential fixtures`; `Strict i486 instruction evidence`; `Reproduction and scope`) |
+| [`2026-10-13-r-printdspeeds-assembly-port.md`](2026-10-13-r-printdspeeds-assembly-port.md) | 4 | renderer port / timing diagnostics (`Original routine and selector`; `24-case console and ABI parity`; `Complete i486 build audit`; `Reproduction command and limits`) |
 | [`2026-10-13-timegraph-assembly-port.md`](2026-10-13-timegraph-assembly-port.md) | 4 | renderer port / timing overlay (`Mapping`; `Deterministic parity`; `i486 verification`; `Reproduction instructions`) |
 | [`2026-10-12-render-dispatch-particle-stack-alignment.md`](2026-10-12-render-dispatch-particle-stack-alignment.md) | 5 | renderer port / particle call adapter (`C reference and assembly boundary`; `Call-frame contract`; `Tracked integration profile and exact parity`; `i486 instruction and runtime evidence`; `Traceability and reproduction`) |
 | [`2026-10-12-screen-overlay-live-routing.md`](2026-10-12-screen-overlay-live-routing.md) | 4 | renderer port / screen drawing backend routing (`Fixture hooks and production calls`; `486 fixture and ISA evidence`; `Exact scene pair`; `Reproduction`) |

@@ -1,4 +1,4 @@
-/* Deterministic console/state fixture for R_PrintTimes C and i486 assembly. */
+/* Deterministic console/state fixtures for R_PrintTimes and R_PrintDSpeeds. */
 #ifndef BENCH486_PRINTTIMES_H
 #define BENCH486_PRINTTIMES_H
 
@@ -20,9 +20,14 @@ extern int c_faceclip;
 extern int r_polycount;
 extern int r_drawnpolycount;
 extern int c_surf;
+extern float dp_time1, dp_time2, rw_time1, rw_time2;
+extern float db_time1, db_time2, se_time1, se_time2;
+extern float de_time1, de_time2, dv_time1, dv_time2;
 extern double (*bench486_printtimes_time_probe) (void);
 extern void R_PrintTimes_C (void);
 extern void R_PrintTimes_asm486 (void);
+extern void R_PrintDSpeeds_C (void);
+extern void R_PrintDSpeeds (void);
 
 typedef struct
 {
@@ -47,6 +52,7 @@ typedef struct
 	int polycount;
 	int drawnpolycount;
 	int surf_count;
+	float stage_times[12];
 	unsigned timer_calls;
 	unsigned abi_flags;
 	unsigned short cw_before;
@@ -81,6 +87,7 @@ typedef struct
 	int polycount;
 	int drawnpolycount;
 	int surf_count;
+	float stage_times[12];
 	double (*time_probe) (void);
 	unsigned short x87_cw;
 } bench486_printtimes_saved_t;
@@ -100,6 +107,8 @@ typedef struct
 	int surf_count;
 	int start_current;
 	unsigned repeats;
+	float stage_start[6];
+	float stage_end[6];
 } bench486_printtimes_case_t;
 
 static bench486_printtimes_ring_t bench486_printtimes_ring;
@@ -147,6 +156,18 @@ static void Bench486PrintTimesSave (bench486_printtimes_saved_t *saved)
 	saved->polycount = r_polycount;
 	saved->drawnpolycount = r_drawnpolycount;
 	saved->surf_count = c_surf;
+	saved->stage_times[0] = dp_time1;
+	saved->stage_times[1] = dp_time2;
+	saved->stage_times[2] = rw_time1;
+	saved->stage_times[3] = rw_time2;
+	saved->stage_times[4] = db_time1;
+	saved->stage_times[5] = db_time2;
+	saved->stage_times[6] = se_time1;
+	saved->stage_times[7] = se_time2;
+	saved->stage_times[8] = de_time1;
+	saved->stage_times[9] = de_time2;
+	saved->stage_times[10] = dv_time1;
+	saved->stage_times[11] = dv_time2;
 	saved->time_probe = bench486_printtimes_time_probe;
 }
 
@@ -170,6 +191,18 @@ static void Bench486PrintTimesRestore (const bench486_printtimes_saved_t *saved)
 	r_polycount = saved->polycount;
 	r_drawnpolycount = saved->drawnpolycount;
 	c_surf = saved->surf_count;
+	dp_time1 = saved->stage_times[0];
+	dp_time2 = saved->stage_times[1];
+	rw_time1 = saved->stage_times[2];
+	rw_time2 = saved->stage_times[3];
+	db_time1 = saved->stage_times[4];
+	db_time2 = saved->stage_times[5];
+	se_time1 = saved->stage_times[6];
+	se_time2 = saved->stage_times[7];
+	de_time1 = saved->stage_times[8];
+	de_time2 = saved->stage_times[9];
+	dv_time1 = saved->stage_times[10];
+	dv_time2 = saved->stage_times[11];
 	bench486_printtimes_time_probe = saved->time_probe;
 	Bench486PrintTimesWriteX87CW (saved->x87_cw);
 }
@@ -211,6 +244,18 @@ static void Bench486PrintTimesConfigure (const bench486_printtimes_case_t *test_
 	r_polycount = test_case->polycount;
 	r_drawnpolycount = test_case->drawnpolycount;
 	c_surf = test_case->surf_count;
+	dp_time1 = test_case->stage_start[0];
+	rw_time1 = test_case->stage_start[1];
+	db_time1 = test_case->stage_start[2];
+	se_time1 = test_case->stage_start[3];
+	de_time1 = test_case->stage_start[4];
+	dv_time1 = test_case->stage_start[5];
+	dp_time2 = test_case->stage_end[0];
+	rw_time2 = test_case->stage_end[1];
+	db_time2 = test_case->stage_end[2];
+	se_time2 = test_case->stage_end[3];
+	de_time2 = test_case->stage_end[4];
+	dv_time2 = test_case->stage_end[5];
 	bench486_printtimes_timer_value = test_case->timer_value;
 	bench486_printtimes_timer_calls = 0;
 	bench486_printtimes_time_probe = Bench486PrintTimesFixedTimer;
@@ -233,6 +278,18 @@ static void Bench486PrintTimesCapture (bench486_printtimes_result_t *result)
 	result->polycount = r_polycount;
 	result->drawnpolycount = r_drawnpolycount;
 	result->surf_count = c_surf;
+	result->stage_times[0] = dp_time1;
+	result->stage_times[1] = dp_time2;
+	result->stage_times[2] = rw_time1;
+	result->stage_times[3] = rw_time2;
+	result->stage_times[4] = db_time1;
+	result->stage_times[5] = db_time2;
+	result->stage_times[6] = se_time1;
+	result->stage_times[7] = se_time2;
+	result->stage_times[8] = de_time1;
+	result->stage_times[9] = de_time2;
+	result->stage_times[10] = dv_time1;
+	result->stage_times[11] = dv_time2;
 	result->timer_calls = bench486_printtimes_timer_calls;
 	result->initialized = con_initialized;
 	result->debuglog = con_debuglog;
@@ -477,6 +534,120 @@ static void Bench486PrintTimesCases (void)
 				first_expected_ok, first_c_abi, first_asm_abi);
 	Bench486Printf ("printtimes exact console/state %s (%u cases; %u failures)\n",
 			failures ? "FAIL" : "PASS", case_count, failures);
+}
+
+static void Bench486PrintDSpeedsCases (void)
+{
+	static const bench486_printtimes_case_t cases[] =
+	{
+		{ "zero", 12.5f, 12.5, 0, 0, 0, 9, 0, 1,
+			{ 0, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 } },
+		{ "positive-fractions", 1.0f, 1.125, 7, 12, 34, 5, 1, 1,
+			{ 0, -2, 0.25f, 1.0f, -4.0f, 10.0f },
+			{ 0.00125f, -1.9875f, 0.3f, 0.9875f, -3.75f, 10.125f } },
+		{ "negative-intervals", 1.0f, 0.875, -9, 255, -256, 17, 2, 1,
+			{ 2.0f, 0.0f, 1.0f, 0.0f, -0.5f, 0.25f },
+			{ 1.9975f, -0.0099f, 0.975f, -0.0125f, -0.5001f, 0.125f } },
+		{ "cast-boundaries", 1.0f, 1.000000059604644775390625, 19, -42, 12345, 1, 7, 1,
+			{ 0, 0, 0, 0, 0, 0 },
+			{ 0.000999f, 0.012999f, -0.000999f, -0.012999f, 0.000001f, -0.000001f } },
+		{ "large-safe-integers", -1.0f, 1.0, 31, -99, 100, 42, 6, 1,
+			{ 0, 0, 0, 0, 0, 0 },
+			{ 1.25f, 2147483.0f, -25.5f, -2147483.0f, 0.75f, 1.5f } },
+		{ "repeat-console-wrap", 2.5f, 2.75, -2147483647,
+			-2147483647, (-2147483647 - 1), 42, 7, 3,
+			{ 1, 2, 3, 4, 5, 6 },
+			{ 1.125f, 2.25f, 3.5f, 3.875f, 5.625f, 6.75f } }
+	};
+	static const unsigned short control_words[] =
+	{
+		0x037f, /* nearest */
+		0x077f, /* down */
+		0x0b7f, /* up */
+		0x0f7f  /* truncate */
+	};
+	bench486_printtimes_saved_t saved;
+	bench486_printtimes_result_t baseline_c, baseline_asm, result_c, result_asm;
+	const char *first_failure_name = 0;
+	unsigned short first_failure_cw = 0;
+	int first_baseline_difference = -1, first_pair_difference = -1;
+	int first_c_guards = 0, first_asm_guards = 0;
+	unsigned first_c_abi = 0, first_asm_abi = 0;
+	unsigned i, mode, failures = 0;
+	unsigned case_count = (unsigned)(sizeof(cases) / sizeof(cases[0]));
+	unsigned mode_count = (unsigned)(sizeof(control_words) / sizeof(control_words[0]));
+	unsigned short original_cw;
+
+	Bench486Printf ("printdspeeds fixture begin (%u cases x %u x87 rounding modes)\n",
+			case_count, mode_count);
+	Bench486PrintTimesSave (&saved);
+	original_cw = saved.x87_cw;
+	for (mode = 0 ; mode < mode_count ; mode++)
+	{
+		for (i = 0 ; i < case_count ; i++)
+		{
+			int baseline_difference, pair_difference;
+			int c_guards, asm_guards;
+
+			Bench486PrintTimesRestore (&saved);
+			Bench486PrintTimesWriteX87CW (control_words[mode]);
+			Bench486Printf ("printdspeeds %u/%u CW 0x%04x %s\n",
+					i + 1, case_count, control_words[mode], cases[i].name);
+			Bench486PrintTimesRun (R_PrintDSpeeds_C, &cases[i],
+					&baseline_c, &result_c);
+			Bench486PrintTimesRestore (&saved);
+			Bench486PrintTimesWriteX87CW (control_words[mode]);
+			Bench486PrintTimesRun (R_PrintDSpeeds, &cases[i],
+					&baseline_asm, &result_asm);
+			baseline_difference = Bench486PrintTimesFirstDifference (
+					&baseline_c, &baseline_asm);
+			pair_difference = Bench486PrintTimesFirstDifference (
+					&result_c, &result_asm);
+			c_guards = Bench486PrintTimesGuardsIntact (&result_c);
+			asm_guards = Bench486PrintTimesGuardsIntact (&result_asm);
+			if (baseline_difference >= 0 || pair_difference >= 0 ||
+					!c_guards || !asm_guards ||
+					result_c.buffer_pointer != (char *)bench486_printtimes_ring.text ||
+					result_asm.buffer_pointer != (char *)bench486_printtimes_ring.text ||
+					result_c.timer_calls != cases[i].repeats ||
+					result_asm.timer_calls != cases[i].repeats ||
+					result_c.surf_count != cases[i].surf_count ||
+					result_asm.surf_count != cases[i].surf_count ||
+					result_c.cw_before != control_words[mode] ||
+					result_c.cw_after != control_words[mode] ||
+					result_asm.cw_before != control_words[mode] ||
+					result_asm.cw_after != control_words[mode] ||
+					result_c.top_before != result_c.top_after ||
+					result_asm.top_before != result_asm.top_after ||
+					result_c.abi_flags || result_asm.abi_flags ||
+					!result_c.stack_balanced || !result_asm.stack_balanced)
+			{
+				failures++;
+				if (!first_failure_name)
+				{
+					first_failure_name = cases[i].name;
+					first_failure_cw = control_words[mode];
+					first_baseline_difference = baseline_difference;
+					first_pair_difference = pair_difference;
+					first_c_guards = c_guards;
+					first_asm_guards = asm_guards;
+					first_c_abi = result_c.abi_flags;
+					first_asm_abi = result_asm.abi_flags;
+				}
+			}
+		}
+	}
+	Bench486PrintTimesRestore (&saved);
+	Bench486PrintTimesWriteX87CW (original_cw);
+	bench486_memory_failures += (int)failures;
+	if (first_failure_name)
+		Bench486Printf (
+				"printdspeeds %s CW 0x%04x FAIL baseline/pair %d/%d guards %d/%d ABI %x/%x\n",
+				first_failure_name, first_failure_cw, first_baseline_difference,
+				first_pair_difference, first_c_guards, first_asm_guards,
+				first_c_abi, first_asm_abi);
+	Bench486Printf ("printdspeeds exact console/state %s (%u comparisons; %u failures)\n",
+			failures ? "FAIL" : "PASS", case_count * mode_count, failures);
 }
 
 #endif /* BENCH486_PRINTTIMES_H */

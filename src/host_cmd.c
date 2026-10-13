@@ -10549,6 +10549,7 @@ static void Bench486_f (void)
 	{
 #ifdef ASM486_PRINT_TIMES
 		Bench486PrintTimesCases ();
+		Bench486PrintDSpeedsCases ();
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("print-times fixture requires -PrintTimesImplementation asm\n");

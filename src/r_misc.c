@@ -349,6 +349,30 @@ void R_PrintTimes (void)
 R_PrintDSpeeds
 =============
 */
+#if defined(ASM486_PRINT_TIMES)
+void R_PrintDSpeeds (void);
+#if defined(BENCH486)
+/* C oracle for the selected timing-diagnostics assembly entry. */
+void R_PrintDSpeeds_C (void)
+{
+	float	ms, dp_time, r_time2, rw_time, db_time, se_time, de_time, dv_time;
+
+	r_time2 = Bench486PrintTimesTime ();
+
+	dp_time = (dp_time2 - dp_time1) * 1000;
+	rw_time = (rw_time2 - rw_time1) * 1000;
+	db_time = (db_time2 - db_time1) * 1000;
+	se_time = (se_time2 - se_time1) * 1000;
+	de_time = (de_time2 - de_time1) * 1000;
+	dv_time = (dv_time2 - dv_time1) * 1000;
+	ms = (r_time2 - r_time1) * 1000;
+
+	Con_Printf ("%3i %4.1fp %3iw %4.1fb %3is %4.1fe %4.1fv\n",
+				(int)ms, dp_time, (int)rw_time, db_time, (int)se_time, de_time,
+				dv_time);
+}
+#endif
+#else
 void R_PrintDSpeeds (void)
 {
 	float	ms, dp_time, r_time2, rw_time, db_time, se_time, de_time, dv_time;
@@ -367,6 +391,7 @@ void R_PrintDSpeeds (void)
 				(int)ms, dp_time, (int)rw_time, db_time, (int)se_time, de_time,
 				dv_time);
 }
+#endif
 
 
 /*

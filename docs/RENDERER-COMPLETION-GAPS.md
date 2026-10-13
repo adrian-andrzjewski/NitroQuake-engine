@@ -191,6 +191,16 @@ invalidation records are retained. Current runners forward declared selectors
 from the shared table and compare requested selectors with the actual build
 manifest before emulator execution.
 
+`R_PrintDSpeeds` now uses the i486 assembly selected by
+`PrintTimesImplementation=asm`; the same selector retains the original C
+default and BENCH486 oracle. Six deterministic console cases under four x87
+rounding modes passed all 24 exact C/assembly comparisons, including integer
+truncation boundaries, ring wrap, canaries, ABI and x87 state. The selected
+executable, startup and CWSDPMI provider all passed strict i486 audits with zero
+violations or exemptions. This closes the stage-timing diagnostic only; screen
+update, overlays, and the broader renderer ownership gaps below remain open.
+See the [R_PrintDSpeeds port ledger](ledger/2026-10-13-r-printdspeeds-assembly-port.md).
+
 ## Remaining machine-code ownership
 
 `tools/renderer-ownership.py` inventories built renderer entries, direct
