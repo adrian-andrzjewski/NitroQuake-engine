@@ -95,6 +95,7 @@
     "ScreenEraseCenterStringImplementation": "asm",
     "ScreenConsoleSetupImplementation": "asm",
     "ScreenRefdefImplementation": "asm",
+    "ScreenDrawRamImplementation": "asm",
     "RenderWorldImplementation": "asm",
     "RenderFaceImplementation": "asm",
     "RenderBmodelFaceImplementation": "asm",

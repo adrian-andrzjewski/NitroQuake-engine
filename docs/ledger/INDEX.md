@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-13-screen-drawram-assembly-port.md`](2026-10-13-screen-drawram-assembly-port.md) | 4 | renderer port / RAM indicator overlay (`Mapping`; `Direct differential fixture`; `Strict i486 verification`; `Reproduction and scope`) |
 | [`2026-10-13-screen-calc-refdef-assembly-port.md`](2026-10-13-screen-calc-refdef-assembly-port.md) | 4 | renderer port / screen view rectangle and projection setup (`Original behavior and selected assembly`; `Differential state fixture`; `Paired framebuffer parity and strict i486 audit`; `Traceability and reproduction`) |
 | [`2026-10-13-alias-projection-turbulent-span-parity.md`](2026-10-13-alias-projection-turbulent-span-parity.md) | 4 | renderer port / alias projection and turbulent spans (`Original-to-assembly traceability`; `Direct differential fixtures`; `Strict i486 instruction evidence`; `Reproduction and scope`) |
 | [`2026-10-13-r-printdspeeds-assembly-port.md`](2026-10-13-r-printdspeeds-assembly-port.md) | 4 | renderer port / timing diagnostics (`Original routine and selector`; `24-case console and ABI parity`; `Complete i486 build audit`; `Reproduction command and limits`) |

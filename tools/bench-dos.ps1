@@ -8,6 +8,7 @@ param(
     [switch]$SkipIsaAudit,
     [string]$ToolRoot,
     [string]$DataRoot,
+    [string]$LocalOutputDirectoryName,
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [ValidateSet('baseline', 'aggressive')]
@@ -254,6 +255,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenRefdefImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenDrawRamImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -313,6 +316,7 @@ param(
     [switch]$ScreenEraseCenterStringOnly,
     [switch]$ScreenConsoleSetupOnly,
     [switch]$ScreenRefdefOnly,
+    [switch]$ScreenDrawRamOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -422,6 +426,9 @@ if ($ScreenConsoleSetupOnly -and $ScreenConsoleSetupImplementation -ne 'asm') {
 if ($ScreenRefdefOnly -and $ScreenRefdefImplementation -ne 'asm') {
     throw '-ScreenRefdefOnly requires -ScreenRefdefImplementation asm.'
 }
+if ($ScreenDrawRamOnly -and $ScreenDrawRamImplementation -ne 'asm') {
+    throw '-ScreenDrawRamOnly requires -ScreenDrawRamImplementation asm.'
+}
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
 }
@@ -530,6 +537,9 @@ if ($TextureSpanStores -eq 'stosw' -and
 
 $toolManifest = Read-ToolchainManifest -ToolsDirectory $PSScriptRoot
 $build = Join-Path $PSScriptRoot 'build-dos.ps1'
+if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName) -and $SkipIsaAudit) {
+    throw '-LocalOutputDirectoryName requires the normal i486 ISA audit; it cannot be combined with -SkipIsaAudit.'
+}
 $buildParams = @{
         Benchmark = $true
         Instrumentation = [bool]$Instrumentation
@@ -639,6 +649,10 @@ $buildParams = @{
         GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
         ToolRoot = $ToolRoot
     }
+
+if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName)) {
+    $buildParams['LocalOutputDirectoryName'] = $LocalOutputDirectoryName
+}
 
 if ($SkipIsaAudit) {
     $buildParams['SkipIsaAudit'] = $true
@@ -844,6 +858,9 @@ elseif ($ScreenConsoleSetupOnly) {
 }
 elseif ($ScreenRefdefOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenrefdef -benchexit'
+}
+elseif ($ScreenDrawRamOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenram -benchexit'
 }
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
@@ -1178,6 +1195,7 @@ $result = [ordered]@{
     screenEraseCenterStringImplementation = $ScreenEraseCenterStringImplementation
     screenConsoleSetupImplementation = $ScreenConsoleSetupImplementation
     screenRefdefImplementation = $ScreenRefdefImplementation
+    screenDrawRamImplementation = $ScreenDrawRamImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
@@ -1226,6 +1244,7 @@ $result = [ordered]@{
     consoleInputOnly = [bool]$ConsoleInputOnly
     screenConsoleSetupOnly = [bool]$ScreenConsoleSetupOnly
     screenRefdefOnly = [bool]$ScreenRefdefOnly
+    screenDrawRamOnly = [bool]$ScreenDrawRamOnly
     drawingOnly = [bool]$DrawingOnly
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly

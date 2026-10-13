@@ -243,6 +243,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenRefdefImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenDrawRamImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -289,7 +291,10 @@ param(
     [string]$ToolRoot,
     # Isolated, non-promotion output for explicitly skipped i486 diagnostics.
     # The resolved path must remain below this checkout's out\.
-    [string]$DiagnosticOutputRoot
+    [string]$DiagnosticOutputRoot,
+    # Put an audited i486 build in a direct child of out\local-<name>.
+    # This avoids externally redirected long-profile paths when needed.
+    [string]$LocalOutputDirectoryName
 )
 
 Set-StrictMode -Version Latest
@@ -369,6 +374,50 @@ if ($AliasControlImplementation -eq 'asm') {
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
+
+function Assert-RendererOutputPathNoReparse {
+    param(
+        [Parameter(Mandatory)][string]$RepoOutRoot,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $rootFull = [IO.Path]::GetFullPath($RepoOutRoot)
+    $pathFull = [IO.Path]::GetFullPath($Path)
+    $prefix = $rootFull.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $pathFull.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Build output '$pathFull' is outside the repository out directory '$rootFull'."
+    }
+
+    $rootItem = Get-Item -LiteralPath $rootFull -Force -ErrorAction Stop
+    if ($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+        throw "Build output root '$rootFull' is a reparse point; refusing redirected output."
+    }
+
+    $relative = $pathFull.Substring($prefix.Length)
+    $segments = @($relative -split '[\\/]+' | Where-Object { $_.Length -gt 0 })
+    $current = $rootFull
+    foreach ($segment in $segments) {
+        $entry = $null
+        foreach ($candidate in (Get-ChildItem -LiteralPath $current -Force -ErrorAction Stop)) {
+            if ($candidate.Name -ceq $segment) {
+                $entry = $candidate
+                break
+            }
+        }
+        if ($null -eq $entry) {
+            break
+        }
+        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "Build output path '$($entry.FullName)' is a reparse point; refusing redirected output."
+        }
+        if ($segment -ne $segments[-1] -and
+                -not ($entry.Attributes -band [IO.FileAttributes]::Directory)) {
+            throw "Build output parent '$($entry.FullName)' is not a directory."
+        }
+        $current = $entry.FullName
+    }
+}
 if ([string]::IsNullOrWhiteSpace($ToolRoot)) {
     $localAppData = [Environment]::GetFolderPath('LocalApplicationData')
     if ([string]::IsNullOrWhiteSpace($localAppData)) {
@@ -437,11 +486,23 @@ else {
     ''
 }
 $outputRoot = Join-Path $repoRoot ('out\dos' + $profileSuffix)
-if (-not [string]::IsNullOrWhiteSpace($DiagnosticOutputRoot)) {
+if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName)) {
+    if (-not [string]::IsNullOrWhiteSpace($DiagnosticOutputRoot)) {
+        throw '-LocalOutputDirectoryName cannot be combined with -DiagnosticOutputRoot.'
+    }
+    if ($CpuTarget -ne 'i486') {
+        throw '-LocalOutputDirectoryName is available only for i486 builds.'
+    }
+    if ($LocalOutputDirectoryName -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$' -or
+            $LocalOutputDirectoryName.Contains('..')) {
+        throw "Invalid local output directory name '$LocalOutputDirectoryName'; use one simple name without path separators."
+    }
+    $outputRoot = Join-Path $repoOutRoot ('local-' + $LocalOutputDirectoryName)
+}
+elseif (-not [string]::IsNullOrWhiteSpace($DiagnosticOutputRoot)) {
     if ($CpuTarget -ne 'i486' -or -not $SkipIsaAudit) {
         throw '-DiagnosticOutputRoot is only available for explicit i486 -SkipIsaAudit builds.'
     }
-    $repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
     $diagnosticOutputRoot = if ([IO.Path]::IsPathRooted($DiagnosticOutputRoot)) {
         [IO.Path]::GetFullPath($DiagnosticOutputRoot)
     } else {
@@ -499,6 +560,7 @@ if ($CpuTarget -eq 'i386') {
     }
 }
 elseif ([string]::IsNullOrWhiteSpace($DiagnosticOutputRoot) -and
+        [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName) -and
         $outputRoot -ne $i486RootForThisSelectorSet) {
     throw "The i486 output root '$outputRoot' does not match the i486/i386 separation ('$i486RootForThisSelectorSet' vs '$i386RootForThisSelectorSet')."
 }
@@ -506,7 +568,8 @@ elseif ([string]::IsNullOrWhiteSpace($DiagnosticOutputRoot) -and
 # Keep the profile's descriptive directory while the executable path fits the
 # legacy Windows limit. If it does not, hash the complete profile directory into
 # a short sibling under out\; the manifest still records every selector value.
-if ($executable.Length -gt 259 -or $linkMap.Length -gt 259) {
+if ([string]::IsNullOrWhiteSpace($LocalOutputDirectoryName) -and
+        ($executable.Length -gt 259 -or $linkMap.Length -gt 259)) {
     $hashProvider = [System.Security.Cryptography.SHA256]::Create()
     try {
         $hashInput = [System.Text.Encoding]::UTF8.GetBytes(
@@ -517,7 +580,6 @@ if ($executable.Length -gt 259 -or $linkMap.Length -gt 259) {
     finally {
         $hashProvider.Dispose()
     }
-    $repoOutRoot = [IO.Path]::GetFullPath((Join-Path $repoRoot 'out'))
     $outputRoot = Join-Path $repoOutRoot ('profile-' + $outputPathHash)
     $executable = Join-Path $outputRoot $executableName
     $linkMap = Join-Path $outputRoot ($executableName + '.map')
@@ -601,6 +663,21 @@ if (-not $resolvedObjectRoot.StartsWith($repoOutPrefix, [StringComparison]::Ordi
 }
 $objectRoot = $resolvedObjectRoot
 
+# Never create, clean, or compile through a junction/symlink under out\. The
+# component walk enumerates each parent on this checkout's out volume and stops
+# at the first missing component; it does not traverse a reparse point.
+if (-not $DumpFlags) {
+    Assert-RendererOutputPathNoReparse -RepoOutRoot $repoOutRoot -Path $outputRoot
+    Assert-RendererOutputPathNoReparse -RepoOutRoot $repoOutRoot -Path $objectRoot
+    if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName)) {
+        foreach ($entry in (Get-ChildItem -LiteralPath $repoOutRoot -Force -ErrorAction Stop)) {
+            if ($entry.Name -ceq (Split-Path -Leaf $outputRoot)) {
+                throw "Local build output '$outputRoot' already exists; choose a fresh -LocalOutputDirectoryName."
+            }
+        }
+    }
+}
+
 if ($Clean) {
 	if ($Benchmark) {
 		foreach ($benchmarkPath in @($objectRoot, $executable,
@@ -631,7 +708,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 63
+$expectedAllAssemblySourceCount = 64
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {

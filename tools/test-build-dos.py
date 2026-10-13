@@ -370,6 +370,37 @@ def main() -> int:
     except BuildFlagsError:
         pass
 
+    # Audited renderer probes may need an output path that does not resolve to
+    # an existing external junction. The opt-in name maps to a fresh direct
+    # child of this checkout's out directory and leaves release roots pinned.
+    local_output = dump_flags(
+        "-Benchmark", "-CpuTarget", "i486",
+        "-LocalOutputDirectoryName", "build-contract",
+    )
+    expected_local_root = "<repo>\\out\\local-build-contract"
+    if local_output:
+        if local_output.get("outputRoot") != expected_local_root:
+            fail("the explicit local build output is %r; expected %r"
+                 % (local_output.get("outputRoot"), expected_local_root))
+        if local_output.get("objectRoot") != expected_local_root + "\\obj-bench":
+            fail("the local benchmark objects escaped their D:-local output root")
+        if local_output.get("executable") != expected_local_root + "\\qbench.exe":
+            fail("the local benchmark executable escaped its D:-local output root")
+    try:
+        _dump_flags("-CpuTarget", "i386", "-LocalOutputDirectoryName", "wrong-cpu")
+        fail("the D:-local output option accepted an i386 build")
+    except BuildFlagsError:
+        pass
+    try:
+        _dump_flags(
+            "-Benchmark", "-CpuTarget", "i486", "-SkipIsaAudit",
+            "-DiagnosticOutputRoot", visual_output,
+            "-LocalOutputDirectoryName", "conflicting-roots",
+        )
+        fail("the local output option accepted a second, diagnostic output root")
+    except BuildFlagsError:
+        pass
+
     # 4. The two targets are genuinely separated by architecture plus the
     #    promoted i486-only renderer selectors.
     if i486 and i386:
@@ -743,6 +774,7 @@ def main() -> int:
         ("ScreenEraseCenterStringImplementation", "ASM486_SCREEN_ERASE_CENTER_STRING", "screeneraseasm"),
         ("ScreenConsoleSetupImplementation", "ASM486_SCREEN_CONSOLE_SETUP", "screenconsolesetupasm"),
         ("ScreenRefdefImplementation", "ASM486_SCREEN_REFDEF", "screenrefdefasm"),
+        ("ScreenDrawRamImplementation", "ASM486_SCREEN_DRAW_RAM", "screendrawramasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
     ):
         reference = dump_flags("-" + selector, "c")
@@ -799,6 +831,12 @@ def main() -> int:
     for name, dump in (("C", screen_refdef_reference), ("assembly", screen_refdef_candidate)):
         if dump and "screen_refdefasm.s" not in dump.get("assemblySources", []):
             fail("the SCR_CalcRefdef %s selector omits screen_refdefasm.s from the source inventory" % name)
+
+    screen_drawram_reference = dump_flags("-ScreenDrawRamImplementation", "c")
+    screen_drawram_candidate = dump_flags("-ScreenDrawRamImplementation", "asm")
+    for name, dump in (("C", screen_drawram_reference), ("assembly", screen_drawram_candidate)):
+        if dump and "screen_drawramasm.s" not in dump.get("assemblySources", []):
+            fail("the SCR_DrawRam %s selector omits screen_drawramasm.s from the source inventory" % name)
 
     for value_name, value in (("C", "c"), ("assembly", "asm")):
         damage_parse = dump_flags("-DamageParseImplementation", value)
@@ -1792,7 +1830,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 63 assembly sources (one is omitted only
+    #    included by another unit), 64 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1804,9 +1842,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 63:
+        if dump.get("allAssemblySourceCount") != 64:
             fail(
-                "%s: expected 63 assembly sources, got %r"
+                "%s: expected 64 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

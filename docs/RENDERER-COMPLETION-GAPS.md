@@ -221,6 +221,16 @@ This closes `SCR_CalcRefdef` only; `_SCR_UpdateScreen`, console/status/menu
 overlays and remaining renderer ownership are still open. See the
 [`SCR_CalcRefdef` port ledger](ledger/2026-10-13-screen-calc-refdef-assembly-port.md).
 
+`SCR_DrawRam` now has a selectable i486 assembly entry, a retained BENCH486 C
+oracle, and an independent exact framebuffer fixture. Seven cases across four
+x87 rounding modes and three precision settings passed 84 C/assembly checks;
+the complete i486 executable, startup, and provider audits passed with zero
+exemptions. The accepted record is routine-level; no paired gameplay-scene run
+for this overlay has been recorded. An expanded quiet-NaN draw case did not
+reach its fixture summary and remains unresolved, so it is excluded from the
+accepted fixture. See the
+[`SCR_DrawRam` port ledger](ledger/2026-10-13-screen-drawram-assembly-port.md).
+
 ## Remaining machine-code ownership
 
 `tools/renderer-ownership.py` inventories built renderer entries, direct

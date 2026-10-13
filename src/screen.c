@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_screencenter.h"
 #include "asm_screenconsolesetup.h"
 #include "asm_screenrefdef.h"
+#include "asm_screendrawram.h"
 
 // only the refresh window will be updated unless these variables are flagged 
 int			scr_copytop;
@@ -420,7 +421,14 @@ void SCR_Init (void)
 SCR_DrawRam
 ==============
 */
-void SCR_DrawRam (void)
+#if defined(ASM486_SCREEN_DRAW_RAM) && defined(BENCH486)
+#define SCR_DRAW_RAM_C SCR_DrawRam_Screen_C
+#elif !defined(ASM486_SCREEN_DRAW_RAM)
+#define SCR_DRAW_RAM_C SCR_DrawRam
+#endif
+
+#if !defined(ASM486_SCREEN_DRAW_RAM) || defined(BENCH486)
+void SCR_DRAW_RAM_C (void)
 {
 	if (!scr_showram.value)
 		return;
@@ -430,6 +438,9 @@ void SCR_DrawRam (void)
 
 	Draw_Pic (scr_vrect.x+32, scr_vrect.y, scr_ram);
 }
+#endif
+
+#undef SCR_DRAW_RAM_C
 
 /*
 ==============
@@ -1050,7 +1061,11 @@ void SCR_UpdateScreen (void)
 	}
 	else
 	{
+#if defined(ASM486_SCREEN_DRAW_RAM)
+		SCR_DrawRam_asm486 ();
+#else
 		SCR_DrawRam ();
+#endif
 		SCR_DrawNet ();
 		SCR_DrawTurtle ();
 		SCR_DrawPause ();
