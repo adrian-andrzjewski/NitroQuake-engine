@@ -115,6 +115,7 @@ $script:AssemblyBackedImplementations = @(
     'ScreenCenterStringImplementation',
     'ScreenEraseCenterStringImplementation',
     'ScreenConsoleSetupImplementation',
+    'ScreenRefdefImplementation',
     'ChaseImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
@@ -1224,6 +1225,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ScreenRefdefImplementation'
+        Manifest   = 'screenRefdefImplementation'
+        Suffix     = @{ 'asm' = 'screenrefdefasm' }
+        C          = @{ 'asm' = @('ASM486_SCREEN_REFDEF') }
+        Asm        = @{ 'asm' = @('ASM486_SCREEN_REFDEF') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'RenderWorldImplementation'
         Manifest   = 'renderWorldImplementation'
         Suffix     = @{ 'asm' = 'renderworldasm' }
@@ -1529,6 +1539,7 @@ $script:SuffixOrder = @(
     'ScreenCenterStringImplementation'
     'ScreenEraseCenterStringImplementation'
     'ScreenConsoleSetupImplementation'
+    'ScreenRefdefImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1623,6 +1634,7 @@ $script:CDefineOrder = @(
     'ScreenCenterStringImplementation'
     'ScreenEraseCenterStringImplementation'
     'ScreenConsoleSetupImplementation'
+    'ScreenRefdefImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
@@ -1748,6 +1760,7 @@ $script:AsmDefineOrder = @(
     'ScreenCenterStringImplementation'
     'ScreenEraseCenterStringImplementation'
     'ScreenConsoleSetupImplementation'
+    'ScreenRefdefImplementation'
     'ChaseImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'

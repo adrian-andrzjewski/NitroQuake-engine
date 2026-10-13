@@ -1022,6 +1022,23 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(reference_selectors["AliasRasterizeImplementation"], "c")
         self.assertEqual(reference_selectors["AliasPrepareImplementation"], "control")
 
+    def test_current_cumulative_assembly_selectors_are_exposed_by_timedemo(self) -> None:
+        profile = load_json(
+            (ROOT / "tools/renderer-profiles/i486-asm-selectable-current.json").read_text(encoding="utf-8")
+        )
+        timedemo_source = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        for name, value in profile["selectors"].items():
+            with self.subTest(selector=name):
+                parameter = re.search(
+                    r"(?m)(?:\[ValidateSet\((?P<choices>[^)]*)\)\]\s*)?"
+                    r"\[string\]\$" + re.escape(name) + r"\s*=\s*'(?P<default>[^']*)'",
+                    timedemo_source,
+                )
+                self.assertIsNotNone(parameter, f"{name} is not a timedemo selector")
+                choices = parameter.group("choices")
+                if choices is not None:
+                    self.assertIn(value, re.findall(r"'([^']*)'", choices))
+
     def test_particle_update_profile_changes_only_particle_simulation(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
@@ -2757,6 +2774,81 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
         self.assertIn('COM_CheckParm ("-benchscreenconsolesetup")', host_commands)
         self.assertIn("Bench486ScreenConsoleSetupCases ();", host_commands)
+
+    def test_screen_refdef_selector_has_exact_oracle_and_i486_fixture(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-screen-refdef-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screen-refdef-asm.json").read_text(encoding="utf-8"))
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_refdefasm.s").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screenrefdef.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
+
+        self.assertEqual(reference["id"], "i486-screen-refdef-c")
+        self.assertEqual(candidate["id"], "i486-screen-refdef-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ScreenRefdefImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenRefdefImplementation"], "asm")
+        self.assertEqual(
+            {name for name, value in candidate["selectors"].items()
+             if reference["selectors"][name] != value},
+            {"ScreenRefdefImplementation"},
+        )
+        self.assertIn("ASM486_SCREEN_REFDEF", selectors)
+        self.assertIn(".arch i486", assembly)
+        self.assertIn(".arch .387", assembly)
+        self.assertIn("#ifdef ASM486_VIEW_CONTROL", assembly)
+        self.assertIn("call\tC(CalcFov_asm486)", assembly)
+        self.assertIn("call\tC(CalcFov)", assembly)
+        self.assertIn("C(bench486_screen_refdef_fixture_active)", assembly)
+        for hook in (
+            "Bench486ScreenRefdefSbarChanged",
+            "Bench486ScreenRefdefCvarSet",
+            "Bench486ScreenRefdefViewChanged",
+        ):
+            self.assertIn(f"call\tC({hook})", assembly)
+        self.assertIn("bench486_screen_refdef_fixture_active = 1;", fixture)
+        self.assertIn("bench486_screen_refdef_fixture_active = 0;", fixture)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        for instruction in (
+            "C(scr_fullupdate)", "C(vid)+SR_VID_RECALC_REFDEF",
+            "C(scr_viewsize)+SR_CVAR_VALUE", "C(scr_fov)+SR_CVAR_VALUE",
+            "C(R_SetVrect)", "C(R_ViewChanged)", "leave", "ret",
+        ):
+            with self.subTest(instruction=instruction):
+                self.assertIn(instruction, assembly)
+        self.assertIn("SCR_CalcRefdef_Screen_C", source)
+        self.assertIn("SCR_CalcRefdef_asm486", source)
+        self.assertIn("Bench486ScreenRefdefCvarSet", source)
+        self.assertIn("Bench486ScreenRefdefViewChanged", source)
+        for case in (
+            "viewsize-and-fov-low-clamp", "statusbar-boundary",
+            "inventory-boundary-and-fov-high-clamp", "intermission-three-full-view",
+        ):
+            self.assertIn(case, fixture)
+        self.assertIn("BSR_CASE_COUNT * 4U", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn("cw_before == a->cw_after", fixture)
+        self.assertIn("x87_top_before == b->x87_top_after", fixture)
+        self.assertIn("screen_refdefasm.s", ownership)
+        self.assertIn('COM_CheckParm ("-benchscreenrefdef")', host_commands)
+        self.assertIn("Bench486ScreenRefdefCases ();", host_commands)
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        self.assertIn("-ScreenRefdefOnly requires -ScreenRefdefImplementation asm.", bench_runner)
+        self.assertIn("+bench486 -benchscreenrefdef -benchexit", bench_runner)
+        for runner_name in (
+            "build-dos.ps1", "bench-dos.ps1", "timedemo-dos.ps1",
+            "smoke-dos.ps1", "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ScreenRefdefImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenRefdefImplementation with a C default",
+            )
 
     def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
         assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")

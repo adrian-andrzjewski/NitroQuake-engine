@@ -201,6 +201,22 @@ violations or exemptions. This closes the stage-timing diagnostic only; screen
 update, overlays, and the broader renderer ownership gaps below remain open.
 See the [R_PrintDSpeeds port ledger](ledger/2026-10-13-r-printdspeeds-assembly-port.md).
 
+`SCR_CalcRefdef` now has a selectable i486 assembly implementation in
+`src/screen_refdefasm.s`; the original C routine remains the default and direct
+oracle. Its 12 deterministic input cases passed under four x87 rounding modes
+(48 exact state, event-order, ABI and x87-stack comparisons). The C-reference
+and assembly profiles differ only in `ScreenRefdefImplementation`; seven
+matched DOSBox-X scenes passed 6,885 post-warmup frame-checksum comparisons and
+seven exact indexed-framebuffer/palette captures. The final cumulative i486
+candidate also passed the full linked-object, relocated-executable, startup and
+CWSDPMI ISA gates, then rendered the strict smoke scene successfully. The
+diagnostic hooks are active only during the direct fixture; production calls
+route to `Sbar_Changed`, `Cvar_Set` and `R_ViewChanged`. The non-semantic
+uninitialized `vrect.pnext` field is normalized only in the fixture observer.
+This closes `SCR_CalcRefdef` only; `_SCR_UpdateScreen`, console/status/menu
+overlays and remaining renderer ownership are still open. See the
+[`SCR_CalcRefdef` port ledger](ledger/2026-10-13-screen-calc-refdef-assembly-port.md).
+
 ## Remaining machine-code ownership
 
 `tools/renderer-ownership.py` inventories built renderer entries, direct

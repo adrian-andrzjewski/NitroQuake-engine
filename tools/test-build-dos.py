@@ -742,6 +742,7 @@ def main() -> int:
         ("ScreenCenterStringImplementation", "ASM486_SCREEN_CENTER_STRING", "screencenterasm"),
         ("ScreenEraseCenterStringImplementation", "ASM486_SCREEN_ERASE_CENTER_STRING", "screeneraseasm"),
         ("ScreenConsoleSetupImplementation", "ASM486_SCREEN_CONSOLE_SETUP", "screenconsolesetupasm"),
+        ("ScreenRefdefImplementation", "ASM486_SCREEN_REFDEF", "screenrefdefasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
     ):
         reference = dump_flags("-" + selector, "c")
@@ -792,6 +793,12 @@ def main() -> int:
     for name, dump in (("C", screen_console_setup_reference), ("assembly", screen_console_setup_candidate)):
         if dump and "screen_consolesetupasm.s" not in dump.get("assemblySources", []):
             fail("the SCR_SetUpToDrawConsole %s selector omits screen_consolesetupasm.s from the source inventory" % name)
+
+    screen_refdef_reference = dump_flags("-ScreenRefdefImplementation", "c")
+    screen_refdef_candidate = dump_flags("-ScreenRefdefImplementation", "asm")
+    for name, dump in (("C", screen_refdef_reference), ("assembly", screen_refdef_candidate)):
+        if dump and "screen_refdefasm.s" not in dump.get("assemblySources", []):
+            fail("the SCR_CalcRefdef %s selector omits screen_refdefasm.s from the source inventory" % name)
 
     for value_name, value in (("C", "c"), ("assembly", "asm")):
         damage_parse = dump_flags("-DamageParseImplementation", value)
@@ -1785,7 +1792,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 62 assembly sources (one is omitted only
+    #    included by another unit), 63 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1797,9 +1804,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 62:
+        if dump.get("allAssemblySourceCount") != 63:
             fail(
-                "%s: expected 62 assembly sources, got %r"
+                "%s: expected 63 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

@@ -220,6 +220,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenConsoleSetupImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenRefdefImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -1445,6 +1447,7 @@ $result = [ordered]@{
     screenCenterStringImplementation = $ScreenCenterStringImplementation
     screenEraseCenterStringImplementation = $ScreenEraseCenterStringImplementation
     screenConsoleSetupImplementation = $ScreenConsoleSetupImplementation
+    screenRefdefImplementation = $ScreenRefdefImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation

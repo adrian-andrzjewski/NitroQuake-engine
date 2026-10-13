@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_screenerase.h"
 #include "asm_screencenter.h"
 #include "asm_screenconsolesetup.h"
+#include "asm_screenrefdef.h"
 
 // only the refresh window will be updated unless these variables are flagged 
 int			scr_copytop;
@@ -263,7 +264,24 @@ Must be called whenever vid changes
 Internal use only
 =================
 */
-static void SCR_CalcRefdef (void)
+#if defined(ASM486_SCREEN_REFDEF) && defined(BENCH486)
+#define SCR_REFDEF_ENTRY SCR_CalcRefdef_Screen_C
+#define SCR_REFDEF_LINKAGE
+#define SCR_REFDEF_BUILD_C 1
+#define SCR_REFDEF_SBAR_CHANGED Bench486ScreenRefdefSbarChanged
+#define SCR_REFDEF_CVAR_SET Bench486ScreenRefdefCvarSet
+#define SCR_REFDEF_VIEW_CHANGED Bench486ScreenRefdefViewChanged
+#elif !defined(ASM486_SCREEN_REFDEF)
+#define SCR_REFDEF_ENTRY SCR_CalcRefdef
+#define SCR_REFDEF_LINKAGE static
+#define SCR_REFDEF_BUILD_C 1
+#define SCR_REFDEF_SBAR_CHANGED Sbar_Changed
+#define SCR_REFDEF_CVAR_SET Cvar_Set
+#define SCR_REFDEF_VIEW_CHANGED R_ViewChanged
+#endif
+
+#ifdef SCR_REFDEF_BUILD_C
+SCR_REFDEF_LINKAGE void SCR_REFDEF_ENTRY (void)
 {
 	vrect_t		vrect;
 	float		size;
@@ -272,21 +290,21 @@ static void SCR_CalcRefdef (void)
 	vid.recalc_refdef = 0;
 
 // force the status bar to redraw
-	Sbar_Changed ();
+	SCR_REFDEF_SBAR_CHANGED ();
 
 //========================================
 	
 // bound viewsize
 	if (scr_viewsize.value < 30)
-		Cvar_Set ("viewsize","30");
+		SCR_REFDEF_CVAR_SET ("viewsize","30");
 	if (scr_viewsize.value > 120)
-		Cvar_Set ("viewsize","120");
+		SCR_REFDEF_CVAR_SET ("viewsize","120");
 
 // bound field of view
 	if (scr_fov.value < 10)
-		Cvar_Set ("fov","10");
+		SCR_REFDEF_CVAR_SET ("fov","10");
 	if (scr_fov.value > 170)
-		Cvar_Set ("fov","170");
+		SCR_REFDEF_CVAR_SET ("fov","170");
 
 	r_refdef.fov_x = scr_fov.value;
 #ifdef ASM486_VIEW_CONTROL
@@ -323,8 +341,17 @@ static void SCR_CalcRefdef (void)
 		scr_con_current = vid.height;
 
 // notify the refresh of the change
-	R_ViewChanged (&vrect, sb_lines, vid.aspect);
+	SCR_REFDEF_VIEW_CHANGED (&vrect, sb_lines, vid.aspect);
 }
+#endif
+
+#undef SCR_REFDEF_VIEW_CHANGED
+#undef SCR_REFDEF_CVAR_SET
+#undef SCR_REFDEF_SBAR_CHANGED
+#undef SCR_REFDEF_BUILD_C
+#undef SCR_REFDEF_LINKAGE
+#undef SCR_REFDEF_ENTRY
+
 
 
 /*
@@ -949,7 +976,11 @@ void SCR_UpdateScreen (void)
 	if (vid.recalc_refdef)
 	{
 	// something changed, so reorder the screen
+#if defined(ASM486_SCREEN_REFDEF)
+		SCR_CalcRefdef_asm486 ();
+#else
 		SCR_CalcRefdef ();
+#endif
 	}
 
 //
