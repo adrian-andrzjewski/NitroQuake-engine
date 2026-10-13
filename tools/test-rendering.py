@@ -1039,6 +1039,23 @@ class RenderingComparisonTests(unittest.TestCase):
                 if choices is not None:
                     self.assertIn(value, re.findall(r"'([^']*)'", choices))
 
+    def test_smoke_runner_exposes_every_current_cumulative_assembly_selector(self) -> None:
+        profile = load_json(
+            (ROOT / "tools/renderer-profiles/i486-asm-selectable-current.json").read_text(encoding="utf-8")
+        )
+        smoke_source = (ROOT / "tools/smoke-dos.ps1").read_text(encoding="utf-8")
+        for name, value in profile["selectors"].items():
+            with self.subTest(selector=name):
+                parameter = re.search(
+                    r"(?m)(?:\[ValidateSet\((?P<choices>[^)]*)\)\]\s*)?"
+                    r"\[string\]\$" + re.escape(name) + r"\s*=\s*'(?P<default>[^']*)'",
+                    smoke_source,
+                )
+                self.assertIsNotNone(parameter, f"{name} is not a smoke selector")
+                choices = parameter.group("choices")
+                if choices is not None:
+                    self.assertIn(value, re.findall(r"'([^']*)'", choices))
+
     def test_particle_update_profile_changes_only_particle_simulation(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
         reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
@@ -1736,6 +1753,14 @@ class RenderingComparisonTests(unittest.TestCase):
             "_SCR_UpdateScreen", "screen.c", {"SCR_UpdateScreen"}))
         self.assertFalse(renderer_ownership.is_c_function_clone(
             ".Lscreen_update_done", "screen.c", {"SCR_UpdateScreen"}))
+        for support_source in (
+            "console.c", "menu.c", "sbar.c", "zone.c",
+            "vid_dos.c", "vid_ext.c", "vid_vga.c",
+        ):
+            self.assertTrue(
+                renderer_ownership.renderer_source(support_source, "_RendererSupport"),
+                f"{support_source} must be included in renderer ownership closure",
+            )
         for root in renderer_ownership.DEFAULT_ROOTS:
             self.assertIn(f"'--root', '{root}'", bench_runner)
 
@@ -2976,6 +3001,78 @@ class RenderingComparisonTests(unittest.TestCase):
             r"C\(R_AliasTransformFinalVert_asm486\):(?P<body>.*?^\s*ret\s*$)",
             assembly,
             re.DOTALL | re.MULTILINE,
+    def test_paired_render_runners_can_use_a_sha_pinned_diagnostic_dosbox_profile(self) -> None:
+        timedemo = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
+        validation = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
+        parity = (ROOT / "tools/render-parity-dos.ps1").read_text(encoding="utf-8")
+
+        for source in (timedemo, validation, parity):
+            with self.subTest(runner="runner has explicit profile and hash inputs"):
+                self.assertIn("DosboxProfilePath", source)
+                self.assertIn("ExpectedProfileSha256", source)
+        self.assertIn("A custom DOSBox-X profile requires an explicit -ExpectedProfileSha256 pin.", timedemo)
+        self.assertIn("A custom DOSBox-X profile requires an explicit 64-digit -ExpectedProfileSha256 pin.", validation)
+        self.assertIn("A custom DOSBox-X profile requires an explicit 64-digit -ExpectedProfileSha256 pin.", parity)
+        self.assertIn("'-DosboxProfilePath', $DosboxProfilePath", validation)
+        self.assertIn("'-ExpectedProfileSha256', $ExpectedProfileSha256", validation)
+        self.assertIn("'-DosboxProfilePath', $DosboxProfilePath", parity)
+        self.assertIn("'-ExpectedProfileSha256', $ExpectedProfileSha256", parity)
+        self.assertIn("framesEnforced = ($ExpectedFrames -gt 0 -and -not $AllowGateOverride)", timedemo)
+        self.assertNotIn("$timedemoArgs += '-AllowGateOverride'", validation)
+
+    def test_screen_update_selector_has_c_and_i486_profiles(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-screen-update-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screen-update-asm.json").read_text(encoding="utf-8"))
+        current = load_json((profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8"))
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_updateasm.s").read_text(encoding="utf-8")
+        header = (ROOT / "src/asm_screenupdate.h").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screenupdate.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertEqual(reference["id"], "i486-screen-update-c")
+        self.assertEqual(candidate["id"], "i486-screen-update-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ScreenUpdateImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenUpdateImplementation"], "asm")
+        self.assertEqual(current["selectors"]["ScreenUpdateImplementation"], "asm")
+        self.assertEqual(
+            {name for name, value in candidate["selectors"].items()
+             if reference["selectors"][name] != value},
+            {"ScreenUpdateImplementation"},
+        )
+        self.assertIn("ASM486_SCREEN_UPDATE", selectors)
+        self.assertIn(".arch i486", assembly)
+        self.assertIn("fcomps", assembly)
+        self.assertIn("SCR_UpdateScreen_Screen_C", source)
+        self.assertIn("SCR_UpdateScreen_asm486", header)
+        self.assertIn("SU_CLIENT_DEMOPLAYBACK", header)
+        self.assertIn("Bench486ScreenUpdateRecordVidRect", assembly)
+        self.assertIn("first-page-refdef-and-full-clear", fixture)
+        self.assertIn("unordered-fov-reference-branch", fixture)
+        self.assertIn("copy-top-unsigned-height-wrap", fixture)
+        self.assertIn("loading-timeout-strict-boundary", fixture)
+        self.assertIn("Bench486ScreenUpdateCases ();", host_commands)
+        self.assertIn('COM_CheckParm ("-benchscreenupdate")', host_commands)
+        self.assertIn("screen_updateasm.s", ownership)
+        self.assertIn("-ScreenUpdateOnly requires -ScreenUpdateImplementation asm.", bench_runner)
+        self.assertIn("+bench486 -benchscreenupdate -benchexit", bench_runner)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        for runner_name in (
+            "build-dos.ps1", "bench-dos.ps1", "timedemo-dos.ps1",
+            "smoke-dos.ps1", "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ScreenUpdateImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenUpdateImplementation with a C default",
+            )
         )
         self.assertIsNotNone(routine)
         body = routine.group("body")

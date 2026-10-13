@@ -34,7 +34,11 @@ screen overlay dispatch 8 exact C/assembly branch cases; event and state parity 
 ```
 
 The draw routines called by these branches retain their own owners and tests;
-this slice ports dispatch and ordering, not their implementations.
+this slice ports dispatch and ordering, not their implementations. The full
+`SCR_UpdateScreen` orchestration was ported in a separate later slice; the
+called console, status-bar, menu, fade and other drawing routines remain
+separately owned. See the [full `SCR_UpdateScreen` port
+record](2026-10-13-screen-update-assembly-port.md).
 
 ## Exact paired scene and i486 audit
 
@@ -85,7 +89,8 @@ pwsh -NoProfile -File tools/render-parity-dos.ps1 `
 The run reports are under `out/render-parity-screen-overlays-20261013/`; the
 strict build trees are `out/local-overlay13-r-demo1-vesa-full/` and
 `out/local-overlay13-a-demo1-vesa-full/`. This single-scene result closes only
-the overlay-dispatch slice. `_SCR_UpdateScreen` remains C, its called screen,
-status-bar, and menu drawing routines remain separately owned, and full-renderer
-coverage remains open. This evidence uses the configured DOSBox-X 486 profile;
-it does not claim a run on genuine 486 hardware.
+the overlay-dispatch slice; the full-routine port has separate exact paired
+evidence. The called screen, status-bar and menu drawing routines remain
+separately owned, and full-renderer coverage remains open. This evidence uses
+the configured DOSBox-X 486 profile; it does not claim a run on genuine 486
+hardware.

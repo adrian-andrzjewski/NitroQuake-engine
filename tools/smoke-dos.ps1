@@ -153,11 +153,15 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenEraseCenterStringImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenConsoleSetupImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ScreenRefdefImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScreenDrawRamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScreenOverlaysImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScreenUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -240,6 +244,12 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ParticleUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ParseParticleEffectImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$RunParticleEffectImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$EntityParticlesImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ParticleDrawImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$DamageParseImplementation = 'c',
@@ -247,6 +257,10 @@ param(
     [string]$ParticleExplosion2Implementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$BlobExplosionImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$LavaSplashImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$TeleportSplashImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RocketTrailImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -517,9 +531,11 @@ $result = [ordered]@{
     screenNotifyImplementation = $ScreenNotifyImplementation
     screenCenterStringImplementation = $ScreenCenterStringImplementation
     screenEraseCenterStringImplementation = $ScreenEraseCenterStringImplementation
+    screenConsoleSetupImplementation = $ScreenConsoleSetupImplementation
     screenRefdefImplementation = $ScreenRefdefImplementation
     screenDrawRamImplementation = $ScreenDrawRamImplementation
     screenOverlaysImplementation = $ScreenOverlaysImplementation
+    screenUpdateImplementation = $ScreenUpdateImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
@@ -527,8 +543,13 @@ $result = [ordered]@{
     printTimesImplementation = $PrintTimesImplementation
     particleExplosion2Implementation = $ParticleExplosion2Implementation
     blobExplosionImplementation = $BlobExplosionImplementation
+    lavaSplashImplementation = $LavaSplashImplementation
+    teleportSplashImplementation = $TeleportSplashImplementation
     rocketTrailImplementation = $RocketTrailImplementation
     particleExplosionImplementation = $ParticleExplosionImplementation
+    parseParticleEffectImplementation = $ParseParticleEffectImplementation
+    runParticleEffectImplementation = $RunParticleEffectImplementation
+    entityParticlesImplementation = $EntityParticlesImplementation
     worldControlImplementation = $WorldControlImplementation
     providerVerification = $providerVerification
     renderMathImplementation = $RenderMathImplementation

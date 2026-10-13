@@ -421,6 +421,21 @@ static void Bench486Printf (char *format, ...)
 		Sys_FileWrite (bench486_report_handle, text, Q_strlen(text));
 }
 
+/* Fixture reports must not draw through vid.buffer while a test substitutes
+ * a minimal video state. Keep progress visible in the report file only. */
+static void Bench486ReportPrintf (char *format, ...)
+{
+	char		text[192];
+	va_list		argptr;
+
+	va_start (argptr, format);
+	vsprintf (text, format, argptr);
+	va_end (argptr);
+
+	if (bench486_report_handle != -1)
+		Sys_FileWrite (bench486_report_handle, text, Q_strlen(text));
+}
+
 static void Bench486TimedemoReportText (int report_handle, char *text)
 {
 	Con_Printf ("%s", text);
@@ -6926,6 +6941,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
 #include "bench486_screenoverlays.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_SCREEN_UPDATE)
+#include "bench486_screenupdate.h"
+#endif
 #include "asm_drawing.h"
 #include "bench486_drawing.h"
 #include "asm_chase.h"
@@ -10975,6 +10993,26 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("screen overlay fixture requires ScreenOverlaysImplementation=asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchscreenupdate"))
+	{
+#ifdef ASM486_SCREEN_UPDATE
+		Bench486ScreenUpdateCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("screen update fixture requires ScreenUpdateImplementation=asm\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

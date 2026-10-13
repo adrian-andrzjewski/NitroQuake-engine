@@ -135,6 +135,71 @@ dimension failures, PNG output, and frame-log integrity without DOSBox.
 the case where different palette indices render to the same RGB color. These
 host tests do not substitute for running the renderer scenarios.
 
+## Reproduce the `SCR_UpdateScreen` assembly slice
+
+The focused `i486-screen-update-c.json` and `i486-screen-update-asm.json`
+profiles differ only in `ScreenUpdateImplementation`. The exact pair covers
+seven deterministic demo workloads twice each and requires identical
+post-warmup checksums, indexed pixels and all palette bytes. Demo 2 requires a
+32 MB DOSBox-X memory profile. `render-parity-dos.ps1` accepts a custom profile
+only with an explicit SHA-256 pin; the accepted profile is the pinned
+`tools/dosbox-x-486-high.conf` with only `memsize` changed to 32.
+
+Keep emulator, build and temporary files under D: and recreate the pinned
+profile as follows:
+
+```powershell
+$repo = 'workspace\quake'
+Set-Location $repo
+$env:TEMP = Join-Path $repo 'out\tmp-screen-update-repro'
+$env:TMP = $env:TEMP
+$env:TMPDIR = $env:TEMP
+$profile = Join-Path $repo 'out\screen-update-dosbox-32m.conf'
+Copy-Item (Join-Path $repo 'tools\dosbox-x-486-high.conf') $profile
+$text = [IO.File]::ReadAllText($profile)
+$text = [regex]::Replace($text, '(?m)^memsize[ \t]*=[ \t]*16[ \t]*$', 'memsize = 32')
+[IO.File]::WriteAllText($profile, $text, [Text.Encoding]::ASCII)
+. (Join-Path $repo 'tools\common.ps1')
+$profileHash = Get-TextFileHash -Path $profile
+if ($profileHash -ne 'BA2C0D205FE5E123781C7396BB758856BF31B1CB6ADFB8E5E9D2F0D62704D929') {
+    throw "Unexpected screen-update DOSBox profile hash: $profileHash"
+}
+
+pwsh -NoProfile -File tools/render-parity-dos.ps1 `
+  -ReferenceProfile tools/renderer-profiles/i486-screen-update-c.json `
+  -CandidateProfile tools/renderer-profiles/i486-screen-update-asm.json `
+  -DosboxProfilePath out/screen-update-dosbox-32m.conf `
+  -ExpectedProfileSha256 $profileHash `
+  -CpuTarget i486 -NoBootstrap -ToolRoot out/tools -DataRoot testdata/id1 `
+  -OutputRoot out/render-parity-screen-update-repro `
+  -LocalOutputDirectoryPrefix screen-update-repro
+```
+
+The direct fifteen-case fixture runs with
+`bench-dos.ps1 -ScreenUpdateImplementation asm -ScreenUpdateOnly` and writes
+`bench-result.json`. For a full cumulative release build and DOSBox-X i486
+smoke, the current selector JSON can populate the smoke runner's explicit
+parameters:
+
+```powershell
+$current = Get-Content tools/renderer-profiles/i486-asm-selectable-current.json -Raw | ConvertFrom-Json
+$repo = 'workspace\quake'
+Set-Location $repo
+$env:TEMP = Join-Path $repo 'out\tmp-screen-update-smoke'
+$env:TMP = $env:TEMP
+$env:TMPDIR = $env:TEMP
+$smoke = @{ NoBootstrap = $true; ToolRoot = 'out/tools'; DataRoot = 'testdata/id1'; CpuTarget = 'i486' }
+foreach ($selector in $current.selectors.PSObject.Properties) {
+  $smoke[$selector.Name] = [string]$selector.Value
+}
+& ./tools/smoke-dos.ps1 @smoke
+```
+
+The smoke runner checks the selected build manifest and writes
+`out/dos-smoke/smoke-result.json`. A host test ensures it continues to accept
+every selector in the cumulative profile. Full scene parity and the strict
+executable audit remain required after future renderer changes.
+
 ## Add or re-baseline a scene
 
 Use an included deterministic Quake demo and keep the workload fixed. Add its

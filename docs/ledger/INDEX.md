@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-13-screen-update-assembly-port.md`](2026-10-13-screen-update-assembly-port.md) | 5 | renderer port / full screen-update orchestration (`Reference mapping and ABI`; `Direct C/assembly fixture`; `Exact paired framebuffer and ISA evidence`; `Refreshed ownership inventory and remaining C paths`; `Reproduction`) |
 | [`2026-10-13-screen-drawram-assembly-port.md`](2026-10-13-screen-drawram-assembly-port.md) | 4 | renderer port / RAM indicator overlay (`Mapping`; `Direct differential fixture`; `Strict i486 verification`; `Reproduction and scope`) |
 | [`2026-10-13-screen-overlays-assembly-port.md`](2026-10-13-screen-overlays-assembly-port.md) | 5 | renderer port / screen update overlay dispatch (`Original branch block and selector`; `Direct C/assembly branch fixture`; `Exact paired scene and i486 audit`; `Ownership snapshot`; `Reproduction and remaining scope`) |
 | [`2026-10-13-screen-calc-refdef-assembly-port.md`](2026-10-13-screen-calc-refdef-assembly-port.md) | 4 | renderer port / screen view rectangle and projection setup (`Original behavior and selected assembly`; `Differential state fixture`; `Paired framebuffer parity and strict i486 audit`; `Traceability and reproduction`) |
@@ -356,7 +357,9 @@ other axis: one row per renderer region, newest entry first.
 - `open` [Combined-profile/full-scene parity and remaining screen ownership](2026-10-10-scr-drawnotifystring-assembly-port.md)
 - `measured` [`SCR_UpdateScreen` overlay dispatch passes eight exact branch cases and two-run Demo 1 framebuffer parity](2026-10-13-screen-overlays-assembly-port.md)
 - `measured` [C and assembly profiles pass strict i486 object, executable, startup and provider audits](2026-10-13-screen-overlays-assembly-port.md)
-- `open` [`_SCR_UpdateScreen`, called overlay drawing routines and full-renderer ownership remain C/assembly integration work](2026-10-13-screen-overlays-assembly-port.md)
+- `measured` [`SCR_UpdateScreen` full orchestration passes fifteen direct cases, seven paired scenes and a cumulative strict i486 release smoke](2026-10-13-screen-update-assembly-port.md)
+- `measured` [The refreshed production ownership scan counts console, menu, status-bar, video and cache dependencies](2026-10-13-screen-update-assembly-port.md)
+- `open` [Called screen/menu/status-bar/video routines, indirect targets and full-renderer ownership remain](2026-10-13-screen-update-assembly-port.md)
 - `measured` [`R_ParticleExplosion2` -> i486 assembly port (2026-10-09)](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Particle pool semantics and ABI](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Full-state fixture and i486 results](2026-10-09-particle-explosion2-assembly-port.md)

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "i486-asm-selectable-current",
-  "description": "Opt-in cumulative candidate selecting assembly for every current SelectsAsm implementation. Acceptance requires a strict exact paired scene run.",
+  "description": "Opt-in cumulative candidate selecting every accepted i486 assembly implementation, including SCR_UpdateScreen.",
   "selectors": {
     "MemoryImplementation": "asm",
     "FillRectImplementation": "asm",
@@ -110,6 +110,7 @@
     "BackwardSpansImplementation": "asm",
     "EfragStoreImplementation": "asm",
     "EmitCachedEdgeImplementation": "asm",
-    "RenderPolyImplementation": "asm"
+    "RenderPolyImplementation": "asm",
+    "ScreenUpdateImplementation": "asm"
   }
 }

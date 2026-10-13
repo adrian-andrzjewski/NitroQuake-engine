@@ -5,6 +5,9 @@ param(
     [switch]$NoBootstrap,
     [string]$ToolRoot,
     [string]$DataRoot,
+    # Optional diagnostic profile template. Supplying this requires an explicit
+    # ExpectedProfileSha256 so the altered emulator environment remains pinned.
+    [string]$DosboxProfilePath,
     [string]$LocalOutputDirectoryName,
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
@@ -226,6 +229,8 @@ param(
     [string]$ScreenDrawRamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScreenOverlaysImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScreenUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -669,7 +674,23 @@ $dosbox = Resolve-DosboxExecutable -Manifest $toolManifest -ToolRoot $ToolRoot `
     -ToolsDirectory $PSScriptRoot -NoBootstrap:$NoBootstrap
 # Still needed by name below: the parity gate hashes this file, and the result
 # document records which profile produced the numbers.
-$profilePath = Get-DosboxProfilePath -ToolsDirectory $PSScriptRoot
+if (-not [string]::IsNullOrWhiteSpace($DosboxProfilePath)) {
+    if (-not $PSBoundParameters.ContainsKey('ExpectedProfileSha256')) {
+        throw 'A custom DOSBox-X profile requires an explicit -ExpectedProfileSha256 pin.'
+    }
+    $profilePath = if ([IO.Path]::IsPathRooted($DosboxProfilePath)) {
+        [IO.Path]::GetFullPath($DosboxProfilePath)
+    }
+    else {
+        [IO.Path]::GetFullPath((Join-Path $repoRoot $DosboxProfilePath))
+    }
+    if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
+        throw "Custom DOSBox-X profile is missing: '$profilePath'."
+    }
+}
+else {
+    $profilePath = Get-DosboxProfilePath -ToolsDirectory $PSScriptRoot
+}
 
 # The staged executable name follows the builder's resolution too: -Benchmark
 # gives qbench.exe and -Instrumentation gives qprof.exe, and duplicating that
@@ -1350,6 +1371,7 @@ $result = [ordered]@{
     dosboxVersion = $toolManifest.dosboxX.version
     profile = $profilePath
     profileSha256 = $profileHash
+    customProfile = (-not [string]::IsNullOrWhiteSpace($DosboxProfilePath))
     sourceFingerprint = $sourceFingerprint
     sourceTreeFingerprint = $sourceTreeFingerprint
     parityGate = [ordered]@{
@@ -1461,6 +1483,7 @@ $result = [ordered]@{
     screenRefdefImplementation = $ScreenRefdefImplementation
     screenDrawRamImplementation = $ScreenDrawRamImplementation
     screenOverlaysImplementation = $ScreenOverlaysImplementation
+    screenUpdateImplementation = $ScreenUpdateImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation

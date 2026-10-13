@@ -20,6 +20,9 @@ param(
     [string]$LocalOutputDirectoryPrefix,
     [string]$ToolRoot,
     [string]$DataRoot,
+    # Optional diagnostic DOSBox-X template; requires an explicit content pin.
+    [string]$DosboxProfilePath,
+    [string]$ExpectedProfileSha256,
     [string]$RendererSelectorProfile,
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
@@ -62,6 +65,24 @@ function Invoke-StreamingTimedemo {
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+if (-not [string]::IsNullOrWhiteSpace($DosboxProfilePath)) {
+    if ([string]::IsNullOrWhiteSpace($ExpectedProfileSha256) -or
+        $ExpectedProfileSha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+        throw 'A custom DOSBox-X profile requires an explicit 64-digit -ExpectedProfileSha256 pin.'
+    }
+    $DosboxProfilePath = if ([IO.Path]::IsPathRooted($DosboxProfilePath)) {
+        [IO.Path]::GetFullPath($DosboxProfilePath)
+    }
+    else {
+        [IO.Path]::GetFullPath((Join-Path $repoRoot $DosboxProfilePath))
+    }
+    if (-not (Test-Path -LiteralPath $DosboxProfilePath -PathType Leaf)) {
+        throw "Custom DOSBox-X profile is missing: '$DosboxProfilePath'."
+    }
+}
+elseif (-not [string]::IsNullOrWhiteSpace($ExpectedProfileSha256)) {
+    throw '-ExpectedProfileSha256 requires -DosboxProfilePath.'
+}
 if ($VisualParityOnly -and $CpuTarget -ne 'i486') {
     throw '-VisualParityOnly is supported only for the i486 visual comparison path.'
 }
@@ -371,6 +392,12 @@ $previousRunParticleEffectEventState = $null
         }
         if (-not [string]::IsNullOrWhiteSpace([string]$scene.quakeExtraArgs)) {
             $timedemoArgs += @('-QuakeExtraArgs', [string]$scene.quakeExtraArgs)
+        }
+        if (-not [string]::IsNullOrWhiteSpace($DosboxProfilePath)) {
+            $timedemoArgs += @(
+                '-DosboxProfilePath', $DosboxProfilePath,
+                '-ExpectedProfileSha256', $ExpectedProfileSha256
+            )
         }
         $autoexecProperty = $scene.PSObject.Properties['autoexecCommands']
         if ($null -ne $autoexecProperty -and @($autoexecProperty.Value).Count -gt 0) {
@@ -1301,6 +1328,8 @@ $suiteResult = [ordered]@{
     isaAuditStatus = if ($VisualParityOnly) { 'SKIPPED' } elseif ($CpuTarget -eq 'i486' -and $scenarioResults.Count -gt 0) { [string]$scenarioResults[0].buildIsaAuditStatus } elseif ($scenarioResults.Count -eq 0) { 'NOT_RUN' } else { 'NOT_ASSERTED' }
     rendererSelectorProfile = if ($null -ne $rendererSelectorProfileData) { [string]$rendererSelectorProfileData.id } else { 'timedemo-defaults' }
     rendererSelectorProfilePath = $rendererSelectorProfilePathResolved
+    dosboxProfilePath = $DosboxProfilePath
+    expectedDosboxProfileSha256 = $ExpectedProfileSha256
     rendererSelectors = if ($null -ne $rendererSelectorProfileData) { $rendererSelectorProfileData.selectors } else { @{} }
     sourceTreeFingerprint = if ($scenarioResults.Count -gt 0) { $scenarioResults[0].sourceTreeFingerprint } else { $null }
     validationAutoexecCommands = $validationAutoexecCommands

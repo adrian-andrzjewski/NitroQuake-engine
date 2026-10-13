@@ -237,9 +237,21 @@ profiles matched two repeat-stable Demo 1 runs: 1,928 post-warmup frame
 checksum comparisons, two exact 320x200 indexed captures, and zero palette
 differences. Both selected builds passed strict i486 object, linked-executable,
 startup, and CWSDPMI audits with zero violations or exemptions. This converts
-dispatch only: `_SCR_UpdateScreen` and the console, status-bar, menu, fade, and
-other called drawing routines remain C-owned. See the
+dispatch only; see the separate full-routine port below. The console,
+status-bar, menu, fade and other called drawing routines remain separately
+owned. See the
 [`SCR_UpdateScreen` overlay-dispatch ledger](ledger/2026-10-13-screen-overlays-assembly-port.md).
+
+The full `SCR_UpdateScreen` orchestration now has a selectable i486 assembly
+implementation. Fifteen direct C/assembly cases pass, and the focused profiles
+match seven deterministic scenes across fourteen runs: 13,770 exact
+post-warmup checksums and fourteen exact indexed framebuffer/palette captures.
+The cumulative 109-selector release build passes the complete object, linked
+executable, startup, CRT-helper and provider ISA gates with zero violations or
+exemptions, then passes the DOSBox-X i486 smoke run. Its exact current-state
+owner inventory still finds 69 reachable C renderer/support functions, 118
+indirect transfer sites and 37 unresolved direct callees. See the
+[`SCR_UpdateScreen` full port ledger](ledger/2026-10-13-screen-update-assembly-port.md).
 
 ## Remaining machine-code ownership
 
@@ -309,6 +321,16 @@ not claim a complete call graph. The earlier 76-selector snapshot is retained
 in `out/renderer-ownership-selectable-strict-20261009.json` as historical
 evidence.
 
+The refreshed 109-selector release inventory is
+`out/renderer-ownership-screen-update-release-20261013.json`. Its wider source
+classification includes `console.c`, `menu.c`, `sbar.c`, `zone.c` and the DOS
+video drivers. It reports 640 renderer entries, 389 directly reachable
+entries, 69 directly reachable C renderer/support functions, 118 indirect
+call/jump sites across 36 functions, and 37 unresolved direct callees. The
+scope differs from the earlier 77-selector inventory, so the counts are not a
+like-for-like conversion percentage. The scan remains a partial call graph;
+indirect targets and initialization/debug paths still require review.
+
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`
 abort boundaries. Those functions and the linked runtime are still ISA-audited.
 Indirect transfers require separate target review, so this tool does not claim
@@ -323,7 +345,7 @@ to prove a complete call graph.
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |
-| Screen and overlays | `Con_DrawInput`, `SCR_DrawNotifyString`, `SCR_DrawRam`, and the `SCR_UpdateScreen` overlay dispatch have selectable i486 assembly paths with direct fixtures; the dispatch also passed two-run exact Demo 1 framebuffer parity and strict cumulative audits. `_SCR_UpdateScreen` itself and its console/status-bar/menu/fade drawing callees remain C-owned. Full screen/update coverage, combined-profile stress scenes, and remaining ownership review stay open. See the [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), and [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md) ledgers. |
+| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, `Con_DrawInput`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. The full update routine passed seven exact paired scenes and a strict cumulative release smoke. Its menu, status-bar, console, video/cache and screen marker/loading callees remain C-owned; indirect targets, full screen stress and long-run checks remain open. See the [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

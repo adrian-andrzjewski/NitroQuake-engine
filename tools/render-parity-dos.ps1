@@ -18,6 +18,9 @@ param(
     [string]$LocalOutputDirectoryPrefix,
     [string]$ToolRoot,
     [string]$DataRoot,
+    # Optional diagnostic DOSBox-X template; requires an explicit content pin.
+    [string]$DosboxProfilePath,
+    [string]$ExpectedProfileSha256,
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [ValidateRange(30, 3600)]
@@ -35,6 +38,24 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
+if (-not [string]::IsNullOrWhiteSpace($DosboxProfilePath)) {
+    if ([string]::IsNullOrWhiteSpace($ExpectedProfileSha256) -or
+        $ExpectedProfileSha256 -notmatch '^[A-Fa-f0-9]{64}$') {
+        throw 'A custom DOSBox-X profile requires an explicit 64-digit -ExpectedProfileSha256 pin.'
+    }
+    $DosboxProfilePath = if ([IO.Path]::IsPathRooted($DosboxProfilePath)) {
+        [IO.Path]::GetFullPath($DosboxProfilePath)
+    }
+    else {
+        [IO.Path]::GetFullPath((Join-Path $repoRoot $DosboxProfilePath))
+    }
+    if (-not (Test-Path -LiteralPath $DosboxProfilePath -PathType Leaf)) {
+        throw "Custom DOSBox-X profile is missing: '$DosboxProfilePath'."
+    }
+}
+elseif (-not [string]::IsNullOrWhiteSpace($ExpectedProfileSha256)) {
+    throw '-ExpectedProfileSha256 requires -DosboxProfilePath.'
+}
 if ($VisualParityOnly -and $CpuTarget -ne 'i486') {
     throw '-VisualParityOnly is supported only for the i486 visual comparison path.'
 }
@@ -140,6 +161,12 @@ foreach ($profile in @(
     if ($RunsOverride -gt 0) { $validationArgs += @('-RunsOverride', [string]$RunsOverride) }
     if (-not [string]::IsNullOrWhiteSpace($ToolRoot)) { $validationArgs += @('-ToolRoot', $ToolRoot) }
     if (-not [string]::IsNullOrWhiteSpace($DataRoot)) { $validationArgs += @('-DataRoot', $DataRoot) }
+    if (-not [string]::IsNullOrWhiteSpace($DosboxProfilePath)) {
+        $validationArgs += @(
+            '-DosboxProfilePath', $DosboxProfilePath,
+            '-ExpectedProfileSha256', $ExpectedProfileSha256
+        )
+    }
     if ($SkipBuild) { $validationArgs += '-SkipBuild' }
     if ($VisualParityOnly) { $validationArgs += '-VisualParityOnly' }
     if ($NoBootstrap) { $validationArgs += '-NoBootstrap' }
@@ -193,6 +220,8 @@ if (Test-Path -LiteralPath $comparisonReport -PathType Leaf) {
     } else {
         'Each build manifest was checked by the normal renderer compatibility gate.'
     }) -Force
+    $comparison | Add-Member -NotePropertyName dosboxProfilePath -NotePropertyValue $DosboxProfilePath -Force
+    $comparison | Add-Member -NotePropertyName expectedDosboxProfileSha256 -NotePropertyValue $ExpectedProfileSha256 -Force
     $comparison | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath $comparisonReport -Encoding UTF8
 }
 if ($validationFailures.Count -gt 0 -or $comparisonExit -ne 0) {

@@ -82,6 +82,8 @@ param(
     [string]$ScreenDrawRamImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScreenOverlaysImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScreenUpdateImplementation = 'c',
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [string]$DataRoot,
@@ -241,6 +243,7 @@ $report = [ordered]@{
     screenRefdefImplementation = $ScreenRefdefImplementation
     screenDrawRamImplementation = $ScreenDrawRamImplementation
     screenOverlaysImplementation = $ScreenOverlaysImplementation
+    screenUpdateImplementation = $ScreenUpdateImplementation
     buildSelectorVerification = $selectorVerification
     providerVerification = $providerVerification
     frames          = $Frames

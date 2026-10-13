@@ -22,9 +22,11 @@ RELOCATION = re.compile(r"^\s*([0-9a-fA-F]+):\s+(DISP32|DIR32)\s+(\S+)\s*$", re.
 RENDER_SUPPORT = {"Mod_PointInLeaf", "Mod_LeafPVS", "Mod_DecompressVis"}
 RENDERER_SOURCES = {
     "view.c", "draw.c", "mathlib.c", "math.s", "chase.c",
+    "console.c", "menu.c", "sbar.c", "zone.c",
+    "vid_dos.c", "vid_ext.c", "vid_vga.c",
     "screen.c", "screen_fovasm.s", "screen_notifyasm.s", "screen_eraseasm.s",
     "screen_consolesetupasm.s", "screen_refdefasm.s",
-    "screen_drawramasm.s", "screen_overlaysasm.s",
+    "screen_drawramasm.s", "screen_overlaysasm.s", "screen_updateasm.s",
     "asm486_experiments.s",
 }
 DEFAULT_ROOTS = [

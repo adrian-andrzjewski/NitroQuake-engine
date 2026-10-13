@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_screenrefdef.h"
 #include "asm_screendrawram.h"
 #include "asm_screenoverlays.h"
+#include "asm_screenupdate.h"
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 extern int bench486_screen_center_trace_active;
@@ -43,6 +44,11 @@ float		scr_con_current;
 float		scr_conlines;		// lines of console to display
 
 float		oldscreensize, oldfov;
+float		scr_update_old_viewsize;
+float		scr_update_old_lcd_x;
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+unsigned	bench486_screen_update_trace_update_count;
+#endif
 cvar_t		scr_viewsize = {"viewsize","100", true};
 cvar_t		scr_fov = {"fov","90"};	// 10 - 170
 cvar_t		scr_conspeed = {"scr_conspeed","300"};
@@ -280,7 +286,11 @@ Internal use only
 #define SCR_REFDEF_VIEW_CHANGED Bench486ScreenRefdefViewChanged
 #elif !defined(ASM486_SCREEN_REFDEF)
 #define SCR_REFDEF_ENTRY SCR_CalcRefdef
+#if defined(ASM486_SCREEN_UPDATE)
+#define SCR_REFDEF_LINKAGE
+#else
 #define SCR_REFDEF_LINKAGE static
+#endif
 #define SCR_REFDEF_BUILD_C 1
 #define SCR_REFDEF_SBAR_CHANGED Sbar_Changed
 #define SCR_REFDEF_CVAR_SET Cvar_Set
@@ -1012,12 +1022,36 @@ WARNING: be very careful calling this from elsewhere, because the refresh
 needs almost the entire 256k of stack space!
 ==================
 */
-void SCR_UpdateScreen (void)
+#if defined(ASM486_SCREEN_UPDATE) && defined(BENCH486)
+#define SCR_UPDATE_SCREEN_C SCR_UpdateScreen_Screen_C
+#elif !defined(ASM486_SCREEN_UPDATE)
+#define SCR_UPDATE_SCREEN_C SCR_UpdateScreen
+#endif
+
+#if !defined(ASM486_SCREEN_UPDATE) || defined(BENCH486)
+#if defined(BENCH486) && defined(ASM486_SCREEN_UPDATE)
+#define SCR_UPDATE_CALL(event, call) \
+	do { \
+		if (bench486_screen_update_fixture_active) \
+			Bench486ScreenUpdateRecordCall (event); \
+		else \
+			call; \
+	} while (0)
+#define SCR_UPDATE_VID_RECT(rect) \
+	do { \
+		if (bench486_screen_update_fixture_active) \
+			Bench486ScreenUpdateRecordVidRect (rect); \
+		else \
+			VID_Update (rect); \
+	} while (0)
+#else
+#define SCR_UPDATE_CALL(event, call) do { call; } while (0)
+#define SCR_UPDATE_VID_RECT(rect) VID_Update (rect)
+#endif
+
+void SCR_UPDATE_SCREEN_C (void)
 {
-	static float	oldscr_viewsize;
-	static float	oldlcd_x;
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
-	static unsigned bench486_trace_update_count;
 	unsigned bench486_trace_update_index;
 	qboolean bench486_trace_this_update;
 #endif
@@ -1031,10 +1065,10 @@ void SCR_UpdateScreen (void)
 	bench486_trace_update_index = 0;
 	if (bench486_screen_center_trace_active && cls.demoplayback &&
 			!scr_disabled_for_loading && !scr_skipupdate && !block_drawing &&
-			bench486_trace_update_count < 8)
+			bench486_screen_update_trace_update_count < 8)
 	{
-		bench486_trace_update_count++;
-		bench486_trace_update_index = bench486_trace_update_count;
+		bench486_screen_update_trace_update_count++;
+		bench486_trace_update_index = bench486_screen_update_trace_update_count;
 		bench486_trace_this_update = true;
 		Bench486ScreenCenterTraceGlyph (5, bench486_trace_update_index, 0, 0);
 	}
@@ -1051,7 +1085,7 @@ void SCR_UpdateScreen (void)
 		if (realtime - scr_disabled_time > 60)
 		{
 			scr_disabled_for_loading = false;
-			Con_Printf ("load failed.\n");
+			SCR_UPDATE_CALL (SU_EVENT_CON_PRINT, Con_Printf ("load failed.\n"));
 		}
 		else
 			return;
@@ -1063,9 +1097,9 @@ void SCR_UpdateScreen (void)
 	if (!scr_initialized || !con_initialized)
 		return;				// not initialized yet
 
-	if (scr_viewsize.value != oldscr_viewsize)
+	if (scr_viewsize.value != scr_update_old_viewsize)
 	{
-		oldscr_viewsize = scr_viewsize.value;
+		scr_update_old_viewsize = scr_viewsize.value;
 		vid.recalc_refdef = 1;
 	}
 	
@@ -1078,9 +1112,9 @@ void SCR_UpdateScreen (void)
 		vid.recalc_refdef = true;
 	}
 	
-	if (oldlcd_x != lcd_x.value)
+	if (scr_update_old_lcd_x != lcd_x.value)
 	{
-		oldlcd_x = lcd_x.value;
+		scr_update_old_lcd_x = lcd_x.value;
 		vid.recalc_refdef = true;
 	}
 	
@@ -1094,34 +1128,37 @@ void SCR_UpdateScreen (void)
 	{
 	// something changed, so reorder the screen
 #if defined(ASM486_SCREEN_REFDEF)
-		SCR_CalcRefdef_asm486 ();
+		SCR_UPDATE_CALL (SU_EVENT_CALC_REFDEF, SCR_CalcRefdef_asm486 ());
 #else
-		SCR_CalcRefdef ();
+		SCR_UPDATE_CALL (SU_EVENT_CALC_REFDEF, SCR_CalcRefdef ());
 #endif
 	}
 
 //
 // do 3D refresh drawing, and then update the screen
 //
-	D_EnableBackBufferAccess ();	// of all overlay stuff if drawing directly
+	SCR_UPDATE_CALL (SU_EVENT_ENABLE_BACKBUFFER,
+			D_EnableBackBufferAccess ());	// of all overlay stuff if drawing directly
 
 	if (scr_fullupdate++ < vid.numpages)
 	{	// clear the entire screen
 		scr_copyeverything = 1;
-		Draw_TileClear (0,0,vid.width,vid.height);
-		Sbar_Changed ();
+		SCR_UPDATE_CALL (SU_EVENT_TILE_CLEAR,
+				Draw_TileClear (0,0,vid.width,vid.height));
+		SCR_UPDATE_CALL (SU_EVENT_SBAR_CHANGED, Sbar_Changed ());
 	}
 
 	pconupdate = NULL;
 
 
-	SCR_SetUpToDrawConsole ();
-	SCR_EraseCenterString ();
+	SCR_UPDATE_CALL (SU_EVENT_SETUP_CONSOLE, SCR_SetUpToDrawConsole ());
+	SCR_UPDATE_CALL (SU_EVENT_ERASE_CENTER, SCR_EraseCenterString ());
 
-	D_DisableBackBufferAccess ();	// for adapters that can't stay mapped in
+	SCR_UPDATE_CALL (SU_EVENT_DISABLE_BACKBUFFER,
+			D_DisableBackBufferAccess ());	// for adapters that can't stay mapped in
 									//  for linear writes all the time
 
-	VID_LockBuffer ();
+	SCR_UPDATE_CALL (SU_EVENT_LOCK_BUFFER, VID_LockBuffer ());
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
@@ -1132,7 +1169,7 @@ void SCR_UpdateScreen (void)
 	if (bench486_trace_this_update)
 		Bench486ScreenCenterTraceGlyph (6, bench486_trace_update_index, 0, 0);
 	#endif
-	V_RenderView ();
+	SCR_UPDATE_CALL (SU_EVENT_RENDER_VIEW, V_RenderView ());
 	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 	if (bench486_trace_this_update)
 		Bench486ScreenCenterTraceGlyph (7, bench486_trace_update_index, 0, 0);
@@ -1143,9 +1180,10 @@ void SCR_UpdateScreen (void)
 		bench486_render_seconds += Sys_FloatTime () - bench486_render_start;
 #endif
 
-	VID_UnlockBuffer ();
+	SCR_UPDATE_CALL (SU_EVENT_UNLOCK_BUFFER, VID_UnlockBuffer ());
 
-	D_EnableBackBufferAccess ();	// of all overlay stuff if drawing directly
+	SCR_UPDATE_CALL (SU_EVENT_ENABLE_BACKBUFFER,
+			D_EnableBackBufferAccess ());	// of all overlay stuff if drawing directly
 
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_OVERLAY);
 	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
@@ -1154,17 +1192,21 @@ void SCR_UpdateScreen (void)
 	#endif
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 	#if defined(ASM486_SCREEN_OVERLAYS)
-	SCR_DrawScreenOverlays_asm486 (bench486_trace_update_index,
-			bench486_trace_this_update);
+	SCR_UPDATE_CALL (SU_EVENT_OVERLAYS,
+			SCR_DrawScreenOverlays_asm486 (bench486_trace_update_index,
+					bench486_trace_this_update));
 	#else
-	SCR_DrawScreenOverlays (bench486_trace_update_index,
-			bench486_trace_this_update);
+	SCR_UPDATE_CALL (SU_EVENT_OVERLAYS,
+			SCR_DrawScreenOverlays (bench486_trace_update_index,
+					bench486_trace_this_update));
 	#endif
 #else
 	#if defined(ASM486_SCREEN_OVERLAYS)
-	SCR_DrawScreenOverlays_asm486 (0, false);
+	SCR_UPDATE_CALL (SU_EVENT_OVERLAYS,
+			SCR_DrawScreenOverlays_asm486 (0, false));
 	#else
-	SCR_DrawScreenOverlays (0, false);
+	SCR_UPDATE_CALL (SU_EVENT_OVERLAYS,
+			SCR_DrawScreenOverlays (0, false));
 	#endif
 #endif
 
@@ -1172,16 +1214,17 @@ void SCR_UpdateScreen (void)
 	if (bench486_trace_this_update)
 		Bench486ScreenCenterTraceGlyph (11, bench486_trace_update_index, 0, 0);
 	#endif
-	D_DisableBackBufferAccess ();	// for adapters that can't stay mapped in
+	SCR_UPDATE_CALL (SU_EVENT_DISABLE_BACKBUFFER,
+			D_DisableBackBufferAccess ());	// for adapters that can't stay mapped in
 									//  for linear writes all the time
 	if (pconupdate)
 	{
-		D_UpdateRects (pconupdate);
+		SCR_UPDATE_CALL (SU_EVENT_UPDATE_RECTS, D_UpdateRects (pconupdate));
 	}
 	BENCH486_PROFILE_LEAVE ();
 
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PALETTE);
-	V_UpdatePalette ();
+	SCR_UPDATE_CALL (SU_EVENT_UPDATE_PALETTE, V_UpdatePalette ());
 	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 	if (bench486_trace_this_update)
 		Bench486ScreenCenterTraceGlyph (12, bench486_trace_update_index, 0, 0);
@@ -1200,7 +1243,7 @@ void SCR_UpdateScreen (void)
 		vrect.height = vid.height;
 		vrect.pnext = 0;
 	
-		VID_Update (&vrect);
+		SCR_UPDATE_VID_RECT (&vrect);
 	}
 	else if (scr_copytop)
 	{
@@ -1210,7 +1253,7 @@ void SCR_UpdateScreen (void)
 		vrect.height = vid.height - sb_lines;
 		vrect.pnext = 0;
 	
-		VID_Update (&vrect);
+		SCR_UPDATE_VID_RECT (&vrect);
 	}	
 	else
 	{
@@ -1220,13 +1263,18 @@ void SCR_UpdateScreen (void)
 		vrect.height = scr_vrect.height;
 		vrect.pnext = 0;
 	
-		VID_Update (&vrect);
+		SCR_UPDATE_VID_RECT (&vrect);
 	}
 	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 	if (bench486_trace_this_update)
 		Bench486ScreenCenterTraceGlyph (13, bench486_trace_update_index, 0, 0);
 	#endif
 }
+#endif
+
+#undef SCR_UPDATE_CALL
+#undef SCR_UPDATE_VID_RECT
+#undef SCR_UPDATE_SCREEN_C
 
 
 /*
