@@ -21,6 +21,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+extern int bench486_screen_center_trace_active;
+extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character);
+#endif
+
 // we need to declare some mouse variables here, because the menu system
 // references them even when on a unix system.
 
@@ -694,20 +699,55 @@ Read all incoming data from the server
 int CL_ReadFromServer (void)
 {
 	int		ret;
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	static unsigned bench486_trace_demo_message_count;
+	unsigned bench486_trace_demo_message_index;
+	#endif
 
 	cl.oldtime = cl.time;
 	cl.time += host_frametime;
 	
 	do
 	{
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		bench486_trace_demo_message_index = 0;
+		if (bench486_screen_center_trace_active &&
+				(cls.demoplayback || cls.timedemo) &&
+				bench486_trace_demo_message_count < 16)
+		{
+			bench486_trace_demo_message_count++;
+			bench486_trace_demo_message_index = bench486_trace_demo_message_count;
+			Bench486ScreenCenterTraceGlyph (23,
+					bench486_trace_demo_message_index, host_framecount,
+					cls.timedemo);
+		}
+		#endif
 		ret = CL_GetMessage ();
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (bench486_trace_demo_message_index)
+			Bench486ScreenCenterTraceGlyph (24,
+					bench486_trace_demo_message_index, ret,
+					net_message.cursize);
+		#endif
 		if (ret == -1)
 			Host_Error ("CL_ReadFromServer: lost server connection");
 		if (!ret)
 			break;
 		
 		cl.last_received_message = realtime;
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (bench486_trace_demo_message_index)
+			Bench486ScreenCenterTraceGlyph (25,
+					bench486_trace_demo_message_index, msg_readcount,
+					net_message.cursize);
+		#endif
 		CL_ParseServerMessage ();
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (bench486_trace_demo_message_index)
+			Bench486ScreenCenterTraceGlyph (26,
+					bench486_trace_demo_message_index, cls.state,
+					cls.signon);
+		#endif
 	} while (ret && cls.state == ca_connected);
 	
 	if (cl_shownet.value)

@@ -73,6 +73,11 @@ byte	newsky[128*256];	// newsky and topsky both pack in here, 128 bytes
 #define R_GenSkyTile R_GenSkyTile_C
 #define R_GenSkyTile16 R_GenSkyTile16_C
 #define R_SetSkyFrame R_SetSkyFrame_C
+#ifdef ASM486_MATH_CLOSURE
+/* Keep the Sky oracle independent when the production GCD is assembly. */
+int GreatestCommonDivisor_C (int i1, int i2);
+#define GreatestCommonDivisor GreatestCommonDivisor_C
+#endif
 int r_sky_xlast_c = -1, r_sky_ylast_c = -1;
 #endif
 /*
@@ -316,6 +321,11 @@ void R_SetSkyFrame (void)
 	r_skymade = 0;
 }
 
+#ifdef ASM486_SKY
+#ifdef ASM486_MATH_CLOSURE
+#undef GreatestCommonDivisor
+#endif
+#endif
 
 
 #endif /* C implementation / independent benchmark oracle */

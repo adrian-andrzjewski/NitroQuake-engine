@@ -45,6 +45,18 @@ typedef struct
 void Cache_FreeLow (int new_low_hunk);
 void Cache_FreeHigh (int new_high_hunk);
 
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+extern int bench486_screen_center_trace_active;
+extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character);
+#define HUNK_TRACE(phase, x, y, character) \
+	do { if (bench486_screen_center_trace_active < 0) \
+		bench486_screen_center_trace_active = COM_CheckParm ("-benchcentercalltrace") != 0; \
+		if (bench486_screen_center_trace_active) \
+		Bench486ScreenCenterTraceGlyph (phase, x, y, character); } while (0)
+#else
+#define HUNK_TRACE(phase, x, y, character) ((void)0)
+#endif
+
 
 /*
 ==============================================================================
@@ -481,6 +493,7 @@ Hunk_AllocName
 void *Hunk_AllocName (int size, char *name)
 {
 	hunk_t	*h;
+	HUNK_TRACE (72, size, hunk_low_used, hunk_high_used);
 	
 #ifdef PARANOID
 	Hunk_Check ();
@@ -490,6 +503,7 @@ void *Hunk_AllocName (int size, char *name)
 		Sys_Error ("Hunk_Alloc: bad size: %i", size);
 		
 	size = sizeof(hunk_t) + ((size+15)&~15);
+	HUNK_TRACE (73, size, hunk_size - hunk_low_used - hunk_high_used, hunk_size);
 	
 	if (hunk_size - hunk_low_used - hunk_high_used < size)
 		Sys_Error ("Hunk_Alloc: failed on %i bytes",size);
@@ -502,12 +516,15 @@ void *Hunk_AllocName (int size, char *name)
 	hunk_low_used += size;
 
 	Cache_FreeLow (hunk_low_used);
+	HUNK_TRACE (74, size, hunk_low_used, hunk_high_used);
 
 	memset (h, 0, size);
+	HUNK_TRACE (75, size, hunk_low_used, 0);
 	
 	h->size = size;
 	h->sentinal = HUNK_SENTINAL;
 	Q_strncpy (h->name, name, 8);
+	HUNK_TRACE (76, size, hunk_low_used, 0);
 	
 	return (void *)(h+1);
 }
@@ -568,6 +585,7 @@ Hunk_HighAllocName
 void *Hunk_HighAllocName (int size, char *name)
 {
 	hunk_t	*h;
+	HUNK_TRACE (77, size, hunk_low_used, hunk_high_used);
 
 	if (size < 0)
 		Sys_Error ("Hunk_HighAllocName: bad size: %i", size);
@@ -583,6 +601,7 @@ void *Hunk_HighAllocName (int size, char *name)
 #endif
 
 	size = sizeof(hunk_t) + ((size+15)&~15);
+	HUNK_TRACE (78, size, hunk_size - hunk_low_used - hunk_high_used, hunk_size);
 
 	if (hunk_size - hunk_low_used - hunk_high_used < size)
 	{
@@ -591,11 +610,13 @@ void *Hunk_HighAllocName (int size, char *name)
 	}
 
 	hunk_high_used += size;
+	HUNK_TRACE (79, size, hunk_low_used, hunk_high_used);
 #ifdef PROFILE486
 	bench486_hunk_high_calls++;
 	bench486_hunk_high_bytes += size;
 #endif
 	Cache_FreeHigh (hunk_high_used);
+	HUNK_TRACE (80, size, hunk_low_used, hunk_high_used);
 
 	h = (hunk_t *)(hunk_base + hunk_size - hunk_high_used);
 
@@ -603,6 +624,7 @@ void *Hunk_HighAllocName (int size, char *name)
 	h->size = size;
 	h->sentinal = HUNK_SENTINAL;
 	Q_strncpy (h->name, name, 8);
+	HUNK_TRACE (81, size, hunk_low_used, hunk_high_used);
 
 	return (void *)(h+1);
 }

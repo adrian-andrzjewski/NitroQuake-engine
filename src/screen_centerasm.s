@@ -28,6 +28,14 @@ C(SCR_DrawCenterString_asm486):
 	subl	$20,%esp
 // Locals: saved CW -14, truncate CW -16, y -20, line length -24,
 //         remaining print budget -28.
+#ifdef BENCH486
+	pushl	$0
+	pushl	$0
+	pushl	$0
+	pushl	$-1
+	call	C(Bench486ScreenCenterTraceGlyph)
+	addl	$16,%esp
+#endif
 	movl	$0,C(scr_erase_center)
 
 // The original C expression is evaluated as float arithmetic, then converted
@@ -113,7 +121,35 @@ C(SCR_DrawCenterString_asm486):
 	call	C(Bench486ScreenCenterStringCharacter)
 	jmp	.Lscreen_center_character_call_done
 .Lscreen_center_real_character:
+#ifdef BENCH486
+	cmpl	$0,C(bench486_screen_center_trace_active)
+	je	.Lscreen_center_before_trace_done
+	movl	0(%esp),%eax
+	movl	4(%esp),%edx
+	movl	8(%esp),%ecx
+	pushl	%ecx
+	pushl	%edx
+	pushl	%eax
+	pushl	$0
+	call	C(Bench486ScreenCenterTraceGlyph)
+	addl	$16,%esp
+.Lscreen_center_before_trace_done:
+#endif
 	call	C(Draw_Character)
+#ifdef BENCH486
+	cmpl	$0,C(bench486_screen_center_trace_active)
+	je	.Lscreen_center_after_trace_done
+	movl	0(%esp),%eax
+	movl	4(%esp),%edx
+	movl	8(%esp),%ecx
+	pushl	%ecx
+	pushl	%edx
+	pushl	%eax
+	pushl	$1
+	call	C(Bench486ScreenCenterTraceGlyph)
+	addl	$16,%esp
+.Lscreen_center_after_trace_done:
+#endif
 .Lscreen_center_character_call_done:
 #else
 	call	C(Draw_Character)
@@ -142,6 +178,17 @@ C(SCR_DrawCenterString_asm486):
 	jmp	.Lscreen_center_line
 
 .Lscreen_center_return:
+#ifdef BENCH486
+	cmpl	$0,C(bench486_screen_center_trace_active)
+	je	.Lscreen_center_return_trace_done
+	pushl	$0
+	pushl	$0
+	pushl	$0
+	pushl	$2
+	call	C(Bench486ScreenCenterTraceGlyph)
+	addl	$16,%esp
+.Lscreen_center_return_trace_done:
+#endif
 	leal	-12(%ebp),%esp
 	popl	%edi
 	popl	%esi

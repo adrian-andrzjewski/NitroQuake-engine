@@ -21,6 +21,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+extern int bench486_screen_center_trace_active;
+extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character);
+extern void Con_DebugLog (char *file, char *fmt, ...);
+#endif
+
 char *svc_strings[] =
 {
 	"svc_bad",
@@ -208,6 +214,11 @@ void CL_ParseServerInfo (void)
 	int		nummodels, numsounds;
 	char	model_precache[MAX_MODELS][MAX_QPATH];
 	char	sound_precache[MAX_SOUNDS][MAX_QPATH];
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (31, host_framecount, 0, 0);
+	#endif
 	
 	Con_DPrintf ("Serverinfo packet received.\n");
 //
@@ -264,6 +275,11 @@ void CL_ParseServerInfo (void)
 		strcpy (model_precache[nummodels], str);
 		Mod_TouchModel (str);
 	}
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (32, nummodels, 0, 0);
+	#endif
 
 // precache sounds
 	memset (cl.sound_precache, 0, sizeof(cl.sound_precache));
@@ -280,6 +296,11 @@ void CL_ParseServerInfo (void)
 		strcpy (sound_precache[numsounds], str);
 		S_TouchSound (str);
 	}
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (33, numsounds, 0, 0);
+	#endif
 
 //
 // now we try to load everything else until a cache allocation fails
@@ -287,14 +308,31 @@ void CL_ParseServerInfo (void)
 
 	for (i=1 ; i<nummodels ; i++)
 	{
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (bench486_screen_center_trace_active &&
+				(cls.demoplayback || cls.timedemo))
+				Con_DebugLog ("RTRACE.LOG", "renderer model %d/%d begin %s\n",
+						i, nummodels, model_precache[i]);
+		#endif
 		cl.model_precache[i] = Mod_ForName (model_precache[i], false);
 		if (cl.model_precache[i] == NULL)
 		{
 			Con_Printf("Model %s not found\n", model_precache[i]);
 			return;
 		}
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (bench486_screen_center_trace_active &&
+				(cls.demoplayback || cls.timedemo))
+				Con_DebugLog ("RTRACE.LOG", "renderer model %d/%d done %s\n",
+						i, nummodels, model_precache[i]);
+		#endif
 		CL_KeepaliveMessage ();
 	}
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (34, nummodels, 0, 0);
+	#endif
 
 	S_BeginPrecaching ();
 	for (i=1 ; i<numsounds ; i++)
@@ -303,16 +341,35 @@ void CL_ParseServerInfo (void)
 		CL_KeepaliveMessage ();
 	}
 	S_EndPrecaching ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (35, numsounds, 0, 0);
+	#endif
 
 
 // local state
 	cl_entities[0].model = cl.worldmodel = cl.model_precache[1];
-	
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (36, 0, 0, 0);
+	#endif
 	R_NewMap ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (37, 0, 0, 0);
+	#endif
 
 	Hunk_Check ();		// make sure nothing is hurt
 	
 	noclip_anglehack = false;		// noclip is turned off at start	
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo))
+		Bench486ScreenCenterTraceGlyph (38, 0, 0, 0);
+	#endif
 }
 
 
@@ -698,6 +755,10 @@ void CL_ParseServerMessage (void)
 {
 	int			cmd;
 	int			i;
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	static unsigned bench486_trace_parse_command_count;
+	unsigned bench486_trace_parse_command_index;
+	#endif
 	
 //
 // if recording demos, copy the message out
@@ -719,9 +780,28 @@ void CL_ParseServerMessage (void)
 			Host_Error ("CL_ParseServerMessage: Bad server message");
 
 		cmd = MSG_ReadByte ();
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		bench486_trace_parse_command_index = 0;
+		if (bench486_screen_center_trace_active &&
+				(cls.demoplayback || cls.timedemo) &&
+				bench486_trace_parse_command_count < 128)
+		{
+			bench486_trace_parse_command_count++;
+			bench486_trace_parse_command_index =
+					bench486_trace_parse_command_count;
+			Bench486ScreenCenterTraceGlyph (27,
+					bench486_trace_parse_command_index, cmd, msg_readcount);
+		}
+		#endif
 
 		if (cmd == -1)
 		{
+			#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+			if (bench486_trace_parse_command_index)
+				Bench486ScreenCenterTraceGlyph (30,
+						bench486_trace_parse_command_index, msg_readcount,
+						net_message.cursize);
+			#endif
 			SHOWNET("END OF MESSAGE");
 			return;		// end of message
 		}
@@ -731,6 +811,12 @@ void CL_ParseServerMessage (void)
 		{
 			SHOWNET("fast update");
 			CL_ParseUpdate (cmd&127);
+			#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+			if (bench486_trace_parse_command_index)
+				Bench486ScreenCenterTraceGlyph (28,
+						bench486_trace_parse_command_index, msg_readcount,
+						net_message.cursize);
+			#endif
 			continue;
 		}
 
@@ -935,6 +1021,11 @@ void CL_ParseServerMessage (void)
 			Cmd_ExecuteString ("help", src_command);
 			break;
 		}
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (bench486_trace_parse_command_index)
+			Bench486ScreenCenterTraceGlyph (29,
+					bench486_trace_parse_command_index, cmd, msg_readcount);
+		#endif
 	}
 }
 

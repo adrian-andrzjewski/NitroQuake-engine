@@ -22,6 +22,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+extern int bench486_screen_center_trace_active;
+extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character);
+#endif
+
 /*
 
 A server can allways be started, even if the system started out as a client
@@ -635,10 +640,33 @@ void _Host_Frame (float time)
 	static double		time1 = 0;
 	static double		time2 = 0;
 	static double		time3 = 0;
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	static unsigned		bench486_trace_host_frame_count;
+	static qboolean	bench486_trace_host_frames_started;
+	static unsigned		bench486_trace_filter_attempt_count;
+	unsigned		bench486_trace_host_frame_index;
+	qboolean		bench486_trace_this_host_frame;
+	unsigned		bench486_trace_filter_attempt_index;
+	qboolean		bench486_trace_this_filter_attempt;
+	#endif
 	int			pass1, pass2, pass3;
 #ifdef PROFILE486
 	double			bench486_frame_start;
 #endif
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	bench486_trace_this_filter_attempt = false;
+	bench486_trace_filter_attempt_index = 0;
+	if (bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo) &&
+			bench486_trace_filter_attempt_count < 12)
+	{
+		bench486_trace_filter_attempt_count++;
+		bench486_trace_filter_attempt_index = bench486_trace_filter_attempt_count;
+		bench486_trace_this_filter_attempt = true;
+		Bench486ScreenCenterTraceGlyph (18, bench486_trace_filter_attempt_index,
+				cls.demoplayback, cls.timedemo);
+	}
+	#endif
 
 	if (setjmp (host_abortserver) )
 		return;			// something bad happened, or the server disconnected
@@ -648,7 +676,35 @@ void _Host_Frame (float time)
 	
 // decide the simulation time
 	if (!Host_FilterTime (time))
+	{
+		#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+		if (bench486_trace_this_filter_attempt)
+			Bench486ScreenCenterTraceGlyph (19, bench486_trace_filter_attempt_index,
+					cls.demoplayback, cls.timedemo);
+		#endif
 		return;			// don't run too fast, or packets will flood out
+	}
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_filter_attempt)
+		Bench486ScreenCenterTraceGlyph (20, bench486_trace_filter_attempt_index,
+				cls.demoplayback, cls.timedemo);
+	#endif
+
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	bench486_trace_this_host_frame = false;
+	bench486_trace_host_frame_index = 0;
+	if (bench486_screen_center_trace_active &&
+			(bench486_trace_host_frames_started || cls.demoplayback || cls.timedemo) &&
+			bench486_trace_host_frame_count < 12)
+	{
+		bench486_trace_host_frames_started = true;
+		bench486_trace_host_frame_count++;
+		bench486_trace_host_frame_index = bench486_trace_host_frame_count;
+		bench486_trace_this_host_frame = true;
+		Bench486ScreenCenterTraceGlyph (14, bench486_trace_host_frame_index,
+				cls.demoplayback, cls.timedemo);
+	}
+	#endif
 
 #ifdef BENCH486
 	Bench486TimedemoFrameStart ();
@@ -668,6 +724,21 @@ void _Host_Frame (float time)
 
 // process console commands
 	Cbuf_Execute ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (!bench486_trace_this_host_frame &&
+			bench486_screen_center_trace_active &&
+			(cls.demoplayback || cls.timedemo) &&
+			bench486_trace_host_frame_count < 12)
+	{
+		bench486_trace_host_frames_started = true;
+		bench486_trace_host_frame_count++;
+		bench486_trace_host_frame_index = bench486_trace_host_frame_count;
+		bench486_trace_this_host_frame = true;
+	}
+	if (bench486_trace_this_host_frame)
+		Bench486ScreenCenterTraceGlyph (21, bench486_trace_host_frame_index,
+				cls.demoplayback, cls.timedemo);
+	#endif
 
 	NET_Poll();
 	BENCH486_PROFILE_LEAVE ();
@@ -707,19 +778,39 @@ void _Host_Frame (float time)
 	{
 		CL_ReadFromServer ();
 	}
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_host_frame)
+		Bench486ScreenCenterTraceGlyph (22, bench486_trace_host_frame_index,
+				cls.demoplayback, cls.timedemo);
+	#endif
 	BENCH486_PROFILE_LEAVE ();
 
 // update video
 	if (host_speeds.value)
 		time1 = Sys_FloatTime ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_host_frame)
+		Bench486ScreenCenterTraceGlyph (15, bench486_trace_host_frame_index,
+				cls.demoplayback, cls.timedemo);
+	#endif
 		
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SCREEN);
 	SCR_UpdateScreen ();
+	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_host_frame)
+		Bench486ScreenCenterTraceGlyph (16, bench486_trace_host_frame_index,
+				cls.demoplayback, cls.timedemo);
+	#endif
 	BENCH486_PROFILE_LEAVE ();
 
 #ifdef BENCH486
 	if (cls.timedemo)
 		Bench486TimedemoFrameChecksumRecord ();
+	#if defined(ASM486_SCREEN_CENTER_STRING)
+	if (bench486_trace_this_host_frame)
+		Bench486ScreenCenterTraceGlyph (17, bench486_trace_host_frame_index,
+				cls.demoplayback, cls.timedemo);
+	#endif
 #endif
 
 	if (host_speeds.value)
@@ -907,7 +998,15 @@ void Host_Init (quakeparms_t *parms)
 	Host_InitLocal ();
 	W_LoadWadFile ("gfx.wad");
 	Key_Init ();
-	Con_Init ();	
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+	Con_Init ();
+	bench486_screen_center_trace_active =
+			COM_CheckParm ("-benchcentercalltrace") != 0;
+	if (bench486_screen_center_trace_active)
+		Con_Printf ("screen-center call trace armed\n");
+#else
+	Con_Init ();
+#endif
 	M_Init ();	
 	PR_Init ();
 	Mod_Init ();

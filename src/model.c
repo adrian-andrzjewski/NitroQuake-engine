@@ -23,6 +23,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // on the same machine.
 
 #include "quakedef.h"
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+extern int bench486_screen_center_trace_active;
+extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character);
+#define MOD_TRACE(phase, x, y, character) \
+	do { if (bench486_screen_center_trace_active && \
+			(cls.demoplayback || cls.timedemo)) \
+		Bench486ScreenCenterTraceGlyph (phase, x, y, character); } while (0)
+#else
+#define MOD_TRACE(phase, x, y, character) ((void)0)
+#endif
 #include "r_local.h"
 
 #ifdef ASM486_VISIBILITY
@@ -347,6 +358,7 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 {
 	unsigned *buf;
 	byte	stackbuf[1024];		// avoid dirtying the cache heap
+	MOD_TRACE (39, mod->needload, mod->type, 0);
 
 	if (mod->type == mod_alias)
 	{
@@ -369,7 +381,9 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 //
 // load the file
 //
+	MOD_TRACE (40, mod->needload, mod->type, 0);
 	buf = (unsigned *)COM_LoadStackFile (mod->name, stackbuf, sizeof(stackbuf));
+	MOD_TRACE (41, buf != NULL, mod->type, 0);
 	if (!buf)
 	{
 		if (crash)
@@ -405,6 +419,7 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 		Mod_LoadBrushModel (mod, buf);
 		break;
 	}
+	MOD_TRACE (60, mod->type, mod->numframes, 0);
 
 	return mod;
 }
@@ -652,7 +667,9 @@ void Mod_LoadVertexes (lump_t *l)
 	if (l->filelen % sizeof(*in))
 		Sys_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
+	MOD_TRACE (61, count, count * sizeof(*out), Hunk_LowMark());
 	out = Hunk_AllocName ( count*sizeof(*out), loadname);	
+	MOD_TRACE (62, count, Hunk_LowMark(), 0);
 
 	loadmodel->vertexes = out;
 	loadmodel->numvertexes = count;
@@ -944,14 +961,19 @@ void Mod_LoadNodes (lump_t *l)
 	dnode_t		*in;
 	mnode_t 	*out;
 
+	MOD_TRACE (64, l->filelen, l->fileofs, 0);
 	in = (void *)(mod_base + l->fileofs);
 	if (l->filelen % sizeof(*in))
 		Sys_Error ("MOD_LoadBmodel: funny lump size in %s",loadmodel->name);
 	count = l->filelen / sizeof(*in);
+	MOD_TRACE (65, count, sizeof(*out), 0);
+	MOD_TRACE (66, count * sizeof(*out), Hunk_LowMark(), 0);
 	out = Hunk_AllocName ( count*sizeof(*out), loadname);	
+	MOD_TRACE (67, count, Hunk_LowMark(), 0);
 
 	loadmodel->nodes = out;
 	loadmodel->numnodes = count;
+	MOD_TRACE (68, count, loadmodel->numleafs, 0);
 
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
@@ -977,7 +999,10 @@ void Mod_LoadNodes (lump_t *l)
 		}
 	}
 	
+	MOD_TRACE (69, count, loadmodel->nodes != NULL, 0);
+	MOD_TRACE (70, count, 0, 0);
 	Mod_SetParent (loadmodel->nodes, NULL);	// sets nodes and leafs
+	MOD_TRACE (71, count, 0, 0);
 }
 
 /*
@@ -1025,6 +1050,7 @@ void Mod_LoadLeafs (lump_t *l)
 		for (j=0 ; j<4 ; j++)
 			out->ambient_sound_level[j] = in->ambient_level[j];
 	}	
+	MOD_TRACE (63, count, Hunk_LowMark(), 0);
 }
 
 /*
@@ -1236,6 +1262,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 	int			i, j;
 	dheader_t	*header;
 	dmodel_t 	*bm;
+	MOD_TRACE (42, 0, 0, 0);
 	
 	loadmodel->type = mod_brush;
 	
@@ -1254,22 +1281,38 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 // load into heap
 	
 	Mod_LoadVertexes (&header->lumps[LUMP_VERTEXES]);
+	MOD_TRACE (43, header->lumps[LUMP_VERTEXES].filelen, 0, 0);
 	Mod_LoadEdges (&header->lumps[LUMP_EDGES]);
+	MOD_TRACE (44, header->lumps[LUMP_EDGES].filelen, 0, 0);
 	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);
+	MOD_TRACE (45, header->lumps[LUMP_SURFEDGES].filelen, 0, 0);
 	Mod_LoadTextures (&header->lumps[LUMP_TEXTURES]);
+	MOD_TRACE (46, header->lumps[LUMP_TEXTURES].filelen, 0, 0);
 	Mod_LoadLighting (&header->lumps[LUMP_LIGHTING]);
+	MOD_TRACE (47, header->lumps[LUMP_LIGHTING].filelen, 0, 0);
 	Mod_LoadPlanes (&header->lumps[LUMP_PLANES]);
+	MOD_TRACE (48, header->lumps[LUMP_PLANES].filelen, 0, 0);
 	Mod_LoadTexinfo (&header->lumps[LUMP_TEXINFO]);
+	MOD_TRACE (49, header->lumps[LUMP_TEXINFO].filelen, 0, 0);
 	Mod_LoadFaces (&header->lumps[LUMP_FACES]);
+	MOD_TRACE (50, header->lumps[LUMP_FACES].filelen, 0, 0);
 	Mod_LoadMarksurfaces (&header->lumps[LUMP_MARKSURFACES]);
+	MOD_TRACE (51, header->lumps[LUMP_MARKSURFACES].filelen, 0, 0);
 	Mod_LoadVisibility (&header->lumps[LUMP_VISIBILITY]);
+	MOD_TRACE (52, header->lumps[LUMP_VISIBILITY].filelen, 0, 0);
 	Mod_LoadLeafs (&header->lumps[LUMP_LEAFS]);
+	MOD_TRACE (53, header->lumps[LUMP_LEAFS].filelen, 0, 0);
 	Mod_LoadNodes (&header->lumps[LUMP_NODES]);
+	MOD_TRACE (54, header->lumps[LUMP_NODES].filelen, 0, 0);
 	Mod_LoadClipnodes (&header->lumps[LUMP_CLIPNODES]);
+	MOD_TRACE (55, header->lumps[LUMP_CLIPNODES].filelen, 0, 0);
 	Mod_LoadEntities (&header->lumps[LUMP_ENTITIES]);
+	MOD_TRACE (56, header->lumps[LUMP_ENTITIES].filelen, 0, 0);
 	Mod_LoadSubmodels (&header->lumps[LUMP_MODELS]);
+	MOD_TRACE (57, header->lumps[LUMP_MODELS].filelen, 0, 0);
 
 	Mod_MakeHull0 ();
+	MOD_TRACE (58, 0, 0, 0);
 	
 	mod->numframes = 2;		// regular and alternate animation
 	mod->flags = 0;
@@ -1308,6 +1351,7 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 			mod = loadmodel;
 		}
 	}
+	MOD_TRACE (59, mod->numsubmodels, mod->numsurfaces, mod->numleafs);
 }
 
 /*
