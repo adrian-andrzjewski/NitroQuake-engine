@@ -285,23 +285,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Keep promoted i486 renderer selectors on their assembly paths by default;
-# explicit C values remain available for reference runs and i386 stays C.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('DynamicLightPushImplementation')) {
-    $DynamicLightPushImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteSetupImplementation')) {
-    $SpriteSetupImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawImplementation')) {
-    $SpriteDrawImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
-    $SpriteFrameImplementation = 'asm'
-}
-
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
+Set-DefaultI486AssemblySelectors -CpuTarget $CpuTarget -BoundParameters $PSBoundParameters
 $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
 $DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 

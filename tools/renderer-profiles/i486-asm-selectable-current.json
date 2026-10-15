@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "i486-asm-selectable-current",
-  "description": "Opt-in cumulative candidate selecting every accepted i486 assembly implementation, including SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle.",
+  "description": "Default i486 release profile selecting every accepted assembly implementation, including SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle. Use the C-reference profile for parity comparisons.",
   "selectors": {
     "MemoryImplementation": "asm",
     "FillRectImplementation": "asm",

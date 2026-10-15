@@ -341,26 +341,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Match the promoted release selectors on i486, but keep the separate i386
-# timedemo profile on its C reference unless the caller opts in explicitly.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MarkLightsImplementation')) {
-    $MarkLightsImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('DynamicLightPushImplementation')) {
-    $DynamicLightPushImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteSetupImplementation')) {
-    $SpriteSetupImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawImplementation')) {
-    $SpriteDrawImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
-    $SpriteFrameImplementation = 'asm'
-}
-
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
+Set-DefaultI486AssemblySelectors -CpuTarget $CpuTarget -BoundParameters $PSBoundParameters
 
 function ConvertTo-DemoFixtureInteger {
     param(

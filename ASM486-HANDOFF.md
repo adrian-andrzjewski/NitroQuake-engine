@@ -9,6 +9,20 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Current i486 selector policy (2026-10-15)
+
+The default i486 selector set is now
+[`i486-asm-selectable-current.json`](tools/renderer-profiles/i486-asm-selectable-current.json),
+which enables all 111 currently accepted assembly implementations across the
+build and runner scripts. The complete
+[`i486-c-reference.json`](tools/renderer-profiles/i486-c-reference.json)
+profile remains available for parity checks, and individual C selector values
+remain available for focused comparisons. This policy change adds no new parity
+or performance evidence and does not mean the full renderer has been ported to
+assembly; work outside the accepted selector set remains open. Older statements
+below that C remained the release default describe the policy in force when
+those measurements were recorded.
+
 The dated experiment log that used to sit under this heading -- its entries and
 3,986 lines -- now lives in [`docs/ledger/`](docs/ledger/INDEX.md), split by date
 and region. Nothing in it was reworded; see the ledger index for the entry list

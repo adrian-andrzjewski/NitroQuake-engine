@@ -371,40 +371,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Match the promoted release selectors on i486, but keep the separate i386
-# benchmark profile on its C reference unless the caller opts in explicitly.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MarkLightsImplementation')) {
-    $MarkLightsImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('DynamicLightPushImplementation')) {
-    $DynamicLightPushImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteSetupImplementation')) {
-    $SpriteSetupImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawImplementation')) {
-    $SpriteDrawImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
-    $SpriteFrameImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MathClosureImplementation')) {
-    $MathClosureImplementation = 'asm'
-}
-# Keep the benchmark runner's promoted renderer defaults aligned with the
-# release builder so -SkipBuild resolves the exact selector set it audited.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('EfragStoreImplementation')) {
-    $EfragStoreImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BlobExplosionImplementation')) {
-    $BlobExplosionImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BspWalkImplementation')) {
-    $BspWalkImplementation = 'asm'
-}
-
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 . (Join-Path $PSScriptRoot 'common.ps1')
+Set-DefaultI486AssemblySelectors -CpuTarget $CpuTarget -BoundParameters $PSBoundParameters
 $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
 $DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 if ($TimeoutSeconds -lt 10) {

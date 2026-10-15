@@ -5,6 +5,13 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
+As of 2026-10-15, the i486 build defaults to the accepted assembly selectors in
+[`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
+[`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
+is the complete C parity profile. The dated entries below preserve the status
+reported when each comparison was recorded; this default change adds no new
+parity, performance, or full-renderer ownership evidence.
+
 ## Accepted incremental work
 
 Sprite orientation/dispatch, the public sprite-frame entry, `VectorNormalize`

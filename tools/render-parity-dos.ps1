@@ -11,7 +11,7 @@
 [CmdletBinding()]
 param(
     [string]$ReferenceProfile = 'tools/renderer-profiles/i486-c-reference.json',
-    [string]$CandidateProfile = 'tools/renderer-profiles/i486-asm-selectable.json',
+    [string]$CandidateProfile = 'tools/renderer-profiles/i486-asm-selectable-current.json',
     [string[]]$Scenario = @(),
     [string]$ScenarioFile,
     [string]$OutputRoot,

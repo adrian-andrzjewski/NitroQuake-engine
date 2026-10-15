@@ -1,4 +1,4 @@
-<# Exercise real runner parameter blocks, promotions and forwarding without DOS.
+<# Exercise real runner parameter blocks, defaults and forwarding without DOS.
    The regression was an ASM request recorded in metadata but omitted at build. #>
 [CmdletBinding()]
 param()
@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common.ps1')
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $reference = Get-Content (Join-Path $PSScriptRoot 'renderer-profiles/i486-c-reference.json') -Raw | ConvertFrom-Json
-$candidate = Get-Content (Join-Path $PSScriptRoot 'renderer-profiles/i486-asm-selectable.json') -Raw | ConvertFrom-Json
+$candidate = Get-Content (Join-Path $PSScriptRoot 'renderer-profiles/i486-asm-selectable-current.json') -Raw | ConvertFrom-Json
 $checks = 0
 $runnerCounts = [ordered]@{}
 foreach ($runner in @('bench-dos.ps1', 'timedemo-dos.ps1', 'smoke-dos.ps1', 'coverage-dos.ps1')) {
@@ -25,28 +25,30 @@ foreach ($runner in @('bench-dos.ps1', 'timedemo-dos.ps1', 'smoke-dos.ps1', 'cov
         $node.GetCommandName() -eq 'Add-RunnerBuildSelectors'
     }, $true)
     if ($null -eq $assign -or $null -eq $forward) { throw "$runner does not forward selectors through the shared helper." }
-    $promotions = @($ast.EndBlock.Statements | Where-Object {
-        $_ -is [Management.Automation.Language.IfStatementAst] -and
-        $_.Extent.Text -match 'PSBoundParameters.ContainsKey'
-    } | ForEach-Object { $_.Extent.Text })
+    $defaults = $ast.Find({ param($node)
+        $node -is [Management.Automation.Language.CommandAst] -and
+        $node.GetCommandName() -eq 'Set-DefaultI486AssemblySelectors'
+    }, $true)
+    if ($null -eq $defaults) { throw "$runner does not resolve the shared i486 assembly defaults." }
     # ScriptBlock invocations have a different MyCommand. Keep the actual runner
     # command's parameter declarations when executing its forwarding statement.
     $forwardText = $forward.Extent.Text.Replace('$MyInvocation.MyCommand', '$runnerCommand')
     $harness = [scriptblock]::Create($ast.ParamBlock.Extent.Text + "`n" +
-        ($promotions -join "`n") + "`n" + $assign.Extent.Text + "`n" +
+        $defaults.Extent.Text + "`n" + $assign.Extent.Text + "`n" +
         $forwardText + "`nreturn ,`$buildParams")
+    $defaulted = & $harness -CpuTarget 'i486'
+    foreach ($property in $candidate.selectors.PSObject.Properties) {
+        if ($runnerCommand.Parameters.ContainsKey($property.Name) -and
+            $defaulted[$property.Name] -ne $property.Value) {
+            throw "$runner defaults $($property.Name) to '$($defaulted[$property.Name])'; expected '$($property.Value)'."
+        }
+        $checks++
+    }
     foreach ($profile in @($reference, $candidate)) {
         $requested = @{ CpuTarget = 'i486' }
         foreach ($property in $profile.selectors.PSObject.Properties) {
             if ($runnerCommand.Parameters.ContainsKey($property.Name)) {
                 $requested[$property.Name] = $property.Value
-            }
-        }
-        if ($profile.id -eq 'i486-asm-selectable') {
-            foreach ($selector in $script:SelectorTable) {
-                if ($selector.SelectsAsm -and $runnerCommand.Parameters.ContainsKey($selector.Param)) {
-                    $requested[$selector.Param] = 'asm'
-                }
             }
         }
         $forwarded = & $harness @requested

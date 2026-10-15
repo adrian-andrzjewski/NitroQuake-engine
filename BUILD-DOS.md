@@ -36,6 +36,17 @@ This checkout builds the retained NitroQuake MS-DOS/software-renderer source
 directly from Windows 10.  The compiler is a Windows-hosted DJGPP cross
 toolchain; DOSBox-X is used only to run the resulting DOS executable.
 
+## Current i486 renderer selector defaults
+
+For `-CpuTarget i486`, omitted renderer implementation selectors use
+`tools/renderer-profiles/i486-asm-selectable-current.json`. This enables the
+111 accepted i486 assembly paths by default across the build, smoke, benchmark,
+timedemo, and coverage runners. Pass an individual selector as `c`, or use
+`i486-c-reference.json` in the parity harness, to build the C reference.
+`-CpuTarget i386` keeps its existing parameter-block defaults. Historical
+experiment notes below record the policy and evidence at the time they were
+written.
+
 The experimental status and next-agent continuation plan are maintained in
 `ASM486-HANDOFF.md`.  This document is the operational reference for building,
 running, benchmarking, and interpreting the results.
@@ -542,27 +553,26 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\tools\build-dos.ps1 -Clean
 ~~~
 
-The executable is written to:
+The expanded i486 selector suffix exceeds the legacy Windows path limit, so the
+default executable is written to a checkout-specific hashed directory:
 
 ~~~text
-out\dos\quake.exe
+out\profile-<hash>\quake.exe
 ~~~
 
+`build-dos.ps1 -DumpFlags` prints the exact resolved executable and object paths.
+
 The default normal build uses all 83 C files and 21 preprocessed x86 assembly
-files in src.  Its `aggressive` profile is `-O3 -march=i486` with the
-measured ASM paths enabled for alias projection, alias bounding-box projection,
-clipped alias transform/lighting and vertex preparation, alias view-matrix setup
-and composition, alias triangle rasterization, texture animation, and lightmap normalization; the turbulent
-loop uses the measured `stosb` variant. Renderer
+files in src. Its `aggressive` profile is `-O3 -march=i486`; the renderer
+selectors use the current accepted assembly profile described above. Renderer
 entry selectors such as `-SkySpanImplementation`, `-WarpScreenImplementation`,
-`-SolidSurfaceImplementation`, and `-TurbulentScanImplementation` let C and
-assembly paths be built separately; the sky, solid-surface, and turbulent-scan
-selectors remain on C by default. `-O2` remains
+`-SolidSurfaceImplementation`, and `-TurbulentScanImplementation` still allow
+the C reference to be selected explicitly. `-O2` remains
 available as `-OptimizationProfile baseline` and writes to `out\dos-baseline`.  net_comx.c is
 textually included by net_ser.c, so the build compiles 82 standalone C files
-and obtains the remaining C implementation through that include.  Object files
-and a generated build-manifest.json remain under out\dos, which is ignored by
-Git.  The linker output is checked with the DJGPP objdump and must report
+and obtains the remaining C implementation through that include. Object files
+and a generated build-manifest.json remain under the resolved output directory,
+which is ignored by Git. The linker output is checked with the DJGPP objdump and must report
 coff-go32.
 
 ### Alias triangle rasterization
@@ -1739,17 +1749,10 @@ The focused benchmark can select each implementation independently:
   -AliasTransformFinalImplementation c `
 ~~~
 
-Individual implementation switches can be omitted. The defaults are C for
-memory helpers, texture-axis, surface-cache, mip-level selection, BSP plane
-dot, BSP clipping, BSP traversal, world-face and B-model face rendering, and the
-`Turbulent8` scan setup; `stosb` for turbulent spans;
-and ASM for alias
-projection, alias bounding-box projection, clipped alias transform/lighting,
-texture animation, and lightmap normalization; the lightmap-build dispatcher
-defaults to C. Pass
-`-TurbulentImplementation asm` for the existing ASM control. The runner
-records selector values in `bench-result.json` and uses a matching output
-directory suffix. Use `-TurbulentOnly`, `-AliasProjectOnly`,
+On i486, omitted implementation switches use the current accepted assembly
+profile. Pass an explicit `c` value when a benchmark needs the C parity
+reference. The runner records selector values in `bench-result.json` and uses
+a matching output directory suffix. Use `-TurbulentOnly`, `-AliasProjectOnly`,
 `-AliasBBoxProjectOnly`, `-AliasTransformFinalOnly`, `-TextureAnimationOnly`,
 `-LightMapNormalizeOnly`, `-LightMapBuildOnly`, `-BspPlaneDotOnly`, `-BspClipOnly`, or
 `-TurbulentScanOnly` to run only the corresponding focused experiment instead

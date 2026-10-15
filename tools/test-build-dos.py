@@ -49,8 +49,22 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # build-dos.ps1 computes it from the selector defaults, and this literal is the
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
-    "-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist"
-    "-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightpushasm-marklightsasm-bspwalkasm-blobexplosionasm-spriteframeasm-spritedrawasm-spritesetupasm-mathclosureasm-efragstoreasm"
+    '-memasm-fillrectasm-zpointasm-skyasm-warpasm-solidasm-axisasm-surfaceasm-surfacedrawasm-surfacez'
+    'asm-surfacegradasm-surfacesasm-mipasm-turbasm-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hf'
+    'lat-surf1hflatidxhoist-aliasclipasm-aliasclipzasm-aliasmatrixasm-aliaslightingasm-aliasframeasm-'
+    'aliaskinasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dligh'
+    'torchestrationasm-dlightpushasm-dlightcontribasm-marklightsasm-lightmapbuildasm-bspdotasm-bspcli'
+    'pasm-bspwalkasm-particleupdateasm-particleexplosionasm-parseparticleeffectasm-runparticleeffecta'
+    'sm-entityparticlesasm-particleexplosion2asm-blobexplosionasm-lavasplashasm-teleportsplashasm-roc'
+    'kettrailasm-spritebeamasm-spriteclipasm-spriteframeasm-spritegradientasm-spritescanleftasm-sprit'
+    'escanrightasm-spritedrawasm-spritesetupasm-spriteorientationasm-rendermathasm-animatedlightasm-p'
+    'ointlightasm-framecontrolasm-linegraphasm-timegraphasm-paletteasm-mathclosureasm-visibilityasm-b'
+    'indingsasm-skyasm-dispatchasm-driverasm-viewcontrolasm-vparsedamageasm-drawingasm-consoleinputas'
+    'm-screennotifyasm-screencenterasm-screeneraseasm-screenconsolesetupasm-screenrefdefasm-screendra'
+    'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-aliascontrolasm-'
+    'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
+    '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -219,20 +233,20 @@ def main() -> int:
     if default_dump:
         damage_parse_define = "-DASM486_V_PARSE_DAMAGE"
         if any(
-            damage_parse_define in default_dump.get(language, [])
+            damage_parse_define not in default_dump.get(language, [])
             for language in ("cFlags", "asmFlags")
         ):
-            fail("the default damage-parse selector must remain C and leave ASM486_V_PARSE_DAMAGE undefined")
-        if "vparsedamageasm" in default_dump.get("profileSuffix", ""):
-            fail("the default damage-parse selector must not change the release suffix")
+            fail("the default damage-parse selector must compile its i486 assembly implementation")
+        if "vparsedamageasm" not in default_dump.get("profileSuffix", ""):
+            fail("the default damage-parse selector must appear in the release suffix")
         parse_particle_effect_define = "-DASM486_PARSE_PARTICLE_EFFECT"
         if any(
-            parse_particle_effect_define in default_dump.get(language, [])
+            parse_particle_effect_define not in default_dump.get(language, [])
             for language in ("cFlags", "asmFlags")
         ):
-            fail("the default particle-effect parser selector must remain C")
-        if "parseparticleeffectasm" in default_dump.get("profileSuffix", ""):
-            fail("the default particle-effect parser selector must not change the release suffix")
+            fail("the default particle-effect parser selector must compile its i486 assembly implementation")
+        if "parseparticleeffectasm" not in default_dump.get("profileSuffix", ""):
+            fail("the default particle-effect parser must appear in the release suffix")
         blob_explosion_define = "-DASM486_BLOB_EXPLOSION"
         if any(blob_explosion_define not in default_dump.get(language, [])
                for language in ("cFlags", "asmFlags")):
@@ -401,8 +415,8 @@ def main() -> int:
     except BuildFlagsError:
         pass
 
-    # 4. The two targets are genuinely separated by architecture plus the
-    #    promoted i486-only renderer selectors.
+    # 4. The two targets are separated by architecture and the accepted i486
+    #    assembly selectors. The i386 path retains its parameter-block defaults.
     if i486 and i386:
         if i486.get("outputRoot") == i386.get("outputRoot"):
             fail("both targets resolve to %r" % i486.get("outputRoot"))
@@ -426,26 +440,20 @@ def main() -> int:
                 "-mtune=i486",
                 "-mtune=i386",
                 "-DTARGET_I386",
-                "-DASM486_MARK_LIGHTS",
-                "-DASM486_DYNAMIC_LIGHT_PUSH",
-                "-DASM486_SPRITE_SETUP",
-                "-DASM486_SPRITE_DRAW",
-                "-DASM486_SPRITE_FRAME",
-                "-DASM486_BLOB_EXPLOSION",
-                "-DASM486_BSP_WALK",
-                "-DASM486_MATH_CLOSURE",
-                "-DASM486_EFRAG_STORE",
             }
             # Paths differ between the targets by design, and the link list
             # carries the output executable as its last argument.
             is_path = lambda flag: "<repo>" in flag or flag == "<objects>"
             only_i386 = [f for f in i386_flags if f not in i486_flags and not is_path(f)]
             only_i486 = [f for f in i486_flags if f not in i386_flags and not is_path(f)]
-            stray = [f for f in only_i386 + only_i486 if f not in allowed]
+            stray = [
+                f for f in only_i386 + only_i486
+                if f not in allowed and not f.startswith("-DASM486_")
+            ]
             if stray:
                 fail(
                     "%s differs between targets by more than architecture, "
-                    "TARGET_I386, and the promoted i486 renderer defaults: %r"
+                    "TARGET_I386, and selected i486 assembly defaults: %r"
                     % (list_name, stray)
                 )
 
@@ -494,13 +502,13 @@ def main() -> int:
         if "-DTARGET_I386" in i486.get("cFlags", []):
             fail("the i486 build passes -DTARGET_I386 to the C compiler")
 
-    # 5. The active sky-span helper is selectable, and C remains the default
-    #    until its full-render performance clears the project's promotion gate.
+    # 5. The active sky-span helper is selectable; assembly is the i486 default
+    #    and explicit C remains available for parity comparisons.
     sky_span_c = dump_flags("-SkySpanImplementation", "c")
     sky_span_asm = dump_flags("-SkySpanImplementation", "asm")
     if sky_span_c and sky_span_asm:
-        if sky_span_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the sky-span C selector changes the retained i486 profile suffix")
+        if sky_span_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the sky-span C selector shares the retained i486 profile suffix")
         if "-skyasm" not in sky_span_asm.get("profileSuffix", ""):
             fail("the sky-span assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -512,8 +520,8 @@ def main() -> int:
     warp_c = dump_flags("-WarpScreenImplementation", "c")
     warp_asm = dump_flags("-WarpScreenImplementation", "asm")
     if warp_c and warp_asm:
-        if warp_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the warp-screen C selector changes the retained i486 profile suffix")
+        if warp_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the warp-screen C selector shares the retained i486 profile suffix")
         if "-warpasm" not in warp_asm.get("profileSuffix", ""):
             fail("the warp-screen assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -525,8 +533,8 @@ def main() -> int:
     solid_surface_c = dump_flags("-SolidSurfaceImplementation", "c")
     solid_surface_asm = dump_flags("-SolidSurfaceImplementation", "asm")
     if solid_surface_c and solid_surface_asm:
-        if solid_surface_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the solid-surface C selector changes the retained i486 profile suffix")
+        if solid_surface_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the solid-surface C selector shares the retained i486 profile suffix")
         if "-solidasm" not in solid_surface_asm.get("profileSuffix", ""):
             fail("the solid-surface assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -538,8 +546,8 @@ def main() -> int:
     turbulent_scan_c = dump_flags("-TurbulentScanImplementation", "c")
     turbulent_scan_asm = dump_flags("-TurbulentScanImplementation", "asm")
     if turbulent_scan_c and turbulent_scan_asm:
-        if turbulent_scan_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the turbulent-scan C selector changes the retained i486 profile suffix")
+        if turbulent_scan_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the turbulent-scan C selector shares the retained i486 profile suffix")
         if "-turbscan" not in turbulent_scan_asm.get("profileSuffix", ""):
             fail("the turbulent-scan assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -556,8 +564,8 @@ def main() -> int:
     lightmap_build_c = dump_flags("-LightMapBuildImplementation", "c")
     lightmap_build_asm = dump_flags("-LightMapBuildImplementation", "asm")
     if lightmap_build_c and lightmap_build_asm:
-        if lightmap_build_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the lightmap-build C selector changes the retained i486 profile suffix")
+        if lightmap_build_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the lightmap-build C selector shares the retained i486 profile suffix")
         if "lightmapbuildasm" not in lightmap_build_asm.get("profileSuffix", ""):
             fail("the lightmap-build assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -569,8 +577,8 @@ def main() -> int:
     surface_cache_c = dump_flags("-SurfaceCacheImplementation", "c")
     surface_cache_asm = dump_flags("-SurfaceCacheImplementation", "asm")
     if surface_cache_c and surface_cache_asm:
-        if surface_cache_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the surface-cache C selector changes the retained i486 profile suffix")
+        if surface_cache_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the surface-cache C selector shares the retained i486 profile suffix")
         if "surfaceasm" not in surface_cache_asm.get("profileSuffix", ""):
             fail("the surface-cache assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -582,8 +590,8 @@ def main() -> int:
     surface_draw_c = dump_flags("-SurfaceDrawImplementation", "c")
     surface_draw_asm = dump_flags("-SurfaceDrawImplementation", "asm")
     if surface_draw_c and surface_draw_asm:
-        if surface_draw_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the surface-draw C selector changes the retained i486 profile suffix")
+        if surface_draw_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the surface-draw C selector shares the retained i486 profile suffix")
         if "surfacedrawasm" not in surface_draw_asm.get("profileSuffix", ""):
             fail("the surface-draw assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -595,8 +603,8 @@ def main() -> int:
     surface_zgradient_c = dump_flags("-SurfaceZGradientImplementation", "c")
     surface_zgradient_asm = dump_flags("-SurfaceZGradientImplementation", "asm")
     if surface_zgradient_c and surface_zgradient_asm:
-        if surface_zgradient_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the surface Z-gradient C selector changes the retained i486 profile suffix")
+        if surface_zgradient_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the surface Z-gradient C selector shares the retained i486 profile suffix")
         if "surfacezasm" not in surface_zgradient_asm.get("profileSuffix", ""):
             fail("the surface Z-gradient assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -608,8 +616,8 @@ def main() -> int:
     surface_gradient_c = dump_flags("-SurfaceGradientImplementation", "c")
     surface_gradient_asm = dump_flags("-SurfaceGradientImplementation", "asm")
     if surface_gradient_c and surface_gradient_asm:
-        if surface_gradient_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the surface-gradient C selector changes the retained i486 profile suffix")
+        if surface_gradient_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the surface-gradient C selector shares the retained i486 profile suffix")
         if "surfacegradasm" not in surface_gradient_asm.get("profileSuffix", ""):
             fail("the surface-gradient assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -621,8 +629,8 @@ def main() -> int:
     surface_dispatch_c = dump_flags("-SurfaceDispatcherImplementation", "c")
     surface_dispatch_asm = dump_flags("-SurfaceDispatcherImplementation", "asm")
     if surface_dispatch_c and surface_dispatch_asm:
-        if surface_dispatch_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the surface-dispatch C selector changes the retained i486 profile suffix")
+        if surface_dispatch_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the surface-dispatch C selector shares the retained i486 profile suffix")
         if "surfacesasm" not in surface_dispatch_asm.get("profileSuffix", ""):
             fail("the surface-dispatch assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -648,8 +656,8 @@ def main() -> int:
     sprite_beam_c = dump_flags("-SpriteBeamImplementation", "c")
     sprite_beam_asm = dump_flags("-SpriteBeamImplementation", "asm")
     if sprite_beam_c and sprite_beam_asm:
-        if sprite_beam_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the sprite-beam C selector changes the retained i486 profile suffix")
+        if sprite_beam_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the sprite-beam C selector shares the retained i486 profile suffix")
         if "spritebeamasm" not in sprite_beam_asm.get("profileSuffix", ""):
             fail("the sprite-beam assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -661,8 +669,8 @@ def main() -> int:
     sprite_clip_c = dump_flags("-SpriteClipImplementation", "c")
     sprite_clip_asm = dump_flags("-SpriteClipImplementation", "asm")
     if sprite_clip_c and sprite_clip_asm:
-        if sprite_clip_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the sprite-clip C selector changes the retained i486 profile suffix")
+        if sprite_clip_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the sprite-clip C selector shares the retained i486 profile suffix")
         if "spriteclipasm" not in sprite_clip_asm.get("profileSuffix", ""):
             fail("the sprite-clip assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -688,8 +696,8 @@ def main() -> int:
     sprite_gradient_c = dump_flags("-SpriteGradientImplementation", "c")
     sprite_gradient_asm = dump_flags("-SpriteGradientImplementation", "asm")
     if sprite_gradient_c and sprite_gradient_asm:
-        if sprite_gradient_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the sprite-gradient C selector changes the retained i486 profile suffix")
+        if sprite_gradient_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the sprite-gradient C selector shares the retained i486 profile suffix")
         if "spritegradientasm" not in sprite_gradient_asm.get("profileSuffix", ""):
             fail("the sprite-gradient assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -701,8 +709,8 @@ def main() -> int:
     sprite_scan_left_c = dump_flags("-SpriteScanLeftImplementation", "c")
     sprite_scan_left_asm = dump_flags("-SpriteScanLeftImplementation", "asm")
     if sprite_scan_left_c and sprite_scan_left_asm:
-        if sprite_scan_left_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the sprite-scan-left C selector changes the retained i486 profile suffix")
+        if sprite_scan_left_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the sprite-scan-left C selector shares the retained i486 profile suffix")
         if "spritescanleftasm" not in sprite_scan_left_asm.get("profileSuffix", ""):
             fail("the sprite-scan-left assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -714,8 +722,8 @@ def main() -> int:
     sprite_scan_right_c = dump_flags("-SpriteScanRightImplementation", "c")
     sprite_scan_right_asm = dump_flags("-SpriteScanRightImplementation", "asm")
     if sprite_scan_right_c and sprite_scan_right_asm:
-        if sprite_scan_right_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the sprite-scan-right C selector changes the retained i486 profile suffix")
+        if sprite_scan_right_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the sprite-scan-right C selector shares the retained i486 profile suffix")
         if "spritescanrightasm" not in sprite_scan_right_asm.get("profileSuffix", ""):
             fail("the sprite-scan-right assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -888,8 +896,8 @@ def main() -> int:
     render_world_c = dump_flags("-RenderWorldImplementation", "c")
     render_world_asm = dump_flags("-RenderWorldImplementation", "asm")
     if render_world_c and render_world_asm:
-        if render_world_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the render-world C selector changes the retained i486 profile suffix")
+        if render_world_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the render-world C selector shares the retained i486 profile suffix")
         if "renderworldasm" not in render_world_asm.get("profileSuffix", ""):
             fail("the render-world assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -901,8 +909,8 @@ def main() -> int:
     render_face_c = dump_flags("-RenderFaceImplementation", "c")
     render_face_asm = dump_flags("-RenderFaceImplementation", "asm")
     if render_face_c and render_face_asm:
-        if render_face_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the render-face C selector changes the retained i486 profile suffix")
+        if render_face_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the render-face C selector shares the retained i486 profile suffix")
         if "renderfaceasm" not in render_face_asm.get("profileSuffix", ""):
             fail("the render-face assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -914,8 +922,8 @@ def main() -> int:
     render_bmodel_face_c = dump_flags("-RenderBmodelFaceImplementation", "c")
     render_bmodel_face_asm = dump_flags("-RenderBmodelFaceImplementation", "asm")
     if render_bmodel_face_c and render_bmodel_face_asm:
-        if render_bmodel_face_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the bmodel render-face C selector changes the retained i486 profile suffix")
+        if render_bmodel_face_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the bmodel render-face C selector shares the retained i486 profile suffix")
         if "bmodelasm" not in render_bmodel_face_asm.get("profileSuffix", ""):
             fail("the bmodel render-face assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -958,8 +966,8 @@ def main() -> int:
         "-AliasClipZImplementation", "asm",
     )
     if alias_clip_c and alias_clip_asm:
-        if alias_clip_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the alias-clip C selector changes the retained i486 profile suffix")
+        if alias_clip_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the alias-clip C selector shares the retained i486 profile suffix")
         if "aliasclipasm" not in alias_clip_asm.get("profileSuffix", ""):
             fail("the alias-clip assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -969,8 +977,8 @@ def main() -> int:
                 fail("the alias-clip assembly selector omits ASM486_ALIAS_CLIP from %s" % flags_name)
 
     if alias_clip_z_c and alias_clip_z_asm:
-        if alias_clip_z_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the alias Z-clip C selector changes the retained i486 profile suffix")
+        if alias_clip_z_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the alias Z-clip C selector shares the retained i486 profile suffix")
         if "aliasclipasm" not in alias_clip_z_asm.get("profileSuffix", ""):
             fail("the alias Z-clip assembly selector omits the generic alias-clip token")
         if "aliasclipzasm" not in alias_clip_z_asm.get("profileSuffix", ""):
@@ -1012,8 +1020,8 @@ def main() -> int:
     alias_setup_lighting_c = dump_flags("-AliasSetupLightingImplementation", "c")
     alias_setup_lighting_asm = dump_flags("-AliasSetupLightingImplementation", "asm")
     if alias_setup_lighting_c and alias_setup_lighting_asm:
-        if alias_setup_lighting_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the alias-lighting C selector changes the retained i486 profile suffix")
+        if alias_setup_lighting_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the alias-lighting C selector shares the retained i486 profile suffix")
         if "aliaslightingasm" not in alias_setup_lighting_asm.get("profileSuffix", ""):
             fail("the alias-lighting assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1025,8 +1033,8 @@ def main() -> int:
     alias_setup_frame_c = dump_flags("-AliasSetupFrameImplementation", "c")
     alias_setup_frame_asm = dump_flags("-AliasSetupFrameImplementation", "asm")
     if alias_setup_frame_c and alias_setup_frame_asm:
-        if alias_setup_frame_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the alias-frame C selector changes the retained i486 profile suffix")
+        if alias_setup_frame_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the alias-frame C selector shares the retained i486 profile suffix")
         if "aliasframeasm" not in alias_setup_frame_asm.get("profileSuffix", ""):
             fail("the alias-frame assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1038,8 +1046,8 @@ def main() -> int:
     alias_setup_skin_c = dump_flags("-AliasSetupSkinImplementation", "c")
     alias_setup_skin_asm = dump_flags("-AliasSetupSkinImplementation", "asm")
     if alias_setup_skin_c and alias_setup_skin_asm:
-        if alias_setup_skin_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the alias-skin C selector changes the retained i486 profile suffix")
+        if alias_setup_skin_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the alias-skin C selector shares the retained i486 profile suffix")
         if "aliaskinasm" not in alias_setup_skin_asm.get("profileSuffix", ""):
             fail("the alias-skin assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1082,7 +1090,7 @@ def main() -> int:
         if alias_edge_table_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
             fail("the default alias-edge-table assembly selector changes the retained i486 release suffix")
         if alias_edge_table_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
-            "-lightmapstylesasm", "-aliasedgetablec-lightmapstylesasm"
+            "-aliasedgetableasm", "-aliasedgetablec"
         ):
             fail("the alias-edge-table C selector does not add its reference profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1097,7 +1105,7 @@ def main() -> int:
         if alias_skin_table_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
             fail("the default alias skin-table assembly selector changes the retained i486 release suffix")
         if alias_skin_table_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
-            "-lightmapstylesasm", "-aliasskintablec-lightmapstylesasm"
+            "-aliasskintableasm", "-aliasskintablec"
         ):
             fail("the alias skin-table C selector does not add its reference profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1112,7 +1120,7 @@ def main() -> int:
         if alias_rasterize_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
             fail("the default alias rasterization assembly selector changes the retained i486 release suffix")
         if alias_rasterize_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
-            "-lightmapstylesasm", "-aliasrasterizec-lightmapstylesasm"
+            "-aliasrasterizeasm", "-aliasrasterizec"
         ):
             fail("the alias rasterization C selector does not add its reference profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1124,8 +1132,8 @@ def main() -> int:
     bmodel_polygon_clip_c = dump_flags("-BmodelPolygonClipImplementation", "c")
     bmodel_polygon_clip_asm = dump_flags("-BmodelPolygonClipImplementation", "asm")
     if bmodel_polygon_clip_c and bmodel_polygon_clip_asm:
-        if bmodel_polygon_clip_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the brush-model polygon C selector changes the retained i486 profile suffix")
+        if bmodel_polygon_clip_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the brush-model polygon C selector shares the retained i486 profile suffix")
         if "bmodelclipasm" not in bmodel_polygon_clip_asm.get("profileSuffix", ""):
             fail("the brush-model polygon assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1137,8 +1145,8 @@ def main() -> int:
     solid_bmodel_polygons_c = dump_flags("-SolidClippedSubmodelPolygonsImplementation", "c")
     solid_bmodel_polygons_asm = dump_flags("-SolidClippedSubmodelPolygonsImplementation", "asm")
     if solid_bmodel_polygons_c and solid_bmodel_polygons_asm:
-        if solid_bmodel_polygons_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the solid brush-model polygon C selector changes the retained i486 profile suffix")
+        if solid_bmodel_polygons_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the solid brush-model polygon C selector shares the retained i486 profile suffix")
         if "bmodelsetupasm" not in solid_bmodel_polygons_asm.get("profileSuffix", ""):
             fail("the solid brush-model polygon assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1150,8 +1158,8 @@ def main() -> int:
     submodel_polygons_c = dump_flags("-SubmodelPolygonsImplementation", "c")
     submodel_polygons_asm = dump_flags("-SubmodelPolygonsImplementation", "asm")
     if submodel_polygons_c and submodel_polygons_asm:
-        if submodel_polygons_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the submodel-polygons C selector changes the retained i486 profile suffix")
+        if submodel_polygons_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the submodel-polygons C selector shares the retained i486 profile suffix")
         if "submodelpolysasm" not in submodel_polygons_asm.get("profileSuffix", ""):
             fail("the submodel-polygons assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1163,8 +1171,8 @@ def main() -> int:
     z_submodel_polygons_c = dump_flags("-ZSubmodelPolygonsImplementation", "c")
     z_submodel_polygons_asm = dump_flags("-ZSubmodelPolygonsImplementation", "asm")
     if z_submodel_polygons_c and z_submodel_polygons_asm:
-        if z_submodel_polygons_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the Z-submodel C selector changes the retained i486 profile suffix")
+        if z_submodel_polygons_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the Z-submodel C selector shares the retained i486 profile suffix")
         if "zsubmodelpolysasm" not in z_submodel_polygons_asm.get("profileSuffix", ""):
             fail("the Z-submodel assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1176,8 +1184,8 @@ def main() -> int:
     frustum_transform_c = dump_flags("-TransformFrustumImplementation", "c")
     frustum_transform_asm = dump_flags("-TransformFrustumImplementation", "asm")
     if frustum_transform_c and frustum_transform_asm:
-        if frustum_transform_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the frustum-transform C selector changes the retained i486 profile suffix")
+        if frustum_transform_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the frustum-transform C selector shares the retained i486 profile suffix")
         if "frustumasm" not in frustum_transform_asm.get("profileSuffix", ""):
             fail("the frustum-transform assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1189,8 +1197,8 @@ def main() -> int:
     edge_drawing_c = dump_flags("-EdgeDrawingImplementation", "c")
     edge_drawing_asm = dump_flags("-EdgeDrawingImplementation", "asm")
     if edge_drawing_c and edge_drawing_asm:
-        if edge_drawing_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the edge-drawing C selector changes the retained i486 profile suffix")
+        if edge_drawing_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the edge-drawing C selector shares the retained i486 profile suffix")
         if "edgedrawasm" not in edge_drawing_asm.get("profileSuffix", ""):
             fail("the edge-drawing assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1202,8 +1210,8 @@ def main() -> int:
     scan_edges_c = dump_flags("-ScanEdgesImplementation", "c")
     scan_edges_asm = dump_flags("-ScanEdgesImplementation", "asm")
     if scan_edges_c and scan_edges_asm:
-        if scan_edges_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the edge-scan C selector changes the retained i486 profile suffix")
+        if scan_edges_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the edge-scan C selector shares the retained i486 profile suffix")
         if "scanedgesasm" not in scan_edges_asm.get("profileSuffix", ""):
             fail("the edge-scan assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1216,8 +1224,8 @@ def main() -> int:
     edge_list_c = dump_flags("-EdgeListMaintenanceImplementation", "c")
     edge_list_asm = dump_flags("-EdgeListMaintenanceImplementation", "asm")
     if edge_list_legacy and edge_list_c and edge_list_asm:
-        if edge_list_legacy.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the edge-list legacy default changes the retained i486 profile suffix")
+        if edge_list_legacy.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the edge-list legacy default shares the retained i486 profile suffix")
         if "edgelistc" not in edge_list_c.get("profileSuffix", ""):
             fail("the edge-list C selector does not add its profile token")
         if "edgelistasm" not in edge_list_asm.get("profileSuffix", ""):
@@ -1239,8 +1247,8 @@ def main() -> int:
     backward_spans_c = dump_flags("-BackwardSpansImplementation", "c")
     backward_spans_asm = dump_flags("-BackwardSpansImplementation", "asm")
     if backward_spans_c and backward_spans_asm:
-        if backward_spans_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the backward-span C selector changes the retained i486 profile suffix")
+        if backward_spans_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the backward-span C selector shares the retained i486 profile suffix")
         if "backspansasm" not in backward_spans_asm.get("profileSuffix", ""):
             fail("the backward-span assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1266,8 +1274,8 @@ def main() -> int:
     emit_cached_edge_c = dump_flags("-EmitCachedEdgeImplementation", "c")
     emit_cached_edge_asm = dump_flags("-EmitCachedEdgeImplementation", "asm")
     if emit_cached_edge_c and emit_cached_edge_asm:
-        if emit_cached_edge_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the cached-edge C selector changes the retained i486 profile suffix")
+        if emit_cached_edge_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the cached-edge C selector shares the retained i486 profile suffix")
         if "emitcachedasm" not in emit_cached_edge_asm.get("profileSuffix", ""):
             fail("the cached-edge assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1279,8 +1287,8 @@ def main() -> int:
     render_poly_c = dump_flags("-RenderPolyImplementation", "c")
     render_poly_asm = dump_flags("-RenderPolyImplementation", "asm")
     if render_poly_c and render_poly_asm:
-        if render_poly_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the render-poly C selector changes the retained i486 profile suffix")
+        if render_poly_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the render-poly C selector shares the retained i486 profile suffix")
         if "renderpolyasm" not in render_poly_asm.get("profileSuffix", ""):
             fail("the render-poly assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1399,8 +1407,8 @@ def main() -> int:
         "-DynamicLightOrchestrationImplementation", "asm"
     )
     if dlight_orchestration_c and dlight_orchestration_asm:
-        if dlight_orchestration_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the dynamic-light orchestration C selector changes the retained i486 profile suffix")
+        if dlight_orchestration_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the dynamic-light orchestration C selector shares the retained i486 profile suffix")
         if "dlightorchestrationasm" not in dlight_orchestration_asm.get("profileSuffix", ""):
             fail("the dynamic-light orchestration assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1413,8 +1421,8 @@ def main() -> int:
     dlight_contributes_c = dump_flags("-DlightContributesImplementation", "c")
     dlight_contributes_asm = dump_flags("-DlightContributesImplementation", "asm")
     if dlight_contributes_c and dlight_contributes_asm:
-        if dlight_contributes_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the dynamic-light predicate C selector changes the retained i486 profile suffix")
+        if dlight_contributes_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the dynamic-light predicate C selector shares the retained i486 profile suffix")
         if "dlightcontribasm" not in dlight_contributes_asm.get("profileSuffix", ""):
             fail("the dynamic-light predicate assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1467,8 +1475,8 @@ def main() -> int:
     line_graph_c = dump_flags("-LineGraphImplementation", "c")
     line_graph_asm = dump_flags("-LineGraphImplementation", "asm")
     if line_graph_c and line_graph_asm:
-        if line_graph_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_LineGraph C selector changes the promoted i486 suffix")
+        if line_graph_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_LineGraph C selector shares the promoted i486 suffix")
         if "linegraphasm" not in line_graph_asm.get("profileSuffix", ""):
             fail("the R_LineGraph assembly selector lacks its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1483,8 +1491,8 @@ def main() -> int:
     time_graph_c = dump_flags("-TimeGraphImplementation", "c")
     time_graph_asm = dump_flags("-TimeGraphImplementation", "asm")
     if time_graph_c and time_graph_asm:
-        if time_graph_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_TimeGraph C selector changes the promoted i486 suffix")
+        if time_graph_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_TimeGraph C selector shares the promoted i486 suffix")
         if "timegraphasm" not in time_graph_asm.get("profileSuffix", ""):
             fail("the R_TimeGraph assembly selector lacks its profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1525,8 +1533,8 @@ def main() -> int:
     print_times_c = dump_flags("-PrintTimesImplementation", "c")
     print_times_asm = dump_flags("-PrintTimesImplementation", "asm")
     if print_times_c and print_times_asm:
-        if print_times_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_PrintTimes C selector changes the promoted i486 suffix")
+        if print_times_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_PrintTimes C selector shares the promoted i486 suffix")
         asm_suffix = print_times_asm.get("profileSuffix", "")
         if asm_suffix.count("-printtimesasm") != 1:
             fail("the R_PrintTimes assembly selector lacks its profile token")
@@ -1611,8 +1619,9 @@ def main() -> int:
         try:
             with open(c_reference_path, "r", encoding="utf-8") as handle:
                 c_reference_selectors = json.load(handle).get("selectors", {})
-            if c_selectors != c_reference_selectors:
-                fail("the focused D_DrawParticle C profile has drifted from the shared C-reference selectors")
+            if (not set(c_selectors).issubset(c_reference_selectors) or
+                    any(c_reference_selectors[key] != value for key, value in c_selectors.items())):
+                fail("the focused D_DrawParticle C profile differs from its shared C-reference selectors")
         except (OSError, json.JSONDecodeError) as error:
             fail("could not read the shared C-reference selector profile: %s" % error)
         for profile in (particle_c_profile, particle_asm_profile):
@@ -1659,8 +1668,8 @@ def main() -> int:
     particle_explosion2_c = dump_flags("-ParticleExplosion2Implementation", "c")
     particle_explosion2_asm = dump_flags("-ParticleExplosion2Implementation", "asm")
     if particle_explosion2_c and particle_explosion2_asm:
-        if particle_explosion2_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_ParticleExplosion2 C selector changes the promoted i486 suffix")
+        if particle_explosion2_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_ParticleExplosion2 C selector shares the promoted i486 suffix")
         asm_suffix = particle_explosion2_asm.get("profileSuffix", "")
         if asm_suffix.count("-particleexplosion2asm") != 1:
             fail("the R_ParticleExplosion2 assembly selector lacks its profile token")
@@ -1678,8 +1687,8 @@ def main() -> int:
     rocket_trail_c = dump_flags("-RocketTrailImplementation", "c")
     rocket_trail_asm = dump_flags("-RocketTrailImplementation", "asm")
     if rocket_trail_c and rocket_trail_asm:
-        if rocket_trail_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_RocketTrail C selector changes the promoted i486 suffix")
+        if rocket_trail_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_RocketTrail C selector shares the promoted i486 suffix")
         asm_suffix = rocket_trail_asm.get("profileSuffix", "")
         if asm_suffix.count("-rockettrailasm") != 1:
             fail("the R_RocketTrail assembly selector lacks its profile token")
@@ -1697,8 +1706,8 @@ def main() -> int:
     particle_explosion_c = dump_flags("-ParticleExplosionImplementation", "c")
     particle_explosion_asm = dump_flags("-ParticleExplosionImplementation", "asm")
     if particle_explosion_c and particle_explosion_asm:
-        if particle_explosion_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_ParticleExplosion C selector changes the promoted i486 suffix")
+        if particle_explosion_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_ParticleExplosion C selector shares the promoted i486 suffix")
         asm_suffix = particle_explosion_asm.get("profileSuffix", "")
         if asm_suffix.count("-particleexplosionasm") != 1:
             fail("the R_ParticleExplosion assembly selector lacks its profile token")
@@ -1716,8 +1725,8 @@ def main() -> int:
     run_particle_effect_c = dump_flags("-RunParticleEffectImplementation", "c")
     run_particle_effect_asm = dump_flags("-RunParticleEffectImplementation", "asm")
     if run_particle_effect_c and run_particle_effect_asm:
-        if run_particle_effect_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_RunParticleEffect C selector changes the promoted i486 suffix")
+        if run_particle_effect_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_RunParticleEffect C selector shares the promoted i486 suffix")
         asm_suffix = run_particle_effect_asm.get("profileSuffix", "")
         if asm_suffix.count("-runparticleeffectasm") != 1:
             fail("the R_RunParticleEffect assembly selector lacks its profile token")
@@ -1735,8 +1744,8 @@ def main() -> int:
     parse_particle_effect_c = dump_flags("-ParseParticleEffectImplementation", "c")
     parse_particle_effect_asm = dump_flags("-ParseParticleEffectImplementation", "asm")
     if parse_particle_effect_c and parse_particle_effect_asm:
-        if parse_particle_effect_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_ParseParticleEffect C selector changes the promoted i486 suffix")
+        if parse_particle_effect_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_ParseParticleEffect C selector shares the promoted i486 suffix")
         asm_suffix = parse_particle_effect_asm.get("profileSuffix", "")
         if asm_suffix.count("-parseparticleeffectasm") != 1:
             fail("the R_ParseParticleEffect assembly selector lacks its profile token")
@@ -1757,8 +1766,8 @@ def main() -> int:
     entity_particles_c = dump_flags("-EntityParticlesImplementation", "c")
     entity_particles_asm = dump_flags("-EntityParticlesImplementation", "asm")
     if entity_particles_c and entity_particles_asm:
-        if entity_particles_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_EntityParticles C selector changes the promoted i486 suffix")
+        if entity_particles_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_EntityParticles C selector shares the promoted i486 suffix")
         asm_suffix = entity_particles_asm.get("profileSuffix", "")
         if asm_suffix.count("-entityparticlesasm") != 1:
             fail("the R_EntityParticles assembly selector lacks its profile token")
@@ -1793,8 +1802,8 @@ def main() -> int:
     lava_splash_c = dump_flags("-LavaSplashImplementation", "c")
     lava_splash_asm = dump_flags("-LavaSplashImplementation", "asm")
     if lava_splash_c and lava_splash_asm:
-        if lava_splash_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_LavaSplash C selector changes the promoted i486 suffix")
+        if lava_splash_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_LavaSplash C selector shares the promoted i486 suffix")
         asm_suffix = lava_splash_asm.get("profileSuffix", "")
         if asm_suffix.count("-lavasplashasm") != 1:
             fail("the R_LavaSplash assembly selector lacks its profile token")
@@ -1812,8 +1821,8 @@ def main() -> int:
     teleport_splash_c = dump_flags("-TeleportSplashImplementation", "c")
     teleport_splash_asm = dump_flags("-TeleportSplashImplementation", "asm")
     if teleport_splash_c and teleport_splash_asm:
-        if teleport_splash_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_TeleportSplash C selector changes the promoted i486 suffix")
+        if teleport_splash_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_TeleportSplash C selector shares the promoted i486 suffix")
         asm_suffix = teleport_splash_asm.get("profileSuffix", "")
         if asm_suffix.count("-teleportsplashasm") != 1:
             fail("the R_TeleportSplash assembly selector lacks its profile token")
@@ -1831,8 +1840,8 @@ def main() -> int:
     transform_plane_c = dump_flags("-TransformPlaneImplementation", "c")
     transform_plane_asm = dump_flags("-TransformPlaneImplementation", "asm")
     if transform_plane_c and transform_plane_asm:
-        if transform_plane_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the R_TransformPlane C selector changes the promoted i486 suffix")
+        if transform_plane_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the R_TransformPlane C selector shares the promoted i486 suffix")
         asm_suffix = transform_plane_asm.get("profileSuffix", "")
         if asm_suffix.count("-transformplaneasm") != 1:
             fail("the R_TransformPlane assembly selector lacks its profile token")

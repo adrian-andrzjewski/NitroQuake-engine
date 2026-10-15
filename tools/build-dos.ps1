@@ -307,45 +307,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-
-# BSP light marking, R_PushDlights, and sprite frame/draw/setup paths passed
-# direct fixtures, paired checks, and i486 ISA gates. Keep these on the i486
-# assembly path by default while preserving C for the separate i386 target.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MarkLightsImplementation')) {
-    $MarkLightsImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('DynamicLightPushImplementation')) {
-    $DynamicLightPushImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteSetupImplementation')) {
-    $SpriteSetupImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawImplementation')) {
-    $SpriteDrawImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
-    $SpriteFrameImplementation = 'asm'
-}
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MathClosureImplementation')) {
-    $MathClosureImplementation = 'asm'
-}
-# R_StoreEfrags passed the exact C-versus-assembly state and ABI fixture and
-# the complete i486 executable gate; keep the C oracle selectable.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('EfragStoreImplementation')) {
-    $EfragStoreImplementation = 'asm'
-}
-# R_BlobExplosion passed the guarded C-versus-assembly particle-state fixture,
-# the event-driven framebuffer pair and the full i486 executable ISA audit.
-# Keep the C oracle selectable for reference builds.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BlobExplosionImplementation')) {
-    $BlobExplosionImplementation = 'asm'
-}
-# R_RecursiveWorldNode preserves the 969-frame reference checksum across three
-# runs and its captured 320x200 output is byte-identical to C. Keep C selectable;
-# the measured 0.86% slowdown is acceptable for the verified i486 assembly path.
-if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BspWalkImplementation')) {
-    $BspWalkImplementation = 'asm'
-}
+. (Join-Path $PSScriptRoot 'selectors.ps1')
+Set-DefaultI486AssemblySelectors -CpuTarget $CpuTarget -BoundParameters $PSBoundParameters
 
 if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm') {
     throw '-AliasClipZImplementation asm requires -AliasClipImplementation asm.'
@@ -460,7 +423,6 @@ if (-not $DumpFlags) {
 }
 
 $sourceRoot = Join-Path $repoRoot 'src'
-. (Join-Path $PSScriptRoot 'selectors.ps1')
 Assert-SelectorOrdersIsConsistent
 Assert-SelectorManifestOrderIsConsistent
 

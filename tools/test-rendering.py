@@ -16,6 +16,9 @@ from pathlib import Path
 
 TOOL = Path(__file__).with_name("compare-rendering.py")
 ROOT = TOOL.parent.parent
+C_REFERENCE_SELECTORS = json.loads(
+    (ROOT / "tools/renderer-profiles/i486-c-reference.json").read_text(encoding="utf-8")
+)["selectors"]
 SPEC = importlib.util.spec_from_file_location("compare_rendering", TOOL)
 assert SPEC and SPEC.loader
 rendering = importlib.util.module_from_spec(SPEC)
@@ -40,26 +43,17 @@ REPORT_COMPARATOR_SPEC.loader.exec_module(report_comparator)
 
 
 def load_json(text: str) -> dict:
-    """Load JSON and treat newer renderer selectors as C in older profiles."""
+    """Resolve selectors omitted from older profiles to the shared C oracle."""
     document = json.loads(text)
     if (
         isinstance(document, dict)
         and document.get("schemaVersion") == 1
         and str(document.get("id", "")).startswith("i486-")
-        and not str(document.get("id", "")).startswith("i486-viewcontrol-")
         and isinstance(document.get("selectors"), dict)
+        and not str(document.get("id", "")).startswith("i486-viewcontrol-")
     ):
-        document["selectors"].setdefault("LineGraphImplementation", "c")
-        document["selectors"].setdefault("TimeGraphImplementation", "c")
-        document["selectors"].setdefault("AliasStatsImplementation", "c")
-        document["selectors"].setdefault("PrintTimesImplementation", "c")
-        document["selectors"].setdefault("ParticleExplosionImplementation", "c")
-        document["selectors"].setdefault("ParticleExplosion2Implementation", "c")
-        document["selectors"].setdefault("BlobExplosionImplementation", "c")
-        document["selectors"].setdefault("LavaSplashImplementation", "c")
-        document["selectors"].setdefault("RocketTrailImplementation", "c")
-        document["selectors"].setdefault("TransformPlaneImplementation", "c")
-        document["selectors"].setdefault("ParticleDrawImplementation", "c")
+        for name, value in C_REFERENCE_SELECTORS.items():
+            document["selectors"].setdefault(name, value)
     return document
 
 
@@ -512,8 +506,9 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("$_ -lt 0 -or $_ -ge $checksumStreamFrameCount", source)
         self.assertIn("checksumFramesAfterWarmup = $checksumPostWarmupFrameCount", source)
         self.assertIn("outside the total $checksumStreamFrameCount-frame checksum stream", source)
-        self.assertIn("$rendererSelectorProfileData.selectors.PSObject.Properties['ParticleDrawImplementation']", source)
-        self.assertIn("NotePropertyValue 'c'", source)
+        self.assertIn("i486-c-reference.json", source)
+        self.assertIn("$referenceSelector.Value", source)
+        self.assertIn("Add-Member", source)
         self.assertIn("Compare-Bench486EventRepeat", source)
         self.assertIn("repeat-blob-explosion-event-stability", source)
         self.assertIn("blobExplosionEventRepeatParity = $blobExplosionEventRepeatParity", source)
@@ -1397,7 +1392,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 88)
+        self.assertEqual(len(reference["selectors"]), 111)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1465,7 +1460,7 @@ class RenderingComparisonTests(unittest.TestCase):
         cumulative = json.loads(
             (profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(reference["selectors"]), 88)
+        self.assertEqual(len(reference["selectors"]), 111)
         self.assertEqual(focused["id"], "i486-asm-time-graph")
         self.assertEqual(focused["selectors"]["TimeGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1502,7 +1497,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 88)
+        self.assertEqual(len(reference["selectors"]), 111)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -2552,7 +2547,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ConsoleImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ConsoleImplementation with a C default",
+                f"{runner_name} must expose ConsoleImplementation with a C parameter fallback",
             )
 
     def test_screen_notify_selector_has_a_focused_reference_and_assembly_profile(self) -> None:
@@ -2588,7 +2583,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenNotifyImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenNotifyImplementation with a C default",
+                f"{runner_name} must expose ScreenNotifyImplementation with a C parameter fallback",
             )
 
     def test_screen_notify_fixture_pins_x87_layout_and_line_consumption(self) -> None:
@@ -2695,7 +2690,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenCenterStringImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenCenterStringImplementation with a C default",
+                f"{runner_name} must expose ScreenCenterStringImplementation with a C parameter fallback",
             )
         runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("-ScreenCenterStringOnly requires -ScreenCenterStringImplementation asm.", runner)
@@ -2766,7 +2761,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenEraseCenterStringImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenEraseCenterStringImplementation with a C default",
+                f"{runner_name} must expose ScreenEraseCenterStringImplementation with a C parameter fallback",
             )
         runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
         self.assertIn("-ScreenEraseCenterStringOnly requires -ScreenEraseCenterStringImplementation asm.", runner)
@@ -2877,7 +2872,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenRefdefImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenRefdefImplementation with a C default",
+                f"{runner_name} must expose ScreenRefdefImplementation with a C parameter fallback",
             )
 
     def test_screen_drawram_selector_has_exact_framebuffer_oracle(self) -> None:
@@ -2934,7 +2929,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenDrawRamImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenDrawRamImplementation with a C default",
+                f"{runner_name} must expose ScreenDrawRamImplementation with a C parameter fallback",
             )
 
     def test_screen_overlay_dispatch_selector_has_c_and_i486_profiles(self) -> None:
@@ -2998,7 +2993,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenOverlaysImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenOverlaysImplementation with a C default",
+                f"{runner_name} must expose ScreenOverlaysImplementation with a C parameter fallback",
             )
 
     def test_paired_render_runners_can_use_a_sha_pinned_diagnostic_dosbox_profile(self) -> None:
@@ -3071,7 +3066,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenUpdateImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenUpdateImplementation with a C default",
+                f"{runner_name} must expose ScreenUpdateImplementation with a C parameter fallback",
             )
 
     def test_screen_net_selector_has_c_and_i486_profiles(self) -> None:
@@ -3126,7 +3121,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenNetImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenNetImplementation with a C default",
+                f"{runner_name} must expose ScreenNetImplementation with a C parameter fallback",
             )
 
     def test_screen_benchmark_hooks_are_fixture_scoped(self) -> None:
@@ -4002,7 +3997,7 @@ class RenderingComparisonTests(unittest.TestCase):
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
                 r"\[string\]\$ScreenTurtleImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenTurtleImplementation with a C default",
+                f"{runner_name} must expose ScreenTurtleImplementation with a C parameter fallback",
             )
 
 

@@ -137,11 +137,17 @@ if (-not [string]::IsNullOrWhiteSpace($RendererSelectorProfile)) {
             throw "Renderer selector '$($selector.Name)' is not a parameter of timedemo-dos.ps1."
         }
     }
-    # Older checked-in profiles predate newer selectors. Resolve omissions to
-    # the reference implementation so adding a selector cannot silently turn
-    # every focused profile into an assembly candidate.
-    if ($null -eq $rendererSelectorProfileData.selectors.PSObject.Properties['ParticleDrawImplementation']) {
-        $rendererSelectorProfileData.selectors | Add-Member -NotePropertyName ParticleDrawImplementation -NotePropertyValue 'c'
+    # Older focused profiles omit selectors added later. Fill every omission
+    # from the complete C oracle so newly enabled release defaults cannot leak
+    # into a parity run.
+    $cReferenceProfilePath = Join-Path $PSScriptRoot 'renderer-profiles\i486-c-reference.json'
+    $cReferenceProfile = Get-Content -LiteralPath $cReferenceProfilePath -Raw | ConvertFrom-Json
+    foreach ($referenceSelector in $cReferenceProfile.selectors.PSObject.Properties) {
+        if ($null -eq $rendererSelectorProfileData.selectors.PSObject.Properties[$referenceSelector.Name]) {
+            $rendererSelectorProfileData.selectors | Add-Member `
+                -NotePropertyName $referenceSelector.Name `
+                -NotePropertyValue ([string]$referenceSelector.Value)
+        }
     }
     $rendererSelectorProfilePathResolved = $profilePath
 }

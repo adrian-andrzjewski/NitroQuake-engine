@@ -1884,6 +1884,65 @@ function Get-SelectorEntry {
     return $null
 }
 
+function Set-DefaultI486AssemblySelectors {
+    <#
+    .SYNOPSIS
+        Apply the checked-in accepted i486 assembly profile to omitted parameters.
+
+    .DESCRIPTION
+        The parameter blocks keep their C values so the separate i386 target
+        retains its reference defaults. For i486, this profile supplies the
+        release defaults while explicit C values remain available for parity.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet('i486', 'i386')][string]$CpuTarget,
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$BoundParameters
+    )
+
+    if ($CpuTarget -ne 'i486') { return }
+
+    $profilePath = Join-Path $PSScriptRoot 'renderer-profiles\i486-asm-selectable-current.json'
+    if (-not (Test-Path -LiteralPath $profilePath -PathType Leaf)) {
+        throw "The default i486 assembly selector profile is missing: '$profilePath'."
+    }
+    $profile = Get-Content -LiteralPath $profilePath -Raw | ConvertFrom-Json
+    if ([int]$profile.schemaVersion -ne 1 -or $profile.id -cne 'i486-asm-selectable-current') {
+        throw 'The default i486 assembly selector profile has an unsupported schema or id.'
+    }
+    $selectorsProperty = $profile.PSObject.Properties['selectors']
+    if ($null -eq $selectorsProperty -or $null -eq $selectorsProperty.Value) {
+        throw 'The default i486 assembly selector profile has no selectors object.'
+    }
+
+    $selectedNames = @{}
+    foreach ($property in $selectorsProperty.Value.PSObject.Properties) {
+        $entry = Get-SelectorEntry -Name $property.Name
+        $value = [string]$property.Value
+        $hasValue = $null -ne $entry -and (
+            $entry.Suffix.ContainsKey($value) -or
+            $entry.C.ContainsKey($value) -or
+            $entry.Asm.ContainsKey($value)
+        )
+        if ($null -eq $entry -or $value -cne 'asm' -or -not $hasValue) {
+            throw "The default i486 profile has an invalid assembly selector '$($property.Name)=$($property.Value)'."
+        }
+        $selectedNames[$property.Name] = $true
+
+        if ($BoundParameters.Keys -contains $property.Name) { continue }
+        $variable = Get-Variable -Name $property.Name -Scope 1 -ErrorAction SilentlyContinue
+        if ($null -ne $variable) {
+            Set-Variable -Name $property.Name -Value ([string]$property.Value) -Scope 1
+        }
+    }
+
+    foreach ($entry in $script:SelectorTable) {
+        if ($entry.SelectsAsm -and -not $selectedNames.ContainsKey($entry.Param)) {
+            throw "The default i486 assembly selector profile omits '$($entry.Param)'."
+        }
+    }
+}
+
 function Assert-SelectorOrdersIsConsistent {
     <#
     .SYNOPSIS
