@@ -263,6 +263,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ScreenNetImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ScreenTurtleImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
@@ -326,6 +328,7 @@ param(
     [switch]$ScreenOverlaysOnly,
     [switch]$ScreenUpdateOnly,
     [switch]$ScreenNetOnly,
+    [switch]$ScreenTurtleOnly,
     [switch]$DrawingOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
@@ -384,6 +387,20 @@ if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteDrawIm
 }
 if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('SpriteFrameImplementation')) {
     $SpriteFrameImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('MathClosureImplementation')) {
+    $MathClosureImplementation = 'asm'
+}
+# Keep the benchmark runner's promoted renderer defaults aligned with the
+# release builder so -SkipBuild resolves the exact selector set it audited.
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('EfragStoreImplementation')) {
+    $EfragStoreImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BlobExplosionImplementation')) {
+    $BlobExplosionImplementation = 'asm'
+}
+if ($CpuTarget -eq 'i486' -and -not $PSBoundParameters.ContainsKey('BspWalkImplementation')) {
+    $BspWalkImplementation = 'asm'
 }
 
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -446,6 +463,9 @@ if ($ScreenUpdateOnly -and $ScreenUpdateImplementation -ne 'asm') {
 }
 if ($ScreenNetOnly -and $ScreenNetImplementation -ne 'asm') {
     throw '-ScreenNetOnly requires -ScreenNetImplementation asm.'
+}
+if ($ScreenTurtleOnly -and $ScreenTurtleImplementation -ne 'asm') {
+    throw '-ScreenTurtleOnly requires -ScreenTurtleImplementation asm.'
 }
 if ($ParticleExplosionOnly -and $ParticleExplosionImplementation -ne 'asm') {
     throw '-ParticleExplosionOnly requires -ParticleExplosionImplementation asm.'
@@ -889,6 +909,9 @@ elseif ($ScreenUpdateOnly) {
 elseif ($ScreenNetOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreennet -benchexit'
 }
+elseif ($ScreenTurtleOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenturtle -benchexit'
+}
 elseif ($DrawingDriverOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawingdriver -benchexit'
 }
@@ -1226,6 +1249,7 @@ $result = [ordered]@{
     screenOverlaysImplementation = $ScreenOverlaysImplementation
     screenUpdateImplementation = $ScreenUpdateImplementation
     screenNetImplementation = $ScreenNetImplementation
+    screenTurtleImplementation = $ScreenTurtleImplementation
     chaseImplementation = $ChaseImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
@@ -1278,6 +1302,7 @@ $result = [ordered]@{
     screenOverlaysOnly = [bool]$ScreenOverlaysOnly
     screenUpdateOnly = [bool]$ScreenUpdateOnly
     screenNetOnly = [bool]$ScreenNetOnly
+    screenTurtleOnly = [bool]$ScreenTurtleOnly
     drawingOnly = [bool]$DrawingOnly
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly

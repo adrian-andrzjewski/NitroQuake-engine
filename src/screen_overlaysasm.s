@@ -82,7 +82,11 @@ C(SCR_DrawScreenOverlays_asm486):
 #else
 	SCREEN_OVERLAY_CALL 9,_SCR_DrawNet
 #endif
+#if defined(ASM486_SCREEN_TURTLE)
+	SCREEN_OVERLAY_CALL 10,_SCR_DrawTurtle_asm486
+#else
 	SCREEN_OVERLAY_CALL 10,_SCR_DrawTurtle
+#endif
 	SCREEN_OVERLAY_CALL 11,_SCR_DrawPause
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 	cmpl	$0,12(%ebp)

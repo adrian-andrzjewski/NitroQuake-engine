@@ -27,7 +27,7 @@ RENDERER_SOURCES = {
     "screen.c", "screen_fovasm.s", "screen_notifyasm.s", "screen_eraseasm.s",
     "screen_consolesetupasm.s", "screen_refdefasm.s",
     "screen_drawramasm.s", "screen_overlaysasm.s", "screen_updateasm.s",
-    "screen_netasm.s",
+    "screen_netasm.s", "screen_turtleasm.s",
     "asm486_experiments.s",
 }
 DEFAULT_ROOTS = [
@@ -55,6 +55,11 @@ def c_functions(path: Path) -> set[str]:
     source = path.read_text(encoding="latin1")
     source = re.sub(r"/\*.*?\*/|//[^\n]*", " ", source, flags=re.S)
     source = re.sub(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', '""', source)
+    # Keep every simple conditional alias so functions declared through a
+    # selector macro still count as C-owned in either build configuration.
+    aliases: dict[str, set[str]] = {}
+    for alias in re.finditer(r"^\s*#\s*define\s+(\w+)\s+(\w+)\s*$", source, flags=re.M):
+        aliases.setdefault(alias[1], set()).add(alias[2])
     source = re.sub(r"^\s*#[^\n]*", "", source, flags=re.M)
     names = set()
     for match in re.finditer(r"\b(\w+)\s*\(", source):
@@ -66,7 +71,15 @@ def c_functions(path: Path) -> set[str]:
             depth += (source[end] == '(') - (source[end] == ')')
             end += 1
         if not depth and source[end:].lstrip().startswith('{'):
-            names.add(match[1])
+            name = match[1]
+            names.add(name)
+            pending = list(aliases.get(name, ()))
+            while pending:
+                target = pending.pop()
+                if target in names:
+                    continue
+                names.add(target)
+                pending.extend(aliases.get(target, ()))
     return names
 
 

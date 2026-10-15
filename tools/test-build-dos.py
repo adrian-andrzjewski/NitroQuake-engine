@@ -850,6 +850,12 @@ def main() -> int:
         if dump and "screen_netasm.s" not in dump.get("assemblySources", []):
             fail("the SCR_DrawNet %s selector omits screen_netasm.s from the source inventory" % name)
 
+    screen_turtle_reference = dump_flags("-ScreenTurtleImplementation", "c")
+    screen_turtle_candidate = dump_flags("-ScreenTurtleImplementation", "asm")
+    for name, dump in (("C", screen_turtle_reference), ("assembly", screen_turtle_candidate)):
+        if dump and "screen_turtleasm.s" not in dump.get("assemblySources", []):
+            fail("the SCR_DrawTurtle %s selector omits screen_turtleasm.s from the source inventory" % name)
+
     for value_name, value in (("C", "c"), ("assembly", "asm")):
         damage_parse = dump_flags("-DamageParseImplementation", value)
         if damage_parse and "v_damageparse.s" not in damage_parse.get("assemblySources", []):
@@ -1842,7 +1848,7 @@ def main() -> int:
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 67 assembly sources (one is omitted only
+    #    included by another unit), 68 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1854,9 +1860,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 67:
+        if dump.get("allAssemblySourceCount") != 68:
             fail(
-                "%s: expected 67 assembly sources, got %r"
+                "%s: expected 68 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

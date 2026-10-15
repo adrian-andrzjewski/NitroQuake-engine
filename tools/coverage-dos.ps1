@@ -86,6 +86,8 @@ param(
     [string]$ScreenUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$ScreenNetImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$ScreenTurtleImplementation = 'c',
     [ValidateSet('i486', 'i386')]
     [string]$CpuTarget = 'i486',
     [string]$DataRoot,
@@ -247,6 +249,7 @@ $report = [ordered]@{
     screenOverlaysImplementation = $ScreenOverlaysImplementation
     screenUpdateImplementation = $ScreenUpdateImplementation
     screenNetImplementation = $ScreenNetImplementation
+    screenTurtleImplementation = $ScreenTurtleImplementation
     buildSelectorVerification = $selectorVerification
     providerVerification = $providerVerification
     frames          = $Frames

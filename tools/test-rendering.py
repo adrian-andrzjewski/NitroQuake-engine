@@ -2670,7 +2670,12 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("SCR_DrawCenterString_asm486", fixture)
         self.assertIn("SCR_DrawCenterString,", fixture)
         self.assertIn("Bench486ScreenCenterStringCharacter", fixture)
-        self.assertIn("bench486_screen_center_frame.after", fixture)
+        self.assertIn("bench486_screen_center_candidate.frame.after", fixture)
+        self.assertIn("bench486_screen_center_candidate.calls", fixture)
+        self.assertIn("screen center live Draw_Character 8/16-bit routes exact framebuffer parity", fixture)
+        self.assertIn("live-vga-draw-character-route", fixture)
+        self.assertIn("live-vesa-draw-character-route", fixture)
+        self.assertIn("bench486_screen_center_saved_characters", fixture)
         self.assertIn("positive-intermission-budget", fixture)
         self.assertIn("fractional-intermission-budget", fixture)
         self.assertIn("high-bit-height", fixture)
@@ -2888,6 +2893,7 @@ class RenderingComparisonTests(unittest.TestCase):
         host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
         ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
         bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+        timedemo_runner = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
 
         self.assertEqual(reference["id"], "i486-screen-drawram-c")
         self.assertEqual(candidate["id"], "i486-screen-drawram-asm")
@@ -2995,12 +3001,6 @@ class RenderingComparisonTests(unittest.TestCase):
                 f"{runner_name} must expose ScreenOverlaysImplementation with a C default",
             )
 
-    def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
-        assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
-        routine = re.search(
-            r"C\(R_AliasTransformFinalVert_asm486\):(?P<body>.*?^\s*ret\s*$)",
-            assembly,
-            re.DOTALL | re.MULTILINE,
     def test_paired_render_runners_can_use_a_sha_pinned_diagnostic_dosbox_profile(self) -> None:
         timedemo = (ROOT / "tools/timedemo-dos.ps1").read_text(encoding="utf-8")
         validation = (ROOT / "tools/render-validation-dos.ps1").read_text(encoding="utf-8")
@@ -3073,6 +3073,118 @@ class RenderingComparisonTests(unittest.TestCase):
                 r"\[string\]\$ScreenUpdateImplementation\s*=\s*'c'",
                 f"{runner_name} must expose ScreenUpdateImplementation with a C default",
             )
+
+    def test_screen_net_selector_has_c_and_i486_profiles(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-screen-net-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screen-net-asm.json").read_text(encoding="utf-8"))
+        current = load_json((profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8"))
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_netasm.s").read_text(encoding="utf-8")
+        header = (ROOT / "src/asm_screennet.h").read_text(encoding="utf-8")
+        source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screennet.h").read_text(encoding="utf-8")
+        overlay_assembly = (ROOT / "src/screen_overlaysasm.s").read_text(encoding="utf-8")
+        ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
+        bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertEqual(reference["id"], "i486-screen-net-c")
+        self.assertEqual(candidate["id"], "i486-screen-net-asm")
+        self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
+        self.assertEqual(reference["selectors"]["ScreenNetImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenNetImplementation"], "asm")
+        self.assertEqual(current["selectors"]["ScreenNetImplementation"], "asm")
+        self.assertEqual(
+            {name for name, value in candidate["selectors"].items()
+             if reference["selectors"][name] != value},
+            {"ScreenNetImplementation"},
+        )
+        self.assertIn("ASM486_SCREEN_NET", selectors)
+        self.assertIn(".arch i486", assembly)
+        self.assertIn("fsubs", assembly)
+        self.assertIn("fcompl", assembly)
+        self.assertIn("SCR_DrawNet_Screen_C", source)
+        self.assertIn("SCR_DrawNet_asm486", source)
+        self.assertIn("SN_CL_LAST_RECEIVED_MESSAGE", header)
+        self.assertIn("BSN_CASE_COUNT 10U", fixture)
+        self.assertIn('"fninit"', fixture)
+        self.assertIn("SW %04x/%04x", fixture)
+        self.assertIn("unordered-current-time", fixture)
+        self.assertIn("demo-playback-stale", fixture)
+        self.assertIn("Bench486Call_asm486", fixture)
+        self.assertIn("_SCR_DrawNet_asm486", overlay_assembly)
+        self.assertIn("screen_netasm.s", ownership)
+        self.assertIn("-ScreenNetOnly requires -ScreenNetImplementation asm.", bench_runner)
+        self.assertIn("+bench486 -benchscreennet -benchexit", bench_runner)
+        self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
+        for runner_name in (
+            "build-dos.ps1", "bench-dos.ps1", "timedemo-dos.ps1",
+            "smoke-dos.ps1", "coverage-dos.ps1",
+        ):
+            runner = (ROOT / "tools" / runner_name).read_text(encoding="utf-8")
+            self.assertRegex(
+                runner,
+                r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
+                r"\[string\]\$ScreenNetImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenNetImplementation with a C default",
+            )
+
+    def test_screen_benchmark_hooks_are_fixture_scoped(self) -> None:
+        cases = (
+            (
+                "screen_notifyasm.s",
+                "bench486_screen_notify_fixture_active",
+                "Bench486ScreenNotifyCharacter",
+                "Draw_Character",
+                "bench486_screennotify.h",
+            ),
+            (
+                "screen_centerasm.s",
+                "bench486_screen_center_fixture_active",
+                "Bench486ScreenCenterStringCharacter",
+                "Draw_Character",
+                "bench486_screencenter.h",
+            ),
+            (
+                "screen_eraseasm.s",
+                "bench486_screen_erase_fixture_active",
+                "Bench486ScreenEraseTileClear",
+                "Draw_TileClear",
+                "bench486_screenerase.h",
+            ),
+            (
+                "screen_consolesetupasm.s",
+                "bench486_screen_console_setup_fixture_active",
+                "Bench486ScreenConsoleSetupTileClear",
+                "Draw_TileClear",
+                "bench486_screenconsolesetup.h",
+            ),
+        )
+        for assembly_name, flag, hook, live_call, fixture_name in cases:
+            with self.subTest(assembly=assembly_name):
+                assembly = (ROOT / "src" / assembly_name).read_text(encoding="utf-8")
+                fixture = (ROOT / "src" / fixture_name).read_text(encoding="utf-8")
+                self.assertIn(f"C({flag})", assembly)
+                self.assertIn(f"C({hook})", assembly)
+                self.assertIn(f"C({live_call})", assembly)
+                self.assertIn(f"int {flag};", fixture)
+                self.assertRegex(
+                    fixture,
+                    rf"{flag}\s*=\s*1;\s*abi\s*=\s*Bench486Call_asm486\s*\(function, 0, NULL, NULL\);\s*{flag}\s*=\s*0;",
+                )
+
+        console_assembly = (ROOT / "src/screen_consolesetupasm.s").read_text(encoding="utf-8")
+        self.assertIn("C(Bench486ScreenConsoleSetupCheckResize)", console_assembly)
+        self.assertIn("C(Con_CheckResize)", console_assembly)
+        self.assertIn("C(Bench486ScreenConsoleSetupSbarChanged)", console_assembly)
+        self.assertIn("C(Sbar_Changed)", console_assembly)
+
+    def test_alias_light_conversion_truncates_like_the_c_cast(self) -> None:
+        assembly = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
+        routine = re.search(
+            r"C\(R_AliasTransformFinalVert_asm486\):(?P<body>.*?^\s*ret\s*$)",
+            assembly,
+            re.DOTALL | re.MULTILINE,
         )
         self.assertIsNotNone(routine)
         body = routine.group("body")
@@ -3808,48 +3920,78 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("40 frames across four x87 rounding modes", traceability)
         self.assertIn("-ParticleUpdateImplementation asm -ParticleDrawImplementation asm -ParticleUpdateOnly", traceability)
 
-    def test_screen_net_selector_has_c_and_i486_profiles(self) -> None:
+
+    def test_renderer_ownership_recognizes_conditional_c_function_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "selector-alias.c"
+            source.write_text(
+                "#if defined(ASM486_ROUTINE) && defined(BENCH486)\n"
+                "#define ROUTINE_C Routine_Reference_C\n"
+                "#elif !defined(ASM486_ROUTINE)\n"
+                "#define ROUTINE_C Routine_Original_C\n"
+                "#endif\n"
+                "void ROUTINE_C (void) { }\n",
+                encoding="utf-8",
+            )
+
+            functions = renderer_ownership.c_functions(source)
+
+        self.assertIn("Routine_Reference_C", functions)
+        self.assertIn("Routine_Original_C", functions)
+
+    def test_screen_turtle_selector_has_c_and_i486_profiles(self) -> None:
         profiles = ROOT / "tools/renderer-profiles"
-        reference = load_json((profiles / "i486-screen-net-c.json").read_text(encoding="utf-8"))
-        candidate = load_json((profiles / "i486-screen-net-asm.json").read_text(encoding="utf-8"))
+        reference = load_json((profiles / "i486-screen-turtle-c.json").read_text(encoding="utf-8"))
+        candidate = load_json((profiles / "i486-screen-turtle-asm.json").read_text(encoding="utf-8"))
         current = load_json((profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8"))
         selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
-        assembly = (ROOT / "src/screen_netasm.s").read_text(encoding="utf-8")
-        header = (ROOT / "src/asm_screennet.h").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/screen_turtleasm.s").read_text(encoding="utf-8")
+        header = (ROOT / "src/asm_screenturtle.h").read_text(encoding="utf-8")
         source = (ROOT / "src/screen.c").read_text(encoding="utf-8")
-        fixture = (ROOT / "src/bench486_screennet.h").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_screenturtle.h").read_text(encoding="utf-8")
         overlay_assembly = (ROOT / "src/screen_overlaysasm.s").read_text(encoding="utf-8")
         ownership = (ROOT / "tools/renderer-ownership.py").read_text(encoding="utf-8")
         bench_runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
 
-        self.assertEqual(reference["id"], "i486-screen-net-c")
-        self.assertEqual(candidate["id"], "i486-screen-net-asm")
+        scenario_manifest = load_json(
+            (ROOT / "tools/render-scenarios-screenturtle.json").read_text(encoding="utf-8")
+        )
+        scene = scenario_manifest["scenarios"][0]
+        self.assertEqual(scenario_manifest["validationAutoexecCommands"], ["host_framerate 0.125"])
+        self.assertEqual(scene["id"], "demo2-screenturtle-visible")
+        self.assertEqual(scene["autoexecCommands"], ["scr_showturtle 1"])
+        self.assertIsNone(scene["reference"])
+        self.assertEqual(scene["expectedChecksum"], 0)
+        self.assertEqual(
+            scene["tolerance"],
+            {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0},
+        )
+        self.assertEqual(reference["id"], "i486-screen-turtle-c")
+        self.assertEqual(candidate["id"], "i486-screen-turtle-asm")
         self.assertEqual(set(candidate["selectors"]), set(reference["selectors"]))
-        self.assertEqual(reference["selectors"]["ScreenNetImplementation"], "c")
-        self.assertEqual(candidate["selectors"]["ScreenNetImplementation"], "asm")
-        self.assertEqual(current["selectors"]["ScreenNetImplementation"], "asm")
+        self.assertEqual(reference["selectors"]["ScreenTurtleImplementation"], "c")
+        self.assertEqual(candidate["selectors"]["ScreenTurtleImplementation"], "asm")
+        self.assertEqual(current["selectors"]["ScreenTurtleImplementation"], "asm")
         self.assertEqual(
             {name for name, value in candidate["selectors"].items()
              if reference["selectors"][name] != value},
-            {"ScreenNetImplementation"},
+            {"ScreenTurtleImplementation"},
         )
-        self.assertIn("ASM486_SCREEN_NET", selectors)
+        self.assertIn("ASM486_SCREEN_TURTLE", selectors)
         self.assertIn(".arch i486", assembly)
-        self.assertIn("fsubs", assembly)
+        self.assertIn("fcomps", assembly)
         self.assertIn("fcompl", assembly)
-        self.assertIn("SCR_DrawNet_Screen_C", source)
-        self.assertIn("SCR_DrawNet_asm486", source)
-        self.assertIn("SN_CL_LAST_RECEIVED_MESSAGE", header)
-        self.assertIn("BSN_CASE_COUNT 10U", fixture)
-        self.assertIn('"fninit"', fixture)
-        self.assertIn("SW %04x/%04x", fixture)
-        self.assertIn("unordered-current-time", fixture)
-        self.assertIn("demo-playback-stale", fixture)
-        self.assertIn("Bench486Call_asm486", fixture)
-        self.assertIn("_SCR_DrawNet_asm486", overlay_assembly)
-        self.assertIn("screen_netasm.s", ownership)
-        self.assertIn("-ScreenNetOnly requires -ScreenNetImplementation asm.", bench_runner)
-        self.assertIn("+bench486 -benchscreennet -benchexit", bench_runner)
+        self.assertIn("SCR_DrawTurtle_Screen_C", source)
+        self.assertIn("SCR_DrawTurtle_asm486", source)
+        self.assertIn("ST_CVAR_VALUE", header)
+        self.assertIn("BST_CASE_COUNT 14U", fixture)
+        self.assertIn("BST_SEQUENCE_COUNT 2048U", fixture)
+        self.assertIn("Bench486ScreenTurtleLongSequence", fixture)
+        self.assertIn("fninit", fixture)
+        self.assertIn("_SCR_DrawTurtle_asm486", overlay_assembly)
+        self.assertIn("screen_turtleasm.s", ownership)
+        self.assertIn("-ScreenTurtleOnly requires -ScreenTurtleImplementation asm.", bench_runner)
+        self.assertIn("+bench486 -benchscreenturtle -benchexit", bench_runner)
         self.assertNotRegex(assembly, r"(?i)\b(?:cmov\w*|mm\w*|[sv]se\w*|fisttp|fcomi\w*)\b")
         for runner_name in (
             "build-dos.ps1", "bench-dos.ps1", "timedemo-dos.ps1",
@@ -3859,8 +4001,8 @@ class RenderingComparisonTests(unittest.TestCase):
             self.assertRegex(
                 runner,
                 r"(?s)\[ValidateSet\('c', 'asm'\)\]\s*"
-                r"\[string\]\$ScreenNetImplementation\s*=\s*'c'",
-                f"{runner_name} must expose ScreenNetImplementation with a C default",
+                r"\[string\]\$ScreenTurtleImplementation\s*=\s*'c'",
+                f"{runner_name} must expose ScreenTurtleImplementation with a C default",
             )
 
 

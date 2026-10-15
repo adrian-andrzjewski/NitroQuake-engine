@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_screenoverlays.h"
 #include "asm_screenupdate.h"
 #include "asm_screennet.h"
+#include "asm_screenturtle.h"
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 extern int bench486_screen_center_trace_active;
@@ -463,25 +464,51 @@ void SCR_DRAW_RAM_C (void)
 SCR_DrawTurtle
 ==============
 */
-void SCR_DrawTurtle (void)
+#if defined(ASM486_SCREEN_TURTLE) && defined(BENCH486)
+int bench486_screen_turtle_c_count;
+#define SCR_DRAW_TURTLE_C SCR_DrawTurtle_Screen_C
+#define SCR_TURTLE_COUNT bench486_screen_turtle_c_count
+#elif !defined(ASM486_SCREEN_TURTLE)
+static int scr_turtle_count;
+#define SCR_DRAW_TURTLE_C SCR_DrawTurtle
+#define SCR_TURTLE_COUNT scr_turtle_count
+#endif
+
+#if !defined(ASM486_SCREEN_TURTLE) || defined(BENCH486)
+#if defined(BENCH486) && defined(ASM486_SCREEN_TURTLE)
+#define SCR_TURTLE_DRAW_PIC(x, y, pic) \
+	do { \
+		if (bench486_screen_turtle_fixture_active) \
+			Bench486ScreenTurtleRecordDrawPic (x, y, pic); \
+		else \
+			Draw_Pic (x, y, pic); \
+	} while (0)
+#else
+#define SCR_TURTLE_DRAW_PIC(x, y, pic) Draw_Pic (x, y, pic)
+#endif
+
+void SCR_DRAW_TURTLE_C (void)
 {
-	static int	count;
-	
 	if (!scr_showturtle.value)
 		return;
 
 	if (host_frametime < 0.1)
 	{
-		count = 0;
+		SCR_TURTLE_COUNT = 0;
 		return;
 	}
 
-	count++;
-	if (count < 3)
+	SCR_TURTLE_COUNT++;
+	if (SCR_TURTLE_COUNT < 3)
 		return;
 
-	Draw_Pic (scr_vrect.x, scr_vrect.y, scr_turtle);
+	SCR_TURTLE_DRAW_PIC (scr_vrect.x, scr_vrect.y, scr_turtle);
 }
+#endif
+
+#undef SCR_TURTLE_DRAW_PIC
+#undef SCR_TURTLE_COUNT
+#undef SCR_DRAW_TURTLE_C
 
 /*
 ==============
@@ -1016,7 +1043,11 @@ void SCR_SCREEN_OVERLAYS_C (unsigned trace_update_index,
 #else
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_NET, SCR_DrawNet ());
 #endif
+#if defined(ASM486_SCREEN_TURTLE)
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_TURTLE, SCR_DrawTurtle_asm486 ());
+#else
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_TURTLE, SCR_DrawTurtle ());
+#endif
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_PAUSE, SCR_DrawPause ());
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 		if (trace_this_update)
