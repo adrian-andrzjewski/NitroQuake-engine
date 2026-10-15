@@ -2,6 +2,17 @@
 /out/
 /testdata/
 
+# Stray files from legacy direct-to-repository DOS runs. The supported runners
+# stage these under /out/; keep accidental root-level output out of Git too.
+/quake.exe
+/qbench.exe
+/qprof.exe
+/timedemo.txt
+/timedemo.jsn
+/profile.jsn
+/FRAME.PCX
+/FRAMECHE.TXT
+
 # Local compiler/emulator cache if a user points the bootstrapper here.
 /tools/.cache/
 
