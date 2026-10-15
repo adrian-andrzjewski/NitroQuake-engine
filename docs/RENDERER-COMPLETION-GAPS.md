@@ -244,21 +244,29 @@ profiles matched two repeat-stable Demo 1 runs: 1,928 post-warmup frame
 checksum comparisons, two exact 320x200 indexed captures, and zero palette
 differences. Both selected builds passed strict i486 object, linked-executable,
 startup, and CWSDPMI audits with zero violations or exemptions. This converts
-dispatch only; see the separate full-routine port below. The console,
-status-bar, menu, fade and other called drawing routines remain separately
-owned. See the
+dispatch only; see the separate full-routine port below. The status-bar
+composition, console, menu, fade and other called drawing routines remain
+separately owned. See the
 [`SCR_UpdateScreen` overlay-dispatch ledger](ledger/2026-10-13-screen-overlays-assembly-port.md).
 
 The full `SCR_UpdateScreen` orchestration now has a selectable i486 assembly
 implementation. Fifteen direct C/assembly cases pass, and the focused profiles
 match seven deterministic scenes across fourteen runs: 13,770 exact
 post-warmup checksums and fourteen exact indexed framebuffer/palette captures.
-The cumulative 109-selector release build passes the complete object, linked
+The cumulative 110-selector release build passes the complete object, linked
 executable, startup, CRT-helper and provider ISA gates with zero violations or
 exemptions, then passes the DOSBox-X i486 smoke run. Its exact current-state
 owner inventory still finds 69 reachable C renderer/support functions, 118
 indirect transfer sites and 37 unresolved direct callees. See the
 [`SCR_UpdateScreen` full port ledger](ledger/2026-10-13-screen-update-assembly-port.md).
+
+Status-bar drawing primitives now have a selectable i486 assembly path. The
+default profile selects it, while the C copies remain available in BENCH builds
+for parity checks. The focused DOSBox-X fixture passes all 18 formatter checks
+and 544 coordinate/number scene-state cases. `Sbar_Draw` and the higher-level
+inventory, face, frag, scoreboard, intermission and finale composition remain
+C-owned. See the
+[`Sbar` primitive port ledger](ledger/2026-10-15-sbar-primitives-assembly-port.md).
 
 ## Remaining machine-code ownership
 
@@ -352,7 +360,7 @@ to prove a complete call graph.
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |
-| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, `Con_DrawInput`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. The full update routine passed seven exact paired scenes and a strict cumulative release smoke. Its menu, status-bar, console, video/cache and screen marker/loading callees remain C-owned; indirect targets, full screen stress and long-run checks remain open. See the [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
+| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, `Con_DrawInput`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. Status-bar coordinate, text and number primitives now select assembly; its higher-level composition remains C-owned. The full update routine passed seven exact paired scenes and a strict cumulative release smoke. Menu, console, video/cache and screen marker/loading callees remain C-owned; indirect targets, full screen stress and long-run checks remain open. See the [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), [status-bar primitive](ledger/2026-10-15-sbar-primitives-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

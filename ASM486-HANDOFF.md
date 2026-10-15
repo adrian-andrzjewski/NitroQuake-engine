@@ -185,6 +185,22 @@ release hash manifest was updated. `tools/guard-i486-release.py` now passes for
 103 objects plus `quake.exe`; this pin update records the deliberate renderer
 change and does not mark the renderer port complete.
 
+## Accepted status-bar primitive slice on 2026-10-15
+
+The i486 release now selects the assembly implementations of status-bar
+coordinate transforms, string/character drawing dispatch, signed integer
+formatting, and numeric digit drawing. The C versions remain as BENCH-only
+parity oracles. DOSBox-X passed 18 formatter checks and 544 coordinate/number
+scene-state cases. The strict release gate passed 151 project objects, 167,757
+relocated instructions, startup, CRT helpers, and 9,207 provider instructions
+with zero exemptions. The release hash guard was deliberately refreshed and
+passes for 151 objects plus `quake.exe`. See the
+[`Sbar` primitive port ledger](docs/ledger/2026-10-15-sbar-primitives-assembly-port.md).
+
+The higher-level HUD composition remains C-owned, including `Sbar_Draw`,
+inventory, face, frag and scoreboard decisions, plus intermission/finale
+overlays. The status-bar feature is therefore not yet fully ported.
+
 ## Process rules
 
 ### Process rule (2026-10-03): **cite this file by heading, never by line number**

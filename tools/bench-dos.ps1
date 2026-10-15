@@ -330,6 +330,7 @@ param(
     [switch]$ScreenNetOnly,
     [switch]$ScreenTurtleOnly,
     [switch]$DrawingOnly,
+    [switch]$SbarPrimitivesOnly,
     [switch]$ChaseOnly,
     [switch]$AliasControlOnly,
     [switch]$AliasStatsOnly,
@@ -799,6 +800,9 @@ $providerVerification = Assert-RunnerDpmiProvider -CpuTarget $CpuTarget -BuildVe
 
 $benchCommand = if ($MemoryOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchmemory -benchexit'
+}
+elseif ($SbarPrimitivesOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsbarprimitives -benchexit'
 }
 elseif ($AliasProjectOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasproject -benchexit'
@@ -1273,6 +1277,7 @@ $result = [ordered]@{
     screenNetOnly = [bool]$ScreenNetOnly
     screenTurtleOnly = [bool]$ScreenTurtleOnly
     drawingOnly = [bool]$DrawingOnly
+    sbarPrimitivesOnly = [bool]$SbarPrimitivesOnly
     chaseOnly = [bool]$ChaseOnly
     aliasControlOnly = [bool]$AliasControlOnly
     aliasStatsOnly = [bool]$AliasStatsOnly

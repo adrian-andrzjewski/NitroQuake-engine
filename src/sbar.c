@@ -20,6 +20,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // sbar.c -- status bar code
 
 #include "quakedef.h"
+#include "asm_sbar.h"
+
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+extern int bench486_sbar_capture_active;
+extern void Bench486SbarCapture (int kind, int x, int y, unsigned long value);
+#define SBAR_C_ORACLE_NAME(name) name##_C
+#define SBAR_C_ITOA Sbar_itoa_C
+#define SBAR_C_TRANSPIC Sbar_DrawTransPic_C
+#else
+#define SBAR_C_ORACLE_NAME(name) name
+#define SBAR_C_ITOA Sbar_itoa
+#define SBAR_C_TRANSPIC Sbar_DrawTransPic
+#endif
 
 
 int			sb_updates;		// if >= vid.numpages, no update needed
@@ -257,26 +270,44 @@ void Sbar_Init (void)
 Sbar_DrawPic
 =============
 */
-void Sbar_DrawPic (int x, int y, qpic_t *pic)
+#if !defined(ASM486_SBAR_PRIMITIVES) || defined(BENCH486)
+void SBAR_C_ORACLE_NAME(Sbar_DrawPic) (int x, int y, qpic_t *pic)
 {
-	if (cl.gametype == GAME_DEATHMATCH)
-		Draw_Pic (x /* + ((vid.width - 320)>>1)*/, y + (vid.height-SBAR_HEIGHT), pic);
-	else
-		Draw_Pic (x + ((vid.width - 320)>>1), y + (vid.height-SBAR_HEIGHT), pic);
+	if (cl.gametype != GAME_DEATHMATCH)
+		x += (vid.width - 320) >> 1;
+	y += vid.height - SBAR_HEIGHT;
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+	if (bench486_sbar_capture_active)
+	{
+		Bench486SbarCapture (SBAR_CAPTURE_PIC, x, y, (unsigned long)pic);
+		return;
+	}
+#endif
+	Draw_Pic (x, y, pic);
 }
+#endif
 
 /*
 =============
 Sbar_DrawTransPic
 =============
 */
-void Sbar_DrawTransPic (int x, int y, qpic_t *pic)
+#if !defined(ASM486_SBAR_PRIMITIVES) || defined(BENCH486)
+void SBAR_C_ORACLE_NAME(Sbar_DrawTransPic) (int x, int y, qpic_t *pic)
 {
-	if (cl.gametype == GAME_DEATHMATCH)
-		Draw_TransPic (x /*+ ((vid.width - 320)>>1)*/, y + (vid.height-SBAR_HEIGHT), pic);
-	else
-		Draw_TransPic (x + ((vid.width - 320)>>1), y + (vid.height-SBAR_HEIGHT), pic);
+	if (cl.gametype != GAME_DEATHMATCH)
+		x += (vid.width - 320) >> 1;
+	y += vid.height - SBAR_HEIGHT;
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+	if (bench486_sbar_capture_active)
+	{
+		Bench486SbarCapture (SBAR_CAPTURE_TRANSPIC, x, y, (unsigned long)pic);
+		return;
+	}
+#endif
+	Draw_TransPic (x, y, pic);
 }
+#endif
 
 /*
 ================
@@ -285,33 +316,53 @@ Sbar_DrawCharacter
 Draws one solid graphics character
 ================
 */
-void Sbar_DrawCharacter (int x, int y, int num)
+#if !defined(ASM486_SBAR_PRIMITIVES) || defined(BENCH486)
+void SBAR_C_ORACLE_NAME(Sbar_DrawCharacter) (int x, int y, int num)
 {
-	if (cl.gametype == GAME_DEATHMATCH)
-		Draw_Character ( x /*+ ((vid.width - 320)>>1) */ + 4 , y + vid.height-SBAR_HEIGHT, num);
-	else
-		Draw_Character ( x + ((vid.width - 320)>>1) + 4 , y + vid.height-SBAR_HEIGHT, num);
+	x += 4;
+	if (cl.gametype != GAME_DEATHMATCH)
+		x += (vid.width - 320) >> 1;
+	y += vid.height - SBAR_HEIGHT;
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+	if (bench486_sbar_capture_active)
+	{
+		Bench486SbarCapture (SBAR_CAPTURE_CHARACTER, x, y, (unsigned long)num);
+		return;
+	}
+#endif
+	Draw_Character (x, y, num);
 }
+#endif
 
 /*
 ================
 Sbar_DrawString
 ================
 */
-void Sbar_DrawString (int x, int y, char *str)
+#if !defined(ASM486_SBAR_PRIMITIVES) || defined(BENCH486)
+void SBAR_C_ORACLE_NAME(Sbar_DrawString) (int x, int y, char *str)
 {
-	if (cl.gametype == GAME_DEATHMATCH)
-		Draw_String (x /*+ ((vid.width - 320)>>1)*/, y+ vid.height-SBAR_HEIGHT, str);
-	else
-		Draw_String (x + ((vid.width - 320)>>1), y+ vid.height-SBAR_HEIGHT, str);
+	if (cl.gametype != GAME_DEATHMATCH)
+		x += (vid.width - 320) >> 1;
+	y += vid.height - SBAR_HEIGHT;
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+	if (bench486_sbar_capture_active)
+	{
+		Bench486SbarCapture (SBAR_CAPTURE_STRING, x, y, (unsigned long)str);
+		return;
+	}
+#endif
+	Draw_String (x, y, str);
 }
+#endif
 
 /*
 =============
 Sbar_itoa
 =============
 */
-int Sbar_itoa (int num, char *buf)
+#if !defined(ASM486_SBAR_PRIMITIVES) || defined(BENCH486)
+int SBAR_C_ORACLE_NAME(Sbar_itoa) (int num, char *buf)
 {
 	char	*str;
 	int		pow10;
@@ -340,6 +391,7 @@ int Sbar_itoa (int num, char *buf)
 
 	return str-buf;
 }
+#endif
 
 
 /*
@@ -347,13 +399,14 @@ int Sbar_itoa (int num, char *buf)
 Sbar_DrawNum
 =============
 */
-void Sbar_DrawNum (int x, int y, int num, int digits, int color)
+#if !defined(ASM486_SBAR_PRIMITIVES) || defined(BENCH486)
+void SBAR_C_ORACLE_NAME(Sbar_DrawNum) (int x, int y, int num, int digits, int color)
 {
 	char			str[12];
 	char			*ptr;
 	int				l, frame;
 
-	l = Sbar_itoa (num, str);
+	l = SBAR_C_ITOA (num, str);
 	ptr = str;
 	if (l > digits)
 		ptr += (l-digits);
@@ -367,11 +420,16 @@ void Sbar_DrawNum (int x, int y, int num, int digits, int color)
 		else
 			frame = *ptr -'0';
 
-		Sbar_DrawTransPic (x,y,sb_nums[color][frame]);
+		SBAR_C_TRANSPIC (x,y,sb_nums[color][frame]);
 		x += 24;
 		ptr++;
 	}
 }
+#endif
+
+#undef SBAR_C_ORACLE_NAME
+#undef SBAR_C_ITOA
+#undef SBAR_C_TRANSPIC
 
 //=============================================================================
 

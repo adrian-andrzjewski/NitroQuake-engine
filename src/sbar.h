@@ -27,6 +27,14 @@ extern	int			sb_lines;			// scan lines to draw
 
 void Sbar_Init (void);
 
+/* Low-level routines shared by the status-bar C path and its i486 assembly port. */
+void Sbar_DrawPic (int x, int y, qpic_t *pic);
+void Sbar_DrawTransPic (int x, int y, qpic_t *pic);
+void Sbar_DrawCharacter (int x, int y, int num);
+void Sbar_DrawString (int x, int y, char *str);
+int Sbar_itoa (int num, char *buf);
+void Sbar_DrawNum (int x, int y, int num, int digits, int color);
+
 void Sbar_Changed (void);
 // call whenever any of the client stats represented on the sbar changes
 

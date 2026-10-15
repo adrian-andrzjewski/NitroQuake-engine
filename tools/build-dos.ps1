@@ -294,6 +294,8 @@ param(
     [string]$EmitCachedEdgeImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderPolyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SbarPrimitiveImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [string]$ToolRoot,
@@ -678,7 +680,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 68
+$expectedAllAssemblySourceCount = 69
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {

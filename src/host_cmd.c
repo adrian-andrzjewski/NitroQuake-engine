@@ -6917,6 +6917,9 @@ static void Bench486SpriteSetupCases (void)
 #include "asm_viewcontrol.h"
 #include "bench486_viewcontrol.h"
 #include "bench486_vinit.h"
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+#include "bench486_sbarprimitives.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
 #include "bench486_console_input.h"
 #endif
@@ -10907,6 +10910,20 @@ static void Bench486_f (void)
 		return;
 	}
 
+	if (COM_CheckParm ("-benchsbarprimitives"))
+	{
+#ifdef ASM486_SBAR_PRIMITIVES
+		Bench486SbarPrimitiveCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("sbar primitive fixture requires -SbarPrimitiveImplementation asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
+		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+
 	if (COM_CheckParm ("-benchviewcontrol"))
 	{
 		Bench486ViewControlCases ();
@@ -11714,6 +11731,9 @@ static void Bench486_f (void)
 #endif
 #ifdef ASM486_DRAWING
 	Bench486DrawingCases ();
+#endif
+#ifdef ASM486_SBAR_PRIMITIVES
+	Bench486SbarPrimitiveCases ();
 #endif
 #ifdef ASM486_CHASE
 	Bench486ChaseCases ();

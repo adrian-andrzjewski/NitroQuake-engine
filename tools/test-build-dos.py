@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1856,8 +1856,21 @@ def main() -> int:
             if "r_transformplaneasm.s" not in dump.get("assemblySources", []):
                 fail("the R_TransformPlane %s selector omits r_transformplaneasm.s from the source inventory" % dump_name)
 
+    sbar_primitives_c = dump_flags("-SbarPrimitiveImplementation", "c")
+    sbar_primitives_asm = dump_flags("-SbarPrimitiveImplementation", "asm")
+    if sbar_primitives_c and sbar_primitives_asm:
+        if sbar_primitives_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the Sbar primitive assembly selector does not match the promoted i486 suffix")
+        if sbar_primitives_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the Sbar primitive C selector shares the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_SBAR_PRIMITIVES" in sbar_primitives_c.get(flags_name, []):
+                fail("the Sbar primitive C selector enables ASM486_SBAR_PRIMITIVES in %s" % flags_name)
+            if "-DASM486_SBAR_PRIMITIVES" not in sbar_primitives_asm.get(flags_name, []):
+                fail("the Sbar primitive assembly selector omits ASM486_SBAR_PRIMITIVES from %s" % flags_name)
+
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 68 assembly sources (one is omitted only
+    #    included by another unit), 69 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1869,9 +1882,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 68:
+        if dump.get("allAssemblySourceCount") != 69:
             fail(
-                "%s: expected 68 assembly sources, got %r"
+                "%s: expected 69 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

@@ -111,6 +111,7 @@
     "EfragStoreImplementation": "c",
     "EmitCachedEdgeImplementation": "c",
     "RenderPolyImplementation": "c",
+    "SbarPrimitiveImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",
     "ScreenTurtleImplementation": "c"

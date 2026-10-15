@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-15-sbar-primitives-assembly-port.md`](2026-10-15-sbar-primitives-assembly-port.md) | 4 | renderer port / status-bar primitives (`Reference mapping and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Remaining C ownership`) |
 | [`2026-10-13-screen-update-assembly-port.md`](2026-10-13-screen-update-assembly-port.md) | 5 | renderer port / full screen-update orchestration (`Reference mapping and ABI`; `Direct C/assembly fixture`; `Exact paired framebuffer and ISA evidence`; `Refreshed ownership inventory and remaining C paths`; `Reproduction`) |
 | [`2026-10-13-screen-drawram-assembly-port.md`](2026-10-13-screen-drawram-assembly-port.md) | 4 | renderer port / RAM indicator overlay (`Mapping`; `Direct differential fixture`; `Strict i486 verification`; `Reproduction and scope`) |
 | [`2026-10-13-screen-overlays-assembly-port.md`](2026-10-13-screen-overlays-assembly-port.md) | 5 | renderer port / screen update overlay dispatch (`Original branch block and selector`; `Direct C/assembly branch fixture`; `Exact paired scene and i486 audit`; `Ownership snapshot`; `Reproduction and remaining scope`) |

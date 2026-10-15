@@ -139,6 +139,7 @@ $script:AssemblyBackedImplementations = @(
     'EfragStoreImplementation',
     'EmitCachedEdgeImplementation',
     'RenderPolyImplementation',
+    'SbarPrimitiveImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
     'AliasSetupFrameImplementation',
@@ -1418,6 +1419,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'SbarPrimitiveImplementation'
+        Manifest   = 'sbarPrimitiveImplementation'
+        Suffix     = @{ 'asm' = 'sbarprimitivesasm' }
+        C          = @{ 'asm' = @('ASM486_SBAR_PRIMITIVES') }
+        Asm        = @{ 'asm' = @('ASM486_SBAR_PRIMITIVES') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'GibTrailHorizontalIntegration'
         Manifest   = 'gibTrailHorizontalIntegration'
         Suffix     = @{ 'skipzero' = 'gibskipzero' }
@@ -1614,6 +1624,7 @@ $script:SuffixOrder = @(
     'EfragStoreImplementation'
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
+    'SbarPrimitiveImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -1714,6 +1725,7 @@ $script:CDefineOrder = @(
     'EfragStoreImplementation'
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
+    'SbarPrimitiveImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -1845,6 +1857,7 @@ $script:AsmDefineOrder = @(
     'EfragStoreImplementation'
     'EmitCachedEdgeImplementation'
     'RenderPolyImplementation'
+    'SbarPrimitiveImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'LineGraphImplementation'
