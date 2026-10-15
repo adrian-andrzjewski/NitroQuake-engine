@@ -16,17 +16,13 @@ typedef struct {unsigned before[8];entity_t value;unsigned after[8];} ac_entity_
 typedef struct {unsigned before[8];union {double align;byte bytes[65536];} data;unsigned after[8];} ac_blob_t;
 typedef struct {unsigned before[8];finalvert_t values[MAXALIASVERTS];unsigned after[8];} ac_final_t;
 typedef struct {unsigned before[8];auxvert_t values[MAXALIASVERTS];unsigned after[8];} ac_aux_t;
-static ac_model_t ac_model;static ac_entity_t ac_entity;static ac_blob_t ac_blob;
-static ac_final_t ac_final;static ac_aux_t ac_aux;
-static byte ac_colormap[65536];static vec3_t ac_lightvector;static alight_t ac_light;
-static unsigned ac_count,ac_drawing,ac_unclipped,ac_time_ticks,ac_live_bytes,ac_live_aux_bytes;
 typedef struct {
     unsigned phase,count,words[3];affinetridesc_t affine;char text[256];
 } ac_event_t;
-static struct {
+typedef struct {
     unsigned count,errors,live,vertices;ac_event_t events[64];
     finalvert_t final[MAXALIASVERTS];auxvert_t aux[MAXALIASVERTS];
-} ac_trace;
+} ac_trace_t;
 typedef struct {
     client_state_t client;refdef_t reference;entity_t entity;entity_t *current,*cached;
     model_t *model;mdl_t *mdl;aliashdr_t *header;trivertx_t *vertices;
@@ -39,6 +35,32 @@ typedef struct {
     qboolean profile_active;unsigned long profile_models,profile_vertices;double seconds;
 #endif
 } ac_state_t;
+typedef struct {
+    ac_model_t model;ac_entity_t entity;ac_blob_t blob;ac_final_t final;ac_aux_t aux;
+    byte colormap[65536];vec3_t lightvector;alight_t light;
+    ac_trace_t trace;
+    ac_state_t saved,initial,reference,assembly;
+    byte before_final[sizeof(finalvert_t)*MAXALIASVERTS+32];
+    byte before_aux[sizeof(auxvert_t)*MAXALIASVERTS+32];
+    byte c_final[sizeof(finalvert_t)*MAXALIASVERTS+32];
+    byte c_aux[sizeof(auxvert_t)*MAXALIASVERTS+32];
+    byte saved_trace[sizeof(ac_trace_t)];
+} ac_workspace_t;
+/* The large synthetic fixture is only live while -benchaliascontrol runs.
+   Keeping it in .bss reduced the real demo heap by about 600 KiB whenever the
+   assembly selector was enabled, making the visual integration run fail
+   during map sign-on before it reached the renderer. */
+static ac_workspace_t *ac_workspace;
+#define ac_model (ac_workspace->model)
+#define ac_entity (ac_workspace->entity)
+#define ac_blob (ac_workspace->blob)
+#define ac_final (ac_workspace->final)
+#define ac_aux (ac_workspace->aux)
+#define ac_colormap (ac_workspace->colormap)
+#define ac_lightvector (ac_workspace->lightvector)
+#define ac_light (ac_workspace->light)
+#define ac_trace (ac_workspace->trace)
+static unsigned ac_count,ac_drawing,ac_unclipped,ac_time_ticks,ac_live_bytes,ac_live_aux_bytes;
 static void AC_Save(ac_state_t *s,unsigned normalize)
 {
     Q_memset(s,0,sizeof(*s));Q_memcpy(&s->client,&cl,sizeof(cl));Q_memcpy(&s->reference,&r_refdef,sizeof(r_refdef));
@@ -125,10 +147,18 @@ static aliashdr_t *AC_Model(model_t *model)
 static double AC_Time(void){ac_time_ticks++;return ac_time_ticks*0.125;}
 static unsigned AC_ReadOnly(void)
 {
-    unsigned i,hash=2166136261U;
+    unsigned i,hash=2166136261U,word;
     for(i=0;i<sizeof(ac_model.value);i++)hash=(hash^((byte *)&ac_model.value)[i])*16777619U;
-    /* All initialized resource tables and every full-size frame are input. */
-    for(i=0;i<49152;i++)hash=(hash^ac_blob.data.bytes[i])*16777619U;
+    /* Mix every resource/frame byte, four at a time. The fixture checks this
+       unchanged input after both backends; a bytewise FNV pass dominated the
+       8,192-call sequence on the emulated 486. */
+    for(i=0;i<49152;i+=4){
+        word=(unsigned)ac_blob.data.bytes[i]|
+            ((unsigned)ac_blob.data.bytes[i+1]<<8)|
+            ((unsigned)ac_blob.data.bytes[i+2]<<16)|
+            ((unsigned)ac_blob.data.bytes[i+3]<<24);
+        hash=((hash<<5)|(hash>>27))^word;
+    }
     return hash;
 }
 static int AC_Guards(void)
@@ -235,12 +265,11 @@ static const ac_pair_t ac_pairs[]={
     {"R_AliasDrawModel",(void(*)(void))R_AliasDrawModel_AliasControl_C,(void(*)(void))R_AliasDrawModel,1,1}};
 static void AC_Step(unsigned pair,unsigned pattern,unsigned sequence)
 {
-    static ac_state_t initial,reference,assembly;
-    static byte before_final[sizeof(ac_final.values)+32],before_aux[sizeof(ac_aux.values)+32];
-    static byte c_final[sizeof(ac_final.values)+32],c_aux[sizeof(ac_aux.values)+32];
-    static byte saved_trace[sizeof(ac_trace)];
+    ac_state_t *initial=&ac_workspace->initial,*reference=&ac_workspace->reference,*assembly=&ac_workspace->assembly;
+    byte *before_final=ac_workspace->before_final,*before_aux=ac_workspace->before_aux;
+    byte *c_final=ac_workspace->c_final,*c_aux=ac_workspace->c_aux,*saved_trace=ac_workspace->saved_trace;
     unsigned args[2],adapter[2],c_abi,a_abi,hash,fb,ab,i;int failed;
-    AC_Inputs(pattern,sequence,pair);AC_Save(&initial,0);hash=AC_ReadOnly();
+    AC_Inputs(pattern,sequence,pair);AC_Save(initial,0);hash=AC_ReadOnly();
     fb=ac_live_bytes+32;ab=ac_live_aux_bytes+32;
     Q_memcpy(before_final,ac_final.values,fb);Q_memcpy(before_aux,ac_aux.values,ab);
     args[0]=pair==2?currententity->trivial_accept:pair==3?(unsigned)pfinalverts:(unsigned)&ac_light;
@@ -248,18 +277,18 @@ static void AC_Step(unsigned pair,unsigned pattern,unsigned sequence)
     adapter[0]=(unsigned)ac_pairs[pair].c;Q_memset(&ac_trace,0,sizeof(ac_trace));
     c_abi=Bench486Call_asm486(ac_pairs[pair].adapter==1?Bench486AliasControlRegCall:ac_pairs[pair].adapter==2?Bench486AliasControlBBoxCall:ac_pairs[pair].c,
         ac_pairs[pair].adapter?ac_pairs[pair].adapter==1?2:1:ac_pairs[pair].words,ac_pairs[pair].adapter?adapter:args,NULL);
-    AC_Save(&reference,ac_drawing);Q_memcpy(c_final,ac_final.values,fb);Q_memcpy(c_aux,ac_aux.values,ab);
+    AC_Save(reference,ac_drawing);Q_memcpy(c_final,ac_final.values,fb);Q_memcpy(c_aux,ac_aux.values,ab);
     Q_memcpy(saved_trace,&ac_trace,sizeof(ac_trace));failed=!AC_Guards() || hash!=AC_ReadOnly() || ac_trace.errors;
-    AC_Restore(&initial);Q_memcpy(ac_final.values,before_final,fb);Q_memcpy(ac_aux.values,before_aux,ab);
+    AC_Restore(initial);Q_memcpy(ac_final.values,before_final,fb);Q_memcpy(ac_aux.values,before_aux,ab);
     adapter[0]=(unsigned)ac_pairs[pair].a;Q_memset(&ac_trace,0,sizeof(ac_trace));
     a_abi=Bench486Call_asm486(ac_pairs[pair].adapter==1?Bench486AliasControlRegCall:ac_pairs[pair].adapter==2?Bench486AliasControlBBoxCall:ac_pairs[pair].a,
         ac_pairs[pair].adapter?ac_pairs[pair].adapter==1?2:1:ac_pairs[pair].words,ac_pairs[pair].adapter?adapter:args,NULL);
-    AC_Save(&assembly,ac_drawing);
+    AC_Save(assembly,ac_drawing);
     failed|=c_abi || a_abi || !AC_Guards() || hash!=AC_ReadOnly() || ac_trace.errors ||
-        Q_memcmp(&reference,&assembly,sizeof(reference)) || Q_memcmp(saved_trace,&ac_trace,sizeof(ac_trace)) ||
+        Q_memcmp(reference,assembly,sizeof(*reference)) || Q_memcmp(saved_trace,&ac_trace,sizeof(ac_trace)) ||
         Q_memcmp(c_final,ac_final.values,fb) || Q_memcmp(c_aux,ac_aux.values,ab);
     if(failed){bench486_memory_failures++;
-        if(bench486_memory_failures<32){for(i=0;i<sizeof(reference);i++)if(((byte *)&reference)[i]!=((byte *)&assembly)[i])break;
+        if(bench486_memory_failures<32){for(i=0;i<sizeof(*reference);i++)if(((byte *)reference)[i]!=((byte *)assembly)[i])break;
             Bench486Printf("alias-control %s FAIL pattern %u ABI %x/%x state-byte %u trace %u/%u\n",
                 ac_pairs[pair].name,pattern,c_abi,a_abi,i,((unsigned *)saved_trace)[0],ac_trace.count);}}
     /* Sequence state remains from the candidate; only the dead stack pointers
@@ -267,11 +296,14 @@ static void AC_Step(unsigned pair,unsigned pattern,unsigned sequence)
 }
 static void Bench486AliasControlCases(void)
 {
-    static ac_state_t saved;unsigned short cw,control;
+    ac_state_t *saved;unsigned short cw,control;int hunk_mark;
     static const unsigned modes[]={0x007f,0x047f,0x087f,0x0c7f,0x027f,0x067f,0x0a7f,0x0e7f,0x037f,0x077f,0x0b7f,0x0f7f};
     aliashdr_t *(*model_probe)(model_t *);void (*probe)(unsigned,unsigned,const unsigned *);double (*time_probe)(void);
     unsigned i,mode,step,pair,cases=0,negative=0,failures=bench486_memory_failures;
-    AC_Save(&saved,0);model_probe=bench486_aliascontrol_model_probe;probe=bench486_aliascontrol_probe;time_probe=bench486_aliascontrol_time_probe;
+    hunk_mark=Hunk_LowMark();
+    ac_workspace=(ac_workspace_t *)Hunk_AllocName(sizeof(*ac_workspace),"aliasctl");
+    saved=&ac_workspace->saved;
+    AC_Save(saved,0);model_probe=bench486_aliascontrol_model_probe;probe=bench486_aliascontrol_probe;time_probe=bench486_aliascontrol_time_probe;
     bench486_aliascontrol_model_probe=AC_Model;bench486_aliascontrol_probe=AC_Observe;bench486_aliascontrol_time_probe=AC_Time;
     for(i=0;i<8;i++){
         ac_model.before[i]=ac_entity.before[i]=ac_blob.before[i]=ac_final.before[i]=ac_aux.before[i]=0x5a5a5a5aU;
@@ -299,9 +331,10 @@ static void Bench486AliasControlCases(void)
         ((byte *)ac_aux.values)[ac_live_aux_bytes+i]^=1;if(!AC_Guards())negative++;((byte *)ac_aux.values)[ac_live_aux_bytes+i]^=1;
     }
     if(negative!=128)bench486_memory_failures++;
-    bench486_aliascontrol_model_probe=model_probe;bench486_aliascontrol_probe=probe;bench486_aliascontrol_time_probe=time_probe;AC_Restore(&saved);
+    bench486_aliascontrol_model_probe=model_probe;bench486_aliascontrol_probe=probe;bench486_aliascontrol_time_probe=time_probe;AC_Restore(saved);
     Bench486Printf("alias pipeline exact bbox/transform/skin/frame/light/triangle/live-state/ABI %s (9 entries; %u cases; 12 control words; 8192 sequence calls; %u guard checks; %u failures)\n",
         failures==bench486_memory_failures?"PASS":"FAIL",cases,negative,bench486_memory_failures-failures);
+    Hunk_FreeToLowMark(hunk_mark);ac_workspace=NULL;
 }
 #else
 static void Bench486AliasControlCases(void)
