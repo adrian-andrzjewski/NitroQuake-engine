@@ -410,7 +410,13 @@ profile and several isolated 3D assembly selections each completed all 985
 Demo 2 frames with checksum `1887495667`, but the combined profile has not
 passed scene parity and its failing interaction is still unknown. The supplied
 page-fault address maps to `R_RecursiveClipBPoly_asm486` in the current
-candidate, though the screenshot executable hash is unavailable. See the
+candidate, though the screenshot executable hash is unavailable. The
+92-selector renderer/geometry group and its 24-selector complement each pass
+independently. The broad profile passes all 985 frames when only
+`WorldControlImplementation` is returned to C; the other 116 selectors remain
+assembly. The nine-procedure WorldControl assembly group passes its direct
+fixture but still triggers the combined-profile early exit, so its runtime
+interaction remains open. See the
 [touched-leaf traversal ledger](ledger/2026-10-16-find-touched-leafs-assembly-port.md).
 
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`

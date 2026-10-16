@@ -70,12 +70,57 @@ prevent that failure, so this run does not implicate the touched-leaf port.
 
 Several isolated 3D assembly selections complete the same 985-frame scene
 with checksum `1887495667`: `R_RenderWorld` plus the BSP walker,
-`R_RenderBmodelFace` alone, `R_DrawSolidClippedSubmodelPolygons` alone, and
-`R_RenderBmodelFace` plus the Z-gradient helper. Returning either
+`R_RenderBmodelFace` alone, `R_DrawSolidClippedSubmodelPolygons` alone,
+`R_RecursiveClipBPoly` alone, and `R_RenderBmodelFace` plus the Z-gradient
+helper. The clipper-only run completed twice at 12.18 median FPS; both
+320x200 indexed captures and palettes matched the golden image exactly.
+Returning either
 `R_DrawSolidClippedSubmodelPolygons` or `R_RenderBmodelFace` to C in the broad
 profile did not prevent its early exit; returning the full brush-model
 clipping trio to C did not prevent it either. This rules out none of the
 remaining interactions and does not identify the failing selector.
+
+The saved `half1` and `half2` selector profiles each pass the complete scene.
+A renderer/geometry-focused profile selecting 92 assembly procedures also
+passes one full run at 12.18 FPS; the complementary 24-selector profile passes
+with `SurfaceDispatcherImplementation=c` at 12.19 FPS. Both report checksum
+`1887495667` and exact indexed captures and palettes. Combining those groups
+with `SurfaceDispatcherImplementation=c` still exits before producing
+`timedemo.txt`. The 12-selector control and screen subsets each remained alive
+through a 30-second emulator window, then timed out before scene completion;
+those probes are not parity results. With the screen set enabled, adding
+`DrawingDriver`, `ViewControl`, and `DamageParse` likewise survived until the
+30-second timeout, while adding `PrintTimes`, `WorldControl`, and `Drawing`
+exited before `timedemo.txt` was written. That last subset is now the smallest
+reproducing group tested, but it does not establish which procedure is
+responsible. Each single selector and pair from that group also survived only
+until the 30-second timeout, so those are not parity results.
+
+The decisive broad-profile check passes when only
+`WorldControlImplementation` is changed to C: the other 116 selectors remain
+assembly, all 985 Demo 2 frames complete, the framebuffer and palette match
+exactly, the final checksum is `1887495667`, and the measured median is 12.17
+FPS. Changing only `PrintTimesImplementation` to C still exits before
+`timedemo.txt`, so `PrintTimes` is not the sole cause. `WorldControlImplementation`
+selects nine procedures across model rotation, entity-fragment BSP traversal,
+and edge-frame setup: `R_EntityRotate`, `R_RotateBmodel`,
+`R_RotateBmodelCached`, `R_RemoveEfrags`, `R_SplitEntityOnNode`,
+`R_SplitEntityOnNode2`, `R_AddEfrags`, `R_DrawCulledPolys`, and
+`R_BeginEdgeFrame`. Their direct C/ASM fixture passes twelve x87 control words
+and an 8,192-call rotation-cache sequence, but that fixture does not reproduce
+the failing full-scene integration. The current fault is narrowed to the
+WorldControl assembly group or a call-path interaction that requires it; its
+individual procedure is not yet isolated.
+
+QBench-only mixed-dispatch probes redirected each complete WorldControl
+subgroup (rotation, efrag traversal, or edge setup), and each of the three
+subgroup pairs, to its `_WorldControl_C` copies while leaving
+`ASM486_WORLD_CONTROL` enabled. All six variants still exited before
+`timedemo.txt` after 47–50 seconds. These shims retain assembly-selected
+compile-time state and benchmark call hooks, so the result does not prove that
+each subgroup independently fails in a production build or isolate an
+individual entry. Only changing the production selector for the entire
+WorldControl group to C currently passes.
 
 The supplied DOSBox-X screenshot reports EIP `0x000e2fa8` and EBP
 `0x00400000`, outside the displayed application stack. The screenshot's exact
