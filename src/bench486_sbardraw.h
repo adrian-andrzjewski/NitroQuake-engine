@@ -11,6 +11,13 @@ extern int sb_lines, sb_updates;
 extern qboolean sb_showscores;
 extern int scr_copyeverything;
 extern float scr_con_current;
+extern cvar_t teamplay;
+extern qpic_t *sb_faces[7][2];
+extern qpic_t *sb_face_invis;
+extern qpic_t *sb_face_quad;
+extern qpic_t *sb_face_invuln;
+extern qpic_t *sb_face_invis_invuln;
+extern qpic_t *rsb_teambord;
 
 #define BENCH486_SBAR_DRAW_EVENT_CAPACITY 32
 
@@ -153,6 +160,24 @@ void Bench486SbarDrawFace (void)
 void Bench486SbarDrawMiniDeathmatch (void)
 {
 	Bench486SbarDrawRecord (BENCH486_SBAR_DRAW_MINI, 0, 0, 0, 0, 0);
+}
+
+void Bench486SbarFacePic (int x, int y, qpic_t *pic)
+{
+	Bench486SbarCapture (SBAR_CAPTURE_PIC, x, y, (unsigned long)pic);
+}
+
+void Bench486SbarFaceCharacter (int x, int y, int num)
+{
+	Bench486SbarCapture (SBAR_CAPTURE_CHARACTER, x, y, (unsigned long)num);
+}
+
+void Bench486SbarFaceFill (int x, int y, int width, int height, int color)
+{
+	unsigned long packed;
+	packed = ((unsigned long)(width & 255) << 16) |
+			((unsigned long)(height & 255) << 8) | (unsigned long)(color & 255);
+	Bench486SbarCapture (SBAR_CAPTURE_FILL, x, y, packed);
 }
 
 static void Bench486SbarDrawResetCapture (void)
@@ -298,6 +323,210 @@ static void Bench486SbarDrawCase (const bench486_sbar_draw_case_t *test_case)
 	Bench486SbarDrawRestoreGlobals (&saved);
 }
 
+typedef struct
+{
+	const char *name;
+	int rogue_game;
+	int maxclients;
+	float teamplay_value;
+	int gametype;
+	int width;
+	int height;
+	int viewentity;
+	int health;
+	int items;
+	double time;
+	float faceanimtime;
+	int frags;
+	int colors;
+	int expected_events;
+	int expected_updates;
+} bench486_sbar_face_case_t;
+
+typedef struct
+{
+	int updates;
+	int viewentity;
+	int maxclients;
+	int gametype;
+	int health;
+	int items;
+	int width;
+	int height;
+	double time;
+	float faceanimtime;
+	float teamplay_value;
+	qboolean rogue_game;
+	scoreboard_t *scores;
+	qpic_t *faces[7][2];
+	qpic_t *face_invis;
+	qpic_t *face_quad;
+	qpic_t *face_invuln;
+	qpic_t *face_invis_invuln;
+	qpic_t *team_border;
+} bench486_sbar_face_saved_t;
+
+static scoreboard_t bench486_sbar_face_scores[4];
+
+static void Bench486SbarFaceCallC (void)
+{
+	Sbar_DrawFace_C ();
+}
+
+static void Bench486SbarFaceCallAsm (void)
+{
+	Sbar_DrawFace_asm486 ();
+}
+
+static void Bench486SbarFaceSave (bench486_sbar_face_saved_t *saved)
+{
+	saved->updates = sb_updates;
+	saved->viewentity = cl.viewentity;
+	saved->maxclients = cl.maxclients;
+	saved->gametype = cl.gametype;
+	saved->health = cl.stats[STAT_HEALTH];
+	saved->items = cl.items;
+	saved->width = vid.width;
+	saved->height = vid.height;
+	saved->time = cl.time;
+	saved->faceanimtime = cl.faceanimtime;
+	saved->teamplay_value = teamplay.value;
+	saved->rogue_game = rogue;
+	saved->scores = cl.scores;
+	Q_memcpy (saved->faces, sb_faces, sizeof(saved->faces));
+	saved->face_invis = sb_face_invis;
+	saved->face_quad = sb_face_quad;
+	saved->face_invuln = sb_face_invuln;
+	saved->face_invis_invuln = sb_face_invis_invuln;
+	saved->team_border = rsb_teambord;
+}
+
+static void Bench486SbarFaceRestore (
+		const bench486_sbar_face_saved_t *saved)
+{
+	sb_updates = saved->updates;
+	cl.viewentity = saved->viewentity;
+	cl.maxclients = saved->maxclients;
+	cl.gametype = saved->gametype;
+	cl.stats[STAT_HEALTH] = saved->health;
+	cl.items = saved->items;
+	vid.width = saved->width;
+	vid.height = saved->height;
+	cl.time = saved->time;
+	cl.faceanimtime = saved->faceanimtime;
+	teamplay.value = saved->teamplay_value;
+	rogue = saved->rogue_game;
+	cl.scores = saved->scores;
+	Q_memcpy (sb_faces, (void *)saved->faces, sizeof(saved->faces));
+	sb_face_invis = saved->face_invis;
+	sb_face_quad = saved->face_quad;
+	sb_face_invuln = saved->face_invuln;
+	sb_face_invis_invuln = saved->face_invis_invuln;
+	rsb_teambord = saved->team_border;
+}
+
+static void Bench486SbarFaceInstall (
+		const bench486_sbar_face_case_t *test_case)
+{
+	int i, frame;
+	rogue = test_case->rogue_game;
+	teamplay.value = test_case->teamplay_value;
+	cl.maxclients = test_case->maxclients;
+	cl.gametype = test_case->gametype;
+	vid.width = test_case->width;
+	vid.height = test_case->height;
+	cl.viewentity = test_case->viewentity;
+	cl.stats[STAT_HEALTH] = test_case->health;
+	cl.items = test_case->items;
+	cl.time = test_case->time;
+	cl.faceanimtime = test_case->faceanimtime;
+	cl.scores = bench486_sbar_face_scores;
+	bench486_sbar_face_scores[test_case->viewentity - 1].frags =
+			test_case->frags;
+	bench486_sbar_face_scores[test_case->viewentity - 1].colors =
+			test_case->colors;
+	sb_updates = 17;
+	for (i = 0; i < 7; i++)
+		for (frame = 0; frame < 2; frame++)
+			sb_faces[i][frame] = (qpic_t *)(unsigned long)
+					(0x10000 + (i * 2 + frame) * 32);
+	sb_face_invis = (qpic_t *)(unsigned long)0x11000;
+	sb_face_quad = (qpic_t *)(unsigned long)0x11020;
+	sb_face_invuln = (qpic_t *)(unsigned long)0x11040;
+	sb_face_invis_invuln = (qpic_t *)(unsigned long)0x11060;
+	rsb_teambord = (qpic_t *)(unsigned long)0x11080;
+}
+
+static void Bench486SbarFaceCase (
+		const bench486_sbar_face_case_t *test_case)
+{
+	bench486_sbar_face_saved_t saved;
+	int passed;
+	Bench486SbarFaceSave (&saved);
+	Bench486SbarFaceInstall (test_case);
+	passed = Bench486SbarCapturedPair ((char *)test_case->name,
+			Bench486SbarFaceCallC, Bench486SbarFaceCallAsm);
+	if (bench486_sbar_capture_count != test_case->expected_events ||
+		bench486_sbar_capture_overflow ||
+		sb_updates != test_case->expected_updates)
+		passed = 0;
+	if (!passed)
+	{
+		bench486_memory_failures++;
+		Bench486ReportPrintf ("sbar face %s FAIL events %d expected %d updates %d expected %d\n",
+				test_case->name, bench486_sbar_capture_count,
+				test_case->expected_events, sb_updates,
+				test_case->expected_updates);
+	}
+	else
+		Bench486ReportPrintf ("sbar face %s PASS\n", test_case->name);
+	Bench486SbarFaceRestore (&saved);
+}
+
+static void Bench486SbarDrawFaceCases (void)
+{
+	static const bench486_sbar_face_case_t cases[] = {
+		{ "healthy static", 0, 1, 0.0f, GAME_DEATHMATCH, 320, 200,
+			1, 100, 0, 1.0, 0.0f, 0, 0, 1, 17 },
+		{ "health face animation equality", 0, 1, 0.0f, 0, 320, 200,
+			1, 40, 0, 2.25, 2.25f, 0, 0, 1, 0 },
+		{ "health face animation expired", 0, 1, 0.0f, 0, 320, 200,
+			1, 99, 0, 2.2501, 2.25f, 0, 0, 1, 17 },
+		{ "combined invisibility precedence", 0, 1, 0.0f, 0, 320, 200,
+			1, 40, IT_INVISIBILITY | IT_INVULNERABILITY | IT_QUAD,
+			1.0, 0.0f, 0, 0, 1, 17 },
+		{ "quad precedes invisibility", 0, 1, 0.0f, 0, 320, 200,
+			1, 40, IT_INVISIBILITY | IT_QUAD, 1.0, 0.0f, 0, 0, 1, 17 },
+		{ "invisibility face", 0, 1, 0.0f, 0, 320, 200,
+			1, 40, IT_INVISIBILITY, 1.0, 0.0f, 0, 0, 1, 17 },
+		{ "invulnerability face", 0, 1, 0.0f, 0, 320, 200,
+			1, 40, IT_INVULNERABILITY, 1.0, 0.0f, 0, 0, 1, 17 },
+		{ "team border deathmatch", 1, 4, 3.5f, GAME_DEATHMATCH, 320, 200,
+			2, 100, 0, 1.0, 0.0f, 7, 0x21, 6, 17 },
+		{ "team border wide cooperative", 1, 8, 6.5f, 0, 640, 480,
+			3, 100, 0, 1.0, 0.0f, 1234, 0x21, 6, 17 },
+		{ "zero top color suppresses spaces", 1, 4, 4.0f, 0, 320, 200,
+			2, 100, 0, 1.0, 0.0f, -1, 0x0f, 5, 17 },
+		{ "signed long team frags", 1, 4, 4.0f, 0, 640, 480,
+			2, 100, 0, 1.0, 0.0f, -123, 0x21, 6, 17 },
+		{ "teamplay lower limit", 1, 4, 3.0f, 0, 320, 200,
+			2, 100, 0, 1.0, 0.0f, 7, 0x21, 1, 17 },
+		{ "teamplay upper limit", 1, 4, 7.0f, 0, 320, 200,
+			2, 100, 0, 1.0, 0.0f, 7, 0x21, 1, 17 },
+		{ "single player team colors disabled", 1, 1, 4.0f, 0, 320, 200,
+			1, 100, 0, 1.0, 0.0f, 7, 0x21, 1, 17 },
+		{ "negative health truncates toward zero", 0, 1, 0.0f, 0, 320, 200,
+			1, -5, 0, 1.0, 0.0f, 0, 0, 1, 17 }
+	};
+	int i;
+	bench486_sbar_face_saved_t saved;
+	Bench486SbarFaceSave (&saved);
+	bench486_sbar_first_diff_logged = 0;
+	for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+		Bench486SbarFaceCase (&cases[i]);
+	Bench486SbarFaceRestore (&saved);
+}
+
 static void Bench486SbarDrawCases (void)
 {
 	static const bench486_sbar_draw_case_t cases[] = {
@@ -341,6 +570,7 @@ static void Bench486SbarDrawCases (void)
 	for (i = 0; i < sizeof (cases) / sizeof (cases[0]); i++)
 		Bench486SbarDrawCase (&cases[i]);
 	Bench486SbarDrawRestoreGlobals (&saved);
+	Bench486SbarDrawFaceCases ();
 }
 
 #endif /* BENCH486 && ASM486_SBAR_DRAW_FIXTURE */

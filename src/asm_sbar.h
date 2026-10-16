@@ -5,6 +5,14 @@
 #define SBAR_CL_MAXCLIENTS_OFFSET 2684
 #define SBAR_CL_STATS_OFFSET 28
 #define SBAR_CL_ITEMS_OFFSET 156
+#define SBAR_CL_FACEANIMTIME_OFFSET 288
+#define SBAR_CL_TIME_OFFSET 572
+#define SBAR_CL_VIEWENTITY_OFFSET 2680
+#define SBAR_CL_SCORES_OFFSET 2896
+#define SBAR_SCOREBOARD_FRAGS_OFFSET 36
+#define SBAR_SCOREBOARD_COLORS_OFFSET 40
+#define SBAR_SCOREBOARD_SIZE 16428
+#define SBAR_CVAR_VALUE_OFFSET 16
 #define SBAR_VID_WIDTH_OFFSET 20
 #define SBAR_VID_HEIGHT_OFFSET 24
 #define SBAR_VID_NUMPAGES_OFFSET 32
@@ -24,7 +32,9 @@
 #define SBAR_IT_ARMOR3 32768
 #define SBAR_IT_KEY1 131072
 #define SBAR_IT_KEY2 262144
+#define SBAR_IT_INVISIBILITY 524288
 #define SBAR_IT_INVULNERABILITY 1048576
+#define SBAR_IT_QUAD 4194304
 #define SBAR_RIT_SHELLS 128
 #define SBAR_RIT_NAILS 256
 #define SBAR_RIT_ROCKETS 512
@@ -40,6 +50,7 @@
 #define SBAR_CAPTURE_TRANSPIC 2
 #define SBAR_CAPTURE_CHARACTER 3
 #define SBAR_CAPTURE_STRING 4
+#define SBAR_CAPTURE_FILL 5
 
 #ifndef __ASSEMBLER__
 #include <stddef.h>
@@ -54,6 +65,22 @@ typedef char sbar_client_stats_offset_must_match[
 		(offsetof(client_state_t, stats) == SBAR_CL_STATS_OFFSET) ? 1 : -1];
 typedef char sbar_client_items_offset_must_match[
 		(offsetof(client_state_t, items) == SBAR_CL_ITEMS_OFFSET) ? 1 : -1];
+typedef char sbar_client_faceanimtime_offset_must_match[
+		(offsetof(client_state_t, faceanimtime) == SBAR_CL_FACEANIMTIME_OFFSET) ? 1 : -1];
+typedef char sbar_client_time_offset_must_match[
+		(offsetof(client_state_t, time) == SBAR_CL_TIME_OFFSET) ? 1 : -1];
+typedef char sbar_client_viewentity_offset_must_match[
+		(offsetof(client_state_t, viewentity) == SBAR_CL_VIEWENTITY_OFFSET) ? 1 : -1];
+typedef char sbar_client_scores_offset_must_match[
+		(offsetof(client_state_t, scores) == SBAR_CL_SCORES_OFFSET) ? 1 : -1];
+typedef char sbar_scoreboard_frags_offset_must_match[
+		(offsetof(scoreboard_t, frags) == SBAR_SCOREBOARD_FRAGS_OFFSET) ? 1 : -1];
+typedef char sbar_scoreboard_colors_offset_must_match[
+		(offsetof(scoreboard_t, colors) == SBAR_SCOREBOARD_COLORS_OFFSET) ? 1 : -1];
+typedef char sbar_scoreboard_size_must_match[
+		(sizeof(scoreboard_t) == SBAR_SCOREBOARD_SIZE) ? 1 : -1];
+typedef char sbar_teamplay_value_offset_must_match[
+		(offsetof(cvar_t, value) == SBAR_CVAR_VALUE_OFFSET) ? 1 : -1];
 typedef char sbar_vid_width_offset_must_match[
 		(offsetof(viddef_t, width) == SBAR_VID_WIDTH_OFFSET) ? 1 : -1];
 typedef char sbar_vid_height_offset_must_match[
@@ -74,8 +101,11 @@ typedef char sbar_it_armor2_must_match[(IT_ARMOR2 == SBAR_IT_ARMOR2) ? 1 : -1];
 typedef char sbar_it_armor3_must_match[(IT_ARMOR3 == SBAR_IT_ARMOR3) ? 1 : -1];
 typedef char sbar_it_key1_must_match[(IT_KEY1 == SBAR_IT_KEY1) ? 1 : -1];
 typedef char sbar_it_key2_must_match[(IT_KEY2 == SBAR_IT_KEY2) ? 1 : -1];
+typedef char sbar_it_invisibility_must_match[
+		(IT_INVISIBILITY == SBAR_IT_INVISIBILITY) ? 1 : -1];
 typedef char sbar_it_invulnerability_must_match[
 		(IT_INVULNERABILITY == SBAR_IT_INVULNERABILITY) ? 1 : -1];
+typedef char sbar_it_quad_must_match[(IT_QUAD == SBAR_IT_QUAD) ? 1 : -1];
 typedef char sbar_rit_shells_must_match[(RIT_SHELLS == SBAR_RIT_SHELLS) ? 1 : -1];
 typedef char sbar_rit_nails_must_match[(RIT_NAILS == SBAR_RIT_NAILS) ? 1 : -1];
 typedef char sbar_rit_rockets_must_match[(RIT_ROCKETS == SBAR_RIT_ROCKETS) ? 1 : -1];
@@ -96,6 +126,8 @@ typedef char sbar_pointer_size_must_match[(sizeof(void *) == 4) ? 1 : -1];
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW)
 void Sbar_Draw_C (void);
 void Sbar_Draw_asm486 (void);
+void Sbar_DrawFace_C (void);
+void Sbar_DrawFace_asm486 (void);
 #endif
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 void Bench486SbarDrawTileClear (int x, int y, int width, int height);
@@ -105,6 +137,9 @@ void Bench486SbarDrawPic (int x, int y, qpic_t *pic);
 void Bench486SbarDrawScoreboard (void);
 void Bench486SbarDrawNum (int x, int y, int number, int digits, int color);
 void Bench486SbarDrawFace (void);
+void Bench486SbarFacePic (int x, int y, qpic_t *pic);
+void Bench486SbarFaceCharacter (int x, int y, int num);
+void Bench486SbarFaceFill (int x, int y, int width, int height, int color);
 void Bench486SbarDrawMiniDeathmatch (void);
 #endif
 #endif

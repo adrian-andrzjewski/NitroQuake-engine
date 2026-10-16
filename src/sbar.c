@@ -883,7 +883,23 @@ void Sbar_DrawFrags (void)
 Sbar_DrawFace
 ===============
 */
-void Sbar_DrawFace (void)
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_DRAW_FACE_C_ENTRY Sbar_DrawFace_C
+#else
+#define SBAR_DRAW_FACE_C_ENTRY Sbar_DrawFace
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_FACE_DRAW_PIC Bench486SbarFacePic
+#define SBAR_FACE_DRAW_CHARACTER Bench486SbarFaceCharacter
+#define SBAR_FACE_DRAW_FILL Bench486SbarFaceFill
+#else
+#define SBAR_FACE_DRAW_PIC Sbar_DrawPic
+#define SBAR_FACE_DRAW_CHARACTER Sbar_DrawCharacter
+#define SBAR_FACE_DRAW_FILL Draw_Fill
+#endif
+
+void SBAR_DRAW_FACE_C_ENTRY (void)
 {
 	int		f, anim;
 
@@ -911,9 +927,9 @@ void Sbar_DrawFace (void)
 		else
 			xofs = ((vid.width - 320)>>1) + 113;
 
-		Sbar_DrawPic (112, 0, rsb_teambord);
-		Draw_Fill (xofs, vid.height-SBAR_HEIGHT+3, 22, 9, top);
-		Draw_Fill (xofs, vid.height-SBAR_HEIGHT+12, 22, 9, bottom);
+		SBAR_FACE_DRAW_PIC (112, 0, rsb_teambord);
+		SBAR_FACE_DRAW_FILL (xofs, vid.height-SBAR_HEIGHT+3, 22, 9, top);
+		SBAR_FACE_DRAW_FILL (xofs, vid.height-SBAR_HEIGHT+12, 22, 9, bottom);
 
 		// draw number
 		f = s->frags;
@@ -922,17 +938,17 @@ void Sbar_DrawFace (void)
 		if (top==8)
 		{
 			if (num[0] != ' ')
-				Sbar_DrawCharacter(109, 3, 18 + num[0] - '0');
+				SBAR_FACE_DRAW_CHARACTER (109, 3, 18 + num[0] - '0');
 			if (num[1] != ' ')
-				Sbar_DrawCharacter(116, 3, 18 + num[1] - '0');
+				SBAR_FACE_DRAW_CHARACTER (116, 3, 18 + num[1] - '0');
 			if (num[2] != ' ')
-				Sbar_DrawCharacter(123, 3, 18 + num[2] - '0');
+				SBAR_FACE_DRAW_CHARACTER (123, 3, 18 + num[2] - '0');
 		}
 		else
 		{
-			Sbar_DrawCharacter ( 109, 3, num[0]);
-			Sbar_DrawCharacter ( 116, 3, num[1]);
-			Sbar_DrawCharacter ( 123, 3, num[2]);
+			SBAR_FACE_DRAW_CHARACTER ( 109, 3, num[0]);
+			SBAR_FACE_DRAW_CHARACTER ( 116, 3, num[1]);
+			SBAR_FACE_DRAW_CHARACTER ( 123, 3, num[2]);
 		}
 		
 		return;
@@ -942,22 +958,22 @@ void Sbar_DrawFace (void)
 	if ( (cl.items & (IT_INVISIBILITY | IT_INVULNERABILITY) )
 	== (IT_INVISIBILITY | IT_INVULNERABILITY) )
 	{
-		Sbar_DrawPic (112, 0, sb_face_invis_invuln);
+		SBAR_FACE_DRAW_PIC (112, 0, sb_face_invis_invuln);
 		return;
 	}
 	if (cl.items & IT_QUAD)
 	{
-		Sbar_DrawPic (112, 0, sb_face_quad );
+		SBAR_FACE_DRAW_PIC (112, 0, sb_face_quad );
 		return;
 	}
 	if (cl.items & IT_INVISIBILITY)
 	{
-		Sbar_DrawPic (112, 0, sb_face_invis );
+		SBAR_FACE_DRAW_PIC (112, 0, sb_face_invis );
 		return;
 	}
 	if (cl.items & IT_INVULNERABILITY)
 	{
-		Sbar_DrawPic (112, 0, sb_face_invuln);
+		SBAR_FACE_DRAW_PIC (112, 0, sb_face_invuln);
 		return;
 	}
 
@@ -973,8 +989,12 @@ void Sbar_DrawFace (void)
 	}
 	else
 		anim = 0;
-	Sbar_DrawPic (112, 0, sb_faces[f][anim]);
+	SBAR_FACE_DRAW_PIC (112, 0, sb_faces[f][anim]);
 }
+
+#undef SBAR_FACE_DRAW_PIC
+#undef SBAR_FACE_DRAW_CHARACTER
+#undef SBAR_FACE_DRAW_FILL
 
 /*
 ===============
@@ -994,8 +1014,10 @@ Sbar_Draw
 #define Sbar_DrawPic Bench486SbarDrawPic
 #define Sbar_DrawScoreboard Bench486SbarDrawScoreboard
 #define Sbar_DrawNum Bench486SbarDrawNum
-#define Sbar_DrawFace Bench486SbarDrawFace
 #define Sbar_MiniDeathmatchOverlay Bench486SbarDrawMiniDeathmatch
+#define SBAR_DRAW_FACE_DISPATCH Bench486SbarDrawFace
+#else
+#define SBAR_DRAW_FACE_DISPATCH SBAR_DRAW_FACE_C_ENTRY
 #endif
 
 #if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
@@ -1073,7 +1095,7 @@ void SBAR_DRAW_C_ENTRY (void)
 		}
 
 	// face
-		Sbar_DrawFace ();
+		SBAR_DRAW_FACE_DISPATCH ();
 
 	// health
 		Sbar_DrawNum (136, 0, cl.stats[STAT_HEALTH], 3
@@ -1127,10 +1149,11 @@ void SBAR_DRAW_C_ENTRY (void)
 #undef Sbar_DrawPic
 #undef Sbar_DrawScoreboard
 #undef Sbar_DrawNum
-#undef Sbar_DrawFace
 #undef Sbar_MiniDeathmatchOverlay
 #endif
 #undef SBAR_DRAW_C_ENTRY
+#undef SBAR_DRAW_FACE_DISPATCH
+#undef SBAR_DRAW_FACE_C_ENTRY
 
 //=============================================================================
 
