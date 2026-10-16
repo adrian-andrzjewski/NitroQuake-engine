@@ -85,6 +85,7 @@
     "DamageParseImplementation": "c",
     "ChaseImplementation": "c",
     "HullCheckImplementation": "c",
+    "HullForEntityImplementation": "c",
     "AliasControlImplementation": "c",
     "AliasStatsImplementation": "c",
     "PrintTimesImplementation": "c",

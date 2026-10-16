@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-16-entity-hull-selection-assembly-port.md`](2026-10-16-entity-hull-selection-assembly-port.md) | 5 | renderer port / 3D entity and BSP hull selection (`Function and selection boundary`; `Exact parity fixture`; `Strict BENCH i486 gate`; `Strict Release i486 gate`; `Reproduction`) |
 | [`2026-10-16-chase-hull-check-assembly-port.md`](2026-10-16-chase-hull-check-assembly-port.md) | 4 | renderer port / 3D BSP collision trace (`Function and selection boundary`; `Exact parity fixture`; `i486 executable gate`; `Reproduction`) |
 | [`2026-10-15-sbar-primitives-assembly-port.md`](2026-10-15-sbar-primitives-assembly-port.md) | 4 | renderer port / status-bar primitives (`Reference mapping and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Remaining C ownership`) |
 | [`2026-10-13-screen-update-assembly-port.md`](2026-10-13-screen-update-assembly-port.md) | 5 | renderer port / full screen-update orchestration (`Reference mapping and ABI`; `Direct C/assembly fixture`; `Exact paired framebuffer and ISA evidence`; `Refreshed ownership inventory and remaining C paths`; `Reproduction`) |

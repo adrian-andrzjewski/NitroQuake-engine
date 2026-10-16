@@ -1062,6 +1062,33 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("[switch]$HullCheckOnly", bench_runner)
         self.assertIn("-benchhullcheck", bench_runner)
 
+    def test_entity_hull_selection_and_box_construction_have_i486_assembly_parity(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        assembly = load_json(
+            (profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8")
+        )
+        reference = load_json(
+            (profiles / "i486-c-reference.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(assembly["selectors"]["HullForEntityImplementation"], "asm")
+        self.assertEqual(reference["selectors"]["HullForEntityImplementation"], "c")
+
+        world = (ROOT / "src/world.c").read_text(encoding="utf-8")
+        assembly_body = (ROOT / "src/sv_hullforentity_asm.inc").read_text(encoding="utf-8")
+        assembly_source = (ROOT / "src/asm486_experiments.s").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_hullforentity.h").read_text(encoding="utf-8")
+        selectors = (ROOT / "tools/selectors.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("SV_HullForEntity_C", world)
+        self.assertIn("SV_HullForBox_C", world)
+        self.assertIn("ASM486_HULL_FOR_ENTITY", assembly_source)
+        self.assertIn("C(SV_HullForEntity)", assembly_body)
+        self.assertIn("C(SV_HullForBox)", assembly_body)
+        self.assertIn("widths[4] = { 2.0f, 3.0f, 32.0f, 33.0f }", fixture)
+        self.assertIn("SV_HullForEntity_C", fixture)
+        self.assertIn("bench486_hullforentity_asm_calls", fixture)
+        self.assertIn("HullForEntityImplementation", selectors)
+
     def test_smoke_runner_exposes_every_current_cumulative_assembly_selector(self) -> None:
         profile = load_json(
             (ROOT / "tools/renderer-profiles/i486-asm-selectable-current.json").read_text(encoding="utf-8")
@@ -1420,7 +1447,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 113)
+        self.assertEqual(len(reference["selectors"]), 114)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1488,7 +1515,7 @@ class RenderingComparisonTests(unittest.TestCase):
         cumulative = json.loads(
             (profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(reference["selectors"]), 113)
+        self.assertEqual(len(reference["selectors"]), 114)
         self.assertEqual(focused["id"], "i486-asm-time-graph")
         self.assertEqual(focused["selectors"]["TimeGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1525,7 +1552,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 113)
+        self.assertEqual(len(reference["selectors"]), 114)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])

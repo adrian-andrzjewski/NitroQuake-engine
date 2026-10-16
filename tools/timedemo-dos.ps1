@@ -240,6 +240,9 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$HullCheckImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [ValidateSet('c', 'asm')]
+    [string]$HullForEntityImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -1481,6 +1484,7 @@ $result = [ordered]@{
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
     hullCheckImplementation = $HullCheckImplementation
+    hullForEntityImplementation = $HullForEntityImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation

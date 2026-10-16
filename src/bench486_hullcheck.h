@@ -1,6 +1,8 @@
 #ifndef BENCH486_HULLCHECK_H
 #define BENCH486_HULLCHECK_H
 
+#include "bench486_hullforentity.h"
+
 #if defined(BENCH486) && defined(ASM486_HULLCHECK)
 extern unsigned bench486_hullcheck_dispatch_asm;
 extern unsigned bench486_hullcheck_asm_calls;
@@ -75,6 +77,9 @@ static void Bench486HullCheckCases(void)
 	mins[0] = mins[1] = mins[2] = -1;
 	maxs[0] = maxs[1] = maxs[2] = 1;
 	bench486_hullcheck_dispatch_asm = 0;
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+	bench486_hullforentity_dispatch_asm = 0;
+#endif
 
 	for (target = 0; target < 2; ++target) {
 		if (target) {
@@ -95,8 +100,14 @@ static void Bench486HullCheckCases(void)
 			}
 
 			bench486_hullcheck_dispatch_asm = 0;
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+			bench486_hullforentity_dispatch_asm = 0;
+#endif
 			reference = SV_ClipMoveToEntity(entity, start, mins, maxs, end);
 			bench486_hullcheck_dispatch_asm = 1;
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+			bench486_hullforentity_dispatch_asm = 1;
+#endif
 			assembly_calls_before = bench486_hullcheck_asm_calls;
 			candidate = SV_ClipMoveToEntity(entity, start, mins, maxs, end);
 			cases++;
@@ -114,7 +125,11 @@ static void Bench486HullCheckCases(void)
 		}
 	}
 
+	Bench486HullForEntityCases();
 	bench486_hullcheck_dispatch_asm = 1;
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+	bench486_hullforentity_dispatch_asm = 1;
+#endif
 	sv.models[1] = saved_model;
 	Bench486Printf("entity/world BSP hull dispatch exact C/ASM %s (%u traces; %u assembly entries; 16 edge sentinels; %u failures)\n",
 		failures ? "FAIL" : "PASS", cases, asm_entries, failures);

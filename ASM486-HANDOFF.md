@@ -13,20 +13,24 @@ and run details remain in `BUILD-DOS.md`.
 
 The default i486 selector set is now
 [`i486-asm-selectable-current.json`](tools/renderer-profiles/i486-asm-selectable-current.json),
-which enables all 113 current assembly selectors across the
+which enables all 114 current assembly selectors across the
 build and runner scripts. The complete
 [`i486-c-reference.json`](tools/renderer-profiles/i486-c-reference.json)
 profile remains available for parity checks, and individual C selector values
-remain available for focused comparisons. `HullCheckImplementation=asm` now
-extends the existing `SV_RecursiveHullCheck_asm486` routine from chase-camera
-collision to general entity and world traces; its focused 14-trace C/ASM route
-fixture passed with 40 assembly entries and intact sentinels. The strict BENCH
-gate passed for 280,172 linked instructions, 529 startup rows, and 9,207
-provider instructions, with no exemptions. The non-BENCH release gate passed
-for 167,879 linked instructions, also with no exemptions; `world.obj` contains
-the assembly recursion symbol and omits the C body. The release pin now covers
-151 objects plus `quake.exe`. These focused runs record correctness, not FPS or
-hull-routine timing, and do not close full gameplay or visual-scene acceptance.
+remain available for focused comparisons. `HullCheckImplementation=asm` routes
+general entity and world traces through `SV_RecursiveHullCheck_asm486`;
+`HullForEntityImplementation=asm` now selects assembly for
+`SV_HullForEntity` and `SV_HullForBox`, with C retained for BENCH parity and the
+C-reference profile. The 14-trace entity/world route fixture passed with 40
+recursive assembly entries and intact sentinels. The six-case direct hull
+fixture also passed. The strict BENCH gate verified 280,245 linked
+instructions, 529 startup rows, and 9,207 provider instructions, with zero
+exemptions. The non-BENCH release gate passed for 167,782 linked instructions
+across 394 executable ranges, also with zero exemptions. `world.obj` references
+the public hull helpers; the assembly object defines them and omits both C
+helper bodies. The release pin covers 151 objects plus `quake.exe`. These
+focused runs record correctness, not FPS or hull-routine timing, and do not
+close full gameplay or visual-scene acceptance.
 This does not mean the full renderer has been ported to assembly; work outside
 the current selector set remains open. Older performance statements below
 describe the selector policy in force when those measurements were recorded.
@@ -44,7 +48,9 @@ For the state of the work rather than its history, read these three, in order:
   build measures.
 - **Priority-ordered next steps** below -- what is still open, and why.
 
-The newest hull-check work is recorded in
+The newest 3D hull-selection work is recorded in
+[`docs/ledger/2026-10-16-entity-hull-selection-assembly-port.md`](docs/ledger/2026-10-16-entity-hull-selection-assembly-port.md).
+The recursive hull-check work is recorded in
 [`docs/ledger/2026-10-16-chase-hull-check-assembly-port.md`](docs/ledger/2026-10-16-chase-hull-check-assembly-port.md).
 The earlier renderer entries include
 [`docs/ledger/2026-10-05-edge-list-maintenance-assembly-port.md`](docs/ledger/2026-10-05-edge-list-maintenance-assembly-port.md),

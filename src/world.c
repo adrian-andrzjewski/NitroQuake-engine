@@ -25,6 +25,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_hullcheck.h"
 #endif
 
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+#include "asm_hullforentity.h"
+#endif
+
 #ifdef PROFILE486
 extern unsigned long bench486_move_calls;
 extern unsigned long bench486_hull_check_calls;
@@ -33,6 +37,12 @@ extern unsigned long bench486_hull_check_calls;
 #if defined(BENCH486) && defined(ASM486_HULLCHECK)
 unsigned bench486_hullcheck_dispatch_asm = 1;
 unsigned bench486_hullcheck_asm_calls;
+#endif
+
+#if defined(BENCH486) && defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+unsigned bench486_hullforentity_dispatch_asm = 1;
+unsigned bench486_hullforbox_asm_calls;
+unsigned bench486_hullforentity_asm_calls;
 #endif
 
 /*
@@ -67,9 +77,15 @@ HULL BOXES
 */
 
 
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+hull_t		box_hull;
+dclipnode_t	box_clipnodes[6];
+mplane_t	box_planes[6];
+#else
 static	hull_t		box_hull;
 static	dclipnode_t	box_clipnodes[6];
 static	mplane_t	box_planes[6];
+#endif
 
 /*
 ===================
@@ -116,6 +132,12 @@ To keep everything totally uniform, bounding boxes are turned into small
 BSP trees instead of being compared directly.
 ===================
 */
+#if defined(ASM486_HULL_FOR_ENTITY) && defined(BENCH486) && !defined(QUAKE2)
+#define SV_HullForBox SV_HullForBox_C
+#define SV_HullForEntity SV_HullForEntity_C
+#endif
+
+#if !defined(ASM486_HULL_FOR_ENTITY) || defined(BENCH486) || defined(QUAKE2)
 hull_t	*SV_HullForBox (vec3_t mins, vec3_t maxs)
 {
 	box_planes[0].dist = maxs[0];
@@ -183,6 +205,13 @@ hull_t *SV_HullForEntity (edict_t *ent, vec3_t mins, vec3_t maxs, vec3_t offset)
 
 	return hull;
 }
+
+#endif
+
+#if defined(ASM486_HULL_FOR_ENTITY) && defined(BENCH486) && !defined(QUAKE2)
+#undef SV_HullForBox
+#undef SV_HullForEntity
+#endif
 
 /*
 ===============================================================================
@@ -754,7 +783,18 @@ trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t max
 	VectorCopy (end, trace.endpos);
 
 // get the clipping hull
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+#ifdef BENCH486
+	if (bench486_hullforentity_dispatch_asm)
+		hull = SV_HullForEntity (ent, mins, maxs, offset);
+	else
+		hull = SV_HullForEntity_C (ent, mins, maxs, offset);
+#else
 	hull = SV_HullForEntity (ent, mins, maxs, offset);
+#endif
+#else
+	hull = SV_HullForEntity (ent, mins, maxs, offset);
+#endif
 
 	VectorSubtract (start, offset, start_l);
 	VectorSubtract (end, offset, end_l);

@@ -11386,3 +11386,7 @@ C(R_DrawParticles_asm486):
 #if defined(ASM486_CHASE) || defined(ASM486_HULLCHECK)
 #include "sv_hullcheck_asm.inc"
 #endif
+
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+#include "sv_hullforentity_asm.inc"
+#endif
