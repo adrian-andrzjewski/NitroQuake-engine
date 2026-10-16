@@ -58,7 +58,7 @@ int	current_iv;
 
 int	edge_head_u_shift20, edge_tail_u_shift20;
 
-#if defined(ASM486_SCAN_EDGES) || defined(ASM486_WORLD_CONTROL)
+#if defined(ASM486_SCAN_EDGES) || defined(ASM486_WORLD_EDGE_FRAME)
 void (*pdrawfunc)(void);
 #else
 static void (*pdrawfunc)(void);
@@ -87,7 +87,7 @@ void R_TrailingEdge (surf_t *surf, edge_t *edge);
 R_DrawCulledPolys
 ==============
 */
-#if !defined(ASM486_WORLD_CONTROL)
+#if !defined(ASM486_WORLD_EDGE_FRAME)
 void R_DrawCulledPolys (void)
 {
 	surf_t			*s;
@@ -132,7 +132,7 @@ void R_DrawCulledPolys (void)
 R_BeginEdgeFrame
 ==============
 */
-#if !defined(ASM486_WORLD_CONTROL)
+#if !defined(ASM486_WORLD_EDGE_FRAME)
 void R_BeginEdgeFrame (void)
 {
 	int		v;
@@ -1078,7 +1078,7 @@ typedef char r_backward_span_surface_layout_must_match[
 	 offsetof(surf_t, spanstate) == 20 && offsetof(surf_t, insubmodel) == 40) ? 1 : -1];
 #endif
 
-#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL)
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL_FIXTURE)
 void R_DrawCulledPolys_WorldControl_C (void)
 {
 	surf_t			*s;

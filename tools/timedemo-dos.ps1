@@ -254,7 +254,11 @@ param(
     [string]$AliasStatsImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$PrintTimesImplementation = 'c',
-    [ValidateSet('c', 'asm')]
+    [ValidateSet(
+        'c', 'asm', 'asm-fixture',
+        'rotation', 'efrags', 'edges',
+        'rotation-efrags', 'rotation-edges', 'efrags-edges'
+    )]
     [string]$WorldControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderWorldImplementation = 'c',

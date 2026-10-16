@@ -11756,7 +11756,7 @@ static void Bench486_f (void)
 #ifdef ASM486_ALIAS_CONTROL
 	Bench486AliasControlCases ();
 #endif
-#ifdef ASM486_WORLD_CONTROL
+#ifdef ASM486_WORLD_CONTROL_FIXTURE
 	Bench486WorldControlCases ();
 	Bench486ForwardSpansCases ();
 #endif

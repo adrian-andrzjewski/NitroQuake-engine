@@ -7,7 +7,7 @@
 extern entity_t *worldcontrol_cache_ent[WORLD_BMODEL_CACHE_SLOTS];
 extern int worldcontrol_cache_frame[WORLD_BMODEL_CACHE_SLOTS];
 extern float worldcontrol_cache_rot[WORLD_BMODEL_CACHE_SLOTS][3][3];
-#if defined(ASM486_SCAN_EDGES) || defined(ASM486_WORLD_CONTROL)
+#if defined(ASM486_SCAN_EDGES) || defined(ASM486_WORLD_EDGE_FRAME)
 extern void (*pdrawfunc)(void);
 #endif
 extern efrag_t **lastlink;
@@ -18,7 +18,7 @@ void R_EntityRotate(vec3_t),R_RotateBmodel(void),R_RotateBmodelCached(void);
 void R_SplitEntityOnNode(mnode_t *),R_SplitEntityOnNode2(mnode_t *);
 void R_DrawCulledPolys(void),R_BeginEdgeFrame(void);
 void R_GenerateSpans(void);
-#ifdef BENCH486
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL_FIXTURE)
 extern void (*bench486_worldcontrol_probe)(unsigned,unsigned,const unsigned *);
 void Bench486WorldControlPrint(char *,...);
 void Bench486WorldControlPoly(msurface_t *,int),Bench486WorldControlFrustum(void);

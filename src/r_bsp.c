@@ -198,7 +198,7 @@ typedef char solid_bmodel_clip_buffer_sizes[
 R_EntityRotate
 ================
 */
-#if !defined(ASM486_WORLD_CONTROL)
+#if !defined(ASM486_WORLD_ROTATION)
 void R_EntityRotate (vec3_t vec)
 {
 	vec3_t	tvec;
@@ -216,7 +216,7 @@ void R_EntityRotate (vec3_t vec)
 R_RotateBmodel
 ================
 */
-#if !defined(ASM486_WORLD_CONTROL)
+#if !defined(ASM486_WORLD_ROTATION)
 void R_RotateBmodel (void)
 {
 	float	angle, s, c, temp1[3][3], temp2[3][3], temp3[3][3];
@@ -308,7 +308,7 @@ entity_t *worldcontrol_cache_ent[BMODEL_ROTCACHE_SLOTS];
 int worldcontrol_cache_frame[BMODEL_ROTCACHE_SLOTS];
 float worldcontrol_cache_rot[BMODEL_ROTCACHE_SLOTS][3][3];
 
-#if !defined(ASM486_WORLD_CONTROL)
+#if !defined(ASM486_WORLD_ROTATION)
 void R_RotateBmodelCached (void)
 {
 	unsigned				slot;
@@ -1185,7 +1185,7 @@ void R_RenderWorldProfileLeave_asm486 (void)
 
 
 
-#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL)
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL_FIXTURE)
 void R_EntityRotate_WorldControl_C (vec3_t vec)
 {
 	vec3_t	tvec;

@@ -18,22 +18,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 /* BSP rotation, efrag lifetime and edge-frame control. */
-#ifdef ASM486_WORLD_CONTROL
+#if defined(ASM486_WORLD_CONTROL) || defined(ASM486_WORLD_ROTATION) || defined(ASM486_WORLD_EFRAGS) || defined(ASM486_WORLD_EDGE_FRAME)
 .arch i486
 .arch .387
 .code32
-#ifdef BENCH486
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL_FIXTURE)
 #define _Con_Printf _Bench486WorldControlPrint
 #define _R_RenderPoly _Bench486WorldControlPoly
 #define _R_TransformFrustum _Bench486WorldControlFrustum
 #endif
 #ifdef PROFILE486
+#ifdef ASM486_WORLD_ROTATION
 #include "r_worldrotation_profile.inc"
+#endif
+#ifdef ASM486_WORLD_EFRAGS
 #include "r_worldefrags_profile.inc"
+#endif
+#ifdef ASM486_WORLD_EDGE_FRAME
 #include "r_worldedges_profile.inc"
+#endif
 #else
+#ifdef ASM486_WORLD_ROTATION
 #include "r_worldrotation_release.inc"
+#endif
+#ifdef ASM486_WORLD_EFRAGS
 #include "r_worldefrags_release.inc"
+#endif
+#ifdef ASM486_WORLD_EDGE_FRAME
 #include "r_worldedges_release.inc"
+#endif
 #endif
 #endif

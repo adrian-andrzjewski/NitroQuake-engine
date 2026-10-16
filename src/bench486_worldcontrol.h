@@ -1,6 +1,6 @@
 /* Original C algorithms, real plane/frustum math, complete list/cache state and ABI. */
 #include "asm_worldcontrol.h"
-#ifdef ASM486_WORLD_CONTROL
+#ifdef ASM486_WORLD_CONTROL_FIXTURE
 typedef struct {unsigned first[8];model_t data[2];unsigned last[8];} wc_models_t;
 typedef struct {unsigned first[8];entity_t data[16];unsigned last[8];} wc_entities_t;
 typedef struct {unsigned first[8];mnode_t data[64];unsigned last[8];} wc_nodes_t;

@@ -1217,12 +1217,55 @@ $script:SelectorTable = @(
         SelectsAsm = $true
     }
 
+    # asm-fixture enables the BENCH-only C oracle/hooks; partial values isolate
+    # the production assembly groups during focused bring-up and parity checks.
     @{
         Param      = 'WorldControlImplementation'
         Manifest   = 'worldControlImplementation'
-        Suffix     = @{ 'asm' = 'worldcontrolasm' }
-        C          = @{ 'asm' = @('ASM486_WORLD_CONTROL') }
-        Asm        = @{ 'asm' = @('ASM486_WORLD_CONTROL') }
+        Suffix     = @{
+            'asm'         = 'worldcontrolasm'
+            'asm-fixture' = 'worldcontrolfixtureasm'
+            'rotation'    = 'worldrotationasm'
+            'efrags'      = 'worldefragsasm'
+            'edges'       = 'worldedgesasm'
+            'rotation-efrags' = 'worldrotationefragsasm'
+            'rotation-edges' = 'worldrotationedgesasm'
+            'efrags-edges'   = 'worldefragsedgesasm'
+        }
+        C          = @{
+            'asm' = @(
+                'ASM486_WORLD_CONTROL', 'ASM486_WORLD_ROTATION',
+                'ASM486_WORLD_EFRAGS', 'ASM486_WORLD_EDGE_FRAME'
+            )
+            'asm-fixture' = @(
+                'ASM486_WORLD_CONTROL', 'ASM486_WORLD_ROTATION',
+                'ASM486_WORLD_EFRAGS', 'ASM486_WORLD_EDGE_FRAME',
+                'ASM486_WORLD_CONTROL_FIXTURE'
+            )
+            'rotation' = @('ASM486_WORLD_ROTATION')
+            'efrags' = @('ASM486_WORLD_EFRAGS')
+            'edges' = @('ASM486_WORLD_EDGE_FRAME')
+            'rotation-efrags' = @('ASM486_WORLD_ROTATION', 'ASM486_WORLD_EFRAGS')
+            'rotation-edges' = @('ASM486_WORLD_ROTATION', 'ASM486_WORLD_EDGE_FRAME')
+            'efrags-edges' = @('ASM486_WORLD_EFRAGS', 'ASM486_WORLD_EDGE_FRAME')
+        }
+        Asm        = @{
+            'asm' = @(
+                'ASM486_WORLD_CONTROL', 'ASM486_WORLD_ROTATION',
+                'ASM486_WORLD_EFRAGS', 'ASM486_WORLD_EDGE_FRAME'
+            )
+            'asm-fixture' = @(
+                'ASM486_WORLD_CONTROL', 'ASM486_WORLD_ROTATION',
+                'ASM486_WORLD_EFRAGS', 'ASM486_WORLD_EDGE_FRAME',
+                'ASM486_WORLD_CONTROL_FIXTURE'
+            )
+            'rotation' = @('ASM486_WORLD_ROTATION')
+            'efrags' = @('ASM486_WORLD_EFRAGS')
+            'edges' = @('ASM486_WORLD_EDGE_FRAME')
+            'rotation-efrags' = @('ASM486_WORLD_ROTATION', 'ASM486_WORLD_EFRAGS')
+            'rotation-edges' = @('ASM486_WORLD_ROTATION', 'ASM486_WORLD_EDGE_FRAME')
+            'efrags-edges' = @('ASM486_WORLD_EFRAGS', 'ASM486_WORLD_EDGE_FRAME')
+        }
         SelectsAsm = $true
     }
 
