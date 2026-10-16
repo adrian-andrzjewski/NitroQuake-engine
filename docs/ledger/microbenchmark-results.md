@@ -372,10 +372,11 @@ and `out\dos-timedemo-20260910-184313\timedemo-result.json`.
 
 ## BSP frustum-clipping result
 
-This experiment isolated the four-plane frustum clip block in
-`R_RecursiveWorldNode`.  The original C loop remains intact as the production
-default; the ASM build calls a helper that uses register-held pointers and
-x87 dot products while preserving the C helper's reject/reduced-mask contract.
+This experiment isolates the four-plane frustum clip block in
+`R_RecursiveWorldNode`. The i486 default selects the assembly helper; the C
+loop remains available as the parity reference. The 2026-09-10 measurements
+below describe the original generic-loop implementation and are retained as a
+historical baseline.
 
 The focused benchmark used five alternating samples of 200,000 calls per
 case.  All five cases produced identical C/ASM results and both runs ended
@@ -402,14 +403,41 @@ fixed 33445 cycles, the baseline `-O2 -march=i486` build, and the same staged
 | C inline clip loop | 69.081318 / 69.081351 / 69.081286 | 14.026947 |
 | ASM helper | 69.271228 / 69.271287 / 69.271216 | 13.988492 |
 
-The ASM helper is 189.9 ms slower per timedemo, or 0.2749%.  The fast reject
-cases do not dominate the real workload, while the visible and partial paths
-pay for the helper's x87 work and call boundary.  C therefore remains the
-default and `-BspClipImplementation asm` remains an opt-in 486 learning aid.
+The original generic-loop helper was 189.9 ms slower per timedemo, or 0.2749%.
+That result predates the current i486 assembly default and the unrolled helper
+measured below.
 
 The timedemo results are
 `out\dos-timedemo-20260910-194827\timedemo-result.json` and
 `out\dos-timedemo-20260910-195220\timedemo-result.json`.
+
+### 2026-10-16 unrolled assembly follow-up
+
+The generic four-plane loop was replaced with an unrolled i486 x87 schedule
+based on the C oracle's optimized order. It loads each plane's normal once,
+reuses the values for reject and accept points, and returns the same reject
+sentinel or reduced clip mask. The C implementation remains intact under the
+benchmark build for direct parity checks.
+
+`rtk proxy pwsh -NoProfile -File tools/bench-dos.ps1 -BspClipOnly -NoBootstrap`
+passed the complete strict i486 gate and all five 200,000-call cases. Every C
+and ASM checksum matched. The displayed medians and differences were:
+
+| Case | Checksum | C median | ASM median | ASM versus C |
+| --- | ---: | ---: | ---: | ---: |
+| No active planes | 1751791936 | 0.149525 s | 0.149525 s | 0.000% |
+| All visible | 1751791936 | 1.106433 s | 1.106433 s | 0.000% |
+| Partial clip | 2258867200 | 1.082513 s | 1.082513 s | 0.000% |
+| Early reject | 0 | 0.281098 s | 0.281098 s | 0.000% |
+| Single plane | 3503583872 | 0.382771 s | 0.382771 s | 0.000% |
+
+The strict build audited 240,841 project instructions and 279,138 linked
+executable instructions with zero above-i486, unknown, or exempt instructions;
+the startup and DPMI provider audits also passed with zero exemptions. Equal
+displayed timings show parity within the emulator timer's resolution, not a
+measured speedup on physical 486 hardware. The report is
+`out\dos-bench-20261016-054236\bench-result.json`; whole-frame capture parity
+after this follow-up remains unverified.
 
 ## Alias bounding-box projection result
 

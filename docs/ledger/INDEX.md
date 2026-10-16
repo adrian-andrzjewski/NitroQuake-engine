@@ -570,6 +570,7 @@ section below moved verbatim.
 - `Lightmap normalization result`
 - `BSP plane-dot result`
 - `BSP frustum-clipping result`
+- `BSP frustum-clipping unrolled assembly follow-up (2026-10-16)`
 - `Alias bounding-box projection result`
 - `Clipped alias vertex transform result`
 - `Rejected negative-gradient Z-span unroll`

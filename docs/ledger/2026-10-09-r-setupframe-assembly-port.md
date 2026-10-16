@@ -109,9 +109,10 @@ This is focused coverage, not complete renderer acceptance. The waterwarp
 toggle, debug counters, negative ambient value, and reduced viewport now have
 stress-pair evidence, but waterwarp sizing across modes, multiplayer cvar
 enforcement, malformed/extreme dimensions, long-running state stability, and
-broader gameplay/effect scenes still need dedicated tests. The default release
-selector remains C. DOSBox-X's i486 mode is emulator evidence rather than a
-genuine 486 hardware run.
+broader gameplay/effect scenes still need dedicated tests. The default i486
+release profile selects assembly, while the C selector remains the reference.
+DOSBox-X's i486 mode is emulator evidence rather than a genuine 486 hardware
+run.
 
 To rebuild and repeat all strict checks, use a fresh output root:
 

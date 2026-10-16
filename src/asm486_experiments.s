@@ -6527,109 +6527,213 @@ C(R_RecursiveWorldNodePlaneDot_asm486):
 	.p2align 4,,15
 
 // int R_RecursiveWorldNodeClip_asm486(mnode_t *node, int clipflags)
-// Evaluate the four frustum planes for one visible BSP node.  The C helper
-// returns -1 for a fully rejected node and otherwise returns the reduced
-// clip mask; use the same contract here so the caller keeps its recursion and
-// surface logic unchanged.
+// Unrolled i486 x87 schedule: retain each plane normal across both box tests.
 C(R_RecursiveWorldNodeClip_asm486):
 	.globl C(R_RecursiveWorldNodeClip_asm486)
-	pushl	%ebp
-	pushl	%edi
-	pushl	%esi
 	pushl	%ebx
-	movl	20(%esp),%edx		// node
-	movl	24(%esp),%ecx		// clipflags
-	testl	%ecx,%ecx
-	jz	.Lbsp_clip_done
-	xorl	%ebx,%ebx			// plane index
-	leal	C(pfrustum_indexes),%esi	// array of four index pointers
-	leal	C(view_clipplanes),%edi	// first clipplane
-
-.Lbsp_clip_plane:
-#ifdef TARGET_I386
-	// BT leaves the tested bit in CF; TEST leaves the *equality* in ZF and
-	// always clears CF.  So the "bit not set" branch has to be jz, not jnc.
-	movl	Lplane_bit_masks(,%ebx,4),%eax
-	testl	%eax,%ecx
-	jz	.Lbsp_clip_next
-#else
-	btl	%ebx,%ecx
-	jnc	.Lbsp_clip_next
-#endif
-	movl	(%esi),%eax			// pindex
-
-	// DotProduct(rejectpt, plane->normal) - plane->dist.
-	movl	0(%eax),%ebp
-	filds	8(%edx,%ebp,2)
-	fmuls	0(%edi)
-	movl	4(%eax),%ebp
-	filds	8(%edx,%ebp,2)
-	fmuls	4(%edi)
-	faddp	%st(0),%st(1)
-	movl	8(%eax),%ebp
-	filds	8(%edx,%ebp,2)
-	fmuls	8(%edi)
-	faddp	%st(0),%st(1)
-	fsubs	12(%edi)
+	movl	8(%esp), %edx
+	movl	12(%esp), %ecx
+	testb	$1, %cl
+	je	.Lbspclip_fast_132
+	movl	C(pfrustum_indexes), %ebx
+	flds	C(view_clipplanes)
+	flds	C(view_clipplanes)+4
+	flds	C(view_clipplanes)+8
+	movl	4(%ebx), %eax
+	fld	%st(1)
+	fimuls	8(%edx,%eax,2)
+	movl	(%ebx), %eax
+	fld	%st(3)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	movl	8(%ebx), %eax
+	fld	%st(1)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	flds	C(view_clipplanes)+12
+	fsubr	%st, %st(1)
+	fxch	%st(1)
 	ftst
 	fnstsw	%ax
-	testb	$4,%ah			// unordered (NaN): C <= is false
-	jnz	.Lbsp_clip_reject_done
-	testb	$0x41,%ah			// C0 or C3: d <= 0
-	jnz	.Lbsp_clip_reject
-.Lbsp_clip_reject_done:
 	fstp	%st(0)
-	movl	(%esi),%eax			// fnstsw %ax clobbered EAX
-
-	// DotProduct(acceptpt, plane->normal) - plane->dist.
-	movl	12(%eax),%ebp
-	filds	8(%edx,%ebp,2)
-	fmuls	0(%edi)
-	movl	16(%eax),%ebp
-	filds	8(%edx,%ebp,2)
-	fmuls	4(%edi)
-	faddp	%st(0),%st(1)
-	movl	20(%eax),%ebp
-	filds	8(%edx,%ebp,2)
-	fmuls	8(%edi)
-	faddp	%st(0),%st(1)
-	fsubs	12(%edi)
+	testb	$69, %ah
+	jne	.Lbspclip_fast_162
+	fxch	%st(2)
+	movl	16(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	fxch	%st(3)
+	movl	12(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(3)
+	movl	20(%ebx), %ebx
+	fimuls	8(%edx,%ebx,2)
+	faddp	%st, %st(2)
+	fsubrp	%st, %st(1)
 	ftst
 	fnstsw	%ax
-	testb	$4,%ah			// unordered (NaN): C >= is false
-	jnz	.Lbsp_clip_accept_done
-	testb	$1,%ah			// C0: d < 0
-	jnz	.Lbsp_clip_accept_done
-#ifdef TARGET_I386
-	movl	Lplane_bit_masks(,%ebx,4),%eax
-	notl	%eax
-	andl	%eax,%ecx			// node is entirely on screen
-#else
-	btrl	%ebx,%ecx			// node is entirely on screen
-#endif
-.Lbsp_clip_accept_done:
 	fstp	%st(0)
-	jmp	.Lbsp_clip_next
-
-.Lbsp_clip_reject:
+	testb	$5, %ah
+	jne	.Lbspclip_fast_132
+	andl	$-2, %ecx
+.Lbspclip_fast_132:
+	testb	$2, %cl
+	je	.Lbspclip_fast_135
+	movl	C(pfrustum_indexes)+4, %ebx
+	flds	C(view_clipplanes)+24
+	flds	C(view_clipplanes)+28
+	flds	C(view_clipplanes)+32
+	movl	4(%ebx), %eax
+	fld	%st(1)
+	fimuls	8(%edx,%eax,2)
+	movl	(%ebx), %eax
+	fld	%st(3)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	movl	8(%ebx), %eax
+	fld	%st(1)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	flds	C(view_clipplanes)+36
+	fsubr	%st, %st(1)
+	fxch	%st(1)
+	ftst
+	fnstsw	%ax
 	fstp	%st(0)
-	movl	$-1,%eax
-	jmp	.Lbsp_clip_return
-
-.Lbsp_clip_next:
-	incl	%ebx
-	addl	$4,%esi
-	addl	$24,%edi
-	cmpl	$4,%ebx
-	jl	.Lbsp_clip_plane
-
-.Lbsp_clip_done:
-	movl	%ecx,%eax
-.Lbsp_clip_return:
+	testb	$69, %ah
+	jne	.Lbspclip_fast_163
+	fxch	%st(3)
+	movl	12(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	fxch	%st(2)
+	movl	16(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(2)
+	movl	20(%ebx), %ebx
+	fimuls	8(%edx,%ebx,2)
+	faddp	%st, %st(1)
+	fsubp	%st, %st(1)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$5, %ah
+	jne	.Lbspclip_fast_135
+	andl	$-3, %ecx
+.Lbspclip_fast_135:
+	testb	$4, %cl
+	je	.Lbspclip_fast_137
+	movl	C(pfrustum_indexes)+8, %ebx
+	flds	C(view_clipplanes)+48
+	flds	C(view_clipplanes)+52
+	flds	C(view_clipplanes)+56
+	movl	(%ebx), %eax
+	fld	%st(2)
+	fimuls	8(%edx,%eax,2)
+	movl	4(%ebx), %eax
+	fld	%st(2)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	movl	8(%ebx), %eax
+	fld	%st(1)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	flds	C(view_clipplanes)+60
+	fsubr	%st, %st(1)
+	fxch	%st(1)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$69, %ah
+	jne	.Lbspclip_fast_164
+	fxch	%st(3)
+	movl	12(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	fxch	%st(2)
+	movl	16(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(2)
+	movl	20(%ebx), %ebx
+	fimuls	8(%edx,%ebx,2)
+	faddp	%st, %st(1)
+	fsubp	%st, %st(1)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$5, %ah
+	jne	.Lbspclip_fast_137
+	andl	$-5, %ecx
+.Lbspclip_fast_137:
+	testb	$8, %cl
+	je	.Lbspclip_fast_139
+	movl	C(pfrustum_indexes)+12, %ebx
+	flds	C(view_clipplanes)+72
+	flds	C(view_clipplanes)+76
+	flds	C(view_clipplanes)+80
+	movl	(%ebx), %eax
+	fld	%st(2)
+	fimuls	8(%edx,%eax,2)
+	movl	4(%ebx), %eax
+	fld	%st(2)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	movl	8(%ebx), %eax
+	fld	%st(1)
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(1)
+	flds	C(view_clipplanes)+84
+	fsubr	%st, %st(1)
+	fxch	%st(1)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$69, %ah
+	jne	.Lbspclip_fast_165
+	fxch	%st(3)
+	movl	12(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	fxch	%st(2)
+	movl	16(%ebx), %eax
+	fimuls	8(%edx,%eax,2)
+	faddp	%st, %st(2)
+	movl	20(%ebx), %ebx
+	fimuls	8(%edx,%ebx,2)
+	faddp	%st, %st(1)
+	fsubp	%st, %st(1)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$5, %ah
+	jne	.Lbspclip_fast_139
+	andl	$-9, %ecx
+.Lbspclip_fast_139:
+	movl	%ecx, %eax
 	popl	%ebx
-	popl	%esi
-	popl	%edi
-	popl	%ebp
+	ret
+.Lbspclip_fast_162:
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+	jmp	.Lbspclip_fast_144
+.Lbspclip_fast_163:
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+	jmp	.Lbspclip_fast_144
+.Lbspclip_fast_164:
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+	jmp	.Lbspclip_fast_144
+.Lbspclip_fast_165:
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+	fstp	%st(0)
+.Lbspclip_fast_144:
+	movl	$-1, %eax
+	popl	%ebx
 	ret
 
 #ifdef ASM486_BSP_WALK

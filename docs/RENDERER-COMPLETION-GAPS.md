@@ -323,8 +323,8 @@ waterwarp off/on, debug counters, negative ambient and reduced viewport, with
 3,888 exact post-warmup checksums and exact indexed/palette captures. The
 waterwarp-enabled demo2 path changes 210 checksums while C and assembly remain
 identical. Multiplayer cvar enforcement, waterwarp sizing across modes,
-extreme dimensions and long-run behavior remain open; the default release
-selector is still C. See the
+extreme dimensions and long-run behavior remain open; the default i486 release
+profile uses assembly, with the C profile retained for parity checks. See the
 [`R_SetupFrame` port record](ledger/2026-10-09-r-setupframe-assembly-port.md).
 
 The current 2026-10-09 `i486-asm-selectable` inventory in
@@ -346,6 +346,15 @@ scope differs from the earlier 77-selector inventory, so the counts are not a
 like-for-like conversion percentage. The scan remains a partial call graph;
 indirect targets and initialization/debug paths still require review.
 
+The 2026-10-16 default i486 benchmark build's four-root ownership report
+(`out/profile-b173c37673c25508/renderer-ownership-qbench.json`) finds no
+directly reachable C-owned `r_` or `d_` rendering procedures other than the
+`R_PrintDSpeeds` and `R_TimeGraph` benchmark clock probes. The 78 C entries in
+the broader report are primarily screen, menu, console, status-bar, video and
+cache support; the report still has 64 unresolved direct callees and is not a
+complete call graph. The 3D priority is therefore optional/debug paths and
+indirect-target closure, with C retained as the parity oracle.
+
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`
 abort boundaries. Those functions and the linked runtime are still ISA-audited.
 Indirect transfers require separate target review, so this tool does not claim
@@ -353,7 +362,7 @@ to prove a complete call graph.
 
 | Area | Remaining behavior or ownership to verify |
 |---|---|
-| BSP/world | The i486 defaults now select assembly for `R_ZDrawSubmodelPolys` and `R_RenderPoly`, with C retained in the explicit reference profile. The direct cull/projection fixtures pass, and an opt-in Demo 1 `-drawpolys` pair matched 964 post-warmup checksums and its indexed capture. `D_DrawPoly` remains a no-op in the DOS span driver, so polygon rasterization is not covered. The standard span path keeps `r_drawpolys` false; the Demo 2 diagnostic still has an unstable C/C baseline. Remaining optional polygon/debug passes, frustum initialization and indirect-target closure remain open. See the [Z-submodel polygon ledger](ledger/2026-10-09-zsubmodel-polygons-assembly-port.md) and [RenderPoly parity ledger](ledger/2026-10-10-render-poly-assembly-parity.md). |
+| BSP/world | The i486 defaults now select assembly for `R_ZDrawSubmodelPolys`, `R_RenderPoly`, and `R_RecursiveWorldNodeClip`, with C retained as the parity reference. The world-node clip helper uses an unrolled x87 schedule and passed five exact C/ASM cases plus the full strict i486 ISA gate; its displayed medians match at DOSBox's 1 μs timing resolution. A full scene capture after this follow-up remains open. The direct cull/projection fixtures pass, and an opt-in Demo 1 `-drawpolys` pair matched 964 post-warmup checksums and its indexed capture. `D_DrawPoly` remains a no-op in the DOS span driver, so polygon rasterization is not covered. The standard span path keeps `r_drawpolys` false; the Demo 2 diagnostic still has an unstable C/C baseline. Remaining optional polygon/debug passes and indirect-target closure remain open. See the [Z-submodel polygon ledger](ledger/2026-10-09-zsubmodel-polygons-assembly-port.md) and [RenderPoly parity ledger](ledger/2026-10-10-render-poly-assembly-parity.md). |
 | Edge processing | `R_ScanEdges` and `R_EdgeDrawing` have focused C/assembly pairs, each with 6,058 exact post-warmup checksums and six exact indexed/palette captures; the strict i486 audit for `R_EdgeDrawing` passed. `R_RecursiveClipBPoly` now has a focused C/assembly profile pair with the same exact frame coverage and a strict i486 audit. Frame initialization, other clipping boundaries, optional polygon/debug paths, and remaining C list/span forwarding entries remain open. See the [edge-drawing port record](ledger/2026-10-05-edge-drawing-assembly-port.md), [scan-edges port record](ledger/2026-10-05-scan-edges-assembly-port.md), and [brush-model polygon-clipping port record](ledger/2026-10-05-bmodel-polygon-clip-assembly-port.md). |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |
 | Sky and particles | Combined complete-profile verification, broader particle-effect stress/sequence scenarios, and sky scenes. `R_ParseParticleEffect` now has exact parser-state parity across complete/truncated packets and x87 rounding modes, plus a paired `svc_particle` event-to-frame scene with exact framebuffer and checksum parity. The focused `D_DrawParticle` event-scene parity and parser scene do not close the wider stress/sequence and sky gates. |
