@@ -87,6 +87,7 @@
     "HullCheckImplementation": "asm",
     "HullForEntityImplementation": "asm",
     "ClipMoveToEntityImplementation": "asm",
+    "ClipToLinksImplementation": "asm",
     "AliasControlImplementation": "asm",
     "AliasStatsImplementation": "asm",
     "PrintTimesImplementation": "asm",

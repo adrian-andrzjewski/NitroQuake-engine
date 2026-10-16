@@ -87,6 +87,7 @@
     "HullCheckImplementation": "c",
     "HullForEntityImplementation": "c",
     "ClipMoveToEntityImplementation": "c",
+    "ClipToLinksImplementation": "c",
     "AliasControlImplementation": "c",
     "AliasStatsImplementation": "c",
     "PrintTimesImplementation": "c",

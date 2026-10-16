@@ -125,6 +125,7 @@ $script:AssemblyBackedImplementations = @(
     'HullCheckImplementation',
     'HullForEntityImplementation',
     'ClipMoveToEntityImplementation',
+    'ClipToLinksImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
     'PrintTimesImplementation',
@@ -1171,6 +1172,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ClipToLinksImplementation'
+        Manifest   = 'clipToLinksImplementation'
+        Suffix     = @{ 'asm' = 'cliptolinksasm' }
+        C          = @{ 'asm' = @('ASM486_CLIP_TO_LINKS') }
+        Asm        = @{ 'asm' = @('ASM486_CLIP_TO_LINKS') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'AliasControlImplementation'
         Manifest   = 'aliasControlImplementation'
         Suffix     = @{ 'asm' = 'aliascontrolasm' }
@@ -1639,6 +1649,7 @@ $script:SuffixOrder = @(
     'HullCheckImplementation'
     'HullForEntityImplementation'
     'ClipMoveToEntityImplementation'
+    'ClipToLinksImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'
@@ -1743,6 +1754,7 @@ $script:CDefineOrder = @(
     'HullCheckImplementation'
     'HullForEntityImplementation'
     'ClipMoveToEntityImplementation'
+    'ClipToLinksImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'
@@ -1878,6 +1890,7 @@ $script:AsmDefineOrder = @(
     'HullCheckImplementation'
     'HullForEntityImplementation'
     'ClipMoveToEntityImplementation'
+    'ClipToLinksImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'

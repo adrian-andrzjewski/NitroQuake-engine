@@ -33,6 +33,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_clipmovetoentity.h"
 #endif
 
+#if defined(ASM486_CLIP_TO_LINKS) && !defined(QUAKE2)
+#include "asm_cliplinks.h"
+#endif
+
 #ifdef PROFILE486
 extern unsigned long bench486_move_calls;
 extern unsigned long bench486_hull_check_calls;
@@ -53,6 +57,10 @@ unsigned bench486_hullforentity_asm_calls;
 unsigned bench486_clipmovetoentity_asm_calls;
 #endif
 
+#if defined(BENCH486) && defined(ASM486_CLIP_TO_LINKS) && !defined(QUAKE2)
+unsigned bench486_cliptolinks_asm_calls;
+#endif
+
 /*
 
 entities never clip against themselves, or their owner
@@ -62,6 +70,7 @@ line of sight checks trace->crosscontent, but bullets don't
 */
 
 
+#if !defined(ASM486_CLIP_TO_LINKS) || defined(QUAKE2)
 typedef struct
 {
 	vec3_t		boxmins, boxmaxs;// enclose the test object along entire move
@@ -72,6 +81,7 @@ typedef struct
 	int			type;
 	edict_t		*passedict;
 } moveclip_t;
+#endif
 
 
 int SV_HullPointContents (hull_t *hull, int num, vec3_t p);
@@ -229,6 +239,7 @@ ENTITY AREA CHECKING
 ===============================================================================
 */
 
+#if !defined(ASM486_CLIP_TO_LINKS) || defined(QUAKE2)
 typedef struct areanode_s
 {
 	int		axis;		// -1 = leaf node
@@ -237,6 +248,7 @@ typedef struct areanode_s
 	link_t	trigger_edicts;
 	link_t	solid_edicts;
 } areanode_t;
+#endif
 
 #define	AREA_DEPTH	4
 #define	AREA_NODES	32
@@ -901,6 +913,15 @@ SV_ClipToLinks
 Mins and maxs enclose the entire area swept by the move
 ====================
 */
+#if defined(ASM486_CLIP_TO_LINKS) && defined(BENCH486) && !defined(QUAKE2)
+#define SV_ClipToLinks SV_ClipToLinks_C
+#endif
+
+#if defined(ASM486_CLIP_TO_LINKS) && defined(ASM486_CLIP_MOVE_TO_ENTITY) && defined(BENCH486) && !defined(QUAKE2)
+#define SV_ClipMoveToEntity SV_ClipMoveToEntity_C
+#endif
+
+#if !defined(ASM486_CLIP_TO_LINKS) || defined(BENCH486) || defined(QUAKE2)
 void SV_ClipToLinks ( areanode_t *node, moveclip_t *clip )
 {
 	link_t		*l, *next;
@@ -973,6 +994,15 @@ void SV_ClipToLinks ( areanode_t *node, moveclip_t *clip )
 	if ( clip->boxmins[node->axis] < node->dist )
 		SV_ClipToLinks ( node->children[1], clip );
 }
+#endif
+
+#if defined(ASM486_CLIP_TO_LINKS) && defined(ASM486_CLIP_MOVE_TO_ENTITY) && defined(BENCH486) && !defined(QUAKE2)
+#undef SV_ClipMoveToEntity
+#endif
+
+#if defined(ASM486_CLIP_TO_LINKS) && defined(BENCH486) && !defined(QUAKE2)
+#undef SV_ClipToLinks
+#endif
 
 
 /*

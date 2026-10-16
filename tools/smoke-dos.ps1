@@ -176,6 +176,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ClipMoveToEntityImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$ClipToLinksImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -540,6 +542,7 @@ $result = [ordered]@{
     hullCheckImplementation = $HullCheckImplementation
     hullForEntityImplementation = $HullForEntityImplementation
     clipMoveToEntityImplementation = $ClipMoveToEntityImplementation
+    clipToLinksImplementation = $ClipToLinksImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation
