@@ -117,6 +117,7 @@
     "EmitCachedEdgeImplementation": "c",
     "RenderPolyImplementation": "c",
     "SbarPrimitiveImplementation": "c",
+    "SbarDrawImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",
     "ScreenTurtleImplementation": "c"

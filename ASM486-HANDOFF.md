@@ -218,9 +218,11 @@ with zero exemptions. The release hash guard was deliberately refreshed and
 passes for 151 objects plus `quake.exe`. See the
 [`Sbar` primitive port ledger](docs/ledger/2026-10-15-sbar-primitives-assembly-port.md).
 
-The higher-level HUD composition remains C-owned, including `Sbar_Draw`,
-inventory, face, frag and scoreboard decisions, plus intermission/finale
-overlays. The status-bar feature is therefore not yet fully ported.
+`Sbar_Draw` now has an assembly default and a retained C parity oracle. The
+assembly dispatcher invokes separately owned inventory, face, frag, scoreboard
+and intermission/finale routines, so this does not complete the status-bar
+feature. See the [`Sbar_Draw` dispatcher port ledger](docs/ledger/2026-10-16-sbar-draw-assembly-port.md)
+for its 14-case fixture, strict i486 gate, and exact Demo 1 C/ASM comparison.
 
 ## Process rules
 

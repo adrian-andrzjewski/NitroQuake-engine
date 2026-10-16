@@ -6920,6 +6920,9 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
 #include "bench486_sbarprimitives.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#include "bench486_sbardraw.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
 #include "bench486_console_input.h"
 #endif
@@ -10577,6 +10580,19 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486ReportPrintf ("alias model load fixture is not enabled\n");
+#endif
+		Bench486ReportPrintf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		if (bench486_report_handle != -1) { Sys_FileClose (bench486_report_handle); bench486_report_handle = -1; }
+		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchsbar_draw"))
+	{
+#if defined(ASM486_SBAR_DRAW_FIXTURE)
+		Bench486SbarDrawCases ();
+#else
+		bench486_memory_failures++;
+		Bench486ReportPrintf ("sbar draw fixture is not enabled\n");
 #endif
 		Bench486ReportPrintf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose (bench486_report_handle); bench486_report_handle = -1; }

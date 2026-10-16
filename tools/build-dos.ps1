@@ -311,6 +311,8 @@ param(
     [string]$RenderPolyImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$SbarPrimitiveImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$SbarDrawImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [string]$ToolRoot,

@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-16, the i486 build defaults to all 117 current assembly selectors in
+As of 2026-10-16, the i486 build defaults to all 118 current assembly selectors in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
 is the complete C parity profile. The dated entries below preserve the status
@@ -280,10 +280,15 @@ indirect transfer sites and 37 unresolved direct callees. See the
 Status-bar drawing primitives now have a selectable i486 assembly path. The
 default profile selects it, while the C copies remain available in BENCH builds
 for parity checks. The focused DOSBox-X fixture passes all 18 formatter checks
-and 544 coordinate/number scene-state cases. `Sbar_Draw` and the higher-level
-inventory, face, frag, scoreboard, intermission and finale composition remain
-C-owned. See the
-[`Sbar` primitive port ledger](ledger/2026-10-15-sbar-primitives-assembly-port.md).
+and 544 coordinate/number scene-state cases. `Sbar_Draw` now also has an
+assembly dispatcher selected by the default i486 profile, with the C routine
+retained in BENCH builds and the C-reference profile. Its 14-case DOSBox-X
+fixture, strict i486 build, and paired Demo 1 capture passed. The assembly
+dispatcher still calls separately owned inventory, face, frag, scoreboard,
+intermission and finale routines; overall status-bar and renderer ownership is
+not complete. See the
+[`Sbar` primitive port ledger](ledger/2026-10-15-sbar-primitives-assembly-port.md)
+and [`Sbar_Draw` dispatcher port ledger](ledger/2026-10-16-sbar-draw-assembly-port.md).
 
 ## Remaining machine-code ownership
 

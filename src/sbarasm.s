@@ -260,3 +260,7 @@ _Sbar_DrawNum:
 	ret
 
 #endif /* ASM486_SBAR_PRIMITIVES */
+
+#ifdef ASM486_SBAR_DRAW
+#include "sbar_draw_asm.inc"
+#endif

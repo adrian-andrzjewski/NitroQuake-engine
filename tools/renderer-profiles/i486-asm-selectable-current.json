@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "i486-asm-selectable-current",
-  "description": "Default i486 release profile selecting every accepted assembly implementation, including status-bar primitives, SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle. Use the C-reference profile for parity comparisons.",
+  "description": "Default i486 release profile selecting every accepted assembly implementation, including status-bar composition and primitives, SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle. Use the C-reference profile for parity comparisons.",
   "selectors": {
     "MemoryImplementation": "asm",
     "FillRectImplementation": "asm",
@@ -117,6 +117,7 @@
     "EmitCachedEdgeImplementation": "asm",
     "RenderPolyImplementation": "asm",
     "SbarPrimitiveImplementation": "asm",
+    "SbarDrawImplementation": "asm",
     "ScreenUpdateImplementation": "asm",
     "ScreenNetImplementation": "asm",
     "ScreenTurtleImplementation": "asm"

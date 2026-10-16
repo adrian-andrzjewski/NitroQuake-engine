@@ -981,7 +981,25 @@ void Sbar_DrawFace (void)
 Sbar_Draw
 ===============
 */
-void Sbar_Draw (void)
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_DRAW_C_ENTRY Sbar_Draw_C
+#else
+#define SBAR_DRAW_C_ENTRY Sbar_Draw
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define Draw_TileClear Bench486SbarDrawTileClear
+#define Sbar_DrawInventory Bench486SbarDrawInventory
+#define Sbar_DrawFrags Bench486SbarDrawFrags
+#define Sbar_DrawPic Bench486SbarDrawPic
+#define Sbar_DrawScoreboard Bench486SbarDrawScoreboard
+#define Sbar_DrawNum Bench486SbarDrawNum
+#define Sbar_DrawFace Bench486SbarDrawFace
+#define Sbar_MiniDeathmatchOverlay Bench486SbarDrawMiniDeathmatch
+#endif
+
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_DRAW_C_ENTRY (void)
 {
 	if (scr_con_current == vid.height)
 		return;		// console is full screen
@@ -1100,6 +1118,19 @@ void Sbar_Draw (void)
 			Sbar_MiniDeathmatchOverlay ();
 	}
 }
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#undef Draw_TileClear
+#undef Sbar_DrawInventory
+#undef Sbar_DrawFrags
+#undef Sbar_DrawPic
+#undef Sbar_DrawScoreboard
+#undef Sbar_DrawNum
+#undef Sbar_DrawFace
+#undef Sbar_MiniDeathmatchOverlay
+#endif
+#undef SBAR_DRAW_C_ENTRY
 
 //=============================================================================
 
