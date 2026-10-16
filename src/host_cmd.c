@@ -6957,6 +6957,9 @@ static void Bench486SpriteSetupCases (void)
 #include "bench486_drawing.h"
 #include "asm_chase.h"
 #include "bench486_chase.h"
+#ifdef BENCH486
+#include "bench486_hullcheck.h"
+#endif
 #include "bench486_aliascontrol.h"
 #include "bench486_worldcontrol.h"
 #if defined(BENCH486) && defined(ASM486_PARTICLE_UPDATE)
@@ -10895,6 +10898,15 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchchase"))
 	{
 		Bench486ChaseCases ();
+		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
+		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+
+	if (COM_CheckParm ("-benchhullcheck"))
+	{
+		Bench486HullCheckCases ();
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();

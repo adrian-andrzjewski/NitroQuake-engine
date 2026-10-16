@@ -267,6 +267,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$HullCheckImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -332,6 +334,7 @@ param(
     [switch]$DrawingOnly,
     [switch]$SbarPrimitivesOnly,
     [switch]$ChaseOnly,
+    [switch]$HullCheckOnly,
     [switch]$AliasControlOnly,
     [switch]$AliasStatsOnly,
     [switch]$PrintTimesOnly,
@@ -846,6 +849,9 @@ elseif ($EfragStoreOnly) {
 elseif ($ChaseOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchchase -benchexit'
 }
+elseif ($HullCheckOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchhullcheck -benchexit'
+}
 elseif ($DrawingOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchdrawing -benchexit'
 }
@@ -1224,6 +1230,7 @@ $result = [ordered]@{
     screenNetImplementation = $ScreenNetImplementation
     screenTurtleImplementation = $ScreenTurtleImplementation
     chaseImplementation = $ChaseImplementation
+    hullCheckImplementation = $HullCheckImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation
@@ -1279,6 +1286,7 @@ $result = [ordered]@{
     drawingOnly = [bool]$DrawingOnly
     sbarPrimitivesOnly = [bool]$SbarPrimitivesOnly
     chaseOnly = [bool]$ChaseOnly
+    hullCheckOnly = [bool]$HullCheckOnly
     aliasControlOnly = [bool]$AliasControlOnly
     aliasStatsOnly = [bool]$AliasStatsOnly
     printTimesOnly = [bool]$PrintTimesOnly

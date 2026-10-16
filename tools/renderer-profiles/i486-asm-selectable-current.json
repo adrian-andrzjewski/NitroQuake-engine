@@ -84,6 +84,7 @@
     "ViewControlImplementation": "asm",
     "DamageParseImplementation": "asm",
     "ChaseImplementation": "asm",
+    "HullCheckImplementation": "asm",
     "AliasControlImplementation": "asm",
     "AliasStatsImplementation": "asm",
     "PrintTimesImplementation": "asm",

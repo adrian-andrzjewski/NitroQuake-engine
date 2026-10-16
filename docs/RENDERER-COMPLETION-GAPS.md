@@ -355,16 +355,20 @@ like-for-like conversion percentage. The scan remains a partial call graph;
 indirect targets and initialization/debug paths still require review.
 
 The 2026-10-16 default i486 benchmark build's four-root ownership report
-(`out/profile-b173c37673c25508/renderer-ownership-qbench.json`) finds no
+(`out/profile-e9a557eee103eb85/renderer-ownership-qbench.json`) finds no
 directly reachable C-owned `r_` or `d_` rendering procedures other than the
 `R_PrintDSpeeds` and `R_TimeGraph` benchmark clock probes. The 78 C entries in
 the broader report are primarily screen, menu, console, status-bar, video and
 cache support; the report still has 64 unresolved direct callees and is not a
 complete call graph. The `r_`/`d_` name filter also misses rendering-time 3D
-work named `SV_*`: chase-camera collision now uses assembly hull recursion,
-while general entity/world traces still use the C reference. Continue 3D work
-through those shared call paths and unresolved indirect targets, with C kept
-for parity during migration.
+work named `SV_*`: chase-camera collision and `SV_ClipMoveToEntity` now use the
+same assembly hull recursion in the selected i486 profile. The new focused
+entity/world fixture matched all 14 box and brush-hull traces and observed 40
+assembly recursion entries with intact sentinels. The strict BENCH and release
+i486 executable gates both passed with zero above-i486 instructions, unknown
+encodings, or exemptions; the release object omits the C recursive body. Broader
+gameplay coverage remains open. Continue 3D work through other shared call paths
+and unresolved indirect targets, keeping C available for parity.
 
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`
 abort boundaries. Those functions and the linked runtime are still ISA-audited.
@@ -373,7 +377,7 @@ to prove a complete call graph.
 
 | Area | Remaining behavior or ownership to verify |
 |---|---|
-| Camera collision / BSP hull trace | The selected assembly chase path uses `SV_RecursiveHullCheck_asm486` and the existing assembly `SV_HullPointContents`; the focused C/ASM fixture and strict candidate ISA gate pass. General entity/world traces still call the C routine. See the [2026-10-16 hull-check ledger](ledger/2026-10-16-chase-hull-check-assembly-port.md). |
+| Camera collision / BSP hull trace | `ChaseImplementation=asm` uses `SV_RecursiveHullCheck_asm486`; `HullCheckImplementation=asm` routes general `SV_ClipMoveToEntity` traces through it too. The focused chase fixture and 14-case entity/world C/ASM trace fixture pass; the latter observed 40 assembly entries and intact sentinels. Strict BENCH and non-BENCH release i486 gates pass with zero above-i486 instructions, unknown encodings, or exemptions, and the selected release omits the C recursive body. Broader gameplay scenes remain open. See the [2026-10-16 hull-check ledger](ledger/2026-10-16-chase-hull-check-assembly-port.md). |
 | BSP/world | The i486 defaults now select assembly for `R_ZDrawSubmodelPolys`, `R_RenderPoly`, and `R_RecursiveWorldNodeClip`, with C retained as the parity reference. The world-node clip helper uses an unrolled x87 schedule and passed five exact C/ASM cases plus the full strict i486 ISA gate; its displayed medians match at DOSBox's 1 μs timing resolution. A full scene capture after this follow-up remains open. The direct cull/projection fixtures pass, and an opt-in Demo 1 `-drawpolys` pair matched 964 post-warmup checksums and its indexed capture. `D_DrawPoly` remains a no-op in the DOS span driver, so polygon rasterization is not covered. The standard span path keeps `r_drawpolys` false; the Demo 2 diagnostic still has an unstable C/C baseline. Remaining optional polygon/debug passes and indirect-target closure remain open. See the [Z-submodel polygon ledger](ledger/2026-10-09-zsubmodel-polygons-assembly-port.md) and [RenderPoly parity ledger](ledger/2026-10-10-render-poly-assembly-parity.md). |
 | Edge processing | `R_ScanEdges` and `R_EdgeDrawing` have focused C/assembly pairs, each with 6,058 exact post-warmup checksums and six exact indexed/palette captures; the strict i486 audit for `R_EdgeDrawing` passed. `R_RecursiveClipBPoly` now has a focused C/assembly profile pair with the same exact frame coverage and a strict i486 audit. Frame initialization, other clipping boundaries, optional polygon/debug paths, and remaining C list/span forwarding entries remain open. See the [edge-drawing port record](ledger/2026-10-05-edge-drawing-assembly-port.md), [scan-edges port record](ledger/2026-10-05-scan-edges-assembly-port.md), and [brush-model polygon-clipping port record](ledger/2026-10-05-bmodel-polygon-clip-assembly-port.md). |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |

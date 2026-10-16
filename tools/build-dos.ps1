@@ -255,6 +255,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$HullCheckImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',

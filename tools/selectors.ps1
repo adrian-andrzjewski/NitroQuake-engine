@@ -122,6 +122,7 @@ $script:AssemblyBackedImplementations = @(
     'ScreenNetImplementation',
     'ScreenTurtleImplementation',
     'ChaseImplementation',
+    'HullCheckImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
     'PrintTimesImplementation',
@@ -1141,6 +1142,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'HullCheckImplementation'
+        Manifest   = 'hullCheckImplementation'
+        Suffix     = @{ 'asm' = 'hullcheckasm' }
+        C          = @{ 'asm' = @('ASM486_HULLCHECK') }
+        Asm        = @{ 'asm' = @('ASM486_HULLCHECK') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'AliasControlImplementation'
         Manifest   = 'aliasControlImplementation'
         Suffix     = @{ 'asm' = 'aliascontrolasm' }
@@ -1606,6 +1616,7 @@ $script:SuffixOrder = @(
     'ScreenNetImplementation'
     'ScreenTurtleImplementation'
     'ChaseImplementation'
+    'HullCheckImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'
@@ -1707,6 +1718,7 @@ $script:CDefineOrder = @(
     'ScreenNetImplementation'
     'ScreenTurtleImplementation'
     'ChaseImplementation'
+    'HullCheckImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'
@@ -1839,6 +1851,7 @@ $script:AsmDefineOrder = @(
     'ScreenNetImplementation'
     'ScreenTurtleImplementation'
     'ChaseImplementation'
+    'HullCheckImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'

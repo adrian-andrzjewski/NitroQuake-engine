@@ -84,6 +84,7 @@
     "ViewControlImplementation": "c",
     "DamageParseImplementation": "c",
     "ChaseImplementation": "c",
+    "HullCheckImplementation": "c",
     "AliasControlImplementation": "c",
     "AliasStatsImplementation": "c",
     "PrintTimesImplementation": "c",

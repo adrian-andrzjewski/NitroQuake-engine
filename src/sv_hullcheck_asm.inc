@@ -15,8 +15,14 @@
 	.extern C(bench486_profile_frame_active)
 	.extern C(bench486_hull_check_calls)
 	#endif
+	#if defined(BENCH486) && defined(ASM486_HULLCHECK)
+	.extern C(bench486_hullcheck_asm_calls)
+	#endif
 	.globl	_SV_RecursiveHullCheck_asm486
 _SV_RecursiveHullCheck_asm486:
+	#if defined(BENCH486) && defined(ASM486_HULLCHECK)
+	incl C(bench486_hullcheck_asm_calls)
+	#endif
 	#ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
 	je	.Lsvhc_profile_count_done

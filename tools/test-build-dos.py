@@ -61,7 +61,7 @@ RELEASE_I486_SUFFIX = (
     'ointlightasm-framecontrolasm-linegraphasm-timegraphasm-paletteasm-mathclosureasm-visibilityasm-b'
     'indingsasm-skyasm-dispatchasm-driverasm-viewcontrolasm-vparsedamageasm-drawingasm-consoleinputas'
     'm-screennotifyasm-screencenterasm-screeneraseasm-screenconsolesetupasm-screenrefdefasm-screendra'
-    'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-aliascontrolasm-'
+    'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
     'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-frustumasm-transformplaneasm'
@@ -784,6 +784,7 @@ def main() -> int:
         ("ScreenRefdefImplementation", "ASM486_SCREEN_REFDEF", "screenrefdefasm"),
         ("ScreenDrawRamImplementation", "ASM486_SCREEN_DRAW_RAM", "screendrawramasm"),
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
+        ("HullCheckImplementation", "ASM486_HULLCHECK", "hullcheckasm"),
     ):
         reference = dump_flags("-" + selector, "c")
         candidate = dump_flags("-" + selector, "asm")

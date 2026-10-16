@@ -169,6 +169,8 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$ChaseImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$HullCheckImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -530,6 +532,7 @@ $result = [ordered]@{
     screenTurtleImplementation = $ScreenTurtleImplementation
     buildSelectorVerification = $selectorVerification
     chaseImplementation = $ChaseImplementation
+    hullCheckImplementation = $HullCheckImplementation
     aliasControlImplementation = $AliasControlImplementation
     aliasStatsImplementation = $AliasStatsImplementation
     printTimesImplementation = $PrintTimesImplementation

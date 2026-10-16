@@ -11383,6 +11383,6 @@ C(R_DrawParticles_asm486):
 	ret
 #endif
 
-#ifdef ASM486_CHASE
+#if defined(ASM486_CHASE) || defined(ASM486_HULLCHECK)
 #include "sv_hullcheck_asm.inc"
 #endif

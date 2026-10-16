@@ -21,9 +21,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+#ifdef ASM486_HULLCHECK
+#include "asm_hullcheck.h"
+#endif
+
 #ifdef PROFILE486
 extern unsigned long bench486_move_calls;
 extern unsigned long bench486_hull_check_calls;
+#endif
+
+#if defined(BENCH486) && defined(ASM486_HULLCHECK)
+unsigned bench486_hullcheck_dispatch_asm = 1;
+unsigned bench486_hullcheck_asm_calls;
 #endif
 
 /*
@@ -583,6 +592,7 @@ SV_RecursiveHullCheck
 
 ==================
 */
+#if !defined(ASM486_HULLCHECK) || defined(BENCH486) || !defined(ASM486_CHASE)
 qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec3_t p1, vec3_t p2, trace_t *trace)
 {
 	dclipnode_t	*node;
@@ -719,6 +729,7 @@ qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec
 
 	return false;
 }
+#endif
 
 
 /*
@@ -772,7 +783,18 @@ trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t max
 #endif
 
 // trace a line through the apropriate clipping hull
+#ifdef ASM486_HULLCHECK
+#ifdef BENCH486
+	if (bench486_hullcheck_dispatch_asm)
+		SV_RecursiveHullCheck_asm486 (hull, hull->firstclipnode, 0, 1, start_l, end_l, &trace);
+	else
+		SV_RecursiveHullCheck (hull, hull->firstclipnode, 0, 1, start_l, end_l, &trace);
+#else
+	SV_RecursiveHullCheck_asm486 (hull, hull->firstclipnode, 0, 1, start_l, end_l, &trace);
+#endif
+#else
 	SV_RecursiveHullCheck (hull, hull->firstclipnode, 0, 1, start_l, end_l, &trace);
+#endif
 
 #ifdef QUAKE2
 	// rotate endpos back to world frame of reference

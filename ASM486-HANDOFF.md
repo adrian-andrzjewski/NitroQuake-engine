@@ -9,19 +9,27 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
-### Current i486 selector policy (2026-10-15)
+### Current i486 selector policy (2026-10-16)
 
 The default i486 selector set is now
 [`i486-asm-selectable-current.json`](tools/renderer-profiles/i486-asm-selectable-current.json),
-which enables all 111 currently accepted assembly implementations across the
+which enables all 113 current assembly selectors across the
 build and runner scripts. The complete
 [`i486-c-reference.json`](tools/renderer-profiles/i486-c-reference.json)
 profile remains available for parity checks, and individual C selector values
-remain available for focused comparisons. This policy change adds no new parity
-or performance evidence and does not mean the full renderer has been ported to
-assembly; work outside the accepted selector set remains open. Older statements
-below that C remained the release default describe the policy in force when
-those measurements were recorded.
+remain available for focused comparisons. `HullCheckImplementation=asm` now
+extends the existing `SV_RecursiveHullCheck_asm486` routine from chase-camera
+collision to general entity and world traces; its focused 14-trace C/ASM route
+fixture passed with 40 assembly entries and intact sentinels. The strict BENCH
+gate passed for 280,172 linked instructions, 529 startup rows, and 9,207
+provider instructions, with no exemptions. The non-BENCH release gate passed
+for 167,879 linked instructions, also with no exemptions; `world.obj` contains
+the assembly recursion symbol and omits the C body. The release pin now covers
+151 objects plus `quake.exe`. These focused runs record correctness, not FPS or
+hull-routine timing, and do not close full gameplay or visual-scene acceptance.
+This does not mean the full renderer has been ported to assembly; work outside
+the current selector set remains open. Older performance statements below
+describe the selector policy in force when those measurements were recorded.
 
 The dated experiment log that used to sit under this heading -- its entries and
 3,986 lines -- now lives in [`docs/ledger/`](docs/ledger/INDEX.md), split by date
@@ -36,7 +44,9 @@ For the state of the work rather than its history, read these three, in order:
   build measures.
 - **Priority-ordered next steps** below -- what is still open, and why.
 
-The newest entries in the ledger are
+The newest hull-check work is recorded in
+[`docs/ledger/2026-10-16-chase-hull-check-assembly-port.md`](docs/ledger/2026-10-16-chase-hull-check-assembly-port.md).
+The earlier renderer entries include
 [`docs/ledger/2026-10-05-edge-list-maintenance-assembly-port.md`](docs/ledger/2026-10-05-edge-list-maintenance-assembly-port.md),
 which records the selectable edge-list maintenance implementations,
 [`docs/ledger/2026-10-05-scan-edges-assembly-port.md`](docs/ledger/2026-10-05-scan-edges-assembly-port.md),
