@@ -68,7 +68,7 @@
     "BackwardSpansImplementation": "c",
     "EfragStoreImplementation": "c",
     "EmitCachedEdgeImplementation": "c",
-    "RenderPolyImplementation": "c",
+    "RenderPolyImplementation": "asm",
     "SpriteOrientationImplementation": "c",
     "RenderMathImplementation": "c",
     "TransformFrustumImplementation": "c",

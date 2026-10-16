@@ -13,8 +13,11 @@ The assembly entry is `R_ZDrawSubmodelPolys_asm486` in
 `src/r_zsubmodelasm.s`. It follows the original floating-point operation order
 and x87 status-word tests, uses the established 32-bit cdecl convention, and
 preserves EBX, ESI, and EDI. `src/asm_zsubmodel.h` pins the structure offsets
-and sizes used by the assembly with compile-time layout checks. The new
-`ZSubmodelPolygonsImplementation` selector defaults to C; the assembly profile
+and sizes used by the assembly with compile-time layout checks. The i486
+defaults in `build-dos.ps1`, `bench-dos.ps1`, and `timedemo-dos.ps1` now select
+assembly for both `ZSubmodelPolygonsImplementation` and
+`RenderPolyImplementation`; the explicit `i486-c-reference` profile keeps both
+C implementations available for parity checks. The combined candidate profile
 is `i486-asm-zsubmodel`.
 
 The BENCH-only C oracle and fixture compare plane decisions, surface call order,
@@ -97,3 +100,25 @@ host GCC available to the assembler proof, run
 `rtk pwsh -NoProfile -File tools/bench-dos.ps1
 -ZSubmodelPolygonsImplementation asm -ZSubmodelPolygonsOnly` for the built-in
 ISA and DOSBox-X path.
+
+## 2026-10-16 i486 defaults and opt-in scene pair
+
+The default i486 qbench rebuilt with both submodel culling and polygon
+projection selected in assembly. Its strict gates passed: 240,715 project
+object instructions, 279,012 linked instructions, 529 startup instructions,
+and 9,207 CWSDPMI provider instructions; no instruction exceeded i486 and no
+instruction was unknown or exempt. The focused Z-submodel fixture again passed
+4,483 exact cases across 12 x87 control words and 4,096 continuous calls.
+
+With `-drawpolys` enabled, the Demo 1 C/assembly pair matched all 964
+post-warmup frame checksums and the 320x200 indexed capture at frame 169. This
+pair was visual-parity-only, so the separate strict build supplies the ISA
+evidence. The single timedemo samples were 25.04 FPS for C and 24.53 FPS for
+assembly; this is not enough to claim a speed change. `D_DrawPoly` remains a
+no-op in the DOS span driver, so this pair checks the optional cull/projection
+path and output state, not polygon rasterization.
+
+The Demo 2 `-drawpolys` diagnostic remains inconclusive. Two no-capture C runs
+disagreed on 296 of 980 post-warmup checksums (frames 459 through 754), so its
+C baseline is not stable enough to judge the assembly result. Keep that scene
+out of the acceptance claim until its repeatability issue is resolved.

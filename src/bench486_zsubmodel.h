@@ -218,7 +218,7 @@ static int Bench486ZSubmodelStep (unsigned pattern, int first, int count,
 	Q_memcpy (modelorg, zsp_input_modelorg, sizeof(zsp_input_modelorg));
 	Q_memset (&zsp_trace, 0, sizeof(zsp_trace));
 	__asm__ __volatile__ ("fnclex");
-	a_abi = Bench486Call_asm486 ((void (*)(void))R_ZDrawSubmodelPolys,
+	a_abi = Bench486Call_asm486 ((void (*)(void))R_ZDrawSubmodelPolys_asm486_test,
 			1, arguments, NULL);
 	a_status = Bench486ZSubmodelStatus ();
 	Q_memcpy (&zsp_a_result, &zsp_fixture, sizeof(zsp_fixture));

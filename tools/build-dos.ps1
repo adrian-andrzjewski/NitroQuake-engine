@@ -275,7 +275,7 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$SubmodelPolygonsImplementation = 'c',
     [ValidateSet('c', 'asm')]
-    [string]$ZSubmodelPolygonsImplementation = 'c',
+    [string]$ZSubmodelPolygonsImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TransformFrustumImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -293,7 +293,7 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$EmitCachedEdgeImplementation = 'c',
     [ValidateSet('c', 'asm')]
-    [string]$RenderPolyImplementation = 'c',
+    [string]$RenderPolyImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$SbarPrimitiveImplementation = 'c',
     [ValidateSet('control', 'skipzero')]

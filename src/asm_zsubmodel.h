@@ -39,6 +39,7 @@ typedef char zsp_planeback_must_match[(SURF_PLANEBACK == 2) ? 1 : -1];
 extern void (*bench486_zsubmodel_render_hook)(msurface_t *surface,
 		int clipflags);
 void R_ZDrawSubmodelPolys_C(model_t *pmodel);
+void R_ZDrawSubmodelPolys_asm486_test(model_t *pmodel);
 #endif
 #endif /* !__ASSEMBLER__ */
 #endif /* ASM_ZSUBMODEL_H */

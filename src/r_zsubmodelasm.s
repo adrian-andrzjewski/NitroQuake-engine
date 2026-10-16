@@ -1,15 +1,13 @@
 /*
  * Assembly equivalent of src/r_draw.c:R_ZDrawSubmodelPolys.
  *
- * Preserve the C routine's x87 evaluation order and its two distinct status-word
- * tests.  In particular, the front-face test rejects C0/C2/C3 while the
- * plane-back test tests C0 only; this is the sequence emitted for the retained
- * C oracle by the pinned DJGPP compiler.  asm_zsubmodel.h statically pins every
- * structure offset and stride used below.
+ * Preserve the original x87 evaluation order and status-word tests.  The
+ * production entry always calls R_RenderPoly directly.  BENCH486 also exports
+ * a separate observation entry for the direct C/ASM fixture; its callback path
+ * cannot affect a timedemo or release render.
  *
  * cdecl: model_t * at 4(%esp); EBX/ESI/EDI are preserved.  All instructions are
- * baseline i486 integer or 387 instructions; the only run-time calls are the
- * original R_RenderPoly entry and a BENCH486-only observation hook.
+ * baseline i486 integer or 387 instructions.
  */
 #include "asm_i386.h"
 #include "asm_zsubmodel.h"
@@ -24,22 +22,27 @@
 #ifdef BENCH486
 .extern C(bench486_zsubmodel_render_hook)
 #endif
+
 .text
+
+.macro ZSUBMODEL_BODY name, use_hook
 .p2align 2
-.globl C(R_ZDrawSubmodelPolys_asm486)
-C(R_ZDrawSubmodelPolys_asm486):
-	pushl	%ebx
-	pushl	%esi
+.globl \name
+\name:
 	pushl	%edi
+	pushl	%esi
+	pushl	%ebx
 	movl	16(%esp),%eax
 	movl	ZSP_MODEL_FIRSTSURFACE(%eax),%ebx
 	sall	$6,%ebx
 	addl	ZSP_MODEL_SURFACES(%eax),%ebx
 	movl	ZSP_MODEL_NUMSURFACES(%eax),%edi
 	testl	%edi,%edi
-	jle	.Lzsubmodel_done
+	jle	.Lzsubmodel_done\@
+	xorl	%esi,%esi
+	jmp	.Lzsubmodel_loop\@
 
-.Lzsubmodel_loop:
+.Lzsubmodel_loop\@:
 	movl	ZSP_SURFACE_PLANE(%ebx),%edx
 	/* DotProduct(modelorg, plane->normal), in the C compiler's x87 order. */
 	flds	C(modelorg)
@@ -53,35 +56,35 @@ C(R_ZDrawSubmodelPolys_asm486):
 	fsubs	ZSP_PLANE_DIST(%edx)
 
 	testb	$2,ZSP_SURFACE_FLAGS(%ebx)
-	je	.Lzsubmodel_front_face
+	je	.Lzsubmodel_front_face\@
 	/* Original C: dot < -BACKFACE_EPSILON. */
 	fcompl	.Lzsubmodel_negative_epsilon
 	fnstsw	%ax
 	testb	$1,%ah
-	je	.Lzsubmodel_advance
-	jmp	.Lzsubmodel_draw
+	je	.Lzsubmodel_advance\@
+	jmp	.Lzsubmodel_draw\@
 
-.Lzsubmodel_front_face:
+.Lzsubmodel_front_face\@:
 	/* Original C: dot > BACKFACE_EPSILON; C0/C2/C3 mean skip. */
 	fcompl	.Lzsubmodel_positive_epsilon
 	fnstsw	%ax
 	testb	$69,%ah
-	jne	.Lzsubmodel_advance
+	jne	.Lzsubmodel_advance\@
 
-.Lzsubmodel_draw:
-#ifdef BENCH486
-	movl	C(bench486_zsubmodel_render_hook),%eax
-	testl	%eax,%eax
-	je	.Lzsubmodel_real_render
-	/* Keep the compiler's 16-byte outgoing-call alignment in the BENCH build. */
-	subl	$8,%esp
-	pushl	$15
-	pushl	%ebx
-	call	*%eax
-	addl	$16,%esp
-	jmp	.Lzsubmodel_advance
-.Lzsubmodel_real_render:
-#endif
+.Lzsubmodel_draw\@:
+	.if \use_hook
+		movl	C(bench486_zsubmodel_render_hook),%ecx
+		testl	%ecx,%ecx
+		je	.Lzsubmodel_real_render\@
+		/* Match the C oracle's outgoing-call alignment in the test fixture. */
+		subl	$8,%esp
+		pushl	$15
+		pushl	%ebx
+		call	*%ecx
+		addl	$16,%esp
+		jmp	.Lzsubmodel_advance\@
+.Lzsubmodel_real_render\@:
+	.endif
 	/* Same outgoing stack layout used by the reference C function. */
 	subl	$8,%esp
 	pushl	$15
@@ -89,16 +92,24 @@ C(R_ZDrawSubmodelPolys_asm486):
 	call	C(R_RenderPoly)
 	addl	$16,%esp
 
-.Lzsubmodel_advance:
+.Lzsubmodel_advance\@:
+	incl	%esi
 	addl	$ZSP_SURFACE_SIZE,%ebx
-	decl	%edi
-	jne	.Lzsubmodel_loop
+	cmpl	%esi,%edi
+	je	.Lzsubmodel_done\@
+	jmp	.Lzsubmodel_loop\@
 
-.Lzsubmodel_done:
-	popl	%edi
-	popl	%esi
+.Lzsubmodel_done\@:
 	popl	%ebx
+	popl	%esi
+	popl	%edi
 	ret
+.endm
+
+ZSUBMODEL_BODY C(R_ZDrawSubmodelPolys_asm486), 0
+#ifdef BENCH486
+ZSUBMODEL_BODY C(R_ZDrawSubmodelPolys_asm486_test), 1
+#endif
 
 .section .rodata
 .p2align 3

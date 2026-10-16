@@ -258,7 +258,7 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$SubmodelPolygonsImplementation = 'c',
     [ValidateSet('c', 'asm')]
-    [string]$ZSubmodelPolygonsImplementation = 'c',
+    [string]$ZSubmodelPolygonsImplementation = 'asm',
     [ValidateSet('c', 'asm')]
     [string]$TransformFrustumImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -276,7 +276,9 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$EmitCachedEdgeImplementation = 'c',
     [ValidateSet('c', 'asm')]
-    [string]$RenderPolyImplementation = 'c',
+    [string]$RenderPolyImplementation = 'asm',
+    [ValidateSet('c', 'asm')]
+    [string]$SbarPrimitiveImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
@@ -618,6 +620,7 @@ $buildParams = @{
         EfragStoreImplementation              = $EfragStoreImplementation
         EmitCachedEdgeImplementation           = $EmitCachedEdgeImplementation
         RenderPolyImplementation              = $RenderPolyImplementation
+        SbarPrimitiveImplementation           = $SbarPrimitiveImplementation
         GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
     ToolRoot                             = $ToolRoot
 }
@@ -1507,6 +1510,7 @@ $result = [ordered]@{
     efragStoreImplementation = $EfragStoreImplementation
     emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
     renderPolyImplementation = $RenderPolyImplementation
+    sbarPrimitiveImplementation = $SbarPrimitiveImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     instrumentation = [bool]$Instrumentation
     frameFpsStats = $fpsStatsEnabled

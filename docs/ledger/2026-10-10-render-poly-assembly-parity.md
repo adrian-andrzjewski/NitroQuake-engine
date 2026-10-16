@@ -6,7 +6,8 @@
 the projected coordinates and reciprocal depth, then hands the live polygon
 descriptor to `D_DrawPoly`. The selectable replacement is
 `src/asm486_experiments.s:R_RenderPoly_asm486`; `RenderPolyImplementation`
-continues to default to C, and the strict candidate profile selects assembly.
+now defaults to assembly in the i486 build, benchmark, and timedemo scripts;
+the explicit `i486-c-reference` profile continues to select C.
 
 The near-clip branch now follows the built C reference at both outcomes. When
 depth is below `0.01`, it clamps the stored single-precision depth and loads the
@@ -56,8 +57,13 @@ assembly labels inside their enclosing function, and fails closed on unknown
 symbol classes.
 
 The RenderPoly fixture and ownership tests provide function-level evidence;
-they do not establish full renderer framebuffer parity or completion of the
-larger C-to-assembly migration. The C selector remains the release default.
+they do not establish completion of the larger C-to-assembly migration. The
+2026-10-16 opt-in `-drawpolys` Demo 1 pair matched 964 post-warmup frame
+checksums and the selected indexed capture with both `R_ZDrawSubmodelPolys`
+and `R_RenderPoly` in assembly. Since the DOS `D_DrawPoly` sink is a no-op,
+that pair does not validate polygon rasterization; see the [Z-submodel port
+record](2026-10-09-zsubmodel-polygons-assembly-port.md) for the scene result and
+the remaining Demo 2 repeatability issue.
 
 `R_ParseParticleEffect` is the next function-level slice. Its assembly decoder
 continues to use the existing `MSG_ReadCoord`, `MSG_ReadChar`, and

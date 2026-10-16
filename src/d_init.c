@@ -63,7 +63,8 @@ void D_Init (void)
 	Cvar_RegisterVariable (&d_mipcap);
 	Cvar_RegisterVariable (&d_mipscale);
 
-	r_drawpolys = false;
+	/* Keep the legacy brush-submodel polygon pass opt-in and reproducible. */
+	r_drawpolys = COM_CheckParm ("-drawpolys") != 0;
 	r_worldpolysbacktofront = false;
 	r_recursiveaffinetriangles = true;
 	r_pixbytes = 1;
@@ -217,7 +218,8 @@ void D_Init_Driver_C (void)
 	Bench486DriverRegister (&d_mipcap);
 	Bench486DriverRegister (&d_mipscale);
 
-	r_drawpolys = false;
+	/* Keep the BENCH486 C oracle aligned with the release driver's option. */
+	r_drawpolys = COM_CheckParm ("-drawpolys") != 0;
 	r_worldpolysbacktofront = false;
 	r_recursiveaffinetriangles = true;
 	r_pixbytes = 1;

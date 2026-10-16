@@ -63,7 +63,13 @@ C(D_Init):
     pushl $C(d_mipscale)
     DRIVER_CALL 1,1,C(Cvar_RegisterVariable)
     addl $4,%esp
-    movl $0,C(r_drawpolys)
+    pushl $.Ldriver_drawpolys_option
+    call C(COM_CheckParm)
+    addl $4,%esp
+    testl %eax,%eax
+    setne %al
+    movzbl %al,%eax
+    movl %eax,C(r_drawpolys)
     movl $0,C(r_worldpolysbacktofront)
     movl $1,C(r_recursiveaffinetriangles)
     movl $1,C(r_pixbytes)
@@ -344,4 +350,5 @@ C(D_FlushCaches):
 .Ldriver_one_over_eighty: .long 0x9999999a,0x3f899999
 .Ldriver_one_over_three_twenty: .long 0x9999999a,0x3f699999
 .Ldriver_aspect_threshold: .long 0x66666666,0x3ff66666
+.Ldriver_drawpolys_option: .asciz "-drawpolys"
 #endif
