@@ -12,7 +12,11 @@ static int Bench486AliasControlObserve(unsigned phase,unsigned count,const unsig
 void *Bench486AliasControlModel(model_t *model)
 {
     if(bench486_aliascontrol_model_probe)return bench486_aliascontrol_model_probe(model);
+#ifdef ASM486_ALIAS_CONTROL
+    return Mod_Extradata_asm486(model);
+#else
     return Mod_Extradata(model);
+#endif
 }
 void Bench486AliasControlPrint(char *format,...)
 {

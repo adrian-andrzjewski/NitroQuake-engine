@@ -18,6 +18,9 @@ typedef char ac_entity_t_colormap_must_match[(offsetof(entity_t,colormap)==148U)
 typedef char ac_entity_t_trivial_accept_must_match[(offsetof(entity_t,trivial_accept)==172U)?1:-1];
 typedef char ac_model_t_size_must_match[(sizeof(model_t)==392U)?1:-1];
 typedef char ac_model_t_name_must_match[(offsetof(model_t,name)==0U)?1:-1];
+typedef char ac_model_t_cache_must_match[(offsetof(model_t,cache)==388U)?1:-1];
+typedef char ac_cache_user_t_size_must_match[(sizeof(cache_user_t)==4U)?1:-1];
+typedef char ac_cache_user_t_data_must_match[(offsetof(cache_user_t,data)==0U)?1:-1];
 typedef char ac_mdl_t_size_must_match[(sizeof(mdl_t)==84U)?1:-1];
 typedef char ac_mdl_t_scale_must_match[(offsetof(mdl_t,scale)==8U)?1:-1];
 typedef char ac_mdl_t_scale_origin_must_match[(offsetof(mdl_t,scale_origin)==20U)?1:-1];
@@ -88,6 +91,7 @@ typedef char ac_client_state_t_size_must_match[(sizeof(client_state_t)==2900U)?1
 typedef char ac_client_state_t_time_must_match[(offsetof(client_state_t,time)==572U)?1:-1];
 typedef char ac_client_state_t_viewent_must_match[(offsetof(client_state_t,viewent)==2708U)?1:-1];
 typedef char ac_alight_t_size_must_match[(sizeof(alight_t)==12U)?1:-1];
+void *Mod_Extradata_asm486 (model_t *mod);
 typedef char ac_alight_t_ambientlight_must_match[(offsetof(alight_t,ambientlight)==0U)?1:-1];
 typedef char ac_alight_t_shadelight_must_match[(offsetof(alight_t,shadelight)==4U)?1:-1];
 typedef char ac_alight_t_plightvec_must_match[(offsetof(alight_t,plightvec)==8U)?1:-1];

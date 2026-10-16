@@ -35,6 +35,46 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define _Bench486ProfileWork _Bench486AliasControlProfileWork
 #define _Sys_FloatTime _Bench486AliasControlTime
 #endif
+#ifndef BENCH486
+#define _Mod_Extradata _Mod_Extradata_asm486
+#endif
+
+/* Mod_Extradata's hot alias-model cache lookup. model_t.cache is pinned by
+ * asm_aliascontrol.h; Cache_Check preserves the cache manager's LRU behavior. */
+.extern _Cache_Check
+.extern _Mod_LoadModel
+.extern _Sys_Error
+.section .rodata
+.p2align 2
+.LModExtradataCacheError:
+	.asciz "Mod_Extradata: caching failed"
+.text
+.p2align 3
+.globl _Mod_Extradata_asm486
+_Mod_Extradata_asm486:
+	pushl	%ebx
+	movl	8(%esp),%ebx
+	leal	388(%ebx),%eax
+	pushl	%eax
+	call	_Cache_Check
+	addl	$4,%esp
+	testl	%eax,%eax
+	jne	.LModExtradataReturn
+	pushl	$1
+	pushl	%ebx
+	call	_Mod_LoadModel
+	addl	$8,%esp
+	movl	388(%ebx),%eax
+	testl	%eax,%eax
+	jne	.LModExtradataReturn
+	pushl	$.LModExtradataCacheError
+	call	_Sys_Error
+	addl	$4,%esp
+	movl	388(%ebx),%eax
+.LModExtradataReturn:
+	popl	%ebx
+	ret
+
 #ifdef PROFILE486
 #include "r_aliasbounds_profile.inc"
 #include "r_aliastransform_profile.inc"
