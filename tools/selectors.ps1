@@ -126,6 +126,7 @@ $script:AssemblyBackedImplementations = @(
     'HullForEntityImplementation',
     'ClipMoveToEntityImplementation',
     'ClipToLinksImplementation',
+    'FindTouchedLeafsImplementation',
     'AliasControlImplementation',
     'AliasStatsImplementation',
     'PrintTimesImplementation',
@@ -1181,6 +1182,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'FindTouchedLeafsImplementation'
+        Manifest   = 'findTouchedLeafsImplementation'
+        Suffix     = @{ 'asm' = 'findtouchedleafsasm' }
+        C          = @{ 'asm' = @('ASM486_FIND_TOUCHED_LEAFS') }
+        Asm        = @{ 'asm' = @('ASM486_FIND_TOUCHED_LEAFS') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'AliasControlImplementation'
         Manifest   = 'aliasControlImplementation'
         Suffix     = @{ 'asm' = 'aliascontrolasm' }
@@ -1650,6 +1660,7 @@ $script:SuffixOrder = @(
     'HullForEntityImplementation'
     'ClipMoveToEntityImplementation'
     'ClipToLinksImplementation'
+    'FindTouchedLeafsImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'
@@ -1755,6 +1766,7 @@ $script:CDefineOrder = @(
     'HullForEntityImplementation'
     'ClipMoveToEntityImplementation'
     'ClipToLinksImplementation'
+    'FindTouchedLeafsImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'
@@ -1891,6 +1903,7 @@ $script:AsmDefineOrder = @(
     'HullForEntityImplementation'
     'ClipMoveToEntityImplementation'
     'ClipToLinksImplementation'
+    'FindTouchedLeafsImplementation'
     'AliasControlImplementation'
     'AliasStatsImplementation'
     'PrintTimesImplementation'

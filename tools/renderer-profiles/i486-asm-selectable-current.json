@@ -88,6 +88,7 @@
     "HullForEntityImplementation": "asm",
     "ClipMoveToEntityImplementation": "asm",
     "ClipToLinksImplementation": "asm",
+    "FindTouchedLeafsImplementation": "asm",
     "AliasControlImplementation": "asm",
     "AliasStatsImplementation": "asm",
     "PrintTimesImplementation": "asm",

@@ -37,6 +37,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_cliplinks.h"
 #endif
 
+#if defined(ASM486_FIND_TOUCHED_LEAFS) && !defined(QUAKE2)
+#include "asm_findtouchedleafs.h"
+#endif
+
 #ifdef PROFILE486
 extern unsigned long bench486_move_calls;
 extern unsigned long bench486_hull_check_calls;
@@ -59,6 +63,10 @@ unsigned bench486_clipmovetoentity_asm_calls;
 
 #if defined(BENCH486) && defined(ASM486_CLIP_TO_LINKS) && !defined(QUAKE2)
 unsigned bench486_cliptolinks_asm_calls;
+#endif
+
+#if defined(BENCH486) && defined(ASM486_FIND_TOUCHED_LEAFS) && !defined(QUAKE2)
+unsigned bench486_findtouchedleafs_asm_calls;
 #endif
 
 /*
@@ -388,6 +396,11 @@ SV_FindTouchedLeafs
 
 ===============
 */
+#if defined(ASM486_FIND_TOUCHED_LEAFS) && defined(BENCH486) && !defined(QUAKE2)
+#define SV_FindTouchedLeafs SV_FindTouchedLeafs_C
+#endif
+
+#if !defined(ASM486_FIND_TOUCHED_LEAFS) || defined(BENCH486) || defined(QUAKE2)
 void SV_FindTouchedLeafs (edict_t *ent, mnode_t *node)
 {
 	mplane_t	*splitplane;
@@ -425,6 +438,11 @@ void SV_FindTouchedLeafs (edict_t *ent, mnode_t *node)
 	if (sides & 2)
 		SV_FindTouchedLeafs (ent, node->children[1]);
 }
+#endif
+
+#if defined(ASM486_FIND_TOUCHED_LEAFS) && defined(BENCH486) && !defined(QUAKE2)
+#undef SV_FindTouchedLeafs
+#endif
 
 /*
 ===============

@@ -1073,9 +1073,11 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertEqual(assembly["selectors"]["HullForEntityImplementation"], "asm")
         self.assertEqual(assembly["selectors"]["ClipMoveToEntityImplementation"], "asm")
         self.assertEqual(assembly["selectors"]["ClipToLinksImplementation"], "asm")
+        self.assertEqual(assembly["selectors"]["FindTouchedLeafsImplementation"], "asm")
         self.assertEqual(reference["selectors"]["HullForEntityImplementation"], "c")
         self.assertEqual(reference["selectors"]["ClipMoveToEntityImplementation"], "c")
         self.assertEqual(reference["selectors"]["ClipToLinksImplementation"], "c")
+        self.assertEqual(reference["selectors"]["FindTouchedLeafsImplementation"], "c")
 
         world = (ROOT / "src/world.c").read_text(encoding="utf-8")
         assembly_body = (ROOT / "src/sv_hullforentity_asm.inc").read_text(encoding="utf-8")
@@ -1096,6 +1098,7 @@ class RenderingComparisonTests(unittest.TestCase):
         self.assertIn("HullForEntityImplementation", selectors)
         self.assertIn("ClipMoveToEntityImplementation", selectors)
         self.assertIn("ClipToLinksImplementation", selectors)
+        self.assertIn("FindTouchedLeafsImplementation", selectors)
         self.assertIn("SV_ClipMoveToEntity_C", world)
         self.assertIn("ASM486_CLIP_MOVE_TO_ENTITY", assembly_source)
         self.assertIn("C(SV_ClipMoveToEntity)", clipmove_body)
@@ -1461,7 +1464,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 116)
+        self.assertEqual(len(reference["selectors"]), 117)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1529,7 +1532,7 @@ class RenderingComparisonTests(unittest.TestCase):
         cumulative = json.loads(
             (profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(reference["selectors"]), 116)
+        self.assertEqual(len(reference["selectors"]), 117)
         self.assertEqual(focused["id"], "i486-asm-time-graph")
         self.assertEqual(focused["selectors"]["TimeGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1566,7 +1569,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 116)
+        self.assertEqual(len(reference["selectors"]), 117)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])

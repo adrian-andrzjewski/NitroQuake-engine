@@ -5,13 +5,13 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-16, the i486 build defaults to all 116 current assembly selectors in
+As of 2026-10-16, the i486 build defaults to all 117 current assembly selectors in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
 is the complete C parity profile. The dated entries below preserve the status
-reported when each comparison was recorded. The 2026-10-16 entity-trace and
-area-link clipper ports add exact C/ASM correctness and strict instruction
-evidence, but no FPS or complete renderer-ownership claim.
+reported when each comparison was recorded. The 2026-10-16 entity-trace,
+area-link clipper, and touched-leaf ports add exact C/ASM correctness and
+strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 ## Accepted incremental work
 
@@ -366,7 +366,9 @@ work named `SV_*`: `ClipMoveToEntityImplementation=asm` selects the
 `SV_ClipMoveToEntity` wrapper, `ClipToLinksImplementation=asm` selects the
 area-node/entity filter and recursive walk, `HullCheckImplementation=asm`
 selects the recursive BSP checker, and `HullForEntityImplementation=asm`
-selects `SV_HullForEntity` and `SV_HullForBox` assembly in the i486 profile.
+selects `SV_HullForEntity` and `SV_HullForBox` assembly in the i486 profile;
+`FindTouchedLeafsImplementation=asm` selects the entity-to-world-leaf BSP
+traversal used for visibility/PVS linkage.
 The C-reference profile and BENCH parity oracle retain their C implementations.
 The entity/world fixture matched all 14 box and brush-hull traces and observed
 14 assembly wrapper entries, 40 recursive entries, and 16 intact sentinels;
@@ -391,6 +393,22 @@ Continue 3D work through other shared call paths and unresolved indirect
 targets, keeping C available for parity. See the [area-link clipper
 ledger](ledger/2026-10-16-clip-to-links-assembly-port.md).
 
+The touched-leaf traversal has its own ten-case C/ASM fixture, including
+boundary-equality cases for axial and non-axial planes; it matched the full
+edict and guard state and observed 31 assembly entries. Its strict BENCH gate
+audited 243,476 project instructions and 281,773 linked instructions across
+386 objects, then verified 408 source-bound contributions, 2,173 CODE ranges,
+25 DATA ranges, 1,660 startup bytes, 529 startup CODE rows, and 9,207 provider
+instructions. The strict Release gate audited 129,441 project instructions
+and 167,738 linked instructions across 386 objects, then verified 394
+source-bound contributions, 1,451 CODE ranges, 25 DATA ranges, and the same
+startup/provider totals. Both gates reported zero above-i486 instructions,
+unknown encodings, exemptions, or misclassified data. A previously tested
+all-assembly Demo 2 run failed before its first frame checksum; selecting only
+`SV_FindTouchedLeafs` back to C did not prevent that run. The current full
+profile has not passed scene parity. See the [touched-leaf traversal
+ledger](ledger/2026-10-16-find-touched-leafs-assembly-port.md).
+
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`
 abort boundaries. Those functions and the linked runtime are still ISA-audited.
 Indirect transfers require separate target review, so this tool does not claim
@@ -399,6 +417,7 @@ to prove a complete call graph.
 | Area | Remaining behavior or ownership to verify |
 |---|---|
 | Camera collision / BSP hull trace | `ChaseImplementation=asm` uses `SV_RecursiveHullCheck_asm486`; `HullCheckImplementation=asm` selects the recursive checker; `ClipMoveToEntityImplementation=asm` selects the `SV_ClipMoveToEntity` wrapper; `ClipToLinksImplementation=asm` selects `SV_ClipToLinks` area-link filtering and recursion; `HullForEntityImplementation=asm` selects assembly for `SV_HullForEntity` and `SV_HullForBox`. The 14-case entity/world fixture matched exact traces with 14 wrapper entries, 40 recursive entries, and 16 intact sentinels; the six-case direct hull fixture compared hull selection, all six planes, offsets, and sentinels; the eight-case area-link fixture matched full moveclip state and recorded 10 assembly entries with guard sentinels intact. Strict BENCH and release i486 gates passed with zero above-i486 instructions, unknown encodings, exemptions, or misclassified data. The selected release omits all five C bodies. Broader gameplay scenes remain open. See the [area-link clipper ledger](ledger/2026-10-16-clip-to-links-assembly-port.md), [entity trace-wrapper ledger](ledger/2026-10-16-clip-move-to-entity-assembly-port.md), [hull-selection ledger](ledger/2026-10-16-entity-hull-selection-assembly-port.md), and [recursive hull-check ledger](ledger/2026-10-16-chase-hull-check-assembly-port.md). |
+| Entity visibility / PVS leaves | `FindTouchedLeafsImplementation=asm` selects the BSP leaf traversal and passed ten exact direct C/ASM cases plus strict BENCH and Release i486 gates. Full-scene parity remains open; a prior all-assembly Demo 2 run failed before its first checksum, and selecting only this function back to C did not prevent that run. See the [touched-leaf traversal ledger](ledger/2026-10-16-find-touched-leafs-assembly-port.md). |
 | BSP/world | The i486 defaults now select assembly for `R_ZDrawSubmodelPolys`, `R_RenderPoly`, and `R_RecursiveWorldNodeClip`, with C retained as the parity reference. The world-node clip helper uses an unrolled x87 schedule and passed five exact C/ASM cases plus the full strict i486 ISA gate; its displayed medians match at DOSBox's 1 μs timing resolution. A full scene capture after this follow-up remains open. The direct cull/projection fixtures pass, and an opt-in Demo 1 `-drawpolys` pair matched 964 post-warmup checksums and its indexed capture. `D_DrawPoly` remains a no-op in the DOS span driver, so polygon rasterization is not covered. The standard span path keeps `r_drawpolys` false; the Demo 2 diagnostic still has an unstable C/C baseline. Remaining optional polygon/debug passes and indirect-target closure remain open. See the [Z-submodel polygon ledger](ledger/2026-10-09-zsubmodel-polygons-assembly-port.md) and [RenderPoly parity ledger](ledger/2026-10-10-render-poly-assembly-parity.md). |
 | Edge processing | `R_ScanEdges` and `R_EdgeDrawing` have focused C/assembly pairs, each with 6,058 exact post-warmup checksums and six exact indexed/palette captures; the strict i486 audit for `R_EdgeDrawing` passed. `R_RecursiveClipBPoly` now has a focused C/assembly profile pair with the same exact frame coverage and a strict i486 audit. Frame initialization, other clipping boundaries, optional polygon/debug paths, and remaining C list/span forwarding entries remain open. See the [edge-drawing port record](ledger/2026-10-05-edge-drawing-assembly-port.md), [scan-edges port record](ledger/2026-10-05-scan-edges-assembly-port.md), and [brush-model polygon-clipping port record](ledger/2026-10-05-bmodel-polygon-clip-assembly-port.md). |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |

@@ -6958,6 +6958,9 @@ static void Bench486SpriteSetupCases (void)
 #include "asm_chase.h"
 #include "bench486_chase.h"
 #ifdef BENCH486
+#if defined(ASM486_FIND_TOUCHED_LEAFS) && !defined(QUAKE2)
+#include "bench486_findtouchedleafs.h"
+#endif
 #include "bench486_hullcheck.h"
 #endif
 #include "bench486_aliascontrol.h"

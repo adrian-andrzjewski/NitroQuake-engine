@@ -11398,3 +11398,7 @@ C(R_DrawParticles_asm486):
 #if defined(ASM486_CLIP_TO_LINKS) && !defined(QUAKE2)
 #include "sv_cliptolinks_asm.inc"
 #endif
+
+#if defined(ASM486_FIND_TOUCHED_LEAFS) && !defined(QUAKE2)
+#include "sv_findtouchedleafs_asm.inc"
+#endif

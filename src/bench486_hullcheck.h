@@ -364,6 +364,9 @@ static void Bench486HullCheckCases(void)
 #if defined(ASM486_CLIP_TO_LINKS) && !defined(QUAKE2)
 	Bench486ClipToLinksCases();
 #endif
+#if defined(ASM486_FIND_TOUCHED_LEAFS) && !defined(QUAKE2)
+	Bench486FindTouchedLeafsCases();
+#endif
 	bench486_hullcheck_dispatch_asm = 1;
 #if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
 	bench486_hullforentity_dispatch_asm = 1;
