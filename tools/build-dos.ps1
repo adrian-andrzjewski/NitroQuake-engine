@@ -265,7 +265,7 @@ param(
     [string]$ClipToLinksImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$FindTouchedLeafsImplementation = 'c',
-    [ValidateSet('c', 'asm')]
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -353,7 +353,7 @@ if ($TextureSpanStores -eq 'stosw' -and
 	throw 'The stosw texture-span store path requires control load order, addressing, and row path.'
 }
 
-if ($AliasControlImplementation -eq 'asm') {
+if ($AliasControlImplementation -in @('asm', 'asm-fixture')) {
     foreach ($dependency in @('AliasPrepareImplementation','AliasBBoxProjectImplementation','AliasMatrixCompositionImplementation','AliasSetupLightingImplementation','AliasSetupFrameImplementation','AliasSetupSkinImplementation')) {
         if ((Get-Variable -Name $dependency -ValueOnly) -ne 'asm') {
             throw "-AliasControlImplementation asm requires -$dependency asm."

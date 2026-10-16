@@ -35,6 +35,9 @@ extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int charact
 #define MOD_TRACE(phase, x, y, character) ((void)0)
 #endif
 #include "r_local.h"
+#ifdef ASM486_ALIAS_CONTROL
+#include "asm_modelload.h"
+#endif
 
 #ifdef ASM486_VISIBILITY
 #include "asm_visibility.h"
@@ -51,6 +54,10 @@ void Mod_LoadSpriteModel (model_t *mod, void *buffer);
 void Mod_LoadBrushModel (model_t *mod, void *buffer);
 void Mod_LoadAliasModel (model_t *mod, void *buffer);
 model_t *Mod_LoadModel (model_t *mod, qboolean crash);
+#if defined(ASM486_ALIAS_CONTROL) && defined(BENCH486) && \
+		defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE)
+model_t *Mod_LoadModel_C (model_t *mod, qboolean crash);
+#endif
 
 byte	mod_novis[MAX_MAP_LEAFS/8];
 
@@ -88,7 +95,12 @@ void *Mod_Extradata (model_t *mod)
 	if (r)
 		return r;
 
+#if defined(ASM486_ALIAS_CONTROL) && defined(BENCH486) && \
+		defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE)
+	Mod_LoadModel_C (mod, true);
+#else
 	Mod_LoadModel (mod, true);
+#endif
 	
 	if (!mod->cache.data)
 		Sys_Error ("Mod_Extradata: caching failed");
@@ -354,7 +366,22 @@ Mod_LoadModel
 Loads a model into the cache
 ==================
 */
-model_t *Mod_LoadModel (model_t *mod, qboolean crash)
+#if defined(BENCH486) && defined(ASM486_ALIAS_CONTROL) && \
+		defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE)
+#define MOD_LOADMODEL_ENTRY Mod_LoadModel_C
+#define Cache_Check Bench486AliasLoadCacheCheck
+#define COM_LoadStackFile Bench486AliasLoadStackFile
+#define COM_FileBase Bench486AliasLoadFileBase
+#define Mod_LoadAliasModel Bench486AliasLoadAliasModel
+#define Mod_LoadSpriteModel Bench486AliasLoadSpriteModel
+#define Mod_LoadBrushModel Bench486AliasLoadBrushModel
+#define Sys_Error Bench486AliasLoadError
+#elif !defined(ASM486_ALIAS_CONTROL)
+#define MOD_LOADMODEL_ENTRY Mod_LoadModel
+#endif
+#if !defined(ASM486_ALIAS_CONTROL) || \
+		(defined(BENCH486) && defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE))
+model_t *MOD_LOADMODEL_ENTRY (model_t *mod, qboolean crash)
 {
 	unsigned *buf;
 	byte	stackbuf[1024];		// avoid dirtying the cache heap
@@ -423,6 +450,23 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 
 	return mod;
 }
+#endif
+#undef MOD_LOADMODEL_ENTRY
+#undef Cache_Check
+#undef COM_LoadStackFile
+#undef COM_FileBase
+#undef Mod_LoadAliasModel
+#undef Mod_LoadSpriteModel
+#undef Mod_LoadBrushModel
+#undef Sys_Error
+
+#if defined(BENCH486) && defined(ASM486_ALIAS_CONTROL) && \
+		defined(ASM486_SCREEN_CENTER_STRING)
+void Mod_LoadModelTrace_asm486 (int phase, int x, int y, int character)
+{
+	MOD_TRACE (phase, x, y, character);
+}
+#endif
 
 /*
 ==================

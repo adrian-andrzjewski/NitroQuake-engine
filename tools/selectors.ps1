@@ -1193,9 +1193,18 @@ $script:SelectorTable = @(
     @{
         Param      = 'AliasControlImplementation'
         Manifest   = 'aliasControlImplementation'
-        Suffix     = @{ 'asm' = 'aliascontrolasm' }
-        C          = @{ 'asm' = @('ASM486_ALIAS_CONTROL') }
-        Asm        = @{ 'asm' = @('ASM486_ALIAS_CONTROL') }
+        Suffix     = @{
+            'asm' = 'aliascontrolasm'
+            'asm-fixture' = 'aliascontrolfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_ALIAS_CONTROL')
+            'asm-fixture' = @('ASM486_ALIAS_CONTROL', 'ASM486_ALIAS_MODEL_LOAD_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_ALIAS_CONTROL')
+            'asm-fixture' = @('ASM486_ALIAS_CONTROL', 'ASM486_ALIAS_MODEL_LOAD_FIXTURE')
+        }
         SelectsAsm = $true
     }
 

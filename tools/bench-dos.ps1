@@ -277,7 +277,7 @@ param(
     [string]$ClipToLinksImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$FindTouchedLeafsImplementation = 'c',
-    [ValidateSet('c', 'asm')]
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -345,6 +345,7 @@ param(
     [switch]$ChaseOnly,
     [switch]$HullCheckOnly,
     [switch]$AliasControlOnly,
+    [switch]$AliasModelLoadOnly,
     [switch]$AliasStatsOnly,
     [switch]$PrintTimesOnly,
     [switch]$WorldControlOnly,
@@ -391,6 +392,9 @@ $ToolRoot = Resolve-ToolRoot -ToolRoot $ToolRoot
 $DataRoot = Resolve-DataRoot -DataRoot $DataRoot -RepoRoot $repoRoot
 if ($TimeoutSeconds -lt 10) {
     throw 'TimeoutSeconds must be at least 10 seconds.'
+}
+if ($AliasModelLoadOnly -and $AliasControlImplementation -ne 'asm-fixture') {
+    throw '-AliasModelLoadOnly requires -AliasControlImplementation asm-fixture.'
 }
 if ($MemoryOnly -and $MemoryImplementation -ne 'asm') {
     throw '-MemoryOnly requires -MemoryImplementation asm.'
@@ -842,6 +846,9 @@ elseif ($SpriteDrawOnly) {
 }
 elseif ($AliasControlOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliascontrol -benchexit'
+}
+elseif ($AliasModelLoadOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasmodelload -benchexit'
 }
 elseif ($AliasStatsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasstats -benchexit'
@@ -1301,6 +1308,7 @@ $result = [ordered]@{
     chaseOnly = [bool]$ChaseOnly
     hullCheckOnly = [bool]$HullCheckOnly
     aliasControlOnly = [bool]$AliasControlOnly
+    aliasModelLoadOnly = [bool]$AliasModelLoadOnly
     aliasStatsOnly = [bool]$AliasStatsOnly
     printTimesOnly = [bool]$PrintTimesOnly
     worldControlOnly = [bool]$WorldControlOnly

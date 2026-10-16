@@ -6964,6 +6964,9 @@ static void Bench486SpriteSetupCases (void)
 #include "bench486_hullcheck.h"
 #endif
 #include "bench486_aliascontrol.h"
+#if defined(BENCH486) && defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE)
+#include "bench486_aliasmodelload.h"
+#endif
 #include "bench486_worldcontrol.h"
 #if defined(BENCH486) && defined(ASM486_PARTICLE_UPDATE)
 #include "bench486_particlelist.h"
@@ -10564,6 +10567,19 @@ static void Bench486_f (void)
 		Bench486AliasControlCases ();
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
+		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchaliasmodelload"))
+	{
+#if defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE)
+		Bench486AliasModelLoadCases ();
+#else
+		bench486_memory_failures++;
+		Bench486ReportPrintf ("alias model load fixture is not enabled\n");
+#endif
+		Bench486ReportPrintf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		if (bench486_report_handle != -1) { Sys_FileClose (bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
 		return;
 	}

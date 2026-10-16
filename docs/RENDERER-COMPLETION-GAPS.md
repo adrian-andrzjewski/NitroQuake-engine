@@ -15,6 +15,14 @@ strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 ## Accepted incremental work
 
+The cold model-load path used by alias rendering now dispatches through i486
+assembly in the `AliasControlImplementation=asm` profile; the C implementation
+remains the reference path. A seven-case direct fixture and the exact Demo 2
+C/ASM pair pass, and the production assembly profile passes the complete i486
+executable gate. This closes the `Mod_LoadModel` dispatch slice only; remaining
+renderer C ownership and broader acceptance are still open. See the
+[model-load assembly port](ledger/2026-10-16-model-load-assembly-port.md).
+
 Sprite orientation/dispatch, the public sprite-frame entry, `VectorNormalize`
 and `AngleVectors` have independent assembly entries and direct fixtures. The
 corrected sprite/math integration pair verified actual assembly selection and

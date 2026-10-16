@@ -42,7 +42,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /* Mod_Extradata's hot alias-model cache lookup. model_t.cache is pinned by
  * asm_aliascontrol.h; Cache_Check preserves the cache manager's LRU behavior. */
 .extern _Cache_Check
-.extern _Mod_LoadModel
 .extern _Sys_Error
 .section .rodata
 .p2align 2
@@ -86,6 +85,31 @@ _Mod_Extradata_asm486:
 #include "r_aliascontrol_release.inc"
 #include "r_aliasconstants_release.inc"
 #endif
+#if defined(BENCH486) && defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE)
+#define MODEL_LOAD_CACHE_CHECK _Bench486AliasLoadCacheCheck
+#define MODEL_LOAD_STACK_FILE _Bench486AliasLoadStackFile
+#define MODEL_LOAD_FILE_BASE _Bench486AliasLoadFileBase
+#define MODEL_LOAD_ALIAS _Bench486AliasLoadAliasModel
+#define MODEL_LOAD_SPRITE _Bench486AliasLoadSpriteModel
+#define MODEL_LOAD_BRUSH _Bench486AliasLoadBrushModel
+#define MODEL_LOAD_ERROR _Bench486AliasLoadError
+#else
+#define MODEL_LOAD_CACHE_CHECK _Cache_Check
+#define MODEL_LOAD_STACK_FILE _COM_LoadStackFile
+#define MODEL_LOAD_FILE_BASE _COM_FileBase
+#define MODEL_LOAD_ALIAS _Mod_LoadAliasModel
+#define MODEL_LOAD_SPRITE _Mod_LoadSpriteModel
+#define MODEL_LOAD_BRUSH _Mod_LoadBrushModel
+#define MODEL_LOAD_ERROR _Sys_Error
+#endif
+#include "r_modelloadasm.inc"
+#undef MODEL_LOAD_CACHE_CHECK
+#undef MODEL_LOAD_STACK_FILE
+#undef MODEL_LOAD_FILE_BASE
+#undef MODEL_LOAD_ALIAS
+#undef MODEL_LOAD_SPRITE
+#undef MODEL_LOAD_BRUSH
+#undef MODEL_LOAD_ERROR
 #endif
 #if defined(BENCH486) && defined(ASM486_ALIAS_CONTROL)
 .text

@@ -179,7 +179,7 @@ param(
     [string]$ClipToLinksImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$FindTouchedLeafsImplementation = 'c',
-    [ValidateSet('c', 'asm')]
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$AliasControlImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
