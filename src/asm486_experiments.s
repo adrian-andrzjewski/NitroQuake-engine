@@ -11382,3 +11382,7 @@ C(R_DrawParticles_asm486):
 	popl	%ebp
 	ret
 #endif
+
+#ifdef ASM486_CHASE
+#include "sv_hullcheck_asm.inc"
+#endif

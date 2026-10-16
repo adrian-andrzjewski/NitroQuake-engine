@@ -104,6 +104,14 @@ active-camera scene pair passes 6,058 checksums and six indexed/palette captures
 Reviewed files are integrated; the original collision fraction bits are
 preserved. See the [chase camera port](ledger/2026-10-08-chase-camera-assembly-port.md).
 
+The assembly chase path now also owns its recursive BSP hull collision trace
+through `SV_RecursiveHullCheck_asm486`, with the C routine retained as its
+parity oracle and for non-assembly callers. The focused fixture passed 14,336
+exact cases, twelve x87 settings, 8,192 sequence calls, and 48 guard checks;
+the complete candidate executable gate passed. The `ChaseOnly` fixture does
+not measure FPS. See the
+[chase hull-check port](ledger/2026-10-16-chase-hull-check-assembly-port.md).
+
 Nine alias-pipeline entries passed 11,648 exact cases in each normal and profiling
 fixture, twelve x87 settings, 8,192 continuous calls and 128 guard checks. Their
 three-scene pair passes 6,058 checksums and six indexed/palette captures.
@@ -352,8 +360,11 @@ directly reachable C-owned `r_` or `d_` rendering procedures other than the
 `R_PrintDSpeeds` and `R_TimeGraph` benchmark clock probes. The 78 C entries in
 the broader report are primarily screen, menu, console, status-bar, video and
 cache support; the report still has 64 unresolved direct callees and is not a
-complete call graph. The 3D priority is therefore optional/debug paths and
-indirect-target closure, with C retained as the parity oracle.
+complete call graph. The `r_`/`d_` name filter also misses rendering-time 3D
+work named `SV_*`: chase-camera collision now uses assembly hull recursion,
+while general entity/world traces still use the C reference. Continue 3D work
+through those shared call paths and unresolved indirect targets, with C kept
+for parity during migration.
 
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`
 abort boundaries. Those functions and the linked runtime are still ISA-audited.
@@ -362,6 +373,7 @@ to prove a complete call graph.
 
 | Area | Remaining behavior or ownership to verify |
 |---|---|
+| Camera collision / BSP hull trace | The selected assembly chase path uses `SV_RecursiveHullCheck_asm486` and the existing assembly `SV_HullPointContents`; the focused C/ASM fixture and strict candidate ISA gate pass. General entity/world traces still call the C routine. See the [2026-10-16 hull-check ledger](ledger/2026-10-16-chase-hull-check-assembly-port.md). |
 | BSP/world | The i486 defaults now select assembly for `R_ZDrawSubmodelPolys`, `R_RenderPoly`, and `R_RecursiveWorldNodeClip`, with C retained as the parity reference. The world-node clip helper uses an unrolled x87 schedule and passed five exact C/ASM cases plus the full strict i486 ISA gate; its displayed medians match at DOSBox's 1 μs timing resolution. A full scene capture after this follow-up remains open. The direct cull/projection fixtures pass, and an opt-in Demo 1 `-drawpolys` pair matched 964 post-warmup checksums and its indexed capture. `D_DrawPoly` remains a no-op in the DOS span driver, so polygon rasterization is not covered. The standard span path keeps `r_drawpolys` false; the Demo 2 diagnostic still has an unstable C/C baseline. Remaining optional polygon/debug passes and indirect-target closure remain open. See the [Z-submodel polygon ledger](ledger/2026-10-09-zsubmodel-polygons-assembly-port.md) and [RenderPoly parity ledger](ledger/2026-10-10-render-poly-assembly-parity.md). |
 | Edge processing | `R_ScanEdges` and `R_EdgeDrawing` have focused C/assembly pairs, each with 6,058 exact post-warmup checksums and six exact indexed/palette captures; the strict i486 audit for `R_EdgeDrawing` passed. `R_RecursiveClipBPoly` now has a focused C/assembly profile pair with the same exact frame coverage and a strict i486 audit. Frame initialization, other clipping boundaries, optional polygon/debug paths, and remaining C list/span forwarding entries remain open. See the [edge-drawing port record](ledger/2026-10-05-edge-drawing-assembly-port.md), [scan-edges port record](ledger/2026-10-05-scan-edges-assembly-port.md), and [brush-model polygon-clipping port record](ledger/2026-10-05-bmodel-polygon-clip-assembly-port.md). |
 | Alias models | Combined complete-profile verification, indirect targets and removal of inactive C oracle code from release |

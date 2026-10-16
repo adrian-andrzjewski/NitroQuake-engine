@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef BENCH486
 #define _Cvar_RegisterVariable _Bench486ChaseRegister
 #define _SV_RecursiveHullCheck _Bench486ChaseHullCheck
+#else
+#define _SV_RecursiveHullCheck _SV_RecursiveHullCheck_asm486
 #endif
 #include "v_chase_reference.inc"
 #endif

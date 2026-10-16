@@ -6,6 +6,7 @@ typedef struct {unsigned first[8];vec3_t start,end,impact;unsigned last[8];} ben
 static bench486_chase_model_t bench486_chase_model;
 static bench486_chase_hull_t bench486_chase_hull;
 static bench486_chase_vectors_t bench486_chase_vectors;
+static unsigned bench486_chase_hull_use_asm;
 static cvar_t *bench486_chase_controls[]={&chase_back,&chase_up,&chase_right,&chase_active};
 typedef struct {
     client_state_t client;refdef_t reference;cvar_t controls[4];
@@ -55,7 +56,9 @@ static qboolean Bench486ChaseHullFixture(hull_t *hull,int node,int first_bits,in
     /* Exercise the real independent collision helper, including no-hit zero
        endpos, open/water leaves, near-plane epsilon and depth-32 clipping. */
     Q_memcpy(&first,&first_bits,4);Q_memcpy(&last,&last_bits,4);
-    result=Bench486ChaseOriginalHull(hull,node,first,last,start,end,trace);
+    result=bench486_chase_hull_use_asm?
+        SV_RecursiveHullCheck_asm486(hull,node,first,last,start,end,trace):
+        Bench486ChaseOriginalHull(hull,node,first,last,start,end,trace);
     event->result=result;Q_memcpy(&event->after,trace,sizeof(*trace));return result;
 }
 static int Bench486ChaseGuards(void)
@@ -122,11 +125,14 @@ static void Bench486ChaseStep(unsigned pair,unsigned pattern,unsigned sequence)
     arguments[0]=(unsigned)bench486_chase_vectors.start;arguments[1]=(unsigned)bench486_chase_vectors.end;
     arguments[2]=(pattern&3)==1?arguments[0]:(pattern&3)==2?arguments[1]:(unsigned)bench486_chase_vectors.impact;
     Q_memset(&bench486_chase_trace,0,sizeof(bench486_chase_trace));
+    bench486_chase_hull_use_asm=0;
     c_abi=Bench486Call_asm486(bench486_chase_pairs[pair].reference,bench486_chase_pairs[pair].arguments,arguments,NULL);
     Bench486ChaseSave(&reference);Q_memcpy(trace,&bench486_chase_trace,sizeof(trace));
     failed=!Bench486ChaseGuards() || hash!=Bench486ChaseReadOnlyHash() || bench486_chase_trace.errors;
     Bench486ChaseRestore(&initial);Q_memset(&bench486_chase_trace,0,sizeof(bench486_chase_trace));
+    bench486_chase_hull_use_asm=1;
     a_abi=Bench486Call_asm486(bench486_chase_pairs[pair].assembly,bench486_chase_pairs[pair].arguments,arguments,NULL);
+    bench486_chase_hull_use_asm=0;
     Bench486ChaseSave(&assembly);
     failed|=c_abi || a_abi || !Bench486ChaseGuards() || hash!=Bench486ChaseReadOnlyHash() || bench486_chase_trace.errors ||
         Q_memcmp(trace,&bench486_chase_trace,sizeof(trace)) || Q_memcmp(&reference,&assembly,sizeof(reference));
@@ -162,7 +168,7 @@ static void Bench486ChaseCases(void)
     }
     if(negative!=48)bench486_memory_failures++;
     bench486_chase_register_probe=register_probe;bench486_chase_hull_probe=hull_probe;Bench486ChaseRestore(&saved);
-    Bench486Printf("chase camera exact destination/real-hull/trace/clamp/ABI %s (4 entries; %u cases; 12 control words; 8192 sequence calls; %u guard checks; %u failures)\n",
+    Bench486Printf("chase camera exact C/ASM hull/destination/trace/clamp/ABI %s (4 entries; %u cases; 12 control words; 8192 sequence calls; %u guard checks; %u failures)\n",
         failures==bench486_memory_failures?"PASS":"FAIL",cases,negative,bench486_memory_failures-failures);
 }
 #else
