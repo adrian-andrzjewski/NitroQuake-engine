@@ -29,6 +29,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_hullforentity.h"
 #endif
 
+#if defined(ASM486_CLIP_MOVE_TO_ENTITY) && !defined(QUAKE2)
+#include "asm_clipmovetoentity.h"
+#endif
+
 #ifdef PROFILE486
 extern unsigned long bench486_move_calls;
 extern unsigned long bench486_hull_check_calls;
@@ -43,6 +47,10 @@ unsigned bench486_hullcheck_asm_calls;
 unsigned bench486_hullforentity_dispatch_asm = 1;
 unsigned bench486_hullforbox_asm_calls;
 unsigned bench486_hullforentity_asm_calls;
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CLIP_MOVE_TO_ENTITY) && !defined(QUAKE2)
+unsigned bench486_clipmovetoentity_asm_calls;
 #endif
 
 /*
@@ -769,6 +777,11 @@ Handles selection or creation of a clipping hull, and offseting (and
 eventually rotation) of the end points
 ==================
 */
+#if defined(ASM486_CLIP_MOVE_TO_ENTITY) && defined(BENCH486) && !defined(QUAKE2)
+#define SV_ClipMoveToEntity SV_ClipMoveToEntity_C
+#endif
+
+#if !defined(ASM486_CLIP_MOVE_TO_ENTITY) || defined(BENCH486) || defined(QUAKE2)
 trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end)
 {
 	trace_t		trace;
@@ -873,6 +886,11 @@ trace_t SV_ClipMoveToEntity (edict_t *ent, vec3_t start, vec3_t mins, vec3_t max
 
 	return trace;
 }
+#endif
+
+#if defined(ASM486_CLIP_MOVE_TO_ENTITY) && defined(BENCH486) && !defined(QUAKE2)
+#undef SV_ClipMoveToEntity
+#endif
 
 //===========================================================================
 

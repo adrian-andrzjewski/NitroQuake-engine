@@ -86,6 +86,7 @@
     "ChaseImplementation": "c",
     "HullCheckImplementation": "c",
     "HullForEntityImplementation": "c",
+    "ClipMoveToEntityImplementation": "c",
     "AliasControlImplementation": "c",
     "AliasStatsImplementation": "c",
     "PrintTimesImplementation": "c",

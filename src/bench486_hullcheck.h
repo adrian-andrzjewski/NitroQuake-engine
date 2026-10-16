@@ -6,6 +6,10 @@
 #if defined(BENCH486) && defined(ASM486_HULLCHECK)
 extern unsigned bench486_hullcheck_dispatch_asm;
 extern unsigned bench486_hullcheck_asm_calls;
+#if defined(ASM486_CLIP_MOVE_TO_ENTITY) && !defined(QUAKE2)
+extern unsigned bench486_clipmovetoentity_asm_calls;
+extern trace_t SV_ClipMoveToEntity_C(edict_t *, vec3_t, vec3_t, vec3_t, vec3_t);
+#endif
 extern hull_t *SV_HullForBox(vec3_t, vec3_t);
 extern void SV_InitBoxHull(void);
 extern trace_t SV_ClipMoveToEntity(edict_t *, vec3_t, vec3_t, vec3_t, vec3_t);
@@ -47,6 +51,7 @@ static void Bench486HullCheckCases(void)
 	static trace_t reference, candidate;
 	static vec3_t mins, maxs, start, end, hullmins, hullmaxs;
 	unsigned i, target, cases = 0, failures = 0, asm_entries = 0;
+	unsigned clipmove_entries = 0;
 	unsigned *before, *after;
 
 	Q_memset(&bench486_hullcheck_entity, 0, sizeof(bench486_hullcheck_entity));
@@ -103,6 +108,22 @@ static void Bench486HullCheckCases(void)
 #if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
 			bench486_hullforentity_dispatch_asm = 0;
 #endif
+#if defined(ASM486_CLIP_MOVE_TO_ENTITY) && !defined(QUAKE2)
+			reference = SV_ClipMoveToEntity_C(entity, start, mins, maxs, end);
+			bench486_hullcheck_dispatch_asm = 1;
+#if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
+			bench486_hullforentity_dispatch_asm = 1;
+#endif
+			{
+				unsigned clip_calls_before = bench486_clipmovetoentity_asm_calls;
+				assembly_calls_before = bench486_hullcheck_asm_calls;
+				candidate = SV_ClipMoveToEntity(entity, start, mins, maxs, end);
+				if (bench486_clipmovetoentity_asm_calls == clip_calls_before)
+					failures++;
+				else
+					clipmove_entries += bench486_clipmovetoentity_asm_calls - clip_calls_before;
+			}
+#else
 			reference = SV_ClipMoveToEntity(entity, start, mins, maxs, end);
 			bench486_hullcheck_dispatch_asm = 1;
 #if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
@@ -110,6 +131,7 @@ static void Bench486HullCheckCases(void)
 #endif
 			assembly_calls_before = bench486_hullcheck_asm_calls;
 			candidate = SV_ClipMoveToEntity(entity, start, mins, maxs, end);
+#endif
 			cases++;
 			if (bench486_hullcheck_asm_calls == assembly_calls_before)
 				failures++;
@@ -131,8 +153,13 @@ static void Bench486HullCheckCases(void)
 	bench486_hullforentity_dispatch_asm = 1;
 #endif
 	sv.models[1] = saved_model;
+#if defined(ASM486_CLIP_MOVE_TO_ENTITY) && !defined(QUAKE2)
+	Bench486Printf("entity/world BSP trace exact C/ASM %s (%u traces; %u clip assembly entries; %u recursion entries; 16 edge sentinels; %u failures)\n",
+		failures ? "FAIL" : "PASS", cases, clipmove_entries, asm_entries, failures);
+#else
 	Bench486Printf("entity/world BSP hull dispatch exact C/ASM %s (%u traces; %u assembly entries; 16 edge sentinels; %u failures)\n",
 		failures ? "FAIL" : "PASS", cases, asm_entries, failures);
+#endif
 	if (failures)
 		bench486_memory_failures += failures;
 }

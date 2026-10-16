@@ -61,7 +61,7 @@ RELEASE_I486_SUFFIX = (
     'ointlightasm-framecontrolasm-linegraphasm-timegraphasm-paletteasm-mathclosureasm-visibilityasm-b'
     'indingsasm-skyasm-dispatchasm-driverasm-viewcontrolasm-vparsedamageasm-drawingasm-consoleinputas'
     'm-screennotifyasm-screencenterasm-screeneraseasm-screenconsolesetupasm-screenrefdefasm-screendra'
-    'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-aliascontrolasm-'
+    'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
     'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-frustumasm-transformplaneasm'
@@ -786,6 +786,7 @@ def main() -> int:
         ("ChaseImplementation", "ASM486_CHASE", "chaseasm"),
         ("HullCheckImplementation", "ASM486_HULLCHECK", "hullcheckasm"),
         ("HullForEntityImplementation", "ASM486_HULL_FOR_ENTITY", "hullforentityasm"),
+        ("ClipMoveToEntityImplementation", "ASM486_CLIP_MOVE_TO_ENTITY", "clipmoveentityasm"),
     ):
         reference = dump_flags("-" + selector, "c")
         candidate = dump_flags("-" + selector, "asm")

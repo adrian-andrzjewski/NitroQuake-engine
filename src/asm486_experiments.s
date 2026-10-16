@@ -11390,3 +11390,7 @@ C(R_DrawParticles_asm486):
 #if defined(ASM486_HULL_FOR_ENTITY) && !defined(QUAKE2)
 #include "sv_hullforentity_asm.inc"
 #endif
+
+#if defined(ASM486_CLIP_MOVE_TO_ENTITY) && !defined(QUAKE2)
+#include "sv_clipmovetoentity_asm.inc"
+#endif
