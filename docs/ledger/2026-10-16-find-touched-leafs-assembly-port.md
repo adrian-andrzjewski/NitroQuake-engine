@@ -63,10 +63,27 @@ is `out/dos-bench-20261016-133314/bench-result.json`. These checks establish
 exact function-state parity and i486 compatibility, not full-scene parity or
 an FPS gain.
 
-A prior all-assembly Demo 2 entity-workload run failed before its first frame
-checksum. Returning only `FindTouchedLeafsImplementation` to C did not prevent
-that run, so it does not implicate this port. The current full profile still
-needs a scene run. The supplied page-fault address was associated with
-`R_DrawSolidClippedSubmodelPolygons_asm486` in the candidate map, but fell
-inside an instruction there; the screenshot's exact executable hash is
-unknown. The full-profile runtime fault remains open.
+The full C-reference Demo 2 run passed all 985 frames with checksum
+`1887495667`. The current all-assembly profile exits before writing its first
+frame checksum. Returning only `FindTouchedLeafsImplementation` to C did not
+prevent that failure, so this run does not implicate the touched-leaf port.
+
+Several isolated 3D assembly selections complete the same 985-frame scene
+with checksum `1887495667`: `R_RenderWorld` plus the BSP walker,
+`R_RenderBmodelFace` alone, `R_DrawSolidClippedSubmodelPolygons` alone, and
+`R_RenderBmodelFace` plus the Z-gradient helper. Returning either
+`R_DrawSolidClippedSubmodelPolygons` or `R_RenderBmodelFace` to C in the broad
+profile did not prevent its early exit; returning the full brush-model
+clipping trio to C did not prevent it either. This rules out none of the
+remaining interactions and does not identify the failing selector.
+
+The supplied DOSBox-X screenshot reports EIP `0x000e2fa8` and EBP
+`0x00400000`, outside the displayed application stack. The screenshot's exact
+executable hash is unknown. In the current candidate (`qbench.exe` SHA-256
+`25e71df0975e44c6921f54751a897e4240d815c86499a489aedf9877cf2d4bcf`), the
+map places `0x000e2fa8` inside `R_RecursiveClipBPoly_asm486`; disassembly shows
+it is a valid instruction boundary (`je 0x000e3009`). The next symbol,
+`R_DrawSolidClippedSubmodelPolygons_asm486`, begins at `0x000e3030`. This
+address mapping cannot prove the screenshot used this executable, and the
+reported EIP does not establish which earlier call damaged the frame state.
+The all-assembly runtime fault and its cause remain open.

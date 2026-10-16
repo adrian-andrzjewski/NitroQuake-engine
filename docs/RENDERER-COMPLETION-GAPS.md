@@ -405,9 +405,13 @@ source-bound contributions, 1,451 CODE ranges, 25 DATA ranges, and the same
 startup/provider totals. Both gates reported zero above-i486 instructions,
 unknown encodings, exemptions, or misclassified data. A previously tested
 all-assembly Demo 2 run failed before its first frame checksum; selecting only
-`SV_FindTouchedLeafs` back to C did not prevent that run. The current full
-profile has not passed scene parity. See the [touched-leaf traversal
-ledger](ledger/2026-10-16-find-touched-leafs-assembly-port.md).
+`SV_FindTouchedLeafs` back to C did not prevent that run. The C-reference
+profile and several isolated 3D assembly selections each completed all 985
+Demo 2 frames with checksum `1887495667`, but the combined profile has not
+passed scene parity and its failing interaction is still unknown. The supplied
+page-fault address maps to `R_RecursiveClipBPoly_asm486` in the current
+candidate, though the screenshot executable hash is unavailable. See the
+[touched-leaf traversal ledger](ledger/2026-10-16-find-touched-leafs-assembly-port.md).
 
 The inventory stops traversal at explicitly named `Sys_Error` and `Host_Error`
 abort boundaries. Those functions and the linked runtime are still ISA-audited.
