@@ -8,6 +8,15 @@
 #define SBAR_DRAW_NUM _Bench486SbarDrawNum
 #define SBAR_DRAW_FACE _Bench486SbarDrawFace
 #define SBAR_DRAW_MINI_DEATHMATCH _Bench486SbarDrawMiniDeathmatch
+#elif defined(ASM486_SBAR_INVENTORY)
+#define SBAR_DRAW_TILE_CLEAR _Draw_TileClear
+#define SBAR_DRAW_INVENTORY _Sbar_DrawInventory_asm486
+#define SBAR_DRAW_FRAGS _Sbar_DrawFrags
+#define SBAR_DRAW_PIC _Sbar_DrawPic
+#define SBAR_DRAW_SCOREBOARD _Sbar_DrawScoreboard
+#define SBAR_DRAW_NUM _Sbar_DrawNum
+#define SBAR_DRAW_FACE _Sbar_DrawFace
+#define SBAR_DRAW_MINI_DEATHMATCH _Sbar_MiniDeathmatchOverlay
 #else
 #define SBAR_DRAW_TILE_CLEAR _Draw_TileClear
 #define SBAR_DRAW_INVENTORY _Sbar_DrawInventory

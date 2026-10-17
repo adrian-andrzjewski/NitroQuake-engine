@@ -264,3 +264,7 @@ _Sbar_DrawNum:
 #ifdef ASM486_SBAR_DRAW
 #include "sbar_draw_asm.inc"
 #endif
+
+#ifdef ASM486_SBAR_INVENTORY
+#include "sbar_inventory_asm.inc"
+#endif

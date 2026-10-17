@@ -296,6 +296,8 @@ param(
     [string]$SbarPrimitiveImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SbarInventoryImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
@@ -639,6 +641,7 @@ $buildParams = @{
         RenderPolyImplementation              = $RenderPolyImplementation
         SbarPrimitiveImplementation           = $SbarPrimitiveImplementation
         SbarDrawImplementation                = $SbarDrawImplementation
+        SbarInventoryImplementation            = $SbarInventoryImplementation
         GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
     ToolRoot                             = $ToolRoot
 }
@@ -1535,6 +1538,7 @@ $result = [ordered]@{
     renderPolyImplementation = $RenderPolyImplementation
     sbarPrimitiveImplementation = $SbarPrimitiveImplementation
     sbarDrawImplementation = $SbarDrawImplementation
+    sbarInventoryImplementation = $SbarInventoryImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     instrumentation = [bool]$Instrumentation
     frameFpsStats = $fpsStatsEnabled

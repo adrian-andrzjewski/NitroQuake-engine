@@ -282,6 +282,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarDrawImplementation = 'c',
     [ValidateSet('c', 'asm')]
+    [string]$SbarInventoryImplementation = 'c',
+    [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$PrintTimesImplementation = 'c',
@@ -344,6 +346,7 @@ param(
     [switch]$ScreenTurtleOnly,
     [switch]$DrawingOnly,
     [switch]$SbarPrimitivesOnly,
+    [switch]$SbarInventoryOnly,
     [switch]$ChaseOnly,
     [switch]$HullCheckOnly,
     [switch]$AliasControlOnly,
@@ -401,6 +404,9 @@ if ($AliasModelLoadOnly -and $AliasControlImplementation -ne 'asm-fixture') {
 }
 if ($SbarDrawOnly -and $SbarDrawImplementation -ne 'asm-fixture') {
     throw '-SbarDrawOnly requires -SbarDrawImplementation asm-fixture.'
+}
+if ($SbarInventoryOnly -and $SbarInventoryImplementation -ne 'asm') {
+    throw '-SbarInventoryOnly requires -SbarInventoryImplementation asm.'
 }
 if ($MemoryOnly -and $MemoryImplementation -ne 'asm') {
     throw '-MemoryOnly requires -MemoryImplementation asm.'
@@ -859,6 +865,9 @@ elseif ($AliasModelLoadOnly) {
 elseif ($SbarDrawOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsbar_draw -benchexit'
 }
+elseif ($SbarInventoryOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsbarinventory -benchexit'
+}
 elseif ($AliasStatsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasstats -benchexit'
 }
@@ -1314,6 +1323,7 @@ $result = [ordered]@{
     screenTurtleOnly = [bool]$ScreenTurtleOnly
     drawingOnly = [bool]$DrawingOnly
     sbarPrimitivesOnly = [bool]$SbarPrimitivesOnly
+    sbarInventoryOnly = [bool]$SbarInventoryOnly
     chaseOnly = [bool]$ChaseOnly
     hullCheckOnly = [bool]$HullCheckOnly
     aliasControlOnly = [bool]$AliasControlOnly

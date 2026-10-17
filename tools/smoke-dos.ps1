@@ -223,6 +223,12 @@ param(
     [string]$EmitCachedEdgeImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$RenderPolyImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SbarPrimitiveImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$SbarDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SbarInventoryImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidateSet(64, 128, 256)]
@@ -393,6 +399,9 @@ $buildParams = @{
     EfragStoreImplementation = $EfragStoreImplementation
     EmitCachedEdgeImplementation = $EmitCachedEdgeImplementation
     RenderPolyImplementation = $RenderPolyImplementation
+    SbarPrimitiveImplementation = $SbarPrimitiveImplementation
+    SbarDrawImplementation = $SbarDrawImplementation
+    SbarInventoryImplementation = $SbarInventoryImplementation
     GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
 }
 
@@ -590,6 +599,9 @@ $result = [ordered]@{
     efragStoreImplementation = $EfragStoreImplementation
     emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
     renderPolyImplementation = $RenderPolyImplementation
+    sbarPrimitiveImplementation = $SbarPrimitiveImplementation
+    sbarDrawImplementation = $SbarDrawImplementation
+    sbarInventoryImplementation = $SbarInventoryImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     edgeScanProbe = $EdgeScanProbe

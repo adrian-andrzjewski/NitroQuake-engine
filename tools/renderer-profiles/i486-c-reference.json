@@ -118,6 +118,7 @@
     "RenderPolyImplementation": "c",
     "SbarPrimitiveImplementation": "c",
     "SbarDrawImplementation": "c",
+    "SbarInventoryImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",
     "ScreenTurtleImplementation": "c"

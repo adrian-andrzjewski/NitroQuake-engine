@@ -146,6 +146,7 @@ $script:AssemblyBackedImplementations = @(
     'RenderPolyImplementation',
     'SbarPrimitiveImplementation',
     'SbarDrawImplementation',
+    'SbarInventoryImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
     'AliasSetupFrameImplementation',
@@ -1549,6 +1550,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'SbarInventoryImplementation'
+        Manifest   = 'sbarInventoryImplementation'
+        Suffix     = @{ 'asm' = 'sbarinventoryasm' }
+        C          = @{ 'asm' = @('ASM486_SBAR_INVENTORY') }
+        Asm        = @{ 'asm' = @('ASM486_SBAR_INVENTORY') }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'GibTrailHorizontalIntegration'
         Manifest   = 'gibTrailHorizontalIntegration'
         Suffix     = @{ 'skipzero' = 'gibskipzero' }
@@ -1752,6 +1762,7 @@ $script:SuffixOrder = @(
     'RenderPolyImplementation'
     'SbarPrimitiveImplementation'
     'SbarDrawImplementation'
+    'SbarInventoryImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -1859,6 +1870,7 @@ $script:CDefineOrder = @(
     'RenderPolyImplementation'
     'SbarPrimitiveImplementation'
     'SbarDrawImplementation'
+    'SbarInventoryImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -1997,6 +2009,7 @@ $script:AsmDefineOrder = @(
     'RenderPolyImplementation'
     'SbarPrimitiveImplementation'
     'SbarDrawImplementation'
+    'SbarInventoryImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'LineGraphImplementation'

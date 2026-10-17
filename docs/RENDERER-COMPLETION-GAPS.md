@@ -5,7 +5,8 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-17, the i486 build defaults to all 118 current assembly selectors in
+As of 2026-10-17, the i486 build defaults to the complete 119-entry assembly
+selector profile in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
 is the complete C parity profile. The dated entries below preserve the status

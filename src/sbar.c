@@ -601,7 +601,14 @@ void Sbar_DrawScoreboard (void)
 Sbar_DrawInventory
 ===============
 */
-void Sbar_DrawInventory (void)
+#if defined(ASM486_SBAR_INVENTORY)
+#define SBAR_INVENTORY_C_ENTRY Sbar_DrawInventory_C
+#else
+#define SBAR_INVENTORY_C_ENTRY Sbar_DrawInventory
+#endif
+
+#if !defined(ASM486_SBAR_INVENTORY) || defined(BENCH486)
+void SBAR_INVENTORY_C_ENTRY (void)
 {
 	int		i;
 	char	num[6];
@@ -813,6 +820,16 @@ void Sbar_DrawInventory (void)
 		}
 	}
 }
+#endif
+
+#undef SBAR_INVENTORY_C_ENTRY
+
+#if defined(ASM486_SBAR_INVENTORY) && !defined(ASM486_SBAR_DRAW)
+void Sbar_DrawInventory (void)
+{
+	Sbar_DrawInventory_asm486 ();
+}
+#endif
 
 //=============================================================================
 
@@ -1020,6 +1037,14 @@ Sbar_Draw
 #define SBAR_DRAW_FACE_DISPATCH SBAR_DRAW_FACE_C_ENTRY
 #endif
 
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_DRAW_INVENTORY_CALL Bench486SbarDrawInventory
+#elif defined(BENCH486) && defined(ASM486_SBAR_INVENTORY)
+#define SBAR_DRAW_INVENTORY_CALL Sbar_DrawInventory_C
+#else
+#define SBAR_DRAW_INVENTORY_CALL Sbar_DrawInventory
+#endif
+
 #if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
 void SBAR_DRAW_C_ENTRY (void)
 {
@@ -1038,7 +1063,7 @@ void SBAR_DRAW_C_ENTRY (void)
 
 	if (sb_lines > 24)
 	{
-		Sbar_DrawInventory ();
+		SBAR_DRAW_INVENTORY_CALL ();
 		if (cl.maxclients != 1)
 			Sbar_DrawFrags ();
 	}
@@ -1154,6 +1179,7 @@ void SBAR_DRAW_C_ENTRY (void)
 #undef SBAR_DRAW_C_ENTRY
 #undef SBAR_DRAW_FACE_DISPATCH
 #undef SBAR_DRAW_FACE_C_ENTRY
+#undef SBAR_DRAW_INVENTORY_CALL
 
 //=============================================================================
 

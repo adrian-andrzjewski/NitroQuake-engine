@@ -6920,6 +6920,10 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
 #include "bench486_sbarprimitives.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_SBAR_INVENTORY) && \
+		defined(ASM486_SBAR_PRIMITIVES)
+#include "bench486_sbarinventory.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #include "bench486_sbardraw.h"
 #endif
@@ -10970,6 +10974,25 @@ static void Bench486_f (void)
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchsbarinventory"))
+	{
+#if defined(ASM486_SBAR_INVENTORY) && defined(ASM486_SBAR_PRIMITIVES)
+		Bench486SbarInventoryCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("sbar inventory fixture requires SbarInventoryImplementation=asm and SbarPrimitiveImplementation=asm\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 
 	if (COM_CheckParm ("-benchviewcontrol"))
 	{
@@ -11781,6 +11804,9 @@ static void Bench486_f (void)
 #endif
 #ifdef ASM486_SBAR_PRIMITIVES
 	Bench486SbarPrimitiveCases ();
+#endif
+#if defined(ASM486_SBAR_INVENTORY) && defined(ASM486_SBAR_PRIMITIVES)
+	Bench486SbarInventoryCases ();
 #endif
 #ifdef ASM486_CHASE
 	Bench486ChaseCases ();

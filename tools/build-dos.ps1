@@ -313,6 +313,8 @@ param(
     [string]$SbarPrimitiveImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarDrawImplementation = 'c',
+    [ValidateSet('c', 'asm')]
+    [string]$SbarInventoryImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [string]$ToolRoot,

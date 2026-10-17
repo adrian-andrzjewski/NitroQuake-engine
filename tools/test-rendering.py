@@ -1464,7 +1464,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 117)
+        self.assertEqual(len(reference["selectors"]), 119)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1532,7 +1532,7 @@ class RenderingComparisonTests(unittest.TestCase):
         cumulative = json.loads(
             (profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(reference["selectors"]), 117)
+        self.assertEqual(len(reference["selectors"]), 119)
         self.assertEqual(focused["id"], "i486-asm-time-graph")
         self.assertEqual(focused["selectors"]["TimeGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1569,7 +1569,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 117)
+        self.assertEqual(len(reference["selectors"]), 119)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -2338,10 +2338,10 @@ class RenderingComparisonTests(unittest.TestCase):
             name for name, value in candidate["selectors"].items()
             if reference["selectors"][name] != value
         }
-        self.assertEqual(changed, {"ZSubmodelPolygonsImplementation"})
+        self.assertEqual(changed, {"RenderPolyImplementation", "ZSubmodelPolygonsImplementation"})
 
         assembly = (ROOT / "src/r_zsubmodelasm.s").read_text(encoding="utf-8")
-        self.assertIn("C(R_ZDrawSubmodelPolys_asm486):", assembly)
+        self.assertIn("ZSUBMODEL_BODY C(R_ZDrawSubmodelPolys_asm486), 0", assembly)
         self.assertIn("fcompl\t.Lzsubmodel_negative_epsilon", assembly)
         self.assertIn("fcompl\t.Lzsubmodel_positive_epsilon", assembly)
         self.assertIn("testb\t$1,%ah", assembly)
@@ -4071,6 +4071,33 @@ class RenderingComparisonTests(unittest.TestCase):
                 r"\[string\]\$ScreenTurtleImplementation\s*=\s*'c'",
                 f"{runner_name} must expose ScreenTurtleImplementation with a C parameter fallback",
             )
+
+
+    def test_sbar_inventory_assembly_profile_fixture_and_runner(self) -> None:
+        profiles = ROOT / "tools/renderer-profiles"
+        reference = load_json((profiles / "i486-c-reference.json").read_text(encoding="utf-8"))
+        current = load_json((profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8"))
+        source = (ROOT / "src/sbar.c").read_text(encoding="utf-8")
+        fixture = (ROOT / "src/bench486_sbarinventory.h").read_text(encoding="utf-8")
+        assembly = (ROOT / "src/sbar_inventory_asm.inc").read_text(encoding="utf-8")
+        selector_header = (ROOT / "src/asm_sbar.h").read_text(encoding="utf-8")
+        host_commands = (ROOT / "src/host_cmd.c").read_text(encoding="utf-8")
+        runner = (ROOT / "tools/bench-dos.ps1").read_text(encoding="utf-8")
+
+        self.assertEqual(reference["selectors"]["SbarInventoryImplementation"], "c")
+        self.assertEqual(current["selectors"]["SbarInventoryImplementation"], "asm")
+        self.assertIn("Sbar_DrawInventory_C", source)
+        self.assertIn("Sbar_DrawInventory_asm486", source)
+        self.assertIn("_Sbar_DrawInventory_asm486:", assembly)
+        self.assertIn("SBAR_CL_ITEM_GETTIME_OFFSET 160", selector_header)
+        self.assertIn("BENCH486_SBAR_INVENTORY_SCENARIOS 5", fixture)
+        self.assertIn("Sbar_DrawInventory_C ();", fixture)
+        self.assertIn("Sbar_DrawInventory_asm486 ();", fixture)
+        self.assertIn('COM_CheckParm ("-benchsbarinventory")', host_commands)
+        self.assertIn("Bench486SbarInventoryCases ();", host_commands)
+        self.assertIn("[switch]$SbarInventoryOnly", runner)
+        self.assertIn("-SbarInventoryOnly requires -SbarInventoryImplementation asm.", runner)
+        self.assertIn("+bench486 -benchsbarinventory -benchexit", runner)
 
 
 if __name__ == "__main__":

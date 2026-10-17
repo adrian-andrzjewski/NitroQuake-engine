@@ -5,6 +5,7 @@
 #define SBAR_CL_MAXCLIENTS_OFFSET 2684
 #define SBAR_CL_STATS_OFFSET 28
 #define SBAR_CL_ITEMS_OFFSET 156
+#define SBAR_CL_ITEM_GETTIME_OFFSET 160
 #define SBAR_CL_FACEANIMTIME_OFFSET 288
 #define SBAR_CL_TIME_OFFSET 572
 #define SBAR_CL_VIEWENTITY_OFFSET 2680
@@ -23,6 +24,11 @@
 #define SBAR_STAT_HEALTH 0
 #define SBAR_STAT_AMMO 3
 #define SBAR_STAT_ARMOR 4
+#define SBAR_STAT_SHELLS 6
+#define SBAR_STAT_ACTIVEWEAPON 10
+#define SBAR_IT_SHOTGUN 1
+#define SBAR_RIT_LAVA_NAILGUN 4096
+#define SBAR_HIT_PROXIMITY_GUN 65536
 #define SBAR_IT_SHELLS 256
 #define SBAR_IT_NAILS 512
 #define SBAR_IT_ROCKETS 1024
@@ -65,6 +71,8 @@ typedef char sbar_client_stats_offset_must_match[
 		(offsetof(client_state_t, stats) == SBAR_CL_STATS_OFFSET) ? 1 : -1];
 typedef char sbar_client_items_offset_must_match[
 		(offsetof(client_state_t, items) == SBAR_CL_ITEMS_OFFSET) ? 1 : -1];
+typedef char sbar_client_item_gettime_offset_must_match[
+		(offsetof(client_state_t, item_gettime) == SBAR_CL_ITEM_GETTIME_OFFSET) ? 1 : -1];
 typedef char sbar_client_faceanimtime_offset_must_match[
 		(offsetof(client_state_t, faceanimtime) == SBAR_CL_FACEANIMTIME_OFFSET) ? 1 : -1];
 typedef char sbar_client_time_offset_must_match[
@@ -92,6 +100,18 @@ typedef char sbar_deathmatch_constant_must_match[
 typedef char sbar_stat_health_must_match[(STAT_HEALTH == SBAR_STAT_HEALTH) ? 1 : -1];
 typedef char sbar_stat_ammo_must_match[(STAT_AMMO == SBAR_STAT_AMMO) ? 1 : -1];
 typedef char sbar_stat_armor_must_match[(STAT_ARMOR == SBAR_STAT_ARMOR) ? 1 : -1];
+typedef char sbar_stat_shells_must_match[(STAT_SHELLS == SBAR_STAT_SHELLS) ? 1 : -1];
+typedef char sbar_stat_activeweapon_must_match[
+		(STAT_ACTIVEWEAPON == SBAR_STAT_ACTIVEWEAPON) ? 1 : -1];
+typedef char sbar_activeweapon_offset_must_match[
+		(offsetof(client_state_t, stats) + sizeof(int) * STAT_ACTIVEWEAPON == 68) ? 1 : -1];
+typedef char sbar_shells_offset_must_match[
+		(offsetof(client_state_t, stats) + sizeof(int) * STAT_SHELLS == 52) ? 1 : -1];
+typedef char sbar_it_shotgun_must_match[(IT_SHOTGUN == SBAR_IT_SHOTGUN) ? 1 : -1];
+typedef char sbar_rit_lava_nailgun_must_match[
+		(RIT_LAVA_NAILGUN == SBAR_RIT_LAVA_NAILGUN) ? 1 : -1];
+typedef char sbar_hit_proximity_gun_must_match[
+		(HIT_PROXIMITY_GUN == SBAR_HIT_PROXIMITY_GUN) ? 1 : -1];
 typedef char sbar_it_shells_must_match[(IT_SHELLS == SBAR_IT_SHELLS) ? 1 : -1];
 typedef char sbar_it_nails_must_match[(IT_NAILS == SBAR_IT_NAILS) ? 1 : -1];
 typedef char sbar_it_rockets_must_match[(IT_ROCKETS == SBAR_IT_ROCKETS) ? 1 : -1];
@@ -128,6 +148,12 @@ void Sbar_Draw_C (void);
 void Sbar_Draw_asm486 (void);
 void Sbar_DrawFace_C (void);
 void Sbar_DrawFace_asm486 (void);
+#endif
+#ifdef ASM486_SBAR_INVENTORY
+void Sbar_DrawInventory_asm486 (void);
+#if defined(BENCH486)
+void Sbar_DrawInventory_C (void);
+#endif
 #endif
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 void Bench486SbarDrawTileClear (int x, int y, int width, int height);
