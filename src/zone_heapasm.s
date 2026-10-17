@@ -2,6 +2,7 @@
 #include "asm_i386.h"
 #include "asm_zoneheap.h"
 #include "asm_hunknamedalloc.h"
+#include "asm_cachetryalloc.h"
 #undef i386
 .arch i486
 .code32
@@ -435,6 +436,93 @@ C(Hunk_Check):
 	popl	%ebx
 	ret
 
+.p2align 2
+.globl C(Cache_UnlinkLRU)
+C(Cache_UnlinkLRU):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	16(%esp),%esi		/* cache system */
+	movl	CTA_CACHE_LRU_NEXT_OFFSET(%esi),%eax
+	testl	%eax,%eax
+	je	.Lzone_cache_unlink_lru_bad
+	movl	CTA_CACHE_LRU_PREV_OFFSET(%esi),%edx
+	testl	%edx,%edx
+	je	.Lzone_cache_unlink_lru_bad
+	movl	%edx,CTA_CACHE_LRU_PREV_OFFSET(%eax)
+	movl	%eax,CTA_CACHE_LRU_NEXT_OFFSET(%edx)
+	movl	$0,CTA_CACHE_LRU_NEXT_OFFSET(%esi)
+	movl	$0,CTA_CACHE_LRU_PREV_OFFSET(%esi)
+	jmp	.Lzone_cache_unlink_lru_done
+
+.Lzone_cache_unlink_lru_bad:
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$.Lzone_cache_unlink_lru_error_text
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+	jmp	.Lzone_cache_unlink_lru_done
+#else
+	pushl	$.Lzone_cache_unlink_lru_error_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+	/* If a fatal error unexpectedly returns, continue as the C routine does. */
+	movl	CTA_CACHE_LRU_NEXT_OFFSET(%esi),%eax
+	movl	CTA_CACHE_LRU_PREV_OFFSET(%esi),%edx
+	movl	%edx,CTA_CACHE_LRU_PREV_OFFSET(%eax)
+	movl	%eax,CTA_CACHE_LRU_NEXT_OFFSET(%edx)
+	movl	$0,CTA_CACHE_LRU_NEXT_OFFSET(%esi)
+	movl	$0,CTA_CACHE_LRU_PREV_OFFSET(%esi)
+#endif
+
+.Lzone_cache_unlink_lru_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
+.p2align 2
+.globl C(Cache_MakeLRU)
+C(Cache_MakeLRU):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	16(%esp),%esi		/* cache system */
+	cmpl	$0,CTA_CACHE_LRU_NEXT_OFFSET(%esi)
+	jne	.Lzone_cache_make_lru_bad
+	cmpl	$0,CTA_CACHE_LRU_PREV_OFFSET(%esi)
+	jne	.Lzone_cache_make_lru_bad
+	movl	$C(cache_head),%ebx
+	movl	CTA_CACHE_HEAD_LRU_NEXT_OFFSET(%ebx),%eax
+	movl	%esi,CTA_CACHE_LRU_PREV_OFFSET(%eax)
+	movl	%eax,CTA_CACHE_LRU_NEXT_OFFSET(%esi)
+	movl	%ebx,CTA_CACHE_LRU_PREV_OFFSET(%esi)
+	movl	%esi,CTA_CACHE_HEAD_LRU_NEXT_OFFSET(%ebx)
+	jmp	.Lzone_cache_make_lru_done
+
+.Lzone_cache_make_lru_bad:
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$.Lzone_cache_make_lru_error_text
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+#else
+	pushl	$.Lzone_cache_make_lru_error_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+	/* Sys_Error is fatal; preserve the C behavior if it unexpectedly returns. */
+	movl	$C(cache_head),%ebx
+	movl	CTA_CACHE_HEAD_LRU_NEXT_OFFSET(%ebx),%eax
+	movl	%esi,CTA_CACHE_LRU_PREV_OFFSET(%eax)
+	movl	%eax,CTA_CACHE_LRU_NEXT_OFFSET(%esi)
+	movl	%ebx,CTA_CACHE_LRU_PREV_OFFSET(%esi)
+	movl	%esi,CTA_CACHE_HEAD_LRU_NEXT_OFFSET(%ebx)
+#endif
+
+.Lzone_cache_make_lru_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
 .section .rodata
 .Lzone_free_null_text:
 	.asciz	"Z_Free: NULL pointer"
@@ -464,4 +552,8 @@ C(Hunk_Check):
 	.asciz	"Hunk_Check: trahsed sentinal"
 .Lzone_hunk_check_size_text:
 	.asciz	"Hunk_Check: bad size"
+.Lzone_cache_unlink_lru_error_text:
+	.asciz	"Cache_UnlinkLRU: NULL link"
+.Lzone_cache_make_lru_error_text:
+	.asciz	"Cache_MakeLRU: active link"
 #endif /* ASM486_ZONE_HEAP */

@@ -78,6 +78,14 @@ typedef struct bench486_hunk_checker_snapshot_s
 	char errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
 } bench486_hunk_checker_snapshot_t;
 
+typedef struct bench486_cache_lru_snapshot_s
+{
+	cache_system_t head;
+	cache_system_t nodes[2];
+	int error_count;
+	char errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+} bench486_cache_lru_snapshot_t;
+
 static union
 {
 	long alignment[4];
@@ -87,6 +95,7 @@ static bench486_zone_init_snapshot_t bench486_zone_init_c;
 static bench486_zone_init_snapshot_t bench486_zone_init_asm;
 static bench486_memory_init_snapshot_t bench486_memory_init_c;
 static bench486_memory_init_snapshot_t bench486_memory_init_asm;
+static cache_system_t bench486_cache_lru_nodes[2];
 static int bench486_memory_add_command_count;
 static char bench486_memory_add_command_name[BZH_COMMAND_NAME_SIZE];
 static xcommand_t bench486_memory_add_command_function;
@@ -636,9 +645,113 @@ static int Bench486HunkCheckerCases (void)
 	return failures;
 }
 
+static int Bench486ZoneHeapCheckerCases (void);
+
+static void Bench486CacheLruRun (int case_index, int use_asm,
+		bench486_cache_lru_snapshot_t *snapshot)
+{
+	cache_system_t *node = &bench486_cache_lru_nodes[0];
+	memset (&cache_head, 0, sizeof (cache_head));
+	memset (bench486_cache_lru_nodes, 0, sizeof (bench486_cache_lru_nodes));
+	bench486_zone_heap_error_count = 0;
+	memset (bench486_zone_heap_errors, 0,
+		sizeof (bench486_zone_heap_errors));
+	switch (case_index)
+	{
+	case 0: /* Unlink one node and repair the empty-list sentinel. */
+		cache_head.lru_next = node;
+		cache_head.lru_prev = node;
+		node->lru_prev = &cache_head;
+		node->lru_next = &cache_head;
+		if (use_asm)
+			Cache_UnlinkLRU (node);
+		else
+			Cache_UnlinkLRU_C (node);
+		break;
+	case 1: /* Reject a node with a missing forward link. */
+		node->lru_prev = &cache_head;
+		if (use_asm)
+			Cache_UnlinkLRU (node);
+		else
+			Cache_UnlinkLRU_C (node);
+		break;
+	case 2: /* Promote a node, then reject the already active link. */
+		cache_head.lru_next = &cache_head;
+		cache_head.lru_prev = &cache_head;
+		if (use_asm)
+		{
+			Cache_MakeLRU (node);
+			Cache_MakeLRU (node);
+		}
+		else
+		{
+			Cache_MakeLRU_C (node);
+			Cache_MakeLRU_C (node);
+		}
+		break;
+	}
+	memset (snapshot, 0, sizeof (*snapshot));
+	snapshot->head = cache_head;
+	Q_memcpy (snapshot->nodes, bench486_cache_lru_nodes,
+		sizeof (snapshot->nodes));
+	snapshot->error_count = bench486_zone_heap_error_count;
+	Q_memcpy (snapshot->errors, bench486_zone_heap_errors,
+		sizeof (snapshot->errors));
+}
+
+static int Bench486CacheLruExpectedError (
+		const bench486_cache_lru_snapshot_t *snapshot, const char *expected)
+{
+	int i;
+	if (snapshot->error_count != (expected ? 1 : 0))
+		return false;
+	if (!expected)
+		return true;
+	for (i = 0; i < BZH_ERROR_SIZE; i++)
+	{
+		if (snapshot->errors[0][i] != expected[i])
+			return false;
+		if (!expected[i])
+			return true;
+	}
+	return false;
+}
+
+static int Bench486CacheLruCases (void)
+{
+	static const char *expected[] = {
+		NULL,
+		"Cache_UnlinkLRU: NULL link",
+		"Cache_MakeLRU: active link"
+	};
+	bench486_cache_lru_snapshot_t c, a;
+	cache_system_t saved_head = cache_head;
+	cache_system_t saved_nodes[2];
+	int saved_error_count = bench486_zone_heap_error_count;
+	char saved_errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+	int case_index, failures = 0;
+	Q_memcpy (saved_nodes, bench486_cache_lru_nodes, sizeof (saved_nodes));
+	Q_memcpy (saved_errors, bench486_zone_heap_errors, sizeof (saved_errors));
+	for (case_index = 0; case_index < 3; case_index++)
+	{
+		Bench486CacheLruRun (case_index, 0, &c);
+		Bench486CacheLruRun (case_index, 1, &a);
+		if (!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)) ||
+				!Bench486CacheLruExpectedError (&c, expected[case_index]) ||
+				!Bench486CacheLruExpectedError (&a, expected[case_index]))
+			failures |= 1 << (29 + case_index);
+	}
+	cache_head = saved_head;
+	Q_memcpy (bench486_cache_lru_nodes, saved_nodes, sizeof (saved_nodes));
+	bench486_zone_heap_error_count = saved_error_count;
+	Q_memcpy (bench486_zone_heap_errors, saved_errors, sizeof (saved_errors));
+	return failures;
+}
+
 static int Bench486ZoneHeapCheckerCases (void)
 {
-	return Bench486ZoneStructureCheckerCases () | Bench486HunkCheckerCases ();
+	return Bench486ZoneStructureCheckerCases () |
+		Bench486HunkCheckerCases () | Bench486CacheLruCases ();
 }
 
 static int Bench486ZoneMemoryInitCases (void)

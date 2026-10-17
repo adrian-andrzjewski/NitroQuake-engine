@@ -919,6 +919,9 @@ typedef struct cache_system_s
 	struct cache_system_s	*lru_prev, *lru_next;	// for LRU flushing	
 } cache_system_t;
 
+void Cache_UnlinkLRU_C (cache_system_t *cs);
+void Cache_MakeLRU_C (cache_system_t *cs);
+
 #include "asm_cachecheck.h"
 #include "asm_cachealloc.h"
 #include "asm_cachefree.h"
@@ -1078,10 +1081,30 @@ void Cache_FreeHigh (int new_high_hunk)
 #include "bench486_cachefreehigh.h"
 #endif
 
-void Cache_UnlinkLRU (cache_system_t *cs)
+#if defined(BENCH486)
+#define CACHE_UNLINK_LRU_C_CALL Cache_UnlinkLRU_C
+#define CACHE_MAKE_LRU_C_CALL Cache_MakeLRU_C
+#define CACHE_UNLINK_LRU_C_ENTRY Cache_UnlinkLRU_C
+#define CACHE_MAKE_LRU_C_ENTRY Cache_MakeLRU_C
+#else
+#define CACHE_UNLINK_LRU_C_CALL Cache_UnlinkLRU
+#define CACHE_MAKE_LRU_C_CALL Cache_MakeLRU
+#define CACHE_UNLINK_LRU_C_ENTRY Cache_UnlinkLRU
+#define CACHE_MAKE_LRU_C_ENTRY Cache_MakeLRU
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void CACHE_UNLINK_LRU_C_ENTRY (cache_system_t *cs)
 {
 	if (!cs->lru_next || !cs->lru_prev)
+	{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+		Bench486ZoneHeapError ("Cache_UnlinkLRU: NULL link");
+		return;
+#else
 		Sys_Error ("Cache_UnlinkLRU: NULL link");
+#endif
+	}
 
 	cs->lru_next->lru_prev = cs->lru_prev;
 	cs->lru_prev->lru_next = cs->lru_next;
@@ -1089,16 +1112,39 @@ void Cache_UnlinkLRU (cache_system_t *cs)
 	cs->lru_prev = cs->lru_next = NULL;
 }
 
-void Cache_MakeLRU (cache_system_t *cs)
+void CACHE_MAKE_LRU_C_ENTRY (cache_system_t *cs)
 {
 	if (cs->lru_next || cs->lru_prev)
+	{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+		Bench486ZoneHeapError ("Cache_MakeLRU: active link");
+		return;
+#else
 		Sys_Error ("Cache_MakeLRU: active link");
+#endif
+	}
 
 	cache_head.lru_next->lru_prev = cs;
 	cs->lru_next = cache_head.lru_next;
 	cs->lru_prev = &cache_head;
 	cache_head.lru_next = cs;
 }
+#endif
+
+#undef CACHE_UNLINK_LRU_C_ENTRY
+#undef CACHE_MAKE_LRU_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Cache_UnlinkLRU (cache_system_t *cs)
+{
+	Cache_UnlinkLRU_C (cs);
+}
+
+void Cache_MakeLRU (cache_system_t *cs)
+{
+	Cache_MakeLRU_C (cs);
+}
+#endif
 
 /*
 ============
@@ -1133,7 +1179,7 @@ cache_system_t *CACHE_TRYALLOC_C_ENTRY (int size, qboolean nobottom)
 		cache_head.prev = cache_head.next = new;
 		new->prev = new->next = &cache_head;
 		
-		Cache_MakeLRU (new);
+		CACHE_MAKE_LRU_C_CALL (new);
 		return new;
 	}
 	
@@ -1159,7 +1205,7 @@ cache_system_t *CACHE_TRYALLOC_C_ENTRY (int size, qboolean nobottom)
 				cs->prev->next = new;
 				cs->prev = new;
 				
-				Cache_MakeLRU (new);
+				CACHE_MAKE_LRU_C_CALL (new);
 	
 				return new;
 			}
@@ -1182,7 +1228,7 @@ cache_system_t *CACHE_TRYALLOC_C_ENTRY (int size, qboolean nobottom)
 		cache_head.prev->next = new;
 		cache_head.prev = new;
 		
-		Cache_MakeLRU (new);
+		CACHE_MAKE_LRU_C_CALL (new);
 
 		return new;
 	}
@@ -1338,7 +1384,7 @@ void CACHE_FREE_C_ENTRY (cache_user_t *c)
 
 	c->data = NULL;
 
-	Cache_UnlinkLRU (cs);
+	CACHE_UNLINK_LRU_C_CALL (cs);
 }
 #endif
 
@@ -1388,8 +1434,8 @@ void *CACHE_CHECK_C_ENTRY (cache_user_t *c)
 #ifdef PROFILE486
 		bench486_cache_lru_relinks++;
 #endif
-		Cache_UnlinkLRU (cs);
-		Cache_MakeLRU (cs);
+		CACHE_UNLINK_LRU_C_CALL (cs);
+		CACHE_MAKE_LRU_C_CALL (cs);
 	}
 #ifdef PROFILE486
 	bench486_cache_hits++;
@@ -1407,6 +1453,9 @@ void *Cache_Check (cache_user_t *c)
 	return Cache_Check_C (c);
 }
 #endif
+
+#undef CACHE_UNLINK_LRU_C_CALL
+#undef CACHE_MAKE_LRU_C_CALL
 
 #if defined(BENCH486) && defined(ASM486_CACHE_CHECK_FIXTURE)
 #include "bench486_cachecheck.h"
