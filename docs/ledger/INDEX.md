@@ -15,6 +15,9 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-17-cache-free-assembly-port.md`](2026-10-17-cache-free-assembly-port.md) | 4 | renderer port / cache block removal and address/LRU unlink (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
+| [`2026-10-17-cache-free-low-assembly-port.md`](2026-10-17-cache-free-low-assembly-port.md) | 4 | renderer port / low-end hunk cache reclamation (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
+| [`2026-10-17-cache-free-high-assembly-port.md`](2026-10-17-cache-free-high-assembly-port.md) | 4 | renderer port / high-end hunk cache reclamation (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
+| [`2026-10-17-hunk-mark-release-assembly-port.md`](2026-10-17-hunk-mark-release-assembly-port.md) | 4 | renderer port / low and high hunk mark release (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-cache-alloc-assembly-port.md`](2026-10-17-cache-alloc-assembly-port.md) | 4 | renderer port / cache allocation and LRU eviction (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-cache-move-assembly-port.md`](2026-10-17-cache-move-assembly-port.md) | 4 | renderer port / cache block relocation (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-cache-allocation-search-assembly-port.md`](2026-10-17-cache-allocation-search-assembly-port.md) | 4 | renderer port / cache allocation search (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |

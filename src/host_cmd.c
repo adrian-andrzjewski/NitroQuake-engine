@@ -41,6 +41,9 @@ extern int Bench486CacheFreeLowCases (void);
 #if defined(ASM486_CACHE_FREE_HIGH_FIXTURE)
 extern int Bench486CacheFreeHighCases (void);
 #endif
+#if defined(ASM486_HUNK_MARK_RELEASE_FIXTURE)
+extern int Bench486HunkMarkFreeCases (void);
+#endif
 #if defined(ASM486_CACHE_ALLOC_FIXTURE)
 extern int Bench486CacheAllocCases (void);
 #endif
@@ -11178,6 +11181,30 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("cache free-low fixture requires CacheFreeLowImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchhunkmarkfree"))
+	{
+#if defined(ASM486_HUNK_MARK_RELEASE_FIXTURE)
+		int hunk_mark_free_failures;
+		hunk_mark_free_failures = Bench486HunkMarkFreeCases ();
+		bench486_memory_failures += hunk_mark_free_failures != 0;
+		Bench486Printf ("hunk low/high free-mark C/ASM cases %s failure mask 0x%x\n",
+				hunk_mark_free_failures ? "FAIL" : "PASS", hunk_mark_free_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("hunk free-mark fixture requires HunkMarkReleaseImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -2039,8 +2039,31 @@ def main() -> int:
         if "cachetryallocfixtureasm" not in cache_tryalloc_fixture.get("profileSuffix", ""):
             fail("the Cache_TryAlloc fixture selector omits its isolated profile token")
 
+    hunk_mark_c = dump_flags("-HunkMarkReleaseImplementation", "c")
+    hunk_mark_asm = dump_flags("-HunkMarkReleaseImplementation", "asm")
+    hunk_mark_fixture = dump_flags("-HunkMarkReleaseImplementation", "asm-fixture")
+    if hunk_mark_c and hunk_mark_asm:
+        if hunk_mark_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the hunk mark-release assembly selector does not match the i486 release suffix")
+        if hunk_mark_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the hunk mark-release C selector shares the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_HUNK_MARK_RELEASE" in hunk_mark_c.get(flags_name, []):
+                fail("the hunk mark-release C selector enables ASM486_HUNK_MARK_RELEASE in %s" % flags_name)
+            if "-DASM486_HUNK_MARK_RELEASE" not in hunk_mark_asm.get(flags_name, []):
+                fail("the hunk mark-release assembly selector omits ASM486_HUNK_MARK_RELEASE from %s" % flags_name)
+        if "zone_hunkmarkfreeasm.s" not in hunk_mark_asm.get("assemblySources", []):
+            fail("the hunk mark-release selector does not compile zone_hunkmarkfreeasm.s")
+    if hunk_mark_fixture:
+        if "-DASM486_HUNK_MARK_RELEASE_FIXTURE" not in hunk_mark_fixture.get("cFlags", []):
+            fail("the hunk mark-release fixture omits its C fixture define")
+        if "-DASM486_HUNK_MARK_RELEASE_FIXTURE" not in hunk_mark_fixture.get("asmFlags", []):
+            fail("the hunk mark-release fixture omits its assembly fixture define")
+        if "hunkmarkfreefixtureasm" not in hunk_mark_fixture.get("profileSuffix", ""):
+            fail("the hunk mark-release fixture omits its isolated profile token")
+
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 75 assembly sources (one is omitted only
+    #    included by another unit), 76 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -2052,9 +2075,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 75:
+        if dump.get("allAssemblySourceCount") != 76:
             fail(
-                "%s: expected 75 assembly sources, got %r"
+                "%s: expected 76 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

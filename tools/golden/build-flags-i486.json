@@ -8,7 +8,7 @@
   "mtune": "-mtune=i486",
   "optimizationProfile": "aggressive",
   "optimizationLevel": "-O3",
-  "profileSuffix": "-memasm-fillrectasm-zpointasm-skyasm-warpasm-solidasm-axisasm-surfaceasm-surfacedrawasm-surfacezasm-surfacegradasm-surfacesasm-mipasm-turbasm-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasclipasm-aliasclipzasm-aliasmatrixasm-aliaslightingasm-aliasframeasm-aliaskinasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightorchestrationasm-dlightpushasm-dlightcontribasm-marklightsasm-lightmapbuildasm-bspdotasm-bspclipasm-bspwalkasm-particleupdateasm-particleexplosionasm-parseparticleeffectasm-runparticleeffectasm-entityparticlesasm-particleexplosion2asm-blobexplosionasm-lavasplashasm-teleportsplashasm-rockettrailasm-spritebeamasm-spriteclipasm-spriteframeasm-spritegradientasm-spritescanleftasm-spritescanrightasm-spritedrawasm-spritesetupasm-spriteorientationasm-rendermathasm-animatedlightasm-pointlightasm-framecontrolasm-linegraphasm-timegraphasm-paletteasm-mathclosureasm-visibilityasm-bindingsasm-skyasm-dispatchasm-driverasm-viewcontrolasm-vparsedamageasm-drawingasm-consoleinputasm-screennotifyasm-screencenterasm-screeneraseasm-screenconsolesetupasm-screenrefdefasm-screendrawramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspansasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm",
+  "profileSuffix": "-memasm-fillrectasm-zpointasm-skyasm-warpasm-solidasm-axisasm-surfaceasm-surfacedrawasm-surfacezasm-surfacegradasm-surfacesasm-mipasm-turbasm-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasclipasm-aliasclipzasm-aliasmatrixasm-aliaslightingasm-aliasframeasm-aliaskinasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dlightorchestrationasm-dlightpushasm-dlightcontribasm-marklightsasm-lightmapbuildasm-bspdotasm-bspclipasm-bspwalkasm-particleupdateasm-particleexplosionasm-parseparticleeffectasm-runparticleeffectasm-entityparticlesasm-particleexplosion2asm-blobexplosionasm-lavasplashasm-teleportsplashasm-rockettrailasm-spritebeamasm-spriteclipasm-spriteframeasm-spritegradientasm-spritescanleftasm-spritescanrightasm-spritedrawasm-spritesetupasm-spriteorientationasm-rendermathasm-animatedlightasm-pointlightasm-framecontrolasm-linegraphasm-timegraphasm-paletteasm-mathclosureasm-visibilityasm-bindingsasm-skyasm-dispatchasm-driverasm-viewcontrolasm-vparsedamageasm-drawingasm-consoleinputasm-screennotifyasm-screencenterasm-screeneraseasm-screenconsolesetupasm-screenrefdefasm-screendrawramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspansasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm",
   "outputRoot": "workspace\\quake\\out\\profile-bffdbb47e729759d",
   "objectRoot": "workspace\\quake\\out\\profile-bffdbb47e729759d\\obj",
   "executable": "workspace\\quake\\out\\profile-bffdbb47e729759d\\quake.exe",
@@ -18,8 +18,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 75,
-  "assemblySourceCount": 75,
+  "allAssemblySourceCount": 76,
+  "assemblySourceCount": 76,
   "cFlags": [
     "-Iworkspace\\quake\\src",
     "-O3",
@@ -154,6 +154,7 @@
     "-DASM486_CACHE_FREE_HIGH",
     "-DASM486_CACHE_FREE_LOW",
     "-DASM486_CACHE_TRY_ALLOC",
+    "-DASM486_HUNK_MARK_RELEASE",
     "-DASM486_VESA_COPY_RECTS",
     "-DASM486_VESA_SWAP_BUFFERS",
     "-DASM486_TRANSFORM_FRUSTUM",
@@ -326,6 +327,7 @@
     "-DASM486_CACHE_FREE_HIGH",
     "-DASM486_CACHE_FREE_LOW",
     "-DASM486_CACHE_TRY_ALLOC",
+    "-DASM486_HUNK_MARK_RELEASE",
     "-DASM486_VESA_COPY_RECTS",
     "-DASM486_VESA_SWAP_BUFFERS",
     "-DASM486_TRANSFORM_FRUSTUM",
@@ -510,6 +512,7 @@
     "zone_cacheasm.s",
     "zone_cachefreehighasm.s",
     "zone_cachefreelowasm.s",
-    "zone_cachetryallocasm.s"
+    "zone_cachetryallocasm.s",
+    "zone_hunkmarkfreeasm.s"
   ]
 }

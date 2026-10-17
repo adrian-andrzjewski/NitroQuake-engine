@@ -127,6 +127,7 @@
     "CacheFreeHighImplementation": "asm",
     "CacheFreeLowImplementation": "asm",
     "CacheTryAllocImplementation": "asm",
+    "HunkMarkReleaseImplementation": "asm",
     "VesaCopyRectsImplementation": "asm",
     "VesaSwapBuffersImplementation": "asm",
     "ScreenUpdateImplementation": "asm",

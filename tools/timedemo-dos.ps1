@@ -315,6 +315,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheTryAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$HunkMarkReleaseImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaSwapBuffersImplementation = 'c',
@@ -670,6 +672,7 @@ $buildParams = @{
         CacheFreeHighImplementation              = $CacheFreeHighImplementation
         CacheFreeLowImplementation               = $CacheFreeLowImplementation
         CacheTryAllocImplementation              = $CacheTryAllocImplementation
+        HunkMarkReleaseImplementation            = $HunkMarkReleaseImplementation
         VesaCopyRectsImplementation              = $VesaCopyRectsImplementation
         VesaSwapBuffersImplementation             = $VesaSwapBuffersImplementation
         GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
@@ -1577,6 +1580,7 @@ $result = [ordered]@{
     cacheFreeHighImplementation = $CacheFreeHighImplementation
     cacheFreeLowImplementation = $CacheFreeLowImplementation
     cacheTryAllocImplementation = $CacheTryAllocImplementation
+    hunkMarkReleaseImplementation = $HunkMarkReleaseImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
     vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration

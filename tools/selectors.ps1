@@ -155,6 +155,7 @@ $script:AssemblyBackedImplementations = @(
     'CacheFreeHighImplementation',
     'CacheFreeLowImplementation',
     'CacheTryAllocImplementation',
+    'HunkMarkReleaseImplementation',
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
     'AliasBBoxProjectImplementation',
@@ -1713,6 +1714,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'HunkMarkReleaseImplementation'
+        Manifest   = 'hunkMarkReleaseImplementation'
+        Suffix     = @{
+            'asm' = 'hunkmarkfreeasm'
+            'asm-fixture' = 'hunkmarkfreefixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_HUNK_MARK_RELEASE')
+            'asm-fixture' = @('ASM486_HUNK_MARK_RELEASE', 'ASM486_HUNK_MARK_RELEASE_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_HUNK_MARK_RELEASE')
+            'asm-fixture' = @('ASM486_HUNK_MARK_RELEASE', 'ASM486_HUNK_MARK_RELEASE_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VesaCopyRectsImplementation'
         Manifest   = 'vesaCopyRectsImplementation'
         Suffix     = @{
@@ -1961,6 +1980,7 @@ $script:SuffixOrder = @(
     'CacheFreeHighImplementation'
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
+    'HunkMarkReleaseImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2079,6 +2099,7 @@ $script:CDefineOrder = @(
     'CacheFreeHighImplementation'
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
+    'HunkMarkReleaseImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2228,6 +2249,7 @@ $script:AsmDefineOrder = @(
     'CacheFreeHighImplementation'
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
+    'HunkMarkReleaseImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'

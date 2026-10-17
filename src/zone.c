@@ -375,6 +375,8 @@ int		hunk_high_used;
 qboolean	hunk_tempactive;
 int		hunk_tempmark;
 
+#include "asm_hunkmarkfree.h"
+
 void R_FreeTextures (void);
 
 /*
@@ -553,13 +555,58 @@ int Hunk_LowMark (void)
 }
 #endif
 
-void Hunk_FreeToLowMark (int mark)
+#if defined(BENCH486)
+#define HUNK_FREE_LOW_C_ENTRY Hunk_FreeToLowMark_C
+#define HUNK_FREE_HIGH_C_ENTRY Hunk_FreeToHighMark_C
+#define HUNK_FREE_HIGH_RECURSIVE_ENTRY Hunk_FreeToHighMark_C
+#else
+#define HUNK_FREE_LOW_C_ENTRY Hunk_FreeToLowMark
+#define HUNK_FREE_HIGH_C_ENTRY Hunk_FreeToHighMark
+#define HUNK_FREE_HIGH_RECURSIVE_ENTRY Hunk_FreeToHighMark
+#endif
+
+#if !defined(ASM486_HUNK_MARK_RELEASE) || defined(BENCH486)
+void HUNK_FREE_LOW_C_ENTRY (int mark)
 {
 	if (mark < 0 || mark > hunk_low_used)
 		Sys_Error ("Hunk_FreeToLowMark: bad mark %i", mark);
 	memset (hunk_base + mark, 0, hunk_low_used - mark);
 	hunk_low_used = mark;
 }
+
+void HUNK_FREE_HIGH_C_ENTRY (int mark)
+{
+	if (hunk_tempactive)
+	{
+		hunk_tempactive = false;
+		HUNK_FREE_HIGH_RECURSIVE_ENTRY (hunk_tempmark);
+	}
+	if (mark < 0 || mark > hunk_high_used)
+		Sys_Error ("Hunk_FreeToHighMark: bad mark %i", mark);
+	memset (hunk_base + hunk_size - hunk_high_used, 0, hunk_high_used - mark);
+	hunk_high_used = mark;
+}
+#endif
+
+#undef HUNK_FREE_HIGH_RECURSIVE_ENTRY
+#undef HUNK_FREE_LOW_C_ENTRY
+#undef HUNK_FREE_HIGH_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_HUNK_MARK_RELEASE)
+void Hunk_FreeToLowMark (int mark)
+{
+	Hunk_FreeToLowMark_C (mark);
+}
+
+void Hunk_FreeToHighMark (int mark)
+{
+	Hunk_FreeToHighMark_C (mark);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_HUNK_MARK_RELEASE_FIXTURE)
+#include "bench486_hunkmarkfree.h"
+#endif
 
 int	Hunk_HighMark (void)
 {
@@ -571,20 +618,6 @@ int	Hunk_HighMark (void)
 
 	return hunk_high_used;
 }
-
-void Hunk_FreeToHighMark (int mark)
-{
-	if (hunk_tempactive)
-	{
-		hunk_tempactive = false;
-		Hunk_FreeToHighMark (hunk_tempmark);
-	}
-	if (mark < 0 || mark > hunk_high_used)
-		Sys_Error ("Hunk_FreeToHighMark: bad mark %i", mark);
-	memset (hunk_base + hunk_size - hunk_high_used, 0, hunk_high_used - mark);
-	hunk_high_used = mark;
-}
-
 
 /*
 ===================
