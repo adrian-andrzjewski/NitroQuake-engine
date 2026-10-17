@@ -150,6 +150,7 @@ $script:AssemblyBackedImplementations = @(
     'SbarFragsImplementation',
     'CacheCheckImplementation',
     'CacheAllocImplementation',
+    'CacheMoveImplementation',
     'CacheFreeImplementation',
     'CacheTryAllocImplementation',
     'VesaCopyRectsImplementation',
@@ -1619,6 +1620,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'CacheMoveImplementation'
+        Manifest   = 'cacheMoveImplementation'
+        Suffix     = @{
+            'asm' = 'cachemoveasm'
+            'asm-fixture' = 'cachemovefixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_CACHE_MOVE')
+            'asm-fixture' = @('ASM486_CACHE_MOVE', 'ASM486_CACHE_MOVE_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_CACHE_MOVE')
+            'asm-fixture' = @('ASM486_CACHE_MOVE', 'ASM486_CACHE_MOVE_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'CacheFreeImplementation'
         Manifest   = 'cacheFreeImplementation'
         Suffix     = @{
@@ -1880,6 +1899,7 @@ $script:SuffixOrder = @(
     'SbarFragsImplementation'
     'CacheCheckImplementation'
     'CacheAllocImplementation'
+    'CacheMoveImplementation'
     'CacheFreeImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'
@@ -1994,6 +2014,7 @@ $script:CDefineOrder = @(
     'SbarFragsImplementation'
     'CacheCheckImplementation'
     'CacheAllocImplementation'
+    'CacheMoveImplementation'
     'CacheFreeImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'
@@ -2139,6 +2160,7 @@ $script:AsmDefineOrder = @(
     'SbarFragsImplementation'
     'CacheCheckImplementation'
     'CacheAllocImplementation'
+    'CacheMoveImplementation'
     'CacheFreeImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'

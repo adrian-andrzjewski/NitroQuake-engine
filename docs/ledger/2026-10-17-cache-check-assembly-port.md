@@ -53,8 +53,10 @@ At the time of this ownership snapshot, `Cache_Alloc`, `Cache_Free`,
 [`Cache_Alloc`](2026-10-17-cache-alloc-assembly-port.md),
 [`Cache_Free`](2026-10-17-cache-free-assembly-port.md), and
 [`Cache_TryAlloc`](2026-10-17-cache-allocation-search-assembly-port.md) ports
-close the first three entries; cache moves and hunk management remain
-C-owned. The VGA linear and planar pixel-copy routines are already
+close the first three entries. `Cache_Move` is covered by its separate
+[`port ledger`](2026-10-17-cache-move-assembly-port.md). `Cache_FreeLow`,
+`Cache_FreeHigh`, cache compaction and hunk management remain C-owned. The VGA
+linear and planar pixel-copy routines are already
 hand-written assembly; higher-level `VID_Update`, mode changes and VESA page
 presentation remain C-owned.
 

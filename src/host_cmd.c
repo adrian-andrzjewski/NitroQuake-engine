@@ -38,6 +38,9 @@ extern int Bench486CacheFreeCases (void);
 #if defined(ASM486_CACHE_ALLOC_FIXTURE)
 extern int Bench486CacheAllocCases (void);
 #endif
+#if defined(ASM486_CACHE_MOVE_FIXTURE)
+extern int Bench486CacheMoveCases (void);
+#endif
 #if defined(ASM486_VESA_COPY_RECTS_FIXTURE)
 extern int Bench486VesaCopyRectsCases (void);
 #endif
@@ -11046,6 +11049,30 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("cache tryalloc fixture requires CacheTryAllocImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchcachemove"))
+	{
+#if defined(ASM486_CACHE_MOVE_FIXTURE)
+		int cache_move_failures;
+		cache_move_failures = Bench486CacheMoveCases ();
+		bench486_memory_failures += cache_move_failures != 0;
+		Bench486Printf ("cache move C/ASM relocation cases %s failure mask 0x%x\n",
+				cache_move_failures ? "FAIL" : "PASS", cache_move_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("cache move fixture requires CacheMoveImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

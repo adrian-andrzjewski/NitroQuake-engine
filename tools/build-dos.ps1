@@ -322,6 +322,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheMoveImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheFreeImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheTryAllocImplementation = 'c',

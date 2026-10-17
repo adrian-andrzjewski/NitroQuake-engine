@@ -122,6 +122,7 @@
     "SbarFragsImplementation": "asm",
     "CacheCheckImplementation": "asm",
     "CacheAllocImplementation": "asm",
+    "CacheMoveImplementation": "asm",
     "CacheFreeImplementation": "asm",
     "CacheTryAllocImplementation": "asm",
     "VesaCopyRectsImplementation": "asm",

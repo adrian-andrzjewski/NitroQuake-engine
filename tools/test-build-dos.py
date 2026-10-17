@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachefreeasm-cachetryallocasm-vesacopyasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachetryallocasm-vesacopyasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1906,6 +1906,27 @@ def main() -> int:
             fail("the Cache_Alloc fixture selector omits its assembly fixture define")
         if "cacheallocfixtureasm" not in cache_alloc_fixture.get("profileSuffix", ""):
             fail("the Cache_Alloc fixture selector omits its isolated profile token")
+
+    cache_move_c = dump_flags("-CacheMoveImplementation", "c")
+    cache_move_asm = dump_flags("-CacheMoveImplementation", "asm")
+    cache_move_fixture = dump_flags("-CacheMoveImplementation", "asm-fixture")
+    if cache_move_c and cache_move_asm:
+        if cache_move_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the Cache_Move assembly selector does not match the i486 release suffix")
+        if cache_move_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the Cache_Move C selector shares the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_CACHE_MOVE" in cache_move_c.get(flags_name, []):
+                fail("the Cache_Move C selector enables ASM486_CACHE_MOVE in %s" % flags_name)
+            if "-DASM486_CACHE_MOVE" not in cache_move_asm.get(flags_name, []):
+                fail("the Cache_Move assembly selector omits ASM486_CACHE_MOVE from %s" % flags_name)
+    if cache_move_fixture:
+        if "-DASM486_CACHE_MOVE_FIXTURE" not in cache_move_fixture.get("cFlags", []):
+            fail("the Cache_Move fixture selector omits its C fixture define")
+        if "-DASM486_CACHE_MOVE_FIXTURE" not in cache_move_fixture.get("asmFlags", []):
+            fail("the Cache_Move fixture selector omits its assembly fixture define")
+        if "cachemovefixtureasm" not in cache_move_fixture.get("profileSuffix", ""):
+            fail("the Cache_Move fixture selector omits its isolated profile token")
 
     cache_free_c = dump_flags("-CacheFreeImplementation", "c")
     cache_free_asm = dump_flags("-CacheFreeImplementation", "asm")

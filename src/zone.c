@@ -698,7 +698,14 @@ cache_system_t	cache_head;
 Cache_Move
 ===========
 */
-void Cache_Move ( cache_system_t *c)
+#if defined(BENCH486)
+#define CACHE_MOVE_C_ENTRY Cache_Move_C
+#else
+#define CACHE_MOVE_C_ENTRY Cache_Move
+#endif
+
+#if !defined(ASM486_CACHE_MOVE) || defined(BENCH486)
+void CACHE_MOVE_C_ENTRY ( cache_system_t *c)
 {
 	cache_system_t		*new;
 
@@ -725,6 +732,21 @@ void Cache_Move ( cache_system_t *c)
 		Cache_Free (c->user);		// tough luck...
 	}
 }
+
+#endif
+
+#undef CACHE_MOVE_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_CACHE_MOVE)
+void Cache_Move (cache_system_t *c)
+{
+	Cache_Move_C (c);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CACHE_MOVE_FIXTURE)
+#include "bench486_cachemove.h"
+#endif
 
 /*
 ============

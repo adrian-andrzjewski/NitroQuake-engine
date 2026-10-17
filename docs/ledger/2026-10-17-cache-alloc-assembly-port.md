@@ -12,8 +12,8 @@ copies the cache name, sets the user and block pointers, and returns the data
 pointer. `src/asm_cachealloc.h` pins the private structure layout and name
 size against `zone.c` at compile time.
 
-Cache moves, hunk management and other memory ownership paths remain
-C-owned.
+`Cache_Move` now has a separate assembly entry and parity fixture. Hunk
+management and other memory ownership paths remain C-owned.
 
 ## Direct C/assembly parity
 

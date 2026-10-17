@@ -10,8 +10,8 @@ clears the user handle, validates and unlinks the LRU links, and preserves
 the C error strings and PROFILE486 free counter. `src/asm_cachefree.h` pins
 the cache-header size and field offsets against `zone.c` at compile time.
 
-`Cache_Alloc` now has a separate assembly entry and parity fixture. Cache
-moves and hunk management remain C-owned. The adjacent
+`Cache_Alloc` and `Cache_Move` now have separate assembly entries and parity
+fixtures. Hunk management remains C-owned. The adjacent
 [`Cache_TryAlloc` port ledger](2026-10-17-cache-allocation-search-assembly-port.md)
 covers the allocation-search entry.
 
@@ -48,8 +48,8 @@ does not measure full-scene FPS or framebuffer parity.
 ## Ownership and remaining work
 
 `Cache_Free` is no longer a C-owned renderer entry in the default i486
-profile. `Cache_Alloc` and `Cache_TryAlloc` are covered by their own assembly
-ports; cache moves and hunk management remain C-owned. The BENCH inventory
+profile. `Cache_Alloc`, `Cache_TryAlloc` and `Cache_Move` are covered by their
+own assembly ports; hunk management remains C-owned. The BENCH inventory
 for this slice is recorded at
 `out/local-cachefree/renderer-ownership-qbench.json`.
 

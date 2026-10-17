@@ -274,3 +274,73 @@ C(Cache_Alloc):
 .Lcache_alloc_oom_message:
 	.asciz	"Cache_Alloc: out of memory"
 #endif /* ASM486_CACHE_ALLOC */
+
+#ifdef ASM486_CACHE_MOVE
+.text
+.p2align 2
+.globl C(Cache_Move)
+C(Cache_Move):
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$4,%esp			/* saved destination header */
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp),%esi		/* old cache_system_t * */
+	movl	CA_CACHE_SYSTEM_USER_OFFSET(%esi),%edi
+	movl	CA_CACHE_SYSTEM_SIZE_OFFSET(%esi),%ebx
+	pushl	$1			/* nobottom = true */
+	pushl	%ebx
+	call	C(Cache_TryAlloc)
+	addl	$8,%esp
+	movl	%eax,-4(%ebp)
+#ifdef PROFILE486
+	incl	C(bench486_cache_moves)
+	movl	CA_CACHE_SYSTEM_SIZE_OFFSET(%esi),%eax
+	subl	$CA_CACHE_SYSTEM_SIZE,%eax
+	addl	%eax,C(bench486_cache_move_bytes)
+#endif
+	cmpl	$0,-4(%ebp)
+	je	.Lcache_move_failed
+
+	movl	CA_CACHE_SYSTEM_SIZE_OFFSET(%esi),%ebx
+	subl	$CA_CACHE_SYSTEM_SIZE,%ebx
+	movl	-4(%ebp),%eax
+	leal	CA_CACHE_SYSTEM_SIZE(%eax),%edx
+	leal	CA_CACHE_SYSTEM_SIZE(%esi),%ecx
+	pushl	%ebx
+	pushl	%ecx
+	pushl	%edx
+	call	C(Q_memcpy)
+	addl	$12,%esp
+
+	movl	-4(%ebp),%eax
+	movl	%edi,CA_CACHE_SYSTEM_USER_OFFSET(%eax)
+	leal	CA_CACHE_SYSTEM_NAME_OFFSET(%esi),%ecx
+	leal	CA_CACHE_SYSTEM_NAME_OFFSET(%eax),%edx
+	pushl	$CA_CACHE_SYSTEM_NAME_SIZE
+	pushl	%ecx
+	pushl	%edx
+	call	C(Q_memcpy)
+	addl	$12,%esp
+
+	pushl	%edi
+	call	C(Cache_Free)
+	addl	$4,%esp
+	movl	-4(%ebp),%eax
+	leal	CA_CACHE_SYSTEM_SIZE(%eax),%edx
+	movl	%edx,CA_CACHE_USER_DATA_OFFSET(%edi)
+	jmp	.Lcache_move_return
+
+.Lcache_move_failed:
+	pushl	%edi
+	call	C(Cache_Free)
+	addl	$4,%esp
+
+.Lcache_move_return:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+#endif /* ASM486_CACHE_MOVE */

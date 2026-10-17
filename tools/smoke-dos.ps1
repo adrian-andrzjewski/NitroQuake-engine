@@ -236,6 +236,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheMoveImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheFreeImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheTryAllocImplementation = 'c',
@@ -417,6 +419,7 @@ $buildParams = @{
     SbarFragsImplementation = $SbarFragsImplementation
     CacheCheckImplementation = $CacheCheckImplementation
     CacheAllocImplementation = $CacheAllocImplementation
+    CacheMoveImplementation = $CacheMoveImplementation
     CacheFreeImplementation = $CacheFreeImplementation
     CacheTryAllocImplementation = $CacheTryAllocImplementation
     VesaCopyRectsImplementation = $VesaCopyRectsImplementation
@@ -623,6 +626,7 @@ $result = [ordered]@{
     sbarFragsImplementation = $SbarFragsImplementation
     cacheCheckImplementation = $CacheCheckImplementation
     cacheAllocImplementation = $CacheAllocImplementation
+    cacheMoveImplementation = $CacheMoveImplementation
     cacheFreeImplementation = $CacheFreeImplementation
     cacheTryAllocImplementation = $CacheTryAllocImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
