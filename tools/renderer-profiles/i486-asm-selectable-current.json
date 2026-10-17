@@ -130,6 +130,7 @@
     "HunkMarkReleaseImplementation": "asm",
     "HunkTempAllocImplementation": "asm",
     "HunkNamedAllocImplementation": "asm",
+    "ZoneHeapImplementation": "asm",
     "VesaCopyRectsImplementation": "asm",
     "VesaSwapBuffersImplementation": "asm",
     "ScreenUpdateImplementation": "asm",

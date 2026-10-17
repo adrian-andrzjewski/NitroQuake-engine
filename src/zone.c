@@ -42,6 +42,8 @@ typedef struct
 	memblock_t	*rover;
 } memzone_t;
 
+#include "asm_zoneheap.h"
+
 void Cache_FreeLow (int new_low_hunk);
 void Cache_FreeHigh (int new_high_hunk);
 
@@ -135,6 +137,16 @@ void Zone_ResetProfileCounters (void)
 }
 #endif
 
+#if defined(BENCH486)
+#define Z_CLEAR_ZONE_C_ENTRY Z_ClearZone_C
+#define Z_FREE_C_ENTRY Z_Free_C
+#define Z_TAG_MALLOC_C_ENTRY Z_TagMalloc_C
+#else
+#define Z_CLEAR_ZONE_C_ENTRY Z_ClearZone
+#define Z_FREE_C_ENTRY Z_Free
+#define Z_TAG_MALLOC_C_ENTRY Z_TagMalloc
+#endif
+
 void Z_ClearZone (memzone_t *zone, int size);
 
 
@@ -143,7 +155,8 @@ void Z_ClearZone (memzone_t *zone, int size);
 Z_ClearZone
 ========================
 */
-void Z_ClearZone (memzone_t *zone, int size)
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void Z_CLEAR_ZONE_C_ENTRY (memzone_t *zone, int size)
 {
 	memblock_t	*block;
 	
@@ -161,6 +174,14 @@ void Z_ClearZone (memzone_t *zone, int size)
 	block->id = ZONEID;
 	block->size = size - sizeof(memzone_t);
 }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Z_ClearZone (memzone_t *zone, int size)
+{
+	Z_ClearZone_C (zone, size);
+}
+#endif
 
 
 /*
@@ -168,7 +189,8 @@ void Z_ClearZone (memzone_t *zone, int size)
 Z_Free
 ========================
 */
-void Z_Free (void *ptr)
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void Z_FREE_C_ENTRY (void *ptr)
 {
 	memblock_t	*block, *other;
 	
@@ -210,6 +232,14 @@ void Z_Free (void *ptr)
 			mainzone->rover = block;
 	}
 }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Z_Free (void *ptr)
+{
+	Z_Free_C (ptr);
+}
+#endif
 
 
 /*
@@ -236,7 +266,8 @@ void *Z_Malloc (int size)
 	return buf;
 }
 
-void *Z_TagMalloc (int size, int tag)
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void *Z_TAG_MALLOC_C_ENTRY (int size, int tag)
 {
 	int		extra;
 	memblock_t	*start, *rover, *new, *base;
@@ -304,6 +335,18 @@ void *Z_TagMalloc (int size, int tag)
 
 	return (void *) ((byte *)base + sizeof(memblock_t));
 }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void *Z_TagMalloc (int size, int tag)
+{
+	return Z_TagMalloc_C (size, tag);
+}
+#endif
+
+#undef Z_CLEAR_ZONE_C_ENTRY
+#undef Z_FREE_C_ENTRY
+#undef Z_TAG_MALLOC_C_ENTRY
 
 
 /*
@@ -1341,5 +1384,9 @@ void Memory_Init (void *buf, int size)
 
 #if defined(BENCH486) && defined(ASM486_HUNK_NAMED_ALLOC_FIXTURE)
 #include "bench486_hunknamedalloc.h"
+#endif
+
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+#include "bench486_zoneheap.h"
 #endif
 

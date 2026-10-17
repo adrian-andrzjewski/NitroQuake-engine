@@ -61,9 +61,10 @@ full-scene framebuffer parity.
 ## Ownership and remaining work
 
 The named low/high hunk allocators now use assembly in the i486 release
-profile. Hunk diagnostics and the zone heap routines remain C-owned, including
-`Hunk_HighMark`, `Hunk_Check`, `Hunk_Print`, `Z_ClearZone`, `Z_Free`,
-`Z_FreeTags`, `Z_Malloc`, `Z_TagMalloc`, `Z_CheckHeap`, and `Z_Print`.
+profile. The zone heap core was subsequently ported; see the
+[`zone heap port ledger`](2026-10-17-zone-heap-assembly-port.md). Remaining
+hunk and zone support includes `Hunk_HighMark`, `Hunk_Check`, `Hunk_Print`,
+`Z_Malloc`, `Z_CheckHeap`, and `Z_Print`.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |

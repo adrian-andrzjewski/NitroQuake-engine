@@ -50,6 +50,9 @@ extern int Bench486HunkTempAllocCases (void);
 #if defined(ASM486_HUNK_NAMED_ALLOC_FIXTURE)
 extern int Bench486HunkNamedAllocCases (void);
 #endif
+#if defined(ASM486_ZONE_HEAP_FIXTURE)
+extern int Bench486ZoneHeapCases (void);
+#endif
 #if defined(ASM486_CACHE_ALLOC_FIXTURE)
 extern int Bench486CacheAllocCases (void);
 #endif
@@ -11721,6 +11724,30 @@ static void Bench486_f (void)
 		return;
 	}
 #endif
+	if (COM_CheckParm ("-benchzoneheap"))
+	{
+#if defined(ASM486_ZONE_HEAP_FIXTURE)
+		int zone_heap_failures;
+		zone_heap_failures = Bench486ZoneHeapCases ();
+		bench486_memory_failures += zone_heap_failures != 0;
+		Bench486Printf ("zone heap C/ASM cases %s failure mask 0x%x\n",
+				zone_heap_failures ? "FAIL" : "PASS", zone_heap_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("zone heap fixture requires ZoneHeapImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	#ifdef ASM486_SURFACE_GRADIENTS
 	if (COM_CheckParm ("-benchsurfacegradients"))
 	{

@@ -306,6 +306,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$HunkNamedAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$ZoneHeapImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaSwapBuffersImplementation = 'c',
@@ -384,6 +386,7 @@ param(
     [switch]$HunkMarkReleaseOnly,
     [switch]$HunkTempAllocOnly,
     [switch]$HunkNamedAllocOnly,
+    [switch]$ZoneHeapOnly,
     [switch]$VesaCopyRectsOnly,
     [switch]$VesaSwapBuffersOnly,
     [switch]$ChaseOnly,
@@ -479,6 +482,9 @@ if ($HunkTempAllocOnly -and $HunkTempAllocImplementation -ne 'asm-fixture') {
 }
 if ($HunkNamedAllocOnly -and $HunkNamedAllocImplementation -ne 'asm-fixture') {
     throw '-HunkNamedAllocOnly requires -HunkNamedAllocImplementation asm-fixture.'
+}
+if ($ZoneHeapOnly -and $ZoneHeapImplementation -ne 'asm-fixture') {
+    throw '-ZoneHeapOnly requires -ZoneHeapImplementation asm-fixture.'
 }
 if ($VesaCopyRectsOnly -and $VesaCopyRectsImplementation -ne 'asm-fixture') {
     throw '-VesaCopyRectsOnly requires -VesaCopyRectsImplementation asm-fixture.'
@@ -978,6 +984,9 @@ elseif ($HunkTempAllocOnly) {
 }
 elseif ($HunkNamedAllocOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchhunknamedalloc -benchexit'
+}
+elseif ($ZoneHeapOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchzoneheap -benchexit'
 }
 elseif ($VesaCopyRectsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesacopy -benchexit'

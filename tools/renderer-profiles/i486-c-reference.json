@@ -130,6 +130,7 @@
     "HunkMarkReleaseImplementation": "c",
     "HunkTempAllocImplementation": "c",
     "HunkNamedAllocImplementation": "c",
+    "ZoneHeapImplementation": "c",
     "VesaCopyRectsImplementation": "c",
     "VesaSwapBuffersImplementation": "c",
     "ScreenUpdateImplementation": "c",

@@ -321,6 +321,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$HunkNamedAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$ZoneHeapImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaSwapBuffersImplementation = 'c',
@@ -679,6 +681,7 @@ $buildParams = @{
         HunkMarkReleaseImplementation            = $HunkMarkReleaseImplementation
         HunkTempAllocImplementation              = $HunkTempAllocImplementation
         HunkNamedAllocImplementation             = $HunkNamedAllocImplementation
+        ZoneHeapImplementation                   = $ZoneHeapImplementation
         VesaCopyRectsImplementation              = $VesaCopyRectsImplementation
         VesaSwapBuffersImplementation             = $VesaSwapBuffersImplementation
         GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
@@ -1589,6 +1592,7 @@ $result = [ordered]@{
     hunkMarkReleaseImplementation = $HunkMarkReleaseImplementation
     hunkTempAllocImplementation = $HunkTempAllocImplementation
     hunkNamedAllocImplementation = $HunkNamedAllocImplementation
+    zoneHeapImplementation = $ZoneHeapImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
     vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration

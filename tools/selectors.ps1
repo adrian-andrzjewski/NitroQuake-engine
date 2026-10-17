@@ -158,6 +158,7 @@ $script:AssemblyBackedImplementations = @(
     'HunkMarkReleaseImplementation',
     'HunkTempAllocImplementation',
     'HunkNamedAllocImplementation',
+    'ZoneHeapImplementation',
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
     'AliasBBoxProjectImplementation',
@@ -1770,6 +1771,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ZoneHeapImplementation'
+        Manifest   = 'zoneHeapImplementation'
+        Suffix     = @{
+            'asm' = 'zoneheapasm'
+            'asm-fixture' = 'zoneheapfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_ZONE_HEAP')
+            'asm-fixture' = @('ASM486_ZONE_HEAP', 'ASM486_ZONE_HEAP_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_ZONE_HEAP')
+            'asm-fixture' = @('ASM486_ZONE_HEAP', 'ASM486_ZONE_HEAP_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VesaCopyRectsImplementation'
         Manifest   = 'vesaCopyRectsImplementation'
         Suffix     = @{
@@ -2021,6 +2040,7 @@ $script:SuffixOrder = @(
     'HunkMarkReleaseImplementation'
     'HunkTempAllocImplementation'
     'HunkNamedAllocImplementation'
+    'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2142,6 +2162,7 @@ $script:CDefineOrder = @(
     'HunkMarkReleaseImplementation'
     'HunkTempAllocImplementation'
     'HunkNamedAllocImplementation'
+    'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2294,6 +2315,7 @@ $script:AsmDefineOrder = @(
     'HunkMarkReleaseImplementation'
     'HunkTempAllocImplementation'
     'HunkNamedAllocImplementation'
+    'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'

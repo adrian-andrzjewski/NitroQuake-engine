@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -2108,8 +2108,31 @@ def main() -> int:
         if "hunknamedallocfixtureasm" not in hunk_named_fixture.get("profileSuffix", ""):
             fail("the hunk named-allocation fixture omits its isolated profile token")
 
+    zone_heap_c = dump_flags("-ZoneHeapImplementation", "c")
+    zone_heap_asm = dump_flags("-ZoneHeapImplementation", "asm")
+    zone_heap_fixture = dump_flags("-ZoneHeapImplementation", "asm-fixture")
+    if zone_heap_c and zone_heap_asm:
+        if zone_heap_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the zone-heap assembly selector does not match the i486 release suffix")
+        if zone_heap_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the zone-heap C selector shares the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_ZONE_HEAP" in zone_heap_c.get(flags_name, []):
+                fail("the zone-heap C selector enables ASM486_ZONE_HEAP in %s" % flags_name)
+            if "-DASM486_ZONE_HEAP" not in zone_heap_asm.get(flags_name, []):
+                fail("the zone-heap assembly selector omits ASM486_ZONE_HEAP from %s" % flags_name)
+        if "zone_heapasm.s" not in zone_heap_asm.get("assemblySources", []):
+            fail("the zone-heap selector does not compile zone_heapasm.s")
+    if zone_heap_fixture:
+        if "-DASM486_ZONE_HEAP_FIXTURE" not in zone_heap_fixture.get("cFlags", []):
+            fail("the zone-heap fixture omits its C fixture define")
+        if "-DASM486_ZONE_HEAP_FIXTURE" not in zone_heap_fixture.get("asmFlags", []):
+            fail("the zone-heap fixture omits its assembly fixture define")
+        if "zoneheapfixtureasm" not in zone_heap_fixture.get("profileSuffix", ""):
+            fail("the zone-heap fixture omits its isolated profile token")
+
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 78 assembly sources (one is omitted only
+    #    included by another unit), 79 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -2121,9 +2144,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 78:
+        if dump.get("allAssemblySourceCount") != 79:
             fail(
-                "%s: expected 78 assembly sources, got %r"
+                "%s: expected 79 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 
