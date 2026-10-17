@@ -44,6 +44,10 @@ typedef struct
 
 #include "asm_zoneheap.h"
 
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function);
+#endif
+
 void Cache_FreeLow (int new_low_hunk);
 void Cache_FreeHigh (int new_high_hunk);
 
@@ -1208,13 +1212,34 @@ Cache_Init
 
 ============
 */
-void Cache_Init (void)
+#if defined(BENCH486)
+#define CACHE_INIT_C_ENTRY Cache_Init_C
+#else
+#define CACHE_INIT_C_ENTRY Cache_Init
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void CACHE_INIT_C_ENTRY (void)
 {
 	cache_head.next = cache_head.prev = &cache_head;
 	cache_head.lru_next = cache_head.lru_prev = &cache_head;
 
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+	Bench486MemoryAddCommand ("flush", Cache_Flush);
+#else
 	Cmd_AddCommand ("flush", Cache_Flush);
+#endif
 }
+#endif
+
+#undef CACHE_INIT_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Cache_Init (void)
+{
+	Cache_Init_C ();
+}
+#endif
 
 /*
 ==============
@@ -1406,7 +1431,14 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name)
 Memory_Init
 ========================
 */
-void Memory_Init (void *buf, int size)
+#if defined(BENCH486)
+#define MEMORY_INIT_C_ENTRY Memory_Init_C
+#else
+#define MEMORY_INIT_C_ENTRY Memory_Init
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void MEMORY_INIT_C_ENTRY (void *buf, int size)
 {
 	int p;
 	int zonesize = DYNAMIC_SIZE;
@@ -1428,6 +1460,16 @@ void Memory_Init (void *buf, int size)
 	mainzone = Hunk_AllocName (zonesize, "zone" );
 	Z_ClearZone (mainzone, zonesize);
 }
+#endif
+
+#undef MEMORY_INIT_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Memory_Init (void *buf, int size)
+{
+	Memory_Init_C (buf, size);
+}
+#endif
 
 #if defined(BENCH486) && defined(ASM486_HUNK_TEMP_ALLOC_FIXTURE)
 #include "bench486_hunktempalloc.h"

@@ -228,6 +228,84 @@ C(Z_Malloc):
 	popl	%ebx
 	ret
 
+.p2align 2
+.globl C(Cache_Init)
+C(Cache_Init):
+	movl	$C(cache_head),%eax
+	movl	%eax,ZH_CACHE_HEAD_NEXT_OFFSET(%eax)
+	movl	%eax,ZH_CACHE_HEAD_PREV_OFFSET(%eax)
+	movl	%eax,ZH_CACHE_HEAD_LRU_NEXT_OFFSET(%eax)
+	movl	%eax,ZH_CACHE_HEAD_LRU_PREV_OFFSET(%eax)
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$C(Cache_Flush)
+	pushl	$.Lzone_cache_flush_command
+	call	C(Bench486MemoryAddCommand)
+#else
+	pushl	$C(Cache_Flush)
+	pushl	$.Lzone_cache_flush_command
+	call	C(Cmd_AddCommand)
+#endif
+	addl	$8,%esp
+	ret
+
+.p2align 2
+.globl C(Memory_Init)
+C(Memory_Init):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$4,%esp			/* zonesize local */
+	movl	8(%ebp),%eax
+	movl	%eax,C(hunk_base)
+	movl	12(%ebp),%eax
+	movl	%eax,C(hunk_size)
+	movl	$0,C(hunk_low_used)
+	movl	$0,C(hunk_high_used)
+	movl	$0xc000,-16(%ebp)		/* DYNAMIC_SIZE */
+	call	C(Cache_Init)
+	pushl	$.Lzone_memory_zone_parameter
+	call	C(COM_CheckParm)
+	addl	$4,%esp
+	movl	%eax,%esi			/* parameter index */
+	testl	%esi,%esi
+	je	.Lzone_memory_allocate
+	movl	C(com_argc),%eax
+	decl	%eax
+	cmpl	%eax,%esi
+	jge	.Lzone_memory_missing_zone_size
+	movl	C(com_argv),%edx
+	movl	4(%edx,%esi,4),%eax	/* com_argv[p + 1] */
+	pushl	%eax
+	call	C(Q_atoi)
+	addl	$4,%esp
+	imull	$1024,%eax
+	movl	%eax,-16(%ebp)
+	jmp	.Lzone_memory_allocate
+
+.Lzone_memory_missing_zone_size:
+	pushl	$.Lzone_memory_missing_size_text
+	call	C(Sys_Error)
+	addl	$4,%esp			/* C retains the default size if it returns */
+
+.Lzone_memory_allocate:
+	pushl	$.Lzone_memory_zone_name
+	pushl	-16(%ebp)
+	call	C(Hunk_AllocName)
+	addl	$8,%esp
+	movl	%eax,C(mainzone)
+	pushl	-16(%ebp)
+	pushl	%eax
+	call	C(Z_ClearZone)
+	addl	$8,%esp
+	addl	$4,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
 .section .rodata
 .Lzone_free_null_text:
 	.asciz	"Z_Free: NULL pointer"
@@ -239,4 +317,12 @@ C(Z_Malloc):
 	.asciz	"Z_TagMalloc: tried to use a 0 tag"
 .Lzone_malloc_failed_text:
 	.asciz	"Z_Malloc: failed on allocation of %i bytes"
+.Lzone_cache_flush_command:
+	.asciz	"flush"
+.Lzone_memory_zone_parameter:
+	.asciz	"-zone"
+.Lzone_memory_missing_size_text:
+	.asciz	"Memory_Init: you must specify a size in KB after -zone"
+.Lzone_memory_zone_name:
+	.asciz	"zone"
 #endif /* ASM486_ZONE_HEAP */

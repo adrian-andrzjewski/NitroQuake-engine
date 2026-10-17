@@ -405,17 +405,21 @@ including entity filters, monster bounds, trace merging, and area-node
 recursion, and observed 10 assembly entries with intact guard sentinels.
 
 The latest 2026-10-17 i486 assembly-profile BENCH inventory at
-`out/profile-752896b81880d4b1/renderer-ownership-qbench.json` reports 898
-renderer entries, 377 directly reachable entries, 68 directly reachable C
-renderer/support entries, and 63 unresolved direct callees. `Cache_Check`,
+`out/profile-482179eda5ef37eb/renderer-ownership-qbench.json` reports 900
+renderer entries, 378 directly reachable entries, 63 directly reachable C
+renderer/support entries, and 63 unresolved direct callees. This build selected
+`VideoUpdateImplementation=c` while the VID_Update assembly lane remains under
+fixture validation. `Cache_Check`,
 `Cache_Alloc`, `Cache_TryAlloc`, `Cache_Free`, `Cache_Move`, `Cache_FreeLow`,
 `Cache_FreeHigh`, `Hunk_FreeToLowMark`, `Hunk_FreeToHighMark`, `Hunk_TempAlloc`,
 `Hunk_HighMark`, `Z_Malloc`, and the VESA dirty-rectangle copy loop and page-flip
 orchestration now use their selected assembly entries; each has a direct C/ASM
 fixture. `Cache_Flush` now shares the assembly-backed cache-free selector and
-has empty-cache and populated-cache parity cases. `Memory_Init`, `Cache_Init`,
-and heap/cache/hunk diagnostics remain C-owned; `Cache_Compact` is an empty
-no-op. The VGA linear and planar
+has empty-cache and populated-cache parity cases. `Memory_Init` and `Cache_Init`
+now use the zone-heap assembly selector, with direct checks for cache sentinel
+setup, flush-command registration, default memory setup, and the `-zone 32`
+override. Heap/cache/hunk diagnostics remain C-owned; `Cache_Compact` is an
+empty no-op. The VGA linear and planar
 pixel-copy routines already use assembly. VESA discovery,
 wait probing, palette programming, mode changes and the outer `VID_Update`
 state machine remain C-owned; page-flip assembly calls C adapters for

@@ -98,13 +98,31 @@ and i486 encoding; it is not full-scene framebuffer parity or an FPS result.
 
 The core zone allocator and the named low/high hunk allocators now use
 assembly in the i486 release profile. The cache allocation path is also
-assembly-backed: lookup, allocation, free, allocation search, move, and
-low/high hunk reclamation each have selectable assembly entries. Remaining C
-memory support is mostly cold setup, wrapper, or diagnostic code, including
-`Memory_Init`, `Z_CheckHeap`, `Z_Print`, `Hunk_Check`, `Hunk_Print`,
-`Cache_Init`, `Cache_Flush`, `Cache_Print`,
+assembly-backed: lookup, allocation, free, allocation search, move, flush, and
+low/high hunk reclamation each have selectable assembly entries. `Cache_Init`
+and `Memory_Init` now use the i486 zone-heap selector; C references remain for
+parity. The remaining C memory support is mostly diagnostics and helper code:
+`Z_CheckHeap`, `Z_Print`, `Hunk_Check`, `Hunk_Print`, `Cache_Print`,
 `Cache_Report`, and the internal LRU helpers. `Cache_Compact` is an empty stub.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
 | `src/zone.c:Z_ClearZone_C`, `src/zone.c:Z_Free_C`, `src/zone.c:Z_TagMalloc_C`, `src/zone.c:Z_Malloc_C` | `src/zone_heapasm.s:Z_ClearZone`, `src/zone_heapasm.s:Z_Free`, `src/zone_heapasm.s:Z_TagMalloc`, `src/zone_heapasm.s:Z_Malloc` | Fifteen exact zone setup, allocation, failure, split, scan, coalescing, rover, zero-fill, and reuse cases; complete arena, result offsets, counters, and zero-fill expectations compared | DOSBox-X parity passes; strict BENCH and non-BENCH i486 release gates pass |
+| `src/zone.c:Cache_Init_C`, `src/zone.c:Memory_Init_C` | `src/zone_heapasm.s:Cache_Init`, `src/zone_heapasm.s:Memory_Init` | Sentinel/LRU initialization and flush-command registration; default zone size and `-zone 32` startup with complete arena and hunk/cache state comparison | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass with zero above-target or unknown instructions |
+
+### Cache and memory initialization follow-up (2026-10-17)
+
+The focused BENCH run used `-ZoneHeapImplementation asm-fixture`,
+`-MemoryImplementation asm`, and `-VideoUpdateImplementation c`. DOSBox-X
+reported `zone heap C/ASM cases PASS failure mask 0x0` and
+`486 benchmark correctness PASS`. In addition to the fifteen existing zone
+allocator cases, the fixture compares cache sentinel setup, the registered
+`flush` callback, default memory initialization, and the `-zone 32` override.
+The run is recorded at `out/dos-bench-20261017-170056/`.
+
+The strict BENCH build mapped 426 executable code contributions and audited
+284,123 linked instructions; the non-BENCH release build mapped 412 code
+contributions and audited 165,347 instructions. Both passed the i486 gate with
+zero above-target, unknown, exempt, or skipped instructions. The production
+release command explicitly selected `ZoneHeapImplementation=asm`; its build
+root is `out/profile-fefff301cb4a2276/`.

@@ -3,6 +3,8 @@
 #define BZH_ARENA_SIZE 1024
 #define BZH_RESULT_COUNT 8
 #define BZH_CASE_COUNT 15
+#define BZH_MEMORY_SIZE 65536
+#define BZH_COMMAND_NAME_SIZE 16
 
 typedef struct bench486_zone_heap_snapshot_s
 {
@@ -26,6 +28,57 @@ static union
 	long alignment[4];
 	byte bytes[BZH_ARENA_SIZE];
 } bench486_zone_heap_arena;
+
+typedef struct bench486_zone_init_snapshot_s
+{
+	cache_system_t cache_head;
+	int command_count;
+	char command_name[BZH_COMMAND_NAME_SIZE];
+	xcommand_t command_function;
+} bench486_zone_init_snapshot_t;
+
+typedef struct bench486_memory_init_snapshot_s
+{
+	byte arena[BZH_MEMORY_SIZE];
+	byte *hunk_base;
+	int hunk_size;
+	int hunk_low_used;
+	int hunk_high_used;
+	memzone_t *mainzone;
+	cache_system_t cache_head;
+	int command_count;
+	char command_name[BZH_COMMAND_NAME_SIZE];
+	xcommand_t command_function;
+#ifdef PROFILE486
+	unsigned long hunk_low_calls;
+	unsigned long hunk_low_bytes;
+#endif
+} bench486_memory_init_snapshot_t;
+
+static union
+{
+	long alignment[4];
+	byte bytes[BZH_MEMORY_SIZE];
+} bench486_memory_init_arena;
+static bench486_zone_init_snapshot_t bench486_zone_init_c;
+static bench486_zone_init_snapshot_t bench486_zone_init_asm;
+static bench486_memory_init_snapshot_t bench486_memory_init_c;
+static bench486_memory_init_snapshot_t bench486_memory_init_asm;
+static int bench486_memory_add_command_count;
+static char bench486_memory_add_command_name[BZH_COMMAND_NAME_SIZE];
+static xcommand_t bench486_memory_add_command_function;
+
+void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function)
+{
+	int i;
+	bench486_memory_add_command_count++;
+	for (i = 0; i < BZH_COMMAND_NAME_SIZE - 1 && cmd_name[i]; i++)
+		bench486_memory_add_command_name[i] = cmd_name[i];
+	bench486_memory_add_command_name[i] = 0;
+	while (++i < BZH_COMMAND_NAME_SIZE)
+		bench486_memory_add_command_name[i] = 0;
+	bench486_memory_add_command_function = function;
+}
 
 static void Bench486ZoneHeapSetup (int use_asm)
 {
@@ -229,6 +282,150 @@ static int Bench486ZoneHeapBytesEqual (const void *left, const void *right,
 	return true;
 }
 
+static void Bench486ZoneCacheInitRun (int use_asm,
+		bench486_zone_init_snapshot_t *snapshot)
+{
+	memset (&cache_head, 0xa5, sizeof (cache_head));
+	bench486_memory_add_command_count = 0;
+	memset (bench486_memory_add_command_name, 0,
+		sizeof (bench486_memory_add_command_name));
+	bench486_memory_add_command_function = NULL;
+	if (use_asm)
+		Cache_Init ();
+	else
+		Cache_Init_C ();
+	snapshot->cache_head = cache_head;
+	snapshot->command_count = bench486_memory_add_command_count;
+	Q_memcpy (snapshot->command_name, bench486_memory_add_command_name,
+		sizeof (snapshot->command_name));
+	snapshot->command_function = bench486_memory_add_command_function;
+}
+
+static void Bench486MemoryInitRun (int use_asm, int use_zone_argument,
+		bench486_memory_init_snapshot_t *snapshot)
+{
+	static char *default_argv[1] = { "quake" };
+	static char *zone_argv[3] = { "quake", "-zone", "32" };
+	int i;
+
+	for (i = 0; i < BZH_MEMORY_SIZE; i++)
+		bench486_memory_init_arena.bytes[i] = (byte)(i * 17 + 3);
+	hunk_base = NULL;
+	hunk_size = 0x13579;
+	hunk_low_used = 123;
+	hunk_high_used = 321;
+	mainzone = NULL;
+	memset (&cache_head, 0xa5, sizeof (cache_head));
+	bench486_memory_add_command_count = 0;
+	memset (bench486_memory_add_command_name, 0,
+		sizeof (bench486_memory_add_command_name));
+	bench486_memory_add_command_function = NULL;
+	if (use_zone_argument)
+	{
+		com_argc = 3;
+		com_argv = zone_argv;
+	}
+	else
+	{
+		com_argc = 1;
+		com_argv = default_argv;
+	}
+#ifdef PROFILE486
+	bench486_hunk_low_calls = 0;
+	bench486_hunk_low_bytes = 0;
+#endif
+	if (use_asm)
+		Memory_Init (bench486_memory_init_arena.bytes, BZH_MEMORY_SIZE);
+	else
+		Memory_Init_C (bench486_memory_init_arena.bytes, BZH_MEMORY_SIZE);
+
+	Q_memcpy (snapshot->arena, bench486_memory_init_arena.bytes,
+		sizeof (snapshot->arena));
+	snapshot->hunk_base = hunk_base;
+	snapshot->hunk_size = hunk_size;
+	snapshot->hunk_low_used = hunk_low_used;
+	snapshot->hunk_high_used = hunk_high_used;
+	snapshot->mainzone = mainzone;
+	snapshot->cache_head = cache_head;
+	snapshot->command_count = bench486_memory_add_command_count;
+	Q_memcpy (snapshot->command_name, bench486_memory_add_command_name,
+		sizeof (snapshot->command_name));
+	snapshot->command_function = bench486_memory_add_command_function;
+#ifdef PROFILE486
+	snapshot->hunk_low_calls = bench486_hunk_low_calls;
+	snapshot->hunk_low_bytes = bench486_hunk_low_bytes;
+#endif
+}
+
+static int Bench486ZoneMemoryInitCases (void)
+{
+	byte *saved_hunk_base = hunk_base;
+	int saved_hunk_size = hunk_size;
+	int saved_hunk_low_used = hunk_low_used;
+	int saved_hunk_high_used = hunk_high_used;
+	memzone_t *saved_mainzone = mainzone;
+	cache_system_t saved_cache_head = cache_head;
+	int saved_com_argc = com_argc;
+	char **saved_com_argv = com_argv;
+	int saved_command_count = bench486_memory_add_command_count;
+	char saved_command_name[BZH_COMMAND_NAME_SIZE];
+	xcommand_t saved_command_function = bench486_memory_add_command_function;
+	int failures = 0;
+#ifdef PROFILE486
+	unsigned long saved_hunk_low_calls = bench486_hunk_low_calls;
+	unsigned long saved_hunk_low_bytes = bench486_hunk_low_bytes;
+#endif
+	Q_memcpy (saved_command_name, bench486_memory_add_command_name,
+		sizeof (saved_command_name));
+
+	Bench486ZoneCacheInitRun (0, &bench486_zone_init_c);
+	Bench486ZoneCacheInitRun (1, &bench486_zone_init_asm);
+	if (Q_memcmp (&bench486_zone_init_c, &bench486_zone_init_asm,
+			sizeof (bench486_zone_init_c)) ||
+			bench486_zone_init_c.command_count != 1 ||
+			Q_memcmp (bench486_zone_init_c.command_name, "flush", 6) ||
+			bench486_zone_init_c.command_function != Cache_Flush)
+		failures |= 1 << 15;
+
+	Bench486MemoryInitRun (0, 0, &bench486_memory_init_c);
+	Bench486MemoryInitRun (1, 0, &bench486_memory_init_asm);
+	if (Q_memcmp (&bench486_memory_init_c, &bench486_memory_init_asm,
+			sizeof (bench486_memory_init_c)) ||
+			bench486_memory_init_c.command_count != 1 ||
+			Q_memcmp (bench486_memory_init_c.command_name, "flush", 6) ||
+			bench486_memory_init_c.command_function != Cache_Flush ||
+			bench486_memory_init_c.hunk_low_used <= 0)
+		failures |= 1 << 16;
+
+	Bench486MemoryInitRun (0, 1, &bench486_memory_init_c);
+	Bench486MemoryInitRun (1, 1, &bench486_memory_init_asm);
+	if (Q_memcmp (&bench486_memory_init_c, &bench486_memory_init_asm,
+			sizeof (bench486_memory_init_c)) ||
+			bench486_memory_init_c.command_count != 1 ||
+			Q_memcmp (bench486_memory_init_c.command_name, "flush", 6) ||
+			bench486_memory_init_c.command_function != Cache_Flush ||
+			bench486_memory_init_c.hunk_low_used <= 0)
+		failures |= 1 << 17;
+
+	hunk_base = saved_hunk_base;
+	hunk_size = saved_hunk_size;
+	hunk_low_used = saved_hunk_low_used;
+	hunk_high_used = saved_hunk_high_used;
+	mainzone = saved_mainzone;
+	cache_head = saved_cache_head;
+	com_argc = saved_com_argc;
+	com_argv = saved_com_argv;
+	bench486_memory_add_command_count = saved_command_count;
+	Q_memcpy (bench486_memory_add_command_name, saved_command_name,
+		sizeof (saved_command_name));
+	bench486_memory_add_command_function = saved_command_function;
+#ifdef PROFILE486
+	bench486_hunk_low_calls = saved_hunk_low_calls;
+	bench486_hunk_low_bytes = saved_hunk_low_bytes;
+#endif
+	return failures;
+}
+
 int Bench486ZoneHeapCases (void)
 {
 	bench486_zone_heap_snapshot_t c, a;
@@ -265,10 +462,13 @@ int Bench486ZoneHeapCases (void)
 	bench486_zone_check_calls = saved_check_calls;
 	bench486_zone_check_blocks = saved_check_blocks;
 #endif
+	failures |= Bench486ZoneMemoryInitCases ();
 	return failures;
 }
 
 #undef BZH_CASE_COUNT
+#undef BZH_COMMAND_NAME_SIZE
+#undef BZH_MEMORY_SIZE
 #undef BZH_RESULT_COUNT
 #undef BZH_ARENA_SIZE
 #endif
