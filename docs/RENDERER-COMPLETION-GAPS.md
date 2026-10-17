@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-17, the i486 build defaults to the complete 128-entry assembly
+As of 2026-10-17, the i486 build defaults to the complete 129-entry assembly
 selector profile in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
@@ -405,15 +405,15 @@ including entity filters, monster bounds, trace merging, and area-node
 recursion, and observed 10 assembly entries with intact guard sentinels.
 
 The latest 2026-10-17 i486 assembly-profile BENCH inventory at
-`out/profile-9da2585f7600248d/renderer-ownership-qbench.json` reports 898
-renderer entries, 376 directly reachable entries, 68 directly reachable C
+`out/profile-752896b81880d4b1/renderer-ownership-qbench.json` reports 898
+renderer entries, 377 directly reachable entries, 68 directly reachable C
 renderer/support entries, and 63 unresolved direct callees. `Cache_Check`,
 `Cache_Alloc`, `Cache_TryAlloc`, `Cache_Free`, `Cache_Move`, `Cache_FreeLow`,
-`Cache_FreeHigh`, `Hunk_FreeToLowMark`, `Hunk_FreeToHighMark`, and the VESA
-dirty-rectangle copy loop and page-flip orchestration now use their selected
-assembly entries; each has a direct C/ASM fixture, and all ten fixtures passed.
-Hunk allocation and temporary-allocation routines remain C-owned; `Cache_Compact`
-is an empty no-op. The VGA
+`Cache_FreeHigh`, `Hunk_FreeToLowMark`, `Hunk_FreeToHighMark`, `Hunk_TempAlloc`,
+and the VESA dirty-rectangle copy loop and page-flip orchestration now use their
+selected assembly entries; each has a direct C/ASM fixture, and all eleven
+fixtures passed. `Hunk_AllocName`, `Hunk_HighAllocName`, and other
+hunk-management routines remain C-owned; `Cache_Compact` is an empty no-op. The VGA
 linear and planar pixel-copy routines already use assembly. VESA discovery,
 wait probing, palette programming, mode changes and the outer `VID_Update`
 state machine remain C-owned; page-flip assembly calls C adapters for
@@ -426,6 +426,7 @@ hardware-specific operations. See the
 [`Cache_FreeLow` port ledger](ledger/2026-10-17-cache-free-low-assembly-port.md),
 [`Cache_FreeHigh` port ledger](ledger/2026-10-17-cache-free-high-assembly-port.md),
 [`Hunk mark-release` port ledger](ledger/2026-10-17-hunk-mark-release-assembly-port.md),
+[`Hunk temp-allocation` port ledger](ledger/2026-10-17-hunk-temp-alloc-assembly-port.md),
 [`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md),
 and [`VESA swap` port ledger](ledger/2026-10-17-vesa-swap-buffers-assembly-port.md).
 

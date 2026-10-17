@@ -156,6 +156,7 @@ $script:AssemblyBackedImplementations = @(
     'CacheFreeLowImplementation',
     'CacheTryAllocImplementation',
     'HunkMarkReleaseImplementation',
+    'HunkTempAllocImplementation',
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
     'AliasBBoxProjectImplementation',
@@ -1732,6 +1733,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'HunkTempAllocImplementation'
+        Manifest   = 'hunkTempAllocImplementation'
+        Suffix     = @{
+            'asm' = 'hunktempallocasm'
+            'asm-fixture' = 'hunktempallocfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_HUNK_TEMP_ALLOC')
+            'asm-fixture' = @('ASM486_HUNK_TEMP_ALLOC', 'ASM486_HUNK_TEMP_ALLOC_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_HUNK_TEMP_ALLOC')
+            'asm-fixture' = @('ASM486_HUNK_TEMP_ALLOC', 'ASM486_HUNK_TEMP_ALLOC_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VesaCopyRectsImplementation'
         Manifest   = 'vesaCopyRectsImplementation'
         Suffix     = @{
@@ -1981,6 +2000,7 @@ $script:SuffixOrder = @(
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
     'HunkMarkReleaseImplementation'
+    'HunkTempAllocImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2100,6 +2120,7 @@ $script:CDefineOrder = @(
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
     'HunkMarkReleaseImplementation'
+    'HunkTempAllocImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2250,6 +2271,7 @@ $script:AsmDefineOrder = @(
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
     'HunkMarkReleaseImplementation'
+    'HunkTempAllocImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'

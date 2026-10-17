@@ -44,6 +44,9 @@ extern int Bench486CacheFreeHighCases (void);
 #if defined(ASM486_HUNK_MARK_RELEASE_FIXTURE)
 extern int Bench486HunkMarkFreeCases (void);
 #endif
+#if defined(ASM486_HUNK_TEMP_ALLOC_FIXTURE)
+extern int Bench486HunkTempAllocCases (void);
+#endif
 #if defined(ASM486_CACHE_ALLOC_FIXTURE)
 extern int Bench486CacheAllocCases (void);
 #endif
@@ -11654,6 +11657,30 @@ static void Bench486_f (void)
 		Bench486Printf ("surface Z-gradient experiment compares the C cache path\n");
 		Bench486Printf ("with the 486 x87 assembly entry across cache keys and rounding modes\n");
 		Bench486SurfaceZGradientCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchhunktempalloc"))
+	{
+#if defined(ASM486_HUNK_TEMP_ALLOC_FIXTURE)
+		int hunk_temp_alloc_failures;
+		hunk_temp_alloc_failures = Bench486HunkTempAllocCases ();
+		bench486_memory_failures += hunk_temp_alloc_failures != 0;
+		Bench486Printf ("hunk temp-allocation C/ASM cases %s failure mask 0x%x\n",
+				hunk_temp_alloc_failures ? "FAIL" : "PASS", hunk_temp_alloc_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("hunk temp-allocation fixture requires HunkTempAllocImplementation=asm-fixture\n");
+#endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);

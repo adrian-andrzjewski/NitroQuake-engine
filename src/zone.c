@@ -376,6 +376,7 @@ qboolean	hunk_tempactive;
 int		hunk_tempmark;
 
 #include "asm_hunkmarkfree.h"
+#include "asm_hunktempalloc.h"
 
 void R_FreeTextures (void);
 
@@ -679,7 +680,14 @@ Hunk_TempAlloc
 Return space from the top of the hunk
 =================
 */
-void *Hunk_TempAlloc (int size)
+#if defined(BENCH486)
+#define HUNK_TEMP_ALLOC_C_ENTRY Hunk_TempAlloc_C
+#else
+#define HUNK_TEMP_ALLOC_C_ENTRY Hunk_TempAlloc
+#endif
+
+#if !defined(ASM486_HUNK_TEMP_ALLOC) || defined(BENCH486)
+void *HUNK_TEMP_ALLOC_C_ENTRY (int size)
 {
 	void	*buf;
 
@@ -699,6 +707,16 @@ void *Hunk_TempAlloc (int size)
 
 	return buf;
 }
+#endif
+
+#undef HUNK_TEMP_ALLOC_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_HUNK_TEMP_ALLOC)
+void *Hunk_TempAlloc (int size)
+{
+	return Hunk_TempAlloc_C (size);
+}
+#endif
 
 /*
 ===============================================================================
@@ -1278,4 +1296,8 @@ void Memory_Init (void *buf, int size)
 	mainzone = Hunk_AllocName (zonesize, "zone" );
 	Z_ClearZone (mainzone, zonesize);
 }
+
+#if defined(BENCH486) && defined(ASM486_HUNK_TEMP_ALLOC_FIXTURE)
+#include "bench486_hunktempalloc.h"
+#endif
 
