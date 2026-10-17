@@ -247,7 +247,14 @@ void Z_Free (void *ptr)
 Z_Malloc
 ========================
 */
-void *Z_Malloc (int size)
+#if defined(BENCH486)
+#define Z_MALLOC_C_ENTRY Z_Malloc_C
+#else
+#define Z_MALLOC_C_ENTRY Z_Malloc
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void *Z_MALLOC_C_ENTRY (int size)
 {
 	void	*buf;
 	
@@ -265,6 +272,16 @@ void *Z_Malloc (int size)
 
 	return buf;
 }
+#endif
+
+#undef Z_MALLOC_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void *Z_Malloc (int size)
+{
+	return Z_Malloc_C (size);
+}
+#endif
 
 #if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
 void *Z_TAG_MALLOC_C_ENTRY (int size, int tag)

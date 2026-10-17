@@ -51,6 +51,7 @@ typedef char zh_memzone_size_must_match[
 void Z_ClearZone_C (memzone_t *zone, int size);
 void Z_Free_C (void *ptr);
 void *Z_TagMalloc_C (int size, int tag);
+void *Z_Malloc_C (int size);
 #endif
 
 #endif

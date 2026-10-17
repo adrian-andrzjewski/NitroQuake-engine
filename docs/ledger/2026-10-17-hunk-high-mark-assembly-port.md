@@ -45,9 +45,8 @@ The cache block lookup, allocation/search, free, move, LRU operations,
 low/high reclamation, zone heap allocation/free, hunk allocation, temporary
 allocation, and mark release/query paths now select assembly in the i486
 profile. Remaining C-owned memory entry points include startup `Memory_Init`,
-`Cache_Init`/`Cache_Flush` and reporting commands, `Z_Malloc`'s zero-fill
-wrapper, and heap/hunk consistency and print routines. `Cache_Compact` is an
-empty no-op.
+`Cache_Init`/`Cache_Flush` and reporting commands, and heap/hunk consistency
+and print routines. `Cache_Compact` is an empty no-op.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |

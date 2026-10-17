@@ -2128,6 +2128,11 @@ def main() -> int:
                 fail("the zone-heap assembly selector omits ASM486_ZONE_HEAP from %s" % flags_name)
         if "zone_heapasm.s" not in zone_heap_asm.get("assemblySources", []):
             fail("the zone-heap selector does not compile zone_heapasm.s")
+        zone_heap_asm_path = os.path.join(REPO_ROOT, "src", "zone_heapasm.s")
+        with open(zone_heap_asm_path, "r", encoding="utf-8") as source_file:
+            zone_heap_asm_source = source_file.read()
+        if "C(Z_Malloc)" not in zone_heap_asm_source:
+            fail("the zone-heap assembly module omits Z_Malloc")
     if zone_heap_fixture:
         if "-DASM486_ZONE_HEAP_FIXTURE" not in zone_heap_fixture.get("cFlags", []):
             fail("the zone-heap fixture omits its C fixture define")

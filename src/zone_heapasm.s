@@ -190,6 +190,44 @@ C(Z_TagMalloc):
 	popl	%ebp
 	ret
 
+.p2align 2
+.globl C(Z_Malloc)
+C(Z_Malloc):
+	pushl	%ebx
+	pushl	%esi
+	movl	12(%esp),%ebx		/* requested payload size */
+#ifdef PROFILE486
+	incl	C(bench486_zone_malloc_calls)
+	addl	%ebx,C(bench486_zone_malloc_bytes)
+#endif
+#ifdef PARANOID
+	call	C(Z_CheckHeap)
+#endif
+	pushl	$1
+	pushl	%ebx
+	call	C(Z_TagMalloc)
+	addl	$8,%esp
+	testl	%eax,%eax
+	jne	.Lzone_malloc_zero
+	pushl	%ebx
+	pushl	$.Lzone_malloc_failed_text
+	call	C(Sys_Error)
+	addl	$8,%esp
+	/* Match the C path if Sys_Error unexpectedly returns. */
+	xorl	%eax,%eax
+
+.Lzone_malloc_zero:
+	movl	%eax,%esi
+	pushl	%ebx
+	pushl	$0
+	pushl	%esi
+	call	C(Q_memset)
+	addl	$12,%esp
+	movl	%esi,%eax
+	popl	%esi
+	popl	%ebx
+	ret
+
 .section .rodata
 .Lzone_free_null_text:
 	.asciz	"Z_Free: NULL pointer"
@@ -199,4 +237,6 @@ C(Z_TagMalloc):
 	.asciz	"Z_Free: freed a freed pointer"
 .Lzone_tag_zero_text:
 	.asciz	"Z_TagMalloc: tried to use a 0 tag"
+.Lzone_malloc_failed_text:
+	.asciz	"Z_Malloc: failed on allocation of %i bytes"
 #endif /* ASM486_ZONE_HEAP */
