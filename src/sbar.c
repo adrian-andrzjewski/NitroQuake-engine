@@ -22,6 +22,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "asm_sbar.h"
 
+#if defined(BENCH486) && defined(ASM486_SBAR_FRAGS_FIXTURE)
+#define SBAR_FRAGS_DRAW_FILL Bench486SbarFragsFill
+#define SBAR_FRAGS_DRAW_CHARACTER Bench486SbarFragsCharacter
+#else
+#define SBAR_FRAGS_DRAW_FILL Draw_Fill
+#define SBAR_FRAGS_DRAW_CHARACTER Sbar_DrawCharacter
+#endif
+
 #if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
 extern int bench486_sbar_capture_active;
 extern void Bench486SbarCapture (int kind, int x, int y, unsigned long value);
@@ -446,7 +454,14 @@ int		scoreboardlines;
 Sbar_SortFrags
 ===============
 */
-void Sbar_SortFrags (void)
+#if defined(ASM486_SBAR_FRAGS) && defined(BENCH486)
+#define SBAR_SORT_FRAGS_C_ENTRY Sbar_SortFrags_C
+#else
+#define SBAR_SORT_FRAGS_C_ENTRY Sbar_SortFrags
+#endif
+
+#if !defined(ASM486_SBAR_FRAGS) || defined(BENCH486)
+void SBAR_SORT_FRAGS_C_ENTRY (void)
 {
 	int		i, j, k;
 
@@ -470,6 +485,9 @@ void Sbar_SortFrags (void)
 				fragsort[j+1] = k;
 			}
 }
+#endif
+
+#undef SBAR_SORT_FRAGS_C_ENTRY
 
 int	Sbar_ColorForMap (int m)
 {
@@ -838,7 +856,16 @@ void Sbar_DrawInventory (void)
 Sbar_DrawFrags
 ===============
 */
-void Sbar_DrawFrags (void)
+#if defined(ASM486_SBAR_FRAGS) && defined(BENCH486)
+#define SBAR_FRAGS_C_ENTRY Sbar_DrawFrags_C
+#define SBAR_FRAGS_SORT_CALL Sbar_SortFrags_C
+#else
+#define SBAR_FRAGS_C_ENTRY Sbar_DrawFrags
+#define SBAR_FRAGS_SORT_CALL Sbar_SortFrags
+#endif
+
+#if !defined(ASM486_SBAR_FRAGS) || defined(BENCH486)
+void SBAR_FRAGS_C_ENTRY (void)
 {
 	int				i, k, l;
 	int				top, bottom;
@@ -847,7 +874,7 @@ void Sbar_DrawFrags (void)
 	char			num[12];
 	scoreboard_t	*s;
 
-	Sbar_SortFrags ();
+	SBAR_FRAGS_SORT_CALL ();
 
 // draw the text
 	l = scoreboardlines <= 4 ? scoreboardlines : 4;
@@ -872,25 +899,31 @@ void Sbar_DrawFrags (void)
 		top = Sbar_ColorForMap (top);
 		bottom = Sbar_ColorForMap (bottom);
 
-		Draw_Fill (xofs + x*8 + 10, y, 28, 4, top);
-		Draw_Fill (xofs + x*8 + 10, y+4, 28, 3, bottom);
+		SBAR_FRAGS_DRAW_FILL (xofs + x*8 + 10, y, 28, 4, top);
+		SBAR_FRAGS_DRAW_FILL (xofs + x*8 + 10, y+4, 28, 3, bottom);
 
 	// draw number
 		f = s->frags;
 		sprintf (num, "%3i",f);
 
-		Sbar_DrawCharacter ( (x+1)*8 , -24, num[0]);
-		Sbar_DrawCharacter ( (x+2)*8 , -24, num[1]);
-		Sbar_DrawCharacter ( (x+3)*8 , -24, num[2]);
+		SBAR_FRAGS_DRAW_CHARACTER ( (x+1)*8 , -24, num[0]);
+		SBAR_FRAGS_DRAW_CHARACTER ( (x+2)*8 , -24, num[1]);
+		SBAR_FRAGS_DRAW_CHARACTER ( (x+3)*8 , -24, num[2]);
 
 		if (k == cl.viewentity - 1)
 		{
-			Sbar_DrawCharacter (x*8+2, -24, 16);
-			Sbar_DrawCharacter ( (x+4)*8-4, -24, 17);
+			SBAR_FRAGS_DRAW_CHARACTER (x*8+2, -24, 16);
+			SBAR_FRAGS_DRAW_CHARACTER ( (x+4)*8-4, -24, 17);
 		}
 		x+=4;
 	}
 }
+#endif
+
+#undef SBAR_FRAGS_DRAW_FILL
+#undef SBAR_FRAGS_DRAW_CHARACTER
+#undef SBAR_FRAGS_SORT_CALL
+#undef SBAR_FRAGS_C_ENTRY
 
 //=============================================================================
 
@@ -1038,6 +1071,14 @@ Sbar_Draw
 #endif
 
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_DRAW_FRAGS_CALL() Bench486SbarDrawFrags ()
+#elif defined(ASM486_SBAR_FRAGS)
+#define SBAR_DRAW_FRAGS_CALL() Sbar_DrawFrags_asm486 ()
+#else
+#define SBAR_DRAW_FRAGS_CALL() Sbar_DrawFrags ()
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #define SBAR_DRAW_INVENTORY_CALL Bench486SbarDrawInventory
 #elif defined(BENCH486) && defined(ASM486_SBAR_INVENTORY)
 #define SBAR_DRAW_INVENTORY_CALL Sbar_DrawInventory_C
@@ -1065,7 +1106,7 @@ void SBAR_DRAW_C_ENTRY (void)
 	{
 		SBAR_DRAW_INVENTORY_CALL ();
 		if (cl.maxclients != 1)
-			Sbar_DrawFrags ();
+			SBAR_DRAW_FRAGS_CALL ();
 	}
 
 	if (sb_showscores || cl.stats[STAT_HEALTH] <= 0)
@@ -1176,6 +1217,7 @@ void SBAR_DRAW_C_ENTRY (void)
 #undef Sbar_DrawNum
 #undef Sbar_MiniDeathmatchOverlay
 #endif
+#undef SBAR_DRAW_FRAGS_CALL
 #undef SBAR_DRAW_C_ENTRY
 #undef SBAR_DRAW_FACE_DISPATCH
 #undef SBAR_DRAW_FACE_C_ENTRY

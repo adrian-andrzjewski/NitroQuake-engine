@@ -295,11 +295,14 @@ and 544 coordinate/number scene-state cases. `Sbar_Draw` now also has an
 assembly dispatcher selected by the default i486 profile, with the C routine
 retained in BENCH builds and the C-reference profile. Its 14-case DOSBox-X
 fixture, strict i486 build, and paired Demo 1 capture passed. The assembly
-dispatcher still calls separately owned inventory, face, frag, scoreboard,
-intermission and finale routines; overall status-bar and renderer ownership is
-not complete. See the
+dispatcher now routes to the separately ported inventory composition and frag
+strip/sorter. The frag fixture passes six exact C/assembly cases under the
+strict i486 build. Face, scoreboard, intermission and finale composition remain
+separate work, and overall status-bar and renderer ownership is not complete.
+See the
 [`Sbar` primitive port ledger](ledger/2026-10-15-sbar-primitives-assembly-port.md)
-and [`Sbar_Draw` dispatcher port ledger](ledger/2026-10-16-sbar-draw-assembly-port.md).
+and [`Sbar_Draw` dispatcher port ledger](ledger/2026-10-16-sbar-draw-assembly-port.md),
+plus the [frag strip and sorter ledger](ledger/2026-10-17-sbar-frags-assembly-port.md).
 
 ## Remaining machine-code ownership
 

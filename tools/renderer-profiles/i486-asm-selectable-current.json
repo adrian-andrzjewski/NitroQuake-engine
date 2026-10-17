@@ -119,6 +119,7 @@
     "SbarPrimitiveImplementation": "asm",
     "SbarDrawImplementation": "asm",
     "SbarInventoryImplementation": "asm",
+    "SbarFragsImplementation": "asm",
     "ScreenUpdateImplementation": "asm",
     "ScreenNetImplementation": "asm",
     "ScreenTurtleImplementation": "asm"

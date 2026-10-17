@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-17-sbar-frags-assembly-port.md`](2026-10-17-sbar-frags-assembly-port.md) | 4 | renderer port / status-bar frag strip and stable scoreboard sorter (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Traceability and remaining scope`) |
 | [`2026-10-17-sbar-inventory-assembly-port.md`](2026-10-17-sbar-inventory-assembly-port.md) | 4 | renderer port / status-bar inventory composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 build and Demo 1 run`; `Traceability and remaining scope`) |
 | [`2026-10-17-con-drawconsole-assembly-port.md`](2026-10-17-con-drawconsole-assembly-port.md) | 4 | renderer port / console composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 build and execution`; `Traceability and remaining scope`) |
 | [`2026-10-16-find-touched-leafs-assembly-port.md`](2026-10-16-find-touched-leafs-assembly-port.md) | 5 | renderer port / 3D entity-to-BSP-leaf traversal (`Function and selector`; `ABI and recursive behavior`; `Exact C/ASM parity`; `Strict i486 gates`; `Reproduction and limits`) |

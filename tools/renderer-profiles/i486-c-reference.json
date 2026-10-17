@@ -119,6 +119,7 @@
     "SbarPrimitiveImplementation": "c",
     "SbarDrawImplementation": "c",
     "SbarInventoryImplementation": "c",
+    "SbarFragsImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",
     "ScreenTurtleImplementation": "c"

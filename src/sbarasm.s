@@ -268,3 +268,8 @@ _Sbar_DrawNum:
 #ifdef ASM486_SBAR_INVENTORY
 #include "sbar_inventory_asm.inc"
 #endif
+
+#ifdef ASM486_SBAR_FRAGS
+#include "sbar_sortfrags_asm.inc"
+#include "sbar_frags_asm.inc"
+#endif

@@ -10,9 +10,12 @@
 #define SBAR_CL_TIME_OFFSET 572
 #define SBAR_CL_VIEWENTITY_OFFSET 2680
 #define SBAR_CL_SCORES_OFFSET 2896
+#define SBAR_SCOREBOARD_NAME_OFFSET 0
 #define SBAR_SCOREBOARD_FRAGS_OFFSET 36
 #define SBAR_SCOREBOARD_COLORS_OFFSET 40
 #define SBAR_SCOREBOARD_SIZE 16428
+#define SBAR_MAX_SCOREBOARD 16
+#define SBAR_FRAGS_MAX_DISPLAY 4
 #define SBAR_CVAR_VALUE_OFFSET 16
 #define SBAR_VID_WIDTH_OFFSET 20
 #define SBAR_VID_HEIGHT_OFFSET 24
@@ -83,10 +86,14 @@ typedef char sbar_client_scores_offset_must_match[
 		(offsetof(client_state_t, scores) == SBAR_CL_SCORES_OFFSET) ? 1 : -1];
 typedef char sbar_scoreboard_frags_offset_must_match[
 		(offsetof(scoreboard_t, frags) == SBAR_SCOREBOARD_FRAGS_OFFSET) ? 1 : -1];
+typedef char sbar_scoreboard_name_offset_must_match[
+		(offsetof(scoreboard_t, name) == SBAR_SCOREBOARD_NAME_OFFSET) ? 1 : -1];
 typedef char sbar_scoreboard_colors_offset_must_match[
 		(offsetof(scoreboard_t, colors) == SBAR_SCOREBOARD_COLORS_OFFSET) ? 1 : -1];
 typedef char sbar_scoreboard_size_must_match[
 		(sizeof(scoreboard_t) == SBAR_SCOREBOARD_SIZE) ? 1 : -1];
+typedef char sbar_max_scoreboard_must_match[
+		(MAX_SCOREBOARD == SBAR_MAX_SCOREBOARD) ? 1 : -1];
 typedef char sbar_teamplay_value_offset_must_match[
 		(offsetof(cvar_t, value) == SBAR_CVAR_VALUE_OFFSET) ? 1 : -1];
 typedef char sbar_vid_width_offset_must_match[
@@ -154,6 +161,18 @@ void Sbar_DrawInventory_asm486 (void);
 #if defined(BENCH486)
 void Sbar_DrawInventory_C (void);
 #endif
+#endif
+#ifdef ASM486_SBAR_FRAGS
+void Sbar_DrawFrags_asm486 (void);
+void Sbar_SortFrags_asm486 (void);
+#if defined(BENCH486)
+void Sbar_DrawFrags_C (void);
+void Sbar_SortFrags_C (void);
+#endif
+#endif
+#if defined(BENCH486) && defined(ASM486_SBAR_FRAGS_FIXTURE)
+void Bench486SbarFragsFill (int x, int y, int width, int height, int color);
+void Bench486SbarFragsCharacter (int x, int y, int character);
 #endif
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 void Bench486SbarDrawTileClear (int x, int y, int width, int height);

@@ -11,7 +11,11 @@
 #elif defined(ASM486_SBAR_INVENTORY)
 #define SBAR_DRAW_TILE_CLEAR _Draw_TileClear
 #define SBAR_DRAW_INVENTORY _Sbar_DrawInventory_asm486
+#if defined(ASM486_SBAR_FRAGS)
+#define SBAR_DRAW_FRAGS _Sbar_DrawFrags_asm486
+#else
 #define SBAR_DRAW_FRAGS _Sbar_DrawFrags
+#endif
 #define SBAR_DRAW_PIC _Sbar_DrawPic
 #define SBAR_DRAW_SCOREBOARD _Sbar_DrawScoreboard
 #define SBAR_DRAW_NUM _Sbar_DrawNum
@@ -20,7 +24,11 @@
 #else
 #define SBAR_DRAW_TILE_CLEAR _Draw_TileClear
 #define SBAR_DRAW_INVENTORY _Sbar_DrawInventory
+#if defined(ASM486_SBAR_FRAGS)
+#define SBAR_DRAW_FRAGS _Sbar_DrawFrags_asm486
+#else
 #define SBAR_DRAW_FRAGS _Sbar_DrawFrags
+#endif
 #define SBAR_DRAW_PIC _Sbar_DrawPic
 #define SBAR_DRAW_SCOREBOARD _Sbar_DrawScoreboard
 #define SBAR_DRAW_NUM _Sbar_DrawNum

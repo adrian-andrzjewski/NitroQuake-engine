@@ -229,6 +229,8 @@ param(
     [string]$SbarDrawImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SbarInventoryImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$SbarFragsImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidateSet(64, 128, 256)]
@@ -402,6 +404,7 @@ $buildParams = @{
     SbarPrimitiveImplementation = $SbarPrimitiveImplementation
     SbarDrawImplementation = $SbarDrawImplementation
     SbarInventoryImplementation = $SbarInventoryImplementation
+    SbarFragsImplementation = $SbarFragsImplementation
     GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
 }
 
@@ -602,6 +605,7 @@ $result = [ordered]@{
     sbarPrimitiveImplementation = $SbarPrimitiveImplementation
     sbarDrawImplementation = $SbarDrawImplementation
     sbarInventoryImplementation = $SbarInventoryImplementation
+    sbarFragsImplementation = $SbarFragsImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     edgeScanProbe = $EdgeScanProbe

@@ -6924,6 +6924,9 @@ static void Bench486SpriteSetupCases (void)
 		defined(ASM486_SBAR_PRIMITIVES)
 #include "bench486_sbarinventory.h"
 #endif
+#if defined(BENCH486) && defined(ASM486_SBAR_FRAGS_FIXTURE)
+#include "bench486_sbarfrags.h"
+#endif
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #include "bench486_sbardraw.h"
 #endif
@@ -10972,6 +10975,25 @@ static void Bench486_f (void)
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchsbarfrags"))
+	{
+#if defined(ASM486_SBAR_FRAGS_FIXTURE)
+		Bench486SbarFragsCases ();
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("sbar frags fixture requires SbarFragsImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
 		return;
 	}
 	if (COM_CheckParm ("-benchsbarinventory"))
