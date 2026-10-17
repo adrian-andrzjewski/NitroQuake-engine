@@ -121,6 +121,7 @@
     "SbarInventoryImplementation": "c",
     "SbarFragsImplementation": "c",
     "CacheCheckImplementation": "c",
+    "CacheTryAllocImplementation": "c",
     "VesaCopyRectsImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",

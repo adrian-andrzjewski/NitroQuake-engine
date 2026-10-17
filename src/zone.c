@@ -685,6 +685,7 @@ typedef struct cache_system_s
 } cache_system_t;
 
 #include "asm_cachecheck.h"
+#include "asm_cachetryalloc.h"
 
 cache_system_t *Cache_TryAlloc (int size, qboolean nobottom);
 
@@ -804,7 +805,14 @@ Looks for a free block of memory between the high and low hunk marks
 Size should already include the header and padding
 ============
 */
-cache_system_t *Cache_TryAlloc (int size, qboolean nobottom)
+#if defined(BENCH486)
+#define CACHE_TRYALLOC_C_ENTRY Cache_TryAlloc_C
+#else
+#define CACHE_TRYALLOC_C_ENTRY Cache_TryAlloc
+#endif
+
+#if !defined(ASM486_CACHE_TRY_ALLOC) || defined(BENCH486)
+cache_system_t *CACHE_TRYALLOC_C_ENTRY (int size, qboolean nobottom)
 {
 	cache_system_t	*cs, *new;
 	
@@ -881,6 +889,16 @@ cache_system_t *Cache_TryAlloc (int size, qboolean nobottom)
 #endif
 	return NULL;		// couldn't allocate
 }
+#endif
+
+#undef CACHE_TRYALLOC_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_CACHE_TRY_ALLOC)
+cache_system_t *Cache_TryAlloc (int size, qboolean nobottom)
+{
+	return Cache_TryAlloc_C (size, nobottom);
+}
+#endif
 
 /*
 ============
@@ -1034,6 +1052,10 @@ void *Cache_Check (cache_user_t *c)
 
 #if defined(BENCH486) && defined(ASM486_CACHE_CHECK_FIXTURE)
 #include "bench486_cachecheck.h"
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CACHE_TRY_ALLOC_FIXTURE)
+#include "bench486_cachetryalloc.h"
 #endif
 
 

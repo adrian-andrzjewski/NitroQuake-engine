@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-vesacopyasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cachetryallocasm-vesacopyasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1886,8 +1886,29 @@ def main() -> int:
             if "-DASM486_SBAR_PRIMITIVES" not in sbar_primitives_asm.get(flags_name, []):
                 fail("the Sbar primitive assembly selector omits ASM486_SBAR_PRIMITIVES from %s" % flags_name)
 
+    cache_tryalloc_c = dump_flags("-CacheTryAllocImplementation", "c")
+    cache_tryalloc_asm = dump_flags("-CacheTryAllocImplementation", "asm")
+    cache_tryalloc_fixture = dump_flags("-CacheTryAllocImplementation", "asm-fixture")
+    if cache_tryalloc_c and cache_tryalloc_asm:
+        if cache_tryalloc_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the Cache_TryAlloc assembly selector does not match the i486 release suffix")
+        if cache_tryalloc_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the Cache_TryAlloc C selector shares the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_CACHE_TRY_ALLOC" in cache_tryalloc_c.get(flags_name, []):
+                fail("the Cache_TryAlloc C selector enables ASM486_CACHE_TRY_ALLOC in %s" % flags_name)
+            if "-DASM486_CACHE_TRY_ALLOC" not in cache_tryalloc_asm.get(flags_name, []):
+                fail("the Cache_TryAlloc assembly selector omits ASM486_CACHE_TRY_ALLOC from %s" % flags_name)
+    if cache_tryalloc_fixture:
+        if "-DASM486_CACHE_TRY_ALLOC_FIXTURE" not in cache_tryalloc_fixture.get("cFlags", []):
+            fail("the Cache_TryAlloc fixture selector omits its C fixture define")
+        if "-DASM486_CACHE_TRY_ALLOC_FIXTURE" not in cache_tryalloc_fixture.get("asmFlags", []):
+            fail("the Cache_TryAlloc fixture selector omits its assembly fixture define")
+        if "cachetryallocfixtureasm" not in cache_tryalloc_fixture.get("profileSuffix", ""):
+            fail("the Cache_TryAlloc fixture selector omits its isolated profile token")
+
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 71 assembly sources (one is omitted only
+    #    included by another unit), 72 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -1899,9 +1920,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 71:
+        if dump.get("allAssemblySourceCount") != 72:
             fail(
-                "%s: expected 71 assembly sources, got %r"
+                "%s: expected 72 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 
