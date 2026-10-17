@@ -74,8 +74,25 @@ exemptions. The fixture link map resolves public `Z_Malloc` to
 `zone_heapasm.obj` and retains `Z_Malloc_C` as a distinct C reference.
 
 DOSBox-X reported all fifteen zone heap and zero-fill parity cases passed with
-failure mask `0x0`. This focused BENCH build does not replace a fresh
-non-BENCH release-map check for the new `Z_Malloc` entry.
+failure mask `0x0`. The subsequent non-BENCH release gate and link map are
+recorded below.
+
+## Current non-BENCH i486 release verification
+
+The default non-BENCH release build passed with `CpuTarget=i486`,
+`profileBuild=false`, and `ZoneHeapImplementation=asm`. The project-object
+audit covered 127,065 instructions across 161 objects; the linked-object
+audit covered 165,362 instructions across 396 objects. The relocated
+executable proof verified all 165,362 opcodes across 235 runtime inputs,
+with zero unknown, above-i486, exempted, skipped, or relocation bytes. Final
+mapping bound 412 source contributions across 1,470 CODE ranges and 33 DATA
+ranges. Startup proof covered 1,660 loaded bytes and 529 CODE rows; provider
+proof covered 9,207 instructions with zero exemptions.
+
+The release link map resolves public `Z_Malloc` to `zone_heapasm.obj` at
+`0x00075224`; `Z_Malloc_C` is absent. Evidence is under
+`out/profile-fefff301cb4a2276/`. This verifies the non-BENCH assembly default
+and i486 encoding; it is not full-scene framebuffer parity or an FPS result.
 
 ## Ownership and remaining work
 
@@ -90,4 +107,4 @@ memory support is mostly cold setup, wrapper, or diagnostic code, including
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Z_ClearZone_C`, `src/zone.c:Z_Free_C`, `src/zone.c:Z_TagMalloc_C`, `src/zone.c:Z_Malloc_C` | `src/zone_heapasm.s:Z_ClearZone`, `src/zone_heapasm.s:Z_Free`, `src/zone_heapasm.s:Z_TagMalloc`, `src/zone_heapasm.s:Z_Malloc` | Fifteen exact zone setup, allocation, failure, split, scan, coalescing, rover, zero-fill, and reuse cases; complete arena, result offsets, counters, and zero-fill expectations compared | DOSBox-X parity and strict i486 BENCH gate pass; new non-BENCH release map pending |
+| `src/zone.c:Z_ClearZone_C`, `src/zone.c:Z_Free_C`, `src/zone.c:Z_TagMalloc_C`, `src/zone.c:Z_Malloc_C` | `src/zone_heapasm.s:Z_ClearZone`, `src/zone_heapasm.s:Z_Free`, `src/zone_heapasm.s:Z_TagMalloc`, `src/zone_heapasm.s:Z_Malloc` | Fifteen exact zone setup, allocation, failure, split, scan, coalescing, rover, zero-fill, and reuse cases; complete arena, result offsets, counters, and zero-fill expectations compared | DOSBox-X parity passes; strict BENCH and non-BENCH i486 release gates pass |
