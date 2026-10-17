@@ -11,6 +11,9 @@
 #ifndef __ASSEMBLER__
 #include <stddef.h>
 
+void Cache_Free_C (cache_user_t *c);
+void Cache_Flush_C (void);
+
 typedef char cf_cache_system_size_must_match[
 	(sizeof(cache_system_t) == CF_CACHE_SYSTEM_SIZE) ? 1 : -1];
 typedef char cf_cache_user_data_offset_must_match[

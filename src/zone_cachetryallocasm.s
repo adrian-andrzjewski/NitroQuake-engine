@@ -179,6 +179,24 @@ C(Cache_Free):
 	popl	%ebp
 	ret
 
+/* Cache_Flush shares the cache-free selector and repeatedly frees the
+   current address-list head, reloading it after each unlink. */
+.p2align 2
+.globl C(Cache_Flush)
+C(Cache_Flush):
+.Lcache_flush_next:
+	movl	C(cache_head)+CF_CACHE_NEXT_OFFSET,%eax
+	leal	C(cache_head),%ecx
+	cmpl	%ecx,%eax
+	je	.Lcache_flush_done
+	pushl	CA_CACHE_SYSTEM_USER_OFFSET(%eax)
+	call	C(Cache_Free)
+	addl	$4,%esp
+	jmp	.Lcache_flush_next
+
+.Lcache_flush_done:
+	ret
+
 .section .rodata
 .Lcache_free_unallocated_message:
 	.asciz	"Cache_Free: not allocated"

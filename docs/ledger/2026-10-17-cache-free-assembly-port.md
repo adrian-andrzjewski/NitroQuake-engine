@@ -15,6 +15,13 @@ fixtures. Hunk management remains C-owned. The adjacent
 [`Cache_TryAlloc` port ledger](2026-10-17-cache-allocation-search-assembly-port.md)
 covers the allocation-search entry.
 
+### Cache_Flush assembly entry
+
+`Cache_Flush` now shares `CacheFreeImplementation`: the i486 assembly path
+walks the address-ordered list from its current head, calls the selected
+`Cache_Free`, and reloads the head after each unlink. BENCH builds keep the C
+loop as `Cache_Flush_C`; the C-reference profile keeps the public C entry.
+
 ## Direct C/assembly parity
 
 `Bench486CacheFreeCases` compares C and assembly when removing the first,
@@ -29,6 +36,27 @@ cache free C/ASM address/LRU cases PASS failure mask 0x0
 ```
 
 Run report: `out/dos-bench-20261017-071949/bench-result.json`.
+
+### Cache_Flush parity follow-up (2026-10-17)
+
+The fixture now also compares complete cache state when flushing an empty
+cache and a three-block cache, including both sentinel rings, block bytes,
+user handles, and the PROFILE486 free count. DOSBox-X reported:
+
+```text
+cache free C/ASM address/LRU cases PASS failure mask 0x0
+486 benchmark correctness PASS
+```
+
+Run report: `out/dos-bench-20261017-162807/bench-result.json`.
+
+The strict BENCH i486 build passed with 245,169 project instructions across
+161 objects and 283,466 linked instructions across 396 objects. The relocated
+executable proof verified all 283,466 opcodes across 235 runtime inputs and
+426 source-bound contributions. Final mapping covered 2,219 CODE ranges and
+33 DATA ranges; startup proof covered 1,660 loaded bytes and 529 CODE rows;
+provider proof covered 9,207 instructions. All gates reported zero
+above-i486 or unknown instructions, exemptions, or skipped bytes.
 
 ## Strict i486 verification
 
@@ -55,4 +83,4 @@ for this slice is recorded at
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_Free_C` | `src/zone_cachetryallocasm.s:Cache_Free` | Three address positions with independent LRU order and full state/counter comparison | Strict i486 gates pass; DOSBox-X fixture passes |
+| `src/zone.c:Cache_Free_C`, `src/zone.c:Cache_Flush_C` | `src/zone_cachetryallocasm.s:Cache_Free`, `src/zone_cachetryallocasm.s:Cache_Flush` | Three individual removals plus empty and three-block flush; full state/counter comparison | Strict i486 gates pass; DOSBox-X fixture passes |

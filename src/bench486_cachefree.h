@@ -146,6 +146,60 @@ static void Bench486CacheFreeRun (int target, int use_asm,
 #endif
 }
 
+static void Bench486CacheFlushRun (int use_asm, int populated,
+		bench486_cache_free_snapshot_t *snapshot)
+{
+	cache_system_t *node;
+	int i;
+
+	if (populated)
+		Bench486CacheFreeSetup ();
+	else
+	{
+		memset (bench486_cache_free_arena.bytes, 0xc5,
+				sizeof (bench486_cache_free_arena.bytes));
+		memset (bench486_cache_free_users, 0,
+				sizeof (bench486_cache_free_users));
+		memset (&cache_head, 0, sizeof (cache_head));
+		cache_head.next = cache_head.prev = &cache_head;
+		cache_head.lru_next = cache_head.lru_prev = &cache_head;
+	}
+
+#ifdef PROFILE486
+	bench486_cache_frees = 0;
+#endif
+	if (use_asm)
+		Cache_Flush ();
+	else
+		Cache_Flush_C ();
+
+	snapshot->head = cache_head;
+	Q_memcpy (snapshot->arena, bench486_cache_free_arena.bytes,
+			sizeof (snapshot->arena));
+	Q_memcpy (snapshot->users, bench486_cache_free_users,
+			sizeof (snapshot->users));
+	snapshot->address_count = cache_head.next == &cache_head ? 0 : 1;
+	snapshot->lru_count = cache_head.lru_next == &cache_head ? 0 : 1;
+	snapshot->links_ok = cache_head.next == &cache_head &&
+		cache_head.prev == &cache_head && cache_head.lru_next == &cache_head &&
+		cache_head.lru_prev == &cache_head;
+	for (i = 0; i < 3; i++)
+	{
+		if (bench486_cache_free_users[i].data)
+			snapshot->links_ok = 0;
+		if (populated)
+		{
+			node = (cache_system_t *)(bench486_cache_free_arena.bytes +
+					64 + i * 96);
+			if (node->prev || node->next || node->lru_prev || node->lru_next)
+				snapshot->links_ok = 0;
+		}
+	}
+#ifdef PROFILE486
+	snapshot->frees = bench486_cache_frees;
+#endif
+}
+
 int Bench486CacheFreeCases (void)
 {
 	static const int initial_lru[3] = { 2, 0, 1 };
@@ -199,6 +253,30 @@ int Bench486CacheFreeCases (void)
 			failures |= 1 << (target + 6);
 #endif
 	}
+	Bench486CacheFlushRun (0, 1, &c);
+	Bench486CacheFlushRun (1, 1, &a);
+	if (Q_memcmp (&c.head, &a.head, sizeof (c.head)) ||
+			Q_memcmp (c.arena, a.arena, sizeof (c.arena)) ||
+			Q_memcmp (c.users, a.users, sizeof (c.users)) ||
+			!c.links_ok || !a.links_ok || c.address_count || a.address_count ||
+			c.lru_count || a.lru_count)
+		failures |= 1 << 9;
+#ifdef PROFILE486
+	if (c.frees != 3 || a.frees != 3)
+		failures |= 1 << 10;
+#endif
+	Bench486CacheFlushRun (0, 0, &c);
+	Bench486CacheFlushRun (1, 0, &a);
+	if (Q_memcmp (&c.head, &a.head, sizeof (c.head)) ||
+			Q_memcmp (c.arena, a.arena, sizeof (c.arena)) ||
+			Q_memcmp (c.users, a.users, sizeof (c.users)) ||
+			!c.links_ok || !a.links_ok || c.address_count || a.address_count ||
+			c.lru_count || a.lru_count)
+		failures |= 1 << 11;
+#ifdef PROFILE486
+	if (c.frees || a.frees)
+		failures |= 1 << 12;
+#endif
 	cache_head = saved_head;
 #ifdef PROFILE486
 	bench486_cache_frees = saved_frees;

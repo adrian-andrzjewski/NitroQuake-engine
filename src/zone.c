@@ -1141,11 +1141,28 @@ Cache_Flush
 Throw everything out, so new data will be demand cached
 ============
 */
-void Cache_Flush (void)
+#if defined(BENCH486)
+#define CACHE_FLUSH_C_ENTRY Cache_Flush_C
+#else
+#define CACHE_FLUSH_C_ENTRY Cache_Flush
+#endif
+
+#if !defined(ASM486_CACHE_FREE) || defined(BENCH486)
+void CACHE_FLUSH_C_ENTRY (void)
 {
 	while (cache_head.next != &cache_head)
 		Cache_Free ( cache_head.next->user );	// reclaim the space
 }
+#endif
+
+#undef CACHE_FLUSH_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_CACHE_FREE)
+void Cache_Flush (void)
+{
+	Cache_Flush_C ();
+}
+#endif
 
 
 /*

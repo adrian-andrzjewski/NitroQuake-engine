@@ -412,8 +412,10 @@ renderer/support entries, and 63 unresolved direct callees. `Cache_Check`,
 `Cache_FreeHigh`, `Hunk_FreeToLowMark`, `Hunk_FreeToHighMark`, `Hunk_TempAlloc`,
 `Hunk_HighMark`, `Z_Malloc`, and the VESA dirty-rectangle copy loop and page-flip
 orchestration now use their selected assembly entries; each has a direct C/ASM
-fixture. `Memory_Init`, `Cache_Init`, `Cache_Flush`, and heap/hunk diagnostics
-remain C-owned; `Cache_Compact` is an empty no-op. The VGA linear and planar
+fixture. `Cache_Flush` now shares the assembly-backed cache-free selector and
+has empty-cache and populated-cache parity cases. `Memory_Init`, `Cache_Init`,
+and heap/cache/hunk diagnostics remain C-owned; `Cache_Compact` is an empty
+no-op. The VGA linear and planar
 pixel-copy routines already use assembly. VESA discovery,
 wait probing, palette programming, mode changes and the outer `VID_Update`
 state machine remain C-owned; page-flip assembly calls C adapters for
