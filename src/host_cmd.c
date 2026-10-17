@@ -44,6 +44,9 @@ extern int Bench486CacheMoveCases (void);
 #if defined(ASM486_VESA_COPY_RECTS_FIXTURE)
 extern int Bench486VesaCopyRectsCases (void);
 #endif
+#if defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+extern int Bench486VesaSwapBuffersCases (void);
+#endif
 #ifdef ASM486_FILLRECT
 extern void D_FillRect_C (vrect_t *rect, int color);
 #endif
@@ -11145,6 +11148,30 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("VESA copy fixture requires VesaCopyRectsImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchvesaswap"))
+	{
+#if defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+		int vesa_swap_failures;
+		vesa_swap_failures = Bench486VesaSwapBuffersCases ();
+		bench486_memory_failures += vesa_swap_failures != 0;
+		Bench486Printf ("VESA C/ASM page-flip and copy presentation cases %s failure mask 0x%x\n",
+				vesa_swap_failures ? "FAIL" : "PASS", vesa_swap_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("VESA swap fixture requires VesaSwapBuffersImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

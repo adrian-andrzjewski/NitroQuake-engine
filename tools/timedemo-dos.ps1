@@ -312,6 +312,8 @@ param(
     [string]$CacheTryAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaSwapBuffersImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
@@ -663,6 +665,7 @@ $buildParams = @{
         CacheFreeImplementation                  = $CacheFreeImplementation
         CacheTryAllocImplementation              = $CacheTryAllocImplementation
         VesaCopyRectsImplementation              = $VesaCopyRectsImplementation
+        VesaSwapBuffersImplementation             = $VesaSwapBuffersImplementation
         GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
     ToolRoot                             = $ToolRoot
 }
@@ -1567,6 +1570,7 @@ $result = [ordered]@{
     cacheFreeImplementation = $CacheFreeImplementation
     cacheTryAllocImplementation = $CacheTryAllocImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
+    vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     instrumentation = [bool]$Instrumentation
     frameFpsStats = $fpsStatsEnabled

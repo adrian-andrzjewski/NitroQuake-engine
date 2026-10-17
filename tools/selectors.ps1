@@ -154,6 +154,7 @@ $script:AssemblyBackedImplementations = @(
     'CacheFreeImplementation',
     'CacheTryAllocImplementation',
     'VesaCopyRectsImplementation',
+    'VesaSwapBuffersImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
     'AliasSetupFrameImplementation',
@@ -1692,6 +1693,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'VesaSwapBuffersImplementation'
+        Manifest   = 'vesaSwapBuffersImplementation'
+        Suffix     = @{
+            'asm' = 'vesaswapasm'
+            'asm-fixture' = 'vesaswapfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_VESA_SWAP_BUFFERS')
+            'asm-fixture' = @('ASM486_VESA_SWAP_BUFFERS', 'ASM486_VESA_SWAP_BUFFERS_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_VESA_SWAP_BUFFERS')
+            'asm-fixture' = @('ASM486_VESA_SWAP_BUFFERS', 'ASM486_VESA_SWAP_BUFFERS_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'GibTrailHorizontalIntegration'
         Manifest   = 'gibTrailHorizontalIntegration'
         Suffix     = @{ 'skipzero' = 'gibskipzero' }
@@ -1903,6 +1922,7 @@ $script:SuffixOrder = @(
     'CacheFreeImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'
+    'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -2018,6 +2038,7 @@ $script:CDefineOrder = @(
     'CacheFreeImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'
+    'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -2164,6 +2185,7 @@ $script:AsmDefineOrder = @(
     'CacheFreeImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'
+    'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'LineGraphImplementation'

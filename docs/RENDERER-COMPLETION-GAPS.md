@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-17, the i486 build defaults to the complete 124-entry assembly
+As of 2026-10-17, the i486 build defaults to the complete 125-entry assembly
 selector profile in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
@@ -405,22 +405,26 @@ including entity filters, monster bounds, trace merging, and area-node
 recursion, and observed 10 assembly entries with intact guard sentinels.
 
 The latest 2026-10-17 default i486 BENCH inventory at
-`out/local-cachemove/renderer-ownership-qbench.json` reports 891 renderer
-entries, 373 directly reachable entries, 68 directly reachable C
+`out/profile-a0b739e75b62e60b/renderer-ownership-qbench.json` reports 898
+renderer entries, 373 directly reachable entries, 68 directly reachable C
 renderer/support entries, and 62 unresolved direct callees. `Cache_Check`,
 `Cache_Alloc`, `Cache_TryAlloc`, `Cache_Free`, `Cache_Move`, and the VESA
-dirty-rectangle copy loop now use their selected assembly entries; each has a
-direct C/ASM fixture, and all six fixtures passed. `Cache_FreeLow`,
-`Cache_FreeHigh`, `Cache_Compact` and hunk management remain C-owned. The VGA
-linear and planar pixel-copy routines already use assembly; VESA discovery,
-wait probing, page flips, mode changes and the outer `VID_Update` state machine
-remain C-owned. See the
+dirty-rectangle copy loop and page-flip orchestration now use their selected
+assembly entries; each has a direct C/ASM fixture, and all seven fixtures
+passed. `Cache_FreeLow`,
+`Cache_FreeHigh` and hunk management remain C-owned; `Cache_Compact` is an
+empty no-op. The VGA
+linear and planar pixel-copy routines already use assembly. VESA discovery,
+wait probing, palette programming, mode changes and the outer `VID_Update`
+state machine remain C-owned; page-flip assembly calls C adapters for
+hardware-specific operations. See the
 [`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md),
 [`Cache_Alloc` port ledger](ledger/2026-10-17-cache-alloc-assembly-port.md),
 [`Cache_Move` port ledger](ledger/2026-10-17-cache-move-assembly-port.md),
 [`Cache_TryAlloc` port ledger](ledger/2026-10-17-cache-allocation-search-assembly-port.md),
-[`Cache_Free` port ledger](ledger/2026-10-17-cache-free-assembly-port.md), and
-[`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md).
+[`Cache_Free` port ledger](ledger/2026-10-17-cache-free-assembly-port.md),
+[`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md),
+and [`VESA swap` port ledger](ledger/2026-10-17-vesa-swap-buffers-assembly-port.md).
 
 The focused `Cache_Move` strict BENCH gate passed with zero above-i486
 instructions, unknown encodings, exemptions, or skipped bytes. It audited

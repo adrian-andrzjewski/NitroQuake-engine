@@ -126,6 +126,7 @@
     "CacheFreeImplementation": "c",
     "CacheTryAllocImplementation": "c",
     "VesaCopyRectsImplementation": "c",
+    "VesaSwapBuffersImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",
     "ScreenTurtleImplementation": "c"

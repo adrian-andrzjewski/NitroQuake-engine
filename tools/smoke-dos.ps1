@@ -243,6 +243,8 @@ param(
     [string]$CacheTryAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaSwapBuffersImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidateSet(64, 128, 256)]
@@ -423,6 +425,7 @@ $buildParams = @{
     CacheFreeImplementation = $CacheFreeImplementation
     CacheTryAllocImplementation = $CacheTryAllocImplementation
     VesaCopyRectsImplementation = $VesaCopyRectsImplementation
+    VesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
 }
 
@@ -630,6 +633,7 @@ $result = [ordered]@{
     cacheFreeImplementation = $CacheFreeImplementation
     cacheTryAllocImplementation = $CacheTryAllocImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
+    vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     edgeScanProbe = $EdgeScanProbe

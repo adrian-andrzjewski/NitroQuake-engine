@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include "vid_dos.h"
 #include "vid_vesa.h"
 #include "asm_vesacopy.h"
+#include "asm_vesaswap.h"
 
 #define MAX_VESA_MODES 30
 #define LINEAR_MODE 0x4000
@@ -33,12 +34,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 static vmode_t vesa_modes[VESA_SLOTS];
 static vesa_info_t vesa_info[VESA_SLOTS];
 static char names[VESA_SLOTS][16];
-static byte *ppal, *VID_membase;
+static byte *ppal;
+byte *VID_membase;
 static __dpmi_meminfo mapping;
 static qboolean mapped, palette_ok = true;
-static int VID_currentpage, VID_displayedpage, VID_pagesize;
+int VID_currentpage, VID_displayedpage, VID_pagesize;
 static qboolean vsync_exists, de_exists, wait_probed;
 extern regs_t regs;
+
+#if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+int bench486_vesa_swap_fixture_active;
+static void Bench486VesaSwapWaitVsync (void);
+static void Bench486VesaSwapWaitDisplayEnable (void);
+static void Bench486VesaSwapProbeWait (void);
+static void Bench486VesaSwapDisplayStart (int x, int y, int waitflags);
+#endif
 
 #if !defined(ASM486_VESA_COPY_RECTS) || defined(BENCH486)
 static void VESA_CopyRects_C (vrect_t *rects, byte *srcbase, byte *dstbase,
@@ -361,18 +371,86 @@ failed:
 	return 0;
 }
 
-void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
+void VID_ExtraWaitDisplayIfRequested (void)
+{
+	if (vid_wait.value != VID_WAIT_DISPLAY_ENABLE || !de_exists) return;
+#if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+	if (bench486_vesa_swap_fixture_active)
+	{
+		Bench486VesaSwapWaitDisplayEnable ();
+		return;
+	}
+#endif
+	VID_ExtraWaitDisplayEnable ();
+}
+
+void VID_ExtraWaitVsyncIfRequested (void)
+{
+	if (vid_wait.value != VID_WAIT_VSYNC || !vsync_exists) return;
+#if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+	if (bench486_vesa_swap_fixture_active)
+	{
+		Bench486VesaSwapWaitVsync ();
+		return;
+	}
+#endif
+	VGA_WaitVsync ();
+}
+
+void VID_ExtraProbeWaitIfNeeded (vmode_t *mode)
+{
+	if (!vid_wait.value || wait_probed ||
+		(((vesa_info_t *)mode->pextradata)->attributes & 0x20)) return;
+#if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+	if (bench486_vesa_swap_fixture_active)
+	{
+		Bench486VesaSwapProbeWait ();
+		return;
+	}
+#endif
+	vsync_exists = VID_ExtraStateFound (8);
+	de_exists = VID_ExtraStateFound (1);
+	wait_probed = true;
+}
+
+int VID_ExtraDisplayStartWaitFlags (void)
+{
+	return vid_wait.value == VID_WAIT_VSYNC ? 0x80 : 0;
+}
+
+void VID_ExtraSetDisplayStart (int x, int y, int waitflags)
+{
+#if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+	if (bench486_vesa_swap_fixture_active)
+	{
+		Bench486VesaSwapDisplayStart (x, y, waitflags);
+		return;
+	}
+#endif
+	regs.x.ax = 0x4f07;
+	regs.x.bx = waitflags;
+	regs.x.cx = x;
+	regs.x.dx = y;
+	dos_int86 (0x10);
+}
+
+void VID_ExtraCopyRects (vrect_t *rects, byte *srcbase, byte *dstbase,
+		int vidwidth, int vidheight, int srcrowbytes, int destrowbytes)
+{
+	VESA_CopyRects_Entry (rects, srcbase, dstbase, vidwidth, vidheight,
+		srcrowbytes, destrowbytes);
+}
+
+#if !defined(ASM486_VESA_SWAP_BUFFERS) || defined(BENCH486)
+void VID_ExtraSwapBuffers_C (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
 {
 	int offset;
 	if (lvid->numpages > 1)
 	{
 		offset = VID_currentpage * VID_pagesize;
-		if (vid_wait.value == VID_WAIT_DISPLAY_ENABLE && de_exists) VID_ExtraWaitDisplayEnable ();
-		regs.x.ax = 0x4f07;
-		regs.x.bx = vid_wait.value == VID_WAIT_VSYNC ? 0x80 : 0;
-		regs.x.cx = offset % VGA_rowbytes;
-		regs.x.dx = offset / VGA_rowbytes;
-		dos_int86 (0x10);
+		VID_ExtraWaitDisplayIfRequested ();
+		VID_ExtraSetDisplayStart (offset % VGA_rowbytes,
+			offset / VGA_rowbytes, VID_ExtraDisplayStartWaitFlags ());
 		VID_displayedpage = VID_currentpage;
 		if (++VID_currentpage >= lvid->numpages) VID_currentpage = 0;
 		lvid->direct = VID_membase + VID_displayedpage * VID_pagesize;
@@ -380,18 +458,27 @@ void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
 		return;
 	}
 	/* Probe only once when an explicit runtime wait first requests it. */
-	if (vid_wait.value && !wait_probed && !(((vesa_info_t *)mode->pextradata)->attributes & 0x20))
-	{
-		vsync_exists = VID_ExtraStateFound (8);
-		de_exists = VID_ExtraStateFound (1);
-		wait_probed = true;
-	}
-	if (vid_wait.value == VID_WAIT_VSYNC && vsync_exists) VGA_WaitVsync ();
-	if (vid_wait.value == VID_WAIT_DISPLAY_ENABLE && de_exists) VID_ExtraWaitDisplayEnable ();
-	VESA_CopyRects_Entry (rects, lvid->buffer, VGA_pagebase, lvid->width,
+	VID_ExtraProbeWaitIfNeeded (mode);
+	VID_ExtraWaitVsyncIfRequested ();
+	VID_ExtraWaitDisplayIfRequested ();
+	VID_ExtraCopyRects (rects, lvid->buffer, VGA_pagebase, lvid->width,
 		lvid->height, lvid->rowbytes, VGA_rowbytes);
+}
+#endif
+
+void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
+{
+#ifdef ASM486_VESA_SWAP_BUFFERS
+	VID_ExtraSwapBuffers_ASM (lvid, mode, rects);
+#else
+	VID_ExtraSwapBuffers_C (lvid, mode, rects);
+#endif
 }
 
 #if defined(BENCH486) && defined(ASM486_VESA_COPY_RECTS_FIXTURE)
 #include "bench486_vesacopy.h"
+#endif
+
+#if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
+#include "bench486_vesaswap.h"
 #endif

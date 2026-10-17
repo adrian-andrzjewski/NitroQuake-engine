@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachetryallocasm-vesacopyasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachetryallocasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1928,6 +1928,29 @@ def main() -> int:
         if "cachemovefixtureasm" not in cache_move_fixture.get("profileSuffix", ""):
             fail("the Cache_Move fixture selector omits its isolated profile token")
 
+    vesa_swap_c = dump_flags("-VesaSwapBuffersImplementation", "c")
+    vesa_swap_asm = dump_flags("-VesaSwapBuffersImplementation", "asm")
+    vesa_swap_fixture = dump_flags("-VesaSwapBuffersImplementation", "asm-fixture")
+    if vesa_swap_c and vesa_swap_asm:
+        if "-vesaswapasm" not in vesa_swap_asm.get("profileSuffix", ""):
+            fail("the VESA swap assembly selector omits its i486 suffix token")
+        if vesa_swap_c.get("profileSuffix") == vesa_swap_asm.get("profileSuffix"):
+            fail("the VESA swap C selector shares the assembly profile suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VESA_SWAP_BUFFERS" in vesa_swap_c.get(flags_name, []):
+                fail("the VESA swap C selector enables ASM486_VESA_SWAP_BUFFERS in %s" % flags_name)
+            if "-DASM486_VESA_SWAP_BUFFERS" not in vesa_swap_asm.get(flags_name, []):
+                fail("the VESA swap assembly selector omits ASM486_VESA_SWAP_BUFFERS from %s" % flags_name)
+        if "vid_vesaswapasm.s" not in vesa_swap_asm.get("assemblySources", []):
+            fail("the VESA swap assembly selector does not compile vid_vesaswapasm.s")
+    if vesa_swap_fixture:
+        if "-DASM486_VESA_SWAP_BUFFERS_FIXTURE" not in vesa_swap_fixture.get("cFlags", []):
+            fail("the VESA swap fixture selector omits its C fixture define")
+        if "-DASM486_VESA_SWAP_BUFFERS_FIXTURE" not in vesa_swap_fixture.get("asmFlags", []):
+            fail("the VESA swap fixture selector omits its assembly fixture define")
+        if "vesaswapfixtureasm" not in vesa_swap_fixture.get("profileSuffix", ""):
+            fail("the VESA swap fixture selector omits its isolated profile token")
+
     cache_free_c = dump_flags("-CacheFreeImplementation", "c")
     cache_free_asm = dump_flags("-CacheFreeImplementation", "asm")
     cache_free_fixture = dump_flags("-CacheFreeImplementation", "asm-fixture")
@@ -1983,7 +2006,7 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 72:
+        if dump.get("allAssemblySourceCount") != 73:
             fail(
                 "%s: expected 72 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
