@@ -410,18 +410,18 @@ renderer entries, 380 directly reachable entries, 61 directly reachable C
 renderer/support entries, and 64 unresolved direct callees. This profile
 selected `VideoUpdateImplementation=asm`; the separate VID_Update parity
 fixture remains open. A newer focused BENCH run at
-`out/profile-482179eda5ef37eb/renderer-ownership-qbench.json` selected
-`ZoneHeapImplementation=asm-fixture` and `VideoUpdateImplementation=c` and
-reports 908 renderer entries, 380 directly reachable entries, 62 directly
+`out/profile-967ed633342227d7/renderer-ownership-qbench.json` selected
+`HunkNamedAllocImplementation=asm-fixture` and `VideoUpdateImplementation=c`
+and reports 908 renderer entries, 380 directly reachable entries, 62 directly
 reachable C entries, and 64 unresolved direct callees. The directly reachable
 count gives a rough assembly-ownership proxy of 318/380 (83.7%); it is not a
 complete call-graph or production-only completion percentage, and unresolved
 callees are outside that denominator. `Cache_Check`,
 `Cache_Alloc`, `Cache_TryAlloc`, `Cache_Free`, `Cache_Move`, `Cache_FreeLow`,
 `Cache_FreeHigh`, `Hunk_FreeToLowMark`, `Hunk_FreeToHighMark`, `Hunk_TempAlloc`,
-`Hunk_HighMark`, `Z_Malloc`, and the VESA dirty-rectangle copy loop and page-flip
-orchestration now use their selected assembly entries; each has a direct C/ASM
-fixture. `Cache_Flush` now shares the assembly-backed cache-free selector and
+`Hunk_HighMark`, `Hunk_Alloc`, `Z_Malloc`, and the VESA dirty-rectangle copy
+loop and page-flip orchestration now use their selected assembly entries; each
+has a direct C/ASM fixture. `Cache_Flush` now shares the assembly-backed cache-free selector and
 has empty-cache and populated-cache parity cases. `Memory_Init` and `Cache_Init`
 now use the zone-heap assembly selector, with direct checks for cache sentinel
 setup, flush-command registration, default memory setup, and the `-zone 32`
@@ -432,7 +432,9 @@ and cache LRU maintenance also use the zone-heap assembly selector.
 `Hunk_Print` now uses an assembly-owned hunk walk with C trace/error adapters;
 its C reference remains available for parity. `Cache_Report` now uses an
 assembly-owned calculation with a C formatting adapter; its C reference
-remains available for parity. `Cache_Compact` is an empty no-op. See the
+remains available for parity. `Hunk_Alloc` now has an assembly wrapper that
+routes through the selected named allocator; its C wrapper remains available
+for parity. `Cache_Compact` is an empty no-op. See the
 [`zone heap and cache diagnostics port ledger`](ledger/2026-10-17-zone-heap-assembly-port.md).
 The VGA linear and planar
 pixel-copy routines already use assembly. VESA discovery,

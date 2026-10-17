@@ -808,10 +808,31 @@ void *Hunk_AllocName (int size, char *name)
 Hunk_Alloc
 ===================
 */
+#if defined(BENCH486)
+#define HUNK_ALLOC_C_ENTRY Hunk_Alloc_C
+#else
+#define HUNK_ALLOC_C_ENTRY Hunk_Alloc
+#endif
+
+#if !defined(ASM486_HUNK_NAMED_ALLOC) || defined(BENCH486)
+void *HUNK_ALLOC_C_ENTRY (int size)
+{
+#if defined(BENCH486)
+	return Hunk_AllocName_C (size, "unknown");
+#else
+	return Hunk_AllocName (size, "unknown");
+#endif
+}
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_HUNK_NAMED_ALLOC)
 void *Hunk_Alloc (int size)
 {
-	return Hunk_AllocName (size, "unknown");
+	return Hunk_Alloc_C (size);
 }
+#endif
+
+#undef HUNK_ALLOC_C_ENTRY
 
 #if defined(ASM486_FRAME_CONTROL)
 #if defined(BENCH486)

@@ -26,6 +26,7 @@ typedef char hna_hunk_size_must_match[
 
 void *Hunk_AllocName_C (int size, char *name);
 void *Hunk_HighAllocName_C (int size, char *name);
+void *Hunk_Alloc_C (int size);
 #if defined(BENCH486) && defined(ASM486_HUNK_NAMED_ALLOC) && defined(ASM486_SCREEN_CENTER_STRING)
 void Bench486HunkNamedAllocTrace (int phase, int x, int y, int character);
 #endif

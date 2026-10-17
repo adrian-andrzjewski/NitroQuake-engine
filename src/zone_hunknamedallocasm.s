@@ -105,6 +105,16 @@ C(Hunk_AllocName):
 	ret
 
 .p2align 2
+.globl C(Hunk_Alloc)
+C(Hunk_Alloc):
+	movl	4(%esp),%eax
+	pushl	$.Lhunk_alloc_unknown_name
+	pushl	%eax
+	call	C(Hunk_AllocName)
+	addl	$8,%esp
+	ret
+
+.p2align 2
 .globl C(Hunk_HighAllocName)
 C(Hunk_HighAllocName):
 	pushl	%ebp
@@ -198,6 +208,8 @@ C(Hunk_HighAllocName):
 	ret
 
 .section .rodata
+.Lhunk_alloc_unknown_name:
+	.asciz	"unknown"
 .Lhunk_alloc_name_bad_size_text:
 	.asciz	"Hunk_Alloc: bad size: %i"
 .Lhunk_alloc_name_failed_text:

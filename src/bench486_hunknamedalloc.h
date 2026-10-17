@@ -1,4 +1,4 @@
-/* Exact C/assembly parity for low/high named hunk allocation. */
+/* Exact C/assembly parity for low/high named hunk allocation and wrapper. */
 #if defined(BENCH486) && defined(ASM486_HUNK_NAMED_ALLOC_FIXTURE)
 #define BHNA_ARENA_SIZE 1024
 #define BHNA_CASE_COUNT 6
@@ -140,6 +140,37 @@ static void Bench486HunkNamedAllocRun (int is_high, int case_index,
 	Bench486HunkNamedAllocCapture (result, snapshot);
 }
 
+static void Bench486HunkAllocRun (int case_index, int use_asm,
+		bench486_hunk_named_alloc_snapshot_t *snapshot)
+{
+	void *result;
+	int size = Bench486HunkNamedAllocSize (case_index);
+	Bench486HunkNamedAllocSetup (0, case_index);
+	if (use_asm)
+		result = Hunk_Alloc (size);
+	else
+		result = Hunk_Alloc_C (size);
+	Bench486HunkNamedAllocCapture (result, snapshot);
+}
+
+static qboolean Bench486HunkAllocExpected (
+		const bench486_hunk_named_alloc_snapshot_t *snapshot)
+{
+	static const byte expected_name[HNA_HUNK_NAME_SIZE] = {
+		'u', 'n', 'k', 'n', 'o', 'w', 'n', 0
+	};
+	int name_offset = snapshot->result_offset - HNA_HUNK_SIZE +
+		HNA_HUNK_NAME_OFFSET;
+	int i;
+	if (snapshot->result_offset < HNA_HUNK_SIZE ||
+		snapshot->result_offset > BHNA_ARENA_SIZE)
+		return false;
+	for (i = 0; i < HNA_HUNK_NAME_SIZE; i++)
+		if (snapshot->arena[name_offset + i] != expected_name[i])
+			return false;
+	return true;
+}
+
 static int Bench486HunkNamedAllocBytesEqual (const void *left,
 		const void *right, unsigned size)
 {
@@ -192,6 +223,29 @@ int Bench486HunkNamedAllocCases (void)
 			if (!Bench486HunkNamedAllocBytesEqual (&c, &a, sizeof (c)))
 				failures |= 1 << (is_high * BHNA_CASE_COUNT + case_index);
 		}
+	}
+
+	for (case_index = 0; case_index < BHNA_CASE_COUNT; case_index++)
+	{
+#ifdef PROFILE486
+		bench486_hunk_low_calls = saved_low_calls;
+		bench486_hunk_low_bytes = saved_low_bytes;
+		bench486_hunk_high_calls = saved_high_calls;
+		bench486_hunk_high_bytes = saved_high_bytes;
+#endif
+		Bench486HunkAllocRun (case_index, 0, &c);
+#ifdef PROFILE486
+		bench486_hunk_low_calls = saved_low_calls;
+		bench486_hunk_low_bytes = saved_low_bytes;
+		bench486_hunk_high_calls = saved_high_calls;
+		bench486_hunk_high_bytes = saved_high_bytes;
+#endif
+		Bench486HunkAllocRun (case_index, 1, &a);
+		if (!Bench486HunkNamedAllocBytesEqual (&c, &a, sizeof (c)))
+			failures |= 1 << (12 + case_index);
+		if (!Bench486HunkAllocExpected (&c) ||
+			!Bench486HunkAllocExpected (&a))
+			failures |= 1 << (18 + case_index);
 	}
 
 	hunk_base = saved_hunk_base;

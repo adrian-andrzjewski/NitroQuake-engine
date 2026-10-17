@@ -112,7 +112,9 @@ implementation remains available for BENCH parity. `Cache_Report` now uses an
 assembly-owned byte calculation and x87 scaling; the shared
 `Zone_CacheReportTrace` C adapter preserves the existing formatted console
 output, and the C implementation remains available for BENCH parity.
-`Cache_Compact` is an empty stub.
+`Hunk_Alloc` now has an assembly wrapper that passes the `"unknown"` name to
+the assembly-selected `Hunk_AllocName`; its C wrapper remains available for
+BENCH parity. `Cache_Compact` is an empty stub.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
@@ -122,6 +124,7 @@ output, and the C implementation remains available for BENCH parity.
 | `src/zone.c:Cache_Print_C` | `src/zone_heapasm.s:Cache_Print` | Empty, one-node, and two-node cache lists compare event counts, cache pointers, sizes, and names passed to the trace adapter | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Cache_Print` to `zone_heapasm.obj` and omits `Cache_Print_C` |
 | `src/zone.c:Hunk_Print_C` | `src/zone_heapasm.s:Hunk_Print` | Eight cases compare empty, low/high allocations, same-name grouping, low/high boundaries, `all=1`, and bad-sentinel traces, including event order, pointers, sizes, names, and errors | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Hunk_Print` to `zone_heapasm.obj` and omits `Hunk_Print_C` |
 | `src/zone.c:Cache_Report_C` | `src/zone_heapasm.s:Cache_Report` | Eight cases compare exact available-byte and MiB values, including fractional, large, and signed-limit inputs | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Cache_Report` to `zone_heapasm.obj` and omits `Cache_Report_C` |
+| `src/zone.c:Hunk_Alloc_C` | `src/zone_hunknamedallocasm.s:Hunk_Alloc` | Six payload sizes compare full arena, marks, result offsets and the exact `unknown` header name | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Hunk_Alloc` to `zone_hunknamedallocasm.obj` and omits `Hunk_Alloc_C` |
 
 ### Cache and memory initialization follow-up (2026-10-17)
 
@@ -212,24 +215,26 @@ DOSBox-X reported `zone heap C/ASM cases PASS failure mask 0x0` and
 `486 benchmark correctness PASS` in
 `out/dos-bench-20261017-214907/bench-result.json`.
 
-The strict BENCH gate audited 248,884 project instructions across 162 objects
-and 287,181 linked instructions across 397 objects. It verified all 287,181
-relocated opcodes across 235 runtime inputs and mapped 426 source contributions
-across 2,227 CODE ranges and 33 DATA ranges. Startup proof covered 1,660 bytes
-and 529 CODE rows; provider proof covered 9,207 instructions. There were zero
-above-i486 or unknown instructions, exemptions, skipped bytes, or unclassified
-sites.
+The strict BENCH gate for this Hunk_Print slice audited 248,706 project
+instructions across 162 objects and 287,003 linked instructions across 397
+objects. It verified all 287,003 relocated opcodes across 235 runtime inputs
+and mapped 426 source contributions across 2,228 CODE ranges and 33 DATA
+ranges. Startup proof covered 1,660 bytes and 529 CODE rows; provider proof
+covered 9,207 instructions. There were zero above-i486 or unknown
+instructions, exemptions, skipped bytes, or unclassified sites.
 
-The non-BENCH release gate audited 125,506 project instructions and 163,803
-linked instructions across the same 162/397 objects. It verified all 163,803
-opcodes across 235 runtime inputs and mapped 412 source contributions across
-1,466 CODE ranges and 33 DATA ranges. Startup and provider proofs covered
-1,660 bytes / 529 CODE rows and 9,207 instructions, with zero exemptions. The
-release manifest records `ZoneHeapImplementation=asm`; the link map places
-`Cache_Report` at `0x00073c88` and `Hunk_Print` at `0x00073cc4` in
-`zone_heapasm.obj`, with neither C reference linked. Build evidence is under
-`out/profile-fefff301cb4a2276/`. This verifies the diagnostic routines and
-their i486 encoding, not FPS or full-scene framebuffer parity.
+The current non-BENCH release gate audited 125,502 project instructions and
+163,799 linked instructions across the same 162/397 objects. It verified all
+163,799 opcodes across 235 runtime inputs and mapped 412 source contributions
+across 1,465 CODE ranges and 33 DATA ranges. Startup and provider proofs
+covered 1,660 bytes / 529 CODE rows and 9,207 instructions, with zero
+exemptions. The release manifest records `ZoneHeapImplementation=asm` and
+`HunkNamedAllocImplementation=asm`; the link map places `Hunk_Print` at
+`0x00073ca4` in `zone_heapasm.obj` and `Hunk_Alloc` at `0x0007411c` in
+`zone_hunknamedallocasm.obj`, with neither C reference linked. Build evidence
+is under `out/profile-fefff301cb4a2276/`. This verifies the diagnostic routine
+and allocation wrapper's i486 encoding, not FPS or full-scene framebuffer
+parity.
 
 ### Cache-space report diagnostic follow-up (2026-10-18)
 
@@ -244,11 +249,41 @@ DOSBox-X reported `zone heap C/ASM cases PASS failure mask 0x0` and
 `486 benchmark correctness PASS` in
 `out/dos-bench-20261017-223732/bench-result.json`.
 
+The strict Cache_Report BENCH gate audited 248,884 project instructions and
+287,181 linked instructions, mapped 426 source contributions across 2,227 CODE
+ranges and 33 DATA ranges, and passed with zero above-i486, unknown, exempt, or
+skipped instructions.
+
 The release selector is recorded in
 `out/profile-fefff301cb4a2276/build-manifest.json`. Its strict i486 gate
-verified 163,803 linked opcodes across 235 runtime inputs, mapped 412 source
-contributions across 1,466 CODE ranges and 33 DATA ranges, and passed startup
-and provider proofs with zero exemptions. The map resolves `Cache_Report` to
-`0x00073c88` in `zone_heapasm.obj` and has no `Cache_Report_C` symbol. This
-verifies the diagnostic calculation and i486 encoding, not FPS or full-scene
-framebuffer parity.
+verified 163,799 linked opcodes across 235 runtime inputs, mapped 412 source
+contributions across 1,465 CODE ranges and 33 DATA ranges, and passed startup
+and provider proofs with zero exemptions. The current map resolves
+`Cache_Report` to `0x00073c68` in `zone_heapasm.obj` and has no
+`Cache_Report_C` symbol. This verifies the diagnostic calculation and i486
+encoding, not FPS or full-scene framebuffer parity.
+
+### Unnamed hunk allocation wrapper follow-up (2026-10-18)
+
+`HunkNamedAllocImplementation=asm` now selects `Hunk_Alloc` from
+`zone_hunknamedallocasm.s`. It forwards the requested size and the existing
+eight-byte `"unknown"` name to `Hunk_AllocName`, preserving the public API's
+zero-filled allocation behavior. BENCH keeps `Hunk_Alloc_C`, which delegates
+to `Hunk_AllocName_C`; the C-reference profile keeps the original C wrapper.
+The six-case fixture tests payload sizes 0, 1, 15, 16, 17 and 33 bytes, and
+compares the entire arena, hunk marks, returned offsets, and exact header name.
+DOSBox-X reported `hunk low/high named-allocation C/ASM cases PASS failure
+mask 0x0` and `486 benchmark correctness PASS` in
+`out/dos-bench-20261017-231705/bench-result.json`.
+
+The strict BENCH gate audited 244,459 project instructions and 282,756 linked
+instructions across 162 and 397 objects. It verified all 282,756 relocated
+opcodes across 235 runtime inputs and mapped 426 source contributions across
+2,232 CODE ranges and 33 DATA ranges; there were zero above-i486, unknown,
+exempt, skipped, or unclassified sites. The non-BENCH release gate audited
+125,502 project instructions and 163,799 linked instructions, verified all
+163,799 opcodes across 235 runtime inputs, and passed startup/provider proofs
+with zero exemptions. The release manifest selects
+`HunkNamedAllocImplementation=asm`; the map resolves `Hunk_Alloc` to
+`0x0007411c` in `zone_hunknamedallocasm.obj` and omits `Hunk_Alloc_C`. Build
+evidence is under `out/profile-fefff301cb4a2276/`.
