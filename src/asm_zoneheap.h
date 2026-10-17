@@ -33,6 +33,7 @@
 #define ZH_CACHE_HEAD_LRU_PREV_OFFSET 32
 #define ZH_CACHE_HEAD_LRU_NEXT_OFFSET 36
 #define ZH_CACHE_SYSTEM_SIZE 40
+#define ZH_CACHE_REPORT_MB_SCALE_BITS 0x35800000
 
 #ifndef __ASSEMBLER__
 #include <stddef.h>
@@ -68,6 +69,8 @@ void Z_CheckHeap_C (void);
 void Hunk_Check_C (void);
 void Cache_Init_C (void);
 void Memory_Init_C (void *buf, int size);
+void Cache_Report_C (void);
+void Zone_CacheReportTrace (double megabytes);
 #endif
 
 #endif

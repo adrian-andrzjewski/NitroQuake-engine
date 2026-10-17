@@ -49,6 +49,7 @@ void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function);
 void Bench486ZonePrintEvent (int kind, memzone_t *zone,
 		memblock_t *block);
 void Bench486ZoneHeapError (char *message);
+void Bench486CacheReportEvent (double megabytes);
 #endif
 
 void Cache_FreeLow (int new_low_hunk);
@@ -1445,10 +1446,37 @@ Cache_Report
 
 ============
 */
+#if defined(BENCH486)
+#define CACHE_REPORT_C_ENTRY Cache_Report_C
+#else
+#define CACHE_REPORT_C_ENTRY Cache_Report
+#endif
+
+void Zone_CacheReportTrace (double megabytes)
+{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+	Bench486CacheReportEvent (megabytes);
+#else
+	Con_DPrintf ("%4.1f megabyte data cache\n", megabytes);
+#endif
+}
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void CACHE_REPORT_C_ENTRY (void)
+{
+	Zone_CacheReportTrace ((hunk_size - hunk_high_used - hunk_low_used) /
+		(float)(1024*1024));
+}
+#endif
+
+#undef CACHE_REPORT_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
 void Cache_Report (void)
 {
-	Con_DPrintf ("%4.1f megabyte data cache\n", (hunk_size - hunk_high_used - hunk_low_used) / (float)(1024*1024) );
+	Cache_Report_C ();
 }
+#endif
 
 /*
 ============

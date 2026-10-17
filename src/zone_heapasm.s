@@ -5,6 +5,7 @@
 #include "asm_cachetryalloc.h"
 #undef i386
 .arch i486
+.arch .387
 .code32
 
 #ifdef ASM486_ZONE_HEAP
@@ -396,6 +397,27 @@ C(Cache_Print):
 .Lzone_cache_print_done:
 	popl	%esi
 	popl	%ebx
+	ret
+
+.p2align 2
+.globl C(Cache_Report)
+C(Cache_Report):
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$16,%esp
+	movl	C(hunk_size),%eax
+	subl	C(hunk_high_used),%eax
+	subl	C(hunk_low_used),%eax
+	movl	%eax,-4(%ebp)
+	movl	$ZH_CACHE_REPORT_MB_SCALE_BITS,-16(%ebp)
+	flds	-16(%ebp)
+	fimull	-4(%ebp)
+	fstpl	-12(%ebp)
+	pushl	-8(%ebp)
+	pushl	-12(%ebp)
+	call	C(Zone_CacheReportTrace)
+	addl	$8,%esp
+	leave
 	ret
 
 .p2align 2

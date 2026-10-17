@@ -12,6 +12,7 @@
 #define BZH_CACHE_PRINT_EVENT_COUNT 8
 #define BZH_HUNK_PRINT_ARENA_SIZE 512
 #define BZH_HUNK_PRINT_EVENT_COUNT 24
+#define BZH_CACHE_REPORT_CASE_COUNT 8
 
 typedef struct bench486_zone_heap_snapshot_s
 {
@@ -111,6 +112,12 @@ typedef struct bench486_cache_print_snapshot_s
 	bench486_cache_print_event_t events[BZH_CACHE_PRINT_EVENT_COUNT];
 } bench486_cache_print_snapshot_t;
 
+typedef struct bench486_cache_report_snapshot_s
+{
+	int event_count;
+	double megabytes;
+} bench486_cache_report_snapshot_t;
+
 typedef struct bench486_hunk_print_event_s
 {
 	int kind;
@@ -161,6 +168,8 @@ static bench486_zone_print_event_t
 static int bench486_cache_print_event_count;
 static bench486_cache_print_event_t
 	bench486_cache_print_events[BZH_CACHE_PRINT_EVENT_COUNT];
+static int bench486_cache_report_event_count;
+static double bench486_cache_report_megabytes;
 static int bench486_hunk_print_event_count;
 static bench486_hunk_print_event_t
 	bench486_hunk_print_events[BZH_HUNK_PRINT_EVENT_COUNT];
@@ -221,6 +230,12 @@ void Bench486CachePrintEvent (cache_system_t *entry)
 	event->entry = entry;
 	event->size = entry->size;
 	Q_memcpy (event->name, entry->name, sizeof (event->name));
+}
+
+void Bench486CacheReportEvent (double megabytes)
+{
+	bench486_cache_report_event_count++;
+	bench486_cache_report_megabytes = megabytes;
 }
 
 void Bench486HunkPrintEvent (int kind, void *hunk, int value)
@@ -1240,6 +1255,81 @@ static int Bench486HunkPrintCases (void)
 	return case_failures ? (int)(0x40000000UL | (unsigned long)case_failures) : 0;
 }
 
+static void Bench486CacheReportRun (int case_index, int use_asm,
+		bench486_cache_report_snapshot_t *snapshot)
+{
+	static const int sizes[BZH_CACHE_REPORT_CASE_COUNT] = {
+		0, 1, 1048576, 2097152, 2000000, 16777218, 33554433, 2147483647
+	};
+	static const int low_used[BZH_CACHE_REPORT_CASE_COUNT] = {
+		0, 0, 0, 262144, 400000, 1, 1, 1073741823
+	};
+	static const int high_used[BZH_CACHE_REPORT_CASE_COUNT] = {
+		0, 0, 0, 786432, 365433, 0, 1, 1073741823
+	};
+	int saved_hunk_size = hunk_size;
+	int saved_low_used = hunk_low_used;
+	int saved_high_used = hunk_high_used;
+	int saved_event_count = bench486_cache_report_event_count;
+	double saved_megabytes = bench486_cache_report_megabytes;
+
+	hunk_size = sizes[case_index];
+	hunk_low_used = low_used[case_index];
+	hunk_high_used = high_used[case_index];
+	bench486_cache_report_event_count = 0;
+	bench486_cache_report_megabytes = 0.0;
+	if (use_asm)
+		Cache_Report ();
+	else
+		Cache_Report_C ();
+	memset (snapshot, 0, sizeof (*snapshot));
+	snapshot->event_count = bench486_cache_report_event_count;
+	snapshot->megabytes = bench486_cache_report_megabytes;
+
+	hunk_size = saved_hunk_size;
+	hunk_low_used = saved_low_used;
+	hunk_high_used = saved_high_used;
+	bench486_cache_report_event_count = saved_event_count;
+	bench486_cache_report_megabytes = saved_megabytes;
+}
+
+static qboolean Bench486CacheReportExpected (int case_index,
+		const bench486_cache_report_snapshot_t *snapshot)
+{
+	static const double expected[BZH_CACHE_REPORT_CASE_COUNT] = {
+		0.0, 1.0 / 1048576.0, 1.0, 1.0,
+		1234567.0 / 1048576.0, 16777217.0 / 1048576.0,
+		33554431.0 / 1048576.0, 1.0 / 1048576.0
+	};
+	return snapshot->event_count == 1 &&
+		!Q_memcmp ((void *)&snapshot->megabytes,
+			(void *)&expected[case_index], sizeof (snapshot->megabytes));
+}
+
+static int Bench486CacheReportCases (void)
+{
+	bench486_cache_report_snapshot_t c, a;
+	int saved_event_count = bench486_cache_report_event_count;
+	double saved_megabytes = bench486_cache_report_megabytes;
+	int case_index, case_failures = 0;
+	for (case_index = 0; case_index < BZH_CACHE_REPORT_CASE_COUNT; case_index++)
+	{
+		int case_bit = 1 << case_index;
+		Bench486CacheReportRun (case_index, 0, &c);
+		Bench486CacheReportRun (case_index, 1, &a);
+		if (!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)))
+			case_failures |= case_bit;
+		if (!Bench486CacheReportExpected (case_index, &c))
+			case_failures |= case_bit << 8;
+		if (!Bench486CacheReportExpected (case_index, &a))
+			case_failures |= case_bit << 16;
+	}
+	bench486_cache_report_event_count = saved_event_count;
+	bench486_cache_report_megabytes = saved_megabytes;
+	return case_failures ? (int)(0x20000000UL |
+		(unsigned long)case_failures) : 0;
+}
+
 static int Bench486ZoneHeapCheckerCases (void)
 {
 	return Bench486ZoneStructureCheckerCases () |
@@ -1343,6 +1433,7 @@ int Bench486ZoneHeapCases (void)
 	failures |= Bench486ZonePrintCases ();
 	failures |= Bench486CachePrintCases ();
 	failures |= Bench486HunkPrintCases ();
+	failures |= Bench486CacheReportCases ();
 
 	mainzone = saved_mainzone;
 #ifdef PROFILE486
@@ -1363,6 +1454,7 @@ int Bench486ZoneHeapCases (void)
 #undef BZH_HUNK_CHECK_SIZE
 #undef BZH_HUNK_PRINT_EVENT_COUNT
 #undef BZH_HUNK_PRINT_ARENA_SIZE
+#undef BZH_CACHE_REPORT_CASE_COUNT
 #undef BZH_CACHE_PRINT_EVENT_COUNT
 #undef BZH_PRINT_EVENT_COUNT
 #undef BZH_ERROR_SIZE
