@@ -320,6 +320,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheCheckImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheFreeImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheTryAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',

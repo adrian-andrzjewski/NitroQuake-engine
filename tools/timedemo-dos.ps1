@@ -303,6 +303,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheCheckImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheFreeImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheTryAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
@@ -652,6 +654,7 @@ $buildParams = @{
         SbarInventoryImplementation            = $SbarInventoryImplementation
         SbarFragsImplementation                 = $SbarFragsImplementation
         CacheCheckImplementation                 = $CacheCheckImplementation
+        CacheFreeImplementation                  = $CacheFreeImplementation
         CacheTryAllocImplementation              = $CacheTryAllocImplementation
         VesaCopyRectsImplementation              = $VesaCopyRectsImplementation
         GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
@@ -1553,6 +1556,7 @@ $result = [ordered]@{
     sbarInventoryImplementation = $SbarInventoryImplementation
     sbarFragsImplementation = $SbarFragsImplementation
     cacheCheckImplementation = $CacheCheckImplementation
+    cacheFreeImplementation = $CacheFreeImplementation
     cacheTryAllocImplementation = $CacheTryAllocImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration

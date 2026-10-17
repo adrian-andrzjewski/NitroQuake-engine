@@ -685,6 +685,7 @@ typedef struct cache_system_s
 } cache_system_t;
 
 #include "asm_cachecheck.h"
+#include "asm_cachefree.h"
 #include "asm_cachetryalloc.h"
 
 cache_system_t *Cache_TryAlloc (int size, qboolean nobottom);
@@ -972,7 +973,14 @@ Cache_Free
 Frees the memory and removes it from the LRU list
 ==============
 */
-void Cache_Free (cache_user_t *c)
+#if defined(BENCH486)
+#define CACHE_FREE_C_ENTRY Cache_Free_C
+#else
+#define CACHE_FREE_C_ENTRY Cache_Free
+#endif
+
+#if !defined(ASM486_CACHE_FREE) || defined(BENCH486)
+void CACHE_FREE_C_ENTRY (cache_user_t *c)
 {
 	cache_system_t	*cs;
 
@@ -992,6 +1000,16 @@ void Cache_Free (cache_user_t *c)
 
 	Cache_UnlinkLRU (cs);
 }
+#endif
+
+#undef CACHE_FREE_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_CACHE_FREE)
+void Cache_Free (cache_user_t *c)
+{
+	Cache_Free_C (c);
+}
+#endif
 
 
 
@@ -1056,6 +1074,10 @@ void *Cache_Check (cache_user_t *c)
 
 #if defined(BENCH486) && defined(ASM486_CACHE_TRY_ALLOC_FIXTURE)
 #include "bench486_cachetryalloc.h"
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CACHE_FREE_FIXTURE)
+#include "bench486_cachefree.h"
 #endif
 
 

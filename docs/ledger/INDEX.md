@@ -14,6 +14,8 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-17-cache-free-assembly-port.md`](2026-10-17-cache-free-assembly-port.md) | 4 | renderer port / cache block removal and address/LRU unlink (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
+| [`2026-10-17-cache-allocation-search-assembly-port.md`](2026-10-17-cache-allocation-search-assembly-port.md) | 4 | renderer port / cache allocation search (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-vesa-copy-rects-assembly-port.md`](2026-10-17-vesa-copy-rects-assembly-port.md) | 4 | renderer port / VESA dirty-rectangle copy (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining scope`) |
 | [`2026-10-17-cache-check-assembly-port.md`](2026-10-17-cache-check-assembly-port.md) | 4 | renderer port / cache lookup and LRU promotion (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-sbar-frags-assembly-port.md`](2026-10-17-sbar-frags-assembly-port.md) | 4 | renderer port / status-bar frag strip and stable scoreboard sorter (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Traceability and remaining scope`) |

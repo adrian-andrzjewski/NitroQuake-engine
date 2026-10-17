@@ -1,5 +1,6 @@
 /* i486 cache free-block search and address/LRU list insertion. */
 #include "asm_i386.h"
+#include "asm_cachefree.h"
 #include "asm_cachetryalloc.h"
 #undef i386
 .arch i486
@@ -118,3 +119,68 @@ C(Cache_TryAlloc):
 .Lcache_tryalloc_error_message:
 	.asciz	"Cache_TryAlloc: %i is greater then free hunk"
 #endif /* ASM486_CACHE_TRY_ALLOC */
+
+#ifdef ASM486_CACHE_FREE
+.text
+.p2align 2
+.globl C(Cache_Free)
+C(Cache_Free):
+	pushl	%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	20(%esp),%eax		/* cache_user_t * */
+	movl	CF_CACHE_USER_DATA_OFFSET(%eax),%edx
+	testl	%edx,%edx
+	je	.Lcache_free_unallocated
+	leal	-CF_CACHE_SYSTEM_SIZE(%edx),%esi
+#ifdef PROFILE486
+	incl	C(bench486_cache_frees)
+#endif
+
+/* Remove from the address-ordered list, then clear the cache user handle. */
+	movl	CF_CACHE_PREV_OFFSET(%esi),%ebx
+	movl	CF_CACHE_NEXT_OFFSET(%esi),%edi
+	movl	%edi,CF_CACHE_NEXT_OFFSET(%ebx)
+	movl	%ebx,CF_CACHE_PREV_OFFSET(%edi)
+	movl	$0,CF_CACHE_PREV_OFFSET(%esi)
+	movl	$0,CF_CACHE_NEXT_OFFSET(%esi)
+	movl	$0,CF_CACHE_USER_DATA_OFFSET(%eax)
+
+/* Match Cache_UnlinkLRU's validation and unlink order. */
+	movl	CF_CACHE_LRU_NEXT_OFFSET(%esi),%edi
+	testl	%edi,%edi
+	je	.Lcache_free_bad_lru_link
+	movl	CF_CACHE_LRU_PREV_OFFSET(%esi),%ebx
+	testl	%ebx,%ebx
+	je	.Lcache_free_bad_lru_link
+	movl	%ebx,CF_CACHE_LRU_PREV_OFFSET(%edi)
+	movl	%edi,CF_CACHE_LRU_NEXT_OFFSET(%ebx)
+	movl	$0,CF_CACHE_LRU_PREV_OFFSET(%esi)
+	movl	$0,CF_CACHE_LRU_NEXT_OFFSET(%esi)
+	jmp	.Lcache_free_return
+
+.Lcache_free_unallocated:
+	pushl	$.Lcache_free_unallocated_message
+	call	C(Sys_Error)
+	addl	$4,%esp
+	jmp	.Lcache_free_return
+
+.Lcache_free_bad_lru_link:
+	pushl	$.Lcache_free_bad_lru_message
+	call	C(Sys_Error)
+	addl	$4,%esp
+
+.Lcache_free_return:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.section .rodata
+.Lcache_free_unallocated_message:
+	.asciz	"Cache_Free: not allocated"
+.Lcache_free_bad_lru_message:
+	.asciz	"Cache_UnlinkLRU: NULL link"
+#endif /* ASM486_CACHE_FREE */

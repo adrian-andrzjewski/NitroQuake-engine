@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-17, the i486 build defaults to the complete 119-entry assembly
+As of 2026-10-17, the i486 build defaults to the complete 122-entry assembly
 selector profile in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
@@ -404,25 +404,32 @@ offsets. The eight-case area-link fixture compared the full moveclip state,
 including entity filters, monster bounds, trace merging, and area-node
 recursion, and observed 10 assembly entries with intact guard sentinels.
 
-The 2026-10-17 default i486 BENCH inventory at
-`out/profile-5fbece95396145c7/renderer-ownership-qbench.json` reports 892
-renderer entries, 371 directly reachable entries, 70 directly reachable C
-renderer/support entries, and 62 unresolved direct callees. `Cache_Check` and
-the VESA dirty-rectangle copy loop now use their selected assembly entries;
-their direct C/ASM fixtures passed. Cache allocation/eviction and hunk
-management remain C-owned. The VGA linear and planar pixel-copy routines
-already use assembly; VESA discovery, wait probing, page flips, mode changes
-and the outer `VID_Update` state machine remain C-owned. See the
-[`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md) and
+The latest 2026-10-17 default i486 BENCH inventory at
+`out/local-cachefree/renderer-ownership-qbench.json` reports 891 renderer
+entries, 372 directly reachable entries, 69 directly reachable C
+renderer/support entries, and 62 unresolved direct callees. `Cache_Check`,
+`Cache_TryAlloc`, `Cache_Free`, and the VESA dirty-rectangle copy loop now use
+their selected assembly entries; each has a direct C/ASM fixture, and all four
+fixtures passed. `Cache_Alloc`, cache moves and hunk management remain
+C-owned. The VGA linear and planar pixel-copy routines already use assembly;
+VESA discovery, wait probing, page flips, mode changes and the outer
+`VID_Update` state machine remain C-owned. See the
+[`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md),
+[`Cache_TryAlloc` port ledger](ledger/2026-10-17-cache-allocation-search-assembly-port.md),
+[`Cache_Free` port ledger](ledger/2026-10-17-cache-free-assembly-port.md), and
 [`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md).
-Strict BENCH and release executable gates passed with zero above-i486
-instructions, unknown encodings, exemptions, or misclassified data. BENCH
-audited 242,790 project instructions and 281,087 linked instructions across
-386 objects, then verified 408 source-bound contributions, 2,171 CODE ranges,
-25 DATA ranges, 1,660 startup bytes, 529 startup CODE rows, and 9,207 provider
-instructions. Release audited 129,467 project instructions and 167,764 linked
-instructions across 386 objects, then verified 394 source-bound contributions,
-1,451 CODE ranges, 25 DATA ranges, and the same startup/provider totals. The
+
+The focused `Cache_Free` strict BENCH gate passed with zero above-i486
+instructions, unknown encodings, exemptions, or skipped bytes. It audited
+243,456 project instructions across 154 objects and 281,753 linked
+instructions across 389 objects; executable proof verified all 281,753
+opcodes across 235 runtime inputs and 415 source-bound contributions. The
+final mapping covered 2,194 CODE ranges and 29 DATA ranges. Startup proof
+covered 1,660 loaded bytes and 529 CODE rows; the provider proof covered
+9,207 instructions with zero exemptions. The prior full release audit
+reported 129,467 project instructions and 167,764 linked instructions across
+386 objects, then verified 394 source-bound contributions, 1,451 CODE ranges,
+25 DATA ranges, and the same startup/provider totals. The
 selected release omits the C bodies for `SV_ClipToLinks`,
 `SV_ClipMoveToEntity`, `SV_RecursiveHullCheck`, `SV_HullForEntity`, and
 `SV_HullForBox`. The current assembly profile is
