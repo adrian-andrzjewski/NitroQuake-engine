@@ -9,6 +9,7 @@
 #define BZH_ERROR_SIZE 80
 #define BZH_HUNK_CHECK_SIZE 128
 #define BZH_PRINT_EVENT_COUNT 64
+#define BZH_CACHE_PRINT_EVENT_COUNT 8
 
 typedef struct bench486_zone_heap_snapshot_s
 {
@@ -95,6 +96,19 @@ typedef struct bench486_zone_print_snapshot_s
 	bench486_zone_print_event_t events[BZH_PRINT_EVENT_COUNT];
 } bench486_zone_print_snapshot_t;
 
+typedef struct bench486_cache_print_event_s
+{
+	cache_system_t *entry;
+	int size;
+	char name[16];
+} bench486_cache_print_event_t;
+
+typedef struct bench486_cache_print_snapshot_s
+{
+	int event_count;
+	bench486_cache_print_event_t events[BZH_CACHE_PRINT_EVENT_COUNT];
+} bench486_cache_print_snapshot_t;
+
 typedef struct bench486_cache_lru_snapshot_s
 {
 	cache_system_t head;
@@ -121,6 +135,9 @@ static char bench486_zone_heap_errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
 static int bench486_zone_print_event_count;
 static bench486_zone_print_event_t
 	bench486_zone_print_events[BZH_PRINT_EVENT_COUNT];
+static int bench486_cache_print_event_count;
+static bench486_cache_print_event_t
+	bench486_cache_print_events[BZH_CACHE_PRINT_EVENT_COUNT];
 
 void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function)
 {
@@ -165,6 +182,19 @@ void Bench486ZonePrintEvent (int kind, memzone_t *zone, memblock_t *block)
 		event->block_size = block->size;
 		event->block_tag = block->tag;
 	}
+}
+
+void Bench486CachePrintEvent (cache_system_t *entry)
+{
+	int slot = bench486_cache_print_event_count++;
+	bench486_cache_print_event_t *event;
+	if (slot < 0 || slot >= BZH_CACHE_PRINT_EVENT_COUNT)
+		return;
+	event = &bench486_cache_print_events[slot];
+	memset (event, 0, sizeof (*event));
+	event->entry = entry;
+	event->size = entry->size;
+	Q_memcpy (event->name, entry->name, sizeof (event->name));
 }
 
 static void Bench486ZoneHeapSetup (int use_asm)
@@ -893,6 +923,78 @@ static int Bench486ZonePrintCases (void)
 	return failed ? (int)0x80000000UL : 0;
 }
 
+static void Bench486CachePrintRun (int case_index, int use_asm,
+		bench486_cache_print_snapshot_t *snapshot)
+{
+	cache_system_t *first = &bench486_cache_lru_nodes[0];
+	cache_system_t *second = &bench486_cache_lru_nodes[1];
+	memset (&cache_head, 0, sizeof (cache_head));
+	memset (bench486_cache_lru_nodes, 0, sizeof (bench486_cache_lru_nodes));
+	cache_head.next = &cache_head;
+	cache_head.prev = &cache_head;
+	if (case_index > 0)
+	{
+		first->size = 0x123;
+		Q_memcpy (first->name, "cache-first", sizeof ("cache-first"));
+		first->prev = &cache_head;
+		first->next = &cache_head;
+		cache_head.next = first;
+		cache_head.prev = first;
+	}
+	if (case_index > 1)
+	{
+		second->size = 0x456;
+		Q_memcpy (second->name, "cache-second", sizeof ("cache-second"));
+		second->prev = first;
+		second->next = &cache_head;
+		first->next = second;
+		cache_head.prev = second;
+	}
+	bench486_cache_print_event_count = 0;
+	memset (bench486_cache_print_events, 0,
+		sizeof (bench486_cache_print_events));
+	if (use_asm)
+		Cache_Print ();
+	else
+		Cache_Print_C ();
+	memset (snapshot, 0, sizeof (*snapshot));
+	snapshot->event_count = bench486_cache_print_event_count;
+	Q_memcpy (snapshot->events, bench486_cache_print_events,
+		sizeof (snapshot->events));
+}
+
+static int Bench486CachePrintCases (void)
+{
+	static const int expected_count[] = { 0, 1, 2 };
+	bench486_cache_print_snapshot_t c, a;
+	cache_system_t saved_head = cache_head;
+	cache_system_t saved_nodes[2];
+	int case_index, failed = false;
+	Q_memcpy (saved_nodes, bench486_cache_lru_nodes, sizeof (saved_nodes));
+	for (case_index = 0; case_index < 3; case_index++)
+	{
+		Bench486CachePrintRun (case_index, 0, &c);
+		Bench486CachePrintRun (case_index, 1, &a);
+		if (!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)) ||
+				c.event_count != expected_count[case_index])
+			failed = true;
+	}
+	if (c.event_count != expected_count[2] ||
+			c.events[0].entry != &bench486_cache_lru_nodes[0] ||
+			c.events[0].size != 0x123 ||
+			Q_memcmp (c.events[0].name, "cache-first", sizeof ("cache-first")) ||
+			c.events[1].entry != &bench486_cache_lru_nodes[1] ||
+			c.events[1].size != 0x456 ||
+			Q_memcmp (c.events[1].name, "cache-second", sizeof ("cache-second")))
+		failed = true;
+	cache_head = saved_head;
+	Q_memcpy (bench486_cache_lru_nodes, saved_nodes, sizeof (saved_nodes));
+	bench486_cache_print_event_count = 0;
+	memset (bench486_cache_print_events, 0,
+		sizeof (bench486_cache_print_events));
+	return failed ? (int)0x80000000UL : 0;
+}
+
 static int Bench486ZoneHeapCheckerCases (void)
 {
 	return Bench486ZoneStructureCheckerCases () |
@@ -994,6 +1096,7 @@ int Bench486ZoneHeapCases (void)
 	}
 	failures |= Bench486ZoneHeapCheckerCases ();
 	failures |= Bench486ZonePrintCases ();
+	failures |= Bench486CachePrintCases ();
 
 	mainzone = saved_mainzone;
 #ifdef PROFILE486
@@ -1012,6 +1115,7 @@ int Bench486ZoneHeapCases (void)
 
 #undef BZH_CASE_COUNT
 #undef BZH_HUNK_CHECK_SIZE
+#undef BZH_CACHE_PRINT_EVENT_COUNT
 #undef BZH_PRINT_EVENT_COUNT
 #undef BZH_ERROR_SIZE
 #undef BZH_ERROR_COUNT

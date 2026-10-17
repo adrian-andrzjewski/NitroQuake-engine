@@ -377,6 +377,28 @@ C(Z_Print):
 	ret
 
 .p2align 2
+.globl C(Cache_Print)
+C(Cache_Print):
+	pushl	%ebx
+	pushl	%esi
+	movl	$C(cache_head),%ebx
+	movl	CTA_CACHE_HEAD_NEXT_OFFSET(%ebx),%esi
+
+.Lzone_cache_print_loop:
+	cmpl	%ebx,%esi
+	je	.Lzone_cache_print_done
+	pushl	%esi
+	call	C(Zone_CachePrintTrace)
+	addl	$4,%esp
+	movl	CTA_CACHE_NEXT_OFFSET(%esi),%esi
+	jmp	.Lzone_cache_print_loop
+
+.Lzone_cache_print_done:
+	popl	%esi
+	popl	%ebx
+	ret
+
+.p2align 2
 .globl C(Z_CheckHeap)
 C(Z_CheckHeap):
 	pushl	%ebx

@@ -978,6 +978,10 @@ cache_system_t *Cache_TryAlloc (int size, qboolean nobottom);
 
 cache_system_t	cache_head;
 
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+void Bench486CachePrintEvent (cache_system_t *entry);
+#endif
+
 /*
 ===========
 Cache_Move
@@ -1331,15 +1335,39 @@ Cache_Print
 
 ============
 */
-void Cache_Print (void)
+void Zone_CachePrintTrace (cache_system_t *cd)
+{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+	Bench486CachePrintEvent (cd);
+#else
+	Con_Printf ("%8i : %s\n", cd->size, cd->name);
+#endif
+}
+
+#if defined(BENCH486)
+#define CACHE_PRINT_C_ENTRY Cache_Print_C
+#else
+#define CACHE_PRINT_C_ENTRY Cache_Print
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void CACHE_PRINT_C_ENTRY (void)
 {
 	cache_system_t	*cd;
 
 	for (cd = cache_head.next ; cd != &cache_head ; cd = cd->next)
-	{
-		Con_Printf ("%8i : %s\n", cd->size, cd->name);
-	}
+		Zone_CachePrintTrace (cd);
 }
+#endif
+
+#undef CACHE_PRINT_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Cache_Print (void)
+{
+	Cache_Print_C ();
+}
+#endif
 
 /*
 ============

@@ -418,10 +418,13 @@ fixture. `Cache_Flush` now shares the assembly-backed cache-free selector and
 has empty-cache and populated-cache parity cases. `Memory_Init` and `Cache_Init`
 now use the zone-heap assembly selector, with direct checks for cache sentinel
 setup, flush-command registration, default memory setup, and the `-zone 32`
-override. Heap/cache/hunk diagnostics remain C-owned; `Cache_Compact` is an
-override. `Z_Print`, `Z_CheckHeap`, `Hunk_Check`, and cache LRU maintenance now
-use the zone-heap assembly selector. `Hunk_Print`, `Cache_Print`, and
-`Cache_Report` remain C-owned diagnostics; `Cache_Compact` is an empty no-op.
+override. `Z_Print` and `Cache_Print` now have assembly-owned list walks; their
+C trace adapters retain formatted console output, and C references remain
+available in BENCH and the C-reference profile. `Z_CheckHeap`, `Hunk_Check`,
+and cache LRU maintenance also use the zone-heap assembly selector.
+`Hunk_Print` and `Cache_Report` remain C-owned diagnostics; `Cache_Compact` is
+an empty no-op. See the
+[`zone heap and cache diagnostics port ledger`](ledger/2026-10-17-zone-heap-assembly-port.md).
 The VGA linear and planar
 pixel-copy routines already use assembly. VESA discovery,
 wait probing, palette programming, mode changes and the outer `VID_Update`
@@ -436,7 +439,7 @@ hardware-specific operations. See the
 [`Cache_FreeHigh` port ledger](ledger/2026-10-17-cache-free-high-assembly-port.md),
 [`Hunk mark-release` port ledger](ledger/2026-10-17-hunk-mark-release-assembly-port.md),
 [`Hunk temp-allocation` port ledger](ledger/2026-10-17-hunk-temp-alloc-assembly-port.md),
-[`zone heap and Z_Print` port ledger](ledger/2026-10-17-zone-heap-assembly-port.md),
+[`zone heap and cache diagnostics port ledger`](ledger/2026-10-17-zone-heap-assembly-port.md),
 [`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md),
 and [`VESA swap` port ledger](ledger/2026-10-17-vesa-swap-buffers-assembly-port.md).
 
