@@ -121,6 +121,7 @@
     "SbarInventoryImplementation": "c",
     "SbarFragsImplementation": "c",
     "CacheCheckImplementation": "c",
+    "CacheAllocImplementation": "c",
     "CacheFreeImplementation": "c",
     "CacheTryAllocImplementation": "c",
     "VesaCopyRectsImplementation": "c",

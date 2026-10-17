@@ -7,8 +7,10 @@
 `Cache_TryAlloc_C` in BENCH builds and through the C-reference profile. The
 assembly preserves the allocator's address-ordered search, split and
 sentinel behavior. `src/asm_cachetryalloc.h` pins the private cache-header
-layout against `zone.c` at compile time. `Cache_Alloc`, eviction policy,
-cache moves and hunk management remain C-owned.
+layout against `zone.c` at compile time. `Cache_Alloc` and its LRU eviction
+loop are now covered by the separate
+[`Cache_Alloc port ledger`](2026-10-17-cache-alloc-assembly-port.md). Cache
+moves and hunk management remain C-owned.
 
 ## Direct C/assembly parity
 
@@ -39,9 +41,9 @@ framebuffer-parity measurement.
 ## Ownership and remaining work
 
 `Cache_TryAlloc` is no longer a C-owned renderer entry in the default i486
-profile. `Cache_Free`, `Cache_Alloc`, cache moves and hunk management were
-outside this slice; `Cache_Free` is now covered by the separate
-[`Cache_Free port ledger`](2026-10-17-cache-free-assembly-port.md).
+profile. `Cache_Alloc` and `Cache_Free` now have separate assembly entries and
+direct C/ASM fixture coverage. Cache moves and hunk management remain outside
+these slices.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |

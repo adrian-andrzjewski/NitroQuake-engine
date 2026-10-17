@@ -1,6 +1,7 @@
 /* i486 cache free-block search and address/LRU list insertion. */
 #include "asm_i386.h"
 #include "asm_cachefree.h"
+#include "asm_cachealloc.h"
 #include "asm_cachetryalloc.h"
 #undef i386
 .arch i486
@@ -184,3 +185,92 @@ C(Cache_Free):
 .Lcache_free_bad_lru_message:
 	.asciz	"Cache_UnlinkLRU: NULL link"
 #endif /* ASM486_CACHE_FREE */
+
+#ifdef ASM486_CACHE_ALLOC
+.text
+.p2align 2
+.globl C(Cache_Alloc)
+C(Cache_Alloc):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp),%esi		/* cache_user_t * */
+	movl	12(%ebp),%ebx		/* requested payload size */
+	movl	16(%ebp),%edi		/* name */
+	movl	CA_CACHE_USER_DATA_OFFSET(%esi),%eax
+	testl	%eax,%eax
+	je	.Lcache_alloc_unallocated
+	pushl	$.Lcache_alloc_already_allocated_message
+	call	C(Sys_Error)
+	addl	$4,%esp
+
+.Lcache_alloc_unallocated:
+	cmpl	$0,%ebx
+	jg	.Lcache_alloc_size_valid
+	pushl	%ebx
+	pushl	$.Lcache_alloc_bad_size_message
+	call	C(Sys_Error)
+	addl	$8,%esp
+
+.Lcache_alloc_size_valid:
+	addl	$(CA_CACHE_SYSTEM_SIZE + CA_CACHE_ALIGNMENT - 1),%ebx
+	andl	$-CA_CACHE_ALIGNMENT,%ebx
+
+.Lcache_alloc_retry:
+	pushl	$0
+	pushl	%ebx
+	call	C(Cache_TryAlloc)
+	addl	$8,%esp
+	testl	%eax,%eax
+	je	.Lcache_alloc_failed
+	movl	%eax,%ebx			/* cache_system_t * */
+#ifdef PROFILE486
+	incl	C(bench486_cache_allocations)
+#endif
+	leal	CA_CACHE_SYSTEM_NAME_OFFSET(%ebx),%eax
+	pushl	$(CA_CACHE_SYSTEM_NAME_SIZE - 1)
+	pushl	%edi
+	pushl	%eax
+	call	C(strncpy)
+	addl	$12,%esp
+	movl	%esi,CA_CACHE_SYSTEM_USER_OFFSET(%ebx)
+	leal	CA_CACHE_SYSTEM_SIZE(%ebx),%eax
+	movl	%eax,CA_CACHE_USER_DATA_OFFSET(%esi)
+	movl	CA_CACHE_USER_DATA_OFFSET(%esi),%eax
+	jmp	.Lcache_alloc_return
+
+.Lcache_alloc_failed:
+	leal	C(cache_head),%eax
+	movl	CA_CACHE_HEAD_LRU_PREV_OFFSET(%eax),%edx
+	cmpl	%eax,%edx
+	jne	.Lcache_alloc_evict
+	pushl	$.Lcache_alloc_oom_message
+	call	C(Sys_Error)
+	addl	$4,%esp
+
+.Lcache_alloc_evict:
+#ifdef PROFILE486
+	incl	C(bench486_cache_evictions)
+#endif
+	pushl	CA_CACHE_SYSTEM_USER_OFFSET(%edx)
+	call	C(Cache_Free)
+	addl	$4,%esp
+	jmp	.Lcache_alloc_retry
+
+.Lcache_alloc_return:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.section .rodata
+.Lcache_alloc_already_allocated_message:
+	.asciz	"Cache_Alloc: allready allocated"
+.Lcache_alloc_bad_size_message:
+	.asciz	"Cache_Alloc: size %i"
+.Lcache_alloc_oom_message:
+	.asciz	"Cache_Alloc: out of memory"
+#endif /* ASM486_CACHE_ALLOC */

@@ -48,8 +48,13 @@ The focused run measures correctness, not full-scene FPS or framebuffer parity.
 The BENCH ownership report records 891 renderer entries, 371 directly
 reachable entries, 70 directly reachable C renderer/support entries, and 62
 unresolved direct callees. `Cache_Check` is no longer one of those C entries.
-`Cache_Alloc`, `Cache_Free`, `Cache_TryAlloc`, cache moves and hunk management
-remain C-owned. The VGA linear and planar pixel-copy routines are already
+At the time of this ownership snapshot, `Cache_Alloc`, `Cache_Free`,
+`Cache_TryAlloc`, cache moves and hunk management remained C-owned. The later
+[`Cache_Alloc`](2026-10-17-cache-alloc-assembly-port.md),
+[`Cache_Free`](2026-10-17-cache-free-assembly-port.md), and
+[`Cache_TryAlloc`](2026-10-17-cache-allocation-search-assembly-port.md) ports
+close the first three entries; cache moves and hunk management remain
+C-owned. The VGA linear and planar pixel-copy routines are already
 hand-written assembly; higher-level `VID_Update`, mode changes and VESA page
 presentation remain C-owned.
 

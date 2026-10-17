@@ -685,6 +685,7 @@ typedef struct cache_system_s
 } cache_system_t;
 
 #include "asm_cachecheck.h"
+#include "asm_cachealloc.h"
 #include "asm_cachefree.h"
 #include "asm_cachetryalloc.h"
 
@@ -1086,7 +1087,14 @@ void *Cache_Check (cache_user_t *c)
 Cache_Alloc
 ==============
 */
-void *Cache_Alloc (cache_user_t *c, int size, char *name)
+#if defined(BENCH486)
+#define CACHE_ALLOC_C_ENTRY Cache_Alloc_C
+#else
+#define CACHE_ALLOC_C_ENTRY Cache_Alloc
+#endif
+
+#if !defined(ASM486_CACHE_ALLOC) || defined(BENCH486)
+void *CACHE_ALLOC_C_ENTRY (cache_user_t *c, int size, char *name)
 {
 	cache_system_t	*cs;
 
@@ -1126,6 +1134,20 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name)
 	// Cache_TryAlloc already placed this new block at the LRU head.
 	return c->data;
 }
+#endif
+
+#undef CACHE_ALLOC_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_CACHE_ALLOC)
+void *Cache_Alloc (cache_user_t *c, int size, char *name)
+{
+	return Cache_Alloc_C (c, size, name);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CACHE_ALLOC_FIXTURE)
+#include "bench486_cachealloc.h"
+#endif
 
 //============================================================================
 
