@@ -46,6 +46,8 @@ typedef struct
 
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function);
+void Bench486ZonePrintEvent (int kind, memzone_t *zone,
+		memblock_t *block);
 void Bench486ZoneHeapError (char *message);
 #endif
 
@@ -376,27 +378,70 @@ void *Z_TagMalloc (int size, int tag)
 Z_Print
 ========================
 */
-void Z_Print (memzone_t *zone)
+void Zone_PrintTrace (int kind, memzone_t *zone, memblock_t *block)
 {
-	memblock_t	*block;
-	
-	Con_Printf ("zone size: %i  location: %p\n",mainzone->size,mainzone);
-	
-	for (block = zone->blocklist.next ; ; block = block->next)
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+	Bench486ZonePrintEvent (kind, zone, block);
+#else
+	switch (kind)
 	{
+	case ZH_PRINT_ZONE_HEADER:
+		Con_Printf ("zone size: %i  location: %p\n", mainzone->size,
+			mainzone);
+		break;
+	case ZH_PRINT_ZONE_BLOCK:
 		Con_Printf ("block:%p    size:%7i    tag:%3i\n",
 			block, block->size, block->tag);
-		
+		break;
+	case ZH_PRINT_ZONE_BAD_BOUNDARY:
+		Con_Printf ("ERROR: block size does not touch the next block\n");
+		break;
+	case ZH_PRINT_ZONE_BAD_BACKLINK:
+		Con_Printf ("ERROR: next block doesn't have proper back link\n");
+		break;
+	case ZH_PRINT_ZONE_ADJACENT_FREE:
+		Con_Printf ("ERROR: two consecutive free blocks\n");
+		break;
+	}
+#endif
+}
+
+#if defined(BENCH486)
+#define Z_PRINT_C_ENTRY Z_Print_C
+#else
+#define Z_PRINT_C_ENTRY Z_Print
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void Z_PRINT_C_ENTRY (memzone_t *zone)
+{
+	memblock_t	*block;
+
+	Zone_PrintTrace (ZH_PRINT_ZONE_HEADER, zone, NULL);
+	for (block = zone->blocklist.next ; ; block = block->next)
+	{
+		Zone_PrintTrace (ZH_PRINT_ZONE_BLOCK, zone, block);
+
 		if (block->next == &zone->blocklist)
-			break;			// all blocks have been hit	
-		if ( (byte *)block + block->size != (byte *)block->next)
-			Con_Printf ("ERROR: block size does not touch the next block\n");
-		if ( block->next->prev != block)
-			Con_Printf ("ERROR: next block doesn't have proper back link\n");
+			break;			// all blocks have been hit
+		if ((byte *)block + block->size != (byte *)block->next)
+			Zone_PrintTrace (ZH_PRINT_ZONE_BAD_BOUNDARY, zone, block);
+		if (block->next->prev != block)
+			Zone_PrintTrace (ZH_PRINT_ZONE_BAD_BACKLINK, zone, block);
 		if (!block->tag && !block->next->tag)
-			Con_Printf ("ERROR: two consecutive free blocks\n");
+			Zone_PrintTrace (ZH_PRINT_ZONE_ADJACENT_FREE, zone, block);
 	}
 }
+#endif
+
+#undef Z_PRINT_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Z_Print (memzone_t *zone)
+{
+	Z_Print_C (zone);
+}
+#endif
 
 
 /*

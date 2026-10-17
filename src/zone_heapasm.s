@@ -309,6 +309,74 @@ C(Memory_Init):
 	ret
 
 .p2align 2
+.globl C(Z_Print)
+C(Z_Print):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	16(%esp),%ebx		/* zone */
+	pushl	$0
+	pushl	%ebx
+	pushl	$ZH_PRINT_ZONE_HEADER
+	call	C(Zone_PrintTrace)
+	addl	$12,%esp
+	leal	ZH_MEMZONE_BLOCKLIST_OFFSET(%ebx),%edi /* sentinel */
+	movl	ZH_MEMZONE_BLOCKLIST_NEXT_OFFSET(%ebx),%esi
+
+.Lzone_print_loop:
+	pushl	%esi
+	pushl	%ebx
+	pushl	$ZH_PRINT_ZONE_BLOCK
+	call	C(Zone_PrintTrace)
+	addl	$12,%esp
+	movl	ZH_MEMBLOCK_NEXT_OFFSET(%esi),%eax
+	cmpl	%edi,%eax
+	je	.Lzone_print_done
+
+	movl	%esi,%edx
+	addl	ZH_MEMBLOCK_SIZE_OFFSET(%esi),%edx
+	cmpl	%eax,%edx
+	je	.Lzone_print_backlink
+	pushl	%esi
+	pushl	%ebx
+	pushl	$ZH_PRINT_ZONE_BAD_BOUNDARY
+	call	C(Zone_PrintTrace)
+	addl	$12,%esp
+	movl	ZH_MEMBLOCK_NEXT_OFFSET(%esi),%eax
+
+.Lzone_print_backlink:
+	cmpl	%esi,ZH_MEMBLOCK_PREV_OFFSET(%eax)
+	je	.Lzone_print_adjacent_free
+	pushl	%esi
+	pushl	%ebx
+	pushl	$ZH_PRINT_ZONE_BAD_BACKLINK
+	call	C(Zone_PrintTrace)
+	addl	$12,%esp
+	movl	ZH_MEMBLOCK_NEXT_OFFSET(%esi),%eax
+
+.Lzone_print_adjacent_free:
+	cmpl	$0,ZH_MEMBLOCK_TAG_OFFSET(%esi)
+	jne	.Lzone_print_advance
+	cmpl	$0,ZH_MEMBLOCK_TAG_OFFSET(%eax)
+	jne	.Lzone_print_advance
+	pushl	%esi
+	pushl	%ebx
+	pushl	$ZH_PRINT_ZONE_ADJACENT_FREE
+	call	C(Zone_PrintTrace)
+	addl	$12,%esp
+	movl	ZH_MEMBLOCK_NEXT_OFFSET(%esi),%eax
+
+.Lzone_print_advance:
+	movl	%eax,%esi
+	jmp	.Lzone_print_loop
+
+.Lzone_print_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
+.p2align 2
 .globl C(Z_CheckHeap)
 C(Z_CheckHeap):
 	pushl	%ebx

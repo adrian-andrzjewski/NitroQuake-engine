@@ -405,11 +405,11 @@ including entity filters, monster bounds, trace merging, and area-node
 recursion, and observed 10 assembly entries with intact guard sentinels.
 
 The latest 2026-10-17 i486 assembly-profile BENCH inventory at
-`out/profile-482179eda5ef37eb/renderer-ownership-qbench.json` reports 900
-renderer entries, 378 directly reachable entries, 63 directly reachable C
-renderer/support entries, and 63 unresolved direct callees. This build selected
-`VideoUpdateImplementation=c` while the VID_Update assembly lane remains under
-fixture validation. `Cache_Check`,
+`out/profile-35cc1e58e193f012/renderer-ownership-qbench.json` reports 903
+renderer entries, 380 directly reachable entries, 61 directly reachable C
+renderer/support entries, and 64 unresolved direct callees. This profile
+selected `VideoUpdateImplementation=asm`; the separate VID_Update parity
+fixture remains open. `Cache_Check`,
 `Cache_Alloc`, `Cache_TryAlloc`, `Cache_Free`, `Cache_Move`, `Cache_FreeLow`,
 `Cache_FreeHigh`, `Hunk_FreeToLowMark`, `Hunk_FreeToHighMark`, `Hunk_TempAlloc`,
 `Hunk_HighMark`, `Z_Malloc`, and the VESA dirty-rectangle copy loop and page-flip
@@ -419,7 +419,10 @@ has empty-cache and populated-cache parity cases. `Memory_Init` and `Cache_Init`
 now use the zone-heap assembly selector, with direct checks for cache sentinel
 setup, flush-command registration, default memory setup, and the `-zone 32`
 override. Heap/cache/hunk diagnostics remain C-owned; `Cache_Compact` is an
-empty no-op. The VGA linear and planar
+override. `Z_Print`, `Z_CheckHeap`, `Hunk_Check`, and cache LRU maintenance now
+use the zone-heap assembly selector. `Hunk_Print`, `Cache_Print`, and
+`Cache_Report` remain C-owned diagnostics; `Cache_Compact` is an empty no-op.
+The VGA linear and planar
 pixel-copy routines already use assembly. VESA discovery,
 wait probing, palette programming, mode changes and the outer `VID_Update`
 state machine remain C-owned; page-flip assembly calls C adapters for
@@ -433,6 +436,7 @@ hardware-specific operations. See the
 [`Cache_FreeHigh` port ledger](ledger/2026-10-17-cache-free-high-assembly-port.md),
 [`Hunk mark-release` port ledger](ledger/2026-10-17-hunk-mark-release-assembly-port.md),
 [`Hunk temp-allocation` port ledger](ledger/2026-10-17-hunk-temp-alloc-assembly-port.md),
+[`zone heap and Z_Print` port ledger](ledger/2026-10-17-zone-heap-assembly-port.md),
 [`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md),
 and [`VESA swap` port ledger](ledger/2026-10-17-vesa-swap-buffers-assembly-port.md).
 

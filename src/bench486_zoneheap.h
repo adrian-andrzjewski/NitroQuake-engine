@@ -8,6 +8,7 @@
 #define BZH_ERROR_COUNT 4
 #define BZH_ERROR_SIZE 80
 #define BZH_HUNK_CHECK_SIZE 128
+#define BZH_PRINT_EVENT_COUNT 64
 
 typedef struct bench486_zone_heap_snapshot_s
 {
@@ -78,6 +79,22 @@ typedef struct bench486_hunk_checker_snapshot_s
 	char errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
 } bench486_hunk_checker_snapshot_t;
 
+typedef struct bench486_zone_print_event_s
+{
+	int kind;
+	memzone_t *zone;
+	memblock_t *block;
+	int zone_size;
+	int block_size;
+	int block_tag;
+} bench486_zone_print_event_t;
+
+typedef struct bench486_zone_print_snapshot_s
+{
+	int event_count;
+	bench486_zone_print_event_t events[BZH_PRINT_EVENT_COUNT];
+} bench486_zone_print_snapshot_t;
+
 typedef struct bench486_cache_lru_snapshot_s
 {
 	cache_system_t head;
@@ -101,6 +118,9 @@ static char bench486_memory_add_command_name[BZH_COMMAND_NAME_SIZE];
 static xcommand_t bench486_memory_add_command_function;
 static int bench486_zone_heap_error_count;
 static char bench486_zone_heap_errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+static int bench486_zone_print_event_count;
+static bench486_zone_print_event_t
+	bench486_zone_print_events[BZH_PRINT_EVENT_COUNT];
 
 void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function)
 {
@@ -125,6 +145,26 @@ void Bench486ZoneHeapError (char *message)
 	bench486_zone_heap_errors[slot][i] = 0;
 	while (++i < BZH_ERROR_SIZE)
 		bench486_zone_heap_errors[slot][i] = 0;
+}
+
+void Bench486ZonePrintEvent (int kind, memzone_t *zone, memblock_t *block)
+{
+	int slot = bench486_zone_print_event_count++;
+	bench486_zone_print_event_t *event;
+	if (slot < 0 || slot >= BZH_PRINT_EVENT_COUNT)
+		return;
+	event = &bench486_zone_print_events[slot];
+	memset (event, 0, sizeof (*event));
+	event->kind = kind;
+	event->zone = zone;
+	event->block = block;
+	if (zone)
+		event->zone_size = zone->size;
+	if (block)
+	{
+		event->block_size = block->size;
+		event->block_tag = block->tag;
+	}
 }
 
 static void Bench486ZoneHeapSetup (int use_asm)
@@ -748,6 +788,111 @@ static int Bench486CacheLruCases (void)
 	return failures;
 }
 
+static void Bench486ZonePrintRun (int case_index, int use_asm,
+		bench486_zone_print_snapshot_t *snapshot)
+{
+	void *blocks[3];
+	memblock_t *sentinel, *first, *second;
+	int i, old_size;
+
+	for (i = 0; i < 3; i++)
+		blocks[i] = NULL;
+	Bench486ZoneHeapSetup (0);
+	switch (case_index)
+	{
+	case 0:
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+		blocks[0] = Z_TagMalloc_C (16, 1);
+		blocks[1] = Z_TagMalloc_C (24, 2);
+		blocks[2] = Z_TagMalloc_C (32, 3);
+		if (case_index == 2)
+			Z_Free_C (blocks[1]);
+		else if (case_index == 3 && blocks[0])
+		{
+			first = (memblock_t *)((byte *)blocks[0] - sizeof (memblock_t));
+			first->size++;
+		}
+		else if (case_index == 4 && blocks[0])
+		{
+			first = (memblock_t *)((byte *)blocks[0] - sizeof (memblock_t));
+			first->next->prev = &mainzone->blocklist;
+		}
+		break;
+	case 5:
+		sentinel = &mainzone->blocklist;
+		first = sentinel->next;
+		old_size = first->size;
+		second = (memblock_t *)((byte *)first + 128);
+		first->size = 128;
+		first->next = second;
+		second->size = old_size - 128;
+		second->tag = 0;
+		second->id = ZONEID;
+		second->prev = first;
+		second->next = sentinel;
+		sentinel->prev = second;
+		mainzone->rover = first;
+		break;
+	}
+
+	bench486_zone_print_event_count = 0;
+	memset (bench486_zone_print_events, 0,
+		sizeof (bench486_zone_print_events));
+	if (use_asm)
+		Z_Print (mainzone);
+	else
+		Z_Print_C (mainzone);
+
+	memset (snapshot, 0, sizeof (*snapshot));
+	snapshot->event_count = bench486_zone_print_event_count;
+	Q_memcpy (snapshot->events, bench486_zone_print_events,
+		sizeof (snapshot->events));
+}
+
+static int Bench486ZonePrintCases (void)
+{
+	static const int expected_count[] = { 2, 5, 5, 6, 6, 4 };
+	static const int expected_kind[6][6] = {
+		{ ZH_PRINT_ZONE_HEADER, ZH_PRINT_ZONE_BLOCK, 0, 0, 0, 0 },
+		{ ZH_PRINT_ZONE_HEADER, ZH_PRINT_ZONE_BLOCK, ZH_PRINT_ZONE_BLOCK,
+			ZH_PRINT_ZONE_BLOCK, ZH_PRINT_ZONE_BLOCK, 0 },
+		{ ZH_PRINT_ZONE_HEADER, ZH_PRINT_ZONE_BLOCK, ZH_PRINT_ZONE_BLOCK,
+			ZH_PRINT_ZONE_BLOCK, ZH_PRINT_ZONE_BLOCK, 0 },
+		{ ZH_PRINT_ZONE_HEADER, ZH_PRINT_ZONE_BLOCK,
+			ZH_PRINT_ZONE_BAD_BOUNDARY, ZH_PRINT_ZONE_BLOCK,
+			ZH_PRINT_ZONE_BLOCK, ZH_PRINT_ZONE_BLOCK },
+		{ ZH_PRINT_ZONE_HEADER, ZH_PRINT_ZONE_BLOCK,
+			ZH_PRINT_ZONE_BAD_BACKLINK, ZH_PRINT_ZONE_BLOCK,
+			ZH_PRINT_ZONE_BLOCK, ZH_PRINT_ZONE_BLOCK },
+		{ ZH_PRINT_ZONE_HEADER, ZH_PRINT_ZONE_BLOCK,
+			ZH_PRINT_ZONE_ADJACENT_FREE, ZH_PRINT_ZONE_BLOCK, 0, 0 }
+	};
+	bench486_zone_print_snapshot_t c, a;
+	memzone_t *saved_mainzone = mainzone;
+	int case_index, i, failed = false;
+	for (case_index = 0; case_index < 6; case_index++)
+	{
+		Bench486ZonePrintRun (case_index, 0, &c);
+		Bench486ZonePrintRun (case_index, 1, &a);
+		if (!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)) ||
+				c.event_count != expected_count[case_index])
+			failed = true;
+		for (i = 0; i < expected_count[case_index]; i++)
+			if (c.events[i].kind != expected_kind[case_index][i] ||
+					a.events[i].kind != expected_kind[case_index][i])
+				failed = true;
+	}
+	mainzone = saved_mainzone;
+	bench486_zone_print_event_count = 0;
+	memset (bench486_zone_print_events, 0,
+		sizeof (bench486_zone_print_events));
+	return failed ? (int)0x80000000UL : 0;
+}
+
 static int Bench486ZoneHeapCheckerCases (void)
 {
 	return Bench486ZoneStructureCheckerCases () |
@@ -848,6 +993,7 @@ int Bench486ZoneHeapCases (void)
 			failures |= 1 << case_index;
 	}
 	failures |= Bench486ZoneHeapCheckerCases ();
+	failures |= Bench486ZonePrintCases ();
 
 	mainzone = saved_mainzone;
 #ifdef PROFILE486
@@ -866,6 +1012,7 @@ int Bench486ZoneHeapCases (void)
 
 #undef BZH_CASE_COUNT
 #undef BZH_HUNK_CHECK_SIZE
+#undef BZH_PRINT_EVENT_COUNT
 #undef BZH_ERROR_SIZE
 #undef BZH_ERROR_COUNT
 #undef BZH_COMMAND_NAME_SIZE

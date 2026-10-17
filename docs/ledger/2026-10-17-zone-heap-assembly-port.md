@@ -101,14 +101,17 @@ assembly in the i486 release profile. The cache allocation path is also
 assembly-backed: lookup, allocation, free, allocation search, move, flush, and
 low/high hunk reclamation each have selectable assembly entries. `Cache_Init`
 and `Memory_Init` now use the i486 zone-heap selector; C references remain for
-parity. The remaining C memory support is mostly diagnostics and helper code:
-`Z_CheckHeap`, `Z_Print`, `Hunk_Check`, `Hunk_Print`, `Cache_Print`,
-`Cache_Report`, and the internal LRU helpers. `Cache_Compact` is an empty stub.
+parity. `Z_CheckHeap`, `Hunk_Check`, and the internal cache LRU helpers also
+use the zone-heap assembly selector. `Z_Print` now has an assembly list walk
+and structural-check path, while its shared `Zone_PrintTrace` C adapter keeps
+the existing console formatting. `Hunk_Print`, `Cache_Print`, and
+`Cache_Report` remain C-owned diagnostics. `Cache_Compact` is an empty stub.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
 | `src/zone.c:Z_ClearZone_C`, `src/zone.c:Z_Free_C`, `src/zone.c:Z_TagMalloc_C`, `src/zone.c:Z_Malloc_C` | `src/zone_heapasm.s:Z_ClearZone`, `src/zone_heapasm.s:Z_Free`, `src/zone_heapasm.s:Z_TagMalloc`, `src/zone_heapasm.s:Z_Malloc` | Fifteen exact zone setup, allocation, failure, split, scan, coalescing, rover, zero-fill, and reuse cases; complete arena, result offsets, counters, and zero-fill expectations compared | DOSBox-X parity passes; strict BENCH and non-BENCH i486 release gates pass |
 | `src/zone.c:Cache_Init_C`, `src/zone.c:Memory_Init_C` | `src/zone_heapasm.s:Cache_Init`, `src/zone_heapasm.s:Memory_Init` | Sentinel/LRU initialization and flush-command registration; default zone size and `-zone 32` startup with complete arena and hunk/cache state comparison | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass with zero above-target or unknown instructions |
+| `src/zone.c:Z_Print_C` | `src/zone_heapasm.s:Z_Print` | Six cases compare event sequence, zone/block pointers, sizes and tags, including bad boundary, bad backlink and adjacent-free reports | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Z_Print` to `zone_heapasm.obj` and omits `Z_Print_C` |
 
 ### Cache and memory initialization follow-up (2026-10-17)
 
@@ -126,3 +129,33 @@ contributions and audited 165,347 instructions. Both passed the i486 gate with
 zero above-target, unknown, exempt, or skipped instructions. The production
 release command explicitly selected `ZoneHeapImplementation=asm`; its build
 root is `out/profile-fefff301cb4a2276/`.
+
+### Zone listing diagnostic follow-up (2026-10-17)
+
+`ZoneHeapImplementation=asm` now selects the `Z_Print` traversal from
+`zone_heapasm.s`. BENCH retains `Z_Print_C`; the C-reference profile keeps the
+C implementation. The C `Zone_PrintTrace` adapter preserves the original
+`Con_Printf` formats. The six-case fixture captures and compares the sequence
+and exact values passed to that adapter for a valid free zone, allocated and
+freed blocks, and each of the three structural warnings. DOSBox-X reported
+`zone heap C/ASM cases PASS failure mask 0x0` and
+`486 benchmark correctness PASS` in
+`out/dos-bench-20261017-195649/bench-result.json`.
+
+The strict BENCH gate audited 247,319 project instructions across 162 objects
+and 285,616 linked instructions across 397 objects. The executable proof
+verified all 285,616 opcodes across 235 runtime inputs; final mapping bound
+428 source contributions across 2,227 CODE ranges and 34 DATA ranges. Startup
+proof covered 1,660 loaded bytes and 529 CODE rows; provider proof covered
+9,207 instructions. There were zero above-i486 or unknown instructions,
+exemptions, skipped bytes, or unclassified sites.
+
+The non-BENCH release gate audited 125,390 project instructions and 163,687
+linked instructions across the same 162/397 objects. It verified all 163,687
+opcodes across 235 runtime inputs and mapped 414 source contributions across
+1,464 CODE ranges and 34 DATA ranges. Startup and provider proofs covered
+1,660 bytes / 529 CODE rows and 9,207 instructions, with zero exemptions.
+The release manifest records `ZoneHeapImplementation=asm`; the link map places
+`Z_Print` at `0x00073bfc` in `zone_heapasm.obj`, with no `Z_Print_C` symbol.
+Build evidence is under `out/profile-8bfc40771f2b70a4/`. This diagnostic
+fixture proves output-call parity, not FPS or full-scene framebuffer parity.

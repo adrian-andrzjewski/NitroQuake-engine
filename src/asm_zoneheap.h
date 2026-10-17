@@ -22,6 +22,12 @@
 #define ZH_ZONE_ID 0x1d4a11
 #define ZH_MIN_FRAGMENT 64
 
+#define ZH_PRINT_ZONE_HEADER 0
+#define ZH_PRINT_ZONE_BLOCK 1
+#define ZH_PRINT_ZONE_BAD_BOUNDARY 2
+#define ZH_PRINT_ZONE_BAD_BACKLINK 3
+#define ZH_PRINT_ZONE_ADJACENT_FREE 4
+
 #define ZH_CACHE_HEAD_PREV_OFFSET 24
 #define ZH_CACHE_HEAD_NEXT_OFFSET 28
 #define ZH_CACHE_HEAD_LRU_PREV_OFFSET 32
@@ -57,6 +63,7 @@ void Z_ClearZone_C (memzone_t *zone, int size);
 void Z_Free_C (void *ptr);
 void *Z_TagMalloc_C (int size, int tag);
 void *Z_Malloc_C (int size);
+void Z_Print_C (memzone_t *zone);
 void Z_CheckHeap_C (void);
 void Hunk_Check_C (void);
 void Cache_Init_C (void);
