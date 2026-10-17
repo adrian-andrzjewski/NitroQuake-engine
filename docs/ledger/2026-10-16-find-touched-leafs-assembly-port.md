@@ -123,12 +123,23 @@ individual entry. Only changing the production selector for the entire
 WorldControl group to C currently passes.
 
 The supplied DOSBox-X screenshot reports EIP `0x000e2fa8` and EBP
-`0x00400000`, outside the displayed application stack. The screenshot's exact
-executable hash is unknown. In the current candidate (`qbench.exe` SHA-256
-`25e71df0975e44c6921f54751a897e4240d815c86499a489aedf9877cf2d4bcf`), the
-map places `0x000e2fa8` inside `R_RecursiveClipBPoly_asm486`; disassembly shows
-it is a valid instruction boundary (`je 0x000e3009`). The next symbol,
-`R_DrawSolidClippedSubmodelPolygons_asm486`, begins at `0x000e3030`. This
-address mapping cannot prove the screenshot used this executable, and the
-reported EIP does not establish which earlier call damaged the frame state.
-The all-assembly runtime fault and its cause remain open.
+`0x00400000`. Its file timestamp (2026-10-16 12:41 Warsaw time) and guest
+program path correlate with `out/dos-bench-20261016-104040`, staged around
+12:40 Warsaw time. That run's `dosbox-x-bench.conf` mounts the staged directory
+as `C:`; its `quake\qbench.exe` SHA-256 is
+`7D7B0368A9C6A33CE90850DE2A59AAE46C0F2F72F9BD1B5F4D5A33954270BC28`.
+`bench.bat` starts `qbench.exe ... +bench486 -benchhullcheck -benchexit`, and
+the staged `BENCH486.TXT` ends after the entity-hull fixture passes and a
+partial `clip-links case 2` result. This ties the screenshot to that older
+BENCH fixture run. The staged bundle contains no link map or build manifest,
+so the exact EIP cannot be mapped to a function from this evidence. Maps from
+other candidates that place the same EIP in either
+`R_RecursiveClipBPoly_asm486` or `D_DrawZSpans` are not evidence for this
+binary.
+
+The later six-case hull and eight-case area-link fixtures pass, as do the
+fourteen-case entity/world trace fixture and the strict i486 gates. The
+current all-assembly Demo 2 run completes all 985 frames with the exact
+framebuffer and palette, checksum `1887495667`, and a measured 12.17 FPS.
+This historical BENCH screenshot does not establish a current production
+renderer crash.
