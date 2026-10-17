@@ -53,9 +53,11 @@ procedures to `zone_hunkmarkfreeasm.obj` and omits both C oracle symbols.
 ## Ownership and remaining work
 
 The two mark-release routines now use assembly in the default i486 profile.
-`Hunk_AllocName`, `Hunk_HighAllocName`, and other hunk-management routines
-remain C-owned. `Hunk_TempAlloc` has a separate assembly port and C oracle; see
-the [temporary-allocation ledger](2026-10-17-hunk-temp-alloc-assembly-port.md).
+`Hunk_AllocName` and `Hunk_HighAllocName` have a separate assembly port and C
+oracle; see the [named-allocation ledger](2026-10-17-hunk-named-alloc-assembly-port.md).
+`Hunk_TempAlloc` also has a separate assembly port and C oracle; see the
+[temporary-allocation ledger](2026-10-17-hunk-temp-alloc-assembly-port.md).
+Other hunk-management routines remain C-owned.
 `Cache_Compact` remains an empty no-op. The direct fixture and instruction
 gates establish routine-level state parity and i486 compatibility; they do not
 establish full-scene framebuffer parity or measure FPS.

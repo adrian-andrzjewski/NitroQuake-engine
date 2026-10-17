@@ -157,6 +157,7 @@ $script:AssemblyBackedImplementations = @(
     'CacheTryAllocImplementation',
     'HunkMarkReleaseImplementation',
     'HunkTempAllocImplementation',
+    'HunkNamedAllocImplementation',
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
     'AliasBBoxProjectImplementation',
@@ -1751,6 +1752,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'HunkNamedAllocImplementation'
+        Manifest   = 'hunkNamedAllocImplementation'
+        Suffix     = @{
+            'asm' = 'hunknamedallocasm'
+            'asm-fixture' = 'hunknamedallocfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_HUNK_NAMED_ALLOC')
+            'asm-fixture' = @('ASM486_HUNK_NAMED_ALLOC', 'ASM486_HUNK_NAMED_ALLOC_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_HUNK_NAMED_ALLOC')
+            'asm-fixture' = @('ASM486_HUNK_NAMED_ALLOC', 'ASM486_HUNK_NAMED_ALLOC_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VesaCopyRectsImplementation'
         Manifest   = 'vesaCopyRectsImplementation'
         Suffix     = @{
@@ -2001,6 +2020,7 @@ $script:SuffixOrder = @(
     'CacheTryAllocImplementation'
     'HunkMarkReleaseImplementation'
     'HunkTempAllocImplementation'
+    'HunkNamedAllocImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2121,6 +2141,7 @@ $script:CDefineOrder = @(
     'CacheTryAllocImplementation'
     'HunkMarkReleaseImplementation'
     'HunkTempAllocImplementation'
+    'HunkNamedAllocImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'
@@ -2272,6 +2293,7 @@ $script:AsmDefineOrder = @(
     'CacheTryAllocImplementation'
     'HunkMarkReleaseImplementation'
     'HunkTempAllocImplementation'
+    'HunkNamedAllocImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'TransformFrustumImplementation'

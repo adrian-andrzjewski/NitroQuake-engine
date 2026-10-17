@@ -129,6 +129,7 @@
     "CacheTryAllocImplementation": "asm",
     "HunkMarkReleaseImplementation": "asm",
     "HunkTempAllocImplementation": "asm",
+    "HunkNamedAllocImplementation": "asm",
     "VesaCopyRectsImplementation": "asm",
     "VesaSwapBuffersImplementation": "asm",
     "ScreenUpdateImplementation": "asm",

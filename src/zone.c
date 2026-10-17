@@ -57,6 +57,13 @@ extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int charact
 #define HUNK_TRACE(phase, x, y, character) ((void)0)
 #endif
 
+#if defined(BENCH486) && defined(ASM486_HUNK_NAMED_ALLOC) && defined(ASM486_SCREEN_CENTER_STRING)
+void Bench486HunkNamedAllocTrace (int phase, int x, int y, int character)
+{
+	HUNK_TRACE (phase, x, y, character);
+}
+#endif
+
 
 /*
 ==============================================================================
@@ -366,6 +373,8 @@ typedef struct
 	char	name[8];
 } hunk_t;
 
+#include "asm_hunknamedalloc.h"
+
 byte	*hunk_base;
 int		hunk_size;
 
@@ -493,7 +502,16 @@ void Hunk_Print (qboolean all)
 Hunk_AllocName
 ===================
 */
-void *Hunk_AllocName (int size, char *name)
+#if defined(BENCH486)
+#define HUNK_ALLOC_NAME_C_ENTRY Hunk_AllocName_C
+#define HUNK_HIGH_ALLOC_NAME_C_ENTRY Hunk_HighAllocName_C
+#else
+#define HUNK_ALLOC_NAME_C_ENTRY Hunk_AllocName
+#define HUNK_HIGH_ALLOC_NAME_C_ENTRY Hunk_HighAllocName
+#endif
+
+#if !defined(ASM486_HUNK_NAMED_ALLOC) || defined(BENCH486)
+void *HUNK_ALLOC_NAME_C_ENTRY (int size, char *name)
 {
 	hunk_t	*h;
 	HUNK_TRACE (72, size, hunk_low_used, hunk_high_used);
@@ -531,6 +549,14 @@ void *Hunk_AllocName (int size, char *name)
 	
 	return (void *)(h+1);
 }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_HUNK_NAMED_ALLOC)
+void *Hunk_AllocName (int size, char *name)
+{
+	return Hunk_AllocName_C (size, name);
+}
+#endif
 
 /*
 ===================
@@ -625,7 +651,8 @@ int	Hunk_HighMark (void)
 Hunk_HighAllocName
 ===================
 */
-void *Hunk_HighAllocName (int size, char *name)
+#if !defined(ASM486_HUNK_NAMED_ALLOC) || defined(BENCH486)
+void *HUNK_HIGH_ALLOC_NAME_C_ENTRY (int size, char *name)
 {
 	hunk_t	*h;
 	HUNK_TRACE (77, size, hunk_low_used, hunk_high_used);
@@ -671,6 +698,17 @@ void *Hunk_HighAllocName (int size, char *name)
 
 	return (void *)(h+1);
 }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_HUNK_NAMED_ALLOC)
+void *Hunk_HighAllocName (int size, char *name)
+{
+	return Hunk_HighAllocName_C (size, name);
+}
+#endif
+
+#undef HUNK_ALLOC_NAME_C_ENTRY
+#undef HUNK_HIGH_ALLOC_NAME_C_ENTRY
 
 
 /*
@@ -1299,5 +1337,9 @@ void Memory_Init (void *buf, int size)
 
 #if defined(BENCH486) && defined(ASM486_HUNK_TEMP_ALLOC_FIXTURE)
 #include "bench486_hunktempalloc.h"
+#endif
+
+#if defined(BENCH486) && defined(ASM486_HUNK_NAMED_ALLOC_FIXTURE)
+#include "bench486_hunknamedalloc.h"
 #endif
 

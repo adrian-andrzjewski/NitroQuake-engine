@@ -47,6 +47,9 @@ extern int Bench486HunkMarkFreeCases (void);
 #if defined(ASM486_HUNK_TEMP_ALLOC_FIXTURE)
 extern int Bench486HunkTempAllocCases (void);
 #endif
+#if defined(ASM486_HUNK_NAMED_ALLOC_FIXTURE)
+extern int Bench486HunkNamedAllocCases (void);
+#endif
 #if defined(ASM486_CACHE_ALLOC_FIXTURE)
 extern int Bench486CacheAllocCases (void);
 #endif
@@ -11680,6 +11683,30 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("hunk temp-allocation fixture requires HunkTempAllocImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchhunknamedalloc"))
+	{
+#if defined(ASM486_HUNK_NAMED_ALLOC_FIXTURE)
+		int hunk_named_alloc_failures;
+		hunk_named_alloc_failures = Bench486HunkNamedAllocCases ();
+		bench486_memory_failures += hunk_named_alloc_failures != 0;
+		Bench486Printf ("hunk low/high named-allocation C/ASM cases %s failure mask 0x%x\n",
+				hunk_named_alloc_failures ? "FAIL" : "PASS", hunk_named_alloc_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("hunk named-allocation fixture requires HunkNamedAllocImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

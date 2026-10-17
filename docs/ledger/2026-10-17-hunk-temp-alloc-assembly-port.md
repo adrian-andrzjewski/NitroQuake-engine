@@ -56,9 +56,11 @@ to `zone_hunktempallocasm.obj` and omits `Hunk_TempAlloc_C`.
 ## Ownership and remaining work
 
 The temporary-allocation wrapper now uses assembly in the default i486 profile.
-`Hunk_AllocName`, `Hunk_HighAllocName`, hunk diagnostics, and other hunk
-management remain C-owned. This routine-level fixture and the ISA gates do not
-establish full-scene framebuffer parity or measure FPS.
+`Hunk_AllocName` and `Hunk_HighAllocName` have separate assembly ports and C
+oracles; see the [named-allocation ledger](2026-10-17-hunk-named-alloc-assembly-port.md).
+Hunk diagnostics and other hunk management remain C-owned. This routine-level
+fixture and the ISA gates do not establish full-scene framebuffer parity or
+measure FPS.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
