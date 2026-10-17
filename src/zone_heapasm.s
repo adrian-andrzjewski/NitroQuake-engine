@@ -399,6 +399,156 @@ C(Cache_Print):
 	ret
 
 .p2align 2
+.globl C(Hunk_Print)
+C(Hunk_Print):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$24,%esp
+
+	movl	C(hunk_base),%ebx
+	movl	%ebx,%esi
+	movl	C(hunk_low_used),%eax
+	leal	(%ebx,%eax),%edi		/* end of low hunk */
+	movl	C(hunk_size),%eax
+	leal	(%ebx,%eax),%edx
+	movl	%edx,-16(%ebp)		/* end of high hunk */
+	movl	C(hunk_high_used),%ecx
+	subl	%ecx,%edx
+	movl	%edx,-20(%ebp)		/* start of high hunk */
+	movl	$0,-24(%ebp)		/* grouped byte total */
+	movl	$0,-28(%ebp)		/* allocation count */
+	movl	8(%ebp),%eax
+	movl	%eax,-32(%ebp)		/* print every allocation */
+
+	pushl	C(hunk_size)
+	pushl	$0
+	pushl	$HNA_HUNK_PRINT_TOTAL_SIZE
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+	pushl	$0
+	pushl	$0
+	pushl	$HNA_HUNK_PRINT_SEPARATOR
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+
+.Lhunk_print_loop:
+	cmpl	%edi,%esi
+	jne	.Lhunk_print_not_low_end
+	pushl	$0
+	pushl	$0
+	pushl	$HNA_HUNK_PRINT_SEPARATOR
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+	movl	C(hunk_size),%eax
+	subl	C(hunk_low_used),%eax
+	subl	C(hunk_high_used),%eax
+	pushl	%eax
+	pushl	$0
+	pushl	$HNA_HUNK_PRINT_REMAINING
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+	pushl	$0
+	pushl	$0
+	pushl	$HNA_HUNK_PRINT_SEPARATOR
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+	movl	-20(%ebp),%esi
+
+.Lhunk_print_not_low_end:
+	cmpl	-16(%ebp),%esi
+	je	.Lhunk_print_done
+	cmpl	$HNA_HUNK_SENTINAL_VALUE,HNA_HUNK_SENTINAL_OFFSET(%esi)
+	je	.Lhunk_print_valid_sentinal
+	pushl	$HNA_HUNK_PRINT_ERROR_SENTINAL
+	call	C(Zone_HunkPrintError)
+	addl	$4,%esp
+
+.Lhunk_print_valid_sentinal:
+	movl	HNA_HUNK_SIZE_OFFSET(%esi),%eax
+	leal	(%esi,%eax),%edx
+	movl	%edx,-36(%ebp)		/* next hunk header */
+	cmpl	$HNA_HUNK_SIZE,%eax
+	jl	.Lhunk_print_bad_size
+	cmpl	-16(%ebp),%edx
+	jbe	.Lhunk_print_valid_size
+
+.Lhunk_print_bad_size:
+	pushl	$HNA_HUNK_PRINT_ERROR_SIZE
+	call	C(Zone_HunkPrintError)
+	addl	$4,%esp
+	movl	HNA_HUNK_SIZE_OFFSET(%esi),%eax
+
+.Lhunk_print_valid_size:
+	incl	-28(%ebp)
+	addl	%eax,-24(%ebp)
+	cmpl	$0,-32(%ebp)
+	je	.Lhunk_print_group_check
+	pushl	%eax
+	pushl	%esi
+	pushl	$HNA_HUNK_PRINT_ALLOCATION
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+
+.Lhunk_print_group_check:
+	movl	-36(%ebp),%edx
+	cmpl	%edi,%edx
+	je	.Lhunk_print_group_end
+	cmpl	-16(%ebp),%edx
+	je	.Lhunk_print_group_end
+	leal	HNA_HUNK_NAME_OFFSET(%esi),%eax
+	leal	HNA_HUNK_NAME_OFFSET(%edx),%ecx
+	movl	$HNA_HUNK_NAME_SIZE,%edx
+.Lhunk_print_name_compare:
+	movzbl	(%ecx),%ebx
+	cmpb	(%eax),%bl
+	jne	.Lhunk_print_group_end
+	testb	%bl,%bl
+	je	.Lhunk_print_next
+	incl	%eax
+	incl	%ecx
+	decl	%edx
+	jne	.Lhunk_print_name_compare
+	jmp	.Lhunk_print_next
+
+.Lhunk_print_group_end:
+	cmpl	$0,-32(%ebp)
+	jne	.Lhunk_print_reset_group
+	movl	-24(%ebp),%eax
+	pushl	%eax
+	pushl	%esi
+	pushl	$HNA_HUNK_PRINT_GROUP_TOTAL
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+
+.Lhunk_print_reset_group:
+	movl	$0,-24(%ebp)
+
+.Lhunk_print_next:
+	movl	-36(%ebp),%esi
+	jmp	.Lhunk_print_loop
+
+.Lhunk_print_done:
+	pushl	$0
+	pushl	$0
+	pushl	$HNA_HUNK_PRINT_SEPARATOR
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+	pushl	-28(%ebp)
+	pushl	$0
+	pushl	$HNA_HUNK_PRINT_BLOCKS
+	call	C(Zone_HunkPrintTrace)
+	addl	$12,%esp
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.p2align 2
 .globl C(Z_CheckHeap)
 C(Z_CheckHeap):
 	pushl	%ebx

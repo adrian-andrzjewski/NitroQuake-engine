@@ -520,6 +520,10 @@ typedef struct
 
 #include "asm_hunknamedalloc.h"
 
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+void Bench486HunkPrintEvent (int kind, void *hunk, int value);
+#endif
+
 byte	*hunk_base;
 int		hunk_size;
 
@@ -592,15 +596,73 @@ If "all" is specified, every single allocation is printed.
 Otherwise, allocations with the same name will be totaled up before printing.
 ==============
 */
-void Hunk_Print (qboolean all)
+#if defined(BENCH486)
+#define HUNK_PRINT_C_ENTRY Hunk_Print_C
+#else
+#define HUNK_PRINT_C_ENTRY Hunk_Print
+#endif
+
+void Zone_HunkPrintTrace (int kind, void *hunk_ptr, int value)
+{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+	Bench486HunkPrintEvent (kind, hunk_ptr, value);
+#else
+	hunk_t *hunk = (hunk_t *)hunk_ptr;
+	char name[9];
+
+	switch (kind)
+	{
+	case HNA_HUNK_PRINT_TOTAL_SIZE:
+		Con_Printf ("          :%8i total hunk size\n", value);
+		break;
+	case HNA_HUNK_PRINT_SEPARATOR:
+		Con_Printf ("-------------------------\n");
+		break;
+	case HNA_HUNK_PRINT_REMAINING:
+		Con_Printf ("          :%8i REMAINING\n", value);
+		break;
+	case HNA_HUNK_PRINT_ALLOCATION:
+		memcpy (name, hunk->name, 8);
+		name[8] = 0;
+		Con_Printf ("%8p :%8i %8s\n", hunk, value, name);
+		break;
+	case HNA_HUNK_PRINT_GROUP_TOTAL:
+		memcpy (name, hunk->name, 8);
+		name[8] = 0;
+		Con_Printf ("          :%8i %8s (TOTAL)\n", value, name);
+		break;
+	case HNA_HUNK_PRINT_BLOCKS:
+		Con_Printf ("%8i total blocks\n", value);
+		break;
+	default:
+		Sys_Error ("Hunk_Print: bad trace event");
+		break;
+	}
+#endif
+}
+
+void Zone_HunkPrintError (int kind)
+{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+	if (kind == HNA_HUNK_PRINT_ERROR_SENTINAL)
+		Bench486ZoneHeapError ("Hunk_Check: trahsed sentinal");
+	else
+		Bench486ZoneHeapError ("Hunk_Check: bad size");
+#else
+	if (kind == HNA_HUNK_PRINT_ERROR_SENTINAL)
+		Sys_Error ("Hunk_Check: trahsed sentinal");
+	else
+		Sys_Error ("Hunk_Check: bad size");
+#endif
+}
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void HUNK_PRINT_C_ENTRY (qboolean all)
 {
 	hunk_t	*h, *next, *endlow, *starthigh, *endhigh;
-	int		count, sum;
+	int		sum;
 	int		totalblocks;
-	char	name[9];
 
-	name[8] = 0;
-	count = 0;
 	sum = 0;
 	totalblocks = 0;
 	
@@ -609,8 +671,8 @@ void Hunk_Print (qboolean all)
 	starthigh = (hunk_t *)(hunk_base + hunk_size - hunk_high_used);
 	endhigh = (hunk_t *)(hunk_base + hunk_size);
 
-	Con_Printf ("          :%8i total hunk size\n", hunk_size);
-	Con_Printf ("-------------------------\n");
+	Zone_HunkPrintTrace (HNA_HUNK_PRINT_TOTAL_SIZE, NULL, hunk_size);
+	Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
 
 	while (1)
 	{
@@ -619,9 +681,10 @@ void Hunk_Print (qboolean all)
 	//
 		if ( h == endlow )
 		{
-			Con_Printf ("-------------------------\n");
-			Con_Printf ("          :%8i REMAINING\n", hunk_size - hunk_low_used - hunk_high_used);
-			Con_Printf ("-------------------------\n");
+			Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
+			Zone_HunkPrintTrace (HNA_HUNK_PRINT_REMAINING, NULL,
+				hunk_size - hunk_low_used - hunk_high_used);
+			Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
 			h = starthigh;
 		}
 		
@@ -635,21 +698,19 @@ void Hunk_Print (qboolean all)
 	// run consistancy checks
 	//
 		if (h->sentinal != HUNK_SENTINAL)
-			Sys_Error ("Hunk_Check: trahsed sentinal");
+			Zone_HunkPrintError (HNA_HUNK_PRINT_ERROR_SENTINAL);
 		if (h->size < 16 || h->size + (byte *)h - hunk_base > hunk_size)
-			Sys_Error ("Hunk_Check: bad size");
+			Zone_HunkPrintError (HNA_HUNK_PRINT_ERROR_SIZE);
 			
 		next = (hunk_t *)((byte *)h+h->size);
-		count++;
 		totalblocks++;
 		sum += h->size;
 
 	//
 	// print the single block
 	//
-		memcpy (name, h->name, 8);
 		if (all)
-			Con_Printf ("%8p :%8i %8s\n",h, h->size, name);
+			Zone_HunkPrintTrace (HNA_HUNK_PRINT_ALLOCATION, h, h->size);
 			
 	//
 	// print the total
@@ -658,18 +719,27 @@ void Hunk_Print (qboolean all)
 		strncmp (h->name, next->name, 8) )
 		{
 			if (!all)
-				Con_Printf ("          :%8i %8s (TOTAL)\n",sum, name);
-			count = 0;
+				Zone_HunkPrintTrace (HNA_HUNK_PRINT_GROUP_TOTAL, h, sum);
 			sum = 0;
 		}
 
 		h = next;
 	}
 
-	Con_Printf ("-------------------------\n");
-	Con_Printf ("%8i total blocks\n", totalblocks);
+	Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
+	Zone_HunkPrintTrace (HNA_HUNK_PRINT_BLOCKS, NULL, totalblocks);
 	
 }
+#endif
+
+#undef HUNK_PRINT_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Hunk_Print (qboolean all)
+{
+	Hunk_Print_C (all);
+}
+#endif
 
 /*
 ===================

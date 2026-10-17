@@ -10,6 +10,8 @@
 #define BZH_HUNK_CHECK_SIZE 128
 #define BZH_PRINT_EVENT_COUNT 64
 #define BZH_CACHE_PRINT_EVENT_COUNT 8
+#define BZH_HUNK_PRINT_ARENA_SIZE 512
+#define BZH_HUNK_PRINT_EVENT_COUNT 24
 
 typedef struct bench486_zone_heap_snapshot_s
 {
@@ -109,6 +111,22 @@ typedef struct bench486_cache_print_snapshot_s
 	bench486_cache_print_event_t events[BZH_CACHE_PRINT_EVENT_COUNT];
 } bench486_cache_print_snapshot_t;
 
+typedef struct bench486_hunk_print_event_s
+{
+	int kind;
+	void *hunk;
+	int value;
+	char name[HNA_HUNK_NAME_SIZE];
+} bench486_hunk_print_event_t;
+
+typedef struct bench486_hunk_print_snapshot_s
+{
+	int event_count;
+	bench486_hunk_print_event_t events[BZH_HUNK_PRINT_EVENT_COUNT];
+	int error_count;
+	char errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+} bench486_hunk_print_snapshot_t;
+
 typedef struct bench486_cache_lru_snapshot_s
 {
 	cache_system_t head;
@@ -122,6 +140,11 @@ static union
 	long alignment[4];
 	byte bytes[BZH_MEMORY_SIZE];
 } bench486_memory_init_arena;
+static union
+{
+	long alignment[4];
+	byte bytes[BZH_HUNK_PRINT_ARENA_SIZE];
+} bench486_hunk_print_arena;
 static bench486_zone_init_snapshot_t bench486_zone_init_c;
 static bench486_zone_init_snapshot_t bench486_zone_init_asm;
 static bench486_memory_init_snapshot_t bench486_memory_init_c;
@@ -138,6 +161,9 @@ static bench486_zone_print_event_t
 static int bench486_cache_print_event_count;
 static bench486_cache_print_event_t
 	bench486_cache_print_events[BZH_CACHE_PRINT_EVENT_COUNT];
+static int bench486_hunk_print_event_count;
+static bench486_hunk_print_event_t
+	bench486_hunk_print_events[BZH_HUNK_PRINT_EVENT_COUNT];
 
 void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function)
 {
@@ -195,6 +221,23 @@ void Bench486CachePrintEvent (cache_system_t *entry)
 	event->entry = entry;
 	event->size = entry->size;
 	Q_memcpy (event->name, entry->name, sizeof (event->name));
+}
+
+void Bench486HunkPrintEvent (int kind, void *hunk, int value)
+{
+	int slot = bench486_hunk_print_event_count++;
+	bench486_hunk_print_event_t *event;
+	if (slot < 0 || slot >= BZH_HUNK_PRINT_EVENT_COUNT)
+		return;
+	event = &bench486_hunk_print_events[slot];
+	memset (event, 0, sizeof (*event));
+	event->kind = kind;
+	event->hunk = hunk;
+	event->value = value;
+	if (hunk && (kind == HNA_HUNK_PRINT_ALLOCATION ||
+			kind == HNA_HUNK_PRINT_GROUP_TOTAL))
+		Q_memcpy (event->name, (byte *)hunk + HNA_HUNK_NAME_OFFSET,
+			HNA_HUNK_NAME_SIZE);
 }
 
 static void Bench486ZoneHeapSetup (int use_asm)
@@ -995,6 +1038,208 @@ static int Bench486CachePrintCases (void)
 	return failed ? (int)0x80000000UL : 0;
 }
 
+static void Bench486HunkPrintSetBlock (hunk_t *hunk, int size,
+		char *name, int sentinal)
+{
+	hunk->sentinal = sentinal;
+	hunk->size = size;
+	memset (hunk->name, 0, sizeof (hunk->name));
+	Q_strncpy (hunk->name, name, sizeof (hunk->name));
+}
+
+static void Bench486HunkPrintRun (int case_index, int use_asm,
+		bench486_hunk_print_snapshot_t *snapshot)
+{
+	static const int print_all[] = { 0, 0, 0, 0, 1, 0, 1, 0 };
+	hunk_t *first = (hunk_t *)bench486_hunk_print_arena.bytes;
+	hunk_t *second = (hunk_t *)(bench486_hunk_print_arena.bytes + 32);
+	hunk_t *high = (hunk_t *)(bench486_hunk_print_arena.bytes +
+		BZH_HUNK_PRINT_ARENA_SIZE);
+	int i;
+	for (i = 0; i < BZH_HUNK_PRINT_ARENA_SIZE; i++)
+		bench486_hunk_print_arena.bytes[i] = (byte)(i * 17 + case_index * 11);
+	hunk_base = bench486_hunk_print_arena.bytes;
+	hunk_size = BZH_HUNK_PRINT_ARENA_SIZE;
+	hunk_low_used = 0;
+	hunk_high_used = 0;
+	switch (case_index)
+	{
+	case 0: /* Empty hunk. */
+		break;
+	case 1:
+		Bench486HunkPrintSetBlock (first, 32, "alpha", HUNK_SENTINAL);
+		hunk_low_used = 32;
+		break;
+	case 2:
+		Bench486HunkPrintSetBlock (first, 32, "shared", HUNK_SENTINAL);
+		Bench486HunkPrintSetBlock (second, 48, "shared", HUNK_SENTINAL);
+		hunk_low_used = 80;
+		break;
+	case 3:
+		Bench486HunkPrintSetBlock (first, 32, "low-a", HUNK_SENTINAL);
+		Bench486HunkPrintSetBlock (second, 32, "low-b", HUNK_SENTINAL);
+		Bench486HunkPrintSetBlock (high - 3, 48, "high", HUNK_SENTINAL);
+		hunk_low_used = 64;
+		hunk_high_used = 48;
+		break;
+	case 4:
+		Bench486HunkPrintSetBlock (first, 32, "all-a", HUNK_SENTINAL);
+		Bench486HunkPrintSetBlock (second, 32, "all-b", HUNK_SENTINAL);
+		hunk_low_used = 64;
+		break;
+	case 5:
+		Bench486HunkPrintSetBlock (first, 32, "broken", 0);
+		hunk_low_used = 32;
+		break;
+	case 6:
+		Bench486HunkPrintSetBlock (high - 3, 48, "highonly", HUNK_SENTINAL);
+		hunk_high_used = 48;
+		break;
+	case 7:
+		Bench486HunkPrintSetBlock (first, 32, "shared", HUNK_SENTINAL);
+		Bench486HunkPrintSetBlock (high - 2, 32, "shared", HUNK_SENTINAL);
+		hunk_low_used = 32;
+		hunk_high_used = 32;
+		break;
+	}
+	bench486_zone_heap_error_count = 0;
+	memset (bench486_zone_heap_errors, 0,
+		sizeof (bench486_zone_heap_errors));
+	bench486_hunk_print_event_count = 0;
+	memset (bench486_hunk_print_events, 0,
+		sizeof (bench486_hunk_print_events));
+	if (use_asm)
+		Hunk_Print (print_all[case_index]);
+	else
+		Hunk_Print_C (print_all[case_index]);
+	memset (snapshot, 0, sizeof (*snapshot));
+	snapshot->event_count = bench486_hunk_print_event_count;
+	Q_memcpy (snapshot->events, bench486_hunk_print_events,
+		sizeof (snapshot->events));
+	snapshot->error_count = bench486_zone_heap_error_count;
+	Q_memcpy (snapshot->errors, bench486_zone_heap_errors,
+		sizeof (snapshot->errors));
+}
+
+static qboolean Bench486HunkPrintNameMatches (
+		const bench486_hunk_print_event_t *event, const char *name)
+{
+	char expected[HNA_HUNK_NAME_SIZE];
+	memset (expected, 0, sizeof (expected));
+	Q_strncpy (expected, (char *)name, sizeof (expected));
+	return !Q_memcmp ((void *)event->name, expected, sizeof (expected));
+}
+
+static qboolean Bench486HunkPrintExpected (int case_index,
+		const bench486_hunk_print_snapshot_t *snapshot)
+{
+	static const int event_counts[] = { 7, 8, 8, 10, 9, 8, 8, 9 };
+	static const int block_counts[] = { 0, 1, 2, 3, 2, 1, 1, 2 };
+	static const int remaining_sizes[] = { 512, 480, 432, 400, 448, 480, 464, 448 };
+	static const int group_counts[] = { 0, 1, 1, 3, 0, 1, 0, 2 };
+	static const int group_sizes[8][3] = {
+		{ 0, 0, 0 }, { 32, 0, 0 }, { 80, 0, 0 }, { 32, 32, 48 },
+		{ 0, 0, 0 }, { 32, 0, 0 }, { 0, 0, 0 }, { 32, 32, 0 }
+	};
+	static const char *group_names[8][3] = {
+		{ NULL, NULL, NULL }, { "alpha", NULL, NULL }, { "shared", NULL, NULL },
+		{ "low-a", "low-b", "high" }, { NULL, NULL, NULL },
+		{ "broken", NULL, NULL }, { NULL, NULL, NULL },
+		{ "shared", "shared", NULL }
+	};
+	static const int allocation_counts[] = { 0, 0, 0, 0, 2, 0, 1, 0 };
+	static const int expected_error_counts[] = { 0, 0, 0, 0, 0, 1, 0, 0 };
+	static const char *expected_errors[] = {
+		NULL, NULL, NULL, NULL, NULL,
+		"Hunk_Check: trahsed sentinal", NULL, NULL
+	};
+	int i, groups = 0, allocations = 0, remaining = 0, blocks = 0;
+	if (snapshot->event_count != event_counts[case_index] ||
+			snapshot->error_count != expected_error_counts[case_index] ||
+			snapshot->events[0].kind != HNA_HUNK_PRINT_TOTAL_SIZE ||
+			snapshot->events[0].value != BZH_HUNK_PRINT_ARENA_SIZE ||
+			snapshot->events[snapshot->event_count - 1].kind !=
+				HNA_HUNK_PRINT_BLOCKS ||
+			snapshot->events[snapshot->event_count - 1].value !=
+				block_counts[case_index])
+		return false;
+	for (i = 0; i < snapshot->event_count; i++)
+	{
+		const bench486_hunk_print_event_t *event = &snapshot->events[i];
+		if (event->kind == HNA_HUNK_PRINT_REMAINING)
+		{
+			remaining++;
+			if (event->value != remaining_sizes[case_index])
+				return false;
+		}
+		else if (event->kind == HNA_HUNK_PRINT_GROUP_TOTAL)
+		{
+			if (groups >= group_counts[case_index] ||
+					event->value != group_sizes[case_index][groups] ||
+					!Bench486HunkPrintNameMatches (event,
+						group_names[case_index][groups]))
+				return false;
+			groups++;
+		}
+		else if (event->kind == HNA_HUNK_PRINT_ALLOCATION)
+			allocations++;
+		else if (event->kind == HNA_HUNK_PRINT_BLOCKS)
+			blocks++;
+	}
+	if (remaining != 1 || groups != group_counts[case_index] ||
+			allocations != allocation_counts[case_index] || blocks != 1)
+		return false;
+	if (expected_errors[case_index])
+	{
+		int j;
+		for (j = 0; j < BZH_ERROR_SIZE; j++)
+		{
+			if (snapshot->errors[0][j] != expected_errors[case_index][j])
+				return false;
+			if (!expected_errors[case_index][j])
+				break;
+		}
+	}
+	return true;
+}
+
+static int Bench486HunkPrintCases (void)
+{
+	bench486_hunk_print_snapshot_t c, a;
+	byte *saved_hunk_base = hunk_base;
+	int saved_hunk_size = hunk_size;
+	int saved_hunk_low_used = hunk_low_used;
+	int saved_hunk_high_used = hunk_high_used;
+	int saved_error_count = bench486_zone_heap_error_count;
+	char saved_errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+	int saved_event_count = bench486_hunk_print_event_count;
+	bench486_hunk_print_event_t saved_events[BZH_HUNK_PRINT_EVENT_COUNT];
+	int case_index, case_failures = 0;
+	Q_memcpy (saved_errors, bench486_zone_heap_errors, sizeof (saved_errors));
+	Q_memcpy (saved_events, bench486_hunk_print_events, sizeof (saved_events));
+	for (case_index = 0; case_index < 8; case_index++)
+	{
+		int case_bit = 1 << case_index;
+		Bench486HunkPrintRun (case_index, 0, &c);
+		Bench486HunkPrintRun (case_index, 1, &a);
+		if (!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)))
+			case_failures |= case_bit;
+		if (!Bench486HunkPrintExpected (case_index, &c))
+			case_failures |= case_bit << 8;
+		if (!Bench486HunkPrintExpected (case_index, &a))
+			case_failures |= case_bit << 16;
+	}
+	hunk_base = saved_hunk_base;
+	hunk_size = saved_hunk_size;
+	hunk_low_used = saved_hunk_low_used;
+	hunk_high_used = saved_hunk_high_used;
+	bench486_zone_heap_error_count = saved_error_count;
+	Q_memcpy (bench486_zone_heap_errors, saved_errors, sizeof (saved_errors));
+	bench486_hunk_print_event_count = saved_event_count;
+	Q_memcpy (bench486_hunk_print_events, saved_events, sizeof (saved_events));
+	return case_failures ? (int)(0x40000000UL | (unsigned long)case_failures) : 0;
+}
+
 static int Bench486ZoneHeapCheckerCases (void)
 {
 	return Bench486ZoneStructureCheckerCases () |
@@ -1097,6 +1342,7 @@ int Bench486ZoneHeapCases (void)
 	failures |= Bench486ZoneHeapCheckerCases ();
 	failures |= Bench486ZonePrintCases ();
 	failures |= Bench486CachePrintCases ();
+	failures |= Bench486HunkPrintCases ();
 
 	mainzone = saved_mainzone;
 #ifdef PROFILE486
@@ -1115,6 +1361,8 @@ int Bench486ZoneHeapCases (void)
 
 #undef BZH_CASE_COUNT
 #undef BZH_HUNK_CHECK_SIZE
+#undef BZH_HUNK_PRINT_EVENT_COUNT
+#undef BZH_HUNK_PRINT_ARENA_SIZE
 #undef BZH_CACHE_PRINT_EVENT_COUNT
 #undef BZH_PRINT_EVENT_COUNT
 #undef BZH_ERROR_SIZE

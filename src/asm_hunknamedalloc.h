@@ -8,6 +8,8 @@
 #define HNA_HUNK_SIZE 16
 #define HNA_HUNK_SENTINAL_VALUE 0x1df001ed
 
+#include "asm_hunkprint.h"
+
 #ifndef __ASSEMBLER__
 #include <stddef.h>
 
