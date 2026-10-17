@@ -405,15 +405,16 @@ including entity filters, monster bounds, trace merging, and area-node
 recursion, and observed 10 assembly entries with intact guard sentinels.
 
 The 2026-10-17 default i486 BENCH inventory at
-`out/profile-256f1bf59d2ad152/renderer-ownership-qbench.json` reports 891
+`out/profile-5fbece95396145c7/renderer-ownership-qbench.json` reports 892
 renderer entries, 371 directly reachable entries, 70 directly reachable C
-renderer/support entries, and 62 unresolved direct callees. `Cache_Check` now
-uses its selected assembly entry; a four-case fixture verified hit/miss return
-values, LRU order and profile-counter parity. Cache allocation/eviction and
-hunk management remain C-owned. The VGA linear and planar pixel-copy routines
-already use assembly; the higher-level `VID_Update`, video mode and VESA page
-presentation paths remain C-owned. See the
-[`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md).
+renderer/support entries, and 62 unresolved direct callees. `Cache_Check` and
+the VESA dirty-rectangle copy loop now use their selected assembly entries;
+their direct C/ASM fixtures passed. Cache allocation/eviction and hunk
+management remain C-owned. The VGA linear and planar pixel-copy routines
+already use assembly; VESA discovery, wait probing, page flips, mode changes
+and the outer `VID_Update` state machine remain C-owned. See the
+[`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md) and
+[`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md).
 Strict BENCH and release executable gates passed with zero above-i486
 instructions, unknown encodings, exemptions, or misclassified data. BENCH
 audited 242,790 project instructions and 281,087 linked instructions across

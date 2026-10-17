@@ -287,6 +287,8 @@ param(
     [string]$SbarFragsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheCheckImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaCopyRectsImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -353,6 +355,7 @@ param(
     [switch]$SbarInventoryOnly,
     [switch]$SbarFragsOnly,
     [switch]$CacheCheckOnly,
+    [switch]$VesaCopyRectsOnly,
     [switch]$ChaseOnly,
     [switch]$HullCheckOnly,
     [switch]$AliasControlOnly,
@@ -419,6 +422,9 @@ if ($SbarFragsOnly -and $SbarFragsImplementation -ne 'asm-fixture') {
 }
 if ($CacheCheckOnly -and $CacheCheckImplementation -ne 'asm-fixture') {
     throw '-CacheCheckOnly requires -CacheCheckImplementation asm-fixture.'
+}
+if ($VesaCopyRectsOnly -and $VesaCopyRectsImplementation -ne 'asm-fixture') {
+    throw '-VesaCopyRectsOnly requires -VesaCopyRectsImplementation asm-fixture.'
 }
 if ($MemoryOnly -and $MemoryImplementation -ne 'asm') {
     throw '-MemoryOnly requires -MemoryImplementation asm.'
@@ -885,6 +891,9 @@ elseif ($SbarFragsOnly) {
 }
 elseif ($CacheCheckOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcachecheck -benchexit'
+}
+elseif ($VesaCopyRectsOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesacopy -benchexit'
 }
 elseif ($AliasStatsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasstats -benchexit'

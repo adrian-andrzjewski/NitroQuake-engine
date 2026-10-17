@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include "dosisms.h"
 #include "vid_dos.h"
 #include "vid_vesa.h"
+#include "asm_vesacopy.h"
 
 #define MAX_VESA_MODES 30
 #define LINEAR_MODE 0x4000
@@ -38,6 +39,43 @@ static qboolean mapped, palette_ok = true;
 static int VID_currentpage, VID_displayedpage, VID_pagesize;
 static qboolean vsync_exists, de_exists, wait_probed;
 extern regs_t regs;
+
+#if !defined(ASM486_VESA_COPY_RECTS) || defined(BENCH486)
+static void VESA_CopyRects_C (vrect_t *rects, byte *srcbase, byte *dstbase,
+		int vidwidth, int vidheight, int srcrowbytes, int destrowbytes)
+{
+	int width, height, y, bulk;
+	byte *src, *dst;
+	for (; rects; rects = rects->pnext)
+	{
+		width = rects->width;
+		height = rects->height;
+		if (width <= 0 || height <= 0 || rects->x < 0 || rects->y < 0 ||
+			(unsigned)width > (unsigned)vidwidth ||
+			(unsigned)height > (unsigned)vidheight ||
+			(unsigned)rects->x > (unsigned)(vidwidth - width) ||
+			(unsigned)rects->y > (unsigned)(vidheight - height)) continue;
+		src = srcbase + rects->x + rects->y * srcrowbytes;
+		dst = dstbase + rects->x + rects->y * destrowbytes;
+		VESA_CopyShape (&width, &height, srcrowbytes, destrowbytes);
+		bulk = width & ~3;
+		if (bulk) VGA_UpdateLinearScreen (src, dst, bulk, height,
+				srcrowbytes, destrowbytes);
+		if (width & 3)
+			for (y = 0; y < height; y++)
+				memcpy (dst + y * destrowbytes + bulk,
+					src + y * srcrowbytes + bulk, width & 3);
+	}
+}
+#endif
+
+#if defined(ASM486_VESA_COPY_RECTS)
+extern void VESA_CopyRects (vrect_t *rects, byte *srcbase, byte *dstbase,
+		int vidwidth, int vidheight, int srcrowbytes, int destrowbytes);
+#define VESA_CopyRects_Entry VESA_CopyRects
+#else
+#define VESA_CopyRects_Entry VESA_CopyRects_C
+#endif
 
 int VID_ExtraInitMode (viddef_t *lvid, vmode_t *mode);
 void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects);
@@ -325,8 +363,7 @@ failed:
 
 void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
 {
-	int offset, width, height, y, bulk;
-	byte *src, *dst;
+	int offset;
 	if (lvid->numpages > 1)
 	{
 		offset = VID_currentpage * VID_pagesize;
@@ -351,21 +388,10 @@ void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
 	}
 	if (vid_wait.value == VID_WAIT_VSYNC && vsync_exists) VGA_WaitVsync ();
 	if (vid_wait.value == VID_WAIT_DISPLAY_ENABLE && de_exists) VID_ExtraWaitDisplayEnable ();
-	for (; rects; rects = rects->pnext)
-	{
-		width = rects->width;
-		height = rects->height;
-		if (width <= 0 || height <= 0 || rects->x < 0 || rects->y < 0 ||
-			(unsigned)width > lvid->width || (unsigned)height > lvid->height ||
-			(unsigned)rects->x > lvid->width - width || (unsigned)rects->y > lvid->height - height) continue;
-		src = lvid->buffer + rects->x + rects->y * lvid->rowbytes;
-		dst = VGA_pagebase + rects->x + rects->y * VGA_rowbytes;
-		VESA_CopyShape (&width, &height, lvid->rowbytes, VGA_rowbytes);
-		/* The existing i486 copier handles dwords. Preserve any byte tail. */
-		bulk = width & ~3;
-		if (bulk) VGA_UpdateLinearScreen (src, dst, bulk, height, lvid->rowbytes, VGA_rowbytes);
-		if (width & 3)
-			for (y = 0; y < height; y++)
-				memcpy (dst + y * VGA_rowbytes + bulk, src + y * lvid->rowbytes + bulk, width & 3);
-	}
+	VESA_CopyRects_Entry (rects, lvid->buffer, VGA_pagebase, lvid->width,
+		lvid->height, lvid->rowbytes, VGA_rowbytes);
 }
+
+#if defined(BENCH486) && defined(ASM486_VESA_COPY_RECTS_FIXTURE)
+#include "bench486_vesacopy.h"
+#endif

@@ -9,19 +9,19 @@
   "optimizationProfile": "aggressive",
   "optimizationLevel": "-O3",
   "profileSuffix": "-i386-memasm-fillrectasm-zpointasm-surf0rows16-surf0hflat-surf1rows8-surf1hflat-surf1hflatidxhoist-aliasmatrixasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-zsubmodelpolysasm-renderpolyasm",
-  "outputRoot": "<repo>\\out\\profile-77ba446e70500fa2",
-  "objectRoot": "<repo>\\out\\profile-77ba446e70500fa2\\obj",
-  "executable": "<repo>\\out\\profile-77ba446e70500fa2\\quake.exe",
+  "outputRoot": "workspace\\quake\\out\\profile-77ba446e70500fa2",
+  "objectRoot": "workspace\\quake\\out\\profile-77ba446e70500fa2\\obj",
+  "executable": "workspace\\quake\\out\\profile-77ba446e70500fa2\\quake.exe",
   "manifest": "build-manifest.json",
   "cSourceCount": 83,
   "standaloneCSourceCount": 82,
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 70,
-  "assemblySourceCount": 70,
+  "allAssemblySourceCount": 71,
+  "assemblySourceCount": 71,
   "cFlags": [
-    "-I<repo>\\src",
+    "-Iworkspace\\quake\\src",
     "-O3",
     "-march=i386",
     "-mtune=i386",
@@ -80,7 +80,7 @@
     ]
   },
   "asmFlags": [
-    "-I<repo>\\src",
+    "-Iworkspace\\quake\\src",
     "-O3",
     "-march=i386",
     "-mtune=i386",
@@ -125,9 +125,9 @@
     "-s",
     "<objects>",
     "-lm",
-    "-Wl,-Map=<repo>\\out\\profile-77ba446e70500fa2\\quake.exe.map",
+    "-Wl,-Map=workspace\\quake\\out\\profile-77ba446e70500fa2\\quake.exe.map",
     "-o",
-    "<repo>\\out\\profile-77ba446e70500fa2\\quake.exe"
+    "workspace\\quake\\out\\profile-77ba446e70500fa2\\quake.exe"
   ],
   "cSources": [
     "cd_audio.c",
@@ -282,6 +282,7 @@
     "v_damageparse.s",
     "v_paletteasm.s",
     "v_viewcontrolasm.s",
+    "vid_vesacopyasm.s",
     "worlda.s",
     "zone_cacheasm.s"
   ]

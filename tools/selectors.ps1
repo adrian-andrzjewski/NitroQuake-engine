@@ -149,6 +149,7 @@ $script:AssemblyBackedImplementations = @(
     'SbarInventoryImplementation',
     'SbarFragsImplementation',
     'CacheCheckImplementation',
+    'VesaCopyRectsImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
     'AliasSetupFrameImplementation',
@@ -1597,6 +1598,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'VesaCopyRectsImplementation'
+        Manifest   = 'vesaCopyRectsImplementation'
+        Suffix     = @{
+            'asm' = 'vesacopyasm'
+            'asm-fixture' = 'vesacopyfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_VESA_COPY_RECTS')
+            'asm-fixture' = @('ASM486_VESA_COPY_RECTS', 'ASM486_VESA_COPY_RECTS_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_VESA_COPY_RECTS')
+            'asm-fixture' = @('ASM486_VESA_COPY_RECTS', 'ASM486_VESA_COPY_RECTS_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'GibTrailHorizontalIntegration'
         Manifest   = 'gibTrailHorizontalIntegration'
         Suffix     = @{ 'skipzero' = 'gibskipzero' }
@@ -1803,6 +1822,7 @@ $script:SuffixOrder = @(
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
     'CacheCheckImplementation'
+    'VesaCopyRectsImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -1913,6 +1933,7 @@ $script:CDefineOrder = @(
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
     'CacheCheckImplementation'
+    'VesaCopyRectsImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -2054,6 +2075,7 @@ $script:AsmDefineOrder = @(
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
     'CacheCheckImplementation'
+    'VesaCopyRectsImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'LineGraphImplementation'

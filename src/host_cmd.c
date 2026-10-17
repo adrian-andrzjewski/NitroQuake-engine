@@ -29,6 +29,9 @@ extern void WritePCXfile (char *filename, byte *data, int width, int height,
 #if defined(ASM486_CACHE_CHECK_FIXTURE)
 extern int Bench486CacheCheckCases (void);
 #endif
+#if defined(ASM486_VESA_COPY_RECTS_FIXTURE)
+extern int Bench486VesaCopyRectsCases (void);
+#endif
 #ifdef ASM486_FILLRECT
 extern void D_FillRect_C (vrect_t *rect, int color);
 #endif
@@ -11010,6 +11013,30 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("cache check fixture requires CacheCheckImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchvesacopy"))
+	{
+#if defined(ASM486_VESA_COPY_RECTS_FIXTURE)
+		int vesa_copy_failures;
+		vesa_copy_failures = Bench486VesaCopyRectsCases ();
+		bench486_memory_failures += vesa_copy_failures != 0;
+		Bench486Printf ("VESA C/ASM rectangle-copy cases %s failure mask 0x%x\n",
+				vesa_copy_failures ? "FAIL" : "PASS", vesa_copy_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("VESA copy fixture requires VesaCopyRectsImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

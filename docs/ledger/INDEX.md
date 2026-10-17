@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-17-vesa-copy-rects-assembly-port.md`](2026-10-17-vesa-copy-rects-assembly-port.md) | 4 | renderer port / VESA dirty-rectangle copy (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining scope`) |
 | [`2026-10-17-cache-check-assembly-port.md`](2026-10-17-cache-check-assembly-port.md) | 4 | renderer port / cache lookup and LRU promotion (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-sbar-frags-assembly-port.md`](2026-10-17-sbar-frags-assembly-port.md) | 4 | renderer port / status-bar frag strip and stable scoreboard sorter (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Traceability and remaining scope`) |
 | [`2026-10-17-sbar-inventory-assembly-port.md`](2026-10-17-sbar-inventory-assembly-port.md) | 4 | renderer port / status-bar inventory composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 build and Demo 1 run`; `Traceability and remaining scope`) |

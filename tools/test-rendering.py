@@ -1464,7 +1464,7 @@ class RenderingComparisonTests(unittest.TestCase):
             (profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8")
         )
 
-        self.assertEqual(len(reference["selectors"]), 121)
+        self.assertEqual(len(reference["selectors"]), 122)
         self.assertEqual(focused["id"], "i486-asm-line-graph")
         self.assertEqual(focused["selectors"]["LineGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1532,7 +1532,7 @@ class RenderingComparisonTests(unittest.TestCase):
         cumulative = json.loads(
             (profiles / "i486-asm-selectable-current.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(reference["selectors"]), 121)
+        self.assertEqual(len(reference["selectors"]), 122)
         self.assertEqual(focused["id"], "i486-asm-time-graph")
         self.assertEqual(focused["selectors"]["TimeGraphImplementation"], "asm")
         expected_focused = dict(reference["selectors"])
@@ -1569,7 +1569,7 @@ class RenderingComparisonTests(unittest.TestCase):
         historical85 = json.loads((profiles / "i486-asm-selectable-85.json").read_text(encoding="utf-8"))
         selectable86 = json.loads((profiles / "i486-asm-selectable-86.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(len(reference["selectors"]), 121)
+        self.assertEqual(len(reference["selectors"]), 122)
         self.assertEqual(focused["id"], "i486-asm-alias-stats")
         self.assertEqual(focused["selectors"]["AliasStatsImplementation"], "asm")
         expected_focused = dict(reference["selectors"])

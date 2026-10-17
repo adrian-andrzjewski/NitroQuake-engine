@@ -121,6 +121,7 @@
     "SbarInventoryImplementation": "asm",
     "SbarFragsImplementation": "asm",
     "CacheCheckImplementation": "asm",
+    "VesaCopyRectsImplementation": "asm",
     "ScreenUpdateImplementation": "asm",
     "ScreenNetImplementation": "asm",
     "ScreenTurtleImplementation": "asm"
