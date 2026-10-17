@@ -106,6 +106,8 @@ static unsigned short Bench486ScreenOverlaysGetControlWord (void)
 	return control_word;
 }
 
+#include "bench486_menutext.h"
+
 static void Bench486ScreenOverlaysInitTrace (void)
 {
 	unsigned i;
@@ -289,6 +291,8 @@ void Bench486ScreenOverlaysCases (void)
 	else
 		Bench486Printf ("screen overlay dispatch %u exact C/assembly branch cases; event and state parity PASS\n",
 				total);
+
+	Bench486MenuTextCases ();
 }
 
 #endif

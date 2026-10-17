@@ -1,6 +1,7 @@
 // SCR_UpdateScreen overlay decision block, split out without changing branch
 // order or the order of visible subsystem calls.
 #include "asm_i386.h"
+#include "asm_menutext.h"
 #include "asm_screenoverlays.h"
 
 #if defined(ASM486_SCREEN_OVERLAYS)
@@ -24,6 +25,104 @@
 .endm
 
 .text
+.p2align 2
+.globl C(M_DrawCharacter)
+C(M_DrawCharacter):
+	pushl	%ebx
+	movl	8(%esp),%eax		/* cx */
+	movl	C(vid)+MT_VID_WIDTH_OFFSET,%ebx
+	subl	$320,%ebx
+	shrl	$1,%ebx
+	addl	%ebx,%eax
+	movl	12(%esp),%ecx		/* line */
+	movl	16(%esp),%edx		/* character */
+	pushl	%edx
+	pushl	%ecx
+	pushl	%eax
+#ifdef BENCH486
+	call	C(Bench486MenuTextDrawCharacter)
+#else
+	call	C(Draw_Character)
+#endif
+	addl	$12,%esp
+	popl	%ebx
+	ret
+
+.p2align 2
+.globl C(M_Print)
+C(M_Print):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	16(%esp),%ebx		/* cx */
+	movl	20(%esp),%esi		/* cy */
+	movl	24(%esp),%edi		/* str */
+	movl	C(vid)+MT_VID_WIDTH_OFFSET,%eax
+	subl	$320,%eax
+	shrl	$1,%eax
+	addl	%eax,%ebx			/* center once for the whole string */
+
+.Lm_print_loop:
+	movsbl	(%edi),%eax
+	testl	%eax,%eax
+	je	.Lm_print_done
+	addl	$128,%eax
+	pushl	%eax
+	pushl	%esi
+	pushl	%ebx
+#ifdef BENCH486
+	call	C(Bench486MenuTextDrawCharacter)
+#else
+	call	C(Draw_Character)
+#endif
+	addl	$12,%esp
+	addl	$8,%ebx
+	incl	%edi
+	jmp	.Lm_print_loop
+
+.Lm_print_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
+.p2align 2
+.globl C(M_PrintWhite)
+C(M_PrintWhite):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	16(%esp),%ebx		/* cx */
+	movl	20(%esp),%esi		/* cy */
+	movl	24(%esp),%edi		/* str */
+	movl	C(vid)+MT_VID_WIDTH_OFFSET,%eax
+	subl	$320,%eax
+	shrl	$1,%eax
+	addl	%eax,%ebx			/* center once for the whole string */
+
+.Lm_print_white_loop:
+	movsbl	(%edi),%eax
+	testl	%eax,%eax
+	je	.Lm_print_white_done
+	pushl	%eax
+	pushl	%esi
+	pushl	%ebx
+#ifdef BENCH486
+	call	C(Bench486MenuTextDrawCharacter)
+#else
+	call	C(Draw_Character)
+#endif
+	addl	$12,%esp
+	addl	$8,%ebx
+	incl	%edi
+	jmp	.Lm_print_white_loop
+
+.Lm_print_white_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
 .p2align 4,,15
 .globl C(SCR_DrawScreenOverlays_asm486)
 C(SCR_DrawScreenOverlays_asm486):

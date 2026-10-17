@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 #include "quakedef.h"
+#include "asm_menutext.h"
 
 void (*vid_menudrawfn)(void);
 void (*vid_menukeyfn)(int key);
@@ -105,30 +106,74 @@ M_DrawCharacter
 Draws one solid graphics character
 ================
 */
+#if defined(BENCH486)
+#define M_DRAW_CHARACTER_C_ENTRY M_DrawCharacter_C
+#define M_PRINT_C_ENTRY M_Print_C
+#define M_PRINT_WHITE_C_ENTRY M_PrintWhite_C
+#define M_DRAW_CHARACTER_C_CALL M_DrawCharacter_C
+#else
+#define M_DRAW_CHARACTER_C_ENTRY M_DrawCharacter
+#define M_PRINT_C_ENTRY M_Print
+#define M_PRINT_WHITE_C_ENTRY M_PrintWhite
+#define M_DRAW_CHARACTER_C_CALL M_DrawCharacter
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_DRAW_CHARACTER_OUTPUT(x, y, num) \
+	Bench486MenuTextDrawCharacter ((x), (y), (num))
+#else
+#define M_DRAW_CHARACTER_OUTPUT(x, y, num) Draw_Character ((x), (y), (num))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_DRAW_CHARACTER_C_ENTRY (int cx, int line, int num)
+{
+	M_DRAW_CHARACTER_OUTPUT (cx + ((vid.width - 320)>>1), line, num);
+}
+
+void M_PRINT_C_ENTRY (int cx, int cy, char *str)
+{
+	while (*str)
+	{
+		M_DRAW_CHARACTER_C_CALL (cx, cy, (*str)+128);
+		str++;
+		cx += 8;
+	}
+}
+
+void M_PRINT_WHITE_C_ENTRY (int cx, int cy, char *str)
+{
+	while (*str)
+	{
+		M_DRAW_CHARACTER_C_CALL (cx, cy, *str);
+		str++;
+		cx += 8;
+	}
+}
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_SCREEN_OVERLAYS)
 void M_DrawCharacter (int cx, int line, int num)
 {
-	Draw_Character ( cx + ((vid.width - 320)>>1), line, num);
+	M_DrawCharacter_C (cx, line, num);
 }
 
 void M_Print (int cx, int cy, char *str)
 {
-	while (*str)
-	{
-		M_DrawCharacter (cx, cy, (*str)+128);
-		str++;
-		cx += 8;
-	}
+	M_Print_C (cx, cy, str);
 }
 
 void M_PrintWhite (int cx, int cy, char *str)
 {
-	while (*str)
-	{
-		M_DrawCharacter (cx, cy, *str);
-		str++;
-		cx += 8;
-	}
+	M_PrintWhite_C (cx, cy, str);
 }
+#endif
+
+#undef M_DRAW_CHARACTER_OUTPUT
+#undef M_DRAW_CHARACTER_C_CALL
+#undef M_PRINT_WHITE_C_ENTRY
+#undef M_PRINT_C_ENTRY
+#undef M_DRAW_CHARACTER_C_ENTRY
 
 void M_DrawTransPic (int x, int y, qpic_t *pic)
 {
