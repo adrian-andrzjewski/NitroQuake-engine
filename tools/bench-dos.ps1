@@ -294,6 +294,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheFreeImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheFreeLowImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheTryAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
@@ -368,6 +370,7 @@ param(
     [switch]$CacheAllocOnly,
     [switch]$CacheMoveOnly,
     [switch]$CacheFreeOnly,
+    [switch]$CacheFreeLowOnly,
     [switch]$CacheTryAllocOnly,
     [switch]$VesaCopyRectsOnly,
     [switch]$VesaSwapBuffersOnly,
@@ -440,6 +443,9 @@ if ($CacheCheckOnly -and $CacheCheckImplementation -ne 'asm-fixture') {
 }
 if ($CacheFreeOnly -and $CacheFreeImplementation -ne 'asm-fixture') {
     throw '-CacheFreeOnly requires -CacheFreeImplementation asm-fixture.'
+}
+if ($CacheFreeLowOnly -and $CacheFreeLowImplementation -ne 'asm-fixture') {
+    throw '-CacheFreeLowOnly requires -CacheFreeLowImplementation asm-fixture.'
 }
 if ($CacheAllocOnly -and $CacheAllocImplementation -ne 'asm-fixture') {
     throw '-CacheAllocOnly requires -CacheAllocImplementation asm-fixture.'
@@ -924,6 +930,9 @@ elseif ($CacheCheckOnly) {
 }
 elseif ($CacheFreeOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcachefree -benchexit'
+}
+elseif ($CacheFreeLowOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcachefreelow -benchexit'
 }
 elseif ($CacheAllocOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcachealloc -benchexit'

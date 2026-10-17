@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachetryallocasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreelowasm-cachetryallocasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1972,6 +1972,29 @@ def main() -> int:
         if "cachefreefixtureasm" not in cache_free_fixture.get("profileSuffix", ""):
             fail("the Cache_Free fixture selector omits its isolated profile token")
 
+    cache_free_low_c = dump_flags("-CacheFreeLowImplementation", "c")
+    cache_free_low_asm = dump_flags("-CacheFreeLowImplementation", "asm")
+    cache_free_low_fixture = dump_flags("-CacheFreeLowImplementation", "asm-fixture")
+    if cache_free_low_c and cache_free_low_asm:
+        if cache_free_low_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the Cache_FreeLow assembly selector does not match the i486 release suffix")
+        if cache_free_low_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the Cache_FreeLow C selector shares the promoted i486 suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_CACHE_FREE_LOW" in cache_free_low_c.get(flags_name, []):
+                fail("the Cache_FreeLow C selector enables ASM486_CACHE_FREE_LOW in %s" % flags_name)
+            if "-DASM486_CACHE_FREE_LOW" not in cache_free_low_asm.get(flags_name, []):
+                fail("the Cache_FreeLow assembly selector omits ASM486_CACHE_FREE_LOW from %s" % flags_name)
+        if "zone_cachefreelowasm.s" not in cache_free_low_asm.get("assemblySources", []):
+            fail("the Cache_FreeLow assembly selector does not compile zone_cachefreelowasm.s")
+    if cache_free_low_fixture:
+        if "-DASM486_CACHE_FREE_LOW_FIXTURE" not in cache_free_low_fixture.get("cFlags", []):
+            fail("the Cache_FreeLow fixture selector omits its C fixture define")
+        if "-DASM486_CACHE_FREE_LOW_FIXTURE" not in cache_free_low_fixture.get("asmFlags", []):
+            fail("the Cache_FreeLow fixture selector omits its assembly fixture define")
+        if "cachefreelowfixtureasm" not in cache_free_low_fixture.get("profileSuffix", ""):
+            fail("the Cache_FreeLow fixture selector omits its isolated profile token")
+
     cache_tryalloc_c = dump_flags("-CacheTryAllocImplementation", "c")
     cache_tryalloc_asm = dump_flags("-CacheTryAllocImplementation", "asm")
     cache_tryalloc_fixture = dump_flags("-CacheTryAllocImplementation", "asm-fixture")
@@ -1994,7 +2017,7 @@ def main() -> int:
             fail("the Cache_TryAlloc fixture selector omits its isolated profile token")
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 72 assembly sources (one is omitted only
+    #    included by another unit), 74 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -2006,9 +2029,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 73:
+        if dump.get("allAssemblySourceCount") != 74:
             fail(
-                "%s: expected 72 assembly sources, got %r"
+                "%s: expected 74 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

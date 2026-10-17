@@ -240,6 +240,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheFreeImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheFreeLowImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheTryAllocImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaCopyRectsImplementation = 'c',
@@ -423,6 +425,7 @@ $buildParams = @{
     CacheAllocImplementation = $CacheAllocImplementation
     CacheMoveImplementation = $CacheMoveImplementation
     CacheFreeImplementation = $CacheFreeImplementation
+    CacheFreeLowImplementation = $CacheFreeLowImplementation
     CacheTryAllocImplementation = $CacheTryAllocImplementation
     VesaCopyRectsImplementation = $VesaCopyRectsImplementation
     VesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
@@ -631,6 +634,7 @@ $result = [ordered]@{
     cacheAllocImplementation = $CacheAllocImplementation
     cacheMoveImplementation = $CacheMoveImplementation
     cacheFreeImplementation = $CacheFreeImplementation
+    cacheFreeLowImplementation = $CacheFreeLowImplementation
     cacheTryAllocImplementation = $CacheTryAllocImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
     vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation

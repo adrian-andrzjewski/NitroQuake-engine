@@ -124,6 +124,7 @@
     "CacheAllocImplementation": "asm",
     "CacheMoveImplementation": "asm",
     "CacheFreeImplementation": "asm",
+    "CacheFreeLowImplementation": "asm",
     "CacheTryAllocImplementation": "asm",
     "VesaCopyRectsImplementation": "asm",
     "VesaSwapBuffersImplementation": "asm",

@@ -18,8 +18,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 73,
-  "assemblySourceCount": 73,
+  "allAssemblySourceCount": 74,
+  "assemblySourceCount": 74,
   "cFlags": [
     "-Iworkspace\\quake\\src",
     "-O3",
@@ -286,6 +286,7 @@
     "vid_vesaswapasm.s",
     "worlda.s",
     "zone_cacheasm.s",
+    "zone_cachefreelowasm.s",
     "zone_cachetryallocasm.s"
   ]
 }
