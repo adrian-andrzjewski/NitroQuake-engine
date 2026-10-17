@@ -11209,7 +11209,7 @@ static void Bench486_f (void)
 		int hunk_mark_free_failures;
 		hunk_mark_free_failures = Bench486HunkMarkFreeCases ();
 		bench486_memory_failures += hunk_mark_free_failures != 0;
-		Bench486Printf ("hunk low/high free-mark C/ASM cases %s failure mask 0x%x\n",
+		Bench486Printf ("hunk low/high mark-management C/ASM cases %s failure mask 0x%x\n",
 				hunk_mark_free_failures ? "FAIL" : "PASS", hunk_mark_free_failures);
 #else
 		bench486_memory_failures++;

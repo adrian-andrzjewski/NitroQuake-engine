@@ -2054,6 +2054,11 @@ def main() -> int:
                 fail("the hunk mark-release assembly selector omits ASM486_HUNK_MARK_RELEASE from %s" % flags_name)
         if "zone_hunkmarkfreeasm.s" not in hunk_mark_asm.get("assemblySources", []):
             fail("the hunk mark-release selector does not compile zone_hunkmarkfreeasm.s")
+        hunk_mark_asm_path = os.path.join(REPO_ROOT, "src", "zone_hunkmarkfreeasm.s")
+        with open(hunk_mark_asm_path, "r", encoding="utf-8") as source_file:
+            hunk_mark_asm_source = source_file.read()
+        if "C(Hunk_HighMark)" not in hunk_mark_asm_source:
+            fail("the hunk mark-release assembly module omits Hunk_HighMark")
     if hunk_mark_fixture:
         if "-DASM486_HUNK_MARK_RELEASE_FIXTURE" not in hunk_mark_fixture.get("cFlags", []):
             fail("the hunk mark-release fixture omits its C fixture define")

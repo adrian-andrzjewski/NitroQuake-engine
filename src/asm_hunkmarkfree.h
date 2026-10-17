@@ -4,6 +4,7 @@
 #ifndef __ASSEMBLER__
 void Hunk_FreeToLowMark_C (int mark);
 void Hunk_FreeToHighMark_C (int mark);
+int Hunk_HighMark_C (void);
 #endif
 
 #endif

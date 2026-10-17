@@ -100,6 +100,20 @@ C(Hunk_FreeToHighMark):
 	popl	%ebp
 	ret
 
+.p2align 2
+.globl C(Hunk_HighMark)
+C(Hunk_HighMark):
+	cmpl	$0,C(hunk_tempactive)
+	je	.Lhunk_high_mark_return
+	movl	$0,C(hunk_tempactive)
+	pushl	C(hunk_tempmark)
+	call	C(Hunk_FreeToHighMark)
+	addl	$4,%esp
+
+.Lhunk_high_mark_return:
+	movl	C(hunk_high_used),%eax
+	ret
+
 .section .rodata
 .Lhunk_free_low_error:
 	.asciz "Hunk_FreeToLowMark: bad mark %i"

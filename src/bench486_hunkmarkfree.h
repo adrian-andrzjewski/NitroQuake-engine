@@ -9,6 +9,7 @@ typedef struct bench486_hunk_mark_free_snapshot_s
 	int high_used;
 	int temp_active;
 	int temp_mark;
+	int result;
 } bench486_hunk_mark_free_snapshot_t;
 
 static union
@@ -82,6 +83,57 @@ static void Bench486HunkMarkFreeCapture (
 	snapshot->high_used = hunk_high_used;
 	snapshot->temp_active = hunk_tempactive;
 	snapshot->temp_mark = hunk_tempmark;
+	snapshot->result = 0;
+}
+
+static int Bench486HunkHighMarkSetup (int case_index)
+{
+	int i;
+	for (i = 0; i < BHMF_ARENA_SIZE; i++)
+		bench486_hunk_mark_free_arena.bytes[i] = (byte)(i * 29 + 17);
+	hunk_base = bench486_hunk_mark_free_arena.bytes;
+	hunk_size = BHMF_ARENA_SIZE;
+	hunk_low_used = 64;
+	hunk_high_used = 160;
+	hunk_tempactive = false;
+	hunk_tempmark = 96;
+	switch (case_index)
+	{
+	case 0: hunk_high_used = 0; return 0;
+	case 1: return 160;
+	case 2:
+		hunk_tempactive = true;
+		hunk_tempmark = 96;
+		return 96;
+	case 3:
+		hunk_high_used = 96;
+		hunk_tempactive = true;
+		hunk_tempmark = 96;
+		return 96;
+	case 4:
+		hunk_high_used = 224;
+		hunk_tempactive = true;
+		hunk_tempmark = 0;
+		return 0;
+	}
+	return 0;
+}
+
+static void Bench486HunkHighMarkCapture (
+		bench486_hunk_mark_free_snapshot_t *snapshot, int result)
+{
+	Bench486HunkMarkFreeCapture (snapshot);
+	snapshot->result = result;
+}
+
+static int Bench486HunkHighMarkRun (int case_index, int use_asm,
+		bench486_hunk_mark_free_snapshot_t *snapshot)
+{
+	int expected, result;
+	expected = Bench486HunkHighMarkSetup (case_index);
+	result = use_asm ? Hunk_HighMark () : Hunk_HighMark_C ();
+	Bench486HunkHighMarkCapture (snapshot, result);
+	return result != expected;
 }
 
 static int Bench486HunkMarkFreeBytesEqual (const void *left,
@@ -131,6 +183,15 @@ int Bench486HunkMarkFreeCases (void)
 			if (!Bench486HunkMarkFreeBytesEqual (&c, &a, sizeof (c)))
 				failures |= 1 << (is_high ? case_index + 5 : case_index);
 		}
+	}
+	for (case_index = 0; case_index < 5; case_index++)
+	{
+		int c_failed, a_failed;
+		c_failed = Bench486HunkHighMarkRun (case_index, 0, &c);
+		a_failed = Bench486HunkHighMarkRun (case_index, 1, &a);
+		if (c_failed || a_failed ||
+				!Bench486HunkMarkFreeBytesEqual (&c, &a, sizeof (c)))
+			failures |= 1 << (case_index + 12);
 	}
 	hunk_base = saved_hunk_base;
 	hunk_size = saved_hunk_size;

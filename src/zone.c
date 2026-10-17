@@ -626,6 +626,34 @@ int Hunk_LowMark (void)
 #endif
 
 #if defined(BENCH486)
+#define HUNK_HIGH_MARK_C_ENTRY Hunk_HighMark_C
+#else
+#define HUNK_HIGH_MARK_C_ENTRY Hunk_HighMark
+#endif
+
+#if !defined(ASM486_HUNK_MARK_RELEASE) || defined(BENCH486)
+int HUNK_HIGH_MARK_C_ENTRY (void)
+{
+	if (hunk_tempactive)
+	{
+		hunk_tempactive = false;
+		Hunk_FreeToHighMark (hunk_tempmark);
+	}
+
+	return hunk_high_used;
+}
+#endif
+
+#undef HUNK_HIGH_MARK_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_HUNK_MARK_RELEASE)
+int Hunk_HighMark (void)
+{
+	return Hunk_HighMark_C ();
+}
+#endif
+
+#if defined(BENCH486)
 #define HUNK_FREE_LOW_C_ENTRY Hunk_FreeToLowMark_C
 #define HUNK_FREE_HIGH_C_ENTRY Hunk_FreeToHighMark_C
 #define HUNK_FREE_HIGH_RECURSIVE_ENTRY Hunk_FreeToHighMark_C
@@ -677,17 +705,6 @@ void Hunk_FreeToHighMark (int mark)
 #if defined(BENCH486) && defined(ASM486_HUNK_MARK_RELEASE_FIXTURE)
 #include "bench486_hunkmarkfree.h"
 #endif
-
-int	Hunk_HighMark (void)
-{
-	if (hunk_tempactive)
-	{
-		hunk_tempactive = false;
-		Hunk_FreeToHighMark (hunk_tempmark);
-	}
-
-	return hunk_high_used;
-}
 
 /*
 ===================
