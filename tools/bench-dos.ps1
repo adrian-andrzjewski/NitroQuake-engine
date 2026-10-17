@@ -285,6 +285,8 @@ param(
     [string]$SbarInventoryImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarFragsImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheCheckImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -350,6 +352,7 @@ param(
     [switch]$SbarPrimitivesOnly,
     [switch]$SbarInventoryOnly,
     [switch]$SbarFragsOnly,
+    [switch]$CacheCheckOnly,
     [switch]$ChaseOnly,
     [switch]$HullCheckOnly,
     [switch]$AliasControlOnly,
@@ -413,6 +416,9 @@ if ($SbarInventoryOnly -and $SbarInventoryImplementation -ne 'asm') {
 }
 if ($SbarFragsOnly -and $SbarFragsImplementation -ne 'asm-fixture') {
     throw '-SbarFragsOnly requires -SbarFragsImplementation asm-fixture.'
+}
+if ($CacheCheckOnly -and $CacheCheckImplementation -ne 'asm-fixture') {
+    throw '-CacheCheckOnly requires -CacheCheckImplementation asm-fixture.'
 }
 if ($MemoryOnly -and $MemoryImplementation -ne 'asm') {
     throw '-MemoryOnly requires -MemoryImplementation asm.'
@@ -876,6 +882,9 @@ elseif ($SbarInventoryOnly) {
 }
 elseif ($SbarFragsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsbarfrags -benchexit'
+}
+elseif ($CacheCheckOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcachecheck -benchexit'
 }
 elseif ($AliasStatsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasstats -benchexit'

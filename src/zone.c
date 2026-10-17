@@ -684,6 +684,8 @@ typedef struct cache_system_s
 	struct cache_system_s	*lru_prev, *lru_next;	// for LRU flushing	
 } cache_system_t;
 
+#include "asm_cachecheck.h"
+
 cache_system_t *Cache_TryAlloc (int size, qboolean nobottom);
 
 cache_system_t	cache_head;
@@ -980,7 +982,14 @@ void Cache_Free (cache_user_t *c)
 Cache_Check
 ==============
 */
-void *Cache_Check (cache_user_t *c)
+#if defined(BENCH486)
+#define CACHE_CHECK_C_ENTRY Cache_Check_C
+#else
+#define CACHE_CHECK_C_ENTRY Cache_Check
+#endif
+
+#if !defined(ASM486_CACHE_CHECK) || defined(BENCH486)
+void *CACHE_CHECK_C_ENTRY (cache_user_t *c)
 {
 	cache_system_t	*cs;
 
@@ -1012,6 +1021,20 @@ void *Cache_Check (cache_user_t *c)
 	
 	return c->data;
 }
+#endif
+
+#undef CACHE_CHECK_C_ENTRY
+
+#if !defined(ASM486_CACHE_CHECK) && defined(BENCH486)
+void *Cache_Check (cache_user_t *c)
+{
+	return Cache_Check_C (c);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CACHE_CHECK_FIXTURE)
+#include "bench486_cachecheck.h"
+#endif
 
 
 /*

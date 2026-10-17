@@ -148,6 +148,7 @@ $script:AssemblyBackedImplementations = @(
     'SbarDrawImplementation',
     'SbarInventoryImplementation',
     'SbarFragsImplementation',
+    'CacheCheckImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
     'AliasSetupFrameImplementation',
@@ -1578,6 +1579,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'CacheCheckImplementation'
+        Manifest   = 'cacheCheckImplementation'
+        Suffix     = @{
+            'asm' = 'cachecheckasm'
+            'asm-fixture' = 'cachecheckfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_CACHE_CHECK')
+            'asm-fixture' = @('ASM486_CACHE_CHECK', 'ASM486_CACHE_CHECK_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_CACHE_CHECK')
+            'asm-fixture' = @('ASM486_CACHE_CHECK', 'ASM486_CACHE_CHECK_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'GibTrailHorizontalIntegration'
         Manifest   = 'gibTrailHorizontalIntegration'
         Suffix     = @{ 'skipzero' = 'gibskipzero' }
@@ -1783,6 +1802,7 @@ $script:SuffixOrder = @(
     'SbarDrawImplementation'
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
+    'CacheCheckImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -1892,6 +1912,7 @@ $script:CDefineOrder = @(
     'SbarDrawImplementation'
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
+    'CacheCheckImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -2032,6 +2053,7 @@ $script:AsmDefineOrder = @(
     'SbarDrawImplementation'
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
+    'CacheCheckImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'LineGraphImplementation'

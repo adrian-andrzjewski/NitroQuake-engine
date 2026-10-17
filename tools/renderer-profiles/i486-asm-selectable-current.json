@@ -120,6 +120,7 @@
     "SbarDrawImplementation": "asm",
     "SbarInventoryImplementation": "asm",
     "SbarFragsImplementation": "asm",
+    "CacheCheckImplementation": "asm",
     "ScreenUpdateImplementation": "asm",
     "ScreenNetImplementation": "asm",
     "ScreenTurtleImplementation": "asm"

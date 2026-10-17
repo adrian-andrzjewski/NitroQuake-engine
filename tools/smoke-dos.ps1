@@ -231,6 +231,8 @@ param(
     [string]$SbarInventoryImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarFragsImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$CacheCheckImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidateSet(64, 128, 256)]
@@ -405,6 +407,7 @@ $buildParams = @{
     SbarDrawImplementation = $SbarDrawImplementation
     SbarInventoryImplementation = $SbarInventoryImplementation
     SbarFragsImplementation = $SbarFragsImplementation
+    CacheCheckImplementation = $CacheCheckImplementation
     GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
 }
 
@@ -606,6 +609,7 @@ $result = [ordered]@{
     sbarDrawImplementation = $SbarDrawImplementation
     sbarInventoryImplementation = $SbarInventoryImplementation
     sbarFragsImplementation = $SbarFragsImplementation
+    cacheCheckImplementation = $CacheCheckImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     edgeScanProbe = $EdgeScanProbe

@@ -120,6 +120,7 @@
     "SbarDrawImplementation": "c",
     "SbarInventoryImplementation": "c",
     "SbarFragsImplementation": "c",
+    "CacheCheckImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",
     "ScreenTurtleImplementation": "c"

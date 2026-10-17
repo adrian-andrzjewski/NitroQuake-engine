@@ -26,6 +26,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 extern float r_avertexnormals[][3];
 extern void WritePCXfile (char *filename, byte *data, int width, int height,
 		int rowbytes, byte *palette);
+#if defined(ASM486_CACHE_CHECK_FIXTURE)
+extern int Bench486CacheCheckCases (void);
+#endif
 #ifdef ASM486_FILLRECT
 extern void D_FillRect_C (vrect_t *rect, int color);
 #endif
@@ -10986,6 +10989,30 @@ static void Bench486_f (void)
 		Bench486Printf ("sbar frags fixture requires SbarFragsImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchcachecheck"))
+	{
+#if defined(ASM486_CACHE_CHECK_FIXTURE)
+		int cache_check_failures;
+		cache_check_failures = Bench486CacheCheckCases ();
+		bench486_memory_failures += cache_check_failures != 0;
+		Bench486Printf ("cache check C/ASM LRU cases %s failure mask 0x%x\n",
+				cache_check_failures ? "FAIL" : "PASS", cache_check_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("cache check fixture requires CacheCheckImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
 		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
 		if (bench486_report_handle != -1)
 		{
