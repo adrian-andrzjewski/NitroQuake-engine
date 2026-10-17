@@ -152,6 +152,7 @@ $script:AssemblyBackedImplementations = @(
     'CacheAllocImplementation',
     'CacheMoveImplementation',
     'CacheFreeImplementation',
+    'CacheFreeHighImplementation',
     'CacheFreeLowImplementation',
     'CacheTryAllocImplementation',
     'VesaCopyRectsImplementation',
@@ -1658,6 +1659,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'CacheFreeHighImplementation'
+        Manifest   = 'cacheFreeHighImplementation'
+        Suffix     = @{
+            'asm' = 'cachefreehighasm'
+            'asm-fixture' = 'cachefreehighfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_CACHE_FREE_HIGH')
+            'asm-fixture' = @('ASM486_CACHE_FREE_HIGH', 'ASM486_CACHE_FREE_HIGH_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_CACHE_FREE_HIGH')
+            'asm-fixture' = @('ASM486_CACHE_FREE_HIGH', 'ASM486_CACHE_FREE_HIGH_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'CacheFreeLowImplementation'
         Manifest   = 'cacheFreeLowImplementation'
         Suffix     = @{
@@ -1939,6 +1958,7 @@ $script:SuffixOrder = @(
     'CacheAllocImplementation'
     'CacheMoveImplementation'
     'CacheFreeImplementation'
+    'CacheFreeHighImplementation'
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'
@@ -2056,6 +2076,7 @@ $script:CDefineOrder = @(
     'CacheAllocImplementation'
     'CacheMoveImplementation'
     'CacheFreeImplementation'
+    'CacheFreeHighImplementation'
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'
@@ -2204,6 +2225,7 @@ $script:AsmDefineOrder = @(
     'CacheAllocImplementation'
     'CacheMoveImplementation'
     'CacheFreeImplementation'
+    'CacheFreeHighImplementation'
     'CacheFreeLowImplementation'
     'CacheTryAllocImplementation'
     'VesaCopyRectsImplementation'

@@ -689,6 +689,7 @@ typedef struct cache_system_s
 #include "asm_cachefree.h"
 #include "asm_cachetryalloc.h"
 #include "asm_cachefreelow.h"
+#include "asm_cachefreehigh.h"
 
 cache_system_t *Cache_TryAlloc (int size, qboolean nobottom);
 
@@ -799,7 +800,14 @@ Cache_FreeHigh
 Throw things out until the hunk can be expanded to the given point
 ============
 */
-void Cache_FreeHigh (int new_high_hunk)
+#if defined(BENCH486)
+#define CACHE_FREE_HIGH_C_ENTRY Cache_FreeHigh_C
+#else
+#define CACHE_FREE_HIGH_C_ENTRY Cache_FreeHigh
+#endif
+
+#if !defined(ASM486_CACHE_FREE_HIGH) || defined(BENCH486)
+void CACHE_FREE_HIGH_C_ENTRY (int new_high_hunk)
 {
 	cache_system_t	*c, *prev;
 	
@@ -820,6 +828,20 @@ void Cache_FreeHigh (int new_high_hunk)
 		}
 	}
 }
+#endif
+
+#undef CACHE_FREE_HIGH_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_CACHE_FREE_HIGH)
+void Cache_FreeHigh (int new_high_hunk)
+{
+	Cache_FreeHigh_C (new_high_hunk);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CACHE_FREE_HIGH_FIXTURE)
+#include "bench486_cachefreehigh.h"
+#endif
 
 void Cache_UnlinkLRU (cache_system_t *cs)
 {
