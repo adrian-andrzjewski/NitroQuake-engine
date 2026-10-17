@@ -1,6 +1,7 @@
 /* i486 zone heap initialization, tagged allocation, and free/coalesce. */
 #include "asm_i386.h"
 #include "asm_zoneheap.h"
+#include "asm_hunknamedalloc.h"
 #undef i386
 .arch i486
 .code32
@@ -306,6 +307,134 @@ C(Memory_Init):
 	leave
 	ret
 
+.p2align 2
+.globl C(Z_CheckHeap)
+C(Z_CheckHeap):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	C(mainzone),%eax
+	leal	ZH_MEMZONE_BLOCKLIST_OFFSET(%eax),%ebx /* sentinel */
+	movl	ZH_MEMZONE_BLOCKLIST_NEXT_OFFSET(%eax),%esi
+#ifdef PROFILE486
+	incl	C(bench486_zone_check_calls)
+#endif
+
+.Lzone_check_heap_loop:
+	movl	ZH_MEMBLOCK_NEXT_OFFSET(%esi),%edi
+	cmpl	%ebx,%edi
+	je	.Lzone_check_heap_done
+#ifdef PROFILE486
+	incl	C(bench486_zone_check_blocks)
+#endif
+	movl	%esi,%eax
+	addl	ZH_MEMBLOCK_SIZE_OFFSET(%esi),%eax
+	cmpl	%edi,%eax
+	je	.Lzone_check_heap_backlink
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$.Lzone_check_heap_boundary_text
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+#else
+	pushl	$.Lzone_check_heap_boundary_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+#endif
+
+.Lzone_check_heap_backlink:
+	cmpl	%esi,ZH_MEMBLOCK_PREV_OFFSET(%edi)
+	je	.Lzone_check_heap_free_pair
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$.Lzone_check_heap_backlink_text
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+#else
+	pushl	$.Lzone_check_heap_backlink_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+#endif
+
+.Lzone_check_heap_free_pair:
+	cmpl	$0,ZH_MEMBLOCK_TAG_OFFSET(%esi)
+	jne	.Lzone_check_heap_advance
+	cmpl	$0,ZH_MEMBLOCK_TAG_OFFSET(%edi)
+	jne	.Lzone_check_heap_advance
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$.Lzone_check_heap_free_text
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+#else
+	pushl	$.Lzone_check_heap_free_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+#endif
+
+.Lzone_check_heap_advance:
+	movl	%edi,%esi
+	jmp	.Lzone_check_heap_loop
+
+.Lzone_check_heap_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
+.p2align 2
+.globl C(Hunk_Check)
+C(Hunk_Check):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	C(hunk_base),%esi
+	movl	C(hunk_low_used),%eax
+	leal	(%esi,%eax),%ebx		/* end of low hunk */
+
+.Lzone_hunk_check_loop:
+	cmpl	%ebx,%esi
+	je	.Lzone_hunk_check_done
+	cmpl	$HNA_HUNK_SENTINAL_VALUE,HNA_HUNK_SENTINAL_OFFSET(%esi)
+	je	.Lzone_hunk_check_size
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$.Lzone_hunk_check_sentinal_text
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+#else
+	pushl	$.Lzone_hunk_check_sentinal_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+#endif
+
+.Lzone_hunk_check_size:
+	movl	HNA_HUNK_SIZE_OFFSET(%esi),%edi
+	cmpl	$HNA_HUNK_SIZE,%edi
+	jl	.Lzone_hunk_check_bad_size
+	movl	%esi,%eax
+	subl	C(hunk_base),%eax
+	addl	%edi,%eax
+	cmpl	C(hunk_size),%eax
+	jle	.Lzone_hunk_check_advance
+
+.Lzone_hunk_check_bad_size:
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	$.Lzone_hunk_check_size_text
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+#else
+	pushl	$.Lzone_hunk_check_size_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+#endif
+
+.Lzone_hunk_check_advance:
+	addl	%edi,%esi
+	jmp	.Lzone_hunk_check_loop
+
+.Lzone_hunk_check_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
 .section .rodata
 .Lzone_free_null_text:
 	.asciz	"Z_Free: NULL pointer"
@@ -325,4 +454,14 @@ C(Memory_Init):
 	.asciz	"Memory_Init: you must specify a size in KB after -zone"
 .Lzone_memory_zone_name:
 	.asciz	"zone"
+.Lzone_check_heap_boundary_text:
+	.asciz	"Z_CheckHeap: block size does not touch the next block\n"
+.Lzone_check_heap_backlink_text:
+	.asciz	"Z_CheckHeap: next block doesn't have proper back link\n"
+.Lzone_check_heap_free_text:
+	.asciz	"Z_CheckHeap: two consecutive free blocks\n"
+.Lzone_hunk_check_sentinal_text:
+	.asciz	"Hunk_Check: trahsed sentinal"
+.Lzone_hunk_check_size_text:
+	.asciz	"Hunk_Check: bad size"
 #endif /* ASM486_ZONE_HEAP */

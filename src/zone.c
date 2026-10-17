@@ -46,6 +46,7 @@ typedef struct
 
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function);
+void Bench486ZoneHeapError (char *message);
 #endif
 
 void Cache_FreeLow (int new_low_hunk);
@@ -403,7 +404,14 @@ void Z_Print (memzone_t *zone)
 Z_CheckHeap
 ========================
 */
-void Z_CheckHeap (void)
+#if defined(BENCH486)
+#define Z_CHECK_HEAP_C_ENTRY Z_CheckHeap_C
+#else
+#define Z_CHECK_HEAP_C_ENTRY Z_CheckHeap
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void Z_CHECK_HEAP_C_ENTRY (void)
 {
 	memblock_t	*block;
 	
@@ -418,13 +426,41 @@ void Z_CheckHeap (void)
 		bench486_zone_check_blocks++;
 #endif
 		if ( (byte *)block + block->size != (byte *)block->next)
+		{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+			Bench486ZoneHeapError ("Z_CheckHeap: block size does not touch the next block\n");
+#else
 			Sys_Error ("Z_CheckHeap: block size does not touch the next block\n");
+#endif
+		}
 		if ( block->next->prev != block)
+		{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+			Bench486ZoneHeapError ("Z_CheckHeap: next block doesn't have proper back link\n");
+#else
 			Sys_Error ("Z_CheckHeap: next block doesn't have proper back link\n");
+#endif
+		}
 		if (!block->tag && !block->next->tag)
+		{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+			Bench486ZoneHeapError ("Z_CheckHeap: two consecutive free blocks\n");
+#else
 			Sys_Error ("Z_CheckHeap: two consecutive free blocks\n");
+#endif
+		}
 	}
 }
+#endif
+
+#undef Z_CHECK_HEAP_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Z_CheckHeap (void)
+{
+	Z_CheckHeap_C ();
+}
+#endif
 
 //============================================================================
 
@@ -460,19 +496,48 @@ Hunk_Check
 Run consistancy and sentinal trahing checks
 ==============
 */
-void Hunk_Check (void)
+#if defined(BENCH486)
+#define HUNK_CHECK_C_ENTRY Hunk_Check_C
+#else
+#define HUNK_CHECK_C_ENTRY Hunk_Check
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void HUNK_CHECK_C_ENTRY (void)
 {
 	hunk_t	*h;
 	
 	for (h = (hunk_t *)hunk_base ; (byte *)h != hunk_base + hunk_low_used ; )
 	{
 		if (h->sentinal != HUNK_SENTINAL)
+		{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+			Bench486ZoneHeapError ("Hunk_Check: trahsed sentinal");
+#else
 			Sys_Error ("Hunk_Check: trahsed sentinal");
+#endif
+		}
 		if (h->size < 16 || h->size + (byte *)h - hunk_base > hunk_size)
+		{
+#if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
+			Bench486ZoneHeapError ("Hunk_Check: bad size");
+#else
 			Sys_Error ("Hunk_Check: bad size");
+#endif
+		}
 		h = (hunk_t *)((byte *)h+h->size);
 	}
 }
+#endif
+
+#undef HUNK_CHECK_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_ZONE_HEAP)
+void Hunk_Check (void)
+{
+	Hunk_Check_C ();
+}
+#endif
 
 /*
 ==============

@@ -5,6 +5,9 @@
 #define BZH_CASE_COUNT 15
 #define BZH_MEMORY_SIZE 65536
 #define BZH_COMMAND_NAME_SIZE 16
+#define BZH_ERROR_COUNT 4
+#define BZH_ERROR_SIZE 80
+#define BZH_HUNK_CHECK_SIZE 128
 
 typedef struct bench486_zone_heap_snapshot_s
 {
@@ -55,6 +58,26 @@ typedef struct bench486_memory_init_snapshot_s
 #endif
 } bench486_memory_init_snapshot_t;
 
+typedef struct bench486_checker_snapshot_s
+{
+	byte arena[BZH_ARENA_SIZE];
+	int error_count;
+	char errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+#ifdef PROFILE486
+	unsigned long check_calls;
+	unsigned long check_blocks;
+#endif
+} bench486_checker_snapshot_t;
+
+typedef struct bench486_hunk_checker_snapshot_s
+{
+	byte arena[BZH_HUNK_CHECK_SIZE];
+	int hunk_size;
+	int hunk_low_used;
+	int error_count;
+	char errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+} bench486_hunk_checker_snapshot_t;
+
 static union
 {
 	long alignment[4];
@@ -67,6 +90,8 @@ static bench486_memory_init_snapshot_t bench486_memory_init_asm;
 static int bench486_memory_add_command_count;
 static char bench486_memory_add_command_name[BZH_COMMAND_NAME_SIZE];
 static xcommand_t bench486_memory_add_command_function;
+static int bench486_zone_heap_error_count;
+static char bench486_zone_heap_errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
 
 void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function)
 {
@@ -78,6 +103,19 @@ void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function)
 	while (++i < BZH_COMMAND_NAME_SIZE)
 		bench486_memory_add_command_name[i] = 0;
 	bench486_memory_add_command_function = function;
+}
+
+void Bench486ZoneHeapError (char *message)
+{
+	int slot = bench486_zone_heap_error_count++;
+	int i;
+	if (slot < 0 || slot >= BZH_ERROR_COUNT)
+		return;
+	for (i = 0; i < BZH_ERROR_SIZE - 1 && message[i]; i++)
+		bench486_zone_heap_errors[slot][i] = message[i];
+	bench486_zone_heap_errors[slot][i] = 0;
+	while (++i < BZH_ERROR_SIZE)
+		bench486_zone_heap_errors[slot][i] = 0;
 }
 
 static void Bench486ZoneHeapSetup (int use_asm)
@@ -357,6 +395,252 @@ static void Bench486MemoryInitRun (int use_asm, int use_zone_argument,
 #endif
 }
 
+static int Bench486ZoneHeapExpectedError (
+		const bench486_checker_snapshot_t *snapshot, const char *expected)
+{
+	int i;
+	if (snapshot->error_count != (expected ? 1 : 0))
+		return false;
+	if (!expected)
+		return true;
+	for (i = 0; i < BZH_ERROR_SIZE; i++)
+	{
+		if (snapshot->errors[0][i] != expected[i])
+			return false;
+		if (!expected[i])
+			return true;
+	}
+	return false;
+}
+
+static void Bench486ZoneHeapCheckRun (int case_index, int use_asm,
+		bench486_checker_snapshot_t *snapshot)
+{
+	void *payload;
+	memblock_t *sentinel, *first, *second;
+	int old_size;
+
+	Bench486ZoneHeapSetup (0);
+	bench486_zone_heap_error_count = 0;
+	memset (bench486_zone_heap_errors, 0,
+		sizeof (bench486_zone_heap_errors));
+	switch (case_index)
+	{
+	case 0: /* The cleared zone has one valid free block. */
+		break;
+	case 1: /* A tagged allocation followed by a free block is valid. */
+		Z_TagMalloc_C (8, 1);
+		break;
+	case 2: /* The block size no longer reaches its next block. */
+		payload = Z_TagMalloc_C (8, 1);
+		if (payload)
+		{
+			first = (memblock_t *)((byte *)payload - sizeof (memblock_t));
+			first->size++;
+		}
+		break;
+	case 3: /* The next block has an invalid backlink. */
+		payload = Z_TagMalloc_C (8, 1);
+		if (payload)
+		{
+			first = (memblock_t *)((byte *)payload - sizeof (memblock_t));
+			first->next->prev = &mainzone->blocklist;
+		}
+		break;
+	case 4: /* Two adjacent free blocks violate zone coalescing. */
+		sentinel = &mainzone->blocklist;
+		first = sentinel->next;
+		old_size = first->size;
+		second = (memblock_t *)((byte *)first + 128);
+		first->size = 128;
+		first->next = second;
+		second->size = old_size - 128;
+		second->tag = 0;
+		second->id = ZONEID;
+		second->prev = first;
+		second->next = sentinel;
+		sentinel->prev = second;
+		mainzone->rover = first;
+		break;
+	}
+	if (use_asm)
+		Z_CheckHeap ();
+	else
+		Z_CheckHeap_C ();
+
+	memset (snapshot, 0, sizeof (*snapshot));
+	Q_memcpy (snapshot->arena, bench486_zone_heap_arena.bytes,
+		sizeof (snapshot->arena));
+	snapshot->error_count = bench486_zone_heap_error_count;
+	Q_memcpy (snapshot->errors, bench486_zone_heap_errors,
+		sizeof (snapshot->errors));
+#ifdef PROFILE486
+	snapshot->check_calls = bench486_zone_check_calls;
+	snapshot->check_blocks = bench486_zone_check_blocks;
+#endif
+}
+
+static int Bench486ZoneStructureCheckerCases (void)
+{
+	static const char *expected[] = {
+		NULL,
+		NULL,
+		"Z_CheckHeap: block size does not touch the next block\n",
+		"Z_CheckHeap: next block doesn't have proper back link\n",
+		"Z_CheckHeap: two consecutive free blocks\n"
+	};
+	bench486_checker_snapshot_t c, a;
+	memzone_t *saved_mainzone = mainzone;
+	int case_index, failures = 0;
+	int saved_error_count = bench486_zone_heap_error_count;
+	char saved_errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+#ifdef PROFILE486
+	unsigned long saved_check_calls = bench486_zone_check_calls;
+	unsigned long saved_check_blocks = bench486_zone_check_blocks;
+#endif
+	Q_memcpy (saved_errors, bench486_zone_heap_errors, sizeof (saved_errors));
+	for (case_index = 0; case_index < 5; case_index++)
+	{
+		Bench486ZoneHeapCheckRun (case_index, 0, &c);
+		Bench486ZoneHeapCheckRun (case_index, 1, &a);
+		if (!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)) ||
+				!Bench486ZoneHeapExpectedError (&c, expected[case_index]) ||
+				!Bench486ZoneHeapExpectedError (&a, expected[case_index]))
+			failures |= 1 << (18 + case_index);
+	}
+	mainzone = saved_mainzone;
+	bench486_zone_heap_error_count = saved_error_count;
+	Q_memcpy (bench486_zone_heap_errors, saved_errors, sizeof (saved_errors));
+#ifdef PROFILE486
+	bench486_zone_check_calls = saved_check_calls;
+	bench486_zone_check_blocks = saved_check_blocks;
+#endif
+	return failures;
+}
+
+static int Bench486HunkCheckExpectedError (
+		const bench486_hunk_checker_snapshot_t *snapshot,
+		const char *expected)
+{
+	int i;
+	if (snapshot->error_count != (expected ? 1 : 0))
+		return false;
+	if (!expected)
+		return true;
+	for (i = 0; i < BZH_ERROR_SIZE; i++)
+	{
+		if (snapshot->errors[0][i] != expected[i])
+			return false;
+		if (!expected[i])
+			return true;
+	}
+	return false;
+}
+
+static void Bench486HunkCheckRun (int case_index, int use_asm,
+		bench486_hunk_checker_snapshot_t *snapshot)
+{
+	hunk_t *hunk;
+	int i;
+	for (i = 0; i < BZH_HUNK_CHECK_SIZE; i++)
+		bench486_memory_init_arena.bytes[i] = (byte)(i * 23 + 7);
+	hunk_base = bench486_memory_init_arena.bytes;
+	hunk_size = 64;
+	hunk_low_used = 0;
+	hunk_high_used = 0;
+	bench486_zone_heap_error_count = 0;
+	memset (bench486_zone_heap_errors, 0,
+		sizeof (bench486_zone_heap_errors));
+	hunk = (hunk_t *)hunk_base;
+	switch (case_index)
+	{
+	case 0: /* No low hunk records. */
+		break;
+	case 1:
+		hunk->sentinal = HUNK_SENTINAL;
+		hunk->size = 16;
+		hunk_low_used = 16;
+		break;
+	case 2:
+		hunk[0].sentinal = HUNK_SENTINAL;
+		hunk[0].size = 16;
+		hunk[1].sentinal = HUNK_SENTINAL;
+		hunk[1].size = 16;
+		hunk_low_used = 32;
+		break;
+	case 3:
+		hunk->sentinal = 0;
+		hunk->size = 16;
+		hunk_low_used = 16;
+		break;
+	case 4:
+		hunk->sentinal = HUNK_SENTINAL;
+		hunk->size = 8;
+		hunk_low_used = 8;
+		break;
+	case 5:
+		hunk->sentinal = HUNK_SENTINAL;
+		hunk->size = 80;
+		hunk_low_used = 80;
+		break;
+	}
+	if (use_asm)
+		Hunk_Check ();
+	else
+		Hunk_Check_C ();
+
+	memset (snapshot, 0, sizeof (*snapshot));
+	Q_memcpy (snapshot->arena, bench486_memory_init_arena.bytes,
+		sizeof (snapshot->arena));
+	snapshot->hunk_size = hunk_size;
+	snapshot->hunk_low_used = hunk_low_used;
+	snapshot->error_count = bench486_zone_heap_error_count;
+	Q_memcpy (snapshot->errors, bench486_zone_heap_errors,
+		sizeof (snapshot->errors));
+}
+
+static int Bench486HunkCheckerCases (void)
+{
+	static const char *expected[] = {
+		NULL,
+		NULL,
+		NULL,
+		"Hunk_Check: trahsed sentinal",
+		"Hunk_Check: bad size",
+		"Hunk_Check: bad size"
+	};
+	bench486_hunk_checker_snapshot_t c, a;
+	byte *saved_hunk_base = hunk_base;
+	int saved_hunk_size = hunk_size;
+	int saved_hunk_low_used = hunk_low_used;
+	int saved_hunk_high_used = hunk_high_used;
+	int saved_error_count = bench486_zone_heap_error_count;
+	char saved_errors[BZH_ERROR_COUNT][BZH_ERROR_SIZE];
+	int case_index, failures = 0;
+	Q_memcpy (saved_errors, bench486_zone_heap_errors, sizeof (saved_errors));
+	for (case_index = 0; case_index < 6; case_index++)
+	{
+		Bench486HunkCheckRun (case_index, 0, &c);
+		Bench486HunkCheckRun (case_index, 1, &a);
+		if (!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)) ||
+				!Bench486HunkCheckExpectedError (&c, expected[case_index]) ||
+				!Bench486HunkCheckExpectedError (&a, expected[case_index]))
+			failures |= 1 << (23 + case_index);
+	}
+	hunk_base = saved_hunk_base;
+	hunk_size = saved_hunk_size;
+	hunk_low_used = saved_hunk_low_used;
+	hunk_high_used = saved_hunk_high_used;
+	bench486_zone_heap_error_count = saved_error_count;
+	Q_memcpy (bench486_zone_heap_errors, saved_errors, sizeof (saved_errors));
+	return failures;
+}
+
+static int Bench486ZoneHeapCheckerCases (void)
+{
+	return Bench486ZoneStructureCheckerCases () | Bench486HunkCheckerCases ();
+}
+
 static int Bench486ZoneMemoryInitCases (void)
 {
 	byte *saved_hunk_base = hunk_base;
@@ -450,6 +734,7 @@ int Bench486ZoneHeapCases (void)
 				!Bench486ZoneHeapBytesEqual (&c, &a, sizeof (c)))
 			failures |= 1 << case_index;
 	}
+	failures |= Bench486ZoneHeapCheckerCases ();
 
 	mainzone = saved_mainzone;
 #ifdef PROFILE486
@@ -467,6 +752,9 @@ int Bench486ZoneHeapCases (void)
 }
 
 #undef BZH_CASE_COUNT
+#undef BZH_HUNK_CHECK_SIZE
+#undef BZH_ERROR_SIZE
+#undef BZH_ERROR_COUNT
 #undef BZH_COMMAND_NAME_SIZE
 #undef BZH_MEMORY_SIZE
 #undef BZH_RESULT_COUNT
