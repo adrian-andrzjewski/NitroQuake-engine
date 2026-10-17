@@ -7,6 +7,7 @@ extern int R_BmodelCheckBBox_C (model_t *, float *);
 extern int R_BmodelCheckBBox (model_t *, float *);
 extern void R_MarkLeaves_C (void);
 extern void R_MarkLeaves (void);
+extern int hunk_low_used;
 extern float xscaleinv, yscaleinv, pixelAspect, screenAspect;
 extern float verticalFieldOfView, xOrigin, yOrigin, r_aliastransition, r_resfudge;
 extern mplane_t screenedge[4];
@@ -221,7 +222,10 @@ static void Bench486FrameControlCases (void)
 	clipplane_t saved_clip[4];
 	int *saved_indexes[4];
 	float saved_size, saved_lcd, saved_fov;
-	int saved_intermission, saved_viscount, i, precision, mode, phase, count, before;
+	int saved_intermission, saved_viscount, saved_hunk_mark;
+	int i, precision, mode, phase, count, before, mark_index, mark_count, c_mark, a_mark;
+	unsigned c_mark_abi, a_mark_abi;
+	static const int hunk_marks[] = { 0,1,3,4,15,16,31,32,4096,0x12345678,-1 };
 	unsigned short saved_cw, cw;
 	before = bench486_memory_failures; count = 0;
 	Bench486FrameViewState(&saved_view,0);
@@ -231,6 +235,26 @@ static void Bench486FrameControlCases (void)
 	saved_intermission = cl.intermission;
 	Q_memcpy(saved_clip,view_clipplanes,sizeof(saved_clip));
 	Q_memcpy(saved_indexes,pfrustum_indexes,sizeof(saved_indexes));
+	saved_hunk_mark = hunk_low_used;
+	mark_count = sizeof(hunk_marks) / sizeof(hunk_marks[0]);
+	__asm__ __volatile__("fnstcw %0" : "=m"(saved_cw));
+	for(mark_index=0 ; mark_index<mark_count ; mark_index++)
+	{
+		hunk_low_used = hunk_marks[mark_index];
+		c_mark = Hunk_LowMark_C();
+		a_mark = Hunk_LowMark();
+		c_mark_abi = Bench486Call_asm486((void (*)(void))Hunk_LowMark_C,0,NULL,NULL);
+		a_mark_abi = Bench486Call_asm486((void (*)(void))Hunk_LowMark,0,NULL,NULL);
+		if (c_mark != a_mark || c_mark_abi || a_mark_abi)
+		{
+			bench486_memory_failures++;
+			if (bench486_memory_failures < 24)
+				Bench486Printf("frame-control hunk-mark FAIL case %d cw %04x C %08x ASM %08x ABI %x/%x\n",
+						mark_index,saved_cw,(unsigned)c_mark,(unsigned)a_mark,c_mark_abi,a_mark_abi);
+		}
+		count++;
+	}
+	hunk_low_used = saved_hunk_mark;
 	Q_memset(&bench486_fc_world,0,sizeof(bench486_fc_world));
 	Q_memset(&bench486_fc_leafs,0,sizeof(bench486_fc_leafs));
 	Q_memset(&bench486_fc_nodes,0,sizeof(bench486_fc_nodes));
@@ -246,7 +270,6 @@ static void Bench486FrameControlCases (void)
 	}
 	cl.worldmodel = &bench486_fc_world; r_oldviewleaf = NULL;
 	r_visframecount = (int)0x7ffffff0u;
-	__asm__ __volatile__("fnstcw %0" : "=m"(saved_cw));
 	for(precision=0 ; precision<4 ; precision++)
 	{
 		if (precision == 1) continue;
@@ -278,8 +301,8 @@ static void Bench486FrameControlCases (void)
 	cl.intermission = saved_intermission;
 	Q_memcpy(view_clipplanes,saved_clip,sizeof(saved_clip));
 	Q_memcpy(pfrustum_indexes,saved_indexes,sizeof(saved_indexes));
-	Bench486Printf("frame-control exact viewport/projection/bbox/visibility/ABI/guards %s (%d cases; 8192 continuous visibility steps; %d failures)\n",
-			bench486_memory_failures == before ? "PASS" : "FAIL",count,bench486_memory_failures-before);
+	Bench486Printf("frame-control exact viewport/projection/bbox/visibility/hunk-mark/ABI/guards %s (%d cases; %d Hunk_LowMark states; 8192 continuous visibility steps; %d failures)\n",
+			bench486_memory_failures == before ? "PASS" : "FAIL",count,mark_count,bench486_memory_failures-before);
 }
 #else
 static void Bench486FrameControlCases (void)

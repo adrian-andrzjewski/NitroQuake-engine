@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-16, the i486 build defaults to all 118 current assembly selectors in
+As of 2026-10-17, the i486 build defaults to all 118 current assembly selectors in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
 is the complete C parity profile. The dated entries below preserve the status
@@ -46,6 +46,16 @@ three-scene, two-repeat pair: 6,058 post-warmup checksum comparisons and six
 exact indexed/palette captures. ABI, guards and uninterrupted visibility/bounds
 state pass, including the frame-counter wrap. See
 [frame-control port](ledger/2026-10-07-frame-control-assembly-port.md).
+
+The 2026-10-17 frame-control follow-up moves the render-time `Hunk_LowMark`
+getter into `r_framecontrolasm.s`; the release `zone.obj` no longer defines the
+symbol, while BENCH retains `Hunk_LowMark_C` for parity. Its eleven-state ABI
+fixture passed, and the paired three-scene run matched all 6,058 post-warmup
+checksums plus six indexed/palette captures exactly. The all-selector i486
+release gate also passed. This closes that shared support dependency only;
+remaining screen, menu, console and status-bar C ownership and visual acceptance
+gates remain open. See the
+[frame-control follow-up](ledger/2026-10-07-frame-control-assembly-port.md).
 
 The twenty remaining math-support entries passed their focused scene pair:
 6,058 exact post-warmup checksums and six exact indexed/palette captures.

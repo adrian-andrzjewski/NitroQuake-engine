@@ -6,8 +6,9 @@
 by `src/r_framecontrolasm.s`, with separate maintained release and PROFILE486
 instruction bodies. The C definitions remain independent BENCH486 oracles;
 ordinary selected release builds retain their shared data declarations without
-executing C frame-control forwarding entries. The selector remains C by default
-while complete-renderer integration is tested.
+executing C frame-control forwarding entries. At the original 2026-10-07
+acceptance point the selector remained C by default; the current all-selector
+i486 default is recorded in [`RENDERER-COMPLETION-GAPS.md`](../RENDERER-COMPLETION-GAPS.md).
 
 The instruction baseline was imported once from the pinned i486 C reference.
 Normal builds assemble the checked-in instruction text and do not regenerate it
@@ -105,3 +106,29 @@ unknown, or exempted instructions. Reports and captures are under
 `out/dos-bench-20261012-120041`, the captures in
 `out/dos-timedemo-20261012-113057` and `out/dos-timedemo-20261012-114426`,
 and the two `out/paired-framecontrol-event-*-20261012.json` comparison reports.
+
+## 2026-10-17 Hunk_LowMark assembly follow-up
+
+`FrameControlImplementation=asm` now owns `_Hunk_LowMark` in
+`src/r_framecontrolasm.s`. When `ASM486_FRAME_CONTROL` is selected, the
+production `zone.c` definition is omitted. BENCH builds retain the C oracle as
+`Hunk_LowMark_C`; C-reference builds retain the original `Hunk_LowMark`.
+
+The focused direct fixture passed 22,539 cases, including 11 `hunk_low_used`
+states, ABI checks, 8,192 continuous visibility steps and zero failures. The
+result is `out/dos-bench-20261017-001356/bench-result.json`.
+
+The release i486 build
+(`tools/build-dos.ps1 -NoBootstrap -FrameControlImplementation asm`) passed the
+complete ISA gate: 167,817 relocated instructions, 529 startup CODE rows and
+9,207 DPMI-provider instructions, with zero above-i486 instructions or
+exemptions. The release map resolves `Hunk_LowMark`; its object symbol appears
+in `r_framecontrolasm.obj` and is absent from `zone.obj`.
+
+The paired comparison is
+`out/render-parity-20261017-001533/render-parity-result.json`. C and ASM
+profiles passed two repetitions each of demo1, demo2 and demo3. All 6,058
+post-warmup checksums and six 320x200 captures matched exactly, with zero
+changed pixels or palette bytes. Median FPS was 12.150816/12.150844 for demo1,
+12.241811/12.241806 for demo2 and 11.700678/11.700691 for demo3 (C/ASM);
+these differences are within run variation.

@@ -99,6 +99,9 @@ void *Hunk_AllocName (int size, char *name);
 void *Hunk_HighAllocName (int size, char *name);
 
 int	Hunk_LowMark (void);
+#if defined(BENCH486) && defined(ASM486_FRAME_CONTROL)
+int	Hunk_LowMark_C (void);
+#endif
 void Hunk_FreeToLowMark (int mark);
 
 int	Hunk_HighMark (void);

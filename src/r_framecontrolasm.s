@@ -33,6 +33,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 .text
 .p2align 3
+.extern _hunk_low_used
+.globl _Hunk_LowMark
+_Hunk_LowMark:
+	movl _hunk_low_used, %eax
+	ret
+.p2align 3
 .globl _R_EdgeDrawing
 #ifdef ASM486_EDGE_DRAWING
 _R_EdgeDrawing:

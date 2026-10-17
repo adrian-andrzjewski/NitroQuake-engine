@@ -539,10 +539,19 @@ void *Hunk_Alloc (int size)
 	return Hunk_AllocName (size, "unknown");
 }
 
-int	Hunk_LowMark (void)
+#if defined(ASM486_FRAME_CONTROL)
+#if defined(BENCH486)
+int Hunk_LowMark_C (void)
 {
 	return hunk_low_used;
 }
+#endif
+#else
+int Hunk_LowMark (void)
+{
+	return hunk_low_used;
+}
+#endif
 
 void Hunk_FreeToLowMark (int mark)
 {
