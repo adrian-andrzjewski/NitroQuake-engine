@@ -212,4 +212,151 @@ C(Con_DrawConsole_asm486):
     popl    %ebp
     ret
 #endif
+
+// Con_DrawNotify from console.c. Preserve its x87 comparisons and the cursor's
+// truncating FISTP conversion while keeping all drawing calls on public paths.
+#if defined(ASM486_CONSOLE_NOTIFY) || defined(BENCH486)
+.globl C(Con_DrawNotify_asm486)
+#ifdef ASM486_CONSOLE_NOTIFY
+.globl C(Con_DrawNotify)
+C(Con_DrawNotify):
+#endif
+C(Con_DrawNotify_asm486):
+    pushl   %ebp
+    movl    %esp,%ebp
+    pushl   %ebx
+    pushl   %esi
+    pushl   %edi
+    subl    $12,%esp
+// Locals: current notification index -16; cursor int -20; x87 CWs -22/-24.
+    movl    C(con_current),%eax
+    subl    $3,%eax
+    movl    %eax,-16(%ebp)
+    xorl    %esi,%esi
+
+.Lcon_notify_outer:
+    movl    -16(%ebp),%eax
+    cmpl    C(con_current),%eax
+    jg      .Lcon_notify_chat
+    testl   %eax,%eax
+    js      .Lcon_notify_advance
+
+// The four-slot timestamp ring is indexed by i & 3. Discard the loaded zero
+// timestamp exactly as the compiler's FTST path does.
+    movl    %eax,%edx
+    andl    $3,%edx
+    flds    C(con_times)(,%edx,4)
+    ftst
+    fnstsw  %ax
+    testb   $64,%ah
+    jne     .Lcon_notify_zero_time
+
+// Match the C expression realtime - float_timestamp and its float cvar compare.
+    fldl    C(realtime)
+    fsubp   %st,%st(1)
+    fcomps  C(con_notifytime)+16
+    fnstsw  %ax
+// Only the greater-than condition skips; equal and unordered still draw.
+    testb   $69,%ah
+    je      .Lcon_notify_advance
+
+    movl    C(con_text),%edi
+    movl    -16(%ebp),%eax
+    cdq
+    idivl   C(con_totallines)
+    imull   C(con_linewidth),%edx
+    addl    %edx,%edi
+    movl    $0,C(clearnotify)
+    movl    $1,C(scr_copytop)
+    xorl    %ebx,%ebx
+
+.Lcon_notify_glyph:
+    cmpl    C(con_linewidth),%ebx
+    jge     .Lcon_notify_line_done
+    movsbl  (%edi,%ebx),%eax
+    pushl   %eax
+    pushl   %esi
+    leal    8(,%ebx,8),%eax
+    pushl   %eax
+    call    C(Draw_Character)
+    addl    $12,%esp
+    incl    %ebx
+    jmp     .Lcon_notify_glyph
+
+.Lcon_notify_zero_time:
+    fstp    %st(0)
+.Lcon_notify_advance:
+    incl    -16(%ebp)
+    jmp     .Lcon_notify_outer
+
+.Lcon_notify_line_done:
+    addl    $8,%esi
+    incl    -16(%ebp)
+    jmp     .Lcon_notify_outer
+
+.Lcon_notify_chat:
+    cmpl    $ci_key_message,C(key_dest)
+    jne     .Lcon_notify_finish
+    movl    $0,C(clearnotify)
+    movl    $1,C(scr_copytop)
+    pushl   $.Lcon_drawnotify_say
+    pushl   %esi
+    pushl   $8
+    call    C(Draw_String)
+    addl    $12,%esp
+    xorl    %ebx,%ebx
+
+.Lcon_notify_chat_glyph:
+    movsbl  C(chat_buffer)(,%ebx),%eax
+    testl   %eax,%eax
+    je      .Lcon_notify_cursor
+    pushl   %eax
+    pushl   %esi
+    leal    40(,%ebx,8),%eax
+    pushl   %eax
+    call    C(Draw_Character)
+    addl    $12,%esp
+    incl    %ebx
+    jmp     .Lcon_notify_chat_glyph
+
+.Lcon_notify_cursor:
+// The product uses the caller's rounding mode; FISTP then truncates toward zero.
+    flds    C(con_cursorspeed)
+    fmull   C(realtime)
+    fnstcw  -22(%ebp)
+    movw    -22(%ebp),%ax
+    orw     $0x0c00,%ax
+    movw    %ax,-24(%ebp)
+    fldcw   -24(%ebp)
+    fistpl  -20(%ebp)
+    fldcw   -22(%ebp)
+    movl    -20(%ebp),%eax
+    andl    $1,%eax
+    addl    $10,%eax
+    pushl   %eax
+    pushl   %esi
+    leal    40(,%ebx,8),%eax
+    pushl   %eax
+    call    C(Draw_Character)
+    addl    $12,%esp
+    addl    $8,%esi
+
+.Lcon_notify_finish:
+    cmpl    C(con_notifylines),%esi
+    jle     .Lcon_notify_done
+    movl    %esi,C(con_notifylines)
+
+.Lcon_notify_done:
+    leal    -12(%ebp),%esp
+    popl    %edi
+    popl    %esi
+    popl    %ebx
+    popl    %ebp
+    ret
+#endif
+
+.section .rodata
+.Lcon_drawnotify_say:
+    .asciz  "say:"
+.text
 #endif

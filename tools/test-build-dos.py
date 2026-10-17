@@ -820,6 +820,12 @@ def main() -> int:
         fail("the assembly console selector omits ASM486_CONSOLE_DRAW from C flags")
     if console_input_candidate and "-DASM486_CONSOLE_DRAW" not in console_input_candidate.get("asmFlags", []):
         fail("the assembly console selector omits ASM486_CONSOLE_DRAW from assembler flags")
+    if console_input_reference and "-DASM486_CONSOLE_NOTIFY" in console_input_reference.get("cFlags", []):
+        fail("the C console selector leaks the Con_DrawNotify assembly define into C")
+    if console_input_candidate and "-DASM486_CONSOLE_NOTIFY" not in console_input_candidate.get("cFlags", []):
+        fail("the assembly console selector omits ASM486_CONSOLE_NOTIFY from C flags")
+    if console_input_candidate and "-DASM486_CONSOLE_NOTIFY" not in console_input_candidate.get("asmFlags", []):
+        fail("the assembly console selector omits ASM486_CONSOLE_NOTIFY from assembler flags")
 
     screen_notify_reference = dump_flags("-ScreenNotifyImplementation", "c")
     screen_notify_candidate = dump_flags("-ScreenNotifyImplementation", "asm")

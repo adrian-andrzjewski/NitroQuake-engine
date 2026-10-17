@@ -12,6 +12,9 @@
 #define BCI_FRAME_ROWS 48
 #define BCI_FRAME_BYTES (BCI_ROW_BYTES * BCI_FRAME_ROWS)
 #define BCD_MAX_FRAME_BYTES (320 * 200 * 2)
+#define BCN_LINE_WIDTH 12
+#define BCN_TOTAL_LINES 4
+#define BCN_TEXT_BYTES (BCN_LINE_WIDTH * BCN_TOTAL_LINES)
 
 /* Expected integration symbols: the C oracle is renamed in console.c, while
    the public symbol dispatches to the selected assembly implementation. */
@@ -31,6 +34,12 @@ extern float con_cursorspeed;
 extern double realtime;
 extern byte *draw_chars;
 extern int r_pixbytes;
+extern int con_current, con_backscroll, con_totallines, con_notifylines;
+extern char *con_text;
+extern float con_times[4];
+extern cvar_t con_notifytime;
+extern int clearnotify, scr_copytop;
+extern char chat_buffer[32];
 
 typedef char bench486_console_input_requires_i386[
 		(sizeof(void *) == 4 && sizeof(int) == 4 && sizeof(unsigned) == 4) ?
@@ -89,11 +98,14 @@ static bench486_console_input_result_t bench486_console_input_asm_result;
 static bench486_console_input_result_t bench486_console_input_public_result;
 static byte bench486_console_draw_saved_frame[BCD_MAX_FRAME_BYTES];
 static byte bench486_console_draw_c_frame[BCD_MAX_FRAME_BYTES];
+static byte bench486_console_notify_c_frame[BCI_FRAME_BYTES];
+static char bench486_console_notify_text[BCN_TEXT_BYTES];
 
 extern void Con_DrawConsole_Console_C (int lines, qboolean drawinput);
 extern void Con_DrawConsole_asm486 (int lines, qboolean drawinput);
-extern int con_current, con_backscroll, con_linewidth, con_vislines;
-extern char *con_text;
+extern void Con_DrawNotify_Console_C (void);
+extern void Con_DrawNotify_asm486 (void);
+extern void Con_DrawNotify (void);
 
 static void Bench486ConsoleInputInitFont (void)
 {
@@ -277,6 +289,239 @@ static void Bench486ConsoleDrawCases (void)
 	Bench486Printf ("console draw C/ASM framebuffer and state parity %s (%u cases; %u failures)\n",
 			failures ? "FAIL" : "PASS",
 			(unsigned)(sizeof(lines) / sizeof(lines[0])), failures);
+}
+
+typedef struct
+{
+	const char *name;
+	int current;
+	float times[4];
+	double realtime_value;
+	float notify_time;
+	keydest_t destination;
+	float cursor_speed;
+	const char *chat;
+	int clear_notify, copy_top, notify_lines;
+} bench486_console_notify_case_t;
+
+static void Bench486ConsoleNotifyPrepare (
+		const bench486_console_notify_case_t *test_case)
+{
+	unsigned i;
+
+	for (i = 0; i < BCI_GUARD_WORDS; i++)
+	{
+		bench486_console_input_frame.before[i] = 0x486d3100U + i;
+		bench486_console_input_frame.after[i] = 0x5a13c800U + i;
+	}
+	for (i = 0; i < BCI_FRAME_BYTES; i++)
+		bench486_console_input_frame.data[i] = (byte)(0x71U + i * 19U);
+	for (i = 0; i < BCN_TEXT_BYTES; i++)
+		bench486_console_notify_text[i] = (char)(0x21U + (i * 11U) % 0x50U);
+
+	Q_memset (&vid, 0, sizeof(vid));
+	vid.buffer = bench486_console_input_frame.data;
+	vid.width = 112;
+	vid.height = BCI_FRAME_ROWS;
+	vid.conbuffer = bench486_console_input_frame.data;
+	vid.conrowbytes = BCI_ROW_BYTES;
+	vid.conwidth = 112;
+	vid.conheight = BCI_FRAME_ROWS;
+	draw_chars = bench486_console_input_font.data;
+	r_pixbytes = 1;
+
+	con_current = test_case->current;
+	con_totallines = BCN_TOTAL_LINES;
+	con_linewidth = BCN_LINE_WIDTH;
+	con_vislines = 7;
+	con_text = bench486_console_notify_text;
+	for (i = 0; i < 4; i++)
+		con_times[i] = test_case->times[i];
+	realtime = test_case->realtime_value;
+	con_notifytime.value = test_case->notify_time;
+	con_cursorspeed = test_case->cursor_speed;
+	key_dest = test_case->destination;
+	clearnotify = test_case->clear_notify;
+	scr_copytop = test_case->copy_top;
+	con_notifylines = test_case->notify_lines;
+	Q_memset (chat_buffer, 0, sizeof(chat_buffer));
+	Q_strcpy (chat_buffer, (char *)test_case->chat);
+}
+
+static int Bench486ConsoleNotifyGuardsIntact (void)
+{
+	unsigned i;
+
+	for (i = 0; i < BCI_GUARD_WORDS; i++)
+		if (bench486_console_input_frame.before[i] != 0x486d3100U + i ||
+				bench486_console_input_frame.after[i] != 0x5a13c800U + i)
+			return 0;
+	for (i = 0; i < 4; i++)
+		if (bench486_console_input_font.before[i] != 0x486c1000U + i ||
+				bench486_console_input_font.after[i] != 0x486c2000U + i)
+			return 0;
+	return 1;
+}
+
+static void Bench486ConsoleNotifyCases (void)
+{
+	static const bench486_console_notify_case_t cases[] =
+	{
+		{ "no-lines", -1, { 0, 0, 0, 0 }, 20.0, 3.0f,
+			key_game, 4.0f, "", 2, 7, 4 },
+		{ "recent-line", 0, { 19, 0, 0, 0 }, 20.0, 3.0f,
+			key_game, 4.0f, "", 2, 7, 4 },
+		{ "ring-wrap-four-lines", 13, { 19, 19, 19, 19 }, 20.0, 3.0f,
+			key_game, 4.0f, "", 2, 7, 0 },
+		{ "exact-expiry", 0, { 17, 0, 0, 0 }, 20.0, 3.0f,
+			key_game, 4.0f, "", 2, 7, 0 },
+		{ "expired-line", 0, { 16, 0, 0, 0 }, 20.0, 3.0f,
+			key_game, 4.0f, "", 2, 7, 0 },
+		{ "chat-empty", -1, { 0, 0, 0, 0 }, 20.0, 3.0f,
+			key_message, 4.0f, "", 1, 0, 0 },
+		{ "chat-cursor-boundary", -1, { 0, 0, 0, 0 },
+			0.499999999999, 3.0f, key_message, 1.0f, "abc", 1, 0, 0 },
+		{ "mixed-lines-chat", 3, { 19, 0, 18, 0 }, 20.0, 3.0f,
+			key_message, 4.0f, "ok", 1, 0, 0 }
+	};
+	static const unsigned rounding_modes[] =
+		{ 0x0000U, 0x0400U, 0x0800U, 0x0c00U };
+	static viddef_t saved_video;
+	static float saved_times[4];
+	static char saved_chat[32];
+	static bench486_console_input_x87_environment_t saved_x87_environment;
+	char *saved_text;
+	byte *saved_characters;
+	int saved_pixel_bytes, saved_current, saved_total, saved_backscroll;
+	int saved_width, saved_visible, saved_notify_lines, saved_clear, saved_copy;
+	keydest_t saved_destination;
+	float saved_notify_time, saved_cursor_speed;
+	double saved_realtime;
+	unsigned short original_control_word, test_control_word;
+	unsigned i, mode, j, failures = 0;
+	unsigned c_abi, asm_abi, public_abi, difference;
+	int c_guards_ok, asm_guards_ok, public_guards_ok;
+	int c_clear, c_copy, c_notify_lines, c_visible, c_current, c_destination;
+
+	Bench486ConsoleInputSaveEnvironment (&saved_x87_environment);
+	Q_memcpy (&saved_video, &vid, sizeof(saved_video));
+	Q_memcpy (saved_times, con_times, sizeof(saved_times));
+	Q_memcpy (saved_chat, chat_buffer, sizeof(saved_chat));
+	saved_text = con_text;
+	saved_characters = draw_chars;
+	saved_pixel_bytes = r_pixbytes;
+	saved_current = con_current;
+	saved_total = con_totallines;
+	saved_backscroll = con_backscroll;
+	saved_width = con_linewidth;
+	saved_visible = con_vislines;
+	saved_notify_lines = con_notifylines;
+	saved_clear = clearnotify;
+	saved_copy = scr_copytop;
+	saved_destination = key_dest;
+	saved_notify_time = con_notifytime.value;
+	saved_cursor_speed = con_cursorspeed;
+	saved_realtime = realtime;
+	original_control_word = Bench486ConsoleInputGetControlWord ();
+	Bench486ConsoleInputInitFont ();
+
+	for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+		for (mode = 0; mode < sizeof(rounding_modes) / sizeof(rounding_modes[0]); mode++)
+		{
+			Bench486ConsoleNotifyPrepare (&cases[i]);
+			test_control_word = (unsigned short)((original_control_word & ~0x0c00U) |
+					rounding_modes[mode]);
+			Bench486ConsoleInputSetControlWord (test_control_word);
+			c_abi = Bench486Call_asm486 ((void (*)(void))Con_DrawNotify_Console_C,
+					0, NULL, NULL);
+			Bench486ConsoleInputSetControlWord (original_control_word);
+			c_guards_ok = Bench486ConsoleNotifyGuardsIntact ();
+			c_clear = clearnotify;
+			c_copy = scr_copytop;
+			c_notify_lines = con_notifylines;
+			c_visible = con_vislines;
+			c_current = con_current;
+			c_destination = key_dest;
+			Q_memcpy (bench486_console_notify_c_frame,
+					bench486_console_input_frame.data, BCI_FRAME_BYTES);
+
+			Bench486ConsoleNotifyPrepare (&cases[i]);
+			Bench486ConsoleInputSetControlWord (test_control_word);
+			asm_abi = Bench486Call_asm486 ((void (*)(void))Con_DrawNotify_asm486,
+					0, NULL, NULL);
+			Bench486ConsoleInputSetControlWord (original_control_word);
+			difference = BCI_FRAME_BYTES;
+			for (j = 0; j < BCI_FRAME_BYTES; j++)
+				if (bench486_console_notify_c_frame[j] !=
+						bench486_console_input_frame.data[j])
+				{
+					difference = j;
+					break;
+				}
+			asm_guards_ok = Bench486ConsoleNotifyGuardsIntact ();
+			if (c_abi || asm_abi || difference != BCI_FRAME_BYTES ||
+					c_clear != clearnotify || c_copy != scr_copytop ||
+					c_notify_lines != con_notifylines || c_visible != con_vislines ||
+					c_current != con_current || c_destination != key_dest ||
+					!c_guards_ok || !asm_guards_ok)
+			{
+				failures++;
+				Bench486Printf ("  console notify %s mode %u C/ASM ABI %x/%x state %d/%d/%d first-pixel %u\n",
+						(char *)cases[i].name, mode, c_abi, asm_abi,
+						clearnotify, scr_copytop, con_notifylines, difference);
+			}
+
+			Bench486ConsoleNotifyPrepare (&cases[i]);
+			Bench486ConsoleInputSetControlWord (test_control_word);
+			public_abi = Bench486Call_asm486 ((void (*)(void))Con_DrawNotify,
+					0, NULL, NULL);
+			Bench486ConsoleInputSetControlWord (original_control_word);
+			public_guards_ok = Bench486ConsoleNotifyGuardsIntact ();
+			difference = BCI_FRAME_BYTES;
+			for (j = 0; j < BCI_FRAME_BYTES; j++)
+				if (bench486_console_notify_c_frame[j] !=
+						bench486_console_input_frame.data[j])
+				{
+					difference = j;
+					break;
+				}
+			if (public_abi || difference != BCI_FRAME_BYTES ||
+					c_clear != clearnotify || c_copy != scr_copytop ||
+					c_notify_lines != con_notifylines || c_visible != con_vislines ||
+					c_current != con_current || c_destination != key_dest ||
+					!public_guards_ok)
+			{
+				failures++;
+				Bench486Printf ("  console notify public %s mode %u C/public ABI %x/%x first-pixel %u\n",
+						(char *)cases[i].name, mode, c_abi, public_abi, difference);
+			}
+		}
+
+	Q_memcpy (&vid, &saved_video, sizeof(saved_video));
+	Q_memcpy (con_times, saved_times, sizeof(saved_times));
+	Q_memcpy (chat_buffer, saved_chat, sizeof(saved_chat));
+	con_text = saved_text;
+	draw_chars = saved_characters;
+	r_pixbytes = saved_pixel_bytes;
+	con_current = saved_current;
+	con_totallines = saved_total;
+	con_backscroll = saved_backscroll;
+	con_linewidth = saved_width;
+	con_vislines = saved_visible;
+	con_notifylines = saved_notify_lines;
+	clearnotify = saved_clear;
+	scr_copytop = saved_copy;
+	key_dest = saved_destination;
+	con_notifytime.value = saved_notify_time;
+	con_cursorspeed = saved_cursor_speed;
+	realtime = saved_realtime;
+	if (failures)
+		bench486_memory_failures += failures;
+	Bench486Printf ("console notification C/ASM/public framebuffer, state and four x87 rounding-mode parity %s (%u cases x %u modes; %u failures)\n",
+			failures ? "FAIL" : "PASS",
+			(unsigned)(sizeof(cases) / sizeof(cases[0])),
+			(unsigned)(sizeof(rounding_modes) / sizeof(rounding_modes[0])), failures);
+	Bench486ConsoleInputRestoreEnvironment (&saved_x87_environment);
 }
 
 static int Bench486ConsoleInputGuardsIntact (
@@ -485,8 +730,9 @@ static void Bench486ConsoleInputCases (void)
 			failures ? "FAIL" : "PASS",
 			(unsigned)(sizeof(cases) / sizeof(cases[0])),
 			(unsigned)(sizeof(rounding_modes) / sizeof(rounding_modes[0])), failures);
-	Bench486ConsoleInputRestoreEnvironment (&saved_x87_environment);
 	Bench486ConsoleDrawCases ();
+	Bench486ConsoleNotifyCases ();
+	Bench486ConsoleInputRestoreEnvironment (&saved_x87_environment);
 }
 
 #undef BCI_LINE_COUNT
@@ -497,6 +743,9 @@ static void Bench486ConsoleInputCases (void)
 #undef BCI_FRAME_ROWS
 #undef BCI_FRAME_BYTES
 #undef BCD_MAX_FRAME_BYTES
+#undef BCN_LINE_WIDTH
+#undef BCN_TOTAL_LINES
+#undef BCN_TEXT_BYTES
 
 #endif /* BENCH486 && ASM486_CONSOLE_INPUT */
 #endif /* BENCH486_CONSOLE_INPUT_H */

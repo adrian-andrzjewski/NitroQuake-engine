@@ -355,6 +355,8 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [Strict linked-object, final-executable, startup and provider i486 audits pass with zero violations or exemptions](2026-10-10-con-drawinput-assembly-port.md)
 - `measured` [`Con_DrawConsole` exact five-case C/ASM framebuffer and state parity under DOSBox-X](2026-10-17-con-drawconsole-assembly-port.md)
 - `measured` [Strict i486 object, linked executable, startup and CWSDPMI provider gates pass with zero exemptions](2026-10-17-con-drawconsole-assembly-port.md)
+- `measured` [`Con_DrawNotify` exact C/ASM/public framebuffer and state parity across eight cases and four x87 modes](2026-10-17-con-drawnotify-assembly-port.md)
+- `measured` [Strict linked-object, executable, startup and CWSDPMI provider gates pass with zero exemptions](2026-10-17-con-drawnotify-assembly-port.md)
 - `measured` [`SCR_DrawCenterString` exact 18-case C/assembly/public parity across 12 x87 settings](2026-10-10-screen-center-string-assembly-parity.md)
 - `measured` [Strict linked executable, startup and CWSDPMI provider audits pass with zero violations or exemptions](2026-10-10-screen-center-string-assembly-parity.md)
 - `open` [Complete-scene parity and broader screen/rendering ownership](2026-10-10-screen-center-string-assembly-parity.md)

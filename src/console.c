@@ -526,7 +526,14 @@ Con_DrawNotify
 Draws the last few lines of output transparently over the game top
 ================
 */
-void Con_DrawNotify (void)
+#if defined(ASM486_CONSOLE_NOTIFY) && defined(BENCH486)
+#define CON_DRAW_NOTIFY_C Con_DrawNotify_Console_C
+#else
+#define CON_DRAW_NOTIFY_C Con_DrawNotify
+#endif
+
+#if !defined(ASM486_CONSOLE_NOTIFY) || defined(BENCH486)
+void CON_DRAW_NOTIFY_C (void)
 {
 	int		x, v;
 	char	*text;
@@ -577,6 +584,9 @@ void Con_DrawNotify (void)
 	if (v > con_notifylines)
 		con_notifylines = v;
 }
+#endif
+
+#undef CON_DRAW_NOTIFY_C
 
 /*
 ================
