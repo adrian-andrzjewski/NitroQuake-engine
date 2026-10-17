@@ -814,6 +814,12 @@ def main() -> int:
     for name, dump in (("C", console_input_reference), ("assembly", console_input_candidate)):
         if dump and "con_inputasm.s" not in dump.get("assemblySources", []):
             fail("the Con_DrawInput %s selector omits con_inputasm.s from the source inventory" % name)
+    if console_input_reference and "-DASM486_CONSOLE_DRAW" in console_input_reference.get("cFlags", []):
+        fail("the C console selector leaks the Con_DrawConsole assembly define into C")
+    if console_input_candidate and "-DASM486_CONSOLE_DRAW" not in console_input_candidate.get("cFlags", []):
+        fail("the assembly console selector omits ASM486_CONSOLE_DRAW from C flags")
+    if console_input_candidate and "-DASM486_CONSOLE_DRAW" not in console_input_candidate.get("asmFlags", []):
+        fail("the assembly console selector omits ASM486_CONSOLE_DRAW from assembler flags")
 
     screen_notify_reference = dump_flags("-ScreenNotifyImplementation", "c")
     screen_notify_candidate = dump_flags("-ScreenNotifyImplementation", "asm")

@@ -115,4 +115,101 @@ C(Con_DrawInput_asm486):
 
 .Lcon_input_return:
     ret
+
+// Con_DrawConsole from console.c, with the C body retained as the BENCH oracle.
+// The public selector is paired with ConsoleImplementation so the entire
+// console draw orchestration follows the same C/assembly profile choice.
+#if defined(ASM486_CONSOLE_DRAW) || defined(BENCH486)
+.globl C(Con_DrawConsole_asm486)
+#ifdef ASM486_CONSOLE_DRAW
+.globl C(Con_DrawConsole)
+C(Con_DrawConsole):
+#endif
+C(Con_DrawConsole_asm486):
+    pushl   %ebp
+    movl    %esp,%ebp
+    pushl   %ebx
+    pushl   %esi
+    pushl   %edi
+    subl    $8,%esp
+// Locals: x -16; text -20. Callee-saved registers hold rows, y and i.
+    cmpl    $0,8(%ebp)
+    jle     .Lcon_drawconsole_done
+
+// Draw_ConsoleBackground(lines).
+    pushl   8(%ebp)
+    call    C(Draw_ConsoleBackground)
+    addl    $4,%esp
+
+// con_vislines = lines;
+    movl    8(%ebp),%eax
+    movl    %eax,C(con_vislines)
+
+// rows = (lines - 16) >> 3; y = lines - 16 - (rows << 3).
+    subl    $16,%eax
+    movl    %eax,%esi
+    sarl    $3,%eax
+    movl    %eax,%ebx
+    sall    $3,%eax
+    subl    %eax,%esi
+
+// i = con_current - rows + 1.
+    movl    C(con_current),%edi
+    subl    %ebx,%edi
+    incl    %edi
+
+.Lcon_drawconsole_outer:
+    cmpl    C(con_current),%edi
+    jg      .Lcon_drawconsole_input
+
+// j = max(i - con_backscroll, 0); use C's signed remainder for the ring row.
+    movl    %edi,%eax
+    subl    C(con_backscroll),%eax
+    testl   %eax,%eax
+    jge     .Lcon_drawconsole_nonnegative
+    xorl    %eax,%eax
+.Lcon_drawconsole_nonnegative:
+    cdq
+    idivl   C(con_totallines)
+    imull   C(con_linewidth),%edx
+    addl    C(con_text),%edx
+    movl    %edx,-20(%ebp)
+    movl    $0,-16(%ebp)
+
+.Lcon_drawconsole_inner:
+    movl    -16(%ebp),%eax
+    cmpl    C(con_linewidth),%eax
+    jge     .Lcon_drawconsole_inner_done
+
+// Draw_Character((x + 1) << 3, y, text[x]); DJGPP treats plain char as signed.
+    movl    -20(%ebp),%eax
+    movl    -16(%ebp),%ecx
+    movsbl  (%eax,%ecx),%eax
+    pushl   %eax
+    pushl   %esi
+    leal    8(,%ecx,8),%eax
+    pushl   %eax
+    call    C(Draw_Character)
+    addl    $12,%esp
+    incl    -16(%ebp)
+    jmp     .Lcon_drawconsole_inner
+
+.Lcon_drawconsole_inner_done:
+    addl    $8,%esi
+    incl    %edi
+    jmp     .Lcon_drawconsole_outer
+
+.Lcon_drawconsole_input:
+    cmpl    $0,12(%ebp)
+    je      .Lcon_drawconsole_done
+    call    C(Con_DrawInput)
+
+.Lcon_drawconsole_done:
+    leal    -12(%ebp),%esp
+    popl    %edi
+    popl    %esi
+    popl    %ebx
+    popl    %ebp
+    ret
+#endif
 #endif

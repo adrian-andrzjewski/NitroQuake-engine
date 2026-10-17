@@ -11,6 +11,7 @@
 #define BCI_ROW_BYTES 128
 #define BCI_FRAME_ROWS 48
 #define BCI_FRAME_BYTES (BCI_ROW_BYTES * BCI_FRAME_ROWS)
+#define BCD_MAX_FRAME_BYTES (320 * 200 * 2)
 
 /* Expected integration symbols: the C oracle is renamed in console.c, while
    the public symbol dispatches to the selected assembly implementation. */
@@ -86,6 +87,13 @@ static viddef_t bench486_console_input_expected_video;
 static bench486_console_input_result_t bench486_console_input_c_result;
 static bench486_console_input_result_t bench486_console_input_asm_result;
 static bench486_console_input_result_t bench486_console_input_public_result;
+static byte bench486_console_draw_saved_frame[BCD_MAX_FRAME_BYTES];
+static byte bench486_console_draw_c_frame[BCD_MAX_FRAME_BYTES];
+
+extern void Con_DrawConsole_Console_C (int lines, qboolean drawinput);
+extern void Con_DrawConsole_asm486 (int lines, qboolean drawinput);
+extern int con_current, con_backscroll, con_linewidth, con_vislines;
+extern char *con_text;
 
 static void Bench486ConsoleInputInitFont (void)
 {
@@ -190,6 +198,85 @@ static void Bench486ConsoleInputRestoreEnvironment (
 		const bench486_console_input_x87_environment_t *environment)
 {
 	__asm__ __volatile__ ("fldenv %0" : : "m" (*environment));
+}
+
+static void Bench486ConsoleDrawCases (void)
+{
+	static const char *case_names[] =
+		{ "one-line", "partial-row", "one-row", "multi-row", "full-console" };
+	static viddef_t saved_video;
+	int lines[5];
+	int saved_visible, saved_current, saved_backscroll, saved_width;
+	unsigned bytes, arguments[2], i, j, difference, failures = 0;
+	int c_visible;
+	unsigned c_abi, asm_abi;
+	
+	if (!vid.conbuffer || vid.conrowbytes <= 0 || vid.conheight <= 0 ||
+			vid.conrowbytes * vid.conheight > BCD_MAX_FRAME_BYTES ||
+			!con_text || con_totallines <= 0 || con_linewidth <= 0)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("console draw C/ASM parity FAIL: initialized console video and scrollback required\n");
+		return;
+	}
+
+	bytes = (unsigned)(vid.conrowbytes * vid.conheight);
+	lines[0] = 1;
+	lines[1] = 15;
+	lines[2] = 16;
+	lines[3] = 24;
+	lines[4] = vid.conheight;
+	saved_visible = con_vislines;
+	saved_current = con_current;
+	saved_backscroll = con_backscroll;
+	saved_width = con_linewidth;
+	Q_memcpy (&saved_video, &vid, sizeof(vid));
+	Q_memcpy (bench486_console_draw_saved_frame, vid.conbuffer, bytes);
+	
+	for (i = 0; i < sizeof(lines) / sizeof(lines[0]); i++)
+	{
+		if (lines[i] > vid.conheight)
+			lines[i] = vid.conheight;
+		arguments[0] = (unsigned)lines[i];
+		arguments[1] = 0;
+		Q_memcpy (vid.conbuffer, bench486_console_draw_saved_frame, bytes);
+		con_vislines = saved_visible;
+		c_abi = Bench486Call_asm486 ((void (*)(void))Con_DrawConsole_Console_C,
+				2, arguments, NULL);
+		c_visible = con_vislines;
+		Q_memcpy (bench486_console_draw_c_frame, vid.conbuffer, bytes);
+		
+		Q_memcpy (vid.conbuffer, bench486_console_draw_saved_frame, bytes);
+		con_vislines = saved_visible;
+		asm_abi = Bench486Call_asm486 ((void (*)(void))Con_DrawConsole_asm486,
+				2, arguments, NULL);
+		difference = bytes;
+		for (j = 0; j < bytes; j++)
+			if (bench486_console_draw_c_frame[j] != vid.conbuffer[j])
+			{
+				difference = j;
+				break;
+			}
+		if (c_abi || asm_abi || c_visible != lines[i] ||
+				con_vislines != lines[i] || difference != bytes ||
+				Q_memcmp ((void *)&vid, (void *)&saved_video, sizeof(vid)) ||
+				con_current != saved_current || con_backscroll != saved_backscroll ||
+				con_linewidth != saved_width)
+		{
+			failures++;
+			Bench486Printf ("  console draw %s FAIL C/ASM ABI %x/%x visible %d/%d first-pixel %u\n",
+					(char *)case_names[i], c_abi, asm_abi, c_visible,
+					con_vislines, difference);
+		}
+	}
+
+	Q_memcpy (vid.conbuffer, bench486_console_draw_saved_frame, bytes);
+	con_vislines = saved_visible;
+	if (failures)
+		bench486_memory_failures += failures;
+	Bench486Printf ("console draw C/ASM framebuffer and state parity %s (%u cases; %u failures)\n",
+			failures ? "FAIL" : "PASS",
+			(unsigned)(sizeof(lines) / sizeof(lines[0])), failures);
 }
 
 static int Bench486ConsoleInputGuardsIntact (
@@ -399,6 +486,7 @@ static void Bench486ConsoleInputCases (void)
 			(unsigned)(sizeof(cases) / sizeof(cases[0])),
 			(unsigned)(sizeof(rounding_modes) / sizeof(rounding_modes[0])), failures);
 	Bench486ConsoleInputRestoreEnvironment (&saved_x87_environment);
+	Bench486ConsoleDrawCases ();
 }
 
 #undef BCI_LINE_COUNT
@@ -408,6 +496,7 @@ static void Bench486ConsoleInputCases (void)
 #undef BCI_ROW_BYTES
 #undef BCI_FRAME_ROWS
 #undef BCI_FRAME_BYTES
+#undef BCD_MAX_FRAME_BYTES
 
 #endif /* BENCH486 && ASM486_CONSOLE_INPUT */
 #endif /* BENCH486_CONSOLE_INPUT_H */

@@ -586,7 +586,14 @@ Draws the console with the solid background
 The typing input line at the bottom should only be drawn if typing is allowed
 ================
 */
-void Con_DrawConsole (int lines, qboolean drawinput)
+#if defined(ASM486_CONSOLE_DRAW) && defined(BENCH486)
+#define CON_DRAW_CONSOLE_C Con_DrawConsole_Console_C
+#else
+#define CON_DRAW_CONSOLE_C Con_DrawConsole
+#endif
+
+#if !defined(ASM486_CONSOLE_DRAW) || defined(BENCH486)
+void CON_DRAW_CONSOLE_C (int lines, qboolean drawinput)
 {
 	int				i, x, y;
 	int				rows;
@@ -620,6 +627,9 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 	if (drawinput)
 		Con_DrawInput ();
 }
+#endif
+
+#undef CON_DRAW_CONSOLE_C
 
 
 /*

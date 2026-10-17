@@ -1292,8 +1292,8 @@ $script:SelectorTable = @(
         Param      = 'ConsoleImplementation'
         Manifest   = 'consoleImplementation'
         Suffix     = @{ 'asm' = 'consoleinputasm' }
-        C          = @{ 'asm' = @('ASM486_CONSOLE_INPUT') }
-        Asm        = @{ 'asm' = @('ASM486_CONSOLE_INPUT') }
+        C          = @{ 'asm' = @('ASM486_CONSOLE_INPUT', 'ASM486_CONSOLE_DRAW') }
+        Asm        = @{ 'asm' = @('ASM486_CONSOLE_INPUT', 'ASM486_CONSOLE_DRAW') }
         SelectsAsm = $true
     }
 

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-17-con-drawconsole-assembly-port.md`](2026-10-17-con-drawconsole-assembly-port.md) | 4 | renderer port / console composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 build and execution`; `Traceability and remaining scope`) |
 | [`2026-10-16-find-touched-leafs-assembly-port.md`](2026-10-16-find-touched-leafs-assembly-port.md) | 5 | renderer port / 3D entity-to-BSP-leaf traversal (`Function and selector`; `ABI and recursive behavior`; `Exact C/ASM parity`; `Strict i486 gates`; `Reproduction and limits`) |
 | [`2026-10-16-clip-move-to-entity-assembly-port.md`](2026-10-16-clip-move-to-entity-assembly-port.md) | 5 | renderer port / 3D entity trace wrapper (`Function and selection boundary`; `Wrapper and ABI`; `Exact trace parity`; `Strict i486 gates`; `Reproduction and limits`) |
 | [`2026-10-16-clip-to-links-assembly-port.md`](2026-10-16-clip-to-links-assembly-port.md) | 5 | renderer port / 3D area-link entity clipper (`Function and selector`; `ABI and recursive behavior`; `Exact C/ASM parity`; `Strict i486 gates`; `Reproduction and limits`) |
@@ -352,6 +353,8 @@ other axis: one row per renderer region, newest entry first.
 - `open` [Remaining view initialization dependencies and full profile parity](2026-10-10-v-init-assembly-port.md)
 - `measured` [`Con_DrawInput` console-input overlay passes exact direct C/ASM/public parity across 21 cases and four x87 rounding modes](2026-10-10-con-drawinput-assembly-port.md)
 - `measured` [Strict linked-object, final-executable, startup and provider i486 audits pass with zero violations or exemptions](2026-10-10-con-drawinput-assembly-port.md)
+- `measured` [`Con_DrawConsole` exact five-case C/ASM framebuffer and state parity under DOSBox-X](2026-10-17-con-drawconsole-assembly-port.md)
+- `measured` [Strict i486 object, linked executable, startup and CWSDPMI provider gates pass with zero exemptions](2026-10-17-con-drawconsole-assembly-port.md)
 - `measured` [`SCR_DrawCenterString` exact 18-case C/assembly/public parity across 12 x87 settings](2026-10-10-screen-center-string-assembly-parity.md)
 - `measured` [Strict linked executable, startup and CWSDPMI provider audits pass with zero violations or exemptions](2026-10-10-screen-center-string-assembly-parity.md)
 - `open` [Complete-scene parity and broader screen/rendering ownership](2026-10-10-screen-center-string-assembly-parity.md)
