@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-17, the i486 build defaults to the complete 129-entry assembly
+As of 2026-10-18, the i486 build defaults to the complete 129-entry assembly
 selector profile in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
@@ -15,14 +15,16 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-18 full assembly-profile BENCH ownership report contains
-365 directly reachable renderer entries and 49 directly reachable C
-dependencies: 316/365, or 86.6%, are assembly-owned by reachable-symbol count.
-This is only a rough, profile-specific progress estimate: the inventory has 79
+366 directly reachable renderer entries and 48 directly reachable C
+dependencies: 318/366, or 86.9%, are assembly-owned by reachable-symbol count.
+This is only a rough, profile-specific progress estimate: the inventory has 82
 unresolved direct callees and `completeCallGraph=false`; it does not weight
 routines by size or complexity. The full intermission deathmatch scoreboard
-now selects assembly in the default i486 profile. Its six exact C/ASM cases,
-the existing status-bar/face cases, and the strict i486 gate pass; see the
-[full scoreboard port ledger](ledger/2026-10-18-sbar-deathmatch-assembly-port.md).
+and normal intermission overlay now select assembly in the default i486
+profile. The scoreboard's six exact C/ASM cases and the overlay's four exact
+C/ASM cases pass, alongside the existing status-bar/face cases and strict
+i486 gate. See the [scoreboard ledger](ledger/2026-10-18-sbar-deathmatch-assembly-port.md)
+and [intermission overlay ledger](ledger/2026-10-18-sbar-intermission-assembly-port.md).
 The widescreen mini-deathmatch overlay also selects assembly and its focused
 eight-case C/ASM fixture and strict i486 gate pass.
 Console scrollback insertion and linefeed now also select assembly; their

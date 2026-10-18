@@ -241,6 +241,61 @@ void Bench486SbarDeathmatchDrawPic (int x, int y, qpic_t *pic)
 	Bench486SbarCapture (SBAR_CAPTURE_PIC, x, y, (unsigned long)pic);
 }
 
+static qpic_t bench486_sbar_intermission_complete_pic;
+static qpic_t bench486_sbar_intermission_inter_pic;
+static int bench486_sbar_intermission_cache_calls;
+static int bench486_sbar_intermission_bad_cache_path;
+
+qpic_t *Bench486SbarIntermissionCachePic (char *path)
+{
+	static const char complete[] = "gfx/complete.lmp";
+	static const char intermission[] = "gfx/inter.lmp";
+	const char *expected;
+	int i, path_id;
+	path_id = 0;
+	if (path)
+	{
+		expected = complete;
+		for (i = 0; expected[i] && path[i] == expected[i]; i++)
+			;
+		if (!expected[i] && !path[i])
+			path_id = 1;
+		else
+		{
+			expected = intermission;
+			for (i = 0; expected[i] && path[i] == expected[i]; i++)
+				;
+			if (!expected[i] && !path[i])
+				path_id = 2;
+		}
+	}
+	if (!path_id)
+	{
+		bench486_sbar_intermission_bad_cache_path = 1;
+		path_id = 1;
+	}
+	bench486_sbar_intermission_cache_calls++;
+	Bench486SbarCapture (SBAR_CAPTURE_CACHEPIC, path_id, 0, 0);
+	return path_id == 2 ? &bench486_sbar_intermission_inter_pic :
+			&bench486_sbar_intermission_complete_pic;
+}
+
+void Bench486SbarIntermissionDrawPic (int x, int y, qpic_t *pic)
+{
+	if (bench486_sbar_capture_active)
+		Bench486SbarCapture (SBAR_CAPTURE_PIC, x, y, (unsigned long)pic);
+	else
+		Draw_Pic (x, y, pic);
+}
+
+void Bench486SbarIntermissionDrawTransPic (int x, int y, qpic_t *pic)
+{
+	if (bench486_sbar_capture_active)
+		Bench486SbarCapture (SBAR_CAPTURE_TRANSPIC, x, y, (unsigned long)pic);
+	else
+		Draw_TransPic (x, y, pic);
+}
+
 static void Bench486SbarDrawResetCapture (void)
 {
 	Q_memset (bench486_sbar_draw_events, 0,
@@ -1140,6 +1195,331 @@ static void Bench486SbarDeathmatchCases (void)
 				"sbar full deathmatch 6 exact C/ASM picture/scoreboard/state/ABI cases FAIL\n");
 }
 
+typedef struct
+{
+	const char *name;
+	int gametype;
+	int completed_time;
+	int secrets;
+	int total_secrets;
+	int monsters;
+	int total_monsters;
+	int width;
+	int picture_width;
+	int maxclients;
+	int viewentity;
+	unsigned present_mask;
+	int frag_pattern;
+} bench486_sbar_intermission_case_t;
+
+typedef struct
+{
+	int copy_everything;
+	int fullupdate;
+	int scoreboardlines;
+	int fragsort[MAX_SCOREBOARD];
+	int intermission_cache_calls;
+	int intermission_bad_cache_path;
+	int deathmatch_cache_calls;
+	int deathmatch_bad_cache_path;
+	int deathmatch_bad_pic;
+	int event_count;
+	int overflow;
+	unsigned abi;
+	bench486_sbar_capture_t events[BENCH486_SBAR_CAPTURE_CAPACITY];
+} bench486_sbar_intermission_result_t;
+
+static bench486_sbar_intermission_result_t bench486_sbar_intermission_c;
+static bench486_sbar_intermission_result_t bench486_sbar_intermission_asm;
+
+static void Bench486SbarIntermissionCallC (void)
+{
+	Sbar_IntermissionOverlay_C ();
+}
+
+static void Bench486SbarIntermissionCallAsm (void)
+{
+	Sbar_IntermissionOverlay_asm486 ();
+}
+
+static void Bench486SbarIntermissionInstall (
+		const bench486_sbar_intermission_case_t *test_case)
+{
+	static const int format_frags[MAX_SCOREBOARD] = {
+		-9999, -1000, -100, -1, 0, 1, 99, 100,
+		999, 1234, 321, -1234, 777, -777, 42, -42
+	};
+	int i;
+	Q_memset (bench486_sbar_mini_scores, 0,
+			sizeof(bench486_sbar_mini_scores));
+	for (i = 0; i < test_case->maxclients; i++)
+	{
+		scoreboard_t *score;
+		score = &bench486_sbar_mini_scores[i];
+		if (test_case->present_mask & (1U << i))
+		{
+			score->name[0] = 'I';
+			score->name[1] = (char)('A' + i);
+			score->name[2] = 0;
+		}
+		if (test_case->frag_pattern == 0)
+			score->frags = i * 37 - 41;
+		else
+			score->frags = (test_case->maxclients - i) * 13;
+		score->colors = ((i * 29) & 0xf0) | ((i * 5) & 15);
+	}
+	vid.width = test_case->width;
+	cl.gametype = test_case->gametype;
+	cl.completed_time = test_case->completed_time;
+	cl.stats[STAT_SECRETS] = test_case->secrets;
+	cl.stats[STAT_TOTALSECRETS] = test_case->total_secrets;
+	cl.stats[STAT_MONSTERS] = test_case->monsters;
+	cl.stats[STAT_TOTALMONSTERS] = test_case->total_monsters;
+	cl.maxclients = test_case->maxclients;
+	cl.viewentity = test_case->viewentity;
+	cl.scores = bench486_sbar_mini_scores;
+	scoreboardlines = -73;
+	for (i = 0; i < MAX_SCOREBOARD; i++)
+		fragsort[i] = -211 - i;
+	scr_copyeverything = -13;
+	scr_fullupdate = -17;
+	bench486_sbar_deathmatch_pic.width = test_case->picture_width;
+	bench486_sbar_deathmatch_pic.height = 64;
+}
+
+static void Bench486SbarIntermissionRun (void (*function)(void),
+		bench486_sbar_intermission_result_t *result)
+{
+	int i;
+	Q_memset (result, 0, sizeof(*result));
+	bench486_sbar_capture_active = 1;
+	bench486_sbar_capture_count = 0;
+	bench486_sbar_capture_overflow = 0;
+	bench486_sbar_intermission_cache_calls = 0;
+	bench486_sbar_intermission_bad_cache_path = 0;
+	bench486_sbar_deathmatch_cache_calls = 0;
+	bench486_sbar_deathmatch_bad_cache_path = 0;
+	bench486_sbar_deathmatch_bad_pic = 0;
+	result->abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_sbar_capture_active = 0;
+	result->copy_everything = scr_copyeverything;
+	result->fullupdate = scr_fullupdate;
+	result->scoreboardlines = scoreboardlines;
+	for (i = 0; i < MAX_SCOREBOARD; i++)
+		result->fragsort[i] = fragsort[i];
+	result->intermission_cache_calls = bench486_sbar_intermission_cache_calls;
+	result->intermission_bad_cache_path =
+			bench486_sbar_intermission_bad_cache_path;
+	result->deathmatch_cache_calls = bench486_sbar_deathmatch_cache_calls;
+	result->deathmatch_bad_cache_path =
+			bench486_sbar_deathmatch_bad_cache_path;
+	result->deathmatch_bad_pic = bench486_sbar_deathmatch_bad_pic;
+	result->event_count = bench486_sbar_capture_count;
+	result->overflow = bench486_sbar_capture_overflow;
+	for (i = 0; i < result->event_count; i++)
+		result->events[i] = bench486_sbar_capture[i];
+}
+
+static int Bench486SbarIntermissionResultsMatch (
+		const bench486_sbar_intermission_result_t *left,
+		const bench486_sbar_intermission_result_t *right)
+{
+	int i;
+	if (left->copy_everything != right->copy_everything ||
+			left->fullupdate != right->fullupdate ||
+			left->scoreboardlines != right->scoreboardlines ||
+			left->intermission_cache_calls != right->intermission_cache_calls ||
+			left->intermission_bad_cache_path != right->intermission_bad_cache_path ||
+			left->deathmatch_cache_calls != right->deathmatch_cache_calls ||
+			left->deathmatch_bad_cache_path != right->deathmatch_bad_cache_path ||
+			left->deathmatch_bad_pic != right->deathmatch_bad_pic ||
+			left->event_count != right->event_count ||
+			left->overflow != right->overflow || left->abi != right->abi ||
+			Q_memcmp ((void *)left->fragsort, (void *)right->fragsort,
+					sizeof(left->fragsort)))
+		return 0;
+	for (i = 0; i < left->event_count; i++)
+		if (left->events[i].kind != right->events[i].kind ||
+				left->events[i].x != right->events[i].x ||
+				left->events[i].y != right->events[i].y ||
+				left->events[i].value != right->events[i].value)
+			return 0;
+	return 1;
+}
+
+static void Bench486SbarIntermissionCase (
+		const bench486_sbar_intermission_case_t *test_case)
+{
+	bench486_sbar_mini_saved_t saved;
+	int saved_completed_time, saved_stats[4];
+	int drawn_rows, has_viewer, expected_events, passed, i;
+	Bench486SbarMiniSave (&saved);
+	saved_completed_time = cl.completed_time;
+	saved_stats[0] = cl.stats[STAT_SECRETS];
+	saved_stats[1] = cl.stats[STAT_TOTALSECRETS];
+	saved_stats[2] = cl.stats[STAT_MONSTERS];
+	saved_stats[3] = cl.stats[STAT_TOTALMONSTERS];
+	Bench486SbarIntermissionInstall (test_case);
+	Bench486SbarIntermissionRun (Bench486SbarIntermissionCallC,
+			&bench486_sbar_intermission_c);
+	Bench486SbarIntermissionInstall (test_case);
+	Bench486SbarIntermissionRun (Bench486SbarIntermissionCallAsm,
+			&bench486_sbar_intermission_asm);
+	passed = Bench486SbarIntermissionResultsMatch (
+			&bench486_sbar_intermission_c, &bench486_sbar_intermission_asm) &&
+			bench486_sbar_intermission_asm.copy_everything == 1 &&
+			bench486_sbar_intermission_asm.fullupdate == 0 &&
+			bench486_sbar_intermission_asm.abi == 0 &&
+			!bench486_sbar_intermission_asm.overflow;
+	if (test_case->gametype == GAME_DEATHMATCH)
+	{
+		drawn_rows = 0;
+		for (i = 0; i < test_case->maxclients; i++)
+			if (test_case->present_mask & (1U << i))
+				drawn_rows++;
+		has_viewer = test_case->viewentity > 0 &&
+			test_case->viewentity <= test_case->maxclients &&
+			(test_case->present_mask & (1U << (test_case->viewentity - 1)));
+		expected_events = 1 + drawn_rows * 6 + (has_viewer ? 1 : 0);
+		passed = passed &&
+			bench486_sbar_intermission_asm.scoreboardlines ==
+				drawn_rows &&
+			bench486_sbar_intermission_asm.deathmatch_cache_calls == 1 &&
+			!bench486_sbar_intermission_asm.deathmatch_bad_cache_path &&
+			!bench486_sbar_intermission_asm.deathmatch_bad_pic &&
+			bench486_sbar_intermission_asm.intermission_cache_calls == 0 &&
+			bench486_sbar_intermission_asm.event_count == expected_events &&
+			bench486_sbar_intermission_asm.events[0].kind == SBAR_CAPTURE_PIC &&
+			bench486_sbar_intermission_asm.events[0].x ==
+				(320 - test_case->picture_width) / 2 &&
+			bench486_sbar_intermission_asm.events[0].y == 8;
+	}
+	else
+		passed = passed &&
+			bench486_sbar_intermission_asm.scoreboardlines == -73 &&
+			bench486_sbar_intermission_asm.intermission_cache_calls == 2 &&
+			!bench486_sbar_intermission_asm.intermission_bad_cache_path &&
+			bench486_sbar_intermission_asm.deathmatch_cache_calls == 0 &&
+			bench486_sbar_intermission_asm.event_count >= 12 &&
+			bench486_sbar_intermission_asm.events[0].kind ==
+				SBAR_CAPTURE_CACHEPIC &&
+			bench486_sbar_intermission_asm.events[0].x == 1 &&
+			bench486_sbar_intermission_asm.events[1].kind == SBAR_CAPTURE_PIC &&
+			bench486_sbar_intermission_asm.events[1].x == 64 &&
+			bench486_sbar_intermission_asm.events[1].y == 24 &&
+			bench486_sbar_intermission_asm.events[2].kind ==
+				SBAR_CAPTURE_CACHEPIC &&
+			bench486_sbar_intermission_asm.events[2].x == 2 &&
+			bench486_sbar_intermission_asm.events[3].kind ==
+				SBAR_CAPTURE_TRANSPIC &&
+			bench486_sbar_intermission_asm.events[3].x == 0 &&
+			bench486_sbar_intermission_asm.events[3].y == 56;
+	if (!passed)
+	{
+		bench486_memory_failures++;
+		Bench486ReportPrintf (
+				"sbar intermission %s FAIL events %d/%d scoreboard %d/%d ABI %u/%u\n",
+				test_case->name, bench486_sbar_intermission_c.event_count,
+				bench486_sbar_intermission_asm.event_count,
+				bench486_sbar_intermission_c.scoreboardlines,
+				bench486_sbar_intermission_asm.scoreboardlines,
+				bench486_sbar_intermission_c.abi,
+				bench486_sbar_intermission_asm.abi);
+		for (i = 0; i < bench486_sbar_intermission_c.event_count &&
+				i < bench486_sbar_intermission_asm.event_count; i++)
+			if (bench486_sbar_intermission_c.events[i].kind !=
+					bench486_sbar_intermission_asm.events[i].kind ||
+				bench486_sbar_intermission_c.events[i].x !=
+					bench486_sbar_intermission_asm.events[i].x ||
+				bench486_sbar_intermission_c.events[i].y !=
+					bench486_sbar_intermission_asm.events[i].y ||
+				bench486_sbar_intermission_c.events[i].value !=
+					bench486_sbar_intermission_asm.events[i].value)
+			{
+				Bench486ReportPrintf (
+						"sbar intermission %s event[%d] C %d,%d,%d,%lu ASM %d,%d,%d,%lu\n",
+						test_case->name, i,
+						bench486_sbar_intermission_c.events[i].kind,
+						bench486_sbar_intermission_c.events[i].x,
+						bench486_sbar_intermission_c.events[i].y,
+						bench486_sbar_intermission_c.events[i].value,
+						bench486_sbar_intermission_asm.events[i].kind,
+						bench486_sbar_intermission_asm.events[i].x,
+						bench486_sbar_intermission_asm.events[i].y,
+						bench486_sbar_intermission_asm.events[i].value);
+				break;
+			}
+	}
+	else
+		Bench486ReportPrintf ("sbar intermission %s PASS\n", test_case->name);
+	Bench486SbarMiniRestore (&saved);
+	cl.completed_time = saved_completed_time;
+	cl.stats[STAT_SECRETS] = saved_stats[0];
+	cl.stats[STAT_TOTALSECRETS] = saved_stats[1];
+	cl.stats[STAT_MONSTERS] = saved_stats[2];
+	cl.stats[STAT_TOTALMONSTERS] = saved_stats[3];
+}
+
+static void Bench486SbarIntermissionCases (void)
+{
+	static const bench486_sbar_intermission_case_t cases[] = {
+		{ "cooperative-time-and-counts", 0, 125, 2, 7, 3, 6,
+			320, 320, 4, 2, 0x000f, 0 },
+		{ "minute-rollover-and-long-minutes", 0, 36000, 1234, 9,
+			-1234, 12345, 640, 322, 4, 2, 0x000f, 1 },
+		{ "deathmatch-full-roster-dispatch", GAME_DEATHMATCH, 59,
+			0, 0, 0, 0, 320, 322, 4, 2, 0x000f, 0 },
+		{ "deathmatch-empty-roster-dispatch", GAME_DEATHMATCH, 0,
+			0, 0, 0, 0, 640, 300, 4, 16, 0, 1 }
+	};
+	bench486_sbar_mini_saved_t saved;
+	qpic_t *saved_nums[2][SBAR_NUM_FRAMES];
+	qpic_t *saved_colon, *saved_slash;
+	int saved_completed_time, saved_stats[4];
+	int saved_rank_width, saved_rank_height;
+	unsigned failures_before;
+	int color, frame, i;
+	Bench486SbarMiniSave (&saved);
+	failures_before = bench486_memory_failures;
+	saved_completed_time = cl.completed_time;
+	saved_stats[0] = cl.stats[STAT_SECRETS];
+	saved_stats[1] = cl.stats[STAT_TOTALSECRETS];
+	saved_stats[2] = cl.stats[STAT_MONSTERS];
+	saved_stats[3] = cl.stats[STAT_TOTALMONSTERS];
+	saved_colon = sb_colon;
+	saved_slash = sb_slash;
+	saved_rank_width = bench486_sbar_deathmatch_pic.width;
+	saved_rank_height = bench486_sbar_deathmatch_pic.height;
+	for (color = 0; color < 2; color++)
+		for (frame = 0; frame < SBAR_NUM_FRAMES; frame++)
+		{
+			saved_nums[color][frame] = sb_nums[color][frame];
+			sb_nums[color][frame] = (qpic_t *)(unsigned long)
+					(0x30000 + (color * SBAR_NUM_FRAMES + frame) * 32);
+		}
+	sb_colon = (qpic_t *)(unsigned long)0x31000;
+	sb_slash = (qpic_t *)(unsigned long)0x31020;
+	bench486_sbar_first_diff_logged = 0;
+	for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+		Bench486SbarIntermissionCase (&cases[i]);
+	Bench486SbarMiniRestore (&saved);
+	cl.completed_time = saved_completed_time;
+	cl.stats[STAT_SECRETS] = saved_stats[0];
+	cl.stats[STAT_TOTALSECRETS] = saved_stats[1];
+	cl.stats[STAT_MONSTERS] = saved_stats[2];
+	cl.stats[STAT_TOTALMONSTERS] = saved_stats[3];
+	sb_colon = saved_colon;
+	sb_slash = saved_slash;
+	bench486_sbar_deathmatch_pic.width = saved_rank_width;
+	bench486_sbar_deathmatch_pic.height = saved_rank_height;
+	for (color = 0; color < 2; color++)
+		for (frame = 0; frame < SBAR_NUM_FRAMES; frame++)
+			sb_nums[color][frame] = saved_nums[color][frame];
+	if (bench486_memory_failures == failures_before)
+		Bench486ReportPrintf (
+				"sbar intermission overlay 4 exact C/ASM normal/deathmatch/state/ABI cases PASS\n");
+}
+
 static void Bench486SbarDrawCases (void)
 {
 	static const bench486_sbar_draw_case_t cases[] = {
@@ -1186,6 +1566,7 @@ static void Bench486SbarDrawCases (void)
 	Bench486SbarDrawFaceCases ();
 	Bench486SbarMiniDeathmatchCases ();
 	Bench486SbarDeathmatchCases ();
+	Bench486SbarIntermissionCases ();
 }
 
 #endif /* BENCH486 && ASM486_SBAR_DRAW_FIXTURE */

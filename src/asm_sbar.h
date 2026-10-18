@@ -7,6 +7,7 @@
 #define SBAR_CL_ITEMS_OFFSET 156
 #define SBAR_CL_ITEM_GETTIME_OFFSET 160
 #define SBAR_CL_FACEANIMTIME_OFFSET 288
+#define SBAR_CL_COMPLETED_TIME_OFFSET 552
 #define SBAR_CL_TIME_OFFSET 572
 #define SBAR_CL_VIEWENTITY_OFFSET 2680
 #define SBAR_CL_SCORES_OFFSET 2896
@@ -30,6 +31,10 @@
 #define SBAR_STAT_ARMOR 4
 #define SBAR_STAT_SHELLS 6
 #define SBAR_STAT_ACTIVEWEAPON 10
+#define SBAR_STAT_TOTAL_SECRETS 11
+#define SBAR_STAT_TOTAL_MONSTERS 12
+#define SBAR_STAT_SECRETS 13
+#define SBAR_STAT_MONSTERS 14
 #define SBAR_IT_SHOTGUN 1
 #define SBAR_RIT_LAVA_NAILGUN 4096
 #define SBAR_HIT_PROXIMITY_GUN 65536
@@ -61,11 +66,14 @@
 #define SBAR_CAPTURE_CHARACTER 3
 #define SBAR_CAPTURE_STRING 4
 #define SBAR_CAPTURE_FILL 5
+#define SBAR_CAPTURE_CACHEPIC 6
 
 #ifndef __ASSEMBLER__
 #include <stddef.h>
 
 extern qpic_t *sb_nums[2][SBAR_NUM_FRAMES];
+extern qpic_t *sb_colon;
+extern qpic_t *sb_slash;
 
 typedef char sbar_client_gametype_offset_must_match[
 		(offsetof(client_state_t, gametype) == SBAR_CL_GAMETYPE_OFFSET) ? 1 : -1];
@@ -81,6 +89,8 @@ typedef char sbar_client_faceanimtime_offset_must_match[
 		(offsetof(client_state_t, faceanimtime) == SBAR_CL_FACEANIMTIME_OFFSET) ? 1 : -1];
 typedef char sbar_client_time_offset_must_match[
 		(offsetof(client_state_t, time) == SBAR_CL_TIME_OFFSET) ? 1 : -1];
+typedef char sbar_client_completed_time_offset_must_match[
+		(offsetof(client_state_t, completed_time) == SBAR_CL_COMPLETED_TIME_OFFSET) ? 1 : -1];
 typedef char sbar_client_viewentity_offset_must_match[
 		(offsetof(client_state_t, viewentity) == SBAR_CL_VIEWENTITY_OFFSET) ? 1 : -1];
 typedef char sbar_client_scores_offset_must_match[
@@ -113,6 +123,14 @@ typedef char sbar_stat_armor_must_match[(STAT_ARMOR == SBAR_STAT_ARMOR) ? 1 : -1
 typedef char sbar_stat_shells_must_match[(STAT_SHELLS == SBAR_STAT_SHELLS) ? 1 : -1];
 typedef char sbar_stat_activeweapon_must_match[
 		(STAT_ACTIVEWEAPON == SBAR_STAT_ACTIVEWEAPON) ? 1 : -1];
+typedef char sbar_stat_total_secrets_must_match[
+		(STAT_TOTALSECRETS == SBAR_STAT_TOTAL_SECRETS) ? 1 : -1];
+typedef char sbar_stat_total_monsters_must_match[
+		(STAT_TOTALMONSTERS == SBAR_STAT_TOTAL_MONSTERS) ? 1 : -1];
+typedef char sbar_stat_secrets_must_match[
+		(STAT_SECRETS == SBAR_STAT_SECRETS) ? 1 : -1];
+typedef char sbar_stat_monsters_must_match[
+		(STAT_MONSTERS == SBAR_STAT_MONSTERS) ? 1 : -1];
 typedef char sbar_activeweapon_offset_must_match[
 		(offsetof(client_state_t, stats) + sizeof(int) * STAT_ACTIVEWEAPON == 68) ? 1 : -1];
 typedef char sbar_shells_offset_must_match[
@@ -162,6 +180,10 @@ void Sbar_MiniDeathmatchOverlay_C (void);
 void Sbar_MiniDeathmatchOverlay_asm486 (void);
 void Sbar_DeathmatchOverlay_C (void);
 void Sbar_DeathmatchOverlay_asm486 (void);
+void Sbar_IntermissionNumber_C (int x, int y, int num, int digits, int color);
+void Sbar_IntermissionNumber_asm486 (int x, int y, int num, int digits, int color);
+void Sbar_IntermissionOverlay_C (void);
+void Sbar_IntermissionOverlay_asm486 (void);
 #endif
 #ifdef ASM486_SBAR_INVENTORY
 void Sbar_DrawInventory_asm486 (void);
@@ -198,6 +220,9 @@ void Bench486SbarMiniCharacter (int x, int y, int character);
 void Bench486SbarMiniString (int x, int y, char *string);
 qpic_t *Bench486SbarDeathmatchCachePic (char *path);
 void Bench486SbarDeathmatchDrawPic (int x, int y, qpic_t *pic);
+qpic_t *Bench486SbarIntermissionCachePic (char *path);
+void Bench486SbarIntermissionDrawPic (int x, int y, qpic_t *pic);
+void Bench486SbarIntermissionDrawTransPic (int x, int y, qpic_t *pic);
 #endif
 #endif
 

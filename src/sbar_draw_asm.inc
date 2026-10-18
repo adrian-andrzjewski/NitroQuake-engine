@@ -43,6 +43,16 @@
 #endif
 
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_INTERMISSION_CACHEPIC _Bench486SbarIntermissionCachePic
+#define SBAR_INTERMISSION_PIC _Bench486SbarIntermissionDrawPic
+#define SBAR_INTERMISSION_TRANSPIC _Bench486SbarIntermissionDrawTransPic
+#else
+#define SBAR_INTERMISSION_CACHEPIC _Draw_CachePic
+#define SBAR_INTERMISSION_PIC _Draw_Pic
+#define SBAR_INTERMISSION_TRANSPIC _Draw_TransPic
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #define SBAR_FACE_PIC _Bench486SbarFacePic
 #define SBAR_FACE_CHARACTER _Bench486SbarFaceCharacter
 #define SBAR_FACE_FILL _Bench486SbarFaceFill
@@ -92,6 +102,9 @@
 .extern SBAR_FACE_FILL
 .extern _Sbar_SortFrags
 .extern _Sbar_itoa
+.extern _sb_nums
+.extern _sb_colon
+.extern _sb_slash
 .extern _fragsort
 .extern _scoreboardlines
 .extern SBAR_MINI_FILL
@@ -99,6 +112,10 @@
 .extern SBAR_MINI_STRING
 .extern SBAR_DEATHMATCH_CACHEPIC
 .extern SBAR_DEATHMATCH_DRAWPIC
+.extern _Sbar_IntermissionNumber
+.extern SBAR_INTERMISSION_CACHEPIC
+.extern SBAR_INTERMISSION_PIC
+.extern SBAR_INTERMISSION_TRANSPIC
 
 .macro SBAR_CALL_PIC x,y,pic
 	subl	$12,%esp
@@ -118,6 +135,26 @@
 	pushl	\x
 	call	SBAR_DRAW_NUM
 	addl	$32,%esp
+.endm
+
+.macro SBAR_CALL_INTERMISSION_NUMBER x,y,number
+	subl	$12,%esp
+	pushl	$0
+	pushl	$3
+	pushl	\number
+	pushl	\y
+	pushl	\x
+	call	_Sbar_IntermissionNumber
+	addl	$32,%esp
+.endm
+
+.macro SBAR_CALL_INTERMISSION_TRANSPIC x,y,pic
+	subl	$12,%esp
+	pushl	\pic
+	pushl	\y
+	pushl	\x
+	call	SBAR_INTERMISSION_TRANSPIC
+	addl	$24,%esp
 .endm
 
 .text
@@ -890,10 +927,164 @@ _Sbar_DeathmatchOverlay_asm486:
 	popl	%ebp
 	ret
 
+/* Digit-picture formatter used by the intermission statistics overlay. */
+.globl _Sbar_IntermissionNumber
+.globl _Sbar_IntermissionNumber_asm486
+_Sbar_IntermissionNumber:
+_Sbar_IntermissionNumber_asm486:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$12,%esp
+	leal	-24(%ebp),%eax
+	pushl	%eax
+	pushl	16(%ebp)
+	call	_Sbar_itoa
+	addl	$8,%esp
+	movl	%eax,%esi			/* formatted length */
+	leal	-24(%ebp),%edi		/* formatted text */
+	movl	8(%ebp),%ebx		/* x */
+	movl	20(%ebp),%ecx		/* digit limit */
+	cmpl	%ecx,%esi
+	jle	.Lsbar_intermission_number_pad
+	subl	%ecx,%esi
+	addl	%esi,%edi			/* skip leading digits */
+	movl	%ecx,%esi
+	jmp	.Lsbar_intermission_number_loop
+
+.Lsbar_intermission_number_pad:
+	movl	20(%ebp),%ecx
+	cmpl	%ecx,%esi
+	jge	.Lsbar_intermission_number_loop
+	subl	%esi,%ecx
+	imull	$24,%ecx,%ecx
+	addl	%ecx,%ebx
+
+.Lsbar_intermission_number_loop:
+	movzbl	(%edi),%eax
+	testl	%eax,%eax
+	je	.Lsbar_intermission_number_done
+	cmpl	$'-',%eax
+	je	.Lsbar_intermission_number_minus
+	subl	$'0',%eax
+	jmp	.Lsbar_intermission_number_frame
+.Lsbar_intermission_number_minus:
+	movl	$10,%eax
+.Lsbar_intermission_number_frame:
+	imull	$SBAR_NUM_COLOR_STRIDE,24(%ebp),%ecx
+	leal	(%ecx,%eax,4),%eax
+	movl	_sb_nums(%eax),%ecx
+	subl	$12,%esp
+	pushl	%ecx
+	pushl	12(%ebp)
+	pushl	%ebx
+	call	SBAR_INTERMISSION_TRANSPIC
+	addl	$24,%esp
+	addl	$24,%ebx
+	incl	%edi
+	jmp	.Lsbar_intermission_number_loop
+
+.Lsbar_intermission_number_done:
+	addl	$12,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+/* Full non-deathmatch intermission composition and deathmatch dispatch. */
+.globl _Sbar_IntermissionOverlay
+.globl _Sbar_IntermissionOverlay_asm486
+_Sbar_IntermissionOverlay:
+_Sbar_IntermissionOverlay_asm486:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$48,%esp
+	movl	$1,_scr_copyeverything
+	movl	$0,_scr_fullupdate
+	cmpl	$SBAR_GAME_DEATHMATCH,_cl+SBAR_CL_GAMETYPE_OFFSET
+	jne	.Lsbar_intermission_single_player
+	call	_Sbar_DeathmatchOverlay
+	jmp	.Lsbar_intermission_return
+
+.Lsbar_intermission_single_player:
+	subl	$12,%esp
+	pushl	$.Lsbar_intermission_complete
+	call	SBAR_INTERMISSION_CACHEPIC
+	addl	$16,%esp
+	movl	%eax,-16(%ebp)
+	subl	$12,%esp
+	pushl	-16(%ebp)
+	pushl	$24
+	pushl	$64
+	call	SBAR_INTERMISSION_PIC
+	addl	$24,%esp
+
+	subl	$12,%esp
+	pushl	$.Lsbar_intermission_inter
+	call	SBAR_INTERMISSION_CACHEPIC
+	addl	$16,%esp
+	movl	%eax,-16(%ebp)
+	subl	$12,%esp
+	pushl	-16(%ebp)
+	pushl	$56
+	pushl	$0
+	call	SBAR_INTERMISSION_TRANSPIC
+	addl	$24,%esp
+
+	/* C signed division truncates completed_time / 60 toward zero. */
+	movl	_cl+SBAR_CL_COMPLETED_TIME_OFFSET,%eax
+	cltd
+	movl	$60,%ecx
+	idivl	%ecx
+	movl	%eax,-20(%ebp)		/* minutes */
+	movl	%edx,-24(%ebp)		/* seconds remainder */
+	SBAR_CALL_INTERMISSION_NUMBER $160,$64,-20(%ebp)
+
+	movl	-24(%ebp),%eax
+	cltd
+	movl	$10,%ecx
+	idivl	%ecx
+	movl	%eax,-28(%ebp)		/* tens */
+	movl	%edx,-32(%ebp)		/* units */
+	SBAR_CALL_INTERMISSION_TRANSPIC $234,$64,_sb_colon
+	movl	-28(%ebp),%eax
+	shll	$2,%eax
+	movl	_sb_nums(%eax),%eax
+	SBAR_CALL_INTERMISSION_TRANSPIC $246,$64,%eax
+	movl	-32(%ebp),%eax
+	shll	$2,%eax
+	movl	_sb_nums(%eax),%eax
+	SBAR_CALL_INTERMISSION_TRANSPIC $266,$64,%eax
+
+	SBAR_CALL_INTERMISSION_NUMBER $160,$104,_cl+SBAR_CL_STATS_OFFSET+SBAR_STAT_SECRETS*4
+	SBAR_CALL_INTERMISSION_TRANSPIC $232,$104,_sb_slash
+	SBAR_CALL_INTERMISSION_NUMBER $240,$104,_cl+SBAR_CL_STATS_OFFSET+SBAR_STAT_TOTAL_SECRETS*4
+	SBAR_CALL_INTERMISSION_NUMBER $160,$144,_cl+SBAR_CL_STATS_OFFSET+SBAR_STAT_MONSTERS*4
+	SBAR_CALL_INTERMISSION_TRANSPIC $232,$144,_sb_slash
+	SBAR_CALL_INTERMISSION_NUMBER $240,$144,_cl+SBAR_CL_STATS_OFFSET+SBAR_STAT_TOTAL_MONSTERS*4
+
+.Lsbar_intermission_return:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
 .section .rodata
 .p2align 2
 .Lsbar_deathmatch_ranking:
 	.asciz	"gfx/ranking.lmp"
+.Lsbar_intermission_complete:
+	.asciz	"gfx/complete.lmp"
+.Lsbar_intermission_inter:
+	.asciz	"gfx/inter.lmp"
 .Lsbar_face_teamplay_three:
 	.float	3.0
 .Lsbar_face_teamplay_seven:
@@ -914,5 +1105,10 @@ _Sbar_DeathmatchOverlay_asm486:
 #undef SBAR_MINI_FILL
 #undef SBAR_MINI_CHARACTER
 #undef SBAR_MINI_STRING
+#undef SBAR_INTERMISSION_CACHEPIC
+#undef SBAR_INTERMISSION_PIC
+#undef SBAR_INTERMISSION_TRANSPIC
 #undef SBAR_CALL_PIC
 #undef SBAR_CALL_NUM
+#undef SBAR_CALL_INTERMISSION_NUMBER
+#undef SBAR_CALL_INTERMISSION_TRANSPIC

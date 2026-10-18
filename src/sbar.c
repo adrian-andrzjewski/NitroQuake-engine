@@ -1231,7 +1231,21 @@ Sbar_IntermissionNumber
 
 ==================
 */
-void Sbar_IntermissionNumber (int x, int y, int num, int digits, int color)
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_INTERMISSION_NUMBER_C_ENTRY Sbar_IntermissionNumber_C
+#else
+#define SBAR_INTERMISSION_NUMBER_C_ENTRY Sbar_IntermissionNumber
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_INTERMISSION_DRAW_TRANSPIC Bench486SbarIntermissionDrawTransPic
+#else
+#define SBAR_INTERMISSION_DRAW_TRANSPIC Draw_TransPic
+#endif
+
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_INTERMISSION_NUMBER_C_ENTRY (
+		int x, int y, int num, int digits, int color)
 {
 	char			str[12];
 	char			*ptr;
@@ -1251,11 +1265,15 @@ void Sbar_IntermissionNumber (int x, int y, int num, int digits, int color)
 		else
 			frame = *ptr -'0';
 
-		Draw_TransPic (x,y,sb_nums[color][frame]);
+		SBAR_INTERMISSION_DRAW_TRANSPIC (x,y,sb_nums[color][frame]);
 		x += 24;
 		ptr++;
 	}
 }
+#endif
+
+#undef SBAR_INTERMISSION_NUMBER_C_ENTRY
+#undef SBAR_INTERMISSION_DRAW_TRANSPIC
 
 /*
 ==================
@@ -1512,7 +1530,32 @@ Sbar_IntermissionOverlay
 
 ==================
 */
-void Sbar_IntermissionOverlay (void)
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_INTERMISSION_OVERLAY_C_ENTRY Sbar_IntermissionOverlay_C
+#else
+#define SBAR_INTERMISSION_OVERLAY_C_ENTRY Sbar_IntermissionOverlay
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_INTERMISSION_CACHEPIC Bench486SbarIntermissionCachePic
+#define SBAR_INTERMISSION_DRAW_PIC Bench486SbarIntermissionDrawPic
+#define SBAR_INTERMISSION_OVERLAY_TRANSPIC Bench486SbarIntermissionDrawTransPic
+#else
+#define SBAR_INTERMISSION_CACHEPIC Draw_CachePic
+#define SBAR_INTERMISSION_DRAW_PIC Draw_Pic
+#define SBAR_INTERMISSION_OVERLAY_TRANSPIC Draw_TransPic
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW)
+#define SBAR_INTERMISSION_NUMBER_CALL Sbar_IntermissionNumber_C
+#define SBAR_INTERMISSION_DEATHMATCH_CALL Sbar_DeathmatchOverlay_C
+#else
+#define SBAR_INTERMISSION_NUMBER_CALL Sbar_IntermissionNumber
+#define SBAR_INTERMISSION_DEATHMATCH_CALL Sbar_DeathmatchOverlay
+#endif
+
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_INTERMISSION_OVERLAY_C_ENTRY (void)
 {
 	qpic_t	*pic;
 	int		dig;
@@ -1523,33 +1566,41 @@ void Sbar_IntermissionOverlay (void)
 
 	if (cl.gametype == GAME_DEATHMATCH)
 	{
-		Sbar_DeathmatchOverlay ();
+		SBAR_INTERMISSION_DEATHMATCH_CALL ();
 		return;
 	}
 
-	pic = Draw_CachePic ("gfx/complete.lmp");
-	Draw_Pic (64, 24, pic);
+	pic = SBAR_INTERMISSION_CACHEPIC ("gfx/complete.lmp");
+	SBAR_INTERMISSION_DRAW_PIC (64, 24, pic);
 
-	pic = Draw_CachePic ("gfx/inter.lmp");
-	Draw_TransPic (0, 56, pic);
+	pic = SBAR_INTERMISSION_CACHEPIC ("gfx/inter.lmp");
+	SBAR_INTERMISSION_OVERLAY_TRANSPIC (0, 56, pic);
 
 // time
 	dig = cl.completed_time/60;
-	Sbar_IntermissionNumber (160, 64, dig, 3, 0);
+	SBAR_INTERMISSION_NUMBER_CALL (160, 64, dig, 3, 0);
 	num = cl.completed_time - dig*60;
-	Draw_TransPic (234,64,sb_colon);
-	Draw_TransPic (246,64,sb_nums[0][num/10]);
-	Draw_TransPic (266,64,sb_nums[0][num%10]);
+	SBAR_INTERMISSION_OVERLAY_TRANSPIC (234,64,sb_colon);
+	SBAR_INTERMISSION_OVERLAY_TRANSPIC (246,64,sb_nums[0][num/10]);
+	SBAR_INTERMISSION_OVERLAY_TRANSPIC (266,64,sb_nums[0][num%10]);
 
-	Sbar_IntermissionNumber (160, 104, cl.stats[STAT_SECRETS], 3, 0);
-	Draw_TransPic (232,104,sb_slash);
-	Sbar_IntermissionNumber (240, 104, cl.stats[STAT_TOTALSECRETS], 3, 0);
+	SBAR_INTERMISSION_NUMBER_CALL (160, 104, cl.stats[STAT_SECRETS], 3, 0);
+	SBAR_INTERMISSION_OVERLAY_TRANSPIC (232,104,sb_slash);
+	SBAR_INTERMISSION_NUMBER_CALL (240, 104, cl.stats[STAT_TOTALSECRETS], 3, 0);
 
-	Sbar_IntermissionNumber (160, 144, cl.stats[STAT_MONSTERS], 3, 0);
-	Draw_TransPic (232,144,sb_slash);
-	Sbar_IntermissionNumber (240, 144, cl.stats[STAT_TOTALMONSTERS], 3, 0);
+	SBAR_INTERMISSION_NUMBER_CALL (160, 144, cl.stats[STAT_MONSTERS], 3, 0);
+	SBAR_INTERMISSION_OVERLAY_TRANSPIC (232,144,sb_slash);
+	SBAR_INTERMISSION_NUMBER_CALL (240, 144, cl.stats[STAT_TOTALMONSTERS], 3, 0);
 
 }
+#endif
+
+#undef SBAR_INTERMISSION_OVERLAY_C_ENTRY
+#undef SBAR_INTERMISSION_CACHEPIC
+#undef SBAR_INTERMISSION_DRAW_PIC
+#undef SBAR_INTERMISSION_OVERLAY_TRANSPIC
+#undef SBAR_INTERMISSION_NUMBER_CALL
+#undef SBAR_INTERMISSION_DEATHMATCH_CALL
 
 
 /*
