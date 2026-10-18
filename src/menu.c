@@ -266,7 +266,18 @@ void M_DRAW_TRANSPIC_TRANSLATE_C_ENTRY (int x, int y, qpic_t *pic)
 #undef M_DRAW_TRANSPIC_C_ENTRY
 
 
-void M_DrawTextBox (int x, int y, int width, int lines)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_DRAW_TEXTBOX_C_ENTRY M_DrawTextBox_C
+#define M_DRAW_TEXTBOX_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_DRAW_TEXTBOX_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#else
+#define M_DRAW_TEXTBOX_C_ENTRY M_DrawTextBox
+#define M_DRAW_TEXTBOX_CACHE_PIC(path) Draw_CachePic (path)
+#define M_DRAW_TEXTBOX_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_DRAW_TEXTBOX_C_ENTRY (int x, int y, int width, int lines)
 {
 	qpic_t	*p;
 	int		cx, cy;
@@ -275,51 +286,56 @@ void M_DrawTextBox (int x, int y, int width, int lines)
 	// draw left side
 	cx = x;
 	cy = y;
-	p = Draw_CachePic ("gfx/box_tl.lmp");
-	M_DrawTransPic (cx, cy, p);
-	p = Draw_CachePic ("gfx/box_ml.lmp");
+	p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_tl.lmp");
+	M_DRAW_TEXTBOX_TRANSPIC (cx, cy, p);
+	p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_ml.lmp");
 	for (n = 0; n < lines; n++)
 	{
 		cy += 8;
-		M_DrawTransPic (cx, cy, p);
+		M_DRAW_TEXTBOX_TRANSPIC (cx, cy, p);
 	}
-	p = Draw_CachePic ("gfx/box_bl.lmp");
-	M_DrawTransPic (cx, cy+8, p);
+	p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_bl.lmp");
+	M_DRAW_TEXTBOX_TRANSPIC (cx, cy+8, p);
 
 	// draw middle
 	cx += 8;
 	while (width > 0)
 	{
 		cy = y;
-		p = Draw_CachePic ("gfx/box_tm.lmp");
-		M_DrawTransPic (cx, cy, p);
-		p = Draw_CachePic ("gfx/box_mm.lmp");
+		p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_tm.lmp");
+		M_DRAW_TEXTBOX_TRANSPIC (cx, cy, p);
+		p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_mm.lmp");
 		for (n = 0; n < lines; n++)
 		{
 			cy += 8;
 			if (n == 1)
-				p = Draw_CachePic ("gfx/box_mm2.lmp");
-			M_DrawTransPic (cx, cy, p);
+				p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_mm2.lmp");
+			M_DRAW_TEXTBOX_TRANSPIC (cx, cy, p);
 		}
-		p = Draw_CachePic ("gfx/box_bm.lmp");
-		M_DrawTransPic (cx, cy+8, p);
+		p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_bm.lmp");
+		M_DRAW_TEXTBOX_TRANSPIC (cx, cy+8, p);
 		width -= 2;
 		cx += 16;
 	}
 
 	// draw right side
 	cy = y;
-	p = Draw_CachePic ("gfx/box_tr.lmp");
-	M_DrawTransPic (cx, cy, p);
-	p = Draw_CachePic ("gfx/box_mr.lmp");
+	p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_tr.lmp");
+	M_DRAW_TEXTBOX_TRANSPIC (cx, cy, p);
+	p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_mr.lmp");
 	for (n = 0; n < lines; n++)
 	{
 		cy += 8;
-		M_DrawTransPic (cx, cy, p);
+		M_DRAW_TEXTBOX_TRANSPIC (cx, cy, p);
 	}
-	p = Draw_CachePic ("gfx/box_br.lmp");
-	M_DrawTransPic (cx, cy+8, p);
+	p = M_DRAW_TEXTBOX_CACHE_PIC ("gfx/box_br.lmp");
+	M_DRAW_TEXTBOX_TRANSPIC (cx, cy+8, p);
 }
+#endif
+
+#undef M_DRAW_TEXTBOX_TRANSPIC
+#undef M_DRAW_TEXTBOX_CACHE_PIC
+#undef M_DRAW_TEXTBOX_C_ENTRY
 
 //=============================================================================
 

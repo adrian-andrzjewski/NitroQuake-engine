@@ -8,12 +8,13 @@
 
 #define BMT_MAX_GLYPHS 64
 #define BMT_GUARD_WORDS 2
-#define BMP_MAX_EVENTS 4
+#define BMP_MAX_EVENTS 128
 #define BMP_GUARD_WORDS 2
 
 #define BMP_EVENT_TRANSPIC 1
 #define BMP_EVENT_PIC 2
 #define BMP_EVENT_TRANSPIC_TRANSLATE 3
+#define BMP_EVENT_CACHEPIC 4
 
 typedef struct bench486_menu_text_glyph_s
 {
@@ -64,6 +65,7 @@ typedef struct bench486_menu_picture_trace_s
 	unsigned before[BMP_GUARD_WORDS];
 	unsigned count;
 	unsigned overflow;
+	unsigned cache_error;
 	bench486_menu_picture_event_t events[BMP_MAX_EVENTS];
 	unsigned after[BMP_GUARD_WORDS];
 } bench486_menu_picture_trace_t;
@@ -86,6 +88,16 @@ typedef struct bench486_menu_picture_case_s
 	qpic_t *pic;
 } bench486_menu_picture_case_t;
 
+typedef struct bench486_menu_textbox_case_s
+{
+	const char *name;
+	unsigned video_width;
+	int x;
+	int y;
+	int width;
+	int lines;
+} bench486_menu_textbox_case_t;
+
 static const char bench486_menu_text_high_bytes[] =
 	{ 'A', (char)0x80, (char)0xff, 'Z', 0 };
 
@@ -105,7 +117,7 @@ static const bench486_menu_text_case_t bench486_menu_text_cases[] =
 static bench486_menu_text_trace_t bench486_menu_text_trace;
 static bench486_menu_text_result_t bench486_menu_text_reference;
 static bench486_menu_text_result_t bench486_menu_text_candidate;
-static unsigned bench486_menu_picture_fake_pic[4];
+static unsigned bench486_menu_picture_fake_pic[40];
 static bench486_menu_picture_trace_t bench486_menu_picture_trace;
 static bench486_menu_picture_result_t bench486_menu_picture_reference;
 static bench486_menu_picture_result_t bench486_menu_picture_candidate;
@@ -124,6 +136,29 @@ static const bench486_menu_picture_case_t bench486_menu_picture_cases[] =
 		(qpic_t *)(bench486_menu_picture_fake_pic + 2) },
 	{ "translate-wide-negative-origin", BMP_EVENT_TRANSPIC_TRANSLATE,
 		640, -19, 40, (qpic_t *)(bench486_menu_picture_fake_pic + 3) }
+};
+
+static const char *bench486_menu_textbox_paths[] =
+{
+	"gfx/box_tl.lmp",
+	"gfx/box_ml.lmp",
+	"gfx/box_bl.lmp",
+	"gfx/box_tm.lmp",
+	"gfx/box_mm.lmp",
+	"gfx/box_mm2.lmp",
+	"gfx/box_bm.lmp",
+	"gfx/box_tr.lmp",
+	"gfx/box_mr.lmp",
+	"gfx/box_br.lmp"
+};
+
+static const bench486_menu_textbox_case_t bench486_menu_textbox_cases[] =
+{
+	{ "textbox-zero-width", 320, 16, 20, 0, 0 },
+	{ "textbox-one-column", 640, -8, 32, 2, 1 },
+	{ "textbox-odd-width-multirow", 640, 24, 48, 5, 3 },
+	{ "textbox-mm2-narrow-screen", 319, 10, 72, 6, 4 },
+	{ "textbox-negative-width", 1024, -12, 64, -1, 2 }
 };
 
 int bench486_menu_text_trace_active;
@@ -191,6 +226,50 @@ void Bench486MenuTextDrawPic (int kind, int x, int y, qpic_t *pic,
 	bench486_menu_picture_trace.count++;
 }
 
+static int Bench486MenuTextPathEquals (const char *left, const char *right)
+{
+	while (*left && *left == *right)
+	{
+		left++;
+		right++;
+	}
+	return *left == *right;
+}
+
+qpic_t *Bench486MenuTextCachePic (char *path)
+{
+	unsigned i;
+	qpic_t *pic;
+	bench486_menu_picture_event_t *event;
+
+	if (!bench486_menu_text_trace_active)
+		return Draw_CachePic (path);
+	for (i = 0; i < sizeof(bench486_menu_textbox_paths) /
+			sizeof(bench486_menu_textbox_paths[0]); i++)
+	{
+		if (!Bench486MenuTextPathEquals (path,
+				bench486_menu_textbox_paths[i]))
+			continue;
+		pic = (qpic_t *)(bench486_menu_picture_fake_pic + i * 4);
+		if (bench486_menu_picture_trace.count < BMP_MAX_EVENTS)
+		{
+			event = &bench486_menu_picture_trace.events[
+					bench486_menu_picture_trace.count];
+			event->kind = BMP_EVENT_CACHEPIC;
+			event->x = 0;
+			event->y = 0;
+			event->pic = pic;
+			event->translation = NULL;
+		}
+		else
+			bench486_menu_picture_trace.overflow = 1;
+		bench486_menu_picture_trace.count++;
+		return pic;
+	}
+	bench486_menu_picture_trace.cache_error = 1;
+	return NULL;
+}
+
 static void Bench486MenuPictureInitTrace (void)
 {
 	unsigned i;
@@ -252,7 +331,8 @@ static unsigned Bench486MenuPictureExpected (
 	int expected_x = (int)((unsigned)test_case->x + offset);
 	const bench486_menu_picture_event_t *event;
 
-	if (result->trace.overflow || result->trace.count != 1)
+	if (result->trace.overflow || result->trace.cache_error ||
+			result->trace.count != 1)
 		return 0x4d500001U;
 	event = &result->trace.events[0];
 	if (event->kind != test_case->kind ||
@@ -279,6 +359,101 @@ static unsigned Bench486MenuPictureDifference (
 	if (Q_memcmp ((void *)&reference->trace, (void *)&candidate->trace,
 			sizeof(reference->trace)))
 		return 0x4d500021U;
+	return 0;
+}
+
+static unsigned Bench486MenuTextBoxRun (
+		const bench486_menu_textbox_case_t *test_case,
+		void (*function)(void), bench486_menu_picture_result_t *result)
+{
+	unsigned arguments[4];
+	unsigned abi;
+	unsigned short cw_before, cw_after;
+
+	Bench486MenuPictureInitTrace ();
+	vid.width = test_case->video_width;
+	arguments[0] = (unsigned)test_case->x;
+	arguments[1] = (unsigned)test_case->y;
+	arguments[2] = (unsigned)test_case->width;
+	arguments[3] = (unsigned)test_case->lines;
+	cw_before = Bench486MenuTextGetControlWord ();
+	bench486_menu_text_trace_active = 1;
+	abi = Bench486Call_asm486 (function, 4, arguments, NULL);
+	bench486_menu_text_trace_active = 0;
+	cw_after = Bench486MenuTextGetControlWord ();
+	Bench486MenuPictureCapture (result, abi, cw_before, cw_after);
+	if ((abi & 0x20U) || cw_before != cw_after)
+	{
+		Bench486Printf (
+				"menu text box ABI/x87 FAIL case %s abi %08x cw %04x/%04x\n",
+				test_case->name, abi, cw_before, cw_after);
+		return 1;
+	}
+	return 0;
+}
+
+static unsigned Bench486MenuTextBoxExpected (
+		const bench486_menu_textbox_case_t *test_case,
+		const bench486_menu_picture_result_t *result)
+{
+	unsigned i, draw_count, cache_count, middle_columns, line_count;
+	unsigned expected_count, offset, box_mm2_count = 0;
+	int left_x, right_x, bottom_y;
+	const bench486_menu_picture_event_t *event;
+	const qpic_t *box_tl = (const qpic_t *)bench486_menu_picture_fake_pic;
+	const qpic_t *box_br = (const qpic_t *)(bench486_menu_picture_fake_pic + 36);
+
+	line_count = test_case->lines > 0 ? (unsigned)test_case->lines : 0;
+	middle_columns = test_case->width > 0 ?
+			((unsigned)test_case->width + 1U) / 2U : 0;
+	draw_count = (middle_columns + 2U) * (line_count + 2U);
+	cache_count = 6U + middle_columns *
+			(3U + (line_count > 1U ? 1U : 0U));
+	expected_count = draw_count + cache_count;
+	offset = (test_case->video_width - 320U) >> 1;
+	left_x = (int)((unsigned)test_case->x + offset);
+	right_x = (int)((unsigned)test_case->x + offset + 8U +
+			middle_columns * 16U);
+	bottom_y = test_case->y + (int)((line_count + 1U) * 8U);
+	if (result->trace.overflow || result->trace.cache_error ||
+			result->trace.count != expected_count)
+		return 0x4d540101U;
+	for (i = 0; i < BMP_GUARD_WORDS; i++)
+		if (result->trace.before[i] != 0x4d500000U + i ||
+				result->trace.after[i] != 0x4d50f000U + i)
+			return 0x4d540102U + i;
+	event = &result->trace.events[0];
+	if (event->kind != BMP_EVENT_CACHEPIC || event->pic != box_tl)
+		return 0x4d540104U;
+	event = &result->trace.events[1];
+	if (event->kind != BMP_EVENT_TRANSPIC || event->x != left_x ||
+			event->y != test_case->y || event->pic != box_tl ||
+			event->translation)
+		return 0x4d540105U;
+	event = &result->trace.events[expected_count - 2U];
+	if (event->kind != BMP_EVENT_CACHEPIC || event->pic != box_br)
+		return 0x4d540106U;
+	event = &result->trace.events[expected_count - 1U];
+	if (event->kind != BMP_EVENT_TRANSPIC || event->x != right_x ||
+			event->y != bottom_y || event->pic != box_br ||
+		event->translation)
+		return 0x4d540107U;
+	for (i = 0; i < expected_count; i++)
+	{
+		event = &result->trace.events[i];
+		if (event->kind == BMP_EVENT_CACHEPIC)
+		{
+			if (event->x || event->y || !event->pic || event->translation)
+				return 0x4d540110U + i;
+			if (event->pic == (const qpic_t *)(bench486_menu_picture_fake_pic + 20))
+				box_mm2_count++;
+		}
+		else if (event->kind != BMP_EVENT_TRANSPIC || !event->pic ||
+				event->translation)
+			return 0x4d540120U + i;
+	}
+	if (box_mm2_count != (line_count > 1U ? middle_columns : 0U))
+		return 0x4d540130U;
 	return 0;
 }
 
@@ -506,6 +681,50 @@ void Bench486MenuPictureCases (void)
 				total);
 }
 
+void Bench486MenuTextBoxCases (void)
+{
+	unsigned i, total, failure = 0;
+	unsigned saved_width = vid.width;
+	void (*c_function)(void) = (void (*)(void))M_DrawTextBox_C;
+	void (*asm_function)(void) = (void (*)(void))M_DrawTextBox;
+
+	total = sizeof(bench486_menu_textbox_cases) /
+			sizeof(bench486_menu_textbox_cases[0]);
+	for (i = 0; i < total; i++)
+	{
+		failure |= Bench486MenuTextBoxRun (
+				&bench486_menu_textbox_cases[i], c_function,
+				&bench486_menu_picture_reference);
+		failure |= Bench486MenuTextBoxRun (
+				&bench486_menu_textbox_cases[i], asm_function,
+				&bench486_menu_picture_candidate);
+		failure |= Bench486MenuTextBoxExpected (
+				&bench486_menu_textbox_cases[i],
+				&bench486_menu_picture_reference);
+		failure |= Bench486MenuTextBoxExpected (
+				&bench486_menu_textbox_cases[i],
+				&bench486_menu_picture_candidate);
+		failure |= Bench486MenuPictureDifference (
+				&bench486_menu_picture_reference,
+				&bench486_menu_picture_candidate);
+		if (failure)
+		{
+			Bench486Printf (
+					"menu text box C/assembly FAIL case %s code %08x\n",
+					bench486_menu_textbox_cases[i].name, failure);
+			break;
+		}
+	}
+	bench486_menu_text_trace_active = 0;
+	vid.width = saved_width;
+	if (failure)
+		bench486_memory_failures++;
+	else
+		Bench486Printf (
+				"menu text box tile/draw sequence: %u exact C/assembly cases PASS\n",
+				total);
+}
+
 #undef BMT_GUARD_WORDS
 #undef BMT_MAX_GLYPHS
 #undef BMP_GUARD_WORDS
@@ -513,6 +732,7 @@ void Bench486MenuPictureCases (void)
 #undef BMP_EVENT_TRANSPIC_TRANSLATE
 #undef BMP_EVENT_PIC
 #undef BMP_EVENT_TRANSPIC
+#undef BMP_EVENT_CACHEPIC
 
 #endif
 

@@ -124,6 +124,124 @@ C(M_PrintWhite):
 	popl	%ebx
 	ret
 
+/* M_DrawTextBox: preserve the original cache/draw order and tile loops. */
+.macro MENU_TEXTBOX_CACHE path
+	subl	$12,%esp
+	pushl	$\path
+#ifdef BENCH486
+	call	C(Bench486MenuTextCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$16,%esp
+	movl	%eax,-36(%ebp)
+.endm
+
+.macro MENU_TEXTBOX_DRAW yoffset
+	movl	-20(%ebp),%eax
+	addl	$\yoffset,%eax
+	pushl	-36(%ebp)
+	pushl	%eax
+	pushl	-16(%ebp)
+	call	C(M_DrawTransPic)
+	addl	$12,%esp
+.endm
+
+.p2align 2
+.globl C(M_DrawTextBox)
+C(M_DrawTextBox):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$24,%esp
+	movl	8(%ebp),%eax		/* x */
+	movl	%eax,-16(%ebp)		/* cx */
+	movl	12(%ebp),%eax		/* y */
+	movl	%eax,-20(%ebp)		/* cy */
+	movl	16(%ebp),%eax		/* width */
+	movl	%eax,-24(%ebp)
+	movl	20(%ebp),%eax		/* lines */
+	movl	%eax,-28(%ebp)
+
+	/* Draw left side. */
+	MENU_TEXTBOX_CACHE .Lmenu_box_tl
+	MENU_TEXTBOX_DRAW 0
+	MENU_TEXTBOX_CACHE .Lmenu_box_ml
+	movl	$0,-32(%ebp)
+.Lm_textbox_left_loop:
+	movl	-32(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lm_textbox_left_done
+	addl	$8,-20(%ebp)
+	MENU_TEXTBOX_DRAW 0
+	incl	-32(%ebp)
+	jmp	.Lm_textbox_left_loop
+.Lm_textbox_left_done:
+	MENU_TEXTBOX_CACHE .Lmenu_box_bl
+	MENU_TEXTBOX_DRAW 8
+
+	/* Draw center tiles, using box_mm2 from the second interior row onward. */
+	addl	$8,-16(%ebp)
+.Lm_textbox_middle_loop:
+	cmpl	$0,-24(%ebp)
+	jle	.Lm_textbox_middle_done
+	movl	12(%ebp),%eax
+	movl	%eax,-20(%ebp)
+	MENU_TEXTBOX_CACHE .Lmenu_box_tm
+	MENU_TEXTBOX_DRAW 0
+	MENU_TEXTBOX_CACHE .Lmenu_box_mm
+	movl	$0,-32(%ebp)
+.Lm_textbox_middle_row_loop:
+	movl	-32(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lm_textbox_middle_rows_done
+	addl	$8,-20(%ebp)
+	cmpl	$1,-32(%ebp)
+	jne	.Lm_textbox_middle_draw
+	MENU_TEXTBOX_CACHE .Lmenu_box_mm2
+.Lm_textbox_middle_draw:
+	MENU_TEXTBOX_DRAW 0
+	incl	-32(%ebp)
+	jmp	.Lm_textbox_middle_row_loop
+.Lm_textbox_middle_rows_done:
+	MENU_TEXTBOX_CACHE .Lmenu_box_bm
+	MENU_TEXTBOX_DRAW 8
+	subl	$2,-24(%ebp)
+	addl	$16,-16(%ebp)
+	jmp	.Lm_textbox_middle_loop
+.Lm_textbox_middle_done:
+
+	/* Draw right side. */
+	movl	12(%ebp),%eax
+	movl	%eax,-20(%ebp)
+	MENU_TEXTBOX_CACHE .Lmenu_box_tr
+	MENU_TEXTBOX_DRAW 0
+	MENU_TEXTBOX_CACHE .Lmenu_box_mr
+	movl	$0,-32(%ebp)
+.Lm_textbox_right_loop:
+	movl	-32(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lm_textbox_right_done
+	addl	$8,-20(%ebp)
+	MENU_TEXTBOX_DRAW 0
+	incl	-32(%ebp)
+	jmp	.Lm_textbox_right_loop
+.Lm_textbox_right_done:
+	MENU_TEXTBOX_CACHE .Lmenu_box_br
+	MENU_TEXTBOX_DRAW 8
+
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.purgem MENU_TEXTBOX_CACHE
+.purgem MENU_TEXTBOX_DRAW
+
 /* Menu pictures share the classic 320-pixel centered coordinate system. */
 .p2align 2
 .globl C(M_DrawTransPic)
@@ -460,6 +578,27 @@ C(SCR_DrawConsole):
 
 .section .rodata
 .p2align 2
+.Lmenu_box_tl:
+	.asciz	"gfx/box_tl.lmp"
+.Lmenu_box_ml:
+	.asciz	"gfx/box_ml.lmp"
+.Lmenu_box_bl:
+	.asciz	"gfx/box_bl.lmp"
+.Lmenu_box_tm:
+	.asciz	"gfx/box_tm.lmp"
+.Lmenu_box_mm:
+	.asciz	"gfx/box_mm.lmp"
+.Lmenu_box_mm2:
+	.asciz	"gfx/box_mm2.lmp"
+.Lmenu_box_bm:
+	.asciz	"gfx/box_bm.lmp"
+.Lmenu_box_tr:
+	.asciz	"gfx/box_tr.lmp"
+.Lmenu_box_mr:
+	.asciz	"gfx/box_mr.lmp"
+.Lmenu_box_br:
+	.asciz	"gfx/box_br.lmp"
+
 .Lso_pause_path:
 	.asciz	"gfx/pause.lmp"
 .Lso_loading_path:

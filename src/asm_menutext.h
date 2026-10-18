@@ -15,6 +15,7 @@ void M_PrintWhite (int cx, int cy, char *str);
 void M_DrawTransPic (int x, int y, qpic_t *pic);
 void M_DrawPic (int x, int y, qpic_t *pic);
 void M_DrawTransPicTranslate (int x, int y, qpic_t *pic);
+void M_DrawTextBox (int x, int y, int width, int lines);
 extern byte translationTable[256];
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
@@ -24,11 +25,14 @@ void M_PrintWhite_C (int cx, int cy, char *str);
 void M_DrawTransPic_C (int x, int y, qpic_t *pic);
 void M_DrawPic_C (int x, int y, qpic_t *pic);
 void M_DrawTransPicTranslate_C (int x, int y, qpic_t *pic);
+void M_DrawTextBox_C (int x, int y, int width, int lines);
 void Bench486MenuTextDrawCharacter (int x, int y, int num);
 void Bench486MenuTextDrawPic (int kind, int x, int y, qpic_t *pic,
 		byte *translation);
+qpic_t *Bench486MenuTextCachePic (char *path);
 void Bench486MenuTextCases (void);
 void Bench486MenuPictureCases (void);
+void Bench486MenuTextBoxCases (void);
 #endif
 #endif
 
