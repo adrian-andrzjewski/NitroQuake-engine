@@ -71,6 +71,9 @@ extern int Bench486VidUpdateCases (void);
 #if defined(ASM486_PLAYER_TRANSLATION_FIXTURE)
 #include "bench486_playertranslation.h"
 #endif
+#if defined(ASM486_VESA_PALETTE_FIXTURE)
+#include "bench486_vesapalette.h"
+#endif
 #ifdef ASM486_FILLRECT
 extern void D_FillRect_C (vrect_t *rect, int color);
 #endif
@@ -10147,6 +10150,30 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("player translation fixture requires PlayerTranslationImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchvesapalette"))
+	{
+#if defined(ASM486_VESA_PALETTE_FIXTURE)
+		int vesa_palette_failures;
+		vesa_palette_failures = Bench486VesaPaletteCases ();
+		bench486_memory_failures += vesa_palette_failures != 0;
+		Bench486Printf ("VESA C/ASM palette conversion and ABI %s failure mask 0x%x\n",
+				vesa_palette_failures ? "FAIL" : "PASS", vesa_palette_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("VESA palette fixture requires VesaPaletteImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

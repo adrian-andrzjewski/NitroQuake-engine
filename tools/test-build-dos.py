@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vidupdateasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vesapaletteasm-vidupdateasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1906,6 +1906,26 @@ def main() -> int:
         if "menu_translationasm.s" not in player_translation_fixture.get("assemblySources", []):
             fail("the player translation fixture selector omits menu_translationasm.s")
 
+    vesa_palette_c = dump_flags("-VesaPaletteImplementation", "c")
+    vesa_palette_asm = dump_flags("-VesaPaletteImplementation", "asm")
+    vesa_palette_fixture = dump_flags("-VesaPaletteImplementation", "asm-fixture")
+    if vesa_palette_c and vesa_palette_asm:
+        if vesa_palette_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the VESA palette assembly selector does not match the i486 release suffix")
+        if vesa_palette_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the VESA palette C selector shares the i486 release suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VESA_PALETTE" in vesa_palette_c.get(flags_name, []):
+                fail("the VESA palette C selector enables ASM486_VESA_PALETTE in %s" % flags_name)
+            if "-DASM486_VESA_PALETTE" not in vesa_palette_asm.get(flags_name, []):
+                fail("the VESA palette assembly selector omits ASM486_VESA_PALETTE from %s" % flags_name)
+    if vesa_palette_fixture:
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VESA_PALETTE_FIXTURE" not in vesa_palette_fixture.get(flags_name, []):
+                fail("the VESA palette fixture selector omits ASM486_VESA_PALETTE_FIXTURE from %s" % flags_name)
+        if "vid_vesapaletteasm.s" not in vesa_palette_fixture.get("assemblySources", []):
+            fail("the VESA palette fixture selector omits vid_vesapaletteasm.s")
+
     cache_alloc_c = dump_flags("-CacheAllocImplementation", "c")
     cache_alloc_asm = dump_flags("-CacheAllocImplementation", "asm")
     cache_alloc_fixture = dump_flags("-CacheAllocImplementation", "asm-fixture")
@@ -2184,7 +2204,7 @@ def main() -> int:
             fail("the zone-heap fixture omits its isolated profile token")
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 81 assembly sources (one is omitted only
+    #    included by another unit), 82 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -2196,9 +2216,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 81:
+        if dump.get("allAssemblySourceCount") != 82:
             fail(
-                "%s: expected 81 assembly sources, got %r"
+                "%s: expected 82 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

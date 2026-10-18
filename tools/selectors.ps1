@@ -162,6 +162,7 @@ $script:AssemblyBackedImplementations = @(
     'ZoneHeapImplementation',
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
+    'VesaPaletteImplementation',
     'VideoUpdateImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
@@ -1845,6 +1846,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'VesaPaletteImplementation'
+        Manifest   = 'vesaPaletteImplementation'
+        Suffix     = @{
+            'asm' = 'vesapaletteasm'
+            'asm-fixture' = 'vesapalettefixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_VESA_PALETTE')
+            'asm-fixture' = @('ASM486_VESA_PALETTE', 'ASM486_VESA_PALETTE_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_VESA_PALETTE')
+            'asm-fixture' = @('ASM486_VESA_PALETTE', 'ASM486_VESA_PALETTE_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VideoUpdateImplementation'
         Manifest   = 'videoUpdateImplementation'
         Suffix     = @{
@@ -2082,6 +2101,7 @@ $script:SuffixOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VesaPaletteImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
@@ -2206,6 +2226,7 @@ $script:CDefineOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VesaPaletteImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
@@ -2361,6 +2382,7 @@ $script:AsmDefineOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VesaPaletteImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'

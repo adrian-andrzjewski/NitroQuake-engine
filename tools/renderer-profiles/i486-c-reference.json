@@ -134,6 +134,7 @@
     "ZoneHeapImplementation": "c",
     "VesaCopyRectsImplementation": "c",
     "VesaSwapBuffersImplementation": "c",
+    "VesaPaletteImplementation": "c",
     "VideoUpdateImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",

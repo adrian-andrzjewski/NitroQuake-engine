@@ -314,6 +314,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaSwapBuffersImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaPaletteImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VideoUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -394,6 +396,7 @@ param(
     [switch]$ZoneHeapOnly,
     [switch]$VesaCopyRectsOnly,
     [switch]$VesaSwapBuffersOnly,
+    [switch]$VesaPaletteOnly,
     [switch]$VideoUpdateOnly,
     [switch]$ChaseOnly,
     [switch]$HullCheckOnly,
@@ -500,6 +503,9 @@ if ($VesaCopyRectsOnly -and $VesaCopyRectsImplementation -ne 'asm-fixture') {
 }
 if ($VesaSwapBuffersOnly -and $VesaSwapBuffersImplementation -ne 'asm-fixture') {
     throw '-VesaSwapBuffersOnly requires -VesaSwapBuffersImplementation asm-fixture.'
+}
+if ($VesaPaletteOnly -and $VesaPaletteImplementation -ne 'asm-fixture') {
+    throw '-VesaPaletteOnly requires -VesaPaletteImplementation asm-fixture.'
 }
 if ($VideoUpdateOnly -and $VideoUpdateImplementation -ne 'asm-fixture') {
     throw '-VideoUpdateOnly requires -VideoUpdateImplementation asm-fixture.'
@@ -1009,6 +1015,9 @@ elseif ($VesaCopyRectsOnly) {
 elseif ($VesaSwapBuffersOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesaswap -benchexit'
 }
+elseif ($VesaPaletteOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesapalette -benchexit'
+}
 elseif ($VideoUpdateOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvidupdate -benchexit'
 }
@@ -1378,6 +1387,7 @@ $result = [ordered]@{
     emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
     renderPolyImplementation = $RenderPolyImplementation
     playerTranslationImplementation = $PlayerTranslationImplementation
+    vesaPaletteImplementation = $VesaPaletteImplementation
     spriteSetupImplementation = $SpriteSetupImplementation
     spriteOrientationImplementation = $SpriteOrientationImplementation
     buildSelectorVerification = $selectorVerification
@@ -1475,6 +1485,7 @@ $result = [ordered]@{
     aliasModelLoadOnly = [bool]$AliasModelLoadOnly
     sbarDrawOnly = [bool]$SbarDrawOnly
     menuTranslationOnly = [bool]$MenuTranslationOnly
+    vesaPaletteOnly = [bool]$VesaPaletteOnly
     aliasStatsOnly = [bool]$AliasStatsOnly
     printTimesOnly = [bool]$PrintTimesOnly
     worldControlOnly = [bool]$WorldControlOnly

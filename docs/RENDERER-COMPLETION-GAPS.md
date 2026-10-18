@@ -461,10 +461,29 @@ passed 282,340 relocated instructions and the non-BENCH release gate passed
 163,666 relocated instructions, each with zero above-i486/unknown instructions
 or exemptions. The fixture does not measure FPS or full-scene parity; see the
 [player-color translation port ledger](ledger/2026-10-18-player-translation-assembly-port.md).
-The VGA linear and planar
-pixel-copy routines already use assembly. VESA discovery,
-wait probing, palette programming, and mode changes remain C-owned; page-flip
-assembly calls C adapters for hardware-specific operations. See the
+On 2026-10-18, `VesaPaletteImplementation=asm` became the i486 default for the
+256-entry VESA palette byte-conversion loop; the C oracle remains available in
+the C-reference and BENCH profiles. The `asm-fixture` BENCH passed four palette
+patterns across all entries, exact byte/order checks, canaries, and callee-saved
+register checks. The focused strict gate passed 282,789 relocated instructions,
+and the non-BENCH release build passed the complete executable gate for 163,675
+relocated instructions, 529 startup CODE rows, and 9,207 provider instructions,
+with zero above-i486/unknown instructions or exemptions. This does not port the
+BIOS call that programs the hardware palette and does not establish full-scene
+parity or FPS; see the [VESA palette conversion port ledger](ledger/2026-10-18-vesa-palette-assembly-port.md).
+
+The latest fixture ownership inventory at
+`out/profile-ddbe2868ad194f54/renderer-ownership-qbench.json` reports 908
+renderer entries, 381 directly reachable entries, 60 directly reachable C
+entries, and 64 unresolved direct callees. Its 321/381 (84.3%) assembly
+function-count proxy is specific to this BENCH inventory, includes fixture
+helpers, and is not a complete-call-graph or production-weighted completion
+percentage.
+
+The VGA linear and planar pixel-copy routines already use assembly. The VESA
+palette conversion loop now uses assembly; VESA discovery, wait probing, BIOS
+palette programming, and mode changes remain C-owned. Page-flip assembly calls
+C adapters for hardware-specific operations. See the
 [`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md),
 [`Cache_Alloc` port ledger](ledger/2026-10-17-cache-alloc-assembly-port.md),
 [`Cache_Move` port ledger](ledger/2026-10-17-cache-move-assembly-port.md),

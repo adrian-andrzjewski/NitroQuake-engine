@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include "vid_vesa.h"
 #include "asm_vesacopy.h"
 #include "asm_vesaswap.h"
+#include "asm_vesapalette.h"
 
 #define MAX_VESA_MODES 30
 #define LINEAR_MODE 0x4000
@@ -110,18 +111,15 @@ qboolean VID_ExtraPaletteOK (void) { return palette_ok; }
 
 void VID_SetVESAPalette (viddef_t *lvid, vmode_t *mode, byte *pal)
 {
-	int i;
 	UNUSED(lvid);
 	UNUSED(mode);
 	palette_ok = false;
 	if (!ppal) return;
-	for (i = 0; i < 256; i++)
-	{
-		ppal[i*4] = pal[i*3+2] >> 2;
-		ppal[i*4+1] = pal[i*3+1] >> 2;
-		ppal[i*4+2] = pal[i*3] >> 2;
-		ppal[i*4+3] = 0;
-	}
+#ifdef ASM486_VESA_PALETTE
+	VID_BuildVESAPalette_asm486 (ppal, pal);
+#else
+	VID_BuildVESAPalette_C (ppal, pal);
+#endif
 	regs.x.ax = 0x4f09;
 	regs.x.bx = 0;
 	regs.x.cx = 256;
@@ -132,6 +130,20 @@ void VID_SetVESAPalette (viddef_t *lvid, vmode_t *mode, byte *pal)
 	palette_ok = regs.x.ax == 0x4f;
 	if (!palette_ok) Con_SafePrintf ("VESA: palette load failed\n");
 }
+
+#if !defined(ASM486_VESA_PALETTE) || defined(BENCH486)
+void VID_BuildVESAPalette_C (byte *dest, const byte *source)
+{
+	int i;
+	for (i = 0; i < VP_PALETTE_ENTRIES; i++)
+	{
+		dest[i * 4] = source[i * 3 + 2] >> 2;
+		dest[i * 4 + 1] = source[i * 3 + 1] >> 2;
+		dest[i * 4 + 2] = source[i * 3] >> 2;
+		dest[i * 4 + 3] = 0;
+	}
+}
+#endif
 
 static void *VID_ExtraFarToLinear (const byte *p)
 {

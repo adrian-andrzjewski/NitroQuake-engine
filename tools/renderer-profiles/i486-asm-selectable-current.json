@@ -134,6 +134,7 @@
     "ZoneHeapImplementation": "asm",
     "VesaCopyRectsImplementation": "asm",
     "VesaSwapBuffersImplementation": "asm",
+    "VesaPaletteImplementation": "asm",
     "VideoUpdateImplementation": "asm",
     "ScreenUpdateImplementation": "asm",
     "ScreenNetImplementation": "asm",
