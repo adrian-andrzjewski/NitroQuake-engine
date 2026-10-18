@@ -404,19 +404,19 @@ offsets. The eight-case area-link fixture compared the full moveclip state,
 including entity filters, monster bounds, trace merging, and area-node
 recursion, and observed 10 assembly entries with intact guard sentinels.
 
-The latest full i486 assembly-profile BENCH inventory at
+The 2026-10-16 full i486 assembly-profile BENCH inventory at
 `out/profile-35cc1e58e193f012/renderer-ownership-qbench.json` reports 903
 renderer entries, 380 directly reachable entries, 61 directly reachable C
 renderer/support entries, and 64 unresolved direct callees. This profile
-selected `VideoUpdateImplementation=asm`; the separate VID_Update parity
-fixture remains open. A newer focused BENCH run at
+selected `VideoUpdateImplementation=asm`; at that snapshot the separate
+VID_Update parity fixture remained open. A newer focused BENCH run at
 `out/profile-967ed633342227d7/renderer-ownership-qbench.json` selected
 `HunkNamedAllocImplementation=asm-fixture` and `VideoUpdateImplementation=c`
 and reports 908 renderer entries, 380 directly reachable entries, 62 directly
 reachable C entries, and 64 unresolved direct callees. The directly reachable
-count gives a rough assembly-ownership proxy of 318/380 (83.7%); it is not a
-complete call-graph or production-only completion percentage, and unresolved
-callees are outside that denominator. `Cache_Check`,
+count in the first snapshot gives a historical assembly-ownership proxy of
+318/380 (83.7%); it is not a complete call-graph or production-only completion
+percentage, and unresolved callees are outside that denominator. `Cache_Check`,
 `Cache_Alloc`, `Cache_TryAlloc`, `Cache_Free`, `Cache_Move`, `Cache_FreeLow`,
 `Cache_FreeHigh`, `Hunk_FreeToLowMark`, `Hunk_FreeToHighMark`, `Hunk_TempAlloc`,
 `Hunk_HighMark`, `Hunk_Alloc`, `Z_Malloc`, and the VESA dirty-rectangle copy
@@ -436,11 +436,26 @@ remains available for parity. `Hunk_Alloc` now has an assembly wrapper that
 routes through the selected named allocator; its C wrapper remains available
 for parity. `Cache_Compact` is an empty no-op. See the
 [`zone heap and cache diagnostics port ledger`](ledger/2026-10-17-zone-heap-assembly-port.md).
+On 2026-10-18, `VID_Update` gained a selectable i486 assembly state machine;
+the i486 assembly profile selects it by default, while the C-reference profile
+and BENCH oracle retain C. Its 20-case DOSBox-X C/ASM fixture passed startup
+mode selection, command-line precedence, testing-mode deadlines, float-to-int
+truncation, and rectangle dispatch. The independent non-BENCH i486 release
+build selected `videoUpdateImplementation=asm` and passed the complete strict
+executable gate: 163,797 relocated instructions, 414 source-bound
+contributions, 1,466 CODE ranges, 529 startup CODE rows, and 9,207 provider
+instructions, with zero exemptions. The same day's `asm-fixture` BENCH
+ownership scan at
+`out/diagnostic-bench-profile-ed4037e28149b7b0/renderer-ownership-qbench.json`
+reports 907 renderer entries, 379 directly reachable entries, 60 directly
+reachable C entries, and 70 unresolved direct callees; its fixture selector and
+scope differ from the historical inventories above, so it does not yield a
+comparable completion percentage. This closes only the per-frame update state
+machine, not the wider video or renderer ownership gaps.
 The VGA linear and planar
 pixel-copy routines already use assembly. VESA discovery,
-wait probing, palette programming, mode changes and the outer `VID_Update`
-state machine remain C-owned; page-flip assembly calls C adapters for
-hardware-specific operations. See the
+wait probing, palette programming, and mode changes remain C-owned; page-flip
+assembly calls C adapters for hardware-specific operations. See the
 [`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md),
 [`Cache_Alloc` port ledger](ledger/2026-10-17-cache-alloc-assembly-port.md),
 [`Cache_Move` port ledger](ledger/2026-10-17-cache-move-assembly-port.md),
