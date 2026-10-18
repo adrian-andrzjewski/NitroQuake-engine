@@ -1077,6 +1077,35 @@ _Sbar_IntermissionOverlay_asm486:
 	popl	%ebp
 	ret
 
+/* Finale overlay: cache its full-screen image and center it at y=16. */
+.globl _Sbar_FinaleOverlay
+.globl _Sbar_FinaleOverlay_asm486
+_Sbar_FinaleOverlay:
+_Sbar_FinaleOverlay_asm486:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	subl	$12,%esp
+	movl	$1,_scr_copyeverything
+	subl	$12,%esp
+	pushl	$.Lsbar_finale_path
+	call	SBAR_INTERMISSION_CACHEPIC
+	addl	$16,%esp
+	movl	%eax,%ebx
+	movl	_vid+SBAR_VID_WIDTH_OFFSET,%eax
+	subl	SBAR_QPIC_WIDTH_OFFSET(%ebx),%eax
+	shrl	$1,%eax			/* vid.width makes C subtraction unsigned */
+	subl	$12,%esp
+	pushl	%ebx
+	pushl	$16
+	pushl	%eax
+	call	SBAR_INTERMISSION_TRANSPIC
+	addl	$24,%esp
+	leal	-4(%ebp),%esp
+	popl	%ebx
+	popl	%ebp
+	ret
+
 .section .rodata
 .p2align 2
 .Lsbar_deathmatch_ranking:
@@ -1085,6 +1114,8 @@ _Sbar_IntermissionOverlay_asm486:
 	.asciz	"gfx/complete.lmp"
 .Lsbar_intermission_inter:
 	.asciz	"gfx/inter.lmp"
+.Lsbar_finale_path:
+	.asciz	"gfx/finale.lmp"
 .Lsbar_face_teamplay_three:
 	.float	3.0
 .Lsbar_face_teamplay_seven:

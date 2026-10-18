@@ -1609,12 +1609,31 @@ Sbar_FinaleOverlay
 
 ==================
 */
-void Sbar_FinaleOverlay (void)
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_FINALE_C_ENTRY Sbar_FinaleOverlay_C
+#else
+#define SBAR_FINALE_C_ENTRY Sbar_FinaleOverlay
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_FINALE_CACHEPIC Bench486SbarIntermissionCachePic
+#define SBAR_FINALE_TRANSPIC Bench486SbarIntermissionDrawTransPic
+#else
+#define SBAR_FINALE_CACHEPIC Draw_CachePic
+#define SBAR_FINALE_TRANSPIC Draw_TransPic
+#endif
+
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_FINALE_C_ENTRY (void)
 {
 	qpic_t	*pic;
 
 	scr_copyeverything = 1;
-
-	pic = Draw_CachePic ("gfx/finale.lmp");
-	Draw_TransPic ( (vid.width-pic->width)/2, 16, pic);
+	pic = SBAR_FINALE_CACHEPIC ("gfx/finale.lmp");
+	SBAR_FINALE_TRANSPIC ((vid.width-pic->width)/2, 16, pic);
 }
+#endif
+
+#undef SBAR_FINALE_C_ENTRY
+#undef SBAR_FINALE_CACHEPIC
+#undef SBAR_FINALE_TRANSPIC

@@ -184,6 +184,8 @@ void Sbar_IntermissionNumber_C (int x, int y, int num, int digits, int color);
 void Sbar_IntermissionNumber_asm486 (int x, int y, int num, int digits, int color);
 void Sbar_IntermissionOverlay_C (void);
 void Sbar_IntermissionOverlay_asm486 (void);
+void Sbar_FinaleOverlay_C (void);
+void Sbar_FinaleOverlay_asm486 (void);
 #endif
 #ifdef ASM486_SBAR_INVENTORY
 void Sbar_DrawInventory_asm486 (void);

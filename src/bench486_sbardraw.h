@@ -243,6 +243,7 @@ void Bench486SbarDeathmatchDrawPic (int x, int y, qpic_t *pic)
 
 static qpic_t bench486_sbar_intermission_complete_pic;
 static qpic_t bench486_sbar_intermission_inter_pic;
+static qpic_t bench486_sbar_finale_pic;
 static int bench486_sbar_intermission_cache_calls;
 static int bench486_sbar_intermission_bad_cache_path;
 
@@ -250,6 +251,7 @@ qpic_t *Bench486SbarIntermissionCachePic (char *path)
 {
 	static const char complete[] = "gfx/complete.lmp";
 	static const char intermission[] = "gfx/inter.lmp";
+	static const char finale[] = "gfx/finale.lmp";
 	const char *expected;
 	int i, path_id;
 	path_id = 0;
@@ -267,6 +269,14 @@ qpic_t *Bench486SbarIntermissionCachePic (char *path)
 				;
 			if (!expected[i] && !path[i])
 				path_id = 2;
+			else
+			{
+				expected = finale;
+				for (i = 0; expected[i] && path[i] == expected[i]; i++)
+					;
+				if (!expected[i] && !path[i])
+					path_id = 3;
+			}
 		}
 	}
 	if (!path_id)
@@ -276,8 +286,11 @@ qpic_t *Bench486SbarIntermissionCachePic (char *path)
 	}
 	bench486_sbar_intermission_cache_calls++;
 	Bench486SbarCapture (SBAR_CAPTURE_CACHEPIC, path_id, 0, 0);
-	return path_id == 2 ? &bench486_sbar_intermission_inter_pic :
-			&bench486_sbar_intermission_complete_pic;
+	if (path_id == 2)
+		return &bench486_sbar_intermission_inter_pic;
+	if (path_id == 3)
+		return &bench486_sbar_finale_pic;
+	return &bench486_sbar_intermission_complete_pic;
 }
 
 void Bench486SbarIntermissionDrawPic (int x, int y, qpic_t *pic)
@@ -1520,6 +1533,129 @@ static void Bench486SbarIntermissionCases (void)
 				"sbar intermission overlay 4 exact C/ASM normal/deathmatch/state/ABI cases PASS\n");
 }
 
+typedef struct
+{
+	const char *name;
+	int width;
+	int picture_width;
+	int copy_everything;
+	int fullupdate;
+} bench486_sbar_finale_case_t;
+
+static bench486_sbar_intermission_result_t bench486_sbar_finale_c;
+static bench486_sbar_intermission_result_t bench486_sbar_finale_asm;
+
+static void Bench486SbarFinaleCallC (void)
+{
+	Sbar_FinaleOverlay_C ();
+}
+
+static void Bench486SbarFinaleCallAsm (void)
+{
+	Sbar_FinaleOverlay_asm486 ();
+}
+
+static void Bench486SbarFinaleInstall (
+		const bench486_sbar_finale_case_t *test_case)
+{
+	int i;
+	vid.width = test_case->width;
+	bench486_sbar_finale_pic.width = test_case->picture_width;
+	scr_copyeverything = test_case->copy_everything;
+	scr_fullupdate = test_case->fullupdate;
+	scoreboardlines = -73;
+	for (i = 0; i < MAX_SCOREBOARD; i++)
+		fragsort[i] = -211 - i;
+}
+
+static void Bench486SbarFinaleCase (
+		const bench486_sbar_finale_case_t *test_case)
+{
+	bench486_sbar_mini_saved_t saved;
+	int saved_pic_width, passed, results_match, i, expected_x;
+	Bench486SbarMiniSave (&saved);
+	saved_pic_width = bench486_sbar_finale_pic.width;
+	Bench486SbarFinaleInstall (test_case);
+	Bench486SbarIntermissionRun (Bench486SbarFinaleCallC,
+			&bench486_sbar_finale_c);
+	Bench486SbarFinaleInstall (test_case);
+	Bench486SbarIntermissionRun (Bench486SbarFinaleCallAsm,
+			&bench486_sbar_finale_asm);
+	/* vid.width is unsigned; preserve its modulo subtraction before / 2. */
+	expected_x = (int)(((unsigned)test_case->width -
+			(unsigned)test_case->picture_width) / 2U);
+	results_match = Bench486SbarIntermissionResultsMatch (
+			&bench486_sbar_finale_c, &bench486_sbar_finale_asm);
+	passed = results_match &&
+			bench486_sbar_finale_asm.copy_everything == 1 &&
+			bench486_sbar_finale_asm.fullupdate == test_case->fullupdate &&
+			bench486_sbar_finale_asm.scoreboardlines == -73 &&
+			bench486_sbar_finale_asm.intermission_cache_calls == 1 &&
+			!bench486_sbar_finale_asm.intermission_bad_cache_path &&
+			bench486_sbar_finale_asm.deathmatch_cache_calls == 0 &&
+			bench486_sbar_finale_asm.event_count == 2 &&
+			bench486_sbar_finale_asm.events[0].kind == SBAR_CAPTURE_CACHEPIC &&
+			bench486_sbar_finale_asm.events[0].x == 3 &&
+			bench486_sbar_finale_asm.events[0].y == 0 &&
+			bench486_sbar_finale_asm.events[0].value == 0 &&
+			bench486_sbar_finale_asm.events[1].kind == SBAR_CAPTURE_TRANSPIC &&
+			bench486_sbar_finale_asm.events[1].x == expected_x &&
+			bench486_sbar_finale_asm.events[1].y == 16 &&
+			bench486_sbar_finale_asm.events[1].value ==
+					(unsigned long)&bench486_sbar_finale_pic &&
+			bench486_sbar_finale_asm.abi == 0 &&
+			!bench486_sbar_finale_asm.overflow;
+	for (i = 0; i < MAX_SCOREBOARD && passed; i++)
+		if (bench486_sbar_finale_asm.fragsort[i] != -211 - i)
+			passed = 0;
+	if (!passed)
+	{
+		bench486_memory_failures++;
+		Bench486ReportPrintf (
+				"sbar finale %s FAIL events %d/%d C/ASM x %d/%d expected %d fullupdate %d/%d ABI %u/%u\n",
+				test_case->name, bench486_sbar_finale_c.event_count,
+				bench486_sbar_finale_asm.event_count,
+				bench486_sbar_finale_c.event_count > 1 ?
+						bench486_sbar_finale_c.events[1].x : 0,
+				bench486_sbar_finale_asm.event_count > 1 ?
+						bench486_sbar_finale_asm.events[1].x : 0,
+				expected_x, bench486_sbar_finale_c.fullupdate,
+				bench486_sbar_finale_asm.fullupdate,
+				bench486_sbar_finale_c.abi,
+				bench486_sbar_finale_asm.abi);
+	}
+	else
+		Bench486ReportPrintf ("sbar finale %s PASS\n", test_case->name);
+	Bench486SbarMiniRestore (&saved);
+	bench486_sbar_finale_pic.width = saved_pic_width;
+}
+
+static void Bench486SbarFinaleCases (void)
+{
+	static const bench486_sbar_finale_case_t cases[] = {
+		{ "standard-centered", 320, 272, -13, -17 },
+		{ "wide-centered", 640, 320, 0, 0 },
+		{ "unsigned-odd-width-difference", 191, 200, 9, 31 },
+		{ "unsigned-one-width-difference", 639, 640, -1, -7 },
+		{ "positive-odd-truncation", 641, 640, 42, 12 },
+		{ "unsigned-even-width-difference", 318, 320, -99, 88 }
+	};
+	bench486_sbar_mini_saved_t saved;
+	int saved_pic_width, i;
+	unsigned failures_before;
+	Bench486SbarMiniSave (&saved);
+	saved_pic_width = bench486_sbar_finale_pic.width;
+	failures_before = bench486_memory_failures;
+	bench486_sbar_first_diff_logged = 0;
+	for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+		Bench486SbarFinaleCase (&cases[i]);
+	Bench486SbarMiniRestore (&saved);
+	bench486_sbar_finale_pic.width = saved_pic_width;
+	if (bench486_memory_failures == failures_before)
+		Bench486ReportPrintf (
+				"sbar finale overlay 6 exact C/ASM centering/state/ABI cases PASS\n");
+}
+
 static void Bench486SbarDrawCases (void)
 {
 	static const bench486_sbar_draw_case_t cases[] = {
@@ -1567,6 +1703,7 @@ static void Bench486SbarDrawCases (void)
 	Bench486SbarMiniDeathmatchCases ();
 	Bench486SbarDeathmatchCases ();
 	Bench486SbarIntermissionCases ();
+	Bench486SbarFinaleCases ();
 }
 
 #endif /* BENCH486 && ASM486_SBAR_DRAW_FIXTURE */

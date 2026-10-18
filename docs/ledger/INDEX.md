@@ -23,6 +23,7 @@ later insertion above it.
 | [`2026-10-18-sbar-mini-deathmatch-assembly-port.md`](2026-10-18-sbar-mini-deathmatch-assembly-port.md) | 4 | renderer port / widescreen mini-deathmatch scoreboard (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 gate and current ownership`; `Traceability and remaining scope`) |
 | [`2026-10-18-sbar-deathmatch-assembly-port.md`](2026-10-18-sbar-deathmatch-assembly-port.md) | 4 | renderer port / full intermission deathmatch scoreboard (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Traceability and remaining scope`) |
 | [`2026-10-18-sbar-intermission-assembly-port.md`](2026-10-18-sbar-intermission-assembly-port.md) | 4 | renderer port / normal intermission overlay and number formatting (`Behavior and selector`; `Exact C/ASM parity`; `Strict i486 verification`; `Scope and remaining work`) |
+| [`2026-10-18-sbar-finale-assembly-port.md`](2026-10-18-sbar-finale-assembly-port.md) | 4 | renderer port / finale overlay composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Scope and remaining work`) |
 | [`2026-10-18-zone-memory-trace-assembly-port.md`](2026-10-18-zone-memory-trace-assembly-port.md) | 4 | renderer port / zone, cache, and hunk diagnostic trace adapters (`Behavior and selector`; `Exact C/ASM fixture`; `Strict i486 verification`; `Scope and remaining work`) |
 | [`2026-10-17-cache-free-assembly-port.md`](2026-10-17-cache-free-assembly-port.md) | 4 | renderer port / cache block removal and address/LRU unlink (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-cache-free-low-assembly-port.md`](2026-10-17-cache-free-low-assembly-port.md) | 4 | renderer port / low-end hunk cache reclamation (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
@@ -350,9 +351,10 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [Zone/cache/hunk diagnostic trace adapters pass 25 C/ASM cases and strict BENCH and release i486 gates](2026-10-18-zone-memory-trace-assembly-port.md)
 - `open` [Shared console output services and full renderer ownership remain](2026-10-18-zone-memory-trace-assembly-port.md)
 - `measured` [Normal intermission overlay and number formatting pass four exact C/ASM cases and the strict i486 gate](2026-10-18-sbar-intermission-assembly-port.md)
-- `open` [Finale overlay, full-scene parity, FPS measurement, and complete renderer ownership remain](2026-10-18-sbar-intermission-assembly-port.md)
+- `measured` [Finale overlay assembly passes six exact C/ASM cases and the strict i486 gate](2026-10-18-sbar-finale-assembly-port.md)
+- `open` [Full-scene parity, FPS measurement, and complete renderer ownership remain](2026-10-18-sbar-intermission-assembly-port.md)
 - `measured` [`Sbar_DeathmatchOverlay` assembly passes six exact C/ASM cases and the strict i486 gate](2026-10-18-sbar-deathmatch-assembly-port.md)
-- `open` [Intermission dispatch, finale drawing, and broader renderer C ownership remain](2026-10-18-sbar-deathmatch-assembly-port.md)
+- `open` [Full-scene parity, FPS measurement, and broader renderer C ownership remain](2026-10-18-sbar-deathmatch-assembly-port.md)
 - `measured` [`M_BuildTranslationTable` and `CL_NewTranslation` selected assembly; all 512 palette-pair cases and strict i486 gates passed (2026-10-18)](2026-10-18-player-translation-assembly-port.md)
 - `open` [Full-scene parity, FPS measurement, and remaining renderer ownership](2026-10-18-player-translation-assembly-port.md)
 - `measured` [`D_DrawParticle` -> verification of the existing i486 rasterizer (2026-10-10)](2026-10-10-d-drawparticle-assembly-port.md)
