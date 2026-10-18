@@ -7760,6 +7760,205 @@ static void Bench486InitSurfaceAllocator (byte *memory,
 	r_cache_thrash = false;
 }
 
+static void Bench486SurfaceCacheSizingParity (void)
+{
+	static struct
+	{
+		int width;
+		int height;
+		int expected;
+	} cases[] = {
+		{ 320, 200, 2400*1024 },
+		{ 319, 200, 2400*1024 },
+		{ 321, 200, 2400*1024 + 600 },
+		{ 640, 400, 2400*1024 + 576000 },
+		{ 640, 480, 2400*1024 + 729600 },
+		{ 0, 480, 2400*1024 }
+	};
+	static char *default_args[] = { "qbench.exe" };
+	static char *override_args[] = { "qbench.exe", "-surfcachesize", "128" };
+	char **saved_argv;
+	int saved_argc, c_size, asm_size, failures, i;
+
+	saved_argv = com_argv;
+	saved_argc = com_argc;
+	failures = 0;
+	com_argv = default_args;
+	com_argc = sizeof(default_args) / sizeof(default_args[0]);
+	for (i=0 ; i<(int)(sizeof(cases)/sizeof(cases[0])) ; i++)
+	{
+		c_size = D_SurfaceCacheForRes_C (cases[i].width, cases[i].height);
+		asm_size = D_SurfaceCacheForRes (cases[i].width, cases[i].height);
+		if (c_size != cases[i].expected || asm_size != cases[i].expected)
+			failures++;
+	}
+	com_argv = override_args;
+	com_argc = sizeof(override_args) / sizeof(override_args[0]);
+	c_size = D_SurfaceCacheForRes_C (320, 200);
+	asm_size = D_SurfaceCacheForRes (320, 200);
+	if (c_size != 128*1024 || asm_size != c_size)
+		failures++;
+	com_argv = saved_argv;
+	com_argc = saved_argc;
+	Bench486Printf ("surface-cache sizing parity %s (%d resolutions and override)\n",
+			failures ? "FAIL" : "PASS",
+			(int)(sizeof(cases)/sizeof(cases[0])));
+	bench486_memory_failures += failures;
+}
+
+static void Bench486SurfaceCacheLifecycleParity (void)
+{
+	typedef struct
+	{
+		surfcache_t nodes[3];
+		surfcache_t *slots[4];
+	} bench486_surface_cache_flush_state_t;
+	static union
+	{
+		unsigned long align;
+		byte bytes[4096];
+	} c_init, asm_init;
+	static bench486_surface_cache_flush_state_t c_flush, asm_flush;
+	static const int init_size = 2048;
+	surfcache_t *saved_base, *saved_rover;
+	int saved_size, expected_size, expected_base_offset, expected_rover_offset;
+	int saved_msg_suppress, failures, i;
+	byte *c_buffer, *asm_buffer;
+
+	saved_base = sc_base;
+	saved_rover = sc_rover;
+	saved_size = sc_size;
+	saved_msg_suppress = msg_suppress_1;
+	msg_suppress_1 = true;
+	failures = 0;
+
+	Q_memset (c_init.bytes, 0xa5, sizeof(c_init.bytes));
+	Q_memset (asm_init.bytes, 0xa5, sizeof(asm_init.bytes));
+	c_buffer = c_init.bytes + 16;
+	asm_buffer = asm_init.bytes + 16;
+	D_InitCaches_C (c_buffer, init_size);
+	expected_size = sc_size;
+	expected_base_offset = (int)((byte *)sc_base - c_buffer);
+	expected_rover_offset = (int)((byte *)sc_rover - c_buffer);
+	D_InitCaches (asm_buffer, init_size);
+	if (expected_size != init_size - 4 || sc_size != expected_size ||
+		(int)((byte *)sc_base - asm_buffer) != expected_base_offset ||
+		(int)((byte *)sc_rover - asm_buffer) != expected_rover_offset ||
+		Q_memcmp (c_init.bytes, asm_init.bytes, sizeof(c_init.bytes)) != 0 ||
+		((surfcache_t *)asm_buffer)->next != NULL ||
+		((surfcache_t *)asm_buffer)->owner != NULL ||
+		((surfcache_t *)asm_buffer)->size != expected_size ||
+		asm_buffer[expected_size] != 0 ||
+		asm_buffer[expected_size + 1] != 1 ||
+		asm_buffer[expected_size + 2] != 2 ||
+		asm_buffer[expected_size + 3] != 3)
+		failures++;
+	Bench486Printf ("surface-cache init parity %s (state, guard, canaries)\n",
+			failures ? "FAIL" : "PASS");
+
+	failures = 0;
+	Q_memset (&c_flush, 0, sizeof(c_flush));
+	Q_memset (&asm_flush, 0, sizeof(asm_flush));
+	for (i=0 ; i<3 ; i++)
+	{
+		c_flush.nodes[i].size = 0x100 + i * 0x40;
+		c_flush.nodes[i].width = 32 + i;
+		c_flush.nodes[i].dlight = i * 7;
+		c_flush.nodes[i].lightadj[0] = i * 11;
+		c_flush.nodes[i].lightadj[1] = i * 13;
+		c_flush.nodes[i].lightadj[2] = i * 17;
+		c_flush.nodes[i].lightadj[3] = i * 19;
+		asm_flush.nodes[i].size = c_flush.nodes[i].size;
+		asm_flush.nodes[i].width = c_flush.nodes[i].width;
+		asm_flush.nodes[i].dlight = c_flush.nodes[i].dlight;
+		Q_memcpy (asm_flush.nodes[i].lightadj,
+				c_flush.nodes[i].lightadj, sizeof(c_flush.nodes[i].lightadj));
+	}
+	for (i=0 ; i<2 ; i++)
+	{
+		c_flush.nodes[i].next = &c_flush.nodes[i + 1];
+		c_flush.nodes[i].owner = &c_flush.slots[i];
+		asm_flush.nodes[i].next = &asm_flush.nodes[i + 1];
+		asm_flush.nodes[i].owner = &asm_flush.slots[i];
+	}
+	c_flush.nodes[2].next = NULL;
+	c_flush.nodes[2].owner = NULL;
+	asm_flush.nodes[2].next = NULL;
+	asm_flush.nodes[2].owner = NULL;
+	for (i=0 ; i<4 ; i++)
+	{
+		c_flush.slots[i] = (i < 3) ? &c_flush.nodes[i] : NULL;
+		asm_flush.slots[i] = (i < 3) ? &asm_flush.nodes[i] : NULL;
+	}
+	sc_base = c_flush.nodes;
+	sc_rover = c_flush.nodes + 2;
+	sc_size = 0x1357;
+	D_FlushCaches_C ();
+	sc_base = asm_flush.nodes;
+	sc_rover = asm_flush.nodes + 2;
+	sc_size = 0x1357;
+	D_FlushCaches ();
+	if (sc_base != asm_flush.nodes || sc_rover != asm_flush.nodes ||
+		sc_size != 0x1357)
+		failures++;
+	for (i=0 ; i<3 ; i++)
+	{
+		int c_next, asm_next, c_owner, asm_owner;
+
+		c_next = c_flush.nodes[i].next ?
+			(int)(c_flush.nodes[i].next - c_flush.nodes) : -1;
+		asm_next = asm_flush.nodes[i].next ?
+			(int)(asm_flush.nodes[i].next - asm_flush.nodes) : -1;
+		c_owner = c_flush.nodes[i].owner ?
+			(int)(c_flush.nodes[i].owner - c_flush.slots) : -1;
+		asm_owner = asm_flush.nodes[i].owner ?
+			(int)(asm_flush.nodes[i].owner - asm_flush.slots) : -1;
+		if (c_next != asm_next || c_owner != asm_owner ||
+			Q_memcmp ((byte *)&c_flush.nodes[i] + 8,
+				(byte *)&asm_flush.nodes[i] + 8,
+				sizeof(c_flush.nodes[i]) - 8) != 0)
+			failures++;
+	}
+	for (i=0 ; i<4 ; i++)
+	{
+		int c_slot, asm_slot;
+
+		c_slot = c_flush.slots[i] ?
+			(int)(c_flush.slots[i] - c_flush.nodes) : -1;
+		asm_slot = asm_flush.slots[i] ?
+			(int)(asm_flush.slots[i] - asm_flush.nodes) : -1;
+		if (c_slot != asm_slot)
+			failures++;
+	}
+	if (c_flush.nodes[0].next || c_flush.nodes[0].owner ||
+		c_flush.nodes[0].size != 0x1357 ||
+		c_flush.slots[0] || c_flush.slots[1] ||
+		c_flush.slots[2] != &c_flush.nodes[2])
+		failures++;
+
+	// A NULL cache base is a no-op and must preserve the rover and size.
+	sc_base = NULL;
+	sc_rover = c_flush.nodes + 1;
+	sc_size = 0x2468;
+	D_FlushCaches_C ();
+	if (sc_base || sc_rover != c_flush.nodes + 1 || sc_size != 0x2468)
+		failures++;
+	sc_base = NULL;
+	sc_rover = asm_flush.nodes + 1;
+	sc_size = 0x2468;
+	D_FlushCaches ();
+	if (sc_base || sc_rover != asm_flush.nodes + 1 || sc_size != 0x2468)
+		failures++;
+
+	sc_base = saved_base;
+	sc_rover = saved_rover;
+	sc_size = saved_size;
+	msg_suppress_1 = saved_msg_suppress;
+	Bench486Printf ("surface-cache flush parity %s (owner walk, sentinel, null base)\n",
+			failures ? "FAIL" : "PASS");
+	bench486_memory_failures += failures;
+}
+
 static void Bench486SurfaceAllocatorParity (void)
 {
 	static union
@@ -12082,6 +12281,8 @@ static void Bench486_f (void)
 		Bench486SurfaceCacheCase ();
 		Bench486SurfaceCacheSetupCase ();
 		Bench486SurfaceCacheEntryParity ();
+		Bench486SurfaceCacheSizingParity ();
+		Bench486SurfaceCacheLifecycleParity ();
 		Bench486SurfaceAllocatorParity ();
 		Bench486SurfaceAttachTagParity ();
 		Bench486Printf ("486 benchmark correctness %s\n",

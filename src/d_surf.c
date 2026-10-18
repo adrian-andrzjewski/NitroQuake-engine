@@ -98,7 +98,12 @@ surfcache_t                     *sc_rover, *sc_base;
 #define GUARDSIZE       4
 
 
-int     D_SurfaceCacheForRes (int width, int height)
+#if !defined(ASM486_SURFACE_CACHE_CHECK) || defined(BENCH486)
+#if defined(ASM486_SURFACE_CACHE_CHECK)
+int D_SurfaceCacheForRes_C (int width, int height)
+#else
+int D_SurfaceCacheForRes (int width, int height)
+#endif
 {
 	int             size, pix;
 
@@ -117,6 +122,7 @@ int     D_SurfaceCacheForRes (int width, int height)
 
 	return size;
 }
+#endif
 
 void D_CheckCacheGuard (void)
 {
@@ -129,6 +135,7 @@ void D_CheckCacheGuard (void)
 			Sys_Error ("D_CheckCacheGuard: failed");
 }
 
+#if !defined(ASM486_SURFACE_CACHE_CHECK) || defined(BENCH486)
 void D_ClearCacheGuard (void)
 {
 	byte    *s;
@@ -138,6 +145,7 @@ void D_ClearCacheGuard (void)
 	for (i=0 ; i<GUARDSIZE ; i++)
 		s[i] = (byte)i;
 }
+#endif
 
 
 /*
@@ -146,7 +154,12 @@ D_InitCaches
 
 ================
 */
+#if !defined(ASM486_SURFACE_CACHE_CHECK) || defined(BENCH486)
+#if defined(ASM486_SURFACE_CACHE_CHECK)
+void D_InitCaches_C (void *buffer, int size)
+#else
 void D_InitCaches (void *buffer, int size)
+#endif
 {
 
 	if (!msg_suppress_1)
@@ -162,6 +175,7 @@ void D_InitCaches (void *buffer, int size)
 	
 	D_ClearCacheGuard ();
 }
+#endif
 
 
 /*
@@ -169,8 +183,13 @@ void D_InitCaches (void *buffer, int size)
 D_FlushCaches
 ==================
 */
-#ifndef ASM486_DRAWING_DRIVER
-void D_FlushCaches (void)
+#if defined(BENCH486) && defined(ASM486_SURFACE_CACHE_CHECK)
+#define D_FLUSH_CACHES_C_ENTRY D_FlushCaches_C
+#elif !defined(ASM486_DRAWING_DRIVER) && !defined(ASM486_SURFACE_CACHE_CHECK)
+#define D_FLUSH_CACHES_C_ENTRY D_FlushCaches
+#endif
+#ifdef D_FLUSH_CACHES_C_ENTRY
+void D_FLUSH_CACHES_C_ENTRY (void)
 {
 	surfcache_t     *c;
 	
@@ -188,6 +207,7 @@ void D_FlushCaches (void)
 	sc_base->owner = NULL;
 	sc_base->size = sc_size;
 }
+#undef D_FLUSH_CACHES_C_ENTRY
 #endif
 
 /*

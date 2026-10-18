@@ -223,6 +223,9 @@ surfcache_t *D_SCAlloc_asm486 (int width, int size);
 #ifdef BENCH486
 surfcache_t *D_SCAlloc_C (int width, int size);
 surfcache_t *D_CacheSurface_C (msurface_t *surface, int miplevel);
+int D_SurfaceCacheForRes_C (int width, int height);
+void D_InitCaches_C (void *buffer, int size);
+void D_FlushCaches_C (void);
 #endif
 void D_CacheSurfaceSetup_asm486 (msurface_t *surface, int miplevel,
 		drawsurf_t *drawsurf);

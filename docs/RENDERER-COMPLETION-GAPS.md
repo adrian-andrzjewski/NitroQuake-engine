@@ -14,6 +14,25 @@ reported when each comparison was recorded. The 2026-10-16 entity-trace,
 area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
+The 2026-10-18 focused BENCH ownership report contains 381 directly reachable
+renderer entries and 69 directly reachable C dependencies, or roughly 82%
+assembly-owned by reachable-symbol count. This is only a rough progress
+estimate: the inventory reports 64 unresolved direct callees, one selected
+indirect-target set, and `completeCallGraph=false`; it does not weight routines
+by size or complexity. The surface-cache sizing and lifecycle entries added
+below pass their direct fixtures and the complete focused i486 executable gate.
+
+The default i486 surface-cache assembly selection now owns
+`D_SurfaceCacheForRes`, `D_InitCaches`, and `D_FlushCaches` for the cache-only
+drawing profile. The full drawing-driver assembly profile continues to use its
+own `D_FlushCaches` entry. `COM_CheckParm`, `Q_atoi`, and `Con_Printf` remain
+shared C helpers, and the C reference routines remain available in C-reference
+and BENCH builds. Direct parity passes six default-size cases plus the
+`-surfcachesize` override, init state/guard/canaries, and flush owner/sentinel
+cases. The focused executable passed the strict i486 audit. Its fast-path
+microbenchmark does not measure the newly ported sizing or lifecycle routines;
+see the [surface-cache lifecycle port](ledger/2026-10-18-surface-cache-lifecycle-assembly-port.md).
+
 ## Accepted incremental work
 
 The cold model-load path used by alias rendering now dispatches through i486

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-18-surface-cache-lifecycle-assembly-port.md`](2026-10-18-surface-cache-lifecycle-assembly-port.md) | 4 | renderer port / surface-cache sizing, initialization, and flush (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Scope limits and reproduction`) |
 | [`2026-10-18-player-translation-assembly-port.md`](2026-10-18-player-translation-assembly-port.md) | 4 | renderer port / player-color table generation and translation (`Scope and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Scope limits and reproduction`) |
 | [`2026-10-17-cache-free-assembly-port.md`](2026-10-17-cache-free-assembly-port.md) | 4 | renderer port / cache block removal and address/LRU unlink (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-cache-free-low-assembly-port.md`](2026-10-17-cache-free-low-assembly-port.md) | 4 | renderer port / low-end hunk cache reclamation (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |

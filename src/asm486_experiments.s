@@ -3458,6 +3458,11 @@ C(R_StoreEfrags_asm486):
 	.extern C(sc_base)
 	.extern C(sc_rover)
 	.extern C(sc_size)
+	.extern C(msg_suppress_1)
+	.extern C(Con_Printf)
+	.extern C(com_argv)
+	.extern C(COM_CheckParm)
+	.extern C(Q_atoi)
 	.extern C(d_roverwrapped)
 	.extern C(d_initial_rover)
 	.extern C(r_cache_thrash)
@@ -4116,6 +4121,115 @@ C(D_CacheSurfaceHit_asm486):
 	.p2align 4,,15
 
 #ifdef ASM486_SURFACE_CACHE_CHECK
+// int D_SurfaceCacheForRes(int width, int height)
+// Own resolution scaling and the default 320x200 cache baseline. Keep command
+// line token lookup and atoi in their shared C helpers.
+C(D_SurfaceCacheForRes):
+	.globl C(D_SurfaceCacheForRes)
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$4,%esp
+	pushl	$.Ldsc_surface_cache_size_argument
+	call	C(COM_CheckParm)
+	addl	$4,%esp
+	testl	%eax,%eax
+	jne	.Ldsc_surface_cache_override
+	movl	8(%ebp),%eax		// width
+	imull	12(%ebp),%eax		// width * height, low 32 bits
+	cmpl	$64000,%eax
+	jg	.Ldsc_surface_cache_scale
+	movl	$2457600,%eax		// SURFCACHE_SIZE_AT_320X200
+	jmp	.Ldsc_surface_cache_done
+.Ldsc_surface_cache_scale:
+	subl	$64000,%eax
+	leal	(%eax,%eax,2),%eax	// (pixels - 64000) * 3
+	addl	$2457600,%eax		// SURFCACHE_SIZE_AT_320X200
+	jmp	.Ldsc_surface_cache_done
+.Ldsc_surface_cache_override:
+	movl	%eax,-4(%ebp)		// argument index
+	movl	C(com_argv),%edx
+	movl	-4(%ebp),%eax
+	movl	4(%edx,%eax,4),%eax	// com_argv[index + 1]
+	pushl	%eax
+	call	C(Q_atoi)
+	addl	$4,%esp
+	shll	$10,%eax			// * 1024
+.Ldsc_surface_cache_done:
+	leave
+	ret
+
+	.section .rodata
+.Ldsc_surface_cache_size_argument:
+	.asciz	"-surfcachesize"
+	.text
+
+// void D_InitCaches(void *buffer, int size)
+// Initialize the surface-cache sentinel and trailing guard bytes. Console
+// formatting remains in Con_Printf; cache state and guard setup are owned here.
+C(D_InitCaches):
+	.globl C(D_InitCaches)
+	cmpl	$0,C(msg_suppress_1)
+	jne	.Ldinit_caches_state
+	movl	8(%esp),%eax		// size
+	cltd
+	movl	$1024,%ecx
+	idivl	%ecx
+	pushl	%eax
+	pushl	$.Ldinit_caches_message
+	call	C(Con_Printf)
+	addl	$8,%esp
+.Ldinit_caches_state:
+	movl	4(%esp),%eax		// buffer
+	movl	8(%esp),%edx		// size
+	subl	$4,%edx			// GUARDSIZE
+	movl	%edx,C(sc_size)
+	movl	%eax,C(sc_base)
+	movl	%eax,C(sc_rover)
+	movl	$0,0(%eax)			// sc_base->next
+	movl	$0,4(%eax)			// sc_base->owner
+	movl	%edx,28(%eax)		// sc_base->size
+	leal	(%eax,%edx),%ecx		// cache guard starts at buffer + sc_size
+	movb	$0,0(%ecx)
+	movb	$1,1(%ecx)
+	movb	$2,2(%ecx)
+	movb	$3,3(%ecx)
+	ret
+
+	.section .rodata
+.Ldinit_caches_message:
+	.asciz	"%ik surface cache\n"
+	.text
+
+#if !defined(ASM486_DRAWING_DRIVER)
+// In the complete drawing-driver profile, d_driverasm.s owns this entry.
+C(D_FlushCaches):
+	.globl C(D_FlushCaches)
+	pushl	%esi
+	pushl	%edi
+	movl	C(sc_base),%esi
+	testl	%esi,%esi
+	je	.Ldflush_caches_return
+.Ldflush_caches_owner:
+	movl	4(%esi),%edi		// owner
+	testl	%edi,%edi
+	je	.Ldflush_caches_next
+	movl	$0,(%edi)			// *owner = NULL
+.Ldflush_caches_next:
+	movl	0(%esi),%esi		// next
+	testl	%esi,%esi
+	jne	.Ldflush_caches_owner
+	movl	C(sc_base),%eax
+	movl	%eax,C(sc_rover)
+	movl	$0,0(%eax)			// sc_base->next
+	movl	$0,4(%eax)			// sc_base->owner
+	movl	C(sc_size),%edx
+	movl	%edx,28(%eax)		// sc_base->size
+.Ldflush_caches_return:
+	popl	%edi
+	popl	%esi
+	ret
+#endif
+
 // surfcache_t *D_SCAlloc_asm486(int width, int payload_size)
 // Walk/reclaim the rover chain, split a sufficiently large tail block, and
 // update wrap/thrash state. The C allocator remains the benchmark reference.
