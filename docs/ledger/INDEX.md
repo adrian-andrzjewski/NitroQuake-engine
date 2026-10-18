@@ -393,6 +393,7 @@ other axis: one row per renderer region, newest entry first.
 - `measured` [`SCR_UpdateScreen` full orchestration passes fifteen direct cases, seven paired scenes and a cumulative strict i486 release smoke](2026-10-13-screen-update-assembly-port.md)
 - `measured` [The refreshed production ownership scan counts console, menu, status-bar, video and cache dependencies](2026-10-13-screen-update-assembly-port.md)
 - `open` [Called screen/menu/status-bar/video routines, indirect targets and full-renderer ownership remain](2026-10-13-screen-update-assembly-port.md)
+- `measured` [`SCR_CheckDrawCenterString` passes 11 exact state/draw cases across 12 x87 settings and the strict i486 executable gate](2026-10-18-scr-check-draw-center-string-assembly-port.md)
 - `measured` [`R_ParticleExplosion2` -> i486 assembly port (2026-10-09)](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Particle pool semantics and ABI](2026-10-09-particle-explosion2-assembly-port.md)
 - `measured` [Full-state fixture and i486 results](2026-10-09-particle-explosion2-assembly-port.md)

@@ -14,16 +14,16 @@ reported when each comparison was recorded. The 2026-10-16 entity-trace,
 area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
-The latest 2026-10-18 focused `ScreenOverlaysImplementation=asm` BENCH
-ownership report contains 379 directly reachable renderer entries and 56
-directly reachable C dependencies, or about 85.2% assembly-owned by
+The latest 2026-10-18 focused `ScreenCenterStringImplementation=asm` BENCH
+ownership report contains 378 directly reachable renderer entries and 55
+directly reachable C dependencies, or about 85.4% assembly-owned by
 reachable-symbol count. This is only a rough, profile-specific progress
 estimate: the inventory reports 66 unresolved direct callees, one selected
 setter target set, one selected indirect-target set, and
 `completeCallGraph=false`; it does not weight routines by size or complexity.
-The surface-cache lifecycle, VGA direct-rect, console-resize, and per-frame
-console-dispatch entries added below pass their direct fixtures and focused
-i486 executable gates.
+The surface-cache lifecycle, VGA direct-rect, console-resize, per-frame
+console-dispatch, and center-string-dispatch entries added below pass their
+direct fixtures and focused i486 executable gates.
 
 The default i486 surface-cache assembly selection now owns
 `D_SurfaceCacheForRes`, `D_InitCaches`, and `D_FlushCaches` for the cache-only
@@ -608,7 +608,7 @@ to prove a complete call graph.
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |
-| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, per-frame `SCR_DrawConsole`, `Con_DrawInput`, `Con_DrawConsole`, `Con_DrawNotify`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. `SCR_DrawConsole` passes nine C/assembly call, argument, state, and ABI cases across four x87 rounding modes; `Con_DrawConsole` passes five exact framebuffer and state cases; `Con_DrawNotify` passes eight cases across four x87 modes through direct C, assembly and selected public entries; `Con_DrawInput` passes 21 cases across four x87 modes. `ScreenConsoleSetupImplementation=asm` also selects assembly for `Con_CheckResize`; its seven direct cases compare the full 16 KiB scrollback, state, notification times, guards, and ABI. The setup fixture passes 14 cases across 12 x87 modes. Status-bar coordinate, text and number primitives now select assembly; its higher-level composition remains C-owned. The full update routine passed seven exact paired scenes and a strict cumulative release smoke. Console printing, logging, menu, video/cache and screen marker/loading callees remain C-owned; indirect targets, full screen stress and long-run checks remain open. See the [console dispatch](ledger/2026-10-18-scr-drawconsole-assembly-port.md), [console resize](ledger/2026-10-18-console-resize-assembly-port.md), [console-notification](ledger/2026-10-17-con-drawnotify-assembly-port.md), [console-draw](ledger/2026-10-17-con-drawconsole-assembly-port.md), [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), [status-bar primitive](ledger/2026-10-15-sbar-primitives-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
+| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, per-frame `SCR_DrawConsole`, `Con_DrawInput`, `Con_DrawConsole`, `Con_DrawNotify`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. `SCR_DrawConsole` passes nine C/assembly call, argument, state, and ABI cases across four x87 rounding modes; `Con_DrawConsole` passes five exact framebuffer and state cases; `Con_DrawNotify` passes eight cases across four x87 modes through direct C, assembly and selected public entries; `Con_DrawInput` passes 21 cases across four x87 modes. `ScreenConsoleSetupImplementation=asm` also selects assembly for `Con_CheckResize`; its seven direct cases compare the full 16 KiB scrollback, state, notification times, guards, and ABI. The setup fixture passes 14 cases across 12 x87 modes. `SCR_CheckDrawCenterString` now selects assembly for timer, erase-line, and draw dispatch; 11 exact state/draw cases pass across three x87 precision and four rounding modes. Status-bar coordinate, text and number primitives now select assembly; its higher-level composition remains C-owned. The full update routine passed seven exact paired scenes and a strict cumulative release smoke. Console printing, logging, menu, video-mode support and screen marker/loading callees remain C-owned; indirect targets, full screen stress and long-run checks remain open. See the [center-string dispatch](ledger/2026-10-18-scr-check-draw-center-string-assembly-port.md), [console dispatch](ledger/2026-10-18-scr-drawconsole-assembly-port.md), [console resize](ledger/2026-10-18-console-resize-assembly-port.md), [console-notification](ledger/2026-10-17-con-drawnotify-assembly-port.md), [console-draw](ledger/2026-10-17-con-drawconsole-assembly-port.md), [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), [status-bar primitive](ledger/2026-10-15-sbar-primitives-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

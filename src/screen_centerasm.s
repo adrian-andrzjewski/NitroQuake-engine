@@ -202,4 +202,42 @@ C(SCR_DrawCenterString_asm486):
 	.double 0.35
 .Lscreen_center_two_32:
 	.double 4294967296.0
+
+// Per-frame center-message timer, erase-line bookkeeping, and draw dispatch.
+.text
+.p2align 4,,15
+.globl C(SCR_CheckDrawCenterString)
+C(SCR_CheckDrawCenterString):
+	movl	$1,C(scr_copytop)
+	movl	C(scr_center_lines),%eax
+	cmpl	C(scr_erase_lines),%eax
+	jle	.Lscreen_check_center_timer
+	movl	%eax,C(scr_erase_lines)
+
+.Lscreen_check_center_timer:
+	flds	C(scr_centertime_off)
+	fsubl	C(host_frametime)
+	fstps	C(scr_centertime_off)
+	cmpl	$0,C(cl)+sc_client_intermission_offset
+	jne	.Lscreen_check_center_key
+
+	flds	C(scr_centertime_off)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	sahf
+	jp	.Lscreen_check_center_key
+	jbe	.Lscreen_check_center_done
+
+.Lscreen_check_center_key:
+	cmpl	$0,C(key_dest)
+	jne	.Lscreen_check_center_done
+#ifdef BENCH486
+	call	C(Bench486ScreenCenterCheckDraw)
+#else
+	call	C(SCR_DrawCenterString)
+#endif
+
+.Lscreen_check_center_done:
+	ret
 #endif

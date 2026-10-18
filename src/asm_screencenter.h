@@ -27,11 +27,15 @@ typedef char screen_center_cvar_value_offset_must_match[
 		(offsetof(cvar_t, value) == sc_cvar_value_offset) ? 1 : -1];
 
 void SCR_DrawCenterString (void);
+void SCR_CheckDrawCenterString (void);
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 void SCR_DrawCenterString_Screen_C (void);
 void SCR_DrawCenterString_asm486 (void);
 void Bench486ScreenCenterStringCharacter (int x, int y, int num);
+void SCR_CheckDrawCenterString_Screen_C (void);
+void Bench486ScreenCenterCheckDraw (void);
+void Bench486ScreenCenterCheckCases (void);
 #endif
 #endif
 

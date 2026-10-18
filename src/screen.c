@@ -217,7 +217,16 @@ void SCR_DRAW_CENTER_STRING_C (void)
 #undef SCR_DRAW_CENTER_STRING_C
 #undef SCR_CENTER_DRAW_CHARACTER
 
-void SCR_CheckDrawCenterString (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
+#define SCR_CHECK_CENTER_C SCR_CheckDrawCenterString_Screen_C
+#define SCR_CHECK_CENTER_DRAW Bench486ScreenCenterCheckDraw
+#elif !defined(ASM486_SCREEN_CENTER_STRING)
+#define SCR_CHECK_CENTER_C SCR_CheckDrawCenterString
+#define SCR_CHECK_CENTER_DRAW SCR_DrawCenterString
+#endif
+
+#if !defined(ASM486_SCREEN_CENTER_STRING) || defined(BENCH486)
+void SCR_CHECK_CENTER_C (void)
 {
 	scr_copytop = 1;
 	if (scr_center_lines > scr_erase_lines)
@@ -230,8 +239,12 @@ void SCR_CheckDrawCenterString (void)
 	if (key_dest != key_game)
 		return;
 
-	SCR_DrawCenterString ();
+	SCR_CHECK_CENTER_DRAW ();
 }
+#endif
+
+#undef SCR_CHECK_CENTER_C
+#undef SCR_CHECK_CENTER_DRAW
 
 //=============================================================================
 

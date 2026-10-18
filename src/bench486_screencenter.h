@@ -131,7 +131,10 @@ extern byte *draw_chars;
 extern int r_pixbytes;
 extern char scr_centerstring[1024];
 extern int scr_center_lines;
+extern int scr_erase_lines;
+extern int scr_copytop;
 extern int scr_erase_center;
+extern float scr_centertime_off;
 extern float scr_centertime_start;
 extern cvar_t scr_printspeed;
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
@@ -197,6 +200,8 @@ static float bench486_screen_center_saved_time;
 static char bench486_screen_center_saved_text[1024];
 static unsigned short bench486_screen_center_saved_cw;
 static bench486_screen_center_x87_environment_t bench486_screen_center_saved_environment;
+int bench486_screen_center_check_fixture_active;
+static unsigned bench486_screen_center_check_draws;
 static char bench486_screen_center_line_40[41];
 static char bench486_screen_center_overlong[48];
 static const char bench486_screen_center_high_bits[] = {
@@ -260,6 +265,16 @@ void Bench486ScreenCenterStringCharacter (int x, int y, int num)
 		return;
 
 	Draw_Character (x, y, num);
+}
+
+void Bench486ScreenCenterCheckDraw (void)
+{
+	if (bench486_screen_center_check_fixture_active)
+	{
+		bench486_screen_center_check_draws++;
+		return;
+	}
+	SCR_DrawCenterString ();
 }
 
 static unsigned short Bench486ScreenCenterGetControlWord (void)
@@ -515,6 +530,212 @@ static unsigned Bench486ScreenCenterLiveCharacterCase (void)
 	return failures;
 }
 
+typedef struct
+{
+	const char *name;
+	float timer;
+	double frame_time;
+	int center_lines;
+	int erase_lines;
+	int intermission;
+	int key_destination;
+	int copytop;
+	int erase_center;
+	unsigned expected_draws;
+} bench486_screen_center_check_case_t;
+
+typedef struct
+{
+	int copytop;
+	int center_lines;
+	int erase_lines;
+	int erase_center;
+	int intermission;
+	int key_destination;
+	unsigned draws;
+	float timer;
+	double frame_time;
+	unsigned abi;
+	unsigned short cw_before;
+	unsigned short cw_after;
+} bench486_screen_center_check_result_t;
+
+static bench486_screen_center_check_result_t
+		bench486_screen_center_check_reference;
+static bench486_screen_center_check_result_t
+		bench486_screen_center_check_candidate;
+
+static const bench486_screen_center_check_case_t
+		bench486_screen_center_check_cases[] =
+{
+	{"positive-game-draw", 2.0f, 0.25, 3, 1, 0, key_game, 0, 6, 1},
+	{"crossed-expiry-suppresses", 0.25f, 0.5, 4, 2, 0, key_game, 0, 7, 0},
+	{"exact-expiry-suppresses", 1.0f, 1.0, 5, 3, 0, key_game, 0, 8, 0},
+	{"intermission-draws-expired", 0.25f, 0.5, 2, 7, 1, key_game, 0, 9, 1},
+	{"menu-suppresses-positive", 1.5f, 0.25, 6, 2, 0, key_menu, 1, 10, 0},
+	{"console-suppresses-intermission", 0.25f, 0.5, 1, 4, 2, key_console, 0, 11, 0},
+	{"erase-lines-grow", 3.0f, 0.125, 8, 3, 0, key_game, 0, 12, 1},
+	{"erase-lines-retain", 3.0f, 0.125, 2, 8, 0, key_game, 1, 13, 1},
+	{"single-precision-subtract-boundary", 16777216.0f, 1.0, 3, 1,
+		0, key_game, 0, 14, 1},
+	{"negative-zero-expiry", -0.0f, 0.0, 4, 2, 0, key_game, 1, 15, 0},
+	{"subnormal-positive-remains-live", 1.40129846e-45f, 0.0, 1, 1,
+		0, key_game, 0, 16, 1}
+};
+
+static void Bench486ScreenCenterCheckPrepare (
+		const bench486_screen_center_check_case_t *test_case)
+{
+	bench486_screen_center_check_draws = 0;
+	scr_copytop = test_case->copytop;
+	scr_center_lines = test_case->center_lines;
+	scr_erase_lines = test_case->erase_lines;
+	scr_erase_center = test_case->erase_center;
+	scr_centertime_off = test_case->timer;
+	host_frametime = test_case->frame_time;
+	cl.intermission = test_case->intermission;
+	key_dest = (keydest_t)test_case->key_destination;
+}
+
+static unsigned Bench486ScreenCenterCheckRun (
+		void (*function)(void),
+		const bench486_screen_center_check_case_t *test_case,
+		bench486_screen_center_check_result_t *result)
+{
+	Q_memset (result, 0, sizeof(*result));
+	Bench486ScreenCenterCheckPrepare (test_case);
+	result->cw_before = Bench486ScreenCenterGetControlWord ();
+	bench486_screen_center_check_fixture_active = 1;
+	result->abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_screen_center_check_fixture_active = 0;
+	result->cw_after = Bench486ScreenCenterGetControlWord ();
+	result->copytop = scr_copytop;
+	result->center_lines = scr_center_lines;
+	result->erase_lines = scr_erase_lines;
+	result->erase_center = scr_erase_center;
+	result->intermission = cl.intermission;
+	result->key_destination = key_dest;
+	result->draws = bench486_screen_center_check_draws;
+	result->timer = scr_centertime_off;
+	result->frame_time = host_frametime;
+	return result->abi;
+}
+
+static unsigned Bench486ScreenCenterCheckExpected (
+		const bench486_screen_center_check_case_t *test_case,
+		const bench486_screen_center_check_result_t *result)
+{
+	int expected_erase_lines;
+
+	expected_erase_lines = test_case->center_lines > test_case->erase_lines ?
+			test_case->center_lines : test_case->erase_lines;
+	if (result->copytop != 1 ||
+			result->center_lines != test_case->center_lines ||
+			result->erase_lines != expected_erase_lines ||
+			result->erase_center != test_case->erase_center ||
+			result->intermission != test_case->intermission ||
+			result->key_destination != test_case->key_destination ||
+			result->draws != test_case->expected_draws ||
+			result->cw_before != result->cw_after || result->abi != 0 ||
+			Q_memcmp ((void *)&result->frame_time,
+					(void *)&test_case->frame_time, sizeof(double)))
+		return 0x53430001U;
+	return 0;
+}
+
+void Bench486ScreenCenterCheckCases (void)
+{
+	static const unsigned short precision_bits[3] =
+		{ 0x0000, 0x0200, 0x0300 };
+	static const unsigned short rounding_bits[4] =
+		{ 0x0000, 0x0400, 0x0800, 0x0c00 };
+	static const char *precision_names[3] =
+		{ "single", "double", "extended" };
+	static const char *rounding_names[4] =
+		{ "nearest", "down", "up", "truncate" };
+	unsigned short saved_cw, control_word;
+	float saved_timer;
+	double saved_frame_time;
+	int saved_copytop, saved_center_lines, saved_erase_lines;
+	int saved_erase_center, saved_intermission;
+	keydest_t saved_destination;
+	unsigned case_count, i, precision, rounding, failures;
+
+	saved_cw = Bench486ScreenCenterGetControlWord ();
+	saved_timer = scr_centertime_off;
+	saved_frame_time = host_frametime;
+	saved_copytop = scr_copytop;
+	saved_center_lines = scr_center_lines;
+	saved_erase_lines = scr_erase_lines;
+	saved_erase_center = scr_erase_center;
+	saved_intermission = cl.intermission;
+	saved_destination = key_dest;
+	case_count = sizeof(bench486_screen_center_check_cases) /
+			sizeof(bench486_screen_center_check_cases[0]);
+	failures = 0;
+
+	for (precision = 0; precision < 3 && !failures; precision++)
+	{
+		for (rounding = 0; rounding < 4 && !failures; rounding++)
+		{
+			control_word = (unsigned short)((saved_cw &
+					(unsigned short)~0x0f00U) | precision_bits[precision] |
+					rounding_bits[rounding]);
+			Bench486ScreenCenterSetControlWord (control_word);
+			for (i = 0; i < case_count; i++)
+			{
+				unsigned c_abi, asm_abi;
+
+				Bench486ScreenCenterSetControlWord (control_word);
+				c_abi = Bench486ScreenCenterCheckRun (
+						SCR_CheckDrawCenterString_Screen_C,
+						&bench486_screen_center_check_cases[i],
+						&bench486_screen_center_check_reference);
+				failures |= Bench486ScreenCenterCheckExpected (
+						&bench486_screen_center_check_cases[i],
+						&bench486_screen_center_check_reference);
+				Bench486ScreenCenterSetControlWord (control_word);
+				asm_abi = Bench486ScreenCenterCheckRun (
+						SCR_CheckDrawCenterString,
+						&bench486_screen_center_check_cases[i],
+						&bench486_screen_center_check_candidate);
+				failures |= Bench486ScreenCenterCheckExpected (
+						&bench486_screen_center_check_cases[i],
+						&bench486_screen_center_check_candidate);
+				if (c_abi != asm_abi || Q_memcmp (
+						&bench486_screen_center_check_reference,
+						&bench486_screen_center_check_candidate,
+						sizeof(bench486_screen_center_check_reference)))
+					failures |= 0x53430010U;
+				if (failures)
+				{
+					Bench486Printf ("screen center dispatch FAIL %s/%s/%s code %08x\n",
+							bench486_screen_center_check_cases[i].name,
+							precision_names[precision], rounding_names[rounding],
+							failures);
+					break;
+				}
+			}
+		}
+	}
+
+	bench486_screen_center_check_fixture_active = 0;
+	scr_centertime_off = saved_timer;
+	host_frametime = saved_frame_time;
+	scr_copytop = saved_copytop;
+	scr_center_lines = saved_center_lines;
+	scr_erase_lines = saved_erase_lines;
+	scr_erase_center = saved_erase_center;
+	cl.intermission = saved_intermission;
+	key_dest = saved_destination;
+	Bench486ScreenCenterSetControlWord (saved_cw);
+	if (failures)
+		bench486_memory_failures++;
+	else
+		Bench486Printf ("screen center dispatch %u exact state/draw cases x 3 x87 precision x 4 rounding modes PASS\n",
+				case_count);
+}
+
 static void Bench486ScreenCenterCases (void)
 {
 	/* These extremes keep derived coordinates representable: max-width cases
@@ -634,6 +855,7 @@ static void Bench486ScreenCenterCases (void)
 	bench486_memory_failures += failures;
 	Bench486Printf ("screen center cases %u RC modes 4 PC modes 3; failures %u\n",
 			(unsigned)(sizeof(cases) / sizeof(cases[0])), failures);
+	Bench486ScreenCenterCheckCases ();
 }
 
 #endif /* BENCH486 && ASM486_SCREEN_CENTER_STRING */
