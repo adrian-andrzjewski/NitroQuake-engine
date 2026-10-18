@@ -268,13 +268,35 @@ void Con_Init (void)
 Con_Linefeed
 ===============
 */
-void Con_Linefeed (void)
+#if defined(ASM486_CONSOLE_INPUT)
+#define CON_LINEFEED_C_ENTRY Con_Linefeed_Console_C
+#define CON_LINEFEED_C_CALL Con_Linefeed_Console_C
+#define CON_PRINT_C_ENTRY Con_Print_Console_C
+#else
+#define CON_LINEFEED_C_ENTRY Con_Linefeed
+#define CON_LINEFEED_C_CALL Con_Linefeed
+#define CON_PRINT_C_ENTRY Con_Print
+#endif
+
+#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+int con_print_cr_bench;
+#define CON_PRINT_CR_STATE con_print_cr_bench
+#define CON_PRINT_LOCAL_SOUND Bench486ConPrintSound
+#else
+static int con_print_cr;
+#define CON_PRINT_CR_STATE con_print_cr
+#define CON_PRINT_LOCAL_SOUND S_LocalSound
+#endif
+
+#if !defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
+void CON_LINEFEED_C_ENTRY (void)
 {
 	con_x = 0;
 	con_current++;
 	Q_memset (&con_text[(con_current%con_totallines)*con_linewidth]
 	, ' ', con_linewidth);
 }
+#endif
 
 /*
 ================
@@ -285,11 +307,11 @@ All console printing must go through this in order to be logged to disk
 If no console is visible, the notify window will pop up.
 ================
 */
-void Con_Print (char *txt)
+#if !defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
+void CON_PRINT_C_ENTRY (char *txt)
 {
 	int		y;
 	int		c, l;
-	static int	cr;
 	int		mask;
 	
 	con_backscroll = 0;
@@ -297,7 +319,7 @@ void Con_Print (char *txt)
 	if (txt[0] == 1)
 	{
 		mask = 128;		// go to colored text
-		S_LocalSound ("misc/talk.wav");
+		CON_PRINT_LOCAL_SOUND ("misc/talk.wav");
 	// play talk wav
 		txt++;
 	}
@@ -323,16 +345,16 @@ void Con_Print (char *txt)
 
 		txt++;
 
-		if (cr)
+		if (CON_PRINT_CR_STATE)
 		{
 			con_current--;
-			cr = false;
+			CON_PRINT_CR_STATE = false;
 		}
 
 		
 		if (!con_x)
 		{
-			Con_Linefeed ();
+			CON_LINEFEED_C_CALL ();
 		// mark time for transparent overlay
 			if (con_current >= 0)
 				con_times[con_current % NUM_CON_TIMES] = realtime;
@@ -346,7 +368,7 @@ void Con_Print (char *txt)
 
 		case '\r':
 			con_x = 0;
-			cr = 1;
+			CON_PRINT_CR_STATE = 1;
 			break;
 
 		default:	// display character and advance
@@ -360,6 +382,13 @@ void Con_Print (char *txt)
 		
 	}
 }
+#endif
+
+#undef CON_PRINT_CR_STATE
+#undef CON_PRINT_LOCAL_SOUND
+#undef CON_PRINT_C_ENTRY
+#undef CON_LINEFEED_C_CALL
+#undef CON_LINEFEED_C_ENTRY
 
 
 /*

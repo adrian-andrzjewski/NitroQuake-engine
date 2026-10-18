@@ -18,6 +18,9 @@ typedef char console_notify_time_count_must_match[
 (NUM_CON_TIMES == ci_num_con_times) ? 1 : -1];
 typedef char console_notify_cvar_value_offset_must_match[
 (__builtin_offsetof(cvar_t, value) == 16) ? 1 : -1];
+#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+void Bench486ConPrintSound (char *sample);
+#endif
 #endif
 
 #endif

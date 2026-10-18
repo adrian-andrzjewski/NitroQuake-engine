@@ -15,16 +15,21 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-18 full assembly-profile BENCH ownership report contains
-378 directly reachable renderer entries and 54 directly reachable C
-dependencies, or about 85.7% assembly-owned by reachable-symbol count. This is
-only a rough, profile-specific progress estimate: the inventory reports 66
+379 directly reachable renderer entries and 53 directly reachable C
+dependencies, or about 86.0% assembly-owned by reachable-symbol count. This is
+only a rough, profile-specific progress estimate: the inventory reports 67
 unresolved direct callees, one selected setter target set, one selected
 indirect-target set, and `completeCallGraph=false`; it does not weight routines
 by size or complexity. The widescreen mini-deathmatch overlay now selects
 assembly and its focused eight-case C/ASM fixture and strict i486 gate pass.
-The all-suite DOSBox benchmark exceeded its 180-second limit during
-surface-cache experiments; see the
-[mini-scoreboard port ledger](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md).
+Console scrollback insertion and linefeed now also select assembly; their
+focused fixture passes nine exact C/ASM cases across four x87 rounding modes,
+plus direct linefeed parity and the strict linked i486 audit. See the
+[console print port ledger](ledger/2026-10-18-console-print-assembly-port.md).
+The last full-profile all-suite DOSBox run exceeded its 180-second limit during
+surface-cache experiments. The focused console and status-bar fixtures passed
+independently; a complete all-suite rerun after these slices remains open. See
+the [mini-scoreboard port ledger](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md).
 The surface-cache lifecycle, VGA direct-rect, console-resize, per-frame
 console-dispatch, and center-string-dispatch entries added below also pass
 their direct fixtures and focused i486 executable gates.
@@ -339,6 +344,17 @@ and provider gates. The full deathmatch scoreboard, intermission and finale
 composition remain separate C-owned paths. See the
 [mini-scoreboard port ledger](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md).
 
+`Con_Print` now writes console text through the i486 assembly implementation
+selected by `ConsoleImplementation=asm`; `Con_Linefeed` owns the ring-row
+advance and clearing in assembly as well. BENCH and the C-reference profile
+retain the independent C implementations. The focused fixture compares the
+entire 16 KiB scrollback, timestamps, wrap and carriage-return state, sound
+marker handling, guards and ABI across nine cases and four x87 rounding modes.
+Its strict i486 BENCH executable passed the project-object, linked-object,
+linked-executable, startup and CWSDPMI gates. Console formatting and logging
+remain separate C-owned work. See the
+[console print port ledger](ledger/2026-10-18-console-print-assembly-port.md).
+
 ## Remaining machine-code ownership
 
 `tools/renderer-ownership.py` inventories built renderer entries, direct
@@ -621,7 +637,7 @@ to prove a complete call graph.
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |
-| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, per-frame `SCR_DrawConsole`, `Con_DrawInput`, `Con_DrawConsole`, `Con_DrawNotify`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. `SCR_DrawConsole` passes nine C/assembly call, argument, state, and ABI cases across four x87 rounding modes; `Con_DrawConsole` passes five exact framebuffer and state cases; `Con_DrawNotify` passes eight cases across four x87 modes through direct C, assembly and selected public entries; `Con_DrawInput` passes 21 cases across four x87 modes. `ScreenConsoleSetupImplementation=asm` also selects assembly for `Con_CheckResize`; its seven direct cases compare the full 16 KiB scrollback, state, notification times, guards, and ABI. The setup fixture passes 14 cases across 12 x87 modes. `SCR_CheckDrawCenterString` now selects assembly for timer, erase-line, and draw dispatch; 11 exact state/draw cases pass across three x87 precision and four rounding modes. Status-bar coordinate, text and number primitives now select assembly; the widescreen mini-deathmatch overlay is assembly-owned too, while the face and full scoreboard, intermission and finale composition remains C-owned. See the [mini-scoreboard port](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md) for its eight exact C/ASM cases. The full update routine passed seven exact paired scenes and a strict cumulative release smoke. Console printing, logging, menu, video-mode support and screen marker/loading callees remain C-owned; indirect targets, full screen stress and long-run checks remain open. See the [center-string dispatch](ledger/2026-10-18-scr-check-draw-center-string-assembly-port.md), [console dispatch](ledger/2026-10-18-scr-drawconsole-assembly-port.md), [console resize](ledger/2026-10-18-console-resize-assembly-port.md), [console-notification](ledger/2026-10-17-con-drawnotify-assembly-port.md), [console-draw](ledger/2026-10-17-con-drawconsole-assembly-port.md), [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), [status-bar primitive](ledger/2026-10-15-sbar-primitives-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
+| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, per-frame `SCR_DrawConsole`, `Con_Print`, `Con_Linefeed`, `Con_DrawInput`, `Con_DrawConsole`, `Con_DrawNotify`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. `Con_Print` passes nine exact scrollback, timestamp, sound-marker, guard and ABI cases across four x87 rounding modes, plus direct `Con_Linefeed` parity. `SCR_DrawConsole` passes nine C/assembly call, argument, state, and ABI cases across four x87 rounding modes; `Con_DrawConsole` passes five exact framebuffer and state cases; `Con_DrawNotify` passes eight cases across four x87 modes through direct C, assembly and selected public entries; `Con_DrawInput` passes 21 cases across four x87 modes. `ScreenConsoleSetupImplementation=asm` also selects assembly for `Con_CheckResize`; its seven direct cases compare the full 16 KiB scrollback, state, notification times, guards, and ABI. The setup fixture passes 14 cases across 12 x87 modes. `SCR_CheckDrawCenterString` now selects assembly for timer, erase-line, and draw dispatch; 11 exact state/draw cases pass across three x87 precision and four rounding modes. Status-bar coordinate, text and number primitives now select assembly; the widescreen mini-deathmatch overlay is assembly-owned too, while the face and full scoreboard, intermission and finale composition remains C-owned. See the [mini-scoreboard port](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md) for its eight exact C/ASM cases. The full update routine passed seven exact paired scenes and a strict cumulative release smoke. Console formatting, logging, menu, video-mode support and screen marker/loading callees remain C-owned; indirect targets, full screen stress and long-run checks remain open. See the [console print](ledger/2026-10-18-console-print-assembly-port.md), [center-string dispatch](ledger/2026-10-18-scr-check-draw-center-string-assembly-port.md), [console dispatch](ledger/2026-10-18-scr-drawconsole-assembly-port.md), [console resize](ledger/2026-10-18-console-resize-assembly-port.md), [console-notification](ledger/2026-10-17-con-drawnotify-assembly-port.md), [console-draw](ledger/2026-10-17-con-drawconsole-assembly-port.md), [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), [status-bar primitive](ledger/2026-10-15-sbar-primitives-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

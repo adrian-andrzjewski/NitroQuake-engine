@@ -19,6 +19,12 @@
 .arch .387
 .code32
 
+#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+#define CON_PRINT_LOCAL_SOUND C(Bench486ConPrintSound)
+#else
+#define CON_PRINT_LOCAL_SOUND C(S_LocalSound)
+#endif
+
 .text
 .p2align 4,,15
 .globl C(Con_DrawInput_asm486)
@@ -355,8 +361,170 @@ C(Con_DrawNotify_asm486):
     ret
 #endif
 
+// Con_Linefeed and Con_Print from console.c, with the C paths retained for
+// BENCH parity. Con_Print owns wrapping, carriage-return state, color markers,
+// scrollback writes and notify timestamps; Con_Linefeed owns ring-row advance
+// and clearing. Both use signed 32-bit C remainder semantics on i486.
+#if defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
+.text
+.p2align 4,,15
+.globl C(Con_Linefeed_asm486)
+#ifdef ASM486_CONSOLE_INPUT
+.globl C(Con_Linefeed)
+C(Con_Linefeed):
+#endif
+C(Con_Linefeed_asm486):
+    pushl   %ebp
+    movl    %esp,%ebp
+    pushl   %ebx
+    pushl   %esi
+    pushl   %edi
+    movl    $0,C(con_x)
+    incl    C(con_current)
+    movl    C(con_current),%eax
+    cltd
+    idivl   C(con_totallines)
+    movl    C(con_text),%edi
+    imull   C(con_linewidth),%edx
+    leal    (%edi,%edx),%edi
+    xorl    %esi,%esi
+.Lcon_linefeed_clear:
+    cmpl    C(con_linewidth),%esi
+    jge     .Lcon_linefeed_done
+    movb    $32,(%edi,%esi)
+    incl    %esi
+    jmp     .Lcon_linefeed_clear
+.Lcon_linefeed_done:
+    leal    -12(%ebp),%esp
+    popl    %edi
+    popl    %esi
+    popl    %ebx
+    popl    %ebp
+    ret
+
+.p2align 4,,15
+.globl C(Con_Print_asm486)
+#ifdef ASM486_CONSOLE_INPUT
+.globl C(Con_Print)
+C(Con_Print):
+#endif
+C(Con_Print_asm486):
+    pushl   %ebp
+    movl    %esp,%ebp
+    pushl   %ebx
+    pushl   %esi
+    pushl   %edi
+    subl    $8,%esp
+    movl    8(%ebp),%esi
+    movl    $0,C(con_backscroll)
+    xorl    %ebx,%ebx
+    movsbl  (%esi),%eax
+    cmpl    $1,%eax
+    je      .Lcon_print_talk
+    cmpl    $2,%eax
+    jne     .Lcon_print_loop
+    movl    $128,%ebx
+    incl    %esi
+    jmp     .Lcon_print_loop
+.Lcon_print_talk:
+    movl    $128,%ebx
+    pushl   $.Lcon_print_talk_sound
+    call    CON_PRINT_LOCAL_SOUND
+    addl    $4,%esp
+    incl    %esi
+
+.Lcon_print_loop:
+    movsbl  (%esi),%edi
+    testl   %edi,%edi
+    je      .Lcon_print_done
+
+    // l = first whitespace offset, capped at con_linewidth.
+    xorl    %edx,%edx
+    movl    C(con_linewidth),%ecx
+.Lcon_print_word_length:
+    cmpl    %ecx,%edx
+    jge     .Lcon_print_word_length_done
+    cmpb    $32,(%esi,%edx)
+    jle     .Lcon_print_word_length_done
+    incl    %edx
+    jmp     .Lcon_print_word_length
+.Lcon_print_word_length_done:
+    cmpl    %ecx,%edx
+    je      .Lcon_print_word_fits
+    movl    C(con_x),%eax
+    addl    %edx,%eax
+    cmpl    %ecx,%eax
+    jle     .Lcon_print_word_fits
+    movl    $0,C(con_x)
+.Lcon_print_word_fits:
+    incl    %esi
+
+    cmpl    $0,C(con_print_cr_asm486)
+    je      .Lcon_print_carriage_done
+    decl    C(con_current)
+    movl    $0,C(con_print_cr_asm486)
+.Lcon_print_carriage_done:
+    cmpl    $0,C(con_x)
+    jne     .Lcon_print_have_line
+    call    C(Con_Linefeed)
+    cmpl    $0,C(con_current)
+    jl      .Lcon_print_have_line
+    movl    C(con_current),%eax
+    andl    $ci_num_con_times-1,%eax
+    fldl    C(realtime)
+    fstps   C(con_times)(,%eax,4)
+.Lcon_print_have_line:
+    cmpl    $10,%edi
+    je      .Lcon_print_newline
+    cmpl    $13,%edi
+    je      .Lcon_print_carriage_return
+
+    // y = con_current % con_totallines; store the low byte of c | mask.
+    movl    C(con_current),%eax
+    cltd
+    idivl   C(con_totallines)
+    imull   C(con_linewidth),%edx
+    addl    C(con_x),%edx
+    movl    C(con_text),%ecx
+    movl    %edi,%eax
+    orb     %bl,%al
+    movb    %al,(%ecx,%edx)
+    incl    C(con_x)
+    movl    C(con_x),%eax
+    cmpl    C(con_linewidth),%eax
+    jl      .Lcon_print_loop
+    movl    $0,C(con_x)
+    jmp     .Lcon_print_loop
+
+.Lcon_print_newline:
+    movl    $0,C(con_x)
+    jmp     .Lcon_print_loop
+.Lcon_print_carriage_return:
+    movl    $0,C(con_x)
+    movl    $1,C(con_print_cr_asm486)
+    jmp     .Lcon_print_loop
+
+.Lcon_print_done:
+    leal    -12(%ebp),%esp
+    popl    %edi
+    popl    %esi
+    popl    %ebx
+    popl    %ebp
+    ret
+
+.bss
+.p2align 2
+.globl C(con_print_cr_asm486)
+C(con_print_cr_asm486):
+    .long   0
+
+#endif
+
 .section .rodata
 .Lcon_drawnotify_say:
     .asciz  "say:"
+.Lcon_print_talk_sound:
+    .asciz  "misc/talk.wav"
 .text
+#undef CON_PRINT_LOCAL_SOUND
 #endif

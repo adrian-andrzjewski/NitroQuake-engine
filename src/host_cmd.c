@@ -6999,6 +6999,7 @@ static void Bench486SpriteSetupCases (void)
 #endif
 #if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
 #include "bench486_console_input.h"
+#include "bench486_conprint.h"
 #endif
 #if defined(BENCH486) && defined(ASM486_SCREEN_NOTIFY)
 #include "bench486_screennotify.h"
@@ -11641,6 +11642,7 @@ static void Bench486_f (void)
 	{
 #ifdef ASM486_CONSOLE_INPUT
 		Bench486ConsoleInputCases ();
+		Bench486ConPrintCases ();
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("console input fixture requires ConsoleImplementation=asm\n");
@@ -12499,6 +12501,7 @@ static void Bench486_f (void)
 #endif
 #ifdef ASM486_CONSOLE_INPUT
 	Bench486ConsoleInputCases ();
+	Bench486ConPrintCases ();
 #endif
 #ifdef ASM486_SCREEN_NOTIFY
 	Bench486ScreenNotifyCases ();
