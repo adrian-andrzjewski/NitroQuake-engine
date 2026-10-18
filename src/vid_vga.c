@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 #include "dosisms.h"
 #include "vid_dos.h"
+#include "asm_viddirectrect.h"
 #include <dpmi.h>
 
 extern regs_t regs;
@@ -52,14 +53,24 @@ int		VGA_highhunkmark;
 
 void VGA_UpdatePlanarScreen (void *srcbuffer);
 
-static byte	backingbuf[48*24];
+byte	VGA_directrect_backingbuf[VD_BACKINGBUF_SIZE];
 
 /*
 ================
 VGA_BeginDirectRect
 ================
 */
-void VGA_BeginDirectRect (viddef_t *lvid, struct vmode_s *pcurrentmode, int x,
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE)
+#define VGA_BEGIN_DIRECTRECT_C_ENTRY VGA_BeginDirectRect_C
+#define VGA_END_DIRECTRECT_C_ENTRY VGA_EndDirectRect_C
+#else
+#define VGA_BEGIN_DIRECTRECT_C_ENTRY VGA_BeginDirectRect
+#define VGA_END_DIRECTRECT_C_ENTRY VGA_EndDirectRect
+#endif
+
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+void VGA_BEGIN_DIRECTRECT_C_ENTRY (viddef_t *lvid,
+	struct vmode_s *pcurrentmode, int x,
 	int y, byte *pbitmap, int width, int height)
 {
 	int		i, j, k, plane, reps, repshift;
@@ -94,7 +105,7 @@ void VGA_BeginDirectRect (viddef_t *lvid, struct vmode_s *pcurrentmode, int x,
 				{
 					for (j=0 ; j<(width >> 2) ; j++)
 					{
-						backingbuf[(i + k) * 24 + (j << 2) + plane] =
+						VGA_directrect_backingbuf[(i + k) * 24 + (j << 2) + plane] =
 								lvid->direct[(y + i + k) * VGA_rowbytes +
 								(x >> 2) + j];
 						lvid->direct[(y + i + k) * VGA_rowbytes + (x>>2) + j] =
@@ -111,7 +122,7 @@ void VGA_BeginDirectRect (viddef_t *lvid, struct vmode_s *pcurrentmode, int x,
 		{
 			for (j=0 ; j<reps ; j++)
 			{
-				memcpy (&backingbuf[(i + j) * 24],
+				memcpy (&VGA_directrect_backingbuf[(i + j) * 24],
 						lvid->direct + x + ((y << repshift) + i + j) *
 						 VGA_rowbytes,
 						width);
@@ -130,7 +141,9 @@ void VGA_BeginDirectRect (viddef_t *lvid, struct vmode_s *pcurrentmode, int x,
 VGA_EndDirectRect
 ================
 */
-void VGA_EndDirectRect (viddef_t *lvid, struct vmode_s *pcurrentmode, int x,
+
+void VGA_END_DIRECTRECT_C_ENTRY (viddef_t *lvid,
+	struct vmode_s *pcurrentmode, int x,
 	int y, int width, int height)
 {
 	int		i, j, k, plane, reps, repshift;
@@ -164,7 +177,7 @@ void VGA_EndDirectRect (viddef_t *lvid, struct vmode_s *pcurrentmode, int x,
 					for (j=0 ; j<(width >> 2) ; j++)
 					{
 						lvid->direct[(y + i + k) * VGA_rowbytes + (x>>2) + j] =
-								backingbuf[(i + k) * 24 + (j << 2) + plane];
+								VGA_directrect_backingbuf[(i + k) * 24 + (j << 2) + plane];
 					}
 				}
 			}
@@ -178,12 +191,16 @@ void VGA_EndDirectRect (viddef_t *lvid, struct vmode_s *pcurrentmode, int x,
 			{
 				memcpy (lvid->direct + x + ((y << repshift) + i + j) *
 						 VGA_rowbytes,
-						&backingbuf[(i + j) * 24],
+						&VGA_directrect_backingbuf[(i + j) * 24],
 						width);
 			}
 		}
 	}
 }
+#endif
+
+#undef VGA_BEGIN_DIRECTRECT_C_ENTRY
+#undef VGA_END_DIRECTRECT_C_ENTRY
 
 
 /*

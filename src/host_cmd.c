@@ -67,6 +67,7 @@ extern int Bench486VesaSwapBuffersCases (void);
 #endif
 #if defined(ASM486_VID_UPDATE_FIXTURE)
 extern int Bench486VidUpdateCases (void);
+extern int Bench486VidDirectRectCases (void);
 #endif
 #if defined(ASM486_PLAYER_TRANSLATION_FIXTURE)
 #include "bench486_playertranslation.h"
@@ -11575,11 +11576,16 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchvidupdate"))
 	{
 #if defined(ASM486_VID_UPDATE_FIXTURE)
-		int vid_update_failures;
+		int vid_update_failures, vid_directrect_failures;
 		vid_update_failures = Bench486VidUpdateCases ();
 		bench486_memory_failures += vid_update_failures != 0;
 		Bench486Printf ("VID_Update C/ASM state and dispatch cases %s failure mask 0x%x\n",
 				vid_update_failures ? "FAIL" : "PASS", vid_update_failures);
+		vid_directrect_failures = Bench486VidDirectRectCases ();
+		bench486_memory_failures += vid_directrect_failures != 0;
+		Bench486Printf ("VGA direct-rectangle C/ASM parity %s (6 mode cases and 13 guard cases, failure mask 0x%x)\n",
+				vid_directrect_failures ? "FAIL" : "PASS",
+				vid_directrect_failures);
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("VID_Update fixture requires VideoUpdateImplementation=asm-fixture\n");

@@ -14,13 +14,15 @@ reported when each comparison was recorded. The 2026-10-16 entity-trace,
 area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
-The 2026-10-18 focused BENCH ownership report contains 381 directly reachable
-renderer entries and 69 directly reachable C dependencies, or roughly 82%
-assembly-owned by reachable-symbol count. This is only a rough progress
-estimate: the inventory reports 64 unresolved direct callees, one selected
-indirect-target set, and `completeCallGraph=false`; it does not weight routines
-by size or complexity. The surface-cache sizing and lifecycle entries added
-below pass their direct fixtures and the complete focused i486 executable gate.
+The latest 2026-10-18 focused BENCH ownership report contains 380 directly
+reachable renderer entries and 57 directly reachable C dependencies, or about
+85% assembly-owned by reachable-symbol count. This is only a rough progress
+estimate: the inventory reports 68 unresolved direct callees, one selected
+setter target set, one selected indirect-target set, and
+`completeCallGraph=false`; it does not weight routines by size or complexity.
+The surface-cache sizing/lifecycle and VGA direct-rect
+entries added below pass their direct fixtures and focused i486 executable
+gates.
 
 The default i486 surface-cache assembly selection now owns
 `D_SurfaceCacheForRes`, `D_InitCaches`, and `D_FlushCaches` for the cache-only
@@ -471,6 +473,17 @@ reachable C entries, and 70 unresolved direct callees; its fixture selector and
 scope differ from the historical inventories above, so it does not yield a
 comparable completion percentage. This closes only the per-frame update state
 machine, not the wider video or renderer ownership gaps.
+On the same date, `VideoUpdateImplementation=asm` also selects i486 assembly
+for `D_BeginDirectRect`, `D_EndDirectRect`, `VGA_BeginDirectRect`, and
+`VGA_EndDirectRect`; the C versions remain available to BENCH and the
+C-reference profile. DOSBox-X direct parity passed six planar/linear and aspect
+cases plus 13 invalid-input guard cases, with complete framebuffer and backing
+buffer comparisons. The strict BENCH gate passed 285,101 linked and relocated
+instructions, 529 startup CODE rows, and 9,207 provider instructions, with no
+above-i486 instructions, unknowns, exemptions, or skipped bytes. This closes
+the direct-rectangle backup/restore path only; video mode setup, broader scene
+parity, and full-renderer ownership remain open. See the
+[VGA direct-rectangle port ledger](ledger/2026-10-18-vga-direct-rect-assembly-port.md).
 On the same date, `PlayerTranslationImplementation=asm` became the i486 default
 for `M_BuildTranslationTable` and the palette transformation loop in
 `CL_NewTranslation`; C references remain available in the C profile and BENCH.

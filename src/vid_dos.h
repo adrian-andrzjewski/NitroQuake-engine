@@ -42,6 +42,9 @@ typedef struct vmode_s {
 								 int x, int y, int width, int height);
 } vmode_t;
 
+extern vmode_t *pcurrentmode;
+extern byte VGA_directrect_backingbuf[48*24];
+
 // vid_wait settings
 #define VID_WAIT_NONE			0
 #define VID_WAIT_VSYNC			1
@@ -83,6 +86,14 @@ void VGA_BeginDirectRect (viddef_t *vid, struct vmode_s *pcurrentmode, int x,
 	int y, byte *pbitmap, int width, int height);
 void VGA_EndDirectRect (viddef_t *vid, struct vmode_s *pcurrentmode, int x,
 	int y, int width, int height);
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE)
+void D_BeginDirectRect_C (int x, int y, byte *pbitmap, int width, int height);
+void D_EndDirectRect_C (int x, int y, int width, int height);
+void VGA_BeginDirectRect_C (viddef_t *vid, struct vmode_s *pcurrentmode,
+	int x, int y, byte *pbitmap, int width, int height);
+void VGA_EndDirectRect_C (viddef_t *vid, struct vmode_s *pcurrentmode,
+	int x, int y, int width, int height);
+#endif
 void VGA_UpdateLinearScreen (void *srcptr, void *destptr, int width,
 	int height, int srcrowbytes, int destrowbytes);
 

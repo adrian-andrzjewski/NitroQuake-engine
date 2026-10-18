@@ -1,6 +1,7 @@
 /* i486 per-frame video update state machine from vid_dos.c:VID_Update. */
 #include "asm_i386.h"
 #include "asm_vidupdate.h"
+#include "asm_viddirectrect.h"
 #undef i386
 .arch i486
 .arch .387
@@ -228,6 +229,427 @@ C(VID_Update):
 	.asciz	"+vid_mode"
 .Lvid_update_no_vesa_mode:
 	.asciz	"Video: no usable VESA 320x200x8 mode; using VGA mode 13h\n"
+
+/* Direct rectangle dispatch and VGA save/restore are video update helpers. */
+.text
+.p2align 2
+.globl C(D_BeginDirectRect)
+C(D_BeginDirectRect):
+	pushl	%ebp
+	movl	%esp,%ebp
+	cmpl	$0,C(vid)+VD_VID_DIRECT_OFFSET
+	je	.Lvdrect_begin_return
+	movl	C(pcurrentmode),%edx
+	testl	%edx,%edx
+	je	.Lvdrect_begin_return
+	movl	20(%ebp),%eax		/* width */
+	cmpl	$24,%eax
+	jg	.Lvdrect_begin_return
+	movl	24(%ebp),%ecx		/* height */
+	cmpl	$24,%ecx
+	jg	.Lvdrect_begin_return
+	cmpl	$1,%eax
+	jl	.Lvdrect_begin_return
+	cmpl	$1,%ecx
+	jl	.Lvdrect_begin_return
+	testl	$3,%eax
+	jne	.Lvdrect_begin_return
+	movl	VD_MODE_BEGIN_DIRECTRECT_OFFSET(%edx),%eax
+	pushl	24(%ebp)		/* height */
+	pushl	20(%ebp)		/* width */
+	pushl	16(%ebp)		/* pbitmap */
+	pushl	12(%ebp)		/* y */
+	pushl	8(%ebp)		/* x */
+	pushl	%edx			/* pcurrentmode */
+	pushl	$C(vid)
+	call	*%eax
+	addl	$28,%esp
+.Lvdrect_begin_return:
+	leave
+	ret
+
+.p2align 2
+.globl C(D_EndDirectRect)
+C(D_EndDirectRect):
+	pushl	%ebp
+	movl	%esp,%ebp
+	cmpl	$0,C(vid)+VD_VID_DIRECT_OFFSET
+	je	.Lvdrect_end_return
+	movl	C(pcurrentmode),%edx
+	testl	%edx,%edx
+	je	.Lvdrect_end_return
+	movl	16(%ebp),%eax		/* width */
+	cmpl	$24,%eax
+	jg	.Lvdrect_end_return
+	movl	20(%ebp),%ecx		/* height */
+	cmpl	$24,%ecx
+	jg	.Lvdrect_end_return
+	cmpl	$1,%eax
+	jl	.Lvdrect_end_return
+	cmpl	$1,%ecx
+	jl	.Lvdrect_end_return
+	testl	$3,%eax
+	jne	.Lvdrect_end_return
+	testl	$3,%ecx
+	jne	.Lvdrect_end_return
+	movl	VD_MODE_END_DIRECTRECT_OFFSET(%edx),%eax
+	pushl	20(%ebp)		/* height */
+	pushl	16(%ebp)		/* width */
+	pushl	12(%ebp)		/* y */
+	pushl	8(%ebp)		/* x */
+	pushl	%edx			/* pcurrentmode */
+	pushl	$C(vid)
+	call	*%eax
+	addl	$24,%esp
+.Lvdrect_end_return:
+	leave
+	ret
+
+/* VGA_BeginDirectRect(vid, mode, x, y, bitmap, width, height). */
+.p2align 2
+.globl C(VGA_BeginDirectRect)
+C(VGA_BeginDirectRect):
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$68,%esp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp),%esi		/* lvid */
+	movl	VD_VID_DIRECT_OFFSET(%esi),%eax
+	testl	%eax,%eax
+	je	.Lvdrect_vga_begin_return
+	movl	%eax,-4(%ebp)		/* direct framebuffer */
+	movl	24(%ebp),%eax
+	movl	%eax,-8(%ebp)		/* pbitmap */
+	movl	16(%ebp),%eax
+	movl	%eax,-12(%ebp)		/* x */
+	movl	20(%ebp),%eax
+	movl	%eax,-16(%ebp)		/* y */
+	movl	28(%ebp),%eax
+	movl	%eax,-20(%ebp)		/* width */
+	movl	32(%ebp),%eax
+	movl	%eax,-24(%ebp)		/* height */
+	flds	VD_VID_ASPECT_OFFSET(%esi)
+	fcomps	.Lvdrect_aspect_1_5
+	fnstsw	%ax
+	sahf
+	ja	.Lvdrect_vga_begin_double
+	movl	$1,-28(%ebp)		/* reps */
+	movl	$0,-32(%ebp)		/* repshift */
+	jmp	.Lvdrect_vga_begin_rows
+.Lvdrect_vga_begin_double:
+	movl	$2,-28(%ebp)
+	movl	$1,-32(%ebp)
+.Lvdrect_vga_begin_rows:
+	movl	-24(%ebp),%eax
+	movl	-32(%ebp),%ecx
+	shll	%cl,%eax
+	movl	%eax,-36(%ebp)		/* output rows */
+	movl	12(%ebp),%eax		/* mode */
+	cmpl	$0,VD_MODE_PLANAR_OFFSET(%eax)
+	jne	.Lvdrect_vga_begin_planar
+	movl	$0,-40(%ebp)		/* i */
+.Lvdrect_vga_begin_linear_i:
+	movl	-40(%ebp),%eax
+	cmpl	-36(%ebp),%eax
+	jge	.Lvdrect_vga_begin_return
+	movl	$0,-44(%ebp)		/* j */
+.Lvdrect_vga_begin_linear_j:
+	movl	-44(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lvdrect_vga_begin_linear_next_i
+	movl	-40(%ebp),%eax
+	addl	-44(%ebp),%eax
+	movl	%eax,-68(%ebp)		/* output row */
+	movl	-16(%ebp),%edx
+	movl	-32(%ebp),%ecx
+	shll	%cl,%edx
+	addl	%eax,%edx
+	imull	C(VGA_rowbytes),%edx
+	addl	-12(%ebp),%edx
+	movl	%edx,-56(%ebp)		/* direct byte offset */
+	movl	-68(%ebp),%eax
+	leal	(%eax,%eax,2),%eax
+	shll	$3,%eax
+	movl	%eax,-60(%ebp)		/* backing byte offset */
+	movl	-40(%ebp),%eax
+	movl	-32(%ebp),%ecx
+	shrl	%cl,%eax
+	imull	-20(%ebp),%eax
+	movl	%eax,-64(%ebp)		/* bitmap byte offset */
+	movl	-4(%ebp),%esi
+	addl	-56(%ebp),%esi
+	movl	$C(VGA_directrect_backingbuf),%edi
+	addl	-60(%ebp),%edi
+	movl	-20(%ebp),%ecx
+	cld
+	rep	movsb
+	movl	-8(%ebp),%esi
+	addl	-64(%ebp),%esi
+	movl	-4(%ebp),%edi
+	addl	-56(%ebp),%edi
+	movl	-20(%ebp),%ecx
+	cld
+	rep	movsb
+	incl	-44(%ebp)
+	jmp	.Lvdrect_vga_begin_linear_j
+.Lvdrect_vga_begin_linear_next_i:
+	movl	-28(%ebp),%eax
+	addl	%eax,-40(%ebp)
+	jmp	.Lvdrect_vga_begin_linear_i
+
+.Lvdrect_vga_begin_planar:
+	movl	$0,-52(%ebp)		/* plane */
+.Lvdrect_vga_begin_plane:
+	movw	$0x3c4,%dx		/* sequencer index */
+	movb	$2,%al			/* MAP_MASK */
+	outb	%al,%dx
+	movw	$0x3c5,%dx
+	movl	$1,%eax
+	movl	-52(%ebp),%ecx
+	shll	%cl,%eax
+	outb	%al,%dx
+	movw	$0x3ce,%dx		/* graphics controller index */
+	movb	$4,%al			/* READ_MAP */
+	outb	%al,%dx
+	movw	$0x3cf,%dx
+	movl	-52(%ebp),%eax
+	outb	%al,%dx
+	movl	$0,-40(%ebp)		/* i */
+.Lvdrect_vga_begin_planar_i:
+	movl	-40(%ebp),%eax
+	cmpl	-36(%ebp),%eax
+	jge	.Lvdrect_vga_begin_next_plane
+	movl	$0,-48(%ebp)		/* k */
+.Lvdrect_vga_begin_planar_k:
+	movl	-48(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lvdrect_vga_begin_planar_next_i
+	movl	$0,-44(%ebp)		/* j */
+.Lvdrect_vga_begin_planar_j:
+	movl	-20(%ebp),%eax
+	sarl	$2,%eax
+	cmpl	%eax,-44(%ebp)
+	jge	.Lvdrect_vga_begin_planar_next_k
+	movl	-40(%ebp),%ebx
+	addl	-48(%ebp),%ebx		/* output row */
+	movl	-16(%ebp),%edx
+	addl	%ebx,%edx
+	imull	C(VGA_rowbytes),%edx
+	movl	-12(%ebp),%eax
+	sarl	$2,%eax
+	addl	%eax,%edx
+	addl	-44(%ebp),%edx
+	movl	%edx,-56(%ebp)		/* direct byte offset */
+	movl	%ebx,%eax
+	leal	(%eax,%eax,2),%eax
+	shll	$3,%eax
+	movl	-44(%ebp),%edx
+	shll	$2,%edx
+	addl	%edx,%eax
+	addl	-52(%ebp),%eax
+	movl	%eax,-60(%ebp)		/* backing byte offset */
+	movl	-40(%ebp),%eax
+	movl	-32(%ebp),%ecx
+	shrl	%cl,%eax
+	leal	(%eax,%eax,2),%eax
+	shll	$3,%eax
+	movl	-44(%ebp),%edx
+	shll	$2,%edx
+	addl	%edx,%eax
+	addl	-52(%ebp),%eax
+	movl	%eax,-64(%ebp)		/* bitmap byte offset */
+	movl	-4(%ebp),%esi
+	addl	-56(%ebp),%esi
+	movb	(%esi),%al
+	movl	$C(VGA_directrect_backingbuf),%edi
+	addl	-60(%ebp),%edi
+	movb	%al,(%edi)
+	movl	-8(%ebp),%esi
+	addl	-64(%ebp),%esi
+	movb	(%esi),%al
+	movl	-4(%ebp),%edi
+	addl	-56(%ebp),%edi
+	movb	%al,(%edi)
+	incl	-44(%ebp)
+	jmp	.Lvdrect_vga_begin_planar_j
+.Lvdrect_vga_begin_planar_next_k:
+	incl	-48(%ebp)
+	jmp	.Lvdrect_vga_begin_planar_k
+.Lvdrect_vga_begin_planar_next_i:
+	movl	-28(%ebp),%eax
+	addl	%eax,-40(%ebp)
+	jmp	.Lvdrect_vga_begin_planar_i
+.Lvdrect_vga_begin_next_plane:
+	incl	-52(%ebp)
+	cmpl	$4,-52(%ebp)
+	jl	.Lvdrect_vga_begin_plane
+.Lvdrect_vga_begin_return:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	addl	$68,%esp
+	leave
+	ret
+
+.section .rodata
+.Lvdrect_aspect_1_5:
+	.float	1.5
+
+/* VGA_EndDirectRect(vid, mode, x, y, width, height). */
+.text
+.p2align 2
+.globl C(VGA_EndDirectRect)
+C(VGA_EndDirectRect):
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$68,%esp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp),%esi		/* lvid */
+	movl	VD_VID_DIRECT_OFFSET(%esi),%eax
+	testl	%eax,%eax
+	je	.Lvdrect_vga_end_return
+	movl	%eax,-4(%ebp)		/* direct framebuffer */
+	movl	16(%ebp),%eax
+	movl	%eax,-12(%ebp)		/* x */
+	movl	20(%ebp),%eax
+	movl	%eax,-16(%ebp)		/* y */
+	movl	24(%ebp),%eax
+	movl	%eax,-20(%ebp)		/* width */
+	movl	28(%ebp),%eax
+	movl	%eax,-24(%ebp)		/* height */
+	flds	VD_VID_ASPECT_OFFSET(%esi)
+	fcomps	.Lvdrect_aspect_1_5
+	fnstsw	%ax
+	sahf
+	ja	.Lvdrect_vga_end_double
+	movl	$1,-28(%ebp)		/* reps */
+	movl	$0,-32(%ebp)		/* repshift */
+	jmp	.Lvdrect_vga_end_rows
+.Lvdrect_vga_end_double:
+	movl	$2,-28(%ebp)
+	movl	$1,-32(%ebp)
+.Lvdrect_vga_end_rows:
+	movl	-24(%ebp),%eax
+	movl	-32(%ebp),%ecx
+	shll	%cl,%eax
+	movl	%eax,-36(%ebp)		/* output rows */
+	movl	12(%ebp),%eax		/* mode */
+	cmpl	$0,VD_MODE_PLANAR_OFFSET(%eax)
+	jne	.Lvdrect_vga_end_planar
+	movl	$0,-40(%ebp)		/* i */
+.Lvdrect_vga_end_linear_i:
+	movl	-40(%ebp),%eax
+	cmpl	-36(%ebp),%eax
+	jge	.Lvdrect_vga_end_return
+	movl	$0,-44(%ebp)		/* j */
+.Lvdrect_vga_end_linear_j:
+	movl	-44(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lvdrect_vga_end_linear_next_i
+	movl	-40(%ebp),%eax
+	addl	-44(%ebp),%eax
+	movl	%eax,-68(%ebp)		/* output row */
+	movl	-16(%ebp),%edx
+	movl	-32(%ebp),%ecx
+	shll	%cl,%edx
+	addl	%eax,%edx
+	imull	C(VGA_rowbytes),%edx
+	addl	-12(%ebp),%edx
+	movl	%edx,-56(%ebp)		/* direct byte offset */
+	movl	-68(%ebp),%eax
+	leal	(%eax,%eax,2),%eax
+	shll	$3,%eax
+	movl	%eax,-60(%ebp)		/* backing byte offset */
+	movl	$C(VGA_directrect_backingbuf),%esi
+	addl	-60(%ebp),%esi
+	movl	-4(%ebp),%edi
+	addl	-56(%ebp),%edi
+	movl	-20(%ebp),%ecx
+	cld
+	rep	movsb
+	incl	-44(%ebp)
+	jmp	.Lvdrect_vga_end_linear_j
+.Lvdrect_vga_end_linear_next_i:
+	movl	-28(%ebp),%eax
+	addl	%eax,-40(%ebp)
+	jmp	.Lvdrect_vga_end_linear_i
+
+.Lvdrect_vga_end_planar:
+	movl	$0,-52(%ebp)		/* plane */
+.Lvdrect_vga_end_plane:
+	movw	$0x3c4,%dx		/* sequencer index */
+	movb	$2,%al			/* MAP_MASK */
+	outb	%al,%dx
+	movw	$0x3c5,%dx
+	movl	$1,%eax
+	movl	-52(%ebp),%ecx
+	shll	%cl,%eax
+	outb	%al,%dx
+	movl	$0,-40(%ebp)		/* i */
+.Lvdrect_vga_end_planar_i:
+	movl	-40(%ebp),%eax
+	cmpl	-36(%ebp),%eax
+	jge	.Lvdrect_vga_end_next_plane
+	movl	$0,-48(%ebp)		/* k */
+.Lvdrect_vga_end_planar_k:
+	movl	-48(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lvdrect_vga_end_planar_next_i
+	movl	$0,-44(%ebp)		/* j */
+.Lvdrect_vga_end_planar_j:
+	movl	-20(%ebp),%eax
+	sarl	$2,%eax
+	cmpl	%eax,-44(%ebp)
+	jge	.Lvdrect_vga_end_planar_next_k
+	movl	-40(%ebp),%ebx
+	addl	-48(%ebp),%ebx		/* output row */
+	movl	-16(%ebp),%edx
+	addl	%ebx,%edx
+	imull	C(VGA_rowbytes),%edx
+	movl	-12(%ebp),%eax
+	sarl	$2,%eax
+	addl	%eax,%edx
+	addl	-44(%ebp),%edx
+	movl	%edx,-56(%ebp)		/* direct byte offset */
+	movl	%ebx,%eax
+	leal	(%eax,%eax,2),%eax
+	shll	$3,%eax
+	movl	-44(%ebp),%edx
+	shll	$2,%edx
+	addl	%edx,%eax
+	addl	-52(%ebp),%eax
+	movl	%eax,-60(%ebp)		/* backing byte offset */
+	movl	-4(%ebp),%esi
+	addl	-56(%ebp),%esi
+	movl	$C(VGA_directrect_backingbuf),%edi
+	addl	-60(%ebp),%edi
+	movb	(%edi),%al
+	movb	%al,(%esi)
+	incl	-44(%ebp)
+	jmp	.Lvdrect_vga_end_planar_j
+.Lvdrect_vga_end_planar_next_k:
+	incl	-48(%ebp)
+	jmp	.Lvdrect_vga_end_planar_k
+.Lvdrect_vga_end_planar_next_i:
+	movl	-28(%ebp),%eax
+	addl	%eax,-40(%ebp)
+	jmp	.Lvdrect_vga_end_planar_i
+.Lvdrect_vga_end_next_plane:
+	incl	-52(%ebp)
+	cmpl	$4,-52(%ebp)
+	jl	.Lvdrect_vga_end_plane
+.Lvdrect_vga_end_return:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	addl	$68,%esp
+	leave
+	ret
+
 #undef VID_UPDATE_SET_MODE
 #undef VID_UPDATE_DEFAULT_MODE
 #undef VID_UPDATE_SET_CVAR

@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "dosisms.h"
 #include "vid_dos.h"
 #include "asm_vidupdate.h"
+#include "asm_viddirectrect.h"
 
 int			vid_modenum;
 vmode_t		*pcurrentmode = NULL;
@@ -577,7 +578,17 @@ void VID_TestMode_f (void)
 D_BeginDirectRect
 ================
 */
-void D_BeginDirectRect (int x, int y, byte *pbitmap, int width, int height)
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE)
+#define D_BEGIN_DIRECTRECT_C_ENTRY D_BeginDirectRect_C
+#define D_END_DIRECTRECT_C_ENTRY D_EndDirectRect_C
+#else
+#define D_BEGIN_DIRECTRECT_C_ENTRY D_BeginDirectRect
+#define D_END_DIRECTRECT_C_ENTRY D_EndDirectRect
+#endif
+
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+void D_BEGIN_DIRECTRECT_C_ENTRY (int x, int y, byte *pbitmap,
+	int width, int height)
 {
 
 	if (!vid.direct || !pcurrentmode)
@@ -599,7 +610,7 @@ void D_BeginDirectRect (int x, int y, byte *pbitmap, int width, int height)
 D_EndDirectRect
 ================
 */
-void D_EndDirectRect (int x, int y, int width, int height)
+void D_END_DIRECTRECT_C_ENTRY (int x, int y, int width, int height)
 {
 
 	if (!vid.direct || !pcurrentmode)
@@ -613,6 +624,14 @@ void D_EndDirectRect (int x, int y, int width, int height)
 
 	(*pcurrentmode->enddirectrect) (&vid, pcurrentmode, x, y, width, height);
 }
+#endif
+
+#undef D_BEGIN_DIRECTRECT_C_ENTRY
+#undef D_END_DIRECTRECT_C_ENTRY
+
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
+#include "bench486_viddirectrect.h"
+#endif
 
 
 //===========================================================================
