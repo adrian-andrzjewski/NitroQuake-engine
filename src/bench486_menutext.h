@@ -8,6 +8,12 @@
 
 #define BMT_MAX_GLYPHS 64
 #define BMT_GUARD_WORDS 2
+#define BMP_MAX_EVENTS 4
+#define BMP_GUARD_WORDS 2
+
+#define BMP_EVENT_TRANSPIC 1
+#define BMP_EVENT_PIC 2
+#define BMP_EVENT_TRANSPIC_TRANSLATE 3
 
 typedef struct bench486_menu_text_glyph_s
 {
@@ -44,6 +50,42 @@ typedef struct bench486_menu_text_case_s
 	const char *text;
 } bench486_menu_text_case_t;
 
+typedef struct bench486_menu_picture_event_s
+{
+	int kind;
+	int x;
+	int y;
+	qpic_t *pic;
+	byte *translation;
+} bench486_menu_picture_event_t;
+
+typedef struct bench486_menu_picture_trace_s
+{
+	unsigned before[BMP_GUARD_WORDS];
+	unsigned count;
+	unsigned overflow;
+	bench486_menu_picture_event_t events[BMP_MAX_EVENTS];
+	unsigned after[BMP_GUARD_WORDS];
+} bench486_menu_picture_trace_t;
+
+typedef struct bench486_menu_picture_result_s
+{
+	bench486_menu_picture_trace_t trace;
+	unsigned abi;
+	unsigned short cw_before;
+	unsigned short cw_after;
+} bench486_menu_picture_result_t;
+
+typedef struct bench486_menu_picture_case_s
+{
+	const char *name;
+	int kind;
+	unsigned width;
+	int x;
+	int y;
+	qpic_t *pic;
+} bench486_menu_picture_case_t;
+
 static const char bench486_menu_text_high_bytes[] =
 	{ 'A', (char)0x80, (char)0xff, 'Z', 0 };
 
@@ -63,6 +105,27 @@ static const bench486_menu_text_case_t bench486_menu_text_cases[] =
 static bench486_menu_text_trace_t bench486_menu_text_trace;
 static bench486_menu_text_result_t bench486_menu_text_reference;
 static bench486_menu_text_result_t bench486_menu_text_candidate;
+static unsigned bench486_menu_picture_fake_pic[4];
+static bench486_menu_picture_trace_t bench486_menu_picture_trace;
+static bench486_menu_picture_result_t bench486_menu_picture_reference;
+static bench486_menu_picture_result_t bench486_menu_picture_candidate;
+
+static const bench486_menu_picture_case_t bench486_menu_picture_cases[] =
+{
+	{ "transpic-centered", BMP_EVENT_TRANSPIC, 320, 16, 8,
+		(qpic_t *)bench486_menu_picture_fake_pic },
+	{ "transpic-wide-negative-origin", BMP_EVENT_TRANSPIC, 640, -7, 12,
+		(qpic_t *)bench486_menu_picture_fake_pic },
+	{ "pic-narrow-width", BMP_EVENT_PIC, 319, 3, 1,
+		(qpic_t *)bench486_menu_picture_fake_pic },
+	{ "pic-wide", BMP_EVENT_PIC, 1024, 24, 56,
+		(qpic_t *)(bench486_menu_picture_fake_pic + 1) },
+	{ "translate-narrow-width", BMP_EVENT_TRANSPIC_TRANSLATE, 319, 11, 72,
+		(qpic_t *)(bench486_menu_picture_fake_pic + 2) },
+	{ "translate-wide-negative-origin", BMP_EVENT_TRANSPIC_TRANSLATE,
+		640, -19, 40, (qpic_t *)(bench486_menu_picture_fake_pic + 3) }
+};
+
 int bench486_menu_text_trace_active;
 
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
@@ -95,6 +158,128 @@ void Bench486MenuTextDrawCharacter (int x, int y, int num)
 	else
 		bench486_menu_text_trace.overflow = 1;
 	bench486_menu_text_trace.count++;
+}
+
+void Bench486MenuTextDrawPic (int kind, int x, int y, qpic_t *pic,
+		byte *translation)
+{
+	bench486_menu_picture_event_t *event;
+
+	if (!bench486_menu_text_trace_active)
+	{
+		if (kind == BMP_EVENT_TRANSPIC)
+			Draw_TransPic (x, y, pic);
+		else if (kind == BMP_EVENT_PIC)
+			Draw_Pic (x, y, pic);
+		else if (kind == BMP_EVENT_TRANSPIC_TRANSLATE)
+			Draw_TransPicTranslate (x, y, pic, translation);
+		return;
+	}
+
+	if (bench486_menu_picture_trace.count < BMP_MAX_EVENTS)
+	{
+		event = &bench486_menu_picture_trace.events[
+				bench486_menu_picture_trace.count];
+		event->kind = kind;
+		event->x = x;
+		event->y = y;
+		event->pic = pic;
+		event->translation = translation;
+	}
+	else
+		bench486_menu_picture_trace.overflow = 1;
+	bench486_menu_picture_trace.count++;
+}
+
+static void Bench486MenuPictureInitTrace (void)
+{
+	unsigned i;
+	Q_memset (&bench486_menu_picture_trace, 0,
+			sizeof(bench486_menu_picture_trace));
+	for (i = 0; i < BMP_GUARD_WORDS; i++)
+	{
+		bench486_menu_picture_trace.before[i] = 0x4d500000U + i;
+		bench486_menu_picture_trace.after[i] = 0x4d50f000U + i;
+	}
+}
+
+static void Bench486MenuPictureCapture (bench486_menu_picture_result_t *result,
+		unsigned abi, unsigned short cw_before, unsigned short cw_after)
+{
+	Q_memset (result, 0, sizeof(*result));
+	Q_memcpy (&result->trace, &bench486_menu_picture_trace,
+			sizeof(result->trace));
+	result->abi = abi;
+	result->cw_before = cw_before;
+	result->cw_after = cw_after;
+}
+
+static unsigned Bench486MenuPictureRun (
+		const bench486_menu_picture_case_t *test_case,
+		void (*function)(void), bench486_menu_picture_result_t *result)
+{
+	unsigned arguments[3];
+	unsigned abi;
+	unsigned short cw_before, cw_after;
+
+	Bench486MenuPictureInitTrace ();
+	vid.width = test_case->width;
+	arguments[0] = (unsigned)test_case->x;
+	arguments[1] = (unsigned)test_case->y;
+	arguments[2] = (unsigned)test_case->pic;
+	cw_before = Bench486MenuTextGetControlWord ();
+	bench486_menu_text_trace_active = 1;
+	abi = Bench486Call_asm486 (function, 3, arguments, NULL);
+	bench486_menu_text_trace_active = 0;
+	cw_after = Bench486MenuTextGetControlWord ();
+	Bench486MenuPictureCapture (result, abi, cw_before, cw_after);
+	if ((abi & 0x20U) || cw_before != cw_after)
+	{
+		Bench486Printf (
+				"menu picture ABI/x87 FAIL case %s abi %08x cw %04x/%04x\n",
+				test_case->name, abi, cw_before, cw_after);
+		return 1;
+	}
+	return 0;
+}
+
+static unsigned Bench486MenuPictureExpected (
+		const bench486_menu_picture_case_t *test_case,
+		const bench486_menu_picture_result_t *result)
+{
+	unsigned i;
+	unsigned offset = (test_case->width - 320U) >> 1;
+	int expected_x = (int)((unsigned)test_case->x + offset);
+	const bench486_menu_picture_event_t *event;
+
+	if (result->trace.overflow || result->trace.count != 1)
+		return 0x4d500001U;
+	event = &result->trace.events[0];
+	if (event->kind != test_case->kind ||
+			event->x != expected_x ||
+			event->y != test_case->y || event->pic != test_case->pic ||
+			event->translation != (test_case->kind ==
+				BMP_EVENT_TRANSPIC_TRANSLATE ? translationTable : NULL))
+		return 0x4d500002U;
+	for (i = 0; i < BMP_GUARD_WORDS; i++)
+		if (result->trace.before[i] != 0x4d500000U + i ||
+				result->trace.after[i] != 0x4d50f000U + i)
+			return 0x4d500010U + i;
+	return 0;
+}
+
+static unsigned Bench486MenuPictureDifference (
+		const bench486_menu_picture_result_t *reference,
+		const bench486_menu_picture_result_t *candidate)
+{
+	if (reference->abi != candidate->abi ||
+			reference->cw_before != candidate->cw_before ||
+			reference->cw_after != candidate->cw_after)
+		return 0x4d500020U;
+	if (Q_memcmp ((void *)&reference->trace, (void *)&candidate->trace,
+			sizeof(reference->trace)))
+		return 0x4d500021U;
+	return 0;
 }
 
 static void Bench486MenuTextInitTrace (void)
@@ -261,8 +446,73 @@ void Bench486MenuTextCases (void)
 				total);
 }
 
+void Bench486MenuPictureCases (void)
+{
+	unsigned i, total, failure = 0;
+	unsigned saved_width = vid.width;
+	byte saved_translation[256];
+	void (*c_function)(void);
+	void (*asm_function)(void);
+
+	Q_memcpy (saved_translation, translationTable, sizeof(saved_translation));
+	total = sizeof(bench486_menu_picture_cases) /
+			sizeof(bench486_menu_picture_cases[0]);
+	for (i = 0; i < total; i++)
+	{
+		if (bench486_menu_picture_cases[i].kind == BMP_EVENT_TRANSPIC)
+		{
+			c_function = (void (*)(void))M_DrawTransPic_C;
+			asm_function = (void (*)(void))M_DrawTransPic;
+		}
+		else if (bench486_menu_picture_cases[i].kind == BMP_EVENT_PIC)
+		{
+			c_function = (void (*)(void))M_DrawPic_C;
+			asm_function = (void (*)(void))M_DrawPic;
+		}
+		else
+		{
+			c_function = (void (*)(void))M_DrawTransPicTranslate_C;
+			asm_function = (void (*)(void))M_DrawTransPicTranslate;
+		}
+		failure |= Bench486MenuPictureRun (&bench486_menu_picture_cases[i],
+				c_function, &bench486_menu_picture_reference);
+		failure |= Bench486MenuPictureRun (&bench486_menu_picture_cases[i],
+				asm_function, &bench486_menu_picture_candidate);
+		failure |= Bench486MenuPictureExpected (
+				&bench486_menu_picture_cases[i],
+				&bench486_menu_picture_reference);
+		failure |= Bench486MenuPictureExpected (
+				&bench486_menu_picture_cases[i],
+				&bench486_menu_picture_candidate);
+		failure |= Bench486MenuPictureDifference (
+				&bench486_menu_picture_reference,
+				&bench486_menu_picture_candidate);
+		if (failure)
+		{
+			Bench486Printf (
+					"menu picture C/assembly FAIL case %s code %08x\n",
+					bench486_menu_picture_cases[i].name, failure);
+			break;
+		}
+	}
+	bench486_menu_text_trace_active = 0;
+	vid.width = saved_width;
+	Q_memcpy (translationTable, saved_translation, sizeof(saved_translation));
+	if (failure)
+		bench486_memory_failures++;
+	else
+		Bench486Printf (
+				"centered menu picture wrappers: %u exact C/assembly cases PASS\n",
+				total);
+}
+
 #undef BMT_GUARD_WORDS
 #undef BMT_MAX_GLYPHS
+#undef BMP_GUARD_WORDS
+#undef BMP_MAX_EVENTS
+#undef BMP_EVENT_TRANSPIC_TRANSLATE
+#undef BMP_EVENT_PIC
+#undef BMP_EVENT_TRANSPIC
 
 #endif
 

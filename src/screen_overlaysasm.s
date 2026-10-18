@@ -124,6 +124,98 @@ C(M_PrintWhite):
 	popl	%ebx
 	ret
 
+/* Menu pictures share the classic 320-pixel centered coordinate system. */
+.p2align 2
+.globl C(M_DrawTransPic)
+C(M_DrawTransPic):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	movl	8(%ebp),%eax		/* x */
+	movl	C(vid)+MT_VID_WIDTH_OFFSET,%ebx
+	subl	$320,%ebx
+	shrl	$1,%ebx
+	addl	%ebx,%eax
+#ifdef BENCH486
+	pushl	$0
+	pushl	16(%ebp)		/* pic */
+	pushl	12(%ebp)		/* y */
+	pushl	%eax
+	pushl	$1
+	call	C(Bench486MenuTextDrawPic)
+	addl	$20,%esp
+#else
+	pushl	16(%ebp)		/* pic */
+	pushl	12(%ebp)		/* y */
+	pushl	%eax
+	call	C(Draw_TransPic)
+	addl	$12,%esp
+#endif
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.p2align 2
+.globl C(M_DrawPic)
+C(M_DrawPic):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	movl	8(%ebp),%eax		/* x */
+	movl	C(vid)+MT_VID_WIDTH_OFFSET,%ebx
+	subl	$320,%ebx
+	shrl	$1,%ebx
+	addl	%ebx,%eax
+#ifdef BENCH486
+	pushl	$0
+	pushl	16(%ebp)		/* pic */
+	pushl	12(%ebp)		/* y */
+	pushl	%eax
+	pushl	$2
+	call	C(Bench486MenuTextDrawPic)
+	addl	$20,%esp
+#else
+	pushl	16(%ebp)		/* pic */
+	pushl	12(%ebp)		/* y */
+	pushl	%eax
+	call	C(Draw_Pic)
+	addl	$12,%esp
+#endif
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.p2align 2
+.globl C(M_DrawTransPicTranslate)
+C(M_DrawTransPicTranslate):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	movl	8(%ebp),%eax		/* x */
+	movl	C(vid)+MT_VID_WIDTH_OFFSET,%ebx
+	subl	$320,%ebx
+	shrl	$1,%ebx
+	addl	%ebx,%eax
+#ifdef BENCH486
+	pushl	$C(translationTable)
+	pushl	16(%ebp)		/* pic */
+	pushl	12(%ebp)		/* y */
+	pushl	%eax
+	pushl	$3
+	call	C(Bench486MenuTextDrawPic)
+	addl	$20,%esp
+#else
+	pushl	$C(translationTable)
+	pushl	16(%ebp)		/* pic */
+	pushl	12(%ebp)		/* y */
+	pushl	%eax
+	call	C(Draw_TransPicTranslate)
+	addl	$16,%esp
+#endif
+	popl	%ebx
+	popl	%ebp
+	ret
+
 /* Pause plaque: preserve the C float truth test, pause gate and unsigned placement. */
 .p2align 2
 .globl C(SCR_DrawPause)

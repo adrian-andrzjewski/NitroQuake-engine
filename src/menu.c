@@ -176,15 +176,44 @@ void M_PrintWhite (int cx, int cy, char *str)
 #undef M_PRINT_C_ENTRY
 #undef M_DRAW_CHARACTER_C_ENTRY
 
-void M_DrawTransPic (int x, int y, qpic_t *pic)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_DRAW_TRANSPIC_C_ENTRY M_DrawTransPic_C
+#define M_DRAW_PIC_C_ENTRY M_DrawPic_C
+#define M_DRAW_TRANSPIC_OUTPUT(x, y, pic) \
+	Bench486MenuTextDrawPic (1, (x), (y), (pic), NULL)
+#define M_DRAW_PIC_OUTPUT(x, y, pic) \
+	Bench486MenuTextDrawPic (2, (x), (y), (pic), NULL)
+#else
+#define M_DRAW_TRANSPIC_C_ENTRY M_DrawTransPic
+#define M_DRAW_PIC_C_ENTRY M_DrawPic
+#define M_DRAW_TRANSPIC_OUTPUT(x, y, pic) Draw_TransPic ((x), (y), (pic))
+#define M_DRAW_PIC_OUTPUT(x, y, pic) Draw_Pic ((x), (y), (pic))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_DRAW_TRANSPIC_C_ENTRY (int x, int y, qpic_t *pic)
 {
-	Draw_TransPic (x + ((vid.width - 320)>>1), y, pic);
+	M_DRAW_TRANSPIC_OUTPUT (x + ((vid.width - 320)>>1), y, pic);
 }
 
-void M_DrawPic (int x, int y, qpic_t *pic)
+void M_DRAW_PIC_C_ENTRY (int x, int y, qpic_t *pic)
 {
-	Draw_Pic (x + ((vid.width - 320)>>1), y, pic);
+	M_DRAW_PIC_OUTPUT (x + ((vid.width - 320)>>1), y, pic);
 }
+#endif
+
+#undef M_DRAW_PIC_OUTPUT
+#undef M_DRAW_TRANSPIC_OUTPUT
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_DRAW_TRANSPIC_TRANSLATE_C_ENTRY M_DrawTransPicTranslate_C
+#define M_DRAW_TRANSPIC_TRANSLATE_OUTPUT(x, y, pic, table) \
+	Bench486MenuTextDrawPic (3, (x), (y), (pic), (table))
+#else
+#define M_DRAW_TRANSPIC_TRANSLATE_C_ENTRY M_DrawTransPicTranslate
+#define M_DRAW_TRANSPIC_TRANSLATE_OUTPUT(x, y, pic, table) \
+	Draw_TransPicTranslate ((x), (y), (pic), (table))
+#endif
 
 byte identityTable[256];
 byte translationTable[256];
@@ -223,10 +252,18 @@ void M_BuildTranslationTable(int top, int bottom)
 #endif
 
 
-void M_DrawTransPicTranslate (int x, int y, qpic_t *pic)
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_DRAW_TRANSPIC_TRANSLATE_C_ENTRY (int x, int y, qpic_t *pic)
 {
-	Draw_TransPicTranslate (x + ((vid.width - 320)>>1), y, pic, translationTable);
+	M_DRAW_TRANSPIC_TRANSLATE_OUTPUT (
+		x + ((vid.width - 320)>>1), y, pic, translationTable);
 }
+#endif
+
+#undef M_DRAW_TRANSPIC_TRANSLATE_OUTPUT
+#undef M_DRAW_TRANSPIC_TRANSLATE_C_ENTRY
+#undef M_DRAW_PIC_C_ENTRY
+#undef M_DRAW_TRANSPIC_C_ENTRY
 
 
 void M_DrawTextBox (int x, int y, int width, int lines)

@@ -15,11 +15,15 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-405 directly reachable renderer entries and 30 directly reachable C
-dependencies: 375/405, or 92.6%, are assembly-owned by reachable-symbol count.
+407 directly reachable renderer entries and 29 directly reachable C
+dependencies: 378/407, or 92.9%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
-size or complexity. The full intermission deathmatch scoreboard, normal
+size or complexity. The three centered menu picture wrappers now select
+assembly in the default i486 profile, with their C implementations retained for
+BENCH parity. Their six-case fixture and strict i486 release gates pass; see the
+[centered menu picture ledger](ledger/2026-10-19-menu-picture-wrappers-assembly-port.md).
+The full intermission deathmatch scoreboard, normal
 intermission overlay, finale overlay, pause plaque, and loading plaque now select
 assembly in the default i486 profile. The classic solo scoreboard formatter
 and dispatcher now do as well. Their focused C/ASM parity fixtures and strict
