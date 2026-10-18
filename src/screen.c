@@ -566,7 +566,24 @@ void SCR_DRAW_NET_C (void)
 DrawPause
 ==============
 */
-void SCR_DrawPause (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define SCR_DRAW_PAUSE_C_ENTRY SCR_DrawPause_Screen_C
+#define SCR_DRAW_LOADING_C_ENTRY SCR_DrawLoading_Screen_C
+#define SCR_DRAW_PAUSE_C_CALL SCR_DrawPause_Screen_C ()
+#define SCR_DRAW_LOADING_C_CALL SCR_DrawLoading_Screen_C ()
+#define SCREEN_OVERLAY_CACHEPIC Bench486ScreenOverlayCachePic
+#define SCREEN_OVERLAY_DRAW_PIC Bench486ScreenOverlayDrawPic
+#elif !defined(ASM486_SCREEN_OVERLAYS)
+#define SCR_DRAW_PAUSE_C_ENTRY SCR_DrawPause
+#define SCR_DRAW_LOADING_C_ENTRY SCR_DrawLoading
+#define SCR_DRAW_PAUSE_C_CALL SCR_DrawPause ()
+#define SCR_DRAW_LOADING_C_CALL SCR_DrawLoading ()
+#define SCREEN_OVERLAY_CACHEPIC Draw_CachePic
+#define SCREEN_OVERLAY_DRAW_PIC Draw_Pic
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void SCR_DRAW_PAUSE_C_ENTRY (void)
 {
 	qpic_t	*pic;
 
@@ -576,10 +593,11 @@ void SCR_DrawPause (void)
 	if (!cl.paused)
 		return;
 
-	pic = Draw_CachePic ("gfx/pause.lmp");
-	Draw_Pic ( (vid.width - pic->width)/2, 
+	pic = SCREEN_OVERLAY_CACHEPIC ("gfx/pause.lmp");
+	SCREEN_OVERLAY_DRAW_PIC ( (vid.width - pic->width)/2,
 		(vid.height - 48 - pic->height)/2, pic);
 }
+#endif
 
 
 
@@ -588,17 +606,22 @@ void SCR_DrawPause (void)
 SCR_DrawLoading
 ==============
 */
-void SCR_DrawLoading (void)
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void SCR_DRAW_LOADING_C_ENTRY (void)
 {
 	qpic_t	*pic;
 
 	if (!scr_drawloading)
 		return;
 		
-	pic = Draw_CachePic ("gfx/loading.lmp");
-	Draw_Pic ( (vid.width - pic->width)/2, 
+	pic = SCREEN_OVERLAY_CACHEPIC ("gfx/loading.lmp");
+	SCREEN_OVERLAY_DRAW_PIC ( (vid.width - pic->width)/2,
 		(vid.height - 48 - pic->height)/2, pic);
 }
+#endif
+
+#undef SCREEN_OVERLAY_CACHEPIC
+#undef SCREEN_OVERLAY_DRAW_PIC
 
 
 
@@ -1044,7 +1067,8 @@ void SCR_SCREEN_OVERLAYS_C (unsigned trace_update_index,
 	}
 	else if (scr_drawloading)
 	{
-		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_LOADING, SCR_DrawLoading ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_LOADING,
+				SCR_DRAW_LOADING_C_CALL);
 		SCREEN_OVERLAY_CALL (SO_EVENT_SBAR_DRAW, Sbar_Draw ());
 	}
 	else if (cl.intermission == 1 && key_dest == key_game)
@@ -1077,7 +1101,8 @@ void SCR_SCREEN_OVERLAYS_C (unsigned trace_update_index,
 #else
 		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_TURTLE, SCR_DrawTurtle ());
 #endif
-		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_PAUSE, SCR_DrawPause ());
+		SCREEN_OVERLAY_CALL (SO_EVENT_DRAW_PAUSE,
+				SCR_DRAW_PAUSE_C_CALL);
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 		if (trace_this_update)
 			Bench486ScreenCenterTraceGlyph (9, trace_update_index, 0, 0);
@@ -1097,6 +1122,10 @@ void SCR_SCREEN_OVERLAYS_C (unsigned trace_update_index,
 #endif
 
 #undef SCR_SCREEN_OVERLAYS_C
+#undef SCR_DRAW_PAUSE_C_ENTRY
+#undef SCR_DRAW_LOADING_C_ENTRY
+#undef SCR_DRAW_PAUSE_C_CALL
+#undef SCR_DRAW_LOADING_C_CALL
 
 
 /*

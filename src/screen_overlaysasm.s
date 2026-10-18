@@ -124,6 +124,100 @@ C(M_PrintWhite):
 	popl	%ebx
 	ret
 
+/* Pause plaque: preserve the C float truth test, pause gate and unsigned placement. */
+.p2align 2
+.globl C(SCR_DrawPause)
+.globl C(SCR_DrawPause_asm486)
+C(SCR_DrawPause):
+C(SCR_DrawPause_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	subl	$12,%esp
+	/* Match the C build's x87 C3 test, including its unordered-value branch. */
+	fldz
+	fcomps	C(scr_showpause)+SO_CVAR_VALUE
+	fnstsw	%ax
+	testb	$0x40,%ah
+	jne	.Lso_pause_done
+	cmpl	$0,C(cl)+SO_CLIENT_PAUSED
+	je	.Lso_pause_done
+	subl	$12,%esp
+	pushl	$.Lso_pause_path
+#ifdef BENCH486
+	call	C(Bench486ScreenOverlayCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$16,%esp
+	movl	%eax,%ebx
+	movl	C(vid)+SO_VID_WIDTH,%eax
+	subl	SO_QPIC_WIDTH(%ebx),%eax
+	shrl	$1,%eax
+	movl	C(vid)+SO_VID_HEIGHT,%edx
+	subl	$48,%edx
+	subl	SO_QPIC_HEIGHT(%ebx),%edx
+	shrl	$1,%edx
+	subl	$12,%esp
+	pushl	%ebx
+	pushl	%edx
+	pushl	%eax
+#ifdef BENCH486
+	call	C(Bench486ScreenOverlayDrawPic)
+#else
+	call	C(Draw_Pic)
+#endif
+	addl	$24,%esp
+.Lso_pause_done:
+	leal	-4(%ebp),%esp
+	popl	%ebx
+	popl	%ebp
+	ret
+
+/* Loading plaque: a single flag gate followed by the same unsigned placement. */
+.p2align 2
+.globl C(SCR_DrawLoading)
+.globl C(SCR_DrawLoading_asm486)
+C(SCR_DrawLoading):
+C(SCR_DrawLoading_asm486):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	subl	$12,%esp
+	cmpl	$0,C(scr_drawloading)
+	je	.Lso_loading_done
+	subl	$12,%esp
+	pushl	$.Lso_loading_path
+#ifdef BENCH486
+	call	C(Bench486ScreenOverlayCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$16,%esp
+	movl	%eax,%ebx
+	movl	C(vid)+SO_VID_WIDTH,%eax
+	subl	SO_QPIC_WIDTH(%ebx),%eax
+	shrl	$1,%eax
+	movl	C(vid)+SO_VID_HEIGHT,%edx
+	subl	$48,%edx
+	subl	SO_QPIC_HEIGHT(%ebx),%edx
+	shrl	$1,%edx
+	subl	$12,%esp
+	pushl	%ebx
+	pushl	%edx
+	pushl	%eax
+#ifdef BENCH486
+	call	C(Bench486ScreenOverlayDrawPic)
+#else
+	call	C(Draw_Pic)
+#endif
+	addl	$24,%esp
+.Lso_loading_done:
+	leal	-4(%ebp),%esp
+	popl	%ebx
+	popl	%ebp
+	ret
+
 .p2align 4,,15
 .globl C(SCR_DrawScreenOverlays_asm486)
 C(SCR_DrawScreenOverlays_asm486):
@@ -271,5 +365,12 @@ C(SCR_DrawConsole):
 	popl	%ebx
 	leave
 	ret
+
+.section .rodata
+.p2align 2
+.Lso_pause_path:
+	.asciz	"gfx/pause.lmp"
+.Lso_loading_path:
+	.asciz	"gfx/loading.lmp"
 
 #endif

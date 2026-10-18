@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-19-screen-pause-loading-assembly-port.md`](2026-10-19-screen-pause-loading-assembly-port.md) | 4 | renderer port / pause and loading overlay composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification`; `Scope and remaining work`) |
 | [`2026-10-18-surface-cache-lifecycle-assembly-port.md`](2026-10-18-surface-cache-lifecycle-assembly-port.md) | 4 | renderer port / surface-cache sizing, initialization, and flush (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Scope limits and reproduction`) |
 | [`2026-10-18-console-resize-assembly-port.md`](2026-10-18-console-resize-assembly-port.md) | 4 | renderer port / console scrollback resize and reflow (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 build and execution`; `Traceability and remaining scope`) |
 | [`2026-10-18-console-print-assembly-port.md`](2026-10-18-console-print-assembly-port.md) | 4 | renderer port / console scrollback insertion and linefeed (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification and current ownership`; `Traceability and remaining scope`) |
@@ -348,6 +349,8 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [Pause/loading overlays pass 10 exact C/ASM cases and the strict i486 release gate](2026-10-19-screen-pause-loading-assembly-port.md)
+- `open` [Full-scene parity, FPS measurement, unresolved renderer ownership, and remaining menu/video dependencies](2026-10-19-screen-pause-loading-assembly-port.md)
 - `measured` [Zone/cache/hunk diagnostic trace adapters pass 25 C/ASM cases and strict BENCH and release i486 gates](2026-10-18-zone-memory-trace-assembly-port.md)
 - `open` [Shared console output services and full renderer ownership remain](2026-10-18-zone-memory-trace-assembly-port.md)
 - `measured` [Normal intermission overlay and number formatting pass four exact C/ASM cases and the strict i486 gate](2026-10-18-sbar-intermission-assembly-port.md)

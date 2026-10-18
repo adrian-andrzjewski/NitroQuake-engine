@@ -14,18 +14,18 @@ reported when each comparison was recorded. The 2026-10-16 entity-trace,
 area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
-The latest 2026-10-18 full assembly-profile BENCH ownership report contains
-366 directly reachable renderer entries and 47 directly reachable C
-dependencies: 319/366, or 87.2%, are assembly-owned by reachable-symbol count.
-This is only a rough, profile-specific progress estimate: the inventory has 82
-unresolved direct callees and `completeCallGraph=false`; it does not weight
-routines by size or complexity. The full intermission deathmatch scoreboard,
-normal intermission overlay, and finale overlay now select assembly in the
-default i486 profile. Their six, four, and six exact C/ASM cases pass,
-respectively, alongside the existing status-bar/face cases and strict i486
-gate. See the [scoreboard ledger](ledger/2026-10-18-sbar-deathmatch-assembly-port.md),
+The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
+405 directly reachable renderer entries and 32 directly reachable C
+dependencies: 373/405, or 92.1%, are assembly-owned by reachable-symbol count.
+This remains a profile-specific estimate: the inventory has 38 unresolved
+direct callees and `completeCallGraph=false`, and it does not weight routines by
+size or complexity. The full intermission deathmatch scoreboard, normal
+intermission overlay, finale overlay, pause plaque, and loading plaque now select
+assembly in the default i486 profile. Their focused C/ASM parity fixtures and
+strict i486 release gates pass. See the [scoreboard ledger](ledger/2026-10-18-sbar-deathmatch-assembly-port.md),
 [intermission overlay ledger](ledger/2026-10-18-sbar-intermission-assembly-port.md),
-and [finale overlay ledger](ledger/2026-10-18-sbar-finale-assembly-port.md).
+[finale overlay ledger](ledger/2026-10-18-sbar-finale-assembly-port.md), and
+[pause/loading overlay ledger](ledger/2026-10-19-screen-pause-loading-assembly-port.md).
 The widescreen mini-deathmatch overlay also selects assembly and its focused
 eight-case C/ASM fixture and strict i486 gate pass.
 Console scrollback insertion and linefeed now also select assembly; their
@@ -335,8 +335,8 @@ fixture, strict i486 build, and paired Demo 1 capture passed. The assembly
 dispatcher now routes to the separately ported inventory composition and frag
 strip/sorter. The frag fixture passes six exact C/assembly cases under the
 strict i486 build. The face, full deathmatch scoreboard, intermission and finale
-composition remain separate work, and overall status-bar and renderer ownership
-is not complete.
+composition now have separate assembly entries and focused parity fixtures.
+Overall status-bar and renderer ownership remains incomplete.
 See the
 [`Sbar` primitive port ledger](ledger/2026-10-15-sbar-primitives-assembly-port.md)
 and [`Sbar_Draw` dispatcher port ledger](ledger/2026-10-16-sbar-draw-assembly-port.md),
@@ -346,8 +346,8 @@ The widescreen mini-deathmatch scoreboard called by `Sbar_Draw` now has a
 default-selected assembly implementation, with the C body retained as the
 BENCH oracle. Eight exact score-order, draw-event, state and ABI cases pass,
 and the focused status-bar fixture passes the strict i486 executable, startup
-and provider gates. The full deathmatch scoreboard, intermission and finale
-composition remain separate C-owned paths. See the
+and provider gates. The full deathmatch scoreboard, intermission, finale, pause,
+and loading compositions now have separate assembly paths and focused fixtures. See the
 [mini-scoreboard port ledger](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md).
 
 `Con_Print` now writes console text through the i486 assembly implementation
@@ -644,7 +644,7 @@ to prove a complete call graph.
 | Renderer mathematics | Verify selected release ownership after accepted math-support integration and close any newly discovered helpers |
 | Visibility support | Verify complete selected release ownership after accepted integration |
 | View and drawing support | `V_ParseDamage`, `V_BonusFlash_f`, `V_cshift_f` and `V_Init` have accepted focused assembly slices; combined-profile verification and initialization/indirect dependencies remain |
-| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, per-frame `SCR_DrawConsole`, `Con_Print`, `Con_Linefeed`, `Con_DrawInput`, `Con_DrawConsole`, `Con_DrawNotify`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. `Con_Print` passes nine exact scrollback, timestamp, sound-marker, guard and ABI cases across four x87 rounding modes, plus direct `Con_Linefeed` parity. `SCR_DrawConsole` passes nine C/assembly call, argument, state, and ABI cases across four x87 rounding modes; `Con_DrawConsole` passes five exact framebuffer and state cases; `Con_DrawNotify` passes eight cases across four x87 modes through direct C, assembly and selected public entries; `Con_DrawInput` passes 21 cases across four x87 modes. `ScreenConsoleSetupImplementation=asm` also selects assembly for `Con_CheckResize`; its seven direct cases compare the full 16 KiB scrollback, state, notification times, guards, and ABI. The setup fixture passes 14 cases across 12 x87 modes. `SCR_CheckDrawCenterString` now selects assembly for timer, erase-line, and draw dispatch; 11 exact state/draw cases pass across three x87 precision and four rounding modes. Status-bar coordinate, text and number primitives, face drawing, the widescreen mini-deathmatch overlay, full deathmatch scoreboard, intermission overlay, and finale overlay now have assembly paths and focused fixtures. Full-scene parity, FPS measurement, menu/video C dependencies, indirect targets, full screen stress and long-run checks remain open. See the [mini-scoreboard port](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md), [deathmatch scoreboard port](ledger/2026-10-18-sbar-deathmatch-assembly-port.md), [intermission overlay port](ledger/2026-10-18-sbar-intermission-assembly-port.md), and [finale overlay port](ledger/2026-10-18-sbar-finale-assembly-port.md). The full update routine passed seven exact paired scenes and a strict cumulative release smoke. See the [console print](ledger/2026-10-18-console-print-assembly-port.md), [center-string dispatch](ledger/2026-10-18-scr-check-draw-center-string-assembly-port.md), [console dispatch](ledger/2026-10-18-scr-drawconsole-assembly-port.md), [console resize](ledger/2026-10-18-console-resize-assembly-port.md), [console-notification](ledger/2026-10-17-con-drawnotify-assembly-port.md), [console-draw](ledger/2026-10-17-con-drawconsole-assembly-port.md), [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), [status-bar primitive](ledger/2026-10-15-sbar-primitives-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
+| Screen and overlays | `SCR_UpdateScreen` orchestration, overlay dispatch, per-frame `SCR_DrawConsole`, `Con_Print`, `Con_Linefeed`, `Con_DrawInput`, `Con_DrawConsole`, `Con_DrawNotify`, `SCR_DrawNotifyString`, `SCR_DrawRam` and several other helpers have selectable i486 assembly paths with direct fixtures. `Con_Print` passes nine exact scrollback, timestamp, sound-marker, guard and ABI cases across four x87 rounding modes, plus direct `Con_Linefeed` parity. `SCR_DrawConsole` passes nine C/assembly call, argument, state, and ABI cases across four x87 rounding modes; `Con_DrawConsole` passes five exact framebuffer and state cases; `Con_DrawNotify` passes eight cases across four x87 modes through direct C, assembly and selected public entries; `Con_DrawInput` passes 21 cases across four x87 modes. `ScreenConsoleSetupImplementation=asm` also selects assembly for `Con_CheckResize`; its seven direct cases compare the full 16 KiB scrollback, state, notification times, guards, and ABI. The setup fixture passes 14 cases across 12 x87 modes. `SCR_CheckDrawCenterString` now selects assembly for timer, erase-line, and draw dispatch; 11 exact state/draw cases pass across three x87 precision and four rounding modes. Status-bar coordinate, text and number primitives, face drawing, the widescreen mini-deathmatch overlay, full deathmatch scoreboard, intermission overlay, finale overlay, pause plaque, and loading plaque now have assembly paths and focused fixtures. Full-scene parity, FPS measurement, menu/video C dependencies, indirect targets, full screen stress and long-run checks remain open. See the [mini-scoreboard port](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md), [deathmatch scoreboard port](ledger/2026-10-18-sbar-deathmatch-assembly-port.md), [intermission overlay port](ledger/2026-10-18-sbar-intermission-assembly-port.md), and [finale overlay port](ledger/2026-10-18-sbar-finale-assembly-port.md), plus the [pause/loading overlay port](ledger/2026-10-19-screen-pause-loading-assembly-port.md). The full update routine passed seven exact paired scenes and a strict cumulative release smoke. See the [console print](ledger/2026-10-18-console-print-assembly-port.md), [center-string dispatch](ledger/2026-10-18-scr-check-draw-center-string-assembly-port.md), [console dispatch](ledger/2026-10-18-scr-drawconsole-assembly-port.md), [console resize](ledger/2026-10-18-console-resize-assembly-port.md), [console-notification](ledger/2026-10-17-con-drawnotify-assembly-port.md), [console-draw](ledger/2026-10-17-con-drawconsole-assembly-port.md), [notify-string](ledger/2026-10-10-scr-drawnotifystring-assembly-port.md), [RAM-indicator](ledger/2026-10-13-screen-drawram-assembly-port.md), [overlay-dispatch](ledger/2026-10-13-screen-overlays-assembly-port.md), [status-bar primitive](ledger/2026-10-15-sbar-primitives-assembly-port.md), and [full screen-update](ledger/2026-10-13-screen-update-assembly-port.md) ledgers. |
 | Runtime providers | The maintained CWSDPMI provider, final startup and automatic strict gate pass; alternate provider and environment implementations require their own proof |
 
 These groups include simple C wrappers as well as algorithms. Both must be

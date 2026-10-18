@@ -16,10 +16,12 @@ extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
 extern qboolean scr_drawdialog;
 extern qboolean scr_drawloading;
 extern int scr_copyeverything;
+extern cvar_t scr_showpause;
 extern int clearconsole;
 extern float scr_con_current;
 extern client_state_t cl;
 extern keydest_t key_dest;
+extern viddef_t vid;
 
 #define BSDC_EVENT_DRAW_CONSOLE 1
 #define BSDC_EVENT_DRAW_NOTIFY 2
@@ -101,6 +103,97 @@ typedef struct
 	int events[BSOD_MAX_EVENTS];
 	unsigned after[BSOD_GUARD_WORDS];
 } bench486_screen_overlays_trace_t;
+
+#define BSOW_PAUSE_PATH 1
+#define BSOW_LOADING_PATH 2
+#define BSOW_FUNCTION_PAUSE 1
+#define BSOW_FUNCTION_LOADING 2
+
+typedef struct
+{
+	unsigned cache_calls;
+	unsigned draw_calls;
+	unsigned overflow;
+	int path;
+	int x;
+	int y;
+	int pic_match;
+} bench486_screen_overlay_widget_trace_t;
+
+typedef struct
+{
+	const char *name;
+	int function;
+	unsigned width;
+	unsigned height;
+	int picture_width;
+	int picture_height;
+	unsigned showpause_bits;
+	int paused;
+	int loading;
+	int expected_draw;
+} bench486_screen_overlay_widget_case_t;
+
+typedef struct
+{
+	bench486_screen_overlay_widget_trace_t trace;
+	unsigned abi;
+	unsigned width_after;
+	unsigned height_after;
+	int paused_after;
+	int loading_after;
+	unsigned showpause_after;
+	unsigned short cw_before;
+	unsigned short cw_after;
+} bench486_screen_overlay_widget_result_t;
+
+int bench486_screen_overlay_widget_fixture_active;
+static qpic_t bench486_screen_overlay_widget_pic;
+static bench486_screen_overlay_widget_trace_t
+		bench486_screen_overlay_widget_trace;
+
+static int Bench486ScreenOverlayPathEquals (const char *path,
+		const char *expected)
+{
+	int i;
+	if (!path)
+		return 0;
+	for (i = 0; path[i] && expected[i] && path[i] == expected[i]; i++)
+		;
+	return !path[i] && !expected[i];
+}
+
+qpic_t *Bench486ScreenOverlayCachePic (char *path)
+{
+	if (!bench486_screen_overlay_widget_fixture_active)
+		return Draw_CachePic (path);
+	if (bench486_screen_overlay_widget_trace.cache_calls)
+		bench486_screen_overlay_widget_trace.overflow = 1;
+	bench486_screen_overlay_widget_trace.cache_calls++;
+	if (Bench486ScreenOverlayPathEquals (path, "gfx/pause.lmp"))
+		bench486_screen_overlay_widget_trace.path = BSOW_PAUSE_PATH;
+	else if (Bench486ScreenOverlayPathEquals (path, "gfx/loading.lmp"))
+		bench486_screen_overlay_widget_trace.path = BSOW_LOADING_PATH;
+	else
+		bench486_screen_overlay_widget_trace.overflow = 1;
+	return &bench486_screen_overlay_widget_pic;
+}
+
+void Bench486ScreenOverlayDrawPic (int x, int y, qpic_t *pic)
+{
+	if (!bench486_screen_overlay_widget_fixture_active)
+	{
+		Draw_Pic (x, y, pic);
+		return;
+	}
+	if (bench486_screen_overlay_widget_trace.draw_calls)
+		bench486_screen_overlay_widget_trace.overflow = 1;
+	bench486_screen_overlay_widget_trace.draw_calls++;
+	bench486_screen_overlay_widget_trace.x = x;
+	bench486_screen_overlay_widget_trace.y = y;
+	bench486_screen_overlay_widget_trace.pic_match =
+			pic == &bench486_screen_overlay_widget_pic;
+}
 
 typedef struct
 {
@@ -474,6 +567,157 @@ static unsigned Bench486ScreenOverlaysExpected (
 	return 0;
 }
 
+static void Bench486ScreenOverlayWidgetInstall (
+		const bench486_screen_overlay_widget_case_t *test_case)
+{
+	vid.width = test_case->width;
+	vid.height = test_case->height;
+	bench486_screen_overlay_widget_pic.width = test_case->picture_width;
+	bench486_screen_overlay_widget_pic.height = test_case->picture_height;
+	Q_memcpy (&scr_showpause.value, (void *)&test_case->showpause_bits,
+			sizeof(scr_showpause.value));
+	cl.paused = test_case->paused;
+	scr_drawloading = test_case->loading;
+	Q_memset (&bench486_screen_overlay_widget_trace, 0,
+			sizeof(bench486_screen_overlay_widget_trace));
+}
+
+static unsigned Bench486ScreenOverlayWidgetRun (
+		const bench486_screen_overlay_widget_case_t *test_case,
+		void (*function)(void),
+		bench486_screen_overlay_widget_result_t *result)
+{
+	Q_memset (result, 0, sizeof(*result));
+	Bench486ScreenOverlayWidgetInstall (test_case);
+	result->cw_before = Bench486ScreenOverlaysGetControlWord ();
+	bench486_screen_overlay_widget_fixture_active = 1;
+	result->abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_screen_overlay_widget_fixture_active = 0;
+	result->cw_after = Bench486ScreenOverlaysGetControlWord ();
+	result->width_after = vid.width;
+	result->height_after = vid.height;
+	result->paused_after = cl.paused;
+	result->loading_after = scr_drawloading;
+	Q_memcpy (&result->showpause_after, &scr_showpause.value,
+			sizeof(scr_showpause.value));
+	Q_memcpy (&result->trace, &bench486_screen_overlay_widget_trace,
+			sizeof(result->trace));
+	return result->abi;
+}
+
+static unsigned Bench486ScreenOverlayWidgetExpected (
+		const bench486_screen_overlay_widget_case_t *test_case,
+		const bench486_screen_overlay_widget_result_t *result)
+{
+	unsigned expected_path;
+	int expected_x, expected_y;
+	expected_path = test_case->function == BSOW_FUNCTION_PAUSE ?
+			BSOW_PAUSE_PATH : BSOW_LOADING_PATH;
+	if (result->trace.overflow ||
+			result->trace.cache_calls != (unsigned)test_case->expected_draw ||
+			result->trace.draw_calls != (unsigned)test_case->expected_draw ||
+			result->width_after != test_case->width ||
+			result->height_after != test_case->height ||
+			result->paused_after != test_case->paused ||
+			result->loading_after != test_case->loading ||
+			result->showpause_after != test_case->showpause_bits ||
+			result->cw_before != result->cw_after ||
+			(result->abi & 0x20U))
+		return 0x534f1001U;
+	if (!test_case->expected_draw)
+	{
+		if (result->trace.path || result->trace.x || result->trace.y ||
+				result->trace.pic_match)
+			return 0x534f1002U;
+		return 0;
+	}
+	expected_x = (int)((test_case->width -
+			(unsigned)test_case->picture_width) / 2U);
+	expected_y = (int)((test_case->height - 48U -
+			(unsigned)test_case->picture_height) / 2U);
+	if (result->trace.path != (int)expected_path ||
+			result->trace.x != expected_x ||
+			result->trace.y != expected_y ||
+			!result->trace.pic_match)
+		return 0x534f1003U;
+	return 0;
+}
+
+void Bench486ScreenOverlayWidgetCases (void)
+{
+	static const bench486_screen_overlay_widget_case_t cases[] = {
+		{"pause-positive-zero-hidden", BSOW_FUNCTION_PAUSE,
+			320, 200, 64, 24, 0x00000000U, 1, 0, 0},
+		{"pause-negative-zero-hidden", BSOW_FUNCTION_PAUSE,
+			320, 200, 64, 24, 0x80000000U, 1, 0, 0},
+		{"pause-not-paused", BSOW_FUNCTION_PAUSE,
+			320, 200, 64, 24, 0x3f800000U, 0, 0, 0},
+		{"pause-centered-odd", BSOW_FUNCTION_PAUSE,
+			641, 481, 272, 33, 0x3f800000U, 1, 0, 1},
+		{"pause-unsigned-underflow", BSOW_FUNCTION_PAUSE,
+			319, 47, 320, 64, 0x3f800000U, 1, 0, 1},
+		{"pause-nan-x87-branch", BSOW_FUNCTION_PAUSE,
+			400, 200, 80, 24, 0x7fc00000U, 1, 0, 0},
+		{"loading-hidden", BSOW_FUNCTION_LOADING,
+			320, 200, 64, 24, 0x3f800000U, 1, 0, 0},
+		{"loading-wide-centered", BSOW_FUNCTION_LOADING,
+			640, 400, 320, 64, 0x3f800000U, 1, 1, 1},
+		{"loading-positive-odd", BSOW_FUNCTION_LOADING,
+			321, 480, 320, 33, 0x3f800000U, 1, 1, 1},
+		{"loading-unsigned-underflow", BSOW_FUNCTION_LOADING,
+			319, 47, 320, 64, 0x3f800000U, 1, 1, 1}
+	};
+	bench486_screen_overlay_widget_result_t reference, candidate;
+	viddef_t saved_vid;
+	float saved_showpause;
+	int saved_paused, saved_loading;
+	unsigned i, failure;
+	unsigned short saved_cw;
+
+	saved_vid = vid;
+	saved_showpause = scr_showpause.value;
+	saved_paused = cl.paused;
+	saved_loading = scr_drawloading;
+	saved_cw = Bench486ScreenOverlaysGetControlWord ();
+	failure = 0;
+	for (i = 0; i < sizeof(cases) / sizeof(cases[0]) && !failure; i++)
+	{
+		void (*c_function)(void);
+		void (*asm_function)(void);
+		unsigned c_abi, asm_abi;
+		c_function = cases[i].function == BSOW_FUNCTION_PAUSE ?
+				SCR_DrawPause_Screen_C : SCR_DrawLoading_Screen_C;
+		asm_function = cases[i].function == BSOW_FUNCTION_PAUSE ?
+				SCR_DrawPause : SCR_DrawLoading;
+		c_abi = Bench486ScreenOverlayWidgetRun (&cases[i], c_function,
+				&reference);
+		failure |= Bench486ScreenOverlayWidgetExpected (&cases[i],
+				&reference);
+		asm_abi = Bench486ScreenOverlayWidgetRun (&cases[i], asm_function,
+				&candidate);
+		failure |= Bench486ScreenOverlayWidgetExpected (&cases[i],
+				&candidate);
+		if (c_abi != asm_abi || Q_memcmp (&reference, &candidate,
+				sizeof(reference)))
+			failure |= 0x534f1010U;
+		if (failure)
+			Bench486Printf ("screen overlay widget %s FAIL code %08x C/ASM x %d/%d y %d/%d\n",
+					cases[i].name, failure, reference.trace.x,
+					candidate.trace.x, reference.trace.y,
+					candidate.trace.y);
+	}
+	bench486_screen_overlay_widget_fixture_active = 0;
+	vid = saved_vid;
+	scr_showpause.value = saved_showpause;
+	cl.paused = saved_paused;
+	scr_drawloading = saved_loading;
+	__asm__ __volatile__ ("fldcw %0" : : "m" (saved_cw));
+	if (failure)
+		bench486_memory_failures++;
+	else
+		Bench486Printf ("screen overlay pause/loading 10 exact C/ASM visibility, path, placement and ABI cases PASS\n");
+}
+
 void Bench486ScreenOverlaysCases (void)
 {
 	unsigned i;
@@ -521,6 +765,7 @@ void Bench486ScreenOverlaysCases (void)
 		Bench486Printf ("screen overlay dispatch %u exact C/assembly branch cases; event and state parity PASS\n",
 				total);
 
+	Bench486ScreenOverlayWidgetCases ();
 	Bench486MenuTextCases ();
 	Bench486ScreenConsoleDrawCases ();
 }
