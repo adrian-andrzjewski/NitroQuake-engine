@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 #include "dosisms.h"
 #include "vid_dos.h"
+#include "asm_vidupdate.h"
 
 int			vid_modenum;
 vmode_t		*pcurrentmode = NULL;
@@ -52,8 +53,8 @@ int	d_con_indirect = 0;
 int		numvidmodes;
 vmode_t	*pvidmodes;
 
-static int	firstupdate = 1;
-static qboolean startup_mode_requested;
+int	vid_firstupdate = 1;
+qboolean vid_startup_mode_requested;
 
 extern regs_t regs;
 
@@ -66,7 +67,7 @@ void VID_DescribeModes_f (void);
 byte	vid_current_palette[768];	// save for mode changes
 
 
-static qboolean	nomodecheck = false;
+qboolean	vid_nomodecheck = false;
 
 unsigned short	d_8to16table[256];	// not used in 8 bpp mode
 unsigned		d_8to24table[256];	// not used in 8 bpp mode
@@ -193,9 +194,9 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	{
 		Cvar_SetValue ("vid_mode", (float)vid_modenum);
 
-		nomodecheck = true;
+		vid_nomodecheck = true;
 		Con_Printf ("No such video mode: %d\n", modenum);
-		nomodecheck = false;
+		vid_nomodecheck = false;
 
 		if (pcurrentmode == NULL)
 		{
@@ -215,7 +216,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 // No recursive restoration: try the requested mode, then VGA exactly once.
 // Suppress screen updates while buffers/mappings are being replaced.
-	nomodecheck = true;
+	vid_nomodecheck = true;
 	scr_disabled_for_loading = true;
 	for (attempt = 0; attempt < 2; attempt++)
 	{
@@ -243,11 +244,11 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	Cvar_SetValue ("vid_mode", (float)vid_modenum);
 	vid.recalc_refdef = 1;
 
-	nomodecheck = true;
+	vid_nomodecheck = true;
 	Con_Printf ("Video mode %d: %s\n", vid_modenum, VID_ModeInfo (vid_modenum, NULL));
 	if (modenum == 0)
 		Con_Printf ("Video: VGA BIOS 0x13 pitch 320, 1 page, RAM copy\n");
-	nomodecheck = false;
+	vid_nomodecheck = false;
 	scr_disabled_for_loading = was_disabled;
 
 	return modenum == requested;
@@ -303,7 +304,29 @@ void VID_Shutdown (void)
 VID_Update
 ================
 */
-void    VID_Update (vrect_t *rects)
+#if defined(BENCH486)
+#define VID_UPDATE_C_ENTRY VID_Update_C
+#else
+#define VID_UPDATE_C_ENTRY VID_Update
+#endif
+
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
+#define VID_UPDATE_SET_MODE(mode, palette) \
+	Bench486VidUpdateSetMode ((mode), (palette))
+#define VID_UPDATE_DEFAULT_MODE() Bench486VidUpdateDefaultMode ()
+#define VID_UPDATE_SET_CVAR(name, value) \
+	Bench486VidUpdateSetValue ((name), (value))
+#define VID_UPDATE_NO_VESA_MESSAGE(text) \
+	Bench486VidUpdateNoVesaMessage (text)
+#else
+#define VID_UPDATE_SET_MODE(mode, palette) VID_SetMode ((mode), (palette))
+#define VID_UPDATE_DEFAULT_MODE() VID_ExtraDefaultMode ()
+#define VID_UPDATE_SET_CVAR(name, value) Cvar_SetValue ((name), (value))
+#define VID_UPDATE_NO_VESA_MESSAGE(text) Con_Printf (text)
+#endif
+
+void    VID_UPDATE_C_ENTRY (vrect_t *rects)
 {
 #ifdef PROFILE486
 	double		bench486_framebuffer_start;
@@ -330,22 +353,23 @@ void    VID_Update (vrect_t *rects)
 
 	// Console printing can update the screen halfway through quake.rc.
 	// Wait until a complete host frame has executed the startup commands.
-	if (firstupdate && host_framecount > 0 && !nomodecheck)
+	if (vid_firstupdate && host_framecount > 0 && !vid_nomodecheck)
 	{
-		firstupdate = 0;
+		vid_firstupdate = 0;
 		if (_vid_default_mode.value < 0 || _vid_default_mode.value >= numvidmodes)
-			Cvar_SetValue ("_vid_default_mode", 0);
+			VID_UPDATE_SET_CVAR ("_vid_default_mode", 0);
 		if (COM_CheckParm("-stdvid"))
-			Cvar_SetValue ("vid_mode", 0);
-		else if (!startup_mode_requested && !COM_CheckParm("+vid_mode") && vid_mode.value == vid_modenum)
+			VID_UPDATE_SET_CVAR ("vid_mode", 0);
+		else if (!vid_startup_mode_requested && !COM_CheckParm("+vid_mode") && vid_mode.value == vid_modenum)
 		{
 			if (_vid_default_mode.value)
-				Cvar_SetValue ("vid_mode", _vid_default_mode.value);
+				VID_UPDATE_SET_CVAR ("vid_mode", _vid_default_mode.value);
 			else
 			{
-				Cvar_SetValue ("vid_mode", VID_ExtraDefaultMode());
+				VID_UPDATE_SET_CVAR ("vid_mode", VID_UPDATE_DEFAULT_MODE());
 				if (!vid_mode.value)
-					Con_Printf ("Video: no usable VESA 320x200x8 mode; using VGA mode 13h\n");
+					VID_UPDATE_NO_VESA_MESSAGE (
+							"Video: no usable VESA 320x200x8 mode; using VGA mode 13h\n");
 			}
 		}
 	}
@@ -358,13 +382,13 @@ void    VID_Update (vrect_t *rects)
 				bench486_framebuffer_start;
 #endif
 
-	if (!nomodecheck)
+	if (!vid_nomodecheck)
 	{
 		if (vid_testingmode)
 		{
 			if (realtime >= vid_testendtime)
 			{
-				VID_SetMode (vid_realmode, vid_current_palette);
+				VID_UPDATE_SET_MODE (vid_realmode, vid_current_palette);
 				vid_testingmode = 0;
 			}
 		}
@@ -372,9 +396,9 @@ void    VID_Update (vrect_t *rects)
 		{
 			if (vid_mode.value != vid_realmode)
 			{
-				if (firstupdate) startup_mode_requested = true;
-				VID_SetMode ((int)vid_mode.value, vid_current_palette);
-				Cvar_SetValue ("vid_mode", (float)vid_modenum);
+				if (vid_firstupdate) vid_startup_mode_requested = true;
+				VID_UPDATE_SET_MODE ((int)vid_mode.value, vid_current_palette);
+				VID_UPDATE_SET_CVAR ("vid_mode", (float)vid_modenum);
 									// so if mode set fails, we don't keep on
 									//  trying to set that mode
 				vid_realmode = vid_modenum;
@@ -393,6 +417,24 @@ void    VID_Update (vrect_t *rects)
 			profile_present_rects, profile_present_pixels);
 	BENCH486_PROFILE_LEAVE ();
 }
+#undef VID_UPDATE_SET_MODE
+#undef VID_UPDATE_DEFAULT_MODE
+#undef VID_UPDATE_SET_CVAR
+#undef VID_UPDATE_NO_VESA_MESSAGE
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_VID_UPDATE)
+void VID_Update (vrect_t *rects)
+{
+	VID_Update_C (rects);
+}
+#endif
+
+#undef VID_UPDATE_C_ENTRY
+
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
+#include "bench486_vidupdate.h"
+#endif
 
 
 /*
@@ -801,7 +843,7 @@ void VID_MenuKey (int key)
 	case 'D':
 	case 'd':
 		S_LocalSound ("misc/menu1.wav");
-		firstupdate = 0;
+		vid_firstupdate = 0;
 		Cvar_SetValue ("_vid_default_mode", vid_modenum);
 		break;
 

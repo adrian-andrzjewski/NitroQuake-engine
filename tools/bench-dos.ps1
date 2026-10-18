@@ -311,6 +311,8 @@ param(
     [string]$VesaCopyRectsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaSwapBuffersImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VideoUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
     [ValidateSet('c', 'asm')]
@@ -389,6 +391,7 @@ param(
     [switch]$ZoneHeapOnly,
     [switch]$VesaCopyRectsOnly,
     [switch]$VesaSwapBuffersOnly,
+    [switch]$VideoUpdateOnly,
     [switch]$ChaseOnly,
     [switch]$HullCheckOnly,
     [switch]$AliasControlOnly,
@@ -491,6 +494,9 @@ if ($VesaCopyRectsOnly -and $VesaCopyRectsImplementation -ne 'asm-fixture') {
 }
 if ($VesaSwapBuffersOnly -and $VesaSwapBuffersImplementation -ne 'asm-fixture') {
     throw '-VesaSwapBuffersOnly requires -VesaSwapBuffersImplementation asm-fixture.'
+}
+if ($VideoUpdateOnly -and $VideoUpdateImplementation -ne 'asm-fixture') {
+    throw '-VideoUpdateOnly requires -VideoUpdateImplementation asm-fixture.'
 }
 if ($MemoryOnly -and $MemoryImplementation -ne 'asm') {
     throw '-MemoryOnly requires -MemoryImplementation asm.'
@@ -993,6 +999,9 @@ elseif ($VesaCopyRectsOnly) {
 }
 elseif ($VesaSwapBuffersOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesaswap -benchexit'
+}
+elseif ($VideoUpdateOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvidupdate -benchexit'
 }
 elseif ($AliasStatsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchaliasstats -benchexit'

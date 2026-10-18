@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vidupdateasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1951,6 +1951,28 @@ def main() -> int:
         if "vesaswapfixtureasm" not in vesa_swap_fixture.get("profileSuffix", ""):
             fail("the VESA swap fixture selector omits its isolated profile token")
 
+    vid_update_c = dump_flags("-VideoUpdateImplementation", "c")
+    vid_update_asm = dump_flags("-VideoUpdateImplementation", "asm")
+    vid_update_fixture = dump_flags("-VideoUpdateImplementation", "asm-fixture")
+    if vid_update_c and vid_update_asm:
+        if "-vidupdateasm" not in vid_update_asm.get("profileSuffix", ""):
+            fail("the VID_Update assembly selector omits its i486 suffix token")
+        if vid_update_c.get("profileSuffix") == vid_update_asm.get("profileSuffix"):
+            fail("the VID_Update C selector shares the assembly profile suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VID_UPDATE" in vid_update_c.get(flags_name, []):
+                fail("the VID_Update C selector enables ASM486_VID_UPDATE in %s" % flags_name)
+            if "-DASM486_VID_UPDATE" not in vid_update_asm.get(flags_name, []):
+                fail("the VID_Update assembly selector omits ASM486_VID_UPDATE from %s" % flags_name)
+        if "vid_updateasm.s" not in vid_update_asm.get("assemblySources", []):
+            fail("the VID_Update assembly selector does not compile vid_updateasm.s")
+    if vid_update_fixture:
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VID_UPDATE_FIXTURE" not in vid_update_fixture.get(flags_name, []):
+                fail("the VID_Update fixture selector omits its define from %s" % flags_name)
+        if "vidupdatefixtureasm" not in vid_update_fixture.get("profileSuffix", ""):
+            fail("the VID_Update fixture selector omits its isolated profile token")
+
     cache_free_c = dump_flags("-CacheFreeImplementation", "c")
     cache_free_asm = dump_flags("-CacheFreeImplementation", "asm")
     cache_free_fixture = dump_flags("-CacheFreeImplementation", "asm-fixture")
@@ -2154,9 +2176,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 79:
+        if dump.get("allAssemblySourceCount") != 80:
             fail(
-                "%s: expected 79 assembly sources, got %r"
+                "%s: expected 80 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

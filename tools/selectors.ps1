@@ -161,6 +161,7 @@ $script:AssemblyBackedImplementations = @(
     'ZoneHeapImplementation',
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
+    'VideoUpdateImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
     'AliasSetupFrameImplementation',
@@ -1825,6 +1826,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'VideoUpdateImplementation'
+        Manifest   = 'videoUpdateImplementation'
+        Suffix     = @{
+            'asm' = 'vidupdateasm'
+            'asm-fixture' = 'vidupdatefixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_VID_UPDATE')
+            'asm-fixture' = @('ASM486_VID_UPDATE', 'ASM486_VID_UPDATE_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_VID_UPDATE')
+            'asm-fixture' = @('ASM486_VID_UPDATE', 'ASM486_VID_UPDATE_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'GibTrailHorizontalIntegration'
         Manifest   = 'gibTrailHorizontalIntegration'
         Suffix     = @{ 'skipzero' = 'gibskipzero' }
@@ -2043,6 +2062,7 @@ $script:SuffixOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -2165,6 +2185,7 @@ $script:CDefineOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'GibTrailHorizontalIntegration'
@@ -2318,6 +2339,7 @@ $script:AsmDefineOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
     'LineGraphImplementation'
