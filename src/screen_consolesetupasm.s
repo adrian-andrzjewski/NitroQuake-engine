@@ -8,6 +8,7 @@
 // Original behavior: screen.c:SCR_SetUpToDrawConsole.
 #include "asm_i386.h"
 #include "asm_screenconsolesetup.h"
+#include "asm_consolecheckresize.h"
 
 #if defined(ASM486_SCREEN_CONSOLE_SETUP)
 .arch i486
@@ -221,6 +222,129 @@ C(SCR_SetUpToDrawConsole_asm486):
 	addl	$16,%esp
 
 .Lscreen_console_setup_done:
+	leave
+	ret
+
+// Con_CheckResize from console.c. Reflow only the retained rows and chars,
+// while keeping the 16 KiB scrollback snapshot in this routine's stack frame.
+.p2align 4,,15
+.globl C(Con_CheckResize)
+C(Con_CheckResize):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$16412,%esp
+// Locals: width -16, old width -20, old line count -24, retained lines -28,
+// retained chars -32, row index -36, and tbuf -16424..-41.
+	movl	C(vid)+ccr_vid_width_offset,%eax
+	shrl	$3,%eax
+	subl	$2,%eax
+	movl	%eax,-16(%ebp)
+	cmpl	C(con_linewidth),%eax
+	je	.Lcon_resize_return
+	cmpl	$1,%eax
+	jl	.Lcon_resize_video_uninitialized
+
+	movl	C(con_linewidth),%eax
+	movl	%eax,-20(%ebp)
+	movl	-16(%ebp),%eax
+	movl	%eax,C(con_linewidth)
+	movl	C(con_totallines),%eax
+	movl	%eax,-24(%ebp)
+	movl	$ccr_textsize,%eax
+	xorl	%edx,%edx
+	movl	-16(%ebp),%ecx
+	divl	%ecx
+	movl	%eax,C(con_totallines)
+
+	movl	-24(%ebp),%eax
+	cmpl	C(con_totallines),%eax
+	jle	.Lcon_resize_keep_old_line_count
+	movl	C(con_totallines),%eax
+.Lcon_resize_keep_old_line_count:
+	movl	%eax,-28(%ebp)
+	movl	-20(%ebp),%eax
+	cmpl	-16(%ebp),%eax
+	jle	.Lcon_resize_keep_old_char_count
+	movl	-16(%ebp),%eax
+.Lcon_resize_keep_old_char_count:
+	movl	%eax,-32(%ebp)
+
+	leal	-16424(%ebp),%edi
+	movl	C(con_text),%esi
+	movl	$ccr_textsize,%ecx
+	cld
+	rep	movsb
+	movl	C(con_text),%edi
+	movl	$0x20,%eax
+	movl	$ccr_textsize,%ecx
+	cld
+	rep	stosb
+
+	cmpl	$0,-28(%ebp)
+	jle	.Lcon_resize_clear_notify
+	cmpl	$0,-32(%ebp)
+	jle	.Lcon_resize_clear_notify
+	movl	$0,-36(%ebp)
+.Lcon_resize_row:
+	movl	-36(%ebp),%eax
+	cmpl	-28(%ebp),%eax
+	jge	.Lcon_resize_clear_notify
+	// ((con_current - i + oldtotallines) % oldtotallines) * oldwidth
+	movl	C(con_current),%eax
+	subl	-36(%ebp),%eax
+	addl	-24(%ebp),%eax
+	cdq
+	idivl	-24(%ebp)
+	imull	-20(%ebp),%edx
+	leal	-16424(%ebp,%edx),%esi
+	// (newtotallines - 1 - i) * newwidth
+	movl	C(con_totallines),%eax
+	decl	%eax
+	subl	-36(%ebp),%eax
+	imull	-16(%ebp),%eax
+	movl	C(con_text),%edi
+	addl	%eax,%edi
+	movl	-32(%ebp),%ecx
+	cld
+	rep	movsb
+	incl	-36(%ebp)
+	jmp	.Lcon_resize_row
+
+.Lcon_resize_clear_notify:
+	xorl	%eax,%eax
+	movl	$ccr_notify_count,%ecx
+	movl	$C(con_times),%edi
+	cld
+	rep	stosl
+	jmp	.Lcon_resize_finish
+
+.Lcon_resize_video_uninitialized:
+	movl	$38,%eax
+	movl	%eax,C(con_linewidth)
+	movl	$ccr_textsize,%eax
+	xorl	%edx,%edx
+	movl	$38,%ecx
+	divl	%ecx
+	movl	%eax,C(con_totallines)
+	movl	C(con_text),%edi
+	movl	$0x20,%eax
+	movl	$ccr_textsize,%ecx
+	cld
+	rep	stosb
+
+.Lcon_resize_finish:
+	movl	$0,C(con_backscroll)
+	movl	C(con_totallines),%eax
+	decl	%eax
+	movl	%eax,C(con_current)
+.Lcon_resize_return:
+	addl	$16412,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
 	leave
 	ret
 #endif

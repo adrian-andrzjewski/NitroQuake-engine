@@ -65,6 +65,9 @@ extern int Bench486VesaCopyRectsCases (void);
 #if defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
 extern int Bench486VesaSwapBuffersCases (void);
 #endif
+#if defined(ASM486_SCREEN_CONSOLE_SETUP)
+extern int Bench486ConsoleResizeCases (void);
+#endif
 #if defined(ASM486_VID_UPDATE_FIXTURE)
 extern int Bench486VidUpdateCases (void);
 extern int Bench486VidDirectRectCases (void);
@@ -11650,7 +11653,12 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchscreenconsolesetup"))
 	{
 #ifdef ASM486_SCREEN_CONSOLE_SETUP
+		int con_resize_failures;
 		Bench486ScreenConsoleSetupCases ();
+		con_resize_failures = Bench486ConsoleResizeCases ();
+		bench486_memory_failures += con_resize_failures != 0;
+		Bench486Printf ("Con_CheckResize C/ASM buffer and ABI cases %s failure mask 0x%x\n",
+				con_resize_failures ? "FAIL" : "PASS", con_resize_failures);
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("screen console setup fixture requires ScreenConsoleSetupImplementation=asm\n");

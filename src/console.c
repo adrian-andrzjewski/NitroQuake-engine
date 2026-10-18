@@ -22,12 +22,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <unistd.h>
 #include <fcntl.h>
 #include "quakedef.h"
+#include "asm_consolecheckresize.h"
 
 int 		con_linewidth;
 
 float		con_cursorspeed = 4;
 
-#define		CON_TEXTSIZE	16384
+#define		CON_TEXTSIZE	ccr_textsize
 
 qboolean 	con_forcedup;		// because no entities to refresh
 
@@ -39,9 +40,12 @@ char		*con_text=0;
 
 cvar_t		con_notifytime = {"con_notifytime","3"};		//seconds
 
-#define	NUM_CON_TIMES 4
+#define	NUM_CON_TIMES ccr_notify_count
 float		con_times[NUM_CON_TIMES];	// realtime time the line was generated
 								// for transparent notify lines
+
+typedef char console_resize_notify_count_must_match[
+	(sizeof(con_times) / sizeof(con_times[0]) == ccr_notify_count) ? 1 : -1];
 
 int			con_vislines;
 
@@ -149,7 +153,14 @@ Con_CheckResize
 If the line width has changed, reformat the buffer.
 ================
 */
-void Con_CheckResize (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_CONSOLE_SETUP)
+#define CON_CHECK_RESIZE_C_ENTRY Con_CheckResize_C
+#else
+#define CON_CHECK_RESIZE_C_ENTRY Con_CheckResize
+#endif
+
+#if !defined(ASM486_SCREEN_CONSOLE_SETUP) || defined(BENCH486)
+void CON_CHECK_RESIZE_C_ENTRY (void)
 {
 	int		i, j, width, oldwidth, oldtotallines, numlines, numchars;
 	char	tbuf[CON_TEXTSIZE];
@@ -201,6 +212,13 @@ void Con_CheckResize (void)
 	con_backscroll = 0;
 	con_current = con_totallines - 1;
 }
+#endif
+
+#undef CON_CHECK_RESIZE_C_ENTRY
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_CONSOLE_SETUP)
+#include "bench486_conresize.h"
+#endif
 
 
 /*
