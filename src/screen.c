@@ -670,20 +670,36 @@ void SCR_CONSOLE_SETUP_C (void)
 SCR_DrawConsole
 ==================
 */
-void SCR_DrawConsole (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define SCR_DRAW_CONSOLE_C SCR_DrawConsole_Screen_C
+#define SCR_DRAW_CONSOLE_DRAW_CALL Bench486ScreenConsoleDrawCall
+#define SCR_DRAW_CONSOLE_NOTIFY_CALL Bench486ScreenNotifyDrawCall
+#elif !defined(ASM486_SCREEN_OVERLAYS)
+#define SCR_DRAW_CONSOLE_C SCR_DrawConsole
+#define SCR_DRAW_CONSOLE_DRAW_CALL Con_DrawConsole
+#define SCR_DRAW_CONSOLE_NOTIFY_CALL Con_DrawNotify
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void SCR_DRAW_CONSOLE_C (void)
 {
 	if (scr_con_current)
 	{
 		scr_copyeverything = 1;
-		Con_DrawConsole (scr_con_current, true);
+		SCR_DRAW_CONSOLE_DRAW_CALL (scr_con_current, true);
 		clearconsole = 0;
 	}
 	else
 	{
 		if (key_dest == key_game || key_dest == key_message)
-			Con_DrawNotify ();	// only draw notify in game
+			SCR_DRAW_CONSOLE_NOTIFY_CALL ();	// only draw notify in game
 	}
 }
+#endif
+
+#undef SCR_DRAW_CONSOLE_C
+#undef SCR_DRAW_CONSOLE_DRAW_CALL
+#undef SCR_DRAW_CONSOLE_NOTIFY_CALL
 
 
 /* 

@@ -6,6 +6,7 @@
 
 #if defined(ASM486_SCREEN_OVERLAYS)
 .arch i486
+.arch .387
 .code32
 
 .macro SCREEN_OVERLAY_CALL event, target
@@ -214,6 +215,60 @@ C(SCR_DrawScreenOverlays_asm486):
 	SCREEN_OVERLAY_CALL 12,_SCR_DrawConsole
 	SCREEN_OVERLAY_CALL 13,_M_Draw
 .Lso_done:
+	leave
+	ret
+
+// Per-frame console selection and state update from SCR_DrawConsole.
+.p2align 4,,15
+.globl C(SCR_DrawConsole)
+C(SCR_DrawConsole):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	subl	$12,%esp
+	movl	C(scr_con_current),%eax
+	andl	$0x7fffffff,%eax
+	je	.Lscr_draw_console_notify
+
+	// C float-to-int conversion truncates independently of the active x87 mode.
+	fnstcw	-6(%ebp)
+	movzwl	-6(%ebp),%eax
+	andw	$0xf3ff,%ax
+	orw	$0x0c00,%ax
+	movw	%ax,-8(%ebp)
+	fldcw	-8(%ebp)
+	flds	C(scr_con_current)
+	fistpl	-16(%ebp)
+	fldcw	-6(%ebp)
+
+	movl	$1,C(scr_copyeverything)
+	pushl	$1
+	pushl	-16(%ebp)
+#ifdef BENCH486
+	call	C(Bench486ScreenConsoleDrawCall)
+#else
+	call	C(Con_DrawConsole)
+#endif
+	addl	$8,%esp
+	movl	$0,C(clearconsole)
+	jmp	.Lscr_draw_console_done
+
+.Lscr_draw_console_notify:
+	movl	C(key_dest),%ebx
+	cmpl	$SO_KEY_GAME,%ebx
+	je	.Lscr_draw_console_notify_call
+	cmpl	$SO_KEY_MESSAGE,%ebx
+	jne	.Lscr_draw_console_done
+.Lscr_draw_console_notify_call:
+#ifdef BENCH486
+	call	C(Bench486ScreenNotifyDrawCall)
+#else
+	call	C(Con_DrawNotify)
+#endif
+
+.Lscr_draw_console_done:
+	addl	$12,%esp
+	popl	%ebx
 	leave
 	ret
 

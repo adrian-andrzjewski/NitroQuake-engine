@@ -16,8 +16,82 @@ extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
 extern qboolean scr_drawdialog;
 extern qboolean scr_drawloading;
 extern int scr_copyeverything;
+extern int clearconsole;
+extern float scr_con_current;
 extern client_state_t cl;
 extern keydest_t key_dest;
+
+#define BSDC_EVENT_DRAW_CONSOLE 1
+#define BSDC_EVENT_DRAW_NOTIFY 2
+
+typedef struct
+{
+	unsigned count;
+	unsigned overflow;
+	int event;
+	int lines;
+	int drawinput;
+} bench486_screen_console_draw_trace_t;
+
+typedef struct
+{
+	int copyeverything;
+	int clearconsole;
+	int key_destination;
+	float console_current;
+	bench486_screen_console_draw_trace_t trace;
+	unsigned abi;
+	unsigned short cw_before;
+	unsigned short cw_after;
+} bench486_screen_console_draw_result_t;
+
+typedef struct
+{
+	const char *name;
+	float console_current;
+	int key_destination;
+	int initial_copyeverything;
+	int initial_clearconsole;
+	int expected_event;
+	int expected_lines;
+} bench486_screen_console_draw_case_t;
+
+int bench486_screen_console_draw_fixture_active;
+
+static bench486_screen_console_draw_trace_t
+		bench486_screen_console_draw_trace;
+static bench486_screen_console_draw_result_t
+		bench486_screen_console_draw_reference;
+static bench486_screen_console_draw_result_t
+		bench486_screen_console_draw_candidate;
+
+void Bench486ScreenConsoleDrawCall (int lines, qboolean drawinput)
+{
+	if (!bench486_screen_console_draw_fixture_active)
+	{
+		Con_DrawConsole (lines, drawinput);
+		return;
+	}
+	if (bench486_screen_console_draw_trace.count)
+		bench486_screen_console_draw_trace.overflow = 1;
+	bench486_screen_console_draw_trace.count++;
+	bench486_screen_console_draw_trace.event = BSDC_EVENT_DRAW_CONSOLE;
+	bench486_screen_console_draw_trace.lines = lines;
+	bench486_screen_console_draw_trace.drawinput = drawinput;
+}
+
+void Bench486ScreenNotifyDrawCall (void)
+{
+	if (!bench486_screen_console_draw_fixture_active)
+	{
+		Con_DrawNotify ();
+		return;
+	}
+	if (bench486_screen_console_draw_trace.count)
+		bench486_screen_console_draw_trace.overflow = 1;
+	bench486_screen_console_draw_trace.count++;
+	bench486_screen_console_draw_trace.event = BSDC_EVENT_DRAW_NOTIFY;
+}
 
 typedef struct
 {
@@ -148,6 +222,161 @@ static void Bench486ScreenOverlaysPrepare (
 	cl.intermission = test_case->intermission;
 	key_dest = (keydest_t)test_case->key_destination;
 	Bench486ScreenOverlaysInitTrace ();
+}
+
+static const bench486_screen_console_draw_case_t
+		bench486_screen_console_draw_cases[] =
+{
+	{"zero-game-notifies", 0.0f, key_game, 0, 7,
+		BSDC_EVENT_DRAW_NOTIFY, 0},
+	{"negative-zero-message-notifies", -0.0f, key_message, 1, 9,
+		BSDC_EVENT_DRAW_NOTIFY, 0},
+	{"zero-console-suppressed", 0.0f, key_console, 0, 11, 0, 0},
+	{"zero-menu-suppressed", 0.0f, key_menu, 1, 13, 0, 0},
+	{"positive-fraction-truncates", 12.75f, key_game, 0, 15,
+		BSDC_EVENT_DRAW_CONSOLE, 12},
+	{"negative-fraction-truncates", -12.75f, key_message, 1, 17,
+		BSDC_EVENT_DRAW_CONSOLE, -12},
+	{"positive-subunit-still-draws", 0.75f, key_menu, 0, 19,
+		BSDC_EVENT_DRAW_CONSOLE, 0},
+	{"negative-subunit-still-draws", -0.75f, key_console, 1, 21,
+		BSDC_EVENT_DRAW_CONSOLE, 0},
+	{"integer-console-height", 200.0f, key_game, 0, 23,
+		BSDC_EVENT_DRAW_CONSOLE, 200}
+};
+
+static void Bench486ScreenConsoleDrawPrepare (
+		const bench486_screen_console_draw_case_t *test_case)
+{
+	Q_memset (&bench486_screen_console_draw_trace, 0,
+			sizeof(bench486_screen_console_draw_trace));
+	scr_con_current = test_case->console_current;
+	key_dest = (keydest_t)test_case->key_destination;
+	scr_copyeverything = test_case->initial_copyeverything;
+	clearconsole = test_case->initial_clearconsole;
+}
+
+static unsigned Bench486ScreenConsoleDrawRun (
+		void (*function)(void),
+		const bench486_screen_console_draw_case_t *test_case,
+		bench486_screen_console_draw_result_t *result)
+{
+	Q_memset (result, 0, sizeof(*result));
+	Bench486ScreenConsoleDrawPrepare (test_case);
+	result->cw_before = Bench486ScreenOverlaysGetControlWord ();
+	bench486_screen_console_draw_fixture_active = 1;
+	result->abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_screen_console_draw_fixture_active = 0;
+	result->cw_after = Bench486ScreenOverlaysGetControlWord ();
+	result->copyeverything = scr_copyeverything;
+	result->clearconsole = clearconsole;
+	result->key_destination = key_dest;
+	result->console_current = scr_con_current;
+	Q_memcpy (&result->trace, &bench486_screen_console_draw_trace,
+			sizeof(result->trace));
+	return result->abi;
+}
+
+static unsigned Bench486ScreenConsoleDrawExpected (
+		const bench486_screen_console_draw_case_t *test_case,
+		const bench486_screen_console_draw_result_t *result)
+{
+	int expected_copyeverything;
+	int expected_clearconsole;
+
+	expected_copyeverything = test_case->initial_copyeverything;
+	expected_clearconsole = test_case->initial_clearconsole;
+	if (test_case->expected_event == BSDC_EVENT_DRAW_CONSOLE)
+	{
+		expected_copyeverything = 1;
+		expected_clearconsole = 0;
+	}
+	if (result->copyeverything != expected_copyeverything ||
+			result->clearconsole != expected_clearconsole ||
+			result->key_destination != test_case->key_destination ||
+			Q_memcmp ((void *)&result->console_current,
+					(void *)&test_case->console_current, sizeof(float)) ||
+			result->trace.overflow ||
+			result->trace.count !=
+				(test_case->expected_event ? 1U : 0U))
+		return 0x53430001U;
+	if (test_case->expected_event &&
+			result->trace.event != test_case->expected_event)
+		return 0x53430002U;
+	if (test_case->expected_event == BSDC_EVENT_DRAW_CONSOLE &&
+			(result->trace.lines != test_case->expected_lines ||
+			 result->trace.drawinput != 1))
+		return 0x53430003U;
+	if (result->cw_before != result->cw_after ||
+			(result->abi & 0x20U))
+		return 0x53430004U;
+	return 0;
+}
+
+void Bench486ScreenConsoleDrawCases (void)
+{
+	unsigned i, mode, failure;
+	unsigned short saved_cw, test_cw;
+	float saved_current;
+	int saved_copyeverything, saved_clearconsole;
+	keydest_t saved_destination;
+	unsigned case_count;
+
+	saved_current = scr_con_current;
+	saved_destination = key_dest;
+	saved_copyeverything = scr_copyeverything;
+	saved_clearconsole = clearconsole;
+	saved_cw = Bench486ScreenOverlaysGetControlWord ();
+	case_count = sizeof(bench486_screen_console_draw_cases) /
+			sizeof(bench486_screen_console_draw_cases[0]);
+	failure = 0;
+	for (mode = 0; mode < 4 && !failure; mode++)
+	{
+		test_cw = (unsigned short)((saved_cw & ~0x0c00U) | (mode << 10));
+		__asm__ __volatile__ ("fldcw %0" : : "m" (test_cw));
+		for (i = 0; i < case_count; i++)
+		{
+			unsigned c_abi, asm_abi;
+
+			c_abi = Bench486ScreenConsoleDrawRun (
+					SCR_DrawConsole_Screen_C,
+					&bench486_screen_console_draw_cases[i],
+					&bench486_screen_console_draw_reference);
+			failure |= Bench486ScreenConsoleDrawExpected (
+					&bench486_screen_console_draw_cases[i],
+					&bench486_screen_console_draw_reference);
+			asm_abi = Bench486ScreenConsoleDrawRun (
+					SCR_DrawConsole,
+					&bench486_screen_console_draw_cases[i],
+					&bench486_screen_console_draw_candidate);
+			failure |= Bench486ScreenConsoleDrawExpected (
+					&bench486_screen_console_draw_cases[i],
+					&bench486_screen_console_draw_candidate);
+			if (c_abi != asm_abi || Q_memcmp (
+					&bench486_screen_console_draw_reference,
+					&bench486_screen_console_draw_candidate,
+					sizeof(bench486_screen_console_draw_reference)))
+				failure |= 0x53430010U;
+			if (failure)
+			{
+				Bench486Printf ("screen console draw FAIL case %s x87 round %u code %08x\n",
+						bench486_screen_console_draw_cases[i].name,
+						mode, failure);
+				break;
+			}
+		}
+	}
+	bench486_screen_console_draw_fixture_active = 0;
+	scr_con_current = saved_current;
+	key_dest = saved_destination;
+	scr_copyeverything = saved_copyeverything;
+	clearconsole = saved_clearconsole;
+	__asm__ __volatile__ ("fldcw %0" : : "m" (saved_cw));
+	if (failure)
+		bench486_memory_failures++;
+	else
+		Bench486Printf ("screen console draw %u exact C/assembly state, call and ABI cases x 4 x87 rounding modes PASS\n",
+				case_count);
 }
 
 static void Bench486ScreenOverlaysCapture (
@@ -293,6 +522,7 @@ void Bench486ScreenOverlaysCases (void)
 				total);
 
 	Bench486MenuTextCases ();
+	Bench486ScreenConsoleDrawCases ();
 }
 
 #endif
