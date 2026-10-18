@@ -1,6 +1,7 @@
 /* i486 zone heap initialization, tagged allocation, and free/coalesce. */
 #include "asm_i386.h"
 #include "asm_zoneheap.h"
+#include "asm_cachealloc.h"
 #include "asm_hunknamedalloc.h"
 #include "asm_cachetryalloc.h"
 #undef i386
@@ -378,6 +379,89 @@ C(Z_Print):
 	ret
 
 .p2align 2
+.globl C(Zone_PrintTrace)
+C(Zone_PrintTrace):
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	movl	4(%esp),%eax		/* kind */
+	movl	8(%esp),%edx		/* zone */
+	movl	12(%esp),%ecx		/* block */
+	pushl	%ecx
+	pushl	%edx
+	pushl	%eax
+	call	C(Bench486ZonePrintEvent)
+	addl	$12,%esp
+	ret
+#else
+	movl	4(%esp),%eax
+	cmpl	$ZH_PRINT_ZONE_HEADER,%eax
+	je	.Lzone_print_trace_header
+	cmpl	$ZH_PRINT_ZONE_BLOCK,%eax
+	je	.Lzone_print_trace_block
+	cmpl	$ZH_PRINT_ZONE_BAD_BOUNDARY,%eax
+	je	.Lzone_print_trace_bad_boundary
+	cmpl	$ZH_PRINT_ZONE_BAD_BACKLINK,%eax
+	je	.Lzone_print_trace_bad_backlink
+	cmpl	$ZH_PRINT_ZONE_ADJACENT_FREE,%eax
+	je	.Lzone_print_trace_adjacent_free
+	ret
+
+.Lzone_print_trace_header:
+	movl	C(mainzone),%eax
+	pushl	%eax
+	pushl	ZH_MEMZONE_SIZE_OFFSET(%eax)
+	pushl	$.Lzone_print_header_format
+	call	C(Con_Printf)
+	addl	$12,%esp
+	ret
+
+.Lzone_print_trace_block:
+	movl	12(%esp),%ecx
+	pushl	ZH_MEMBLOCK_TAG_OFFSET(%ecx)
+	pushl	ZH_MEMBLOCK_SIZE_OFFSET(%ecx)
+	pushl	%ecx
+	pushl	$.Lzone_print_block_format
+	call	C(Con_Printf)
+	addl	$16,%esp
+	ret
+
+.Lzone_print_trace_bad_boundary:
+	pushl	$.Lzone_print_bad_boundary_text
+	call	C(Con_Printf)
+	addl	$4,%esp
+	ret
+
+.Lzone_print_trace_bad_backlink:
+	pushl	$.Lzone_print_bad_backlink_text
+	call	C(Con_Printf)
+	addl	$4,%esp
+	ret
+
+.Lzone_print_trace_adjacent_free:
+	pushl	$.Lzone_print_adjacent_free_text
+	call	C(Con_Printf)
+	addl	$4,%esp
+	ret
+#endif
+
+.p2align 2
+.globl C(Zone_CachePrintTrace)
+C(Zone_CachePrintTrace):
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	pushl	4(%esp)
+	call	C(Bench486CachePrintEvent)
+	addl	$4,%esp
+	ret
+#else
+	movl	4(%esp),%eax		/* cache system */
+	pushl	CA_CACHE_SYSTEM_NAME_OFFSET(%eax)
+	pushl	CA_CACHE_SYSTEM_SIZE_OFFSET(%eax)
+	pushl	$.Lzone_cache_print_format
+	call	C(Con_Printf)
+	addl	$12,%esp
+	ret
+#endif
+
+.p2align 2
 .globl C(Cache_Print)
 C(Cache_Print):
 	pushl	%ebx
@@ -400,6 +484,28 @@ C(Cache_Print):
 	ret
 
 .p2align 2
+.globl C(Zone_CacheReportTrace)
+C(Zone_CacheReportTrace):
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	movl	4(%esp),%eax		/* low doubleword */
+	movl	8(%esp),%edx		/* high doubleword */
+	pushl	%edx
+	pushl	%eax
+	call	C(Bench486CacheReportEvent)
+	addl	$8,%esp
+	ret
+#else
+	movl	4(%esp),%eax		/* low doubleword */
+	movl	8(%esp),%edx		/* high doubleword */
+	pushl	%edx
+	pushl	%eax
+	pushl	$.Lzone_cache_report_format
+	call	C(Con_DPrintf)
+	addl	$12,%esp
+	ret
+#endif
+
+.p2align 2
 .globl C(Cache_Report)
 C(Cache_Report):
 	pushl	%ebp
@@ -419,6 +525,138 @@ C(Cache_Report):
 	addl	$8,%esp
 	leave
 	ret
+
+.p2align 2
+.globl C(Zone_HunkPrintTrace)
+C(Zone_HunkPrintTrace):
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	movl	4(%esp),%eax		/* kind */
+	movl	8(%esp),%edx		/* hunk */
+	movl	12(%esp),%ecx		/* value */
+	pushl	%ecx
+	pushl	%edx
+	pushl	%eax
+	call	C(Bench486HunkPrintEvent)
+	addl	$12,%esp
+	ret
+#else
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$16,%esp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	8(%ebp),%eax		/* kind */
+	cmpl	$HNA_HUNK_PRINT_TOTAL_SIZE,%eax
+	je	.Lzone_hunk_print_trace_total
+	cmpl	$HNA_HUNK_PRINT_SEPARATOR,%eax
+	je	.Lzone_hunk_print_trace_separator
+	cmpl	$HNA_HUNK_PRINT_REMAINING,%eax
+	je	.Lzone_hunk_print_trace_remaining
+	cmpl	$HNA_HUNK_PRINT_ALLOCATION,%eax
+	je	.Lzone_hunk_print_trace_allocation
+	cmpl	$HNA_HUNK_PRINT_GROUP_TOTAL,%eax
+	je	.Lzone_hunk_print_trace_group
+	cmpl	$HNA_HUNK_PRINT_BLOCKS,%eax
+	je	.Lzone_hunk_print_trace_blocks
+	pushl	$.Lzone_hunk_print_bad_trace_text
+	call	C(Sys_Error)
+	addl	$4,%esp
+	jmp	.Lzone_hunk_print_trace_done
+
+.Lzone_hunk_print_trace_total:
+	pushl	16(%ebp)
+	pushl	$.Lzone_hunk_print_total_format
+	call	C(Con_Printf)
+	addl	$8,%esp
+	jmp	.Lzone_hunk_print_trace_done
+
+.Lzone_hunk_print_trace_separator:
+	pushl	$.Lzone_hunk_print_separator_text
+	call	C(Con_Printf)
+	addl	$4,%esp
+	jmp	.Lzone_hunk_print_trace_done
+
+.Lzone_hunk_print_trace_remaining:
+	pushl	16(%ebp)
+	pushl	$.Lzone_hunk_print_remaining_format
+	call	C(Con_Printf)
+	addl	$8,%esp
+	jmp	.Lzone_hunk_print_trace_done
+
+.Lzone_hunk_print_trace_allocation:
+	movl	12(%ebp),%esi		/* hunk */
+	movl	HNA_HUNK_NAME_OFFSET(%esi),%eax
+	movl	%eax,-16(%ebp)
+	movl	HNA_HUNK_NAME_OFFSET+4(%esi),%eax
+	movl	%eax,-12(%ebp)
+	movb	$0,-8(%ebp)
+	leal	-16(%ebp),%eax
+	pushl	%eax
+	pushl	16(%ebp)
+	pushl	%esi
+	pushl	$.Lzone_hunk_print_allocation_format
+	call	C(Con_Printf)
+	addl	$16,%esp
+	jmp	.Lzone_hunk_print_trace_done
+
+.Lzone_hunk_print_trace_group:
+	movl	12(%ebp),%esi		/* hunk */
+	movl	HNA_HUNK_NAME_OFFSET(%esi),%eax
+	movl	%eax,-16(%ebp)
+	movl	HNA_HUNK_NAME_OFFSET+4(%esi),%eax
+	movl	%eax,-12(%ebp)
+	movb	$0,-8(%ebp)
+	leal	-16(%ebp),%eax
+	pushl	%eax
+	pushl	16(%ebp)
+	pushl	$.Lzone_hunk_print_group_format
+	call	C(Con_Printf)
+	addl	$12,%esp
+	jmp	.Lzone_hunk_print_trace_done
+
+.Lzone_hunk_print_trace_blocks:
+	pushl	16(%ebp)
+	pushl	$.Lzone_hunk_print_blocks_format
+	call	C(Con_Printf)
+	addl	$8,%esp
+
+.Lzone_hunk_print_trace_done:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+#endif
+
+.p2align 2
+.globl C(Zone_HunkPrintError)
+C(Zone_HunkPrintError):
+#ifdef ASM486_ZONE_HEAP_FIXTURE
+	movl	4(%esp),%eax
+	cmpl	$HNA_HUNK_PRINT_ERROR_SENTINAL,%eax
+	je	.Lzone_hunk_print_error_sentinal_fixture
+	pushl	$.Lzone_hunk_check_size_text
+	jmp	.Lzone_hunk_print_error_fixture_call
+.Lzone_hunk_print_error_sentinal_fixture:
+	pushl	$.Lzone_hunk_check_sentinal_text
+.Lzone_hunk_print_error_fixture_call:
+	call	C(Bench486ZoneHeapError)
+	addl	$4,%esp
+	ret
+#else
+	movl	4(%esp),%eax
+	cmpl	$HNA_HUNK_PRINT_ERROR_SENTINAL,%eax
+	je	.Lzone_hunk_print_error_sentinal
+	pushl	$.Lzone_hunk_check_size_text
+	jmp	.Lzone_hunk_print_error_call
+.Lzone_hunk_print_error_sentinal:
+	pushl	$.Lzone_hunk_check_sentinal_text
+.Lzone_hunk_print_error_call:
+	call	C(Sys_Error)
+	addl	$4,%esp
+	ret
+#endif
 
 .p2align 2
 .globl C(Hunk_Print)
@@ -818,4 +1056,32 @@ C(Cache_MakeLRU):
 	.asciz	"Cache_UnlinkLRU: NULL link"
 .Lzone_cache_make_lru_error_text:
 	.asciz	"Cache_MakeLRU: active link"
+.Lzone_print_header_format:
+	.asciz	"zone size: %i  location: %p\n"
+.Lzone_print_block_format:
+	.asciz	"block:%p    size:%7i    tag:%3i\n"
+.Lzone_print_bad_boundary_text:
+	.asciz	"ERROR: block size does not touch the next block\n"
+.Lzone_print_bad_backlink_text:
+	.asciz	"ERROR: next block doesn't have proper back link\n"
+.Lzone_print_adjacent_free_text:
+	.asciz	"ERROR: two consecutive free blocks\n"
+.Lzone_cache_print_format:
+	.asciz	"%8i : %s\n"
+.Lzone_cache_report_format:
+	.asciz	"%4.1f megabyte data cache\n"
+.Lzone_hunk_print_total_format:
+	.asciz	"          :%8i total hunk size\n"
+.Lzone_hunk_print_separator_text:
+	.asciz	"-------------------------\n"
+.Lzone_hunk_print_remaining_format:
+	.asciz	"          :%8i REMAINING\n"
+.Lzone_hunk_print_allocation_format:
+	.asciz	"%8p :%8i %8s\n"
+.Lzone_hunk_print_group_format:
+	.asciz	"          :%8i %8s (TOTAL)\n"
+.Lzone_hunk_print_blocks_format:
+	.asciz	"%8i total blocks\n"
+.Lzone_hunk_print_bad_trace_text:
+	.asciz	"Hunk_Print: bad trace event"
 #endif /* ASM486_ZONE_HEAP */

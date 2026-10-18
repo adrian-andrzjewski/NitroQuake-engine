@@ -13,6 +13,8 @@
 
 #ifndef __ASSEMBLER__
 void Hunk_Print_C (qboolean all);
+void Zone_HunkPrintTrace_C (int kind, void *hunk, int value);
+void Zone_HunkPrintError_C (int kind);
 void Zone_HunkPrintTrace (int kind, void *hunk, int value);
 void Zone_HunkPrintError (int kind);
 #endif

@@ -44,6 +44,20 @@ typedef struct
 
 #include "asm_zoneheap.h"
 
+#if defined(BENCH486)
+#define ZONE_PRINT_TRACE_C_CALL Zone_PrintTrace_C
+#define ZONE_HUNK_PRINT_TRACE_C_CALL Zone_HunkPrintTrace_C
+#define ZONE_HUNK_PRINT_ERROR_C_CALL Zone_HunkPrintError_C
+#define ZONE_CACHE_PRINT_TRACE_C_CALL Zone_CachePrintTrace_C
+#define ZONE_CACHE_REPORT_TRACE_C_CALL Zone_CacheReportTrace_C
+#else
+#define ZONE_PRINT_TRACE_C_CALL Zone_PrintTrace
+#define ZONE_HUNK_PRINT_TRACE_C_CALL Zone_HunkPrintTrace
+#define ZONE_HUNK_PRINT_ERROR_C_CALL Zone_HunkPrintError
+#define ZONE_CACHE_PRINT_TRACE_C_CALL Zone_CachePrintTrace
+#define ZONE_CACHE_REPORT_TRACE_C_CALL Zone_CacheReportTrace
+#endif
+
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 void Bench486MemoryAddCommand (char *cmd_name, xcommand_t function);
 void Bench486ZonePrintEvent (int kind, memzone_t *zone,
@@ -379,7 +393,14 @@ void *Z_TagMalloc (int size, int tag)
 Z_Print
 ========================
 */
-void Zone_PrintTrace (int kind, memzone_t *zone, memblock_t *block)
+#if defined(BENCH486)
+#define ZONE_PRINT_TRACE_C_ENTRY Zone_PrintTrace_C
+#else
+#define ZONE_PRINT_TRACE_C_ENTRY Zone_PrintTrace
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void ZONE_PRINT_TRACE_C_ENTRY (int kind, memzone_t *zone, memblock_t *block)
 {
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 	Bench486ZonePrintEvent (kind, zone, block);
@@ -406,6 +427,9 @@ void Zone_PrintTrace (int kind, memzone_t *zone, memblock_t *block)
 	}
 #endif
 }
+#endif
+
+#undef ZONE_PRINT_TRACE_C_ENTRY
 
 #if defined(BENCH486)
 #define Z_PRINT_C_ENTRY Z_Print_C
@@ -418,19 +442,19 @@ void Z_PRINT_C_ENTRY (memzone_t *zone)
 {
 	memblock_t	*block;
 
-	Zone_PrintTrace (ZH_PRINT_ZONE_HEADER, zone, NULL);
+	ZONE_PRINT_TRACE_C_CALL (ZH_PRINT_ZONE_HEADER, zone, NULL);
 	for (block = zone->blocklist.next ; ; block = block->next)
 	{
-		Zone_PrintTrace (ZH_PRINT_ZONE_BLOCK, zone, block);
+		ZONE_PRINT_TRACE_C_CALL (ZH_PRINT_ZONE_BLOCK, zone, block);
 
 		if (block->next == &zone->blocklist)
 			break;			// all blocks have been hit
 		if ((byte *)block + block->size != (byte *)block->next)
-			Zone_PrintTrace (ZH_PRINT_ZONE_BAD_BOUNDARY, zone, block);
+			ZONE_PRINT_TRACE_C_CALL (ZH_PRINT_ZONE_BAD_BOUNDARY, zone, block);
 		if (block->next->prev != block)
-			Zone_PrintTrace (ZH_PRINT_ZONE_BAD_BACKLINK, zone, block);
+			ZONE_PRINT_TRACE_C_CALL (ZH_PRINT_ZONE_BAD_BACKLINK, zone, block);
 		if (!block->tag && !block->next->tag)
-			Zone_PrintTrace (ZH_PRINT_ZONE_ADJACENT_FREE, zone, block);
+			ZONE_PRINT_TRACE_C_CALL (ZH_PRINT_ZONE_ADJACENT_FREE, zone, block);
 	}
 }
 #endif
@@ -603,7 +627,16 @@ Otherwise, allocations with the same name will be totaled up before printing.
 #define HUNK_PRINT_C_ENTRY Hunk_Print
 #endif
 
-void Zone_HunkPrintTrace (int kind, void *hunk_ptr, int value)
+#if defined(BENCH486)
+#define ZONE_HUNK_PRINT_TRACE_C_ENTRY Zone_HunkPrintTrace_C
+#define ZONE_HUNK_PRINT_ERROR_C_ENTRY Zone_HunkPrintError_C
+#else
+#define ZONE_HUNK_PRINT_TRACE_C_ENTRY Zone_HunkPrintTrace
+#define ZONE_HUNK_PRINT_ERROR_C_ENTRY Zone_HunkPrintError
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void ZONE_HUNK_PRINT_TRACE_C_ENTRY (int kind, void *hunk_ptr, int value)
 {
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 	Bench486HunkPrintEvent (kind, hunk_ptr, value);
@@ -642,7 +675,7 @@ void Zone_HunkPrintTrace (int kind, void *hunk_ptr, int value)
 #endif
 }
 
-void Zone_HunkPrintError (int kind)
+void ZONE_HUNK_PRINT_ERROR_C_ENTRY (int kind)
 {
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 	if (kind == HNA_HUNK_PRINT_ERROR_SENTINAL)
@@ -656,6 +689,11 @@ void Zone_HunkPrintError (int kind)
 		Sys_Error ("Hunk_Check: bad size");
 #endif
 }
+
+#endif
+
+#undef ZONE_HUNK_PRINT_TRACE_C_ENTRY
+#undef ZONE_HUNK_PRINT_ERROR_C_ENTRY
 
 #if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
 void HUNK_PRINT_C_ENTRY (qboolean all)
@@ -672,8 +710,8 @@ void HUNK_PRINT_C_ENTRY (qboolean all)
 	starthigh = (hunk_t *)(hunk_base + hunk_size - hunk_high_used);
 	endhigh = (hunk_t *)(hunk_base + hunk_size);
 
-	Zone_HunkPrintTrace (HNA_HUNK_PRINT_TOTAL_SIZE, NULL, hunk_size);
-	Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
+	ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_TOTAL_SIZE, NULL, hunk_size);
+	ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
 
 	while (1)
 	{
@@ -682,10 +720,10 @@ void HUNK_PRINT_C_ENTRY (qboolean all)
 	//
 		if ( h == endlow )
 		{
-			Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
-			Zone_HunkPrintTrace (HNA_HUNK_PRINT_REMAINING, NULL,
+			ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
+			ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_REMAINING, NULL,
 				hunk_size - hunk_low_used - hunk_high_used);
-			Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
+			ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
 			h = starthigh;
 		}
 		
@@ -699,9 +737,9 @@ void HUNK_PRINT_C_ENTRY (qboolean all)
 	// run consistancy checks
 	//
 		if (h->sentinal != HUNK_SENTINAL)
-			Zone_HunkPrintError (HNA_HUNK_PRINT_ERROR_SENTINAL);
+			ZONE_HUNK_PRINT_ERROR_C_CALL (HNA_HUNK_PRINT_ERROR_SENTINAL);
 		if (h->size < 16 || h->size + (byte *)h - hunk_base > hunk_size)
-			Zone_HunkPrintError (HNA_HUNK_PRINT_ERROR_SIZE);
+			ZONE_HUNK_PRINT_ERROR_C_CALL (HNA_HUNK_PRINT_ERROR_SIZE);
 			
 		next = (hunk_t *)((byte *)h+h->size);
 		totalblocks++;
@@ -711,7 +749,7 @@ void HUNK_PRINT_C_ENTRY (qboolean all)
 	// print the single block
 	//
 		if (all)
-			Zone_HunkPrintTrace (HNA_HUNK_PRINT_ALLOCATION, h, h->size);
+			ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_ALLOCATION, h, h->size);
 			
 	//
 	// print the total
@@ -720,15 +758,15 @@ void HUNK_PRINT_C_ENTRY (qboolean all)
 		strncmp (h->name, next->name, 8) )
 		{
 			if (!all)
-				Zone_HunkPrintTrace (HNA_HUNK_PRINT_GROUP_TOTAL, h, sum);
+				ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_GROUP_TOTAL, h, sum);
 			sum = 0;
 		}
 
 		h = next;
 	}
 
-	Zone_HunkPrintTrace (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
-	Zone_HunkPrintTrace (HNA_HUNK_PRINT_BLOCKS, NULL, totalblocks);
+	ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_SEPARATOR, NULL, 0);
+	ZONE_HUNK_PRINT_TRACE_C_CALL (HNA_HUNK_PRINT_BLOCKS, NULL, totalblocks);
 	
 }
 #endif
@@ -1427,7 +1465,14 @@ Cache_Print
 
 ============
 */
-void Zone_CachePrintTrace (cache_system_t *cd)
+#if defined(BENCH486)
+#define ZONE_CACHE_PRINT_TRACE_C_ENTRY Zone_CachePrintTrace_C
+#else
+#define ZONE_CACHE_PRINT_TRACE_C_ENTRY Zone_CachePrintTrace
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void ZONE_CACHE_PRINT_TRACE_C_ENTRY (cache_system_t *cd)
 {
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 	Bench486CachePrintEvent (cd);
@@ -1435,6 +1480,9 @@ void Zone_CachePrintTrace (cache_system_t *cd)
 	Con_Printf ("%8i : %s\n", cd->size, cd->name);
 #endif
 }
+#endif
+
+#undef ZONE_CACHE_PRINT_TRACE_C_ENTRY
 
 #if defined(BENCH486)
 #define CACHE_PRINT_C_ENTRY Cache_Print_C
@@ -1448,7 +1496,7 @@ void CACHE_PRINT_C_ENTRY (void)
 	cache_system_t	*cd;
 
 	for (cd = cache_head.next ; cd != &cache_head ; cd = cd->next)
-		Zone_CachePrintTrace (cd);
+		ZONE_CACHE_PRINT_TRACE_C_CALL (cd);
 }
 #endif
 
@@ -1473,7 +1521,14 @@ Cache_Report
 #define CACHE_REPORT_C_ENTRY Cache_Report
 #endif
 
-void Zone_CacheReportTrace (double megabytes)
+#if defined(BENCH486)
+#define ZONE_CACHE_REPORT_TRACE_C_ENTRY Zone_CacheReportTrace_C
+#else
+#define ZONE_CACHE_REPORT_TRACE_C_ENTRY Zone_CacheReportTrace
+#endif
+
+#if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
+void ZONE_CACHE_REPORT_TRACE_C_ENTRY (double megabytes)
 {
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 	Bench486CacheReportEvent (megabytes);
@@ -1481,11 +1536,14 @@ void Zone_CacheReportTrace (double megabytes)
 	Con_DPrintf ("%4.1f megabyte data cache\n", megabytes);
 #endif
 }
+#endif
+
+#undef ZONE_CACHE_REPORT_TRACE_C_ENTRY
 
 #if !defined(ASM486_ZONE_HEAP) || defined(BENCH486)
 void CACHE_REPORT_C_ENTRY (void)
 {
-	Zone_CacheReportTrace ((hunk_size - hunk_high_used - hunk_low_used) /
+	ZONE_CACHE_REPORT_TRACE_C_CALL ((hunk_size - hunk_high_used - hunk_low_used) /
 		(float)(1024*1024));
 }
 #endif

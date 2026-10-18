@@ -481,17 +481,18 @@ has a direct C/ASM fixture. `Cache_Flush` now shares the assembly-backed cache-f
 has empty-cache and populated-cache parity cases. `Memory_Init` and `Cache_Init`
 now use the zone-heap assembly selector, with direct checks for cache sentinel
 setup, flush-command registration, default memory setup, and the `-zone 32`
-override. `Z_Print` and `Cache_Print` now have assembly-owned list walks; their
-C trace adapters retain formatted console output, and C references remain
-available in BENCH and the C-reference profile. `Z_CheckHeap`, `Hunk_Check`,
-and cache LRU maintenance also use the zone-heap assembly selector.
-`Hunk_Print` now uses an assembly-owned hunk walk with C trace/error adapters;
-its C reference remains available for parity. `Cache_Report` now uses an
-assembly-owned calculation with a C formatting adapter; its C reference
-remains available for parity. `Hunk_Alloc` now has an assembly wrapper that
-routes through the selected named allocator; its C wrapper remains available
-for parity. `Cache_Compact` is an empty no-op. See the
-[`zone heap and cache diagnostics port ledger`](ledger/2026-10-17-zone-heap-assembly-port.md).
+override. `Z_Print` and `Cache_Print` use assembly-owned list walks and trace
+adapters; `Z_CheckHeap`, `Hunk_Check`, and cache LRU maintenance also use the
+zone-heap assembly selector. `Hunk_Print` owns its hunk walk, event formatting,
+and error dispatch in assembly. `Cache_Report` owns both its calculation and
+trace adapter in assembly. C implementations remain available in BENCH and the
+C-reference profile; the assembly trace adapters call the shared C console
+services. `Hunk_Alloc` routes through the selected named allocator, and
+`Cache_Compact` is an empty no-op. The focused C/ASM fixture passes 25
+zone/cache/hunk diagnostic cases, and both BENCH and production release builds
+pass the strict i486 gates. See the
+[`zone heap and cache algorithms ledger`](ledger/2026-10-17-zone-heap-assembly-port.md)
+and [diagnostic trace port ledger](ledger/2026-10-18-zone-memory-trace-assembly-port.md).
 On 2026-10-18, `VID_Update` gained a selectable i486 assembly state machine;
 the i486 assembly profile selects it by default, while the C-reference profile
 and BENCH oracle retain C. Its 20-case DOSBox-X C/ASM fixture passed startup
