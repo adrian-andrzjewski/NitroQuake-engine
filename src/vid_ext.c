@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include "asm_vesacopy.h"
 #include "asm_vesaswap.h"
 #include "asm_vesapalette.h"
+#include "asm_vesadefaultmode.h"
 
 #define MAX_VESA_MODES 30
 #define LINEAR_MODE 0x4000
@@ -236,19 +237,31 @@ done:
 	}
 }
 
-int VID_ExtraDefaultMode (void)
+#if !defined(ASM486_VESA_DEFAULT_MODE) || defined(BENCH486)
+int VID_SelectVesaDefaultMode_C (vmode_t *modes,
+		int (*setmode)(viddef_t *vid, vmode_t *mode))
 {
 	vmode_t *mode;
 	vesa_info_t *info;
 	int i, banked = 0;
-	for (mode = pvidmodes, i = 0; mode; mode = mode->pnext, i++)
+	for (mode = modes, i = 0; mode; mode = mode->pnext, i++)
 	{
-		if (mode->setmode != VID_ExtraInitMode || mode->width != 320 || mode->height != 200) continue;
+		if (mode->setmode != setmode || mode->width != 320 || mode->height != 200) continue;
 		info = mode->pextradata;
 		if (info->linear) return i;
 		if (!banked) banked = i;
 	}
 	return banked;
+}
+#endif
+
+int VID_ExtraDefaultMode (void)
+{
+#ifdef ASM486_VESA_DEFAULT_MODE
+	return VID_SelectVesaDefaultMode_asm486 (pvidmodes, VID_ExtraInitMode);
+#else
+	return VID_SelectVesaDefaultMode_C (pvidmodes, VID_ExtraInitMode);
+#endif
 }
 
 void VID_ReportSystem (void)

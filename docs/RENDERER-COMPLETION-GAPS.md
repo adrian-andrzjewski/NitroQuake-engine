@@ -472,10 +472,22 @@ with zero above-i486/unknown instructions or exemptions. This does not port the
 BIOS call that programs the hardware palette and does not establish full-scene
 parity or FPS; see the [VESA palette conversion port ledger](ledger/2026-10-18-vesa-palette-assembly-port.md).
 
+On 2026-10-18, `VesaDefaultModeImplementation=asm` became the i486 default for
+the linked-mode scan that chooses a 320x200 VESA mode. The assembly prefers the
+first linear candidate and otherwise retains the first banked candidate; the C
+oracle remains available in the C-reference and BENCH profiles. Six synthetic
+mode lists passed exact selection, read-only guard, and ABI checks. The focused
+BENCH gate passed 282,535 relocated instructions, and the non-BENCH release
+build passed the complete executable gate for 163,627 relocated instructions,
+529 startup CODE rows, and 9,207 provider instructions, with zero above-i486/
+unknown instructions or exemptions. VESA mode-info decoding and BIOS mode
+operations remain C-owned; this fixture establishes neither FPS nor full-scene
+parity. See the [VESA default-mode selection port ledger](ledger/2026-10-18-vesa-default-mode-assembly-port.md).
+
 The latest fixture ownership inventory at
-`out/profile-ddbe2868ad194f54/renderer-ownership-qbench.json` reports 908
-renderer entries, 381 directly reachable entries, 60 directly reachable C
-entries, and 64 unresolved direct callees. Its 321/381 (84.3%) assembly
+`out/profile-c3de2a41110c2c69/renderer-ownership-qbench.json` reports 909
+renderer entries, 382 directly reachable entries, 60 directly reachable C
+entries, and 64 unresolved direct callees. Its 322/382 (84.3%) assembly
 function-count proxy is specific to this BENCH inventory, includes fixture
 helpers, and is not a complete-call-graph or production-weighted completion
 percentage.

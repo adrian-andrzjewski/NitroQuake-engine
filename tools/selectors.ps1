@@ -163,6 +163,7 @@ $script:AssemblyBackedImplementations = @(
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
     'VesaPaletteImplementation',
+    'VesaDefaultModeImplementation',
     'VideoUpdateImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
@@ -1864,6 +1865,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'VesaDefaultModeImplementation'
+        Manifest   = 'vesaDefaultModeImplementation'
+        Suffix     = @{
+            'asm' = 'vesadefaultmodeasm'
+            'asm-fixture' = 'vesadefaultmodefixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_VESA_DEFAULT_MODE')
+            'asm-fixture' = @('ASM486_VESA_DEFAULT_MODE', 'ASM486_VESA_DEFAULT_MODE_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_VESA_DEFAULT_MODE')
+            'asm-fixture' = @('ASM486_VESA_DEFAULT_MODE', 'ASM486_VESA_DEFAULT_MODE_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VideoUpdateImplementation'
         Manifest   = 'videoUpdateImplementation'
         Suffix     = @{
@@ -2102,6 +2121,7 @@ $script:SuffixOrder = @(
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'VesaPaletteImplementation'
+    'VesaDefaultModeImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
@@ -2227,6 +2247,7 @@ $script:CDefineOrder = @(
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'VesaPaletteImplementation'
+    'VesaDefaultModeImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
@@ -2383,6 +2404,7 @@ $script:AsmDefineOrder = @(
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
     'VesaPaletteImplementation'
+    'VesaDefaultModeImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'

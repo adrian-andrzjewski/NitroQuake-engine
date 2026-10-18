@@ -348,6 +348,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaPaletteImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaDefaultModeImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VideoUpdateImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
@@ -733,7 +735,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 82
+$expectedAllAssemblySourceCount = 83
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {

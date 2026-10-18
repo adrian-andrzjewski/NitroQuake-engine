@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vesapaletteasm-vidupdateasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vesapaletteasm-vesadefaultmodeasm-vidupdateasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1926,6 +1926,26 @@ def main() -> int:
         if "vid_vesapaletteasm.s" not in vesa_palette_fixture.get("assemblySources", []):
             fail("the VESA palette fixture selector omits vid_vesapaletteasm.s")
 
+    vesa_default_c = dump_flags("-VesaDefaultModeImplementation", "c")
+    vesa_default_asm = dump_flags("-VesaDefaultModeImplementation", "asm")
+    vesa_default_fixture = dump_flags("-VesaDefaultModeImplementation", "asm-fixture")
+    if vesa_default_c and vesa_default_asm:
+        if "-vesadefaultmodeasm" not in vesa_default_asm.get("profileSuffix", ""):
+            fail("the VESA default-mode assembly selector omits its i486 suffix token")
+        if vesa_default_c.get("profileSuffix") == vesa_default_asm.get("profileSuffix"):
+            fail("the VESA default-mode C selector shares the assembly profile suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VESA_DEFAULT_MODE" in vesa_default_c.get(flags_name, []):
+                fail("the VESA default-mode C selector enables ASM486_VESA_DEFAULT_MODE in %s" % flags_name)
+            if "-DASM486_VESA_DEFAULT_MODE" not in vesa_default_asm.get(flags_name, []):
+                fail("the VESA default-mode assembly selector omits ASM486_VESA_DEFAULT_MODE from %s" % flags_name)
+    if vesa_default_fixture:
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VESA_DEFAULT_MODE_FIXTURE" not in vesa_default_fixture.get(flags_name, []):
+                fail("the VESA default-mode fixture selector omits ASM486_VESA_DEFAULT_MODE_FIXTURE from %s" % flags_name)
+        if "vid_vesadefaultmodeasm.s" not in vesa_default_fixture.get("assemblySources", []):
+            fail("the VESA default-mode fixture selector omits vid_vesadefaultmodeasm.s")
+
     cache_alloc_c = dump_flags("-CacheAllocImplementation", "c")
     cache_alloc_asm = dump_flags("-CacheAllocImplementation", "asm")
     cache_alloc_fixture = dump_flags("-CacheAllocImplementation", "asm-fixture")
@@ -2204,7 +2224,7 @@ def main() -> int:
             fail("the zone-heap fixture omits its isolated profile token")
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 82 assembly sources (one is omitted only
+    #    included by another unit), 83 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -2216,9 +2236,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 82:
+        if dump.get("allAssemblySourceCount") != 83:
             fail(
-                "%s: expected 82 assembly sources, got %r"
+                "%s: expected 83 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

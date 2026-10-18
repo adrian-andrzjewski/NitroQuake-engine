@@ -261,6 +261,8 @@ param(
     [string]$VesaSwapBuffersImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaPaletteImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaDefaultModeImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidateSet(64, 128, 256)]
@@ -450,6 +452,7 @@ $buildParams = @{
     VesaCopyRectsImplementation = $VesaCopyRectsImplementation
     VesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     VesaPaletteImplementation = $VesaPaletteImplementation
+    VesaDefaultModeImplementation = $VesaDefaultModeImplementation
     GibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
 }
 
@@ -666,6 +669,7 @@ $result = [ordered]@{
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
     vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     vesaPaletteImplementation = $VesaPaletteImplementation
+    vesaDefaultModeImplementation = $VesaDefaultModeImplementation
     surfaceBlockMip1HorizontalFlat = $SurfaceBlockMip1HorizontalFlat
     surfaceBlockMip1IndexHoist = $SurfaceBlockMip1IndexHoist
     edgeScanProbe = $EdgeScanProbe
