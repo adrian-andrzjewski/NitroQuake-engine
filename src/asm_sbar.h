@@ -9,6 +9,7 @@
 #define SBAR_CL_FACEANIMTIME_OFFSET 288
 #define SBAR_CL_COMPLETED_TIME_OFFSET 552
 #define SBAR_CL_TIME_OFFSET 572
+#define SBAR_CL_LEVELNAME_OFFSET 2640
 #define SBAR_CL_VIEWENTITY_OFFSET 2680
 #define SBAR_CL_SCORES_OFFSET 2896
 #define SBAR_SCOREBOARD_NAME_OFFSET 0
@@ -89,6 +90,8 @@ typedef char sbar_client_faceanimtime_offset_must_match[
 		(offsetof(client_state_t, faceanimtime) == SBAR_CL_FACEANIMTIME_OFFSET) ? 1 : -1];
 typedef char sbar_client_time_offset_must_match[
 		(offsetof(client_state_t, time) == SBAR_CL_TIME_OFFSET) ? 1 : -1];
+typedef char sbar_client_levelname_offset_must_match[
+		(offsetof(client_state_t, levelname) == SBAR_CL_LEVELNAME_OFFSET) ? 1 : -1];
 typedef char sbar_client_completed_time_offset_must_match[
 		(offsetof(client_state_t, completed_time) == SBAR_CL_COMPLETED_TIME_OFFSET) ? 1 : -1];
 typedef char sbar_client_viewentity_offset_must_match[
@@ -174,6 +177,10 @@ typedef char sbar_pointer_size_must_match[(sizeof(void *) == 4) ? 1 : -1];
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW)
 void Sbar_Draw_C (void);
 void Sbar_Draw_asm486 (void);
+void Sbar_SoloScoreboard_C (void);
+void Sbar_SoloScoreboard_asm486 (void);
+void Sbar_DrawScoreboard_C (void);
+void Sbar_DrawScoreboard_asm486 (void);
 void Sbar_DrawFace_C (void);
 void Sbar_DrawFace_asm486 (void);
 void Sbar_MiniDeathmatchOverlay_C (void);
@@ -211,6 +218,7 @@ void Bench486SbarDrawInventory (void);
 void Bench486SbarDrawFrags (void);
 void Bench486SbarDrawPic (int x, int y, qpic_t *pic);
 void Bench486SbarDrawScoreboard (void);
+void Bench486SbarSoloDrawString (int x, int y, char *string);
 void Bench486SbarDrawNum (int x, int y, int number, int digits, int color);
 void Bench486SbarDrawFace (void);
 void Bench486SbarFacePic (int x, int y, qpic_t *pic);

@@ -15,17 +15,19 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-405 directly reachable renderer entries and 32 directly reachable C
-dependencies: 373/405, or 92.1%, are assembly-owned by reachable-symbol count.
+405 directly reachable renderer entries and 30 directly reachable C
+dependencies: 375/405, or 92.6%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
 size or complexity. The full intermission deathmatch scoreboard, normal
 intermission overlay, finale overlay, pause plaque, and loading plaque now select
-assembly in the default i486 profile. Their focused C/ASM parity fixtures and
-strict i486 release gates pass. See the [scoreboard ledger](ledger/2026-10-18-sbar-deathmatch-assembly-port.md),
+assembly in the default i486 profile. The classic solo scoreboard formatter
+and dispatcher now do as well. Their focused C/ASM parity fixtures and strict
+i486 release gates pass. See the [deathmatch scoreboard ledger](ledger/2026-10-18-sbar-deathmatch-assembly-port.md),
 [intermission overlay ledger](ledger/2026-10-18-sbar-intermission-assembly-port.md),
 [finale overlay ledger](ledger/2026-10-18-sbar-finale-assembly-port.md), and
-[pause/loading overlay ledger](ledger/2026-10-19-screen-pause-loading-assembly-port.md).
+[pause/loading overlay ledger](ledger/2026-10-19-screen-pause-loading-assembly-port.md)
+and [solo scoreboard ledger](ledger/2026-10-19-sbar-solo-scoreboard-assembly-port.md).
 The widescreen mini-deathmatch overlay also selects assembly and its focused
 eight-case C/ASM fixture and strict i486 gate pass.
 Console scrollback insertion and linefeed now also select assembly; their

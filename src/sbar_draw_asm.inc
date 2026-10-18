@@ -43,6 +43,12 @@
 #endif
 
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_SCOREBOARD_DRAW_STRING _Bench486SbarSoloDrawString
+#else
+#define SBAR_SCOREBOARD_DRAW_STRING _Sbar_DrawString
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #define SBAR_INTERMISSION_CACHEPIC _Bench486SbarIntermissionCachePic
 #define SBAR_INTERMISSION_PIC _Bench486SbarIntermissionDrawPic
 #define SBAR_INTERMISSION_TRANSPIC _Bench486SbarIntermissionDrawTransPic
@@ -102,6 +108,7 @@
 .extern SBAR_FACE_FILL
 .extern _Sbar_SortFrags
 .extern _Sbar_itoa
+.extern SBAR_SCOREBOARD_DRAW_STRING
 .extern _sb_nums
 .extern _sb_colon
 .extern _sb_slash
@@ -1106,6 +1113,186 @@ _Sbar_FinaleOverlay_asm486:
 	popl	%ebp
 	ret
 
+/* The C solo scoreboard formats the same four text rows before drawing.
+   Keep the decimal conversion on the existing i486 Sbar_itoa path and apply
+   Sbar_DrawString's coordinate transform here. */
+.macro SBAR_SOLO_COPY_TEXT label,length
+	movl	$\label,%esi
+	movl	$\length,%ecx
+	cld
+	rep movsb
+.endm
+
+.macro SBAR_SOLO_APPEND_WIDTH3 value
+	subl	$4,%esp
+	leal	-96(%ebp),%edx
+	pushl	%edx
+	pushl	\value
+	call	_Sbar_itoa
+	addl	$12,%esp
+	movl	%eax,%ecx
+	movl	$3,%edx
+	subl	%ecx,%edx
+	jle	.Lsbar_solo_width_done\@
+	movl	$32,%eax
+.Lsbar_solo_width_loop\@:
+	movb	%al,(%edi)
+	incl	%edi
+	decl	%edx
+	jne	.Lsbar_solo_width_loop\@
+.Lsbar_solo_width_done\@:
+	leal	-96(%ebp),%esi
+	cld
+	rep movsb
+.endm
+
+.macro SBAR_SOLO_APPEND_NUMBER value
+	subl	$4,%esp
+	leal	-96(%ebp),%edx
+	pushl	%edx
+	pushl	\value
+	call	_Sbar_itoa
+	addl	$12,%esp
+	movl	%eax,%ecx
+	leal	-96(%ebp),%esi
+	cld
+	rep movsb
+.endm
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+.macro SBAR_SOLO_DRAW_STRING_CALL x,y,string
+	movl	\x,%eax
+	cmpl	$SBAR_GAME_DEATHMATCH,_cl+SBAR_CL_GAMETYPE_OFFSET
+	je	.Lsbar_solo_string_positioned\@
+	movl	_vid+SBAR_VID_WIDTH_OFFSET,%edx
+	subl	$320,%edx
+	sarl	$1,%edx
+	addl	%edx,%eax
+.Lsbar_solo_string_positioned\@:
+	movl	_vid+SBAR_VID_HEIGHT_OFFSET,%ecx
+	subl	$SBAR_HEIGHT,%ecx
+	addl	\y,%ecx
+	leal	\string,%edx
+	pushl	%edx
+	pushl	%ecx
+	pushl	%eax
+	call	SBAR_SCOREBOARD_DRAW_STRING
+	addl	$12,%esp
+.endm
+#else
+.macro SBAR_SOLO_DRAW_STRING_CALL x,y,string
+	leal	\string,%edx
+	pushl	%edx
+	pushl	\y
+	pushl	\x
+	call	SBAR_SCOREBOARD_DRAW_STRING
+	addl	$12,%esp
+.endm
+#endif
+
+.text
+.p2align 2
+.globl _Sbar_SoloScoreboard
+.globl _Sbar_SoloScoreboard_asm486
+_Sbar_SoloScoreboard:
+_Sbar_SoloScoreboard_asm486:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$128,%esp
+
+	/* "Monsters:%3i /%3i" */
+	leal	-80(%ebp),%edi
+	SBAR_SOLO_COPY_TEXT .Lsbar_solo_monsters,9
+	SBAR_SOLO_APPEND_WIDTH3 _cl+SBAR_CL_STATS_OFFSET+(SBAR_STAT_MONSTERS*4)
+	SBAR_SOLO_COPY_TEXT .Lsbar_solo_separator,2
+	SBAR_SOLO_APPEND_WIDTH3 _cl+SBAR_CL_STATS_OFFSET+(SBAR_STAT_TOTAL_MONSTERS*4)
+	movb	$0,(%edi)
+	SBAR_SOLO_DRAW_STRING_CALL $8,$4,-80(%ebp)
+
+	/* "Secrets :%3i /%3i" */
+	leal	-80(%ebp),%edi
+	SBAR_SOLO_COPY_TEXT .Lsbar_solo_secrets,9
+	SBAR_SOLO_APPEND_WIDTH3 _cl+SBAR_CL_STATS_OFFSET+(SBAR_STAT_SECRETS*4)
+	SBAR_SOLO_COPY_TEXT .Lsbar_solo_separator,2
+	SBAR_SOLO_APPEND_WIDTH3 _cl+SBAR_CL_STATS_OFFSET+(SBAR_STAT_TOTAL_SECRETS*4)
+	movb	$0,(%edi)
+	SBAR_SOLO_DRAW_STRING_CALL $8,$12,-80(%ebp)
+
+	/* Convert cl.time with C's truncation-toward-zero rule, then use the
+	   same signed integer division and remainder as the reference routine. */
+	fnstcw	-100(%ebp)
+	movzwl	-100(%ebp),%eax
+	orl	$0x0c00,%eax
+	movw	%ax,-102(%ebp)
+	fldcw	-102(%ebp)
+	fldl	_cl+SBAR_CL_TIME_OFFSET
+	fistpl	-104(%ebp)
+	fldcw	-100(%ebp)
+	movl	-104(%ebp),%eax
+	cltd
+	movl	$60,%ecx
+	idivl	%ecx
+	movl	%eax,-108(%ebp)		/* minutes */
+	movl	%edx,-112(%ebp)		/* seconds */
+	movl	%edx,%eax
+	cltd
+	movl	$10,%ecx
+	idivl	%ecx
+	movl	%eax,-116(%ebp)		/* tens */
+	movl	%edx,-120(%ebp)		/* units */
+
+	/* "Time :%3i:%i%i" */
+	leal	-80(%ebp),%edi
+	SBAR_SOLO_COPY_TEXT .Lsbar_solo_time,6
+	SBAR_SOLO_APPEND_WIDTH3 -108(%ebp)
+	SBAR_SOLO_COPY_TEXT .Lsbar_solo_colon,1
+	SBAR_SOLO_APPEND_NUMBER -116(%ebp)
+	SBAR_SOLO_APPEND_NUMBER -120(%ebp)
+	movb	$0,(%edi)
+	SBAR_SOLO_DRAW_STRING_CALL $184,$4,-80(%ebp)
+
+	/* Center the level title by its visible character count. */
+	leal	_cl+SBAR_CL_LEVELNAME_OFFSET,%esi
+	xorl	%ecx,%ecx
+.Lsbar_solo_level_length:
+	cmpb	$0,(%esi,%ecx)
+	je	.Lsbar_solo_level_position
+	incl	%ecx
+	jmp	.Lsbar_solo_level_length
+.Lsbar_solo_level_position:
+	movl	$232,%eax
+	leal	(,%ecx,4),%edx
+	subl	%edx,%eax
+	SBAR_SOLO_DRAW_STRING_CALL %eax,$12,_cl+SBAR_CL_LEVELNAME_OFFSET
+
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.globl _Sbar_DrawScoreboard
+.globl _Sbar_DrawScoreboard_asm486
+_Sbar_DrawScoreboard:
+_Sbar_DrawScoreboard_asm486:
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$12,%esp
+	call	_Sbar_SoloScoreboard_asm486
+	addl	$12,%esp
+	cmpl	$SBAR_GAME_DEATHMATCH,_cl+SBAR_CL_GAMETYPE_OFFSET
+	jne	.Lsbar_scoreboard_return
+	subl	$12,%esp
+	call	_Sbar_DeathmatchOverlay_asm486
+	addl	$12,%esp
+.Lsbar_scoreboard_return:
+	leave
+	ret
+
 .section .rodata
 .p2align 2
 .Lsbar_deathmatch_ranking:
@@ -1116,6 +1303,16 @@ _Sbar_FinaleOverlay_asm486:
 	.asciz	"gfx/inter.lmp"
 .Lsbar_finale_path:
 	.asciz	"gfx/finale.lmp"
+.Lsbar_solo_monsters:
+	.ascii	"Monsters:"
+.Lsbar_solo_secrets:
+	.ascii	"Secrets :"
+.Lsbar_solo_time:
+	.ascii	"Time :"
+.Lsbar_solo_separator:
+	.ascii	" /"
+.Lsbar_solo_colon:
+	.ascii	":"
 .Lsbar_face_teamplay_three:
 	.float	3.0
 .Lsbar_face_teamplay_seven:
@@ -1127,6 +1324,7 @@ _Sbar_FinaleOverlay_asm486:
 #undef SBAR_DRAW_FRAGS
 #undef SBAR_DRAW_PIC
 #undef SBAR_DRAW_SCOREBOARD
+#undef SBAR_SCOREBOARD_DRAW_STRING
 #undef SBAR_DRAW_NUM
 #undef SBAR_DRAW_FACE
 #undef SBAR_DRAW_MINI_DEATHMATCH

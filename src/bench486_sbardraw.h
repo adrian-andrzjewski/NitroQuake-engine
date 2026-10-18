@@ -33,7 +33,8 @@ enum
 	BENCH486_SBAR_DRAW_SCOREBOARD,
 	BENCH486_SBAR_DRAW_NUM,
 	BENCH486_SBAR_DRAW_FACE,
-	BENCH486_SBAR_DRAW_MINI
+	BENCH486_SBAR_DRAW_MINI,
+	BENCH486_SBAR_DRAW_STRING
 };
 
 typedef struct
@@ -146,6 +147,22 @@ void Bench486SbarDrawPic (int x, int y, qpic_t *pic)
 void Bench486SbarDrawScoreboard (void)
 {
 	Bench486SbarDrawRecord (BENCH486_SBAR_DRAW_SCOREBOARD, 0, 0, 0, 0, 0);
+}
+
+void Bench486SbarSoloDrawString (int x, int y, char *string)
+{
+	unsigned long hash;
+	int length;
+	hash = 2166136261UL;
+	length = 0;
+	while (string[length])
+	{
+		hash ^= (unsigned char)string[length++];
+		hash *= 16777619UL;
+	}
+	Bench486SbarDrawRecord (BENCH486_SBAR_DRAW_STRING,
+			(unsigned long)x, (unsigned long)y, hash,
+			(unsigned long)length, 0);
 }
 
 void Bench486SbarDrawNum (int x, int y, int number, int digits, int color)
@@ -1656,6 +1673,135 @@ static void Bench486SbarFinaleCases (void)
 				"sbar finale overlay 6 exact C/ASM centering/state/ABI cases PASS\n");
 }
 
+typedef struct
+{
+	const char *name;
+	int gametype;
+	unsigned width;
+	unsigned height;
+	double time;
+	int monsters;
+	int total_monsters;
+	int secrets;
+	int total_secrets;
+	const char *levelname;
+} bench486_sbar_solo_case_t;
+
+typedef struct
+{
+	int gametype;
+	unsigned width;
+	unsigned height;
+	double time;
+	int monsters;
+	int total_monsters;
+	int secrets;
+	int total_secrets;
+	char levelname[40];
+} bench486_sbar_solo_saved_t;
+
+static void Bench486SbarSoloInstall (
+		const bench486_sbar_solo_case_t *test_case)
+{
+	cl.gametype = test_case->gametype;
+	vid.width = test_case->width;
+	vid.height = test_case->height;
+	cl.time = test_case->time;
+	cl.stats[STAT_MONSTERS] = test_case->monsters;
+	cl.stats[STAT_TOTALMONSTERS] = test_case->total_monsters;
+	cl.stats[STAT_SECRETS] = test_case->secrets;
+	cl.stats[STAT_TOTALSECRETS] = test_case->total_secrets;
+	Q_memset (cl.levelname, 0, sizeof (cl.levelname));
+	strncpy (cl.levelname, test_case->levelname, sizeof (cl.levelname) - 1);
+}
+
+static void Bench486SbarSoloScoreboardCases (void)
+{
+	static const bench486_sbar_solo_case_t cases[] = {
+		{ "wide centered counters", 0, 640, 480, 3661.25,
+			12, 200, 3, 30, "E1M1: The Slipgate Complex" },
+		{ "deathmatch negative time", GAME_DEATHMATCH, 320, 200, -61.75,
+			-1, 12, 101, -2, "" },
+		{ "wide long counters", 0, 800, 600, 359999.875,
+			1000, 1000, 999, 999,
+			"The Very Long Level Name Checks Centering" },
+		{ "negative fractional time", 0, 320, 200, -1.75,
+			0, 0, 0, 0, "Epilogue" }
+	};
+	bench486_sbar_solo_saved_t saved;
+	bench486_sbar_draw_snapshot_t c, a;
+	int i, event, passed, failures_before;
+
+	failures_before = bench486_memory_failures;
+	saved.gametype = cl.gametype;
+	saved.width = vid.width;
+	saved.height = vid.height;
+	saved.time = cl.time;
+	saved.monsters = cl.stats[STAT_MONSTERS];
+	saved.total_monsters = cl.stats[STAT_TOTALMONSTERS];
+	saved.secrets = cl.stats[STAT_SECRETS];
+	saved.total_secrets = cl.stats[STAT_TOTALSECRETS];
+	Q_memcpy (saved.levelname, cl.levelname, sizeof (saved.levelname));
+	for (i = 0; i < sizeof (cases) / sizeof (cases[0]); i++)
+	{
+		Bench486SbarSoloInstall (&cases[i]);
+		Bench486SbarDrawResetCapture ();
+		if (cases[i].gametype == GAME_DEATHMATCH)
+			Sbar_SoloScoreboard_C ();
+		else
+			Sbar_DrawScoreboard_C ();
+		Bench486SbarDrawCaptureSnapshot (&c);
+
+		Bench486SbarSoloInstall (&cases[i]);
+		Bench486SbarDrawResetCapture ();
+		if (cases[i].gametype == GAME_DEATHMATCH)
+			Sbar_SoloScoreboard_asm486 ();
+		else
+			Sbar_DrawScoreboard_asm486 ();
+		Bench486SbarDrawCaptureSnapshot (&a);
+
+		passed = Bench486SbarDrawSnapshotsMatch (&c, &a) &&
+				c.event_count == 4;
+		if (!passed)
+		{
+			bench486_memory_failures++;
+			Bench486ReportPrintf (
+					"sbar solo scoreboard %s C/ASM events %d/%d FAIL\n",
+					cases[i].name, c.event_count, a.event_count);
+			for (event = 0; event < c.event_count && event < a.event_count; event++)
+				if (c.events[event].kind != a.events[event].kind ||
+						Q_memcmp ((void *)c.events[event].args,
+							(void *)a.events[event].args, sizeof (c.events[event].args)))
+				{
+					Bench486ReportPrintf (
+							"  first diff event %d kind %d/%d xy %lu,%lu/%lu,%lu hash %08lx/%08lx length %lu/%lu\n",
+							event, c.events[event].kind, a.events[event].kind,
+							c.events[event].args[0], c.events[event].args[1],
+							a.events[event].args[0], a.events[event].args[1],
+							c.events[event].args[2], a.events[event].args[2],
+							c.events[event].args[3], a.events[event].args[3]);
+					break;
+				}
+		}
+		else
+			Bench486ReportPrintf (
+					"sbar solo scoreboard %s exact C/ASM text/position PASS\n",
+					cases[i].name);
+	}
+	cl.gametype = saved.gametype;
+	vid.width = saved.width;
+	vid.height = saved.height;
+	cl.time = saved.time;
+	cl.stats[STAT_MONSTERS] = saved.monsters;
+	cl.stats[STAT_TOTALMONSTERS] = saved.total_monsters;
+	cl.stats[STAT_SECRETS] = saved.secrets;
+	cl.stats[STAT_TOTALSECRETS] = saved.total_secrets;
+	Q_memcpy (cl.levelname, saved.levelname, sizeof (saved.levelname));
+	if (bench486_memory_failures == failures_before)
+		Bench486ReportPrintf (
+				"sbar solo scoreboard 4 exact C/ASM formatting/position cases PASS\n");
+}
+
 static void Bench486SbarDrawCases (void)
 {
 	static const bench486_sbar_draw_case_t cases[] = {
@@ -1704,6 +1850,7 @@ static void Bench486SbarDrawCases (void)
 	Bench486SbarDeathmatchCases ();
 	Bench486SbarIntermissionCases ();
 	Bench486SbarFinaleCases ();
+	Bench486SbarSoloScoreboardCases ();
 }
 
 #endif /* BENCH486 && ASM486_SBAR_DRAW_FIXTURE */

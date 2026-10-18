@@ -360,6 +360,10 @@ void SBAR_C_ORACLE_NAME(Sbar_DrawString) (int x, int y, char *str)
 		return;
 	}
 #endif
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+	Bench486SbarSoloDrawString (x, y, str);
+	return;
+#endif
 	Draw_String (x, y, str);
 }
 #endif
@@ -530,17 +534,33 @@ void Sbar_UpdateScoreboard (void)
 Sbar_SoloScoreboard
 ===============
 */
-void Sbar_SoloScoreboard (void)
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+#define SBAR_SOLO_DRAW_STRING Sbar_DrawString_C
+#else
+#define SBAR_SOLO_DRAW_STRING Sbar_DrawString
+#endif
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_SOLO_SCOREBOARD_C_ENTRY Sbar_SoloScoreboard_C
+#define SBAR_DRAW_SCOREBOARD_C_ENTRY Sbar_DrawScoreboard_C
+#define SBAR_SOLO_SCOREBOARD_CALL Sbar_SoloScoreboard_C
+#else
+#define SBAR_SOLO_SCOREBOARD_C_ENTRY Sbar_SoloScoreboard
+#define SBAR_DRAW_SCOREBOARD_C_ENTRY Sbar_DrawScoreboard
+#define SBAR_SOLO_SCOREBOARD_CALL Sbar_SoloScoreboard
+#endif
+
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_SOLO_SCOREBOARD_C_ENTRY (void)
 {
 	char	str[80];
 	int		minutes, seconds, tens, units;
 	int		l;
 
 	sprintf (str,"Monsters:%3i /%3i", cl.stats[STAT_MONSTERS], cl.stats[STAT_TOTALMONSTERS]);
-	Sbar_DrawString (8, 4, str);
+	SBAR_SOLO_DRAW_STRING (8, 4, str);
 
 	sprintf (str,"Secrets :%3i /%3i", cl.stats[STAT_SECRETS], cl.stats[STAT_TOTALSECRETS]);
-	Sbar_DrawString (8, 12, str);
+	SBAR_SOLO_DRAW_STRING (8, 12, str);
 
 // time
 	minutes = cl.time / 60;
@@ -548,23 +568,30 @@ void Sbar_SoloScoreboard (void)
 	tens = seconds / 10;
 	units = seconds - 10*tens;
 	sprintf (str,"Time :%3i:%i%i", minutes, tens, units);
-	Sbar_DrawString (184, 4, str);
+	SBAR_SOLO_DRAW_STRING (184, 4, str);
 
 // draw level name
 	l = strlen (cl.levelname);
-	Sbar_DrawString (232 - l*4, 12, cl.levelname);
+	SBAR_SOLO_DRAW_STRING (232 - l*4, 12, cl.levelname);
 }
+#endif
+#undef SBAR_SOLO_DRAW_STRING
 
 /*
 ===============
 Sbar_DrawScoreboard
 ===============
 */
-void Sbar_DrawScoreboard (void)
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_DRAW_SCOREBOARD_C_ENTRY (void)
 {
-	Sbar_SoloScoreboard ();
+	SBAR_SOLO_SCOREBOARD_CALL ();
 	if (cl.gametype == GAME_DEATHMATCH)
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW)
+		Sbar_DeathmatchOverlay_C ();
+#else
 		Sbar_DeathmatchOverlay ();
+#endif
 #if 0
 	int		i, j, c;
 	int		x, y;
@@ -611,6 +638,11 @@ void Sbar_DrawScoreboard (void)
 	}
 #endif
 }
+#endif
+
+#undef SBAR_SOLO_SCOREBOARD_C_ENTRY
+#undef SBAR_DRAW_SCOREBOARD_C_ENTRY
+#undef SBAR_SOLO_SCOREBOARD_CALL
 
 //=============================================================================
 
