@@ -8,6 +8,8 @@
 #define SBAR_DRAW_NUM _Bench486SbarDrawNum
 #define SBAR_DRAW_FACE _Bench486SbarDrawFace
 #define SBAR_DRAW_MINI_DEATHMATCH _Bench486SbarDrawMiniDeathmatch
+#define SBAR_DEATHMATCH_CACHEPIC _Bench486SbarDeathmatchCachePic
+#define SBAR_DEATHMATCH_DRAWPIC _Bench486SbarDeathmatchDrawPic
 #elif defined(ASM486_SBAR_INVENTORY)
 #define SBAR_DRAW_TILE_CLEAR _Draw_TileClear
 #define SBAR_DRAW_INVENTORY _Sbar_DrawInventory_asm486
@@ -21,6 +23,8 @@
 #define SBAR_DRAW_NUM _Sbar_DrawNum
 #define SBAR_DRAW_FACE _Sbar_DrawFace
 #define SBAR_DRAW_MINI_DEATHMATCH _Sbar_MiniDeathmatchOverlay
+#define SBAR_DEATHMATCH_CACHEPIC _Draw_CachePic
+#define SBAR_DEATHMATCH_DRAWPIC _M_DrawPic
 #else
 #define SBAR_DRAW_TILE_CLEAR _Draw_TileClear
 #define SBAR_DRAW_INVENTORY _Sbar_DrawInventory
@@ -34,6 +38,8 @@
 #define SBAR_DRAW_NUM _Sbar_DrawNum
 #define SBAR_DRAW_FACE _Sbar_DrawFace
 #define SBAR_DRAW_MINI_DEATHMATCH _Sbar_MiniDeathmatchOverlay
+#define SBAR_DEATHMATCH_CACHEPIC _Draw_CachePic
+#define SBAR_DEATHMATCH_DRAWPIC _M_DrawPic
 #endif
 
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
@@ -91,6 +97,8 @@
 .extern SBAR_MINI_FILL
 .extern SBAR_MINI_CHARACTER
 .extern SBAR_MINI_STRING
+.extern SBAR_DEATHMATCH_CACHEPIC
+.extern SBAR_DEATHMATCH_DRAWPIC
 
 .macro SBAR_CALL_PIC x,y,pic
 	subl	$12,%esp
@@ -712,8 +720,180 @@ _Sbar_MiniDeathmatchOverlay_asm486:
 	popl	%ebp
 	ret
 
+/* Full intermission scoreboard from src/sbar.c:Sbar_DeathmatchOverlay. */
+.globl _Sbar_DeathmatchOverlay
+.globl _Sbar_DeathmatchOverlay_asm486
+_Sbar_DeathmatchOverlay:
+_Sbar_DeathmatchOverlay_asm486:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$48,%esp
+
+	movl	$1,_scr_copyeverything
+	movl	$0,_scr_fullupdate
+
+	/* Cache and center gfx/ranking.lmp using C's truncation toward zero. */
+	subl	$12,%esp
+	pushl	$.Lsbar_deathmatch_ranking
+	call	SBAR_DEATHMATCH_CACHEPIC
+	addl	$16,%esp
+	movl	%eax,-16(%ebp)
+	movl	$320,%edx
+	subl	SBAR_QPIC_WIDTH_OFFSET(%eax),%edx
+	movl	%edx,%eax
+	cltd
+	movl	$2,%ecx
+	idivl	%ecx
+	subl	$12,%esp
+	pushl	-16(%ebp)
+	pushl	$8
+	pushl	%eax
+	call	SBAR_DEATHMATCH_DRAWPIC
+	addl	$24,%esp
+
+	call	_Sbar_SortFrags
+
+	movl	_vid+SBAR_VID_WIDTH_OFFSET,%eax
+	subl	$320,%eax
+	shrl	$1,%eax
+	addl	$80,%eax
+	movl	%eax,-20(%ebp)		/* x */
+	movl	$40,-24(%ebp)		/* y */
+	movl	$0,-28(%ebp)		/* i */
+	movl	_scoreboardlines,%eax
+	movl	%eax,-32(%ebp)		/* l */
+
+.Lsbar_deathmatch_player:
+	movl	-28(%ebp),%eax
+	cmpl	-32(%ebp),%eax
+	jge	.Lsbar_deathmatch_return
+	movl	_fragsort(,%eax,4),%ebx
+	movl	_cl+SBAR_CL_SCORES_OFFSET,%esi
+	imull	$SBAR_SCOREBOARD_SIZE,%ebx,%edx
+	addl	%edx,%esi
+	cmpb	$0,SBAR_SCOREBOARD_NAME_OFFSET(%esi)
+	je	.Lsbar_deathmatch_next
+
+	/* Sbar_ColorForMap adds eight to each four-bit player color. */
+	movl	SBAR_SCOREBOARD_COLORS_OFFSET(%esi),%eax
+	andl	$0xf0,%eax
+	addl	$8,%eax
+	movl	%eax,-36(%ebp)		/* top */
+	movl	SBAR_SCOREBOARD_COLORS_OFFSET(%esi),%eax
+	andl	$15,%eax
+	shll	$4,%eax
+	addl	$8,%eax
+	movl	%eax,-40(%ebp)		/* bottom */
+
+	/* Draw_Fill(x, y, 40, 4, top). */
+	subl	$12,%esp
+	pushl	-36(%ebp)
+	pushl	$4
+	pushl	$40
+	pushl	-24(%ebp)
+	pushl	-20(%ebp)
+	call	SBAR_MINI_FILL
+	addl	$32,%esp
+
+	/* Draw_Fill(x, y+4, 40, 4, bottom). */
+	subl	$12,%esp
+	pushl	-40(%ebp)
+	pushl	$4
+	pushl	$40
+	movl	-24(%ebp),%eax
+	addl	$4,%eax
+	pushl	%eax
+	pushl	-20(%ebp)
+	call	SBAR_MINI_FILL
+	addl	$32,%esp
+
+	/* Match the first three characters of sprintf(num, "%3i", frags). */
+	subl	$8,%esp
+	leal	-60(%ebp),%eax
+	pushl	%eax
+	pushl	SBAR_SCOREBOARD_FRAGS_OFFSET(%esi)
+	call	_Sbar_itoa
+	addl	$16,%esp
+	movl	%eax,-44(%ebp)		/* number length */
+	movl	$0,-48(%ebp)		/* character index */
+.Lsbar_deathmatch_frag:
+	movl	-44(%ebp),%eax
+	cmpl	$3,%eax
+	jge	.Lsbar_deathmatch_frag_unpadded
+	movl	$3,%edx
+	subl	%eax,%edx			/* leading spaces */
+	movl	-48(%ebp),%ecx
+	cmpl	%edx,%ecx
+	jge	.Lsbar_deathmatch_frag_digit
+	movl	$32,%eax
+	jmp	.Lsbar_deathmatch_frag_ready
+.Lsbar_deathmatch_frag_digit:
+	subl	%edx,%ecx
+	movsbl	-60(%ebp,%ecx),%eax
+	jmp	.Lsbar_deathmatch_frag_ready
+.Lsbar_deathmatch_frag_unpadded:
+	movl	-48(%ebp),%ecx
+	movsbl	-60(%ebp,%ecx),%eax
+.Lsbar_deathmatch_frag_ready:
+	movl	-48(%ebp),%edx
+	shll	$3,%edx
+	addl	$8,%edx
+	addl	-20(%ebp),%edx
+	subl	$12,%esp
+	pushl	%eax
+	pushl	-24(%ebp)
+	pushl	%edx
+	call	SBAR_MINI_CHARACTER
+	addl	$24,%esp
+	incl	-48(%ebp)
+	cmpl	$3,-48(%ebp)
+	jl	.Lsbar_deathmatch_frag
+
+	/* Mark the local player with the original glyph at x-8. */
+	movl	_cl+SBAR_CL_VIEWENTITY_OFFSET,%eax
+	decl	%eax
+	cmpl	%ebx,%eax
+	jne	.Lsbar_deathmatch_name
+	subl	$12,%esp
+	pushl	$12
+	pushl	-24(%ebp)
+	movl	-20(%ebp),%eax
+	subl	$8,%eax
+	pushl	%eax
+	call	SBAR_MINI_CHARACTER
+	addl	$24,%esp
+
+.Lsbar_deathmatch_name:
+	subl	$12,%esp
+	leal	SBAR_SCOREBOARD_NAME_OFFSET(%esi),%eax
+	pushl	%eax
+	pushl	-24(%ebp)
+	movl	-20(%ebp),%eax
+	addl	$64,%eax
+	pushl	%eax
+	call	SBAR_MINI_STRING
+	addl	$24,%esp
+	addl	$10,-24(%ebp)		/* y += 10 */
+
+.Lsbar_deathmatch_next:
+	incl	-28(%ebp)
+	jmp	.Lsbar_deathmatch_player
+
+.Lsbar_deathmatch_return:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
 .section .rodata
 .p2align 2
+.Lsbar_deathmatch_ranking:
+	.asciz	"gfx/ranking.lmp"
 .Lsbar_face_teamplay_three:
 	.float	3.0
 .Lsbar_face_teamplay_seven:

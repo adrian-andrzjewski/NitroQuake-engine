@@ -4,7 +4,7 @@
 
 #include "asm_sbar.h"
 
-#define BENCH486_SBAR_CAPTURE_CAPACITY 64
+#define BENCH486_SBAR_CAPTURE_CAPACITY 128
 
 typedef struct
 {

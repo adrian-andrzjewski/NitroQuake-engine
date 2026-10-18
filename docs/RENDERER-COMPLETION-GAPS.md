@@ -15,21 +15,24 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-18 full assembly-profile BENCH ownership report contains
-379 directly reachable renderer entries and 53 directly reachable C
-dependencies, or about 86.0% assembly-owned by reachable-symbol count. This is
-only a rough, profile-specific progress estimate: the inventory reports 67
-unresolved direct callees, one selected setter target set, one selected
-indirect-target set, and `completeCallGraph=false`; it does not weight routines
-by size or complexity. The widescreen mini-deathmatch overlay now selects
-assembly and its focused eight-case C/ASM fixture and strict i486 gate pass.
+365 directly reachable renderer entries and 49 directly reachable C
+dependencies: 316/365, or 86.6%, are assembly-owned by reachable-symbol count.
+This is only a rough, profile-specific progress estimate: the inventory has 79
+unresolved direct callees and `completeCallGraph=false`; it does not weight
+routines by size or complexity. The full intermission deathmatch scoreboard
+now selects assembly in the default i486 profile. Its six exact C/ASM cases,
+the existing status-bar/face cases, and the strict i486 gate pass; see the
+[full scoreboard port ledger](ledger/2026-10-18-sbar-deathmatch-assembly-port.md).
+The widescreen mini-deathmatch overlay also selects assembly and its focused
+eight-case C/ASM fixture and strict i486 gate pass.
 Console scrollback insertion and linefeed now also select assembly; their
 focused fixture passes nine exact C/ASM cases across four x87 rounding modes,
 plus direct linefeed parity and the strict linked i486 audit. See the
 [console print port ledger](ledger/2026-10-18-console-print-assembly-port.md).
 The last full-profile all-suite DOSBox run exceeded its 180-second limit during
-surface-cache experiments. The focused console and status-bar fixtures passed
-independently; a complete all-suite rerun after these slices remains open. See
-the [mini-scoreboard port ledger](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md).
+surface-cache experiments. Focused console and status-bar fixtures pass
+independently; a complete all-suite rerun remains open. See the
+[mini-scoreboard port ledger](ledger/2026-10-18-sbar-mini-deathmatch-assembly-port.md).
 The surface-cache lifecycle, VGA direct-rect, console-resize, per-frame
 console-dispatch, and center-string-dispatch entries added below also pass
 their direct fixtures and focused i486 executable gates.

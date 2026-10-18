@@ -62,6 +62,8 @@ correctness result for this port.
 | --- | --- | --- | --- |
 | `src/sbar.c:Sbar_MiniDeathmatchOverlay` | `src/sbar_draw_asm.inc:Sbar_MiniDeathmatchOverlay` | Eight exact score-order, draw-event, state and ABI cases | Focused strict BENCH object, linked executable, startup and provider audits pass |
 
-This ports the widescreen mini-scoreboard routine only. The face, full
-deathmatch scoreboard, intermission and finale paths remain separate work.
+This ports the widescreen mini-scoreboard routine. The full intermission
+deathmatch score rendering is covered separately in the
+[full scoreboard port ledger](2026-10-18-sbar-deathmatch-assembly-port.md).
+The `Sbar_IntermissionOverlay` dispatcher and finale overlay remain C paths.
 The fixtures measure correctness, not FPS.

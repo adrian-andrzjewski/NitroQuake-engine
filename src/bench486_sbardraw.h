@@ -12,6 +12,7 @@ extern qboolean hipnotic, rogue;
 extern int sb_lines, sb_updates;
 extern qboolean sb_showscores;
 extern int scr_copyeverything;
+extern int scr_fullupdate;
 extern float scr_con_current;
 extern cvar_t teamplay;
 extern qpic_t *sb_faces[7][2];
@@ -209,6 +210,35 @@ void Bench486SbarMiniString (int x, int y, char *string)
 				(unsigned long)string);
 	else
 		Draw_String (x, y, string);
+}
+
+static qpic_t bench486_sbar_deathmatch_pic;
+static int bench486_sbar_deathmatch_cache_calls;
+static int bench486_sbar_deathmatch_bad_cache_path;
+static int bench486_sbar_deathmatch_bad_pic;
+
+qpic_t *Bench486SbarDeathmatchCachePic (char *path)
+{
+	static const char expected[] = "gfx/ranking.lmp";
+	int i;
+	bench486_sbar_deathmatch_cache_calls++;
+	if (!path)
+		bench486_sbar_deathmatch_bad_cache_path = 1;
+	else
+	{
+		for (i = 0; expected[i] && path[i] == expected[i]; i++)
+			;
+		if (expected[i] || path[i])
+			bench486_sbar_deathmatch_bad_cache_path = 1;
+	}
+	return &bench486_sbar_deathmatch_pic;
+}
+
+void Bench486SbarDeathmatchDrawPic (int x, int y, qpic_t *pic)
+{
+	if (pic != &bench486_sbar_deathmatch_pic)
+		bench486_sbar_deathmatch_bad_pic = 1;
+	Bench486SbarCapture (SBAR_CAPTURE_PIC, x, y, (unsigned long)pic);
 }
 
 static void Bench486SbarDrawResetCapture (void)
@@ -858,6 +888,258 @@ static void Bench486SbarMiniDeathmatchCases (void)
 				"sbar mini-deathmatch 8 exact C/ASM scoreboard/draw/state/ABI cases FAIL\n");
 }
 
+typedef struct
+{
+	const char *name;
+	int width;
+	int picture_width;
+	int maxclients;
+	int viewentity;
+	unsigned present_mask;
+	int frag_pattern;
+	int expected_lines;
+	int expected_picture_x;
+	int expected_score_x;
+} bench486_sbar_deathmatch_case_t;
+
+typedef struct
+{
+	int copy_everything;
+	int fullupdate;
+	int scoreboardlines;
+	int fragsort[MAX_SCOREBOARD];
+	int event_count;
+	int overflow;
+	int cache_calls;
+	int bad_cache_path;
+	int bad_pic;
+	unsigned abi;
+	bench486_sbar_capture_t events[BENCH486_SBAR_CAPTURE_CAPACITY];
+} bench486_sbar_deathmatch_result_t;
+
+static bench486_sbar_deathmatch_result_t bench486_sbar_deathmatch_c;
+static bench486_sbar_deathmatch_result_t bench486_sbar_deathmatch_asm;
+
+static void Bench486SbarDeathmatchCallC (void)
+{
+	Sbar_DeathmatchOverlay_C ();
+}
+
+static void Bench486SbarDeathmatchCallAsm (void)
+{
+	Sbar_DeathmatchOverlay_asm486 ();
+}
+
+static void Bench486SbarDeathmatchInstall (
+		const bench486_sbar_deathmatch_case_t *test_case)
+{
+	static const int format_frags[MAX_SCOREBOARD] = {
+		-9999, -1000, -100, -1, 0, 1, 99, 100,
+		999, 1234, 321, -1234, 777, -777, 42, -42
+	};
+	int i;
+	Q_memset (bench486_sbar_mini_scores, 0,
+			sizeof(bench486_sbar_mini_scores));
+	for (i = 0; i < test_case->maxclients; i++)
+	{
+		scoreboard_t *score;
+		score = &bench486_sbar_mini_scores[i];
+		if (test_case->present_mask & (1U << i))
+		{
+			score->name[0] = 'P';
+			score->name[1] = (char)('A' + i);
+			score->name[2] = 0;
+		}
+		if (test_case->frag_pattern == 0)
+			score->frags = i * 31 - 73;
+		else if (test_case->frag_pattern == 1)
+			score->frags = (test_case->maxclients - i) * 17;
+		else if (test_case->frag_pattern == 2)
+			score->frags = (i % 3) * 10 - 10;
+		else
+			score->frags = format_frags[i];
+		score->colors = ((i * 53) & 0xf0) | ((i * 9) & 15);
+	}
+
+	vid.width = test_case->width;
+	cl.maxclients = test_case->maxclients;
+	cl.viewentity = test_case->viewentity;
+	cl.gametype = GAME_DEATHMATCH;
+	cl.scores = bench486_sbar_mini_scores;
+	scoreboardlines = -73;
+	for (i = 0; i < MAX_SCOREBOARD; i++)
+		fragsort[i] = -211 - i;
+	scr_copyeverything = -13;
+	scr_fullupdate = -17;
+	bench486_sbar_deathmatch_pic.width = test_case->picture_width;
+	bench486_sbar_deathmatch_pic.height = 64;
+	bench486_sbar_deathmatch_cache_calls = 0;
+	bench486_sbar_deathmatch_bad_cache_path = 0;
+	bench486_sbar_deathmatch_bad_pic = 0;
+}
+
+static void Bench486SbarDeathmatchRun (void (*function)(void),
+		bench486_sbar_deathmatch_result_t *result)
+{
+	int i;
+	Q_memset (result, 0, sizeof(*result));
+	bench486_sbar_capture_active = 1;
+	bench486_sbar_capture_count = 0;
+	bench486_sbar_capture_overflow = 0;
+	result->abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_sbar_capture_active = 0;
+	result->copy_everything = scr_copyeverything;
+	result->fullupdate = scr_fullupdate;
+	result->scoreboardlines = scoreboardlines;
+	for (i = 0; i < MAX_SCOREBOARD; i++)
+		result->fragsort[i] = fragsort[i];
+	result->event_count = bench486_sbar_capture_count;
+	result->overflow = bench486_sbar_capture_overflow;
+	result->cache_calls = bench486_sbar_deathmatch_cache_calls;
+	result->bad_cache_path = bench486_sbar_deathmatch_bad_cache_path;
+	result->bad_pic = bench486_sbar_deathmatch_bad_pic;
+	for (i = 0; i < result->event_count; i++)
+		result->events[i] = bench486_sbar_capture[i];
+}
+
+static int Bench486SbarDeathmatchResultsMatch (
+		const bench486_sbar_deathmatch_result_t *left,
+		const bench486_sbar_deathmatch_result_t *right)
+{
+	int i;
+	if (left->copy_everything != right->copy_everything ||
+			left->fullupdate != right->fullupdate ||
+			left->scoreboardlines != right->scoreboardlines ||
+			left->event_count != right->event_count ||
+			left->overflow != right->overflow ||
+			left->cache_calls != right->cache_calls ||
+			left->bad_cache_path != right->bad_cache_path ||
+			left->bad_pic != right->bad_pic || left->abi != right->abi ||
+			Q_memcmp ((void *)left->fragsort, (void *)right->fragsort,
+					sizeof(left->fragsort)))
+		return 0;
+	for (i = 0; i < left->event_count; i++)
+		if (left->events[i].kind != right->events[i].kind ||
+				left->events[i].x != right->events[i].x ||
+				left->events[i].y != right->events[i].y ||
+				left->events[i].value != right->events[i].value)
+			return 0;
+	return 1;
+}
+
+static void Bench486SbarDeathmatchCase (
+		const bench486_sbar_deathmatch_case_t *test_case)
+{
+	bench486_sbar_mini_saved_t saved;
+	int expected_events, has_viewer, passed, i;
+	Bench486SbarMiniSave (&saved);
+	Bench486SbarDeathmatchInstall (test_case);
+	Bench486SbarDeathmatchRun (Bench486SbarDeathmatchCallC,
+			&bench486_sbar_deathmatch_c);
+	Bench486SbarDeathmatchInstall (test_case);
+	Bench486SbarDeathmatchRun (Bench486SbarDeathmatchCallAsm,
+			&bench486_sbar_deathmatch_asm);
+	has_viewer = test_case->viewentity > 0 &&
+		test_case->viewentity <= test_case->maxclients &&
+		(test_case->present_mask & (1U << (test_case->viewentity - 1)));
+	expected_events = 1 + test_case->expected_lines * 6 + (has_viewer ? 1 : 0);
+	passed = Bench486SbarDeathmatchResultsMatch (
+			&bench486_sbar_deathmatch_c, &bench486_sbar_deathmatch_asm) &&
+			bench486_sbar_deathmatch_asm.copy_everything == 1 &&
+			bench486_sbar_deathmatch_asm.fullupdate == 0 &&
+			bench486_sbar_deathmatch_asm.scoreboardlines ==
+				test_case->expected_lines &&
+			bench486_sbar_deathmatch_asm.event_count == expected_events &&
+			bench486_sbar_deathmatch_asm.cache_calls == 1 &&
+			!bench486_sbar_deathmatch_asm.bad_cache_path &&
+			!bench486_sbar_deathmatch_asm.bad_pic &&
+			bench486_sbar_deathmatch_asm.abi == 0 &&
+			!bench486_sbar_deathmatch_asm.overflow &&
+			bench486_sbar_deathmatch_asm.events[0].kind == SBAR_CAPTURE_PIC &&
+			bench486_sbar_deathmatch_asm.events[0].x ==
+				test_case->expected_picture_x &&
+			bench486_sbar_deathmatch_asm.events[0].y == 8;
+	if (passed && test_case->expected_lines)
+		passed = bench486_sbar_deathmatch_asm.events[1].kind ==
+				SBAR_CAPTURE_FILL &&
+			bench486_sbar_deathmatch_asm.events[1].x ==
+				test_case->expected_score_x &&
+			bench486_sbar_deathmatch_asm.events[1].y == 40;
+	if (!passed)
+	{
+		bench486_memory_failures++;
+		Bench486ReportPrintf (
+				"sbar deathmatch %s FAIL events %d/%d expected %d lines %d/%d cache %d/%d ABI %u/%u\n",
+				test_case->name, bench486_sbar_deathmatch_c.event_count,
+				bench486_sbar_deathmatch_asm.event_count, expected_events,
+				bench486_sbar_deathmatch_c.scoreboardlines,
+				bench486_sbar_deathmatch_asm.scoreboardlines,
+				bench486_sbar_deathmatch_c.cache_calls,
+				bench486_sbar_deathmatch_asm.cache_calls,
+				bench486_sbar_deathmatch_c.abi,
+				bench486_sbar_deathmatch_asm.abi);
+		for (i = 0; i < bench486_sbar_deathmatch_c.event_count &&
+				i < bench486_sbar_deathmatch_asm.event_count; i++)
+			if (bench486_sbar_deathmatch_c.events[i].kind !=
+					bench486_sbar_deathmatch_asm.events[i].kind ||
+				bench486_sbar_deathmatch_c.events[i].x !=
+					bench486_sbar_deathmatch_asm.events[i].x ||
+				bench486_sbar_deathmatch_c.events[i].y !=
+					bench486_sbar_deathmatch_asm.events[i].y ||
+				bench486_sbar_deathmatch_c.events[i].value !=
+					bench486_sbar_deathmatch_asm.events[i].value)
+			{
+				Bench486ReportPrintf (
+						"sbar deathmatch %s event[%d] C %d,%d,%d,%lu ASM %d,%d,%d,%lu\n",
+						test_case->name, i,
+						bench486_sbar_deathmatch_c.events[i].kind,
+						bench486_sbar_deathmatch_c.events[i].x,
+						bench486_sbar_deathmatch_c.events[i].y,
+						bench486_sbar_deathmatch_c.events[i].value,
+						bench486_sbar_deathmatch_asm.events[i].kind,
+						bench486_sbar_deathmatch_asm.events[i].x,
+						bench486_sbar_deathmatch_asm.events[i].y,
+						bench486_sbar_deathmatch_asm.events[i].value);
+				break;
+			}
+	}
+	else
+		Bench486ReportPrintf ("sbar deathmatch %s PASS\n", test_case->name);
+	Bench486SbarMiniRestore (&saved);
+}
+
+static void Bench486SbarDeathmatchCases (void)
+{
+	static const bench486_sbar_deathmatch_case_t cases[] = {
+		{ "classic-center-and-local-marker", 320, 320, 4, 2, 0x000f,
+			0, 4, 0, 80 },
+		{ "sub-320-negative-centering", 319, 323, 3, 1, 0x0005,
+			2, 2, -1, -2147483569 },
+		{ "widescreen-tied-frags-no-viewer", 640, 641, 8, 16, 0x00ff,
+			2, 8, -160, 240 },
+		{ "empty-roster", 640, 300, 16, 1, 0,
+			0, 0, 10, 240 },
+		{ "all-score-slots-signed-formats", 640, 322, 16, 8, 0xffff,
+			3, 16, -1, 240 },
+		{ "single-player-negative-frags", 320, 319, 1, 1, 0x0001,
+			0, 1, 0, 80 }
+	};
+	bench486_sbar_mini_saved_t saved;
+	unsigned failures_before;
+	int i;
+	failures_before = bench486_memory_failures;
+	Bench486SbarMiniSave (&saved);
+	for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+		Bench486SbarDeathmatchCase (&cases[i]);
+	Bench486SbarMiniRestore (&saved);
+	if (bench486_memory_failures == failures_before)
+		Bench486ReportPrintf (
+				"sbar full deathmatch 6 exact C/ASM picture/scoreboard/state/ABI cases PASS\n");
+	else
+		Bench486ReportPrintf (
+				"sbar full deathmatch 6 exact C/ASM picture/scoreboard/state/ABI cases FAIL\n");
+}
+
 static void Bench486SbarDrawCases (void)
 {
 	static const bench486_sbar_draw_case_t cases[] = {
@@ -903,6 +1185,7 @@ static void Bench486SbarDrawCases (void)
 	Bench486SbarDrawRestoreGlobals (&saved);
 	Bench486SbarDrawFaceCases ();
 	Bench486SbarMiniDeathmatchCases ();
+	Bench486SbarDeathmatchCases ();
 }
 
 #endif /* BENCH486 && ASM486_SBAR_DRAW_FIXTURE */

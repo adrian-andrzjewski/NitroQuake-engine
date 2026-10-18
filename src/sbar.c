@@ -1263,7 +1263,34 @@ Sbar_DeathmatchOverlay
 
 ==================
 */
-void Sbar_DeathmatchOverlay (void)
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_DEATHMATCH_C_ENTRY Sbar_DeathmatchOverlay_C
+#else
+#define SBAR_DEATHMATCH_C_ENTRY Sbar_DeathmatchOverlay
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_FRAGS)
+#define SBAR_DEATHMATCH_SORT Sbar_SortFrags_C
+#else
+#define SBAR_DEATHMATCH_SORT Sbar_SortFrags
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_DEATHMATCH_CACHEPIC Bench486SbarDeathmatchCachePic
+#define SBAR_DEATHMATCH_DRAWPIC Bench486SbarDeathmatchDrawPic
+#define SBAR_DEATHMATCH_FILL Bench486SbarMiniFill
+#define SBAR_DEATHMATCH_CHARACTER Bench486SbarMiniCharacter
+#define SBAR_DEATHMATCH_STRING Bench486SbarMiniString
+#else
+#define SBAR_DEATHMATCH_CACHEPIC Draw_CachePic
+#define SBAR_DEATHMATCH_DRAWPIC M_DrawPic
+#define SBAR_DEATHMATCH_FILL Draw_Fill
+#define SBAR_DEATHMATCH_CHARACTER Draw_Character
+#define SBAR_DEATHMATCH_STRING Draw_String
+#endif
+
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_DEATHMATCH_C_ENTRY (void)
 {
 	qpic_t			*pic;
 	int				i, k, l;
@@ -1275,11 +1302,11 @@ void Sbar_DeathmatchOverlay (void)
 	scr_copyeverything = 1;
 	scr_fullupdate = 0;
 
-	pic = Draw_CachePic ("gfx/ranking.lmp");
-	M_DrawPic ((320-pic->width)/2, 8, pic);
+	pic = SBAR_DEATHMATCH_CACHEPIC ("gfx/ranking.lmp");
+	SBAR_DEATHMATCH_DRAWPIC ((320-pic->width)/2, 8, pic);
 
 // scores
-	Sbar_SortFrags ();
+	SBAR_DEATHMATCH_SORT ();
 
 // draw the text
 	l = scoreboardlines;
@@ -1299,19 +1326,19 @@ void Sbar_DeathmatchOverlay (void)
 		top = Sbar_ColorForMap (top);
 		bottom = Sbar_ColorForMap (bottom);
 
-		Draw_Fill ( x, y, 40, 4, top);
-		Draw_Fill ( x, y+4, 40, 4, bottom);
+		SBAR_DEATHMATCH_FILL ( x, y, 40, 4, top);
+		SBAR_DEATHMATCH_FILL ( x, y+4, 40, 4, bottom);
 
 	// draw number
 		f = s->frags;
 		sprintf (num, "%3i",f);
 
-		Draw_Character ( x+8 , y, num[0]);
-		Draw_Character ( x+16 , y, num[1]);
-		Draw_Character ( x+24 , y, num[2]);
+		SBAR_DEATHMATCH_CHARACTER ( x+8 , y, num[0]);
+		SBAR_DEATHMATCH_CHARACTER ( x+16 , y, num[1]);
+		SBAR_DEATHMATCH_CHARACTER ( x+24 , y, num[2]);
 
 		if (k == cl.viewentity - 1)
-			Draw_Character ( x - 8, y, 12);
+			SBAR_DEATHMATCH_CHARACTER ( x - 8, y, 12);
 
 #if 0
 {
@@ -1332,11 +1359,20 @@ void Sbar_DeathmatchOverlay (void)
 #endif
 
 	// draw name
-		Draw_String (x+64, y, s->name);
+		SBAR_DEATHMATCH_STRING (x+64, y, s->name);
 
 		y += 10;
 	}
 }
+#endif
+
+#undef SBAR_DEATHMATCH_C_ENTRY
+#undef SBAR_DEATHMATCH_SORT
+#undef SBAR_DEATHMATCH_CACHEPIC
+#undef SBAR_DEATHMATCH_DRAWPIC
+#undef SBAR_DEATHMATCH_FILL
+#undef SBAR_DEATHMATCH_CHARACTER
+#undef SBAR_DEATHMATCH_STRING
 
 /*
 ==================

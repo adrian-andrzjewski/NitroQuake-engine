@@ -14,6 +14,7 @@
 #define SBAR_SCOREBOARD_FRAGS_OFFSET 36
 #define SBAR_SCOREBOARD_COLORS_OFFSET 40
 #define SBAR_SCOREBOARD_SIZE 16428
+#define SBAR_QPIC_WIDTH_OFFSET 0
 #define SBAR_MAX_SCOREBOARD 16
 #define SBAR_FRAGS_MAX_DISPLAY 4
 #define SBAR_CVAR_VALUE_OFFSET 16
@@ -92,6 +93,8 @@ typedef char sbar_scoreboard_colors_offset_must_match[
 		(offsetof(scoreboard_t, colors) == SBAR_SCOREBOARD_COLORS_OFFSET) ? 1 : -1];
 typedef char sbar_scoreboard_size_must_match[
 		(sizeof(scoreboard_t) == SBAR_SCOREBOARD_SIZE) ? 1 : -1];
+typedef char sbar_qpic_width_offset_must_match[
+		(offsetof(qpic_t, width) == SBAR_QPIC_WIDTH_OFFSET) ? 1 : -1];
 typedef char sbar_max_scoreboard_must_match[
 		(MAX_SCOREBOARD == SBAR_MAX_SCOREBOARD) ? 1 : -1];
 typedef char sbar_teamplay_value_offset_must_match[
@@ -157,6 +160,8 @@ void Sbar_DrawFace_C (void);
 void Sbar_DrawFace_asm486 (void);
 void Sbar_MiniDeathmatchOverlay_C (void);
 void Sbar_MiniDeathmatchOverlay_asm486 (void);
+void Sbar_DeathmatchOverlay_C (void);
+void Sbar_DeathmatchOverlay_asm486 (void);
 #endif
 #ifdef ASM486_SBAR_INVENTORY
 void Sbar_DrawInventory_asm486 (void);
@@ -191,6 +196,8 @@ void Bench486SbarDrawMiniDeathmatch (void);
 void Bench486SbarMiniFill (int x, int y, int width, int height, int color);
 void Bench486SbarMiniCharacter (int x, int y, int character);
 void Bench486SbarMiniString (int x, int y, char *string);
+qpic_t *Bench486SbarDeathmatchCachePic (char *path);
+void Bench486SbarDeathmatchDrawPic (int x, int y, qpic_t *pic);
 #endif
 #endif
 
