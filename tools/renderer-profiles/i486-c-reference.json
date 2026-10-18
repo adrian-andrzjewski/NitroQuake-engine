@@ -120,6 +120,7 @@
     "SbarDrawImplementation": "c",
     "SbarInventoryImplementation": "c",
     "SbarFragsImplementation": "c",
+    "PlayerTranslationImplementation": "c",
     "CacheCheckImplementation": "c",
     "CacheAllocImplementation": "c",
     "CacheMoveImplementation": "c",

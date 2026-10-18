@@ -68,6 +68,9 @@ extern int Bench486VesaSwapBuffersCases (void);
 #if defined(ASM486_VID_UPDATE_FIXTURE)
 extern int Bench486VidUpdateCases (void);
 #endif
+#if defined(ASM486_PLAYER_TRANSLATION_FIXTURE)
+#include "bench486_playertranslation.h"
+#endif
 #ifdef ASM486_FILLRECT
 extern void D_FillRect_C (vrect_t *rect, int color);
 #endif
@@ -10131,6 +10134,32 @@ static void Bench486_f (void)
 		Con_Printf ("bench486: could not create bench486.txt\n");
 
 	Bench486Printf ("486 benchmark begin\n");
+	if (COM_CheckParm ("-benchplayertranslation"))
+	{
+		int translation_failures;
+
+#ifdef ASM486_PLAYER_TRANSLATION_FIXTURE
+		translation_failures = Bench486PlayerTranslationCases ();
+		bench486_memory_failures += translation_failures != 0;
+		Bench486Printf ("player translation C/ASM tables and ABI %s failure mask 0x%x\n",
+				translation_failures ? "FAIL" : "PASS",
+				translation_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("player translation fixture requires PlayerTranslationImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchmemory"))
 	{
 		Bench486MemoryCases ();

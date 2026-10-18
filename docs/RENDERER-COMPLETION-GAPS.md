@@ -452,6 +452,15 @@ reachable C entries, and 70 unresolved direct callees; its fixture selector and
 scope differ from the historical inventories above, so it does not yield a
 comparable completion percentage. This closes only the per-frame update state
 machine, not the wider video or renderer ownership gaps.
+On the same date, `PlayerTranslationImplementation=asm` became the i486 default
+for `M_BuildTranslationTable` and the palette transformation loop in
+`CL_NewTranslation`; C references remain available in the C profile and BENCH.
+All 256 shirt/pants pairs passed for both routines in the DOSBox-X fixture, with
+exact table/colormap bytes, canaries, and ABI checks. The strict BENCH gate
+passed 282,340 relocated instructions and the non-BENCH release gate passed
+163,666 relocated instructions, each with zero above-i486/unknown instructions
+or exemptions. The fixture does not measure FPS or full-scene parity; see the
+[player-color translation port ledger](ledger/2026-10-18-player-translation-assembly-port.md).
 The VGA linear and planar
 pixel-copy routines already use assembly. VESA discovery,
 wait probing, palette programming, and mode changes remain C-owned; page-flip

@@ -120,6 +120,7 @@
     "SbarDrawImplementation": "asm",
     "SbarInventoryImplementation": "asm",
     "SbarFragsImplementation": "asm",
+    "PlayerTranslationImplementation": "asm",
     "CacheCheckImplementation": "asm",
     "CacheAllocImplementation": "asm",
     "CacheMoveImplementation": "asm",

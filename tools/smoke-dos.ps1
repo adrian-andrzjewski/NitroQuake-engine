@@ -232,6 +232,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarFragsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$PlayerTranslationImplementation = 'asm',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheCheckImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheAllocImplementation = 'c',
@@ -431,6 +433,7 @@ $buildParams = @{
     SbarDrawImplementation = $SbarDrawImplementation
     SbarInventoryImplementation = $SbarInventoryImplementation
     SbarFragsImplementation = $SbarFragsImplementation
+    PlayerTranslationImplementation = $PlayerTranslationImplementation
     CacheCheckImplementation = $CacheCheckImplementation
     CacheAllocImplementation = $CacheAllocImplementation
     CacheMoveImplementation = $CacheMoveImplementation
@@ -645,6 +648,7 @@ $result = [ordered]@{
     sbarDrawImplementation = $SbarDrawImplementation
     sbarInventoryImplementation = $SbarInventoryImplementation
     sbarFragsImplementation = $SbarFragsImplementation
+    playerTranslationImplementation = $PlayerTranslationImplementation
     cacheCheckImplementation = $CacheCheckImplementation
     cacheAllocImplementation = $CacheAllocImplementation
     cacheMoveImplementation = $CacheMoveImplementation

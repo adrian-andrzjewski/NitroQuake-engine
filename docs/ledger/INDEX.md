@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-18-player-translation-assembly-port.md`](2026-10-18-player-translation-assembly-port.md) | 4 | renderer port / player-color table generation and translation (`Scope and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Scope limits and reproduction`) |
 | [`2026-10-17-cache-free-assembly-port.md`](2026-10-17-cache-free-assembly-port.md) | 4 | renderer port / cache block removal and address/LRU unlink (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-cache-free-low-assembly-port.md`](2026-10-17-cache-free-low-assembly-port.md) | 4 | renderer port / low-end hunk cache reclamation (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
 | [`2026-10-17-cache-free-high-assembly-port.md`](2026-10-17-cache-free-high-assembly-port.md) | 4 | renderer port / high-end hunk cache reclamation (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Ownership and remaining work`) |
@@ -337,6 +338,8 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [`M_BuildTranslationTable` and `CL_NewTranslation` selected assembly; all 512 palette-pair cases and strict i486 gates passed (2026-10-18)](2026-10-18-player-translation-assembly-port.md)
+- `open` [Full-scene parity, FPS measurement, and remaining renderer ownership](2026-10-18-player-translation-assembly-port.md)
 - `measured` [`D_DrawParticle` -> verification of the existing i486 rasterizer (2026-10-10)](2026-10-10-d-drawparticle-assembly-port.md)
 - `measured` [104 direct C/ASM comparisons across four x87 rounding modes](2026-10-10-d-drawparticle-assembly-port.md)
 - `measured` [Exact two-repeat `demo2-wizspike-event` frame and palette parity](2026-10-10-d-drawparticle-assembly-port.md)

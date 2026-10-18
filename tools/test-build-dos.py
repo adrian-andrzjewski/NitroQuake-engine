@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vidupdateasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vidupdateasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1886,6 +1886,26 @@ def main() -> int:
             if "-DASM486_SBAR_PRIMITIVES" not in sbar_primitives_asm.get(flags_name, []):
                 fail("the Sbar primitive assembly selector omits ASM486_SBAR_PRIMITIVES from %s" % flags_name)
 
+    player_translation_c = dump_flags("-PlayerTranslationImplementation", "c")
+    player_translation_asm = dump_flags("-PlayerTranslationImplementation", "asm")
+    player_translation_fixture = dump_flags("-PlayerTranslationImplementation", "asm-fixture")
+    if player_translation_c and player_translation_asm:
+        if player_translation_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the player translation assembly selector does not match the i486 release suffix")
+        if player_translation_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the player translation C selector shares the i486 release suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_PLAYER_TRANSLATION" in player_translation_c.get(flags_name, []):
+                fail("the player translation C selector enables ASM486_PLAYER_TRANSLATION in %s" % flags_name)
+            if "-DASM486_PLAYER_TRANSLATION" not in player_translation_asm.get(flags_name, []):
+                fail("the player translation assembly selector omits ASM486_PLAYER_TRANSLATION from %s" % flags_name)
+    if player_translation_fixture:
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_PLAYER_TRANSLATION_FIXTURE" not in player_translation_fixture.get(flags_name, []):
+                fail("the player translation fixture selector omits ASM486_PLAYER_TRANSLATION_FIXTURE from %s" % flags_name)
+        if "menu_translationasm.s" not in player_translation_fixture.get("assemblySources", []):
+            fail("the player translation fixture selector omits menu_translationasm.s")
+
     cache_alloc_c = dump_flags("-CacheAllocImplementation", "c")
     cache_alloc_asm = dump_flags("-CacheAllocImplementation", "asm")
     cache_alloc_fixture = dump_flags("-CacheAllocImplementation", "asm-fixture")
@@ -2164,7 +2184,7 @@ def main() -> int:
             fail("the zone-heap fixture omits its isolated profile token")
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 79 assembly sources (one is omitted only
+    #    included by another unit), 81 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -2176,9 +2196,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 80:
+        if dump.get("allAssemblySourceCount") != 81:
             fail(
-                "%s: expected 80 assembly sources, got %r"
+                "%s: expected 81 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

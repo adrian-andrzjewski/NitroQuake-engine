@@ -318,6 +318,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarFragsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$PlayerTranslationImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheCheckImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheAllocImplementation = 'c',
@@ -729,7 +731,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 80
+$expectedAllAssemblySourceCount = 81
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "quakedef.h"
 #include "asm_menutext.h"
+#include "asm_playertranslation.h"
 
 void (*vid_menudrawfn)(void);
 void (*vid_menukeyfn)(int key);
@@ -188,7 +189,8 @@ void M_DrawPic (int x, int y, qpic_t *pic)
 byte identityTable[256];
 byte translationTable[256];
 
-void M_BuildTranslationTable(int top, int bottom)
+#if !defined(ASM486_PLAYER_TRANSLATION) || defined(BENCH486)
+void M_BuildTranslationTable_C(int top, int bottom)
 {
 	int		j;
 	byte	*dest, *source;
@@ -211,6 +213,14 @@ void M_BuildTranslationTable(int top, int bottom)
 		for (j=0 ; j<16 ; j++)
 			dest[BOTTOM_RANGE+j] = source[bottom+15-j];
 }
+#endif
+
+#ifndef ASM486_PLAYER_TRANSLATION
+void M_BuildTranslationTable(int top, int bottom)
+{
+	M_BuildTranslationTable_C (top, bottom);
+}
+#endif
 
 
 void M_DrawTransPicTranslate (int x, int y, qpic_t *pic)

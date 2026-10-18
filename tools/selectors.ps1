@@ -148,6 +148,7 @@ $script:AssemblyBackedImplementations = @(
     'SbarDrawImplementation',
     'SbarInventoryImplementation',
     'SbarFragsImplementation',
+    'PlayerTranslationImplementation',
     'CacheCheckImplementation',
     'CacheAllocImplementation',
     'CacheMoveImplementation',
@@ -1592,6 +1593,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'PlayerTranslationImplementation'
+        Manifest   = 'playerTranslationImplementation'
+        Suffix     = @{
+            'asm' = 'playertranslationasm'
+            'asm-fixture' = 'playertranslationfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_PLAYER_TRANSLATION')
+            'asm-fixture' = @('ASM486_PLAYER_TRANSLATION', 'ASM486_PLAYER_TRANSLATION_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_PLAYER_TRANSLATION')
+            'asm-fixture' = @('ASM486_PLAYER_TRANSLATION', 'ASM486_PLAYER_TRANSLATION_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'CacheCheckImplementation'
         Manifest   = 'cacheCheckImplementation'
         Suffix     = @{
@@ -2049,6 +2068,7 @@ $script:SuffixOrder = @(
     'SbarDrawImplementation'
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
+    'PlayerTranslationImplementation'
     'CacheCheckImplementation'
     'CacheAllocImplementation'
     'CacheMoveImplementation'
@@ -2172,6 +2192,7 @@ $script:CDefineOrder = @(
     'SbarDrawImplementation'
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
+    'PlayerTranslationImplementation'
     'CacheCheckImplementation'
     'CacheAllocImplementation'
     'CacheMoveImplementation'
@@ -2326,6 +2347,7 @@ $script:AsmDefineOrder = @(
     'SbarDrawImplementation'
     'SbarInventoryImplementation'
     'SbarFragsImplementation'
+    'PlayerTranslationImplementation'
     'CacheCheckImplementation'
     'CacheAllocImplementation'
     'CacheMoveImplementation'

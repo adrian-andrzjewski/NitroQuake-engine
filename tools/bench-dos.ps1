@@ -286,6 +286,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarFragsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$PlayerTranslationImplementation = 'asm',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheCheckImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheAllocImplementation = 'c',
@@ -378,6 +380,7 @@ param(
     [switch]$SbarPrimitivesOnly,
     [switch]$SbarInventoryOnly,
     [switch]$SbarFragsOnly,
+    [switch]$MenuTranslationOnly,
     [switch]$CacheCheckOnly,
     [switch]$CacheAllocOnly,
     [switch]$CacheMoveOnly,
@@ -455,6 +458,9 @@ if ($SbarInventoryOnly -and $SbarInventoryImplementation -ne 'asm') {
 }
 if ($SbarFragsOnly -and $SbarFragsImplementation -ne 'asm-fixture') {
     throw '-SbarFragsOnly requires -SbarFragsImplementation asm-fixture.'
+}
+if ($MenuTranslationOnly -and $PlayerTranslationImplementation -ne 'asm-fixture') {
+    throw '-MenuTranslationOnly requires -PlayerTranslationImplementation asm-fixture.'
 }
 if ($CacheCheckOnly -and $CacheCheckImplementation -ne 'asm-fixture') {
     throw '-CacheCheckOnly requires -CacheCheckImplementation asm-fixture.'
@@ -961,6 +967,9 @@ elseif ($SbarInventoryOnly) {
 elseif ($SbarFragsOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchsbarfrags -benchexit'
 }
+elseif ($MenuTranslationOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchplayertranslation -benchexit'
+}
 elseif ($CacheCheckOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchcachecheck -benchexit'
 }
@@ -1368,6 +1377,7 @@ $result = [ordered]@{
     efragStoreImplementation = $EfragStoreImplementation
     emitCachedEdgeImplementation = $EmitCachedEdgeImplementation
     renderPolyImplementation = $RenderPolyImplementation
+    playerTranslationImplementation = $PlayerTranslationImplementation
     spriteSetupImplementation = $SpriteSetupImplementation
     spriteOrientationImplementation = $SpriteOrientationImplementation
     buildSelectorVerification = $selectorVerification
@@ -1464,6 +1474,7 @@ $result = [ordered]@{
     aliasControlOnly = [bool]$AliasControlOnly
     aliasModelLoadOnly = [bool]$AliasModelLoadOnly
     sbarDrawOnly = [bool]$SbarDrawOnly
+    menuTranslationOnly = [bool]$MenuTranslationOnly
     aliasStatsOnly = [bool]$AliasStatsOnly
     printTimesOnly = [bool]$PrintTimesOnly
     worldControlOnly = [bool]$WorldControlOnly

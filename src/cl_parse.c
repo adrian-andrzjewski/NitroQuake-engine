@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_parse.c  -- parse a message received from the server
 
 #include "quakedef.h"
+#include "asm_playertranslation.h"
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 extern int bench486_screen_center_trace_active;
@@ -665,7 +666,8 @@ void CL_ParseClientdata (int bits)
 CL_NewTranslation
 =====================
 */
-void CL_NewTranslation (int slot)
+#if !defined(ASM486_PLAYER_TRANSLATION) || defined(BENCH486)
+void CL_NewTranslation_C (int slot)
 {
 	int		i, j;
 	int		top, bottom;
@@ -693,6 +695,29 @@ void CL_NewTranslation (int slot)
 				dest[BOTTOM_RANGE+j] = source[bottom+15-j];		
 	}
 }
+#endif
+
+#ifndef ASM486_PLAYER_TRANSLATION
+void CL_NewTranslation (int slot)
+{
+	CL_NewTranslation_C (slot);
+}
+#else
+void CL_NewTranslation (int slot)
+{
+	byte	*dest, *source;
+	int		top, bottom;
+
+	if (slot > cl.maxclients)
+		Sys_Error ("CL_NewTranslation: slot > cl.maxclients");
+
+	dest = cl.scores[slot].translations;
+	source = vid.colormap;
+	top = cl.scores[slot].colors & 0xf0;
+	bottom = (cl.scores[slot].colors & 15) << 4;
+	M_TranslatePlayerColors_asm486 (dest, source, top, bottom, VID_GRADES);
+}
+#endif
 
 /*
 =====================
