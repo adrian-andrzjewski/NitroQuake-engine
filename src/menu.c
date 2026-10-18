@@ -26,6 +26,23 @@ void (*vid_menukeyfn)(int key);
 
 enum {m_none, m_main, m_singleplayer, m_load, m_save, m_multiplayer, m_setup, m_net, m_options, m_video, m_keys, m_help, m_quit, m_serialconfig, m_modemconfig, m_lanconfig, m_gameoptions, m_search, m_slist} m_state;
 
+typedef char menu_dispatch_states_must_match[
+	(m_none == MD_STATE_NONE && m_main == MD_STATE_MAIN &&
+	 m_singleplayer == MD_STATE_SINGLEPLAYER && m_load == MD_STATE_LOAD &&
+	 m_save == MD_STATE_SAVE && m_multiplayer == MD_STATE_MULTIPLAYER &&
+	 m_setup == MD_STATE_SETUP && m_net == MD_STATE_NET &&
+	 m_options == MD_STATE_OPTIONS && m_video == MD_STATE_VIDEO &&
+	 m_keys == MD_STATE_KEYS && m_help == MD_STATE_HELP &&
+	 m_quit == MD_STATE_QUIT && m_serialconfig == MD_STATE_SERIALCONFIG &&
+	 m_modemconfig == MD_STATE_MODEMCONFIG &&
+	 m_lanconfig == MD_STATE_LANCONFIG &&
+	 m_gameoptions == MD_STATE_GAMEOPTIONS && m_search == MD_STATE_SEARCH &&
+	 m_slist == MD_STATE_SERVERLIST && sizeof(m_state) == sizeof(int)) ? 1 : -1];
+typedef char menu_dispatch_keydest_must_match[
+	(key_menu == MD_KEY_MENU) ? 1 : -1];
+typedef char menu_dispatch_vid_height_offset_must_match[
+	(offsetof(viddef_t, height) == MT_VID_HEIGHT_OFFSET) ? 1 : -1];
+
 void M_Menu_Main_f (void);
 	void M_Menu_SinglePlayer_f (void);
 		void M_Menu_Load_f (void);
@@ -3047,7 +3064,54 @@ void M_Init (void)
 }
 
 
-void M_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_DRAW_C_ENTRY M_Draw_C
+#define M_DRAW_MENU_FUNCTION(event, function) \
+	do { \
+		if (bench486_menu_dispatch_fixture_active) \
+			Bench486MenuDispatchRecord ((event), 0); \
+		else \
+			function (); \
+	} while (0)
+#define M_DRAW_MENU_CONSOLE_BACKGROUND(height) \
+	do { \
+		if (bench486_menu_dispatch_fixture_active) \
+			Bench486MenuDispatchRecord (MD_EVENT_CONSOLE_BACKGROUND, (height)); \
+		else \
+			Draw_ConsoleBackground (height); \
+	} while (0)
+#define M_DRAW_MENU_FADE_SCREEN() \
+	do { \
+		if (bench486_menu_dispatch_fixture_active) \
+			Bench486MenuDispatchRecord (MD_EVENT_FADE_SCREEN, 0); \
+		else \
+			Draw_FadeScreen (); \
+	} while (0)
+#define M_DRAW_MENU_EXTRA_UPDATE() \
+	do { \
+		if (bench486_menu_dispatch_fixture_active) \
+			Bench486MenuDispatchRecord (MD_EVENT_EXTRA_UPDATE, 0); \
+		else \
+			S_ExtraUpdate (); \
+	} while (0)
+#define M_DRAW_MENU_SOUND(path) \
+	do { \
+		if (bench486_menu_dispatch_fixture_active) \
+			Bench486MenuDispatchSound (path); \
+		else \
+			S_LocalSound (path); \
+	} while (0)
+#else
+#define M_DRAW_C_ENTRY M_Draw
+#define M_DRAW_MENU_FUNCTION(event, function) function ()
+#define M_DRAW_MENU_CONSOLE_BACKGROUND(height) Draw_ConsoleBackground (height)
+#define M_DRAW_MENU_FADE_SCREEN() Draw_FadeScreen ()
+#define M_DRAW_MENU_EXTRA_UPDATE() S_ExtraUpdate ()
+#define M_DRAW_MENU_SOUND(path) S_LocalSound (path)
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_DRAW_C_ENTRY (void)
 {
 	if (m_state == m_none || key_dest != key_menu)
 		return;
@@ -3058,13 +3122,13 @@ void M_Draw (void)
 
 		if (scr_con_current)
 		{
-			Draw_ConsoleBackground (vid.height);
+			M_DRAW_MENU_CONSOLE_BACKGROUND (vid.height);
 			VID_UnlockBuffer ();
-			S_ExtraUpdate ();
+			M_DRAW_MENU_EXTRA_UPDATE ();
 			VID_LockBuffer ();
 		}
 		else
-			Draw_FadeScreen ();
+			M_DRAW_MENU_FADE_SCREEN ();
 
 		scr_fullupdate = 0;
 	}
@@ -3079,88 +3143,106 @@ void M_Draw (void)
 		break;
 
 	case m_main:
-		M_Main_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_MAIN,
+				M_Main_Draw);
 		break;
 
 	case m_singleplayer:
-		M_SinglePlayer_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_SINGLEPLAYER,
+				M_SinglePlayer_Draw);
 		break;
 
 	case m_load:
-		M_Load_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_LOAD, M_Load_Draw);
 		break;
 
 	case m_save:
-		M_Save_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_SAVE, M_Save_Draw);
 		break;
 
 	case m_multiplayer:
-		M_MultiPlayer_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_MULTIPLAYER,
+				M_MultiPlayer_Draw);
 		break;
 
 	case m_setup:
-		M_Setup_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_SETUP, M_Setup_Draw);
 		break;
 
 	case m_net:
-		M_Net_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_NET, M_Net_Draw);
 		break;
 
 	case m_options:
-		M_Options_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_OPTIONS,
+				M_Options_Draw);
 		break;
 
 	case m_keys:
-		M_Keys_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_KEYS, M_Keys_Draw);
 		break;
 
 	case m_video:
-		M_Video_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_VIDEO, M_Video_Draw);
 		break;
 
 	case m_help:
-		M_Help_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_HELP, M_Help_Draw);
 		break;
 
 	case m_quit:
-		M_Quit_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_QUIT, M_Quit_Draw);
 		break;
 
 	case m_serialconfig:
-		M_SerialConfig_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_SERIALCONFIG,
+				M_SerialConfig_Draw);
 		break;
 
 	case m_modemconfig:
-		M_ModemConfig_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_MODEMCONFIG,
+				M_ModemConfig_Draw);
 		break;
 
 	case m_lanconfig:
-		M_LanConfig_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_LANCONFIG,
+				M_LanConfig_Draw);
 		break;
 
 	case m_gameoptions:
-		M_GameOptions_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_GAMEOPTIONS,
+				M_GameOptions_Draw);
 		break;
 
 	case m_search:
-		M_Search_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_SEARCH,
+				M_Search_Draw);
 		break;
 
 	case m_slist:
-		M_ServerList_Draw ();
+		M_DRAW_MENU_FUNCTION (MD_EVENT_DRAW_BASE + MD_STATE_SERVERLIST,
+				M_ServerList_Draw);
 		break;
 	}
 
 	if (m_entersound)
 	{
-		S_LocalSound ("misc/menu2.wav");
+		M_DRAW_MENU_SOUND ("misc/menu2.wav");
 		m_entersound = false;
 	}
 
 	VID_UnlockBuffer ();
-	S_ExtraUpdate ();
+	M_DRAW_MENU_EXTRA_UPDATE ();
 	VID_LockBuffer ();
 }
+#endif
+
+#undef M_DRAW_MENU_SOUND
+#undef M_DRAW_MENU_EXTRA_UPDATE
+#undef M_DRAW_MENU_FADE_SCREEN
+#undef M_DRAW_MENU_CONSOLE_BACKGROUND
+#undef M_DRAW_MENU_FUNCTION
+#undef M_DRAW_C_ENTRY
 
 
 void M_Keydown (int key)

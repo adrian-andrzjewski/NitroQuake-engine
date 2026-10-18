@@ -242,6 +242,170 @@ C(M_DrawTextBox):
 .purgem MENU_TEXTBOX_CACHE
 .purgem MENU_TEXTBOX_DRAW
 
+/* M_Draw owns menu frame setup, state dispatch and final update calls. */
+.macro MENU_DISPATCH_EFFECT event, target
+#ifdef BENCH486
+	cmpl	$0,C(bench486_menu_dispatch_fixture_active)
+	je	.Lmd_effect_real_\@
+	pushl	$0
+	pushl	$\event
+	call	C(Bench486MenuDispatchRecord)
+	addl	$8,%esp
+	jmp	.Lmd_effect_done_\@
+.Lmd_effect_real_\@:
+#endif
+	call	C(\target)
+.Lmd_effect_done_\@:
+.endm
+
+.macro MENU_DISPATCH_CONSOLE_BACKGROUND
+	movl	C(vid)+MT_VID_HEIGHT_OFFSET,%eax
+#ifdef BENCH486
+	cmpl	$0,C(bench486_menu_dispatch_fixture_active)
+	je	.Lmd_console_real_\@
+	pushl	%eax
+	pushl	$MD_EVENT_CONSOLE_BACKGROUND
+	call	C(Bench486MenuDispatchRecord)
+	addl	$8,%esp
+	jmp	.Lmd_console_done_\@
+.Lmd_console_real_\@:
+#endif
+	pushl	%eax
+	call	C(Draw_ConsoleBackground)
+	addl	$4,%esp
+.Lmd_console_done_\@:
+.endm
+
+.macro MENU_DISPATCH_DRAW event, target
+#ifdef BENCH486
+	cmpl	$0,C(bench486_menu_dispatch_fixture_active)
+	je	.Lmd_draw_real_\@
+	pushl	$0
+	pushl	$\event
+	call	C(Bench486MenuDispatchRecord)
+	addl	$8,%esp
+	jmp	.Lmd_draw_done_\@
+.Lmd_draw_real_\@:
+#endif
+	call	C(\target)
+.Lmd_draw_done_\@:
+	jmp	.Lmd_after_dispatch
+.endm
+
+.macro MENU_DISPATCH_SOUND
+#ifdef BENCH486
+	cmpl	$0,C(bench486_menu_dispatch_fixture_active)
+	je	.Lmd_sound_real_\@
+	subl	$12,%esp
+	pushl	$.Lmenu_dispatch_sound
+	call	C(Bench486MenuDispatchSound)
+	addl	$16,%esp
+	jmp	.Lmd_sound_done_\@
+.Lmd_sound_real_\@:
+#endif
+	subl	$12,%esp
+	pushl	$.Lmenu_dispatch_sound
+	call	C(S_LocalSound)
+	addl	$16,%esp
+.Lmd_sound_done_\@:
+.endm
+
+.p2align 2
+.globl C(M_Draw)
+C(M_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	cmpl	$MD_STATE_NONE,C(m_state)
+	je	.Lmd_return
+	cmpl	$MD_KEY_MENU,C(key_dest)
+	jne	.Lmd_return
+	cmpl	$0,C(m_recursiveDraw)
+	jne	.Lmd_recursive
+	movl	$1,C(scr_copyeverything)
+	movl	C(scr_con_current),%eax
+	andl	$0x7fffffff,%eax
+	testl	%eax,%eax
+	je	.Lmd_fade_screen
+	/* DJGPP's C oracle treats unordered x87 comparisons like zero. */
+	movl	%eax,%edx
+	andl	$0x7f800000,%edx
+	cmpl	$0x7f800000,%edx
+	jne	.Lmd_console_visible
+	andl	$0x007fffff,%eax
+	jne	.Lmd_fade_screen
+.Lmd_console_visible:
+	MENU_DISPATCH_CONSOLE_BACKGROUND
+	MENU_DISPATCH_EFFECT MD_EVENT_EXTRA_UPDATE,S_ExtraUpdate
+	jmp	.Lmd_background_done
+.Lmd_fade_screen:
+	MENU_DISPATCH_EFFECT MD_EVENT_FADE_SCREEN,Draw_FadeScreen
+.Lmd_background_done:
+	movl	$0,C(scr_fullupdate)
+	jmp	.Lmd_state_dispatch
+.Lmd_recursive:
+	movl	$0,C(m_recursiveDraw)
+
+.Lmd_state_dispatch:
+	movl	C(m_state),%eax
+	cmpl	$MD_STATE_LAST,%eax
+	ja	.Lmd_after_dispatch
+	jmp	*.Lmenu_dispatch_states(,%eax,4)
+
+.Lmd_state_none:
+	jmp	.Lmd_after_dispatch
+.Lmd_state_main:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_MAIN),M_Main_Draw
+.Lmd_state_singleplayer:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_SINGLEPLAYER),M_SinglePlayer_Draw
+.Lmd_state_load:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_LOAD),M_Load_Draw
+.Lmd_state_save:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_SAVE),M_Save_Draw
+.Lmd_state_multiplayer:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_MULTIPLAYER),M_MultiPlayer_Draw
+.Lmd_state_setup:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_SETUP),M_Setup_Draw
+.Lmd_state_net:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_NET),M_Net_Draw
+.Lmd_state_options:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_OPTIONS),M_Options_Draw
+.Lmd_state_video:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_VIDEO),M_Video_Draw
+.Lmd_state_keys:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_KEYS),M_Keys_Draw
+.Lmd_state_help:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_HELP),M_Help_Draw
+.Lmd_state_quit:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_QUIT),M_Quit_Draw
+.Lmd_state_serialconfig:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_SERIALCONFIG),M_SerialConfig_Draw
+.Lmd_state_modemconfig:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_MODEMCONFIG),M_ModemConfig_Draw
+.Lmd_state_lanconfig:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_LANCONFIG),M_LanConfig_Draw
+.Lmd_state_gameoptions:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_GAMEOPTIONS),M_GameOptions_Draw
+.Lmd_state_search:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_SEARCH),M_Search_Draw
+.Lmd_state_serverlist:
+	MENU_DISPATCH_DRAW (MD_EVENT_DRAW_BASE+MD_STATE_SERVERLIST),M_ServerList_Draw
+
+.Lmd_after_dispatch:
+	cmpl	$0,C(m_entersound)
+	je	.Lmd_final_update
+	MENU_DISPATCH_SOUND
+	movl	$0,C(m_entersound)
+.Lmd_final_update:
+	MENU_DISPATCH_EFFECT MD_EVENT_EXTRA_UPDATE,S_ExtraUpdate
+.Lmd_return:
+	leave
+	ret
+
+.purgem MENU_DISPATCH_EFFECT
+.purgem MENU_DISPATCH_CONSOLE_BACKGROUND
+.purgem MENU_DISPATCH_DRAW
+.purgem MENU_DISPATCH_SOUND
+
 /* Menu pictures share the classic 320-pixel centered coordinate system. */
 .p2align 2
 .globl C(M_DrawTransPic)
@@ -578,6 +742,29 @@ C(SCR_DrawConsole):
 
 .section .rodata
 .p2align 2
+.Lmenu_dispatch_sound:
+	.asciz	"misc/menu2.wav"
+.Lmenu_dispatch_states:
+	.long	.Lmd_state_none
+	.long	.Lmd_state_main
+	.long	.Lmd_state_singleplayer
+	.long	.Lmd_state_load
+	.long	.Lmd_state_save
+	.long	.Lmd_state_multiplayer
+	.long	.Lmd_state_setup
+	.long	.Lmd_state_net
+	.long	.Lmd_state_options
+	.long	.Lmd_state_video
+	.long	.Lmd_state_keys
+	.long	.Lmd_state_help
+	.long	.Lmd_state_quit
+	.long	.Lmd_state_serialconfig
+	.long	.Lmd_state_modemconfig
+	.long	.Lmd_state_lanconfig
+	.long	.Lmd_state_gameoptions
+	.long	.Lmd_state_search
+	.long	.Lmd_state_serverlist
+
 .Lmenu_box_tl:
 	.asciz	"gfx/box_tl.lmp"
 .Lmenu_box_ml:
