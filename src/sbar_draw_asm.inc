@@ -46,6 +46,16 @@
 #define SBAR_FACE_FILL _Draw_Fill
 #endif
 
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_MINI_FILL _Bench486SbarMiniFill
+#define SBAR_MINI_CHARACTER _Bench486SbarMiniCharacter
+#define SBAR_MINI_STRING _Bench486SbarMiniString
+#else
+#define SBAR_MINI_FILL _Draw_Fill
+#define SBAR_MINI_CHARACTER _Draw_Character
+#define SBAR_MINI_STRING _Draw_String
+#endif
+
 .extern _cl
 .extern _vid
 .extern _scr_con_current
@@ -53,6 +63,7 @@
 .extern _sb_updates
 .extern _sb_lines
 .extern _sb_showscores
+.extern _scr_fullupdate
 .extern _sb_sbar
 .extern _sb_scorebar
 .extern _sb_items
@@ -73,6 +84,13 @@
 .extern SBAR_FACE_PIC
 .extern SBAR_FACE_CHARACTER
 .extern SBAR_FACE_FILL
+.extern _Sbar_SortFrags
+.extern _Sbar_itoa
+.extern _fragsort
+.extern _scoreboardlines
+.extern SBAR_MINI_FILL
+.extern SBAR_MINI_CHARACTER
+.extern SBAR_MINI_STRING
 
 .macro SBAR_CALL_PIC x,y,pic
 	subl	$12,%esp
@@ -499,6 +517,201 @@ _Sbar_DrawFace_asm486:
 	popl	%ebp
 	ret
 
+/* Wide-screen deathmatch scoreboard from src/sbar.c:Sbar_MiniDeathmatchOverlay.
+   Keep the score window, stable frag order, C integer division and three-column
+   "%3i" formatting exact while drawing through the selected primitives. */
+.globl _Sbar_MiniDeathmatchOverlay
+.globl _Sbar_MiniDeathmatchOverlay_asm486
+_Sbar_MiniDeathmatchOverlay:
+_Sbar_MiniDeathmatchOverlay_asm486:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$44,%esp
+
+	cmpl	$512,_vid+SBAR_VID_WIDTH_OFFSET
+	jl	.Lsbar_mini_return
+	cmpl	$0,_sb_lines
+	je	.Lsbar_mini_return
+
+	movl	$1,_scr_copyeverything
+	movl	$0,_scr_fullupdate
+	call	_Sbar_SortFrags
+
+	movl	_vid+SBAR_VID_HEIGHT_OFFSET,%eax
+	subl	_sb_lines,%eax
+	movl	%eax,-16(%ebp)		/* y */
+	movl	_sb_lines,%eax
+	cltd
+	movl	$8,%ecx
+	idivl	%ecx
+	movl	%eax,-20(%ebp)		/* numlines */
+	cmpl	$3,%eax
+	jl	.Lsbar_mini_return
+
+	movl	_cl+SBAR_CL_VIEWENTITY_OFFSET,%ebx
+	decl	%ebx
+	xorl	%edi,%edi			/* i */
+.Lsbar_mini_find_viewer:
+	movl	_scoreboardlines,%eax
+	cmpl	%eax,%edi
+	jge	.Lsbar_mini_viewer_missing
+	cmpl	%ebx,_fragsort(,%edi,4)
+	je	.Lsbar_mini_viewer_found
+	incl	%edi
+	jmp	.Lsbar_mini_find_viewer
+
+.Lsbar_mini_viewer_missing:
+	xorl	%edi,%edi
+	jmp	.Lsbar_mini_clamp_start
+.Lsbar_mini_viewer_found:
+	movl	-20(%ebp),%eax
+	sarl	$1,%eax
+	subl	%eax,%edi
+.Lsbar_mini_clamp_start:
+	movl	_scoreboardlines,%eax
+	subl	-20(%ebp),%eax
+	cmpl	%eax,%edi
+	jle	.Lsbar_mini_clamp_low
+	movl	%eax,%edi
+.Lsbar_mini_clamp_low:
+	testl	%edi,%edi
+	jns	.Lsbar_mini_draw_loop
+	xorl	%edi,%edi
+
+.Lsbar_mini_draw_loop:
+	movl	_scoreboardlines,%eax
+	cmpl	%eax,%edi
+	jge	.Lsbar_mini_return
+	movl	_vid+SBAR_VID_HEIGHT_OFFSET,%eax
+	subl	$8,%eax
+	cmpl	%eax,-16(%ebp)
+	jge	.Lsbar_mini_return
+
+	movl	_fragsort(,%edi,4),%ebx	/* score index */
+	movl	_cl+SBAR_CL_SCORES_OFFSET,%esi
+	imull	$SBAR_SCOREBOARD_SIZE,%ebx,%eax
+	addl	%eax,%esi			/* current scoreboard_t */
+	cmpb	$0,SBAR_SCOREBOARD_NAME_OFFSET(%esi)
+	je	.Lsbar_mini_next_player
+
+	movl	SBAR_SCOREBOARD_COLORS_OFFSET(%esi),%eax
+	andl	$0xf0,%eax
+	addl	$8,%eax
+	movl	%eax,-32(%ebp)		/* top color */
+	movl	SBAR_SCOREBOARD_COLORS_OFFSET(%esi),%eax
+	andl	$15,%eax
+	shll	$4,%eax
+	addl	$8,%eax
+	movl	%eax,-36(%ebp)		/* bottom color */
+
+	/* Draw_Fill(x, y+1, 40, 3, top). */
+	subl	$12,%esp
+	pushl	-32(%ebp)
+	pushl	$3
+	pushl	$40
+	movl	-16(%ebp),%eax
+	incl	%eax
+	pushl	%eax
+	pushl	$324
+	call	SBAR_MINI_FILL
+	addl	$32,%esp
+
+	/* Draw_Fill(x, y+4, 40, 4, bottom). */
+	subl	$12,%esp
+	pushl	-36(%ebp)
+	pushl	$4
+	pushl	$40
+	movl	-16(%ebp),%eax
+	addl	$4,%eax
+	pushl	%eax
+	pushl	$324
+	call	SBAR_MINI_FILL
+	addl	$32,%esp
+
+	/* sprintf(num, "%3i", frags): format the same signed value in assembly. */
+	subl	$8,%esp
+	leal	-52(%ebp),%eax
+	pushl	%eax
+	pushl	SBAR_SCOREBOARD_FRAGS_OFFSET(%esi)
+	call	_Sbar_itoa
+	addl	$16,%esp
+	movl	%eax,-40(%ebp)		/* unpadded formatter length */
+	movl	$0,-56(%ebp)		/* displayed character index */
+.Lsbar_mini_frag_character:
+	movl	-40(%ebp),%eax
+	cmpl	$3,%eax
+	jge	.Lsbar_mini_frag_unpadded
+	movl	$3,%edx
+	subl	%eax,%edx			/* leading spaces */
+	movl	-56(%ebp),%ecx
+	cmpl	%edx,%ecx
+	jge	.Lsbar_mini_frag_digit
+	movl	$32,%eax
+	jmp	.Lsbar_mini_frag_draw
+.Lsbar_mini_frag_digit:
+	subl	%edx,%ecx
+	movsbl	-52(%ebp,%ecx),%eax
+	jmp	.Lsbar_mini_frag_draw
+.Lsbar_mini_frag_unpadded:
+	movl	-56(%ebp),%ecx
+	movsbl	-52(%ebp,%ecx),%eax
+.Lsbar_mini_frag_draw:
+	subl	$12,%esp
+	pushl	%eax
+	movl	-16(%ebp),%edx
+	pushl	%edx
+	movl	-56(%ebp),%ecx
+	leal	332(,%ecx,8),%edx
+	pushl	%edx
+	call	SBAR_MINI_CHARACTER
+	addl	$24,%esp
+	incl	-56(%ebp)
+	cmpl	$3,-56(%ebp)
+	jl	.Lsbar_mini_frag_character
+
+	/* Bracket the local player with the two original marker glyphs. */
+	movl	_cl+SBAR_CL_VIEWENTITY_OFFSET,%eax
+	decl	%eax
+	cmpl	%ebx,%eax
+	jne	.Lsbar_mini_player_name
+	subl	$12,%esp
+	pushl	$16
+	pushl	-16(%ebp)
+	pushl	$324
+	call	SBAR_MINI_CHARACTER
+	addl	$24,%esp
+	subl	$12,%esp
+	pushl	$17
+	pushl	-16(%ebp)
+	pushl	$356
+	call	SBAR_MINI_CHARACTER
+	addl	$24,%esp
+
+.Lsbar_mini_player_name:
+	subl	$12,%esp
+	leal	SBAR_SCOREBOARD_NAME_OFFSET(%esi),%eax
+	pushl	%eax
+	pushl	-16(%ebp)
+	pushl	$372
+	call	SBAR_MINI_STRING
+	addl	$24,%esp
+	addl	$8,-16(%ebp)		/* y += 8 */
+
+.Lsbar_mini_next_player:
+	incl	%edi
+	jmp	.Lsbar_mini_draw_loop
+
+.Lsbar_mini_return:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
 .section .rodata
 .p2align 2
 .Lsbar_face_teamplay_three:
@@ -518,5 +731,8 @@ _Sbar_DrawFace_asm486:
 #undef SBAR_FACE_PIC
 #undef SBAR_FACE_CHARACTER
 #undef SBAR_FACE_FILL
+#undef SBAR_MINI_FILL
+#undef SBAR_MINI_CHARACTER
+#undef SBAR_MINI_STRING
 #undef SBAR_CALL_PIC
 #undef SBAR_CALL_NUM

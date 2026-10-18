@@ -155,6 +155,8 @@ void Sbar_Draw_C (void);
 void Sbar_Draw_asm486 (void);
 void Sbar_DrawFace_C (void);
 void Sbar_DrawFace_asm486 (void);
+void Sbar_MiniDeathmatchOverlay_C (void);
+void Sbar_MiniDeathmatchOverlay_asm486 (void);
 #endif
 #ifdef ASM486_SBAR_INVENTORY
 void Sbar_DrawInventory_asm486 (void);
@@ -186,6 +188,9 @@ void Bench486SbarFacePic (int x, int y, qpic_t *pic);
 void Bench486SbarFaceCharacter (int x, int y, int num);
 void Bench486SbarFaceFill (int x, int y, int width, int height, int color);
 void Bench486SbarDrawMiniDeathmatch (void);
+void Bench486SbarMiniFill (int x, int y, int width, int height, int color);
+void Bench486SbarMiniCharacter (int x, int y, int character);
+void Bench486SbarMiniString (int x, int y, char *string);
 #endif
 #endif
 

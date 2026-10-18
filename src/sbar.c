@@ -1344,7 +1344,30 @@ Sbar_DeathmatchOverlay
 
 ==================
 */
-void Sbar_MiniDeathmatchOverlay (void)
+#if defined(ASM486_SBAR_DRAW)
+#define SBAR_MINI_C_ENTRY Sbar_MiniDeathmatchOverlay_C
+#else
+#define SBAR_MINI_C_ENTRY Sbar_MiniDeathmatchOverlay
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_FRAGS)
+#define SBAR_MINI_SORT Sbar_SortFrags_C
+#else
+#define SBAR_MINI_SORT Sbar_SortFrags
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
+#define SBAR_MINI_FILL Bench486SbarMiniFill
+#define SBAR_MINI_CHARACTER Bench486SbarMiniCharacter
+#define SBAR_MINI_STRING Bench486SbarMiniString
+#else
+#define SBAR_MINI_FILL Draw_Fill
+#define SBAR_MINI_CHARACTER Draw_Character
+#define SBAR_MINI_STRING Draw_String
+#endif
+
+#if !defined(ASM486_SBAR_DRAW) || defined(BENCH486)
+void SBAR_MINI_C_ENTRY (void)
 {
 	qpic_t			*pic;
 	int				i, k, l;
@@ -1361,7 +1384,7 @@ void Sbar_MiniDeathmatchOverlay (void)
 	scr_fullupdate = 0;
 
 // scores
-	Sbar_SortFrags ();
+	SBAR_MINI_SORT ();
 
 // draw the text
 	l = scoreboardlines;
@@ -1399,20 +1422,20 @@ void Sbar_MiniDeathmatchOverlay (void)
 		top = Sbar_ColorForMap (top);
 		bottom = Sbar_ColorForMap (bottom);
 
-		Draw_Fill ( x, y+1, 40, 3, top);
-		Draw_Fill ( x, y+4, 40, 4, bottom);
+		SBAR_MINI_FILL ( x, y+1, 40, 3, top);
+		SBAR_MINI_FILL ( x, y+4, 40, 4, bottom);
 
 	// draw number
 		f = s->frags;
 		sprintf (num, "%3i",f);
 
-		Draw_Character ( x+8 , y, num[0]);
-		Draw_Character ( x+16 , y, num[1]);
-		Draw_Character ( x+24 , y, num[2]);
+		SBAR_MINI_CHARACTER ( x+8 , y, num[0]);
+		SBAR_MINI_CHARACTER ( x+16 , y, num[1]);
+		SBAR_MINI_CHARACTER ( x+24 , y, num[2]);
 
 		if (k == cl.viewentity - 1) {
-			Draw_Character ( x, y, 16);
-			Draw_Character ( x + 32, y, 17);
+			SBAR_MINI_CHARACTER ( x, y, 16);
+			SBAR_MINI_CHARACTER ( x + 32, y, 17);
 		}
 
 #if 0
@@ -1434,11 +1457,18 @@ void Sbar_MiniDeathmatchOverlay (void)
 #endif
 
 	// draw name
-		Draw_String (x+48, y, s->name);
+		SBAR_MINI_STRING (x+48, y, s->name);
 
 		y += 8;
 	}
 }
+#endif
+
+#undef SBAR_MINI_FILL
+#undef SBAR_MINI_CHARACTER
+#undef SBAR_MINI_STRING
+#undef SBAR_MINI_SORT
+#undef SBAR_MINI_C_ENTRY
 
 /*
 ==================
