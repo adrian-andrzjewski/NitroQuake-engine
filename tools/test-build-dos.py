@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vesapaletteasm-vesadefaultmodeasm-vesalifecycleasm-vidupdateasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vesapaletteasm-vesadefaultmodeasm-vesalifecycleasm-vesawaitasm-vidupdateasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -1966,6 +1966,30 @@ def main() -> int:
         if "vid_vesalifecycleasm.s" not in vesa_lifecycle_fixture.get("assemblySources", []):
             fail("the VESA lifecycle fixture selector omits vid_vesalifecycleasm.s")
 
+    vesa_wait_c = dump_flags("-VesaWaitImplementation", "c")
+    vesa_wait_asm = dump_flags("-VesaWaitImplementation", "asm")
+    vesa_wait_fixture = dump_flags("-VesaWaitImplementation", "asm-fixture")
+    if vesa_wait_c and vesa_wait_asm:
+        if "-vesawaitasm" not in vesa_wait_asm.get("profileSuffix", ""):
+            fail("the VESA wait assembly selector omits its i486 suffix token")
+        if vesa_wait_c.get("profileSuffix") == vesa_wait_asm.get("profileSuffix"):
+            fail("the VESA wait C selector shares the assembly profile suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VESA_WAIT" in vesa_wait_c.get(flags_name, []):
+                fail("the VESA wait C selector enables ASM486_VESA_WAIT in %s" % flags_name)
+            if "-DASM486_VESA_WAIT" not in vesa_wait_asm.get(flags_name, []):
+                fail("the VESA wait assembly selector omits ASM486_VESA_WAIT from %s" % flags_name)
+        if "vid_vesawaitasm.s" not in vesa_wait_asm.get("assemblySources", []):
+            fail("the VESA wait assembly selector does not compile vid_vesawaitasm.s")
+    if vesa_wait_fixture:
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VESA_WAIT_FIXTURE" not in vesa_wait_fixture.get(flags_name, []):
+                fail("the VESA wait fixture selector omits ASM486_VESA_WAIT_FIXTURE from %s" % flags_name)
+        if "vesawaitfixtureasm" not in vesa_wait_fixture.get("profileSuffix", ""):
+            fail("the VESA wait fixture selector omits its isolated profile token")
+        if "vid_vesawaitasm.s" not in vesa_wait_fixture.get("assemblySources", []):
+            fail("the VESA wait fixture selector omits vid_vesawaitasm.s")
+
     cache_alloc_c = dump_flags("-CacheAllocImplementation", "c")
     cache_alloc_asm = dump_flags("-CacheAllocImplementation", "asm")
     cache_alloc_fixture = dump_flags("-CacheAllocImplementation", "asm-fixture")
@@ -2256,9 +2280,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 84:
+        if dump.get("allAssemblySourceCount") != 85:
             fail(
-                "%s: expected 84 assembly sources, got %r"
+                "%s: expected 85 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

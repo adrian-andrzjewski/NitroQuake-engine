@@ -52,12 +52,12 @@ static void Bench486VesaSwapEvent (int event)
 	bench486_vesa_swap_events[bench486_vesa_swap_event_count++] = event;
 }
 
-static void Bench486VesaSwapWaitVsync (void)
+void Bench486VesaSwapWaitVsync (void)
 {
 	Bench486VesaSwapEvent (2);
 }
 
-static void Bench486VesaSwapWaitDisplayEnable (void)
+void Bench486VesaSwapWaitDisplayEnable (void)
 {
 	Bench486VesaSwapEvent (1);
 }

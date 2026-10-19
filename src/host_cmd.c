@@ -68,6 +68,9 @@ extern int Bench486VesaSwapBuffersCases (void);
 #if defined(ASM486_VESA_LIFECYCLE_FIXTURE)
 extern int Bench486VesaLifecycleCases (void);
 #endif
+#if defined(ASM486_VESA_WAIT_FIXTURE)
+extern int Bench486VesaWaitCases (void);
+#endif
 #if defined(ASM486_SCREEN_CONSOLE_SETUP)
 extern int Bench486ConsoleResizeCases (void);
 #endif
@@ -10453,6 +10456,31 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchvesawait"))
+	{
+#if defined(ASM486_VESA_WAIT_FIXTURE)
+		int vesa_wait_failures;
+		vesa_wait_failures = Bench486VesaWaitCases ();
+		bench486_memory_failures += vesa_wait_failures != 0;
+		Bench486Printf ("VESA wait gates and retrace-port C/ASM parity %s (%u exact cases, failure mask 0x%x)\n",
+				vesa_wait_failures ? "FAIL" : "PASS", 36U,
+				vesa_wait_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("VESA wait fixture requires VesaWaitImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchmemory"))
 	{
 		Bench486MemoryCases ();
@@ -14501,4 +14529,9 @@ void Host_InitCommands (void)
 
 #if defined(BENCH486) && defined(ASM486_VESA_LIFECYCLE_FIXTURE)
 #include "bench486_vesalifecycle.h"
+#endif
+#if defined(BENCH486) && defined(ASM486_VESA_WAIT_FIXTURE)
+#include "vid_dos.h"
+#include "asm_vesawait.h"
+#include "bench486_vesawait.h"
 #endif

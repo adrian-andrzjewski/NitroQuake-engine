@@ -137,6 +137,7 @@
     "VesaPaletteImplementation": "asm",
     "VesaDefaultModeImplementation": "asm",
     "VesaLifecycleImplementation": "asm",
+    "VesaWaitImplementation": "asm",
     "VideoUpdateImplementation": "asm",
     "ScreenUpdateImplementation": "asm",
     "ScreenNetImplementation": "asm",

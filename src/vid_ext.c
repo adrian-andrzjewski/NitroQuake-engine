@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include "asm_vesapalette.h"
 #include "asm_vesadefaultmode.h"
 #include "asm_vesalifecycle.h"
+#include "asm_vesawait.h"
 
 #define MAX_VESA_MODES 30
 #define LINEAR_MODE 0x4000
@@ -46,13 +47,16 @@ qboolean VID_extra_mapped, VID_extra_palette_ok = true;
 #define mapped VID_extra_mapped
 #define palette_ok VID_extra_palette_ok
 int VID_currentpage, VID_displayedpage, VID_pagesize;
-static qboolean vsync_exists, de_exists, wait_probed;
+qboolean VID_extra_vsync_exists, VID_extra_display_enable_exists;
+static qboolean wait_probed;
+#define vsync_exists VID_extra_vsync_exists
+#define de_exists VID_extra_display_enable_exists
 extern regs_t regs;
 
 #if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
 int bench486_vesa_swap_fixture_active;
-static void Bench486VesaSwapWaitVsync (void);
-static void Bench486VesaSwapWaitDisplayEnable (void);
+void Bench486VesaSwapWaitVsync (void);
+void Bench486VesaSwapWaitDisplayEnable (void);
 static void Bench486VesaSwapProbeWait (void);
 static void Bench486VesaSwapDisplayStart (int x, int y, int waitflags);
 #endif
@@ -337,6 +341,11 @@ static qboolean VID_ExtraStateFound (unsigned mask)
 	int transition, i;
 	unsigned state = 0;
 	double start;
+	/* Fixture builds model retrace support so startup never polls real VGA I/O. */
+#if defined(BENCH486) && defined(ASM486_VESA_WAIT_FIXTURE)
+	if (bench486_vesa_wait_fixture_active)
+		return true;
+#endif
 	for (transition = 0; transition < 10; transition++, state ^= mask)
 	{
 		start = Sys_FloatTime ();
@@ -351,10 +360,21 @@ static qboolean VID_ExtraStateFound (unsigned mask)
 	return true;
 }
 
+#if !defined(ASM486_VESA_WAIT) || defined(BENCH486)
+static int VID_ExtraWaitStatusPortRead (void)
+{
+#if defined(BENCH486) && defined(ASM486_VESA_WAIT_FIXTURE)
+	if (bench486_vesa_wait_fixture_active)
+		return Bench486VesaWaitReadStatus (0x3da);
+#endif
+	return inportb (0x3da);
+}
+
 static void VID_ExtraWaitDisplayEnable (void)
 {
-	while (inportb(0x3da) & 1) ;
+	while (VID_ExtraWaitStatusPortRead () & 1) ;
 }
+#endif
 
 int VID_ExtraInitMode (viddef_t *lvid, vmode_t *mode)
 {
@@ -442,9 +462,33 @@ failed:
 	return 0;
 }
 
-void VID_ExtraWaitDisplayIfRequested (void)
+#if defined(BENCH486)
+#define VID_EXTRA_WAIT_DISPLAY_C_ENTRY VID_ExtraWaitDisplayIfRequested_C
+#define VID_EXTRA_WAIT_VSYNC_C_ENTRY VID_ExtraWaitVsyncIfRequested_C
+#define VID_EXTRA_START_WAIT_FLAGS_C_ENTRY VID_ExtraDisplayStartWaitFlags_C
+#define VID_EXTRA_WAIT_DISPLAY_C_CALL VID_ExtraWaitDisplayIfRequested_C
+#define VID_EXTRA_WAIT_VSYNC_C_CALL VID_ExtraWaitVsyncIfRequested_C
+#define VID_EXTRA_START_WAIT_FLAGS_C_CALL VID_ExtraDisplayStartWaitFlags_C
+#else
+#define VID_EXTRA_WAIT_DISPLAY_C_ENTRY VID_ExtraWaitDisplayIfRequested
+#define VID_EXTRA_WAIT_VSYNC_C_ENTRY VID_ExtraWaitVsyncIfRequested
+#define VID_EXTRA_START_WAIT_FLAGS_C_ENTRY VID_ExtraDisplayStartWaitFlags
+#define VID_EXTRA_WAIT_DISPLAY_C_CALL VID_ExtraWaitDisplayIfRequested
+#define VID_EXTRA_WAIT_VSYNC_C_CALL VID_ExtraWaitVsyncIfRequested
+#define VID_EXTRA_START_WAIT_FLAGS_C_CALL VID_ExtraDisplayStartWaitFlags
+#endif
+
+#if !defined(ASM486_VESA_WAIT) || defined(BENCH486)
+static qboolean VID_ExtraWaitModeIs (unsigned mode_bits)
 {
-	if (vid_wait.value != VID_WAIT_DISPLAY_ENABLE || !de_exists) return;
+	union { float value; unsigned bits; } wait_mode;
+	wait_mode.value = vid_wait.value;
+	return wait_mode.bits == mode_bits;
+}
+
+void VID_EXTRA_WAIT_DISPLAY_C_ENTRY (void)
+{
+	if (!VID_ExtraWaitModeIs (0x40000000U) || !de_exists) return;
 #if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
 	if (bench486_vesa_swap_fixture_active)
 	{
@@ -455,9 +499,9 @@ void VID_ExtraWaitDisplayIfRequested (void)
 	VID_ExtraWaitDisplayEnable ();
 }
 
-void VID_ExtraWaitVsyncIfRequested (void)
+void VID_EXTRA_WAIT_VSYNC_C_ENTRY (void)
 {
-	if (vid_wait.value != VID_WAIT_VSYNC || !vsync_exists) return;
+	if (!VID_ExtraWaitModeIs (0x3f800000U) || !vsync_exists) return;
 #if defined(BENCH486) && defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
 	if (bench486_vesa_swap_fixture_active)
 	{
@@ -465,8 +509,34 @@ void VID_ExtraWaitVsyncIfRequested (void)
 		return;
 	}
 #endif
+#if defined(BENCH486) && defined(ASM486_VESA_WAIT_FIXTURE)
+	if (bench486_vesa_wait_fixture_active)
+	{
+		while ((VID_ExtraWaitStatusPortRead () & 0x08) == 0) ;
+		return;
+	}
+#endif
 	VGA_WaitVsync ();
 }
+
+int VID_EXTRA_START_WAIT_FLAGS_C_ENTRY (void)
+{
+	return VID_ExtraWaitModeIs (0x3f800000U) ? 0x80 : 0;
+}
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_VESA_WAIT)
+void VID_ExtraWaitDisplayIfRequested (void)
+	{ VID_ExtraWaitDisplayIfRequested_C (); }
+void VID_ExtraWaitVsyncIfRequested (void)
+	{ VID_ExtraWaitVsyncIfRequested_C (); }
+int VID_ExtraDisplayStartWaitFlags (void)
+	{ return VID_ExtraDisplayStartWaitFlags_C (); }
+#endif
+
+#undef VID_EXTRA_START_WAIT_FLAGS_C_ENTRY
+#undef VID_EXTRA_WAIT_VSYNC_C_ENTRY
+#undef VID_EXTRA_WAIT_DISPLAY_C_ENTRY
 
 void VID_ExtraProbeWaitIfNeeded (vmode_t *mode)
 {
@@ -482,11 +552,6 @@ void VID_ExtraProbeWaitIfNeeded (vmode_t *mode)
 	vsync_exists = VID_ExtraStateFound (8);
 	de_exists = VID_ExtraStateFound (1);
 	wait_probed = true;
-}
-
-int VID_ExtraDisplayStartWaitFlags (void)
-{
-	return vid_wait.value == VID_WAIT_VSYNC ? 0x80 : 0;
 }
 
 void VID_ExtraSetDisplayStart (int x, int y, int waitflags)
@@ -519,9 +584,9 @@ void VID_ExtraSwapBuffers_C (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
 	if (lvid->numpages > 1)
 	{
 		offset = VID_currentpage * VID_pagesize;
-		VID_ExtraWaitDisplayIfRequested ();
+		VID_EXTRA_WAIT_DISPLAY_C_CALL ();
 		VID_ExtraSetDisplayStart (offset % VGA_rowbytes,
-			offset / VGA_rowbytes, VID_ExtraDisplayStartWaitFlags ());
+			offset / VGA_rowbytes, VID_EXTRA_START_WAIT_FLAGS_C_CALL ());
 		VID_displayedpage = VID_currentpage;
 		if (++VID_currentpage >= lvid->numpages) VID_currentpage = 0;
 		lvid->direct = VID_membase + VID_displayedpage * VID_pagesize;
@@ -530,12 +595,16 @@ void VID_ExtraSwapBuffers_C (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
 	}
 	/* Probe only once when an explicit runtime wait first requests it. */
 	VID_ExtraProbeWaitIfNeeded (mode);
-	VID_ExtraWaitVsyncIfRequested ();
-	VID_ExtraWaitDisplayIfRequested ();
+	VID_EXTRA_WAIT_VSYNC_C_CALL ();
+	VID_EXTRA_WAIT_DISPLAY_C_CALL ();
 	VID_ExtraCopyRects (rects, lvid->buffer, VGA_pagebase, lvid->width,
 		lvid->height, lvid->rowbytes, VGA_rowbytes);
 }
 #endif
+
+#undef VID_EXTRA_START_WAIT_FLAGS_C_CALL
+#undef VID_EXTRA_WAIT_VSYNC_C_CALL
+#undef VID_EXTRA_WAIT_DISPLAY_C_CALL
 
 void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects)
 {

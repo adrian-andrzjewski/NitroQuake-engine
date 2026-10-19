@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-19, the i486 build defaults to the complete 138-entry assembly
+As of 2026-10-19, the i486 build defaults to the complete 139-entry assembly
 selector profile in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
@@ -615,10 +615,10 @@ helpers, and is not a complete-call-graph or production-weighted completion
 percentage.
 
 The VGA linear and planar pixel-copy routines already use assembly. The VESA
-palette conversion loop, resource lifecycle, and default-mode wrapper now use
-assembly; VESA discovery, wait probing, BIOS palette programming, and hardware
-mode changes remain C-owned. Page-flip assembly calls C adapters for
-hardware-specific operations. See the
+palette conversion loop, resource lifecycle, default-mode wrapper, and
+per-frame wait gates now use assembly; VESA discovery, one-time wait probing,
+BIOS palette programming, and hardware mode changes remain C-owned. Page-flip
+assembly calls C adapters for hardware-specific operations. See the
 [`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md),
 [`Cache_Alloc` port ledger](ledger/2026-10-17-cache-alloc-assembly-port.md),
 [`Cache_Move` port ledger](ledger/2026-10-17-cache-move-assembly-port.md),
@@ -630,7 +630,8 @@ hardware-specific operations. See the
 [`Hunk temp-allocation` port ledger](ledger/2026-10-17-hunk-temp-alloc-assembly-port.md),
 [`zone heap and cache diagnostics port ledger`](ledger/2026-10-17-zone-heap-assembly-port.md),
 [`VESA copy` port ledger](ledger/2026-10-17-vesa-copy-rects-assembly-port.md),
-and [`VESA swap` port ledger](ledger/2026-10-17-vesa-swap-buffers-assembly-port.md).
+[`VESA swap` port ledger](ledger/2026-10-17-vesa-swap-buffers-assembly-port.md),
+and [`VESA wait` port ledger](ledger/2026-10-19-vesa-wait-assembly-port.md).
 
 The focused `Cache_Move` strict BENCH gate passed with zero above-i486
 instructions, unknown encodings, exemptions, or skipped bytes. It audited
