@@ -15,8 +15,8 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-409 directly reachable renderer entries and 25 directly reachable C
-dependencies: 384/409, or 93.9%, are assembly-owned by reachable-symbol count.
+409 directly reachable renderer entries and 23 directly reachable C
+dependencies: 386/409, or 94.4%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
 size or complexity. The ownership scan now includes `vid_*.s` sources, listing
@@ -28,6 +28,9 @@ profile, with the C selector retained as a parity oracle; see the
 `M_Help_Draw` now selects assembly for all six help pages; its 96-case fixture
 and strict i486 build are recorded in the
 [menu help-page ledger](ledger/2026-10-19-menu-help-page-assembly-port.md).
+`M_Load_Draw` and `M_Save_Draw` now select their shared assembly renderer; the
+768-case fixture and strict i486 build are recorded in the
+[Load/Save menu ledger](ledger/2026-10-19-menu-saveload-assembly-port.md).
 The main and single-player menu pages also select assembly; their shared page
 renderer and 144-case parity fixture are recorded in the
 [menu page ledger](ledger/2026-10-19-main-singleplayer-menu-pages-assembly-port.md).

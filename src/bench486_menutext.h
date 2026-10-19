@@ -6,7 +6,7 @@
 
 #include "asm_menutext.h"
 
-#define BMT_MAX_GLYPHS 64
+#define BMT_MAX_GLYPHS 512
 #define BMT_GUARD_WORDS 2
 #define BMP_MAX_EVENTS 128
 #define BMP_GUARD_WORDS 2
@@ -166,7 +166,9 @@ static const char *bench486_menu_cache_paths[] =
 	"gfx/help2.lmp",
 	"gfx/help3.lmp",
 	"gfx/help4.lmp",
-	"gfx/help5.lmp"
+	"gfx/help5.lmp",
+	"gfx/p_load.lmp",
+	"gfx/p_save.lmp"
 };
 
 static const bench486_menu_textbox_case_t bench486_menu_textbox_cases[] =

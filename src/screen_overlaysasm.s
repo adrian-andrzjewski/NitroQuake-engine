@@ -530,6 +530,87 @@ C(M_Help_Draw):
 	call	C(M_DrawPic)
 	addl	$16,%esp
 	ret
+
+.p2align 2
+.globl C(M_Load_Draw)
+C(M_Load_Draw):
+	pushl	$.Lmenu_load_title
+	call	.Lmenu_save_load_draw
+	addl	$4,%esp
+	ret
+
+.p2align 2
+.globl C(M_Save_Draw)
+C(M_Save_Draw):
+	pushl	$.Lmenu_save_title
+	call	.Lmenu_save_load_draw
+	addl	$4,%esp
+	ret
+
+.p2align 2
+.Lmenu_save_load_draw:
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$16,%esp
+
+	MENU_PAGE_CACHE 8(%ebp)
+	movl	%eax,-16(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	subl	$4,%esp
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$16,%esp
+
+	xorl	%ebx,%ebx
+	movl	$C(m_filenames),%esi
+.Lmenu_save_load_rows:
+	pushl	%esi
+	leal	32(,%ebx,8),%eax
+	pushl	%eax
+	pushl	$16
+	call	C(M_Print)
+	addl	$12,%esp
+	addl	$MENU_SAVE_FILENAME_STRIDE,%esi
+	incl	%ebx
+	cmpl	$MENU_SAVE_SLOT_COUNT,%ebx
+	jl	.Lmenu_save_load_rows
+
+	movl	C(load_cursor),%eax
+	leal	32(,%eax,8),%edi
+	flds	.Lmenu_save_time_four
+	fmull	C(realtime)
+	fnstcw	-18(%ebp)
+	movw	-18(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-20(%ebp)
+	fldcw	-20(%ebp)
+	fistpl	-24(%ebp)
+	fldcw	-18(%ebp)
+	movl	-24(%ebp),%edx
+	andl	$1,%edx
+	addl	$12,%edx
+	pushl	%edx
+	pushl	%edi
+	pushl	$8
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	addl	$16,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
 .purgem MENU_PAGE_CACHE
 
 /* Menu pictures share the classic 320-pixel centered coordinate system. */
@@ -896,6 +977,12 @@ C(SCR_DrawConsole):
 	.asciz	"gfx/menudot6.lmp"
 .Lmenu_help_format:
 	.asciz	"gfx/help%i.lmp"
+.Lmenu_load_title:
+	.asciz	"gfx/p_load.lmp"
+.Lmenu_save_title:
+	.asciz	"gfx/p_save.lmp"
+.Lmenu_save_time_four:
+	.float	4.0
 .Lmenu_dispatch_sound:
 	.asciz	"misc/menu2.wav"
 .Lmenu_dispatch_states:

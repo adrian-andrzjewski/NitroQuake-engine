@@ -3,6 +3,8 @@
 
 #define MT_VID_WIDTH_OFFSET 20
 #define MT_VID_HEIGHT_OFFSET 24
+#define MENU_SAVE_SLOT_COUNT 12
+#define MENU_SAVE_FILENAME_STRIDE 40
 
 #define MD_STATE_NONE 0
 #define MD_STATE_MAIN 1
@@ -50,7 +52,11 @@ void M_Draw (void);
 void M_Main_Draw (void);
 void M_SinglePlayer_Draw (void);
 void M_Help_Draw (void);
+void M_Load_Draw (void);
+void M_Save_Draw (void);
 extern byte translationTable[256];
+extern int load_cursor;
+extern char m_filenames[MENU_SAVE_SLOT_COUNT][MENU_SAVE_FILENAME_STRIDE];
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
 void M_DrawCharacter_C (int cx, int line, int num);
@@ -64,6 +70,8 @@ void M_Draw_C (void);
 void M_Main_Draw_C (void);
 void M_SinglePlayer_Draw_C (void);
 void M_Help_Draw_C (void);
+void M_Load_Draw_C (void);
+void M_Save_Draw_C (void);
 void Bench486MenuTextDrawCharacter (int x, int y, int num);
 void Bench486MenuTextDrawPic (int kind, int x, int y, qpic_t *pic,
 		byte *translation);

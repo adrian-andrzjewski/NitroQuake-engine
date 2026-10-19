@@ -608,6 +608,10 @@ int		load_cursor;		// 0 < load_cursor < MAX_SAVEGAMES
 #define	MAX_SAVEGAMES		12
 char	m_filenames[MAX_SAVEGAMES][SAVEGAME_COMMENT_LENGTH+1];
 int		loadable[MAX_SAVEGAMES];
+typedef char menu_save_count_must_match[
+		(MAX_SAVEGAMES == MENU_SAVE_SLOT_COUNT) ? 1 : -1];
+typedef char menu_save_filename_stride_must_match[
+		(sizeof (m_filenames[0]) == MENU_SAVE_FILENAME_STRIDE) ? 1 : -1];
 
 void M_ScanSaves (void)
 {
@@ -661,36 +665,57 @@ void M_Menu_Save_f (void)
 }
 
 
-void M_Load_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_LOAD_DRAW_C_ENTRY M_Load_Draw_C
+#define M_SAVE_DRAW_C_ENTRY M_Save_Draw_C
+#define M_SAVELOAD_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_SAVELOAD_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_SAVELOAD_PRINT(x, y, str) M_Print_C ((x), (y), (str))
+#define M_SAVELOAD_CHARACTER(x, y, num) M_DrawCharacter_C ((x), (y), (num))
+#else
+#define M_LOAD_DRAW_C_ENTRY M_Load_Draw
+#define M_SAVE_DRAW_C_ENTRY M_Save_Draw
+#define M_SAVELOAD_CACHE_PIC(path) Draw_CachePic (path)
+#define M_SAVELOAD_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_SAVELOAD_PRINT(x, y, str) M_Print ((x), (y), (str))
+#define M_SAVELOAD_CHARACTER(x, y, num) M_DrawCharacter ((x), (y), (num))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+static void M_SAVELOAD_DRAW_C (char *pic_path)
 {
 	int		i;
 	qpic_t	*p;
 
-	p = Draw_CachePic ("gfx/p_load.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	p = M_SAVELOAD_CACHE_PIC (pic_path);
+	M_SAVELOAD_PIC ((320-p->width)/2, 4, p);
 
 	for (i=0 ; i< MAX_SAVEGAMES; i++)
-		M_Print (16, 32 + 8*i, m_filenames[i]);
+		M_SAVELOAD_PRINT (16, 32 + 8*i, m_filenames[i]);
 
 // line cursor
-	M_DrawCharacter (8, 32 + load_cursor*8, 12+((int)(realtime*4)&1));
+	M_SAVELOAD_CHARACTER (8, 32 + load_cursor*8,
+			12+((int)(realtime*4)&1));
 }
 
 
-void M_Save_Draw (void)
+void M_LOAD_DRAW_C_ENTRY (void)
 {
-	int		i;
-	qpic_t	*p;
-
-	p = Draw_CachePic ("gfx/p_save.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
-
-	for (i=0 ; i<MAX_SAVEGAMES ; i++)
-		M_Print (16, 32 + 8*i, m_filenames[i]);
-
-// line cursor
-	M_DrawCharacter (8, 32 + load_cursor*8, 12+((int)(realtime*4)&1));
+	M_SAVELOAD_DRAW_C ("gfx/p_load.lmp");
 }
+
+void M_SAVE_DRAW_C_ENTRY (void)
+{
+	M_SAVELOAD_DRAW_C ("gfx/p_save.lmp");
+}
+#endif
+
+#undef M_SAVELOAD_CHARACTER
+#undef M_SAVELOAD_PRINT
+#undef M_SAVELOAD_PIC
+#undef M_SAVELOAD_CACHE_PIC
+#undef M_SAVE_DRAW_C_ENTRY
+#undef M_LOAD_DRAW_C_ENTRY
 
 
 void M_Load_Key (int k)

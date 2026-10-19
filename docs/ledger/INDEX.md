@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-19-menu-saveload-assembly-port.md`](2026-10-19-menu-saveload-assembly-port.md) | 4 | renderer port / Load and Save page drawing (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-menu-help-page-assembly-port.md`](2026-10-19-menu-help-page-assembly-port.md) | 4 | renderer port / six help-page picture renderer (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-vesa-default-mode-wrapper-assembly-port.md`](2026-10-19-vesa-default-mode-wrapper-assembly-port.md) | 4 | renderer port / exported VESA default-mode wrapper (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-screen-pause-loading-assembly-port.md`](2026-10-19-screen-pause-loading-assembly-port.md) | 4 | renderer port / pause and loading overlay composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification`; `Scope and remaining work`) |

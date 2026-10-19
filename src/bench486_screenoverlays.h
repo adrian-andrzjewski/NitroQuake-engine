@@ -274,6 +274,7 @@ static unsigned short Bench486ScreenOverlaysGetControlWord (void)
 }
 
 #include "bench486_menutext.h"
+#include "bench486_menusaveload.h"
 #include "bench486_menupagedraw.h"
 #include "bench486_menudraw.h"
 
@@ -772,6 +773,7 @@ void Bench486ScreenOverlaysCases (void)
 	Bench486MenuPictureCases ();
 	Bench486MenuPageDrawCases ();
 	Bench486MenuHelpPageCases ();
+	Bench486MenuSaveLoadCases ();
 	Bench486MenuTextBoxCases ();
 	Bench486MenuDispatchCases ();
 	Bench486ScreenConsoleDrawCases ();
