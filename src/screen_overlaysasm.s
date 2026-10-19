@@ -3034,6 +3034,191 @@ C(M_Search_Draw):
 .Lmenu_search_draw_done:
 	ret
 
+/* Server-list ordering, row formatting, and menu draw path. */
+.p2align 2
+.globl C(M_ServerList_Draw)
+C(M_ServerList_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$192,%esp
+
+	/* Sort the full host records once, matching strcmp's unsigned bytes. */
+	cmpl	$0,C(slist_sorted)
+	jne	.Lmenu_serverlist_sorted
+	cmpl	$1,C(hostCacheCount)
+	jle	.Lmenu_serverlist_mark_sorted
+	movl	$0,-180(%ebp)
+	cld
+.Lmenu_serverlist_sort_i:
+	movl	-180(%ebp),%eax
+	cmpl	C(hostCacheCount),%eax
+	jge	.Lmenu_serverlist_mark_sorted
+	leal	1(%eax),%edx
+	movl	%edx,-184(%ebp)
+.Lmenu_serverlist_sort_j:
+	movl	-184(%ebp),%eax
+	cmpl	C(hostCacheCount),%eax
+	jge	.Lmenu_serverlist_next_i
+	leal	(%eax,%eax,2),%eax
+	shll	$5,%eax
+	leal	C(hostcache)(%eax),%esi
+	movl	-180(%ebp),%edx
+	leal	(%edx,%edx,2),%edx
+	shll	$5,%edx
+	leal	C(hostcache)(%edx),%edi
+	movl	%esi,%eax
+	movl	%edi,%edx
+.Lmenu_serverlist_compare_name:
+	movzbl	(%eax),%ecx
+	movzbl	(%edx),%ebx
+	cmpl	%ebx,%ecx
+	jne	.Lmenu_serverlist_compare_result
+	testl	%ecx,%ecx
+	je	.Lmenu_serverlist_next_j
+	incl	%eax
+	incl	%edx
+	jmp	.Lmenu_serverlist_compare_name
+.Lmenu_serverlist_compare_result:
+	jl	.Lmenu_serverlist_swap
+	jmp	.Lmenu_serverlist_next_j
+
+.Lmenu_serverlist_swap:
+	leal	-112(%ebp),%edi
+	movl	$24,%ecx
+	rep	movsl
+	movl	-180(%ebp),%eax
+	leal	(%eax,%eax,2),%eax
+	shll	$5,%eax
+	leal	C(hostcache)(%eax),%esi
+	movl	-184(%ebp),%edx
+	leal	(%edx,%edx,2),%edx
+	shll	$5,%edx
+	leal	C(hostcache)(%edx),%edi
+	movl	$24,%ecx
+	rep	movsl
+	leal	-112(%ebp),%esi
+	movl	-180(%ebp),%eax
+	leal	(%eax,%eax,2),%eax
+	shll	$5,%eax
+	leal	C(hostcache)(%eax),%edi
+	movl	$24,%ecx
+	rep	movsl
+
+.Lmenu_serverlist_next_j:
+	incl	-184(%ebp)
+	jmp	.Lmenu_serverlist_sort_j
+.Lmenu_serverlist_next_i:
+	incl	-180(%ebp)
+	jmp	.Lmenu_serverlist_sort_i
+.Lmenu_serverlist_mark_sorted:
+	movl	$1,C(slist_sorted)
+
+.Lmenu_serverlist_sorted:
+	subl	$12,%esp
+	pushl	$.Lmenu_search_draw_multi_title
+#ifdef BENCH486
+	call	C(Bench486MenuTextCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$16,%esp
+	movl	%eax,-32(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	movl	%eax,-192(%ebp)
+	pushl	-32(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$12,%esp
+
+	movl	$0,-188(%ebp)
+.Lmenu_serverlist_draw_rows:
+	movl	-188(%ebp),%eax
+	cmpl	C(hostCacheCount),%eax
+	jge	.Lmenu_serverlist_cursor
+	leal	(%eax,%eax,2),%eax
+	shll	$5,%eax
+	leal	C(hostcache)(%eax),%esi
+	cmpl	$0,MSL_HOSTCACHE_MAXUSERS_OFFSET(%esi)
+	je	.Lmenu_serverlist_format_empty
+	leal	-176(%ebp),%eax
+	pushl	MSL_HOSTCACHE_MAXUSERS_OFFSET(%esi)
+	pushl	MSL_HOSTCACHE_USERS_OFFSET(%esi)
+	leal	MSL_HOSTCACHE_MAP_OFFSET(%esi),%edx
+	pushl	%edx
+	pushl	%esi
+	pushl	$.Lmenu_serverlist_full_format
+	pushl	%eax
+	call	C(sprintf)
+	addl	$24,%esp
+	jmp	.Lmenu_serverlist_print_row
+.Lmenu_serverlist_format_empty:
+	leal	-176(%ebp),%eax
+	leal	MSL_HOSTCACHE_MAP_OFFSET(%esi),%edx
+	pushl	%edx
+	pushl	%esi
+	pushl	$.Lmenu_serverlist_empty_format
+	pushl	%eax
+	call	C(sprintf)
+	addl	$16,%esp
+.Lmenu_serverlist_print_row:
+	movl	-188(%ebp),%edx
+	leal	32(,%edx,8),%edx
+	leal	-176(%ebp),%eax
+	pushl	%eax
+	pushl	%edx
+	pushl	$16
+	call	C(M_Print)
+	addl	$12,%esp
+	incl	-188(%ebp)
+	jmp	.Lmenu_serverlist_draw_rows
+
+.Lmenu_serverlist_cursor:
+	/* Match C truncation for (int)(realtime*4) in every x87 mode. */
+	fldl	C(realtime)
+	fmull	.Lmenu_modem_four
+	fnstcw	-198(%ebp)
+	movw	-198(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-200(%ebp)
+	fldcw	-200(%ebp)
+	fistpl	-204(%ebp)
+	fldcw	-198(%ebp)
+	movl	-204(%ebp),%eax
+	andl	$1,%eax
+	addl	$12,%eax
+	movl	C(slist_cursor),%edx
+	leal	32(,%edx,8),%edx
+	pushl	%eax
+	pushl	%edx
+	pushl	$0
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	cmpb	$0,C(m_return_reason)
+	je	.Lmenu_serverlist_done
+	pushl	$C(m_return_reason)
+	pushl	$148
+	pushl	$16
+	call	C(M_PrintWhite)
+	addl	$12,%esp
+
+.Lmenu_serverlist_done:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
 /* Video-menu dispatch and mode-list rendering. */
 .p2align 2
 .globl C(M_Video_Draw)
@@ -3600,6 +3785,10 @@ C(VID_MenuDraw):
 
 .Lmenu_search_draw_multi_title:
 	.asciz	"gfx/p_multi.lmp"
+.Lmenu_serverlist_full_format:
+	.asciz	"%-15.15s %-15.15s %2u/%2u\n"
+.Lmenu_serverlist_empty_format:
+	.asciz	"%-15.15s %-15.15s\n"
 .Lmenu_lanconfig_new_game:
 	.asciz	"New Game"
 .Lmenu_lanconfig_join_game:

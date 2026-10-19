@@ -15,8 +15,8 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-602 renderer entries, 417 directly reachable entries, and 3 directly
-reachable C dependencies: 414/417, or 99.3%, are assembly-owned by
+602 renderer entries, 417 directly reachable entries, and 2 directly
+reachable C dependencies: 415/417, or 99.5%, are assembly-owned by
 reachable-symbol count. This remains a profile-specific estimate: the
 inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
@@ -65,6 +65,12 @@ strict i486 release proof are recorded in the
 `M_SerialConfig_Draw` now selects assembly for the serial configuration page;
 its 3,456-case parity fixture and strict i486 release proof are recorded in the
 [serial configuration ledger](ledger/2026-10-19-serial-config-menu-assembly-port.md).
+`M_ServerList_Draw` now selects assembly for host-cache sorting, row formatting,
+the centered multiplayer title, animated cursor, and return-reason text. Its
+1,920-case parity fixture and strict i486 release proof are recorded in the
+[server-list menu ledger](ledger/2026-10-19-server-list-menu-assembly-port.md).
+The two directly reachable C menu dependencies left in this profile are
+`M_Menu_LanConfig_f` and `M_Menu_ServerList_f`; both are state-entry routines.
 `VID_ExtraDefaultMode` public wrapper now selects assembly in the assembly
 profile, with the C selector retained as a parity oracle; see the
 [VESA default-mode wrapper ledger](ledger/2026-10-19-vesa-default-mode-wrapper-assembly-port.md).

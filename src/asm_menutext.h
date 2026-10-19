@@ -7,6 +7,13 @@
 #define MENU_SAVE_FILENAME_STRIDE 40
 #define MD_KEY_BIND_COUNT 18
 
+#define MSL_HOSTCACHE_NAME_OFFSET 0
+#define MSL_HOSTCACHE_MAP_OFFSET 16
+#define MSL_HOSTCACHE_USERS_OFFSET 64
+#define MSL_HOSTCACHE_MAXUSERS_OFFSET 68
+#define MSL_HOSTCACHE_STRIDE 96
+#define MSL_HOSTCACHE_CAPACITY 8
+
 #define MD_STATE_NONE 0
 #define MD_STATE_MAIN 1
 #define MD_STATE_SINGLEPLAYER 2
@@ -43,6 +50,18 @@ typedef char mt_vid_width_offset_must_match[
 		(offsetof(viddef_t, width) == MT_VID_WIDTH_OFFSET) ? 1 : -1];
 typedef char mt_cvar_value_offset_must_match[
 		(offsetof(cvar_t, value) == 16) ? 1 : -1];
+typedef char msl_hostcache_name_offset_must_match[
+		(offsetof(hostcache_t, name) == MSL_HOSTCACHE_NAME_OFFSET) ? 1 : -1];
+typedef char msl_hostcache_map_offset_must_match[
+		(offsetof(hostcache_t, map) == MSL_HOSTCACHE_MAP_OFFSET) ? 1 : -1];
+typedef char msl_hostcache_users_offset_must_match[
+		(offsetof(hostcache_t, users) == MSL_HOSTCACHE_USERS_OFFSET) ? 1 : -1];
+typedef char msl_hostcache_maxusers_offset_must_match[
+		(offsetof(hostcache_t, maxusers) == MSL_HOSTCACHE_MAXUSERS_OFFSET) ? 1 : -1];
+typedef char msl_hostcache_stride_must_match[
+		(sizeof(hostcache_t) == MSL_HOSTCACHE_STRIDE) ? 1 : -1];
+typedef char msl_hostcache_capacity_must_match[
+		(HOSTCACHESIZE == MSL_HOSTCACHE_CAPACITY) ? 1 : -1];
 
 void M_DrawCharacter (int cx, int line, int num);
 void M_Print (int cx, int cy, char *str);
@@ -68,6 +87,7 @@ void M_ModemConfig_Draw (void);
 void M_LanConfig_Draw (void);
 void M_GameOptions_Draw (void);
 void M_Search_Draw (void);
+void M_ServerList_Draw (void);
 void M_Help_Draw (void);
 void M_Load_Draw (void);
 void M_Save_Draw (void);
@@ -108,6 +128,7 @@ void M_Net_Draw_C (void);
 void M_Options_Draw_C (void);
 void M_GameOptions_Draw_C (void);
 void M_Search_Draw_C (void);
+void M_ServerList_Draw_C (void);
 void M_DrawSlider_C (int x, int y, float range);
 void M_DrawCheckbox_C (int x, int y, int on);
 void M_Quit_Draw_C (void);

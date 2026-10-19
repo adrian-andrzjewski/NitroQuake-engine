@@ -3442,7 +3442,28 @@ void M_Menu_ServerList_f (void)
 }
 
 
-void M_ServerList_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_SERVERLIST_DRAW_C_ENTRY M_ServerList_Draw_C
+#define M_SERVERLIST_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_SERVERLIST_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_SERVERLIST_PRINT(x, y, text) M_Print_C ((x), (y), (text))
+#define M_SERVERLIST_CHARACTER(x, y, num) \
+		M_DrawCharacter_C ((x), (y), (num))
+#define M_SERVERLIST_PRINT_WHITE(x, y, text) \
+		M_PrintWhite_C ((x), (y), (text))
+#else
+#define M_SERVERLIST_DRAW_C_ENTRY M_ServerList_Draw
+#define M_SERVERLIST_CACHE_PIC(path) Draw_CachePic (path)
+#define M_SERVERLIST_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_SERVERLIST_PRINT(x, y, text) M_Print ((x), (y), (text))
+#define M_SERVERLIST_CHARACTER(x, y, num) \
+		M_DrawCharacter ((x), (y), (num))
+#define M_SERVERLIST_PRINT_WHITE(x, y, text) \
+		M_PrintWhite ((x), (y), (text))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_SERVERLIST_DRAW_C_ENTRY (void)
 {
 	int		n;
 	char	string [64];
@@ -3466,21 +3487,30 @@ void M_ServerList_Draw (void)
 		slist_sorted = true;
 	}
 
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	p = M_SERVERLIST_CACHE_PIC ("gfx/p_multi.lmp");
+	M_SERVERLIST_PIC ((320-p->width)/2, 4, p);
 	for (n = 0; n < hostCacheCount; n++)
 	{
 		if (hostcache[n].maxusers)
 			sprintf(string, "%-15.15s %-15.15s %2u/%2u\n", hostcache[n].name, hostcache[n].map, hostcache[n].users, hostcache[n].maxusers);
 		else
 			sprintf(string, "%-15.15s %-15.15s\n", hostcache[n].name, hostcache[n].map);
-		M_Print (16, 32 + 8*n, string);
+		M_SERVERLIST_PRINT (16, 32 + 8*n, string);
 	}
-	M_DrawCharacter (0, 32 + slist_cursor*8, 12+((int)(realtime*4)&1));
+	M_SERVERLIST_CHARACTER (0, 32 + slist_cursor*8,
+			12+((int)(realtime*4)&1));
 
 	if (*m_return_reason)
-		M_PrintWhite (16, 148, m_return_reason);
+		M_SERVERLIST_PRINT_WHITE (16, 148, m_return_reason);
 }
+#endif
+
+#undef M_SERVERLIST_PRINT_WHITE
+#undef M_SERVERLIST_CHARACTER
+#undef M_SERVERLIST_PRINT
+#undef M_SERVERLIST_PIC
+#undef M_SERVERLIST_CACHE_PIC
+#undef M_SERVERLIST_DRAW_C_ENTRY
 
 
 void M_ServerList_Key (int k)

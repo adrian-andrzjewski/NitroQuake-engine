@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-19-server-list-menu-assembly-port.md`](2026-10-19-server-list-menu-assembly-port.md) | 4 | renderer port / server-list menu drawing and host-cache sorting (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-video-mode-menu-assembly-port.md`](2026-10-19-video-mode-menu-assembly-port.md) | 4 | renderer port / DOS video-mode menu list and callback renderer (`Video mode menu behavior and selector`; `Direct C/ASM parity matrix`; `Strict i486 release audit and current ownership`; `Remaining video-menu port scope`) |
 | [`2026-10-19-vesa-lifecycle-assembly-port.md`](2026-10-19-vesa-lifecycle-assembly-port.md) | 4 | renderer port / VESA resource cleanup and palette-ready state (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-video-mode-assembly-port.md`](2026-10-19-video-mode-assembly-port.md) | 4 | renderer port / DOS video mode, palette, and shutdown orchestration (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification and ownership`; `Scope and remaining work`) |
