@@ -13,16 +13,33 @@
 // console.c:Con_DrawInput. GPL-2.0-or-later.
 #include "asm_i386.h"
 #include "asm_consoleinput.h"
+#include "asm_consoleoutput.h"
 
 #if defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
 .arch i486
 .arch .387
 .code32
 
-#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+#if defined(BENCH486)
 #define CON_PRINT_LOCAL_SOUND C(Bench486ConPrintSound)
+#define CON_OUTPUT_OPEN C(Bench486ConsoleOutputOpen)
+#define CON_OUTPUT_WRITE C(Bench486ConsoleOutputWrite)
+#define CON_OUTPUT_CLOSE C(Bench486ConsoleOutputClose)
+#define CON_OUTPUT_SYS_PRINTF C(Bench486ConsoleOutputSysPrintf)
+#define CON_OUTPUT_UPDATE_SCREEN C(Bench486ConsoleOutputUpdateScreen)
+#ifdef ASM486_CONSOLE_INPUT
+#define CON_OUTPUT_CON_PRINT C(Con_Print_asm486)
+#else
+#define CON_OUTPUT_CON_PRINT C(Con_Print)
+#endif
 #else
 #define CON_PRINT_LOCAL_SOUND C(S_LocalSound)
+#define CON_OUTPUT_OPEN C(open)
+#define CON_OUTPUT_WRITE C(write)
+#define CON_OUTPUT_CLOSE C(close)
+#define CON_OUTPUT_SYS_PRINTF C(Sys_Printf)
+#define CON_OUTPUT_UPDATE_SCREEN C(SCR_UpdateScreen)
+#define CON_OUTPUT_CON_PRINT C(Con_Print_asm486)
 #endif
 
 .text
@@ -512,10 +529,185 @@ C(Con_Print_asm486):
     popl    %ebp
     ret
 
+// Con_DebugLog from console.c. Keep its legacy static-buffer behavior and
+// unchecked open/write/close sequence; BENCH substitutes event-capture I/O.
+.p2align 4,,15
+.globl C(Con_DebugLog_asm486)
+#ifdef ASM486_CONSOLE_INPUT
+.globl C(Con_DebugLog)
+C(Con_DebugLog):
+#if defined(BENCH486)
+    jmp     C(Con_DebugLog_Console_C)
+#endif
+#endif
+C(Con_DebugLog_asm486):
+    pushl   %ebp
+    movl    %esp,%ebp
+    pushl   %ebx
+    pushl   %esi
+    pushl   %edi
+    subl    $8,%esp
+    leal    16(%ebp),%eax
+    pushl   %eax
+    pushl   12(%ebp)
+    pushl   $.Lcon_debuglog_data_asm486
+    call    C(vsprintf)
+    addl    $12,%esp
+
+    pushl   $co_open_mode
+    pushl   $co_open_flags
+    pushl   8(%ebp)
+    call    CON_OUTPUT_OPEN
+    addl    $12,%esp
+    movl    %eax,-16(%ebp)
+
+    pushl   $.Lcon_debuglog_data_asm486
+    call    C(strlen)
+    addl    $4,%esp
+    movl    %eax,-20(%ebp)
+    pushl   -20(%ebp)
+    pushl   $.Lcon_debuglog_data_asm486
+    pushl   -16(%ebp)
+    call    CON_OUTPUT_WRITE
+    addl    $12,%esp
+    pushl   -16(%ebp)
+    call    CON_OUTPUT_CLOSE
+    addl    $4,%esp
+    leal    -12(%ebp),%esp
+    popl    %edi
+    popl    %esi
+    popl    %ebx
+    popl    %ebp
+    ret
+
+// Con_Printf from console.c. The formatted message remains on this call's
+// stack, matching the C routine's 4096-byte local buffer lifetime.
+.p2align 4,,15
+.globl C(Con_Printf_asm486)
+#ifdef ASM486_CONSOLE_INPUT
+.globl C(Con_Printf)
+C(Con_Printf):
+#if defined(BENCH486)
+    jmp     C(Con_Printf_Console_C)
+#endif
+#endif
+C(Con_Printf_asm486):
+    pushl   %ebp
+    movl    %esp,%ebp
+    pushl   %ebx
+    pushl   %esi
+    pushl   %edi
+    subl    $co_max_print_message,%esp
+    leal    12(%ebp),%eax
+    pushl   %eax
+    pushl   8(%ebp)
+    leal    -4108(%ebp),%eax
+    pushl   %eax
+    call    C(vsprintf)
+    addl    $12,%esp
+    leal    -4108(%ebp),%esi
+
+    pushl   %esi
+    pushl   $.Lcon_output_percent_s
+    call    CON_OUTPUT_SYS_PRINTF
+    addl    $8,%esp
+
+    cmpl    $0,C(con_debuglog)
+    je      .Lcon_printf_no_log
+    pushl   $C(com_gamedir)
+    pushl   $.Lcon_output_log_path_format
+    call    C(va)
+    addl    $8,%esp
+    movl    %eax,%edi
+    pushl   %esi
+    pushl   $.Lcon_output_percent_s
+    pushl   %edi
+    call    C(Con_DebugLog_asm486)
+    addl    $12,%esp
+
+.Lcon_printf_no_log:
+    cmpl    $0,C(con_initialized)
+    je      .Lcon_printf_done
+    cmpl    $co_dedicated_state,C(cls)+co_client_state_offset
+    je      .Lcon_printf_done
+    pushl   %esi
+    call    CON_OUTPUT_CON_PRINT
+    addl    $4,%esp
+
+    cmpl    $co_signons,C(cls)+co_client_signon_offset
+    je      .Lcon_printf_done
+    cmpl    $0,C(scr_disabled_for_loading)
+    jne     .Lcon_printf_done
+    cmpl    $0,C(con_printf_inupdate_asm486)
+    jne     .Lcon_printf_done
+    movl    $1,C(con_printf_inupdate_asm486)
+    call    CON_OUTPUT_UPDATE_SCREEN
+    movl    $0,C(con_printf_inupdate_asm486)
+
+.Lcon_printf_done:
+    leal    -12(%ebp),%esp
+    popl    %edi
+    popl    %esi
+    popl    %ebx
+    popl    %ebp
+    ret
+
+// Con_DPrintf from console.c. The retained GCC -ffast-math C object tests only
+// ZF after its x87 compare, so unordered values take the same return path as
+// zero. FTST plus SAHF reproduces that flag behavior; pop the x87 value first.
+.p2align 4,,15
+.globl C(Con_DPrintf_asm486)
+#ifdef ASM486_CONSOLE_INPUT
+.globl C(Con_DPrintf)
+C(Con_DPrintf):
+#if defined(BENCH486)
+    jmp     C(Con_DPrintf_Console_C)
+#endif
+#endif
+C(Con_DPrintf_asm486):
+    pushl   %ebp
+    movl    %esp,%ebp
+    pushl   %ebx
+    pushl   %esi
+    pushl   %edi
+    subl    $co_max_print_message,%esp
+    flds    C(developer)+co_cvar_value_offset
+    ftst
+    fnstsw  %ax
+    fstp    %st(0)
+    sahf
+    jz      .Lcon_dprintf_done
+.Lcon_dprintf_enabled:
+    leal    12(%ebp),%eax
+    pushl   %eax
+    pushl   8(%ebp)
+    leal    -4108(%ebp),%eax
+    pushl   %eax
+    call    C(vsprintf)
+    addl    $12,%esp
+    leal    -4108(%ebp),%eax
+    pushl   %eax
+    pushl   $.Lcon_output_percent_s
+    call    C(Con_Printf_asm486)
+    addl    $8,%esp
+.Lcon_dprintf_done:
+    leal    -12(%ebp),%esp
+    popl    %edi
+    popl    %esi
+    popl    %ebx
+    popl    %ebp
+    ret
+
 .bss
 .p2align 2
 .globl C(con_print_cr_asm486)
 C(con_print_cr_asm486):
+    .long   0
+.Lcon_debuglog_data_asm486:
+    .space  co_debuglog_buffer_size
+.p2align 2
+.globl C(con_printf_inupdate_asm486)
+C(con_printf_inupdate_asm486):
     .long   0
 
 #endif
@@ -525,6 +717,15 @@ C(con_print_cr_asm486):
     .asciz  "say:"
 .Lcon_print_talk_sound:
     .asciz  "misc/talk.wav"
+.Lcon_output_percent_s:
+    .asciz  "%s"
+.Lcon_output_log_path_format:
+    .asciz  "%s/qconsole.log"
 .text
 #undef CON_PRINT_LOCAL_SOUND
+#undef CON_OUTPUT_OPEN
+#undef CON_OUTPUT_WRITE
+#undef CON_OUTPUT_CLOSE
+#undef CON_OUTPUT_SYS_PRINTF
+#undef CON_OUTPUT_UPDATE_SCREEN
 #endif

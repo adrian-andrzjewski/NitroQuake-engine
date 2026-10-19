@@ -7009,9 +7009,13 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #include "bench486_sbardraw.h"
 #endif
-#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT) && \
+		!defined(BENCH486_CONSOLE_OUTPUT_ONLY)
 #include "bench486_console_input.h"
+#endif
+#ifdef BENCH486
 #include "bench486_conprint.h"
+#include "bench486_conprintf.h"
 #endif
 #if defined(BENCH486) && defined(ASM486_SCREEN_NOTIFY)
 #include "bench486_screennotify.h"
@@ -11708,8 +11712,14 @@ static void Bench486_f (void)
 	if (COM_CheckParm ("-benchconsoleinput"))
 	{
 #ifdef ASM486_CONSOLE_INPUT
+	#ifndef BENCH486_CONSOLE_OUTPUT_ONLY
 		Bench486ConsoleInputCases ();
+	#else
+		bench486_memory_failures++;
+		Bench486Printf ("console input fixture excluded from console-output-only build\n");
+	#endif
 		Bench486ConPrintCases ();
+		Bench486ConPrintfCases ();
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("console input fixture requires ConsoleImplementation=asm\n");
@@ -11717,6 +11727,21 @@ static void Bench486_f (void)
 		Bench486Printf ("486 benchmark correctness %s\n", bench486_memory_failures ? "FAIL" : "PASS");
 		if (bench486_report_handle != -1) { Sys_FileClose(bench486_report_handle); bench486_report_handle = -1; }
 		if (COM_CheckParm ("-benchexit")) Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchconsoleoutput"))
+	{
+		Bench486ConPrintfCases ();
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
 		return;
 	}
 	if (COM_CheckParm ("-benchscreenconsolesetup"))
@@ -12566,9 +12591,13 @@ static void Bench486_f (void)
 	Bench486ViewControlCases ();
 	Bench486VInitCases ();
 #endif
-#ifdef ASM486_CONSOLE_INPUT
+#if defined(ASM486_CONSOLE_INPUT) && \
+		!defined(BENCH486_CONSOLE_OUTPUT_ONLY)
 	Bench486ConsoleInputCases ();
+#endif
+#ifdef BENCH486
 	Bench486ConPrintCases ();
+	Bench486ConPrintfCases ();
 #endif
 #ifdef ASM486_SCREEN_NOTIFY
 	Bench486ScreenNotifyCases ();

@@ -353,6 +353,20 @@ def main() -> int:
         if "-DBENCH486" in i486.get("cFlags", []) or "-DBENCH486" in i486.get("asmFlags", []):
             fail("the release i486 flags include benchmark-only -DBENCH486")
 
+    console_output_benchmark = dump_flags(
+        "-Benchmark", "-ConsoleOutputOnlyBenchmark",
+        "-ConsoleImplementation", "asm",
+    )
+    if console_output_benchmark:
+        if "-DBENCH486_CONSOLE_OUTPUT_ONLY" not in console_output_benchmark.get("cFlags", []):
+            fail("the isolated console-output benchmark omits its C harness define")
+        if "-DBENCH486_CONSOLE_OUTPUT_ONLY" in console_output_benchmark.get("asmFlags", []):
+            fail("the console-output harness define leaked into assembly flags")
+        if "-DASM486_CONSOLE_INPUT" not in console_output_benchmark.get("cFlags", []):
+            fail("the isolated console-output benchmark did not retain ASM console selection")
+        if "-DBENCH486_CONSOLE_OUTPUT_ONLY" in benchmark.get("cFlags", []):
+            fail("the normal benchmark unexpectedly uses the isolated console-output harness")
+
     # Visual-only renderer comparisons use an isolated output directory so a
     # -SkipIsaAudit build cannot replace a normal profile's strict manifest.
     visual_output = os.path.join(REPO_ROOT, "out", "visual-parity-test-profile")

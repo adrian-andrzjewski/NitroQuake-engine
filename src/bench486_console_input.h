@@ -4,6 +4,8 @@
 
 #if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
 
+#include <stdlib.h>
+
 #define BCI_LINE_COUNT 32
 #define BCI_LINE_BYTES 256
 #define BCI_FONT_BYTES 16384
@@ -96,7 +98,6 @@ static viddef_t bench486_console_input_expected_video;
 static bench486_console_input_result_t bench486_console_input_c_result;
 static bench486_console_input_result_t bench486_console_input_asm_result;
 static bench486_console_input_result_t bench486_console_input_public_result;
-static byte bench486_console_draw_saved_frame[BCD_MAX_FRAME_BYTES];
 static byte bench486_console_draw_c_frame[BCD_MAX_FRAME_BYTES];
 static byte bench486_console_notify_c_frame[BCI_FRAME_BYTES];
 static char bench486_console_notify_text[BCN_TEXT_BYTES];
@@ -222,6 +223,7 @@ static void Bench486ConsoleDrawCases (void)
 	unsigned bytes, arguments[2], i, j, difference, failures = 0;
 	int c_visible;
 	unsigned c_abi, asm_abi;
+	byte *saved_frame;
 	
 	if (!vid.conbuffer || vid.conrowbytes <= 0 || vid.conheight <= 0 ||
 			vid.conrowbytes * vid.conheight > BCD_MAX_FRAME_BYTES ||
@@ -233,6 +235,14 @@ static void Bench486ConsoleDrawCases (void)
 	}
 
 	bytes = (unsigned)(vid.conrowbytes * vid.conheight);
+	saved_frame = malloc (bytes);
+	if (!saved_frame)
+	{
+		bench486_memory_failures++;
+		Bench486Printf ("console draw C/ASM parity FAIL: could not allocate %u-byte framebuffer snapshot\n",
+				bytes);
+		return;
+	}
 	lines[0] = 1;
 	lines[1] = 15;
 	lines[2] = 16;
@@ -243,7 +253,7 @@ static void Bench486ConsoleDrawCases (void)
 	saved_backscroll = con_backscroll;
 	saved_width = con_linewidth;
 	Q_memcpy (&saved_video, &vid, sizeof(vid));
-	Q_memcpy (bench486_console_draw_saved_frame, vid.conbuffer, bytes);
+	Q_memcpy (saved_frame, vid.conbuffer, bytes);
 	
 	for (i = 0; i < sizeof(lines) / sizeof(lines[0]); i++)
 	{
@@ -251,14 +261,14 @@ static void Bench486ConsoleDrawCases (void)
 			lines[i] = vid.conheight;
 		arguments[0] = (unsigned)lines[i];
 		arguments[1] = 0;
-		Q_memcpy (vid.conbuffer, bench486_console_draw_saved_frame, bytes);
+		Q_memcpy (vid.conbuffer, saved_frame, bytes);
 		con_vislines = saved_visible;
 		c_abi = Bench486Call_asm486 ((void (*)(void))Con_DrawConsole_Console_C,
 				2, arguments, NULL);
 		c_visible = con_vislines;
 		Q_memcpy (bench486_console_draw_c_frame, vid.conbuffer, bytes);
 		
-		Q_memcpy (vid.conbuffer, bench486_console_draw_saved_frame, bytes);
+		Q_memcpy (vid.conbuffer, saved_frame, bytes);
 		con_vislines = saved_visible;
 		asm_abi = Bench486Call_asm486 ((void (*)(void))Con_DrawConsole_asm486,
 				2, arguments, NULL);
@@ -282,7 +292,8 @@ static void Bench486ConsoleDrawCases (void)
 		}
 	}
 
-	Q_memcpy (vid.conbuffer, bench486_console_draw_saved_frame, bytes);
+	Q_memcpy (vid.conbuffer, saved_frame, bytes);
+	free (saved_frame);
 	con_vislines = saved_visible;
 	if (failures)
 		bench486_memory_failures += failures;

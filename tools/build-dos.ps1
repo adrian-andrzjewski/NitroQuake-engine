@@ -363,7 +363,8 @@ param(
     [string]$DiagnosticOutputRoot,
     # Put an audited i486 build in a direct child of out\local-<name>.
     # This avoids externally redirected long-profile paths when needed.
-    [string]$LocalOutputDirectoryName
+    [string]$LocalOutputDirectoryName,
+    [switch]$ConsoleOutputOnlyBenchmark
 )
 
 Set-StrictMode -Version Latest
@@ -377,6 +378,9 @@ if ($AliasClipZImplementation -eq 'asm' -and $AliasClipImplementation -ne 'asm')
 
 if ($Instrumentation -and -not $Benchmark) {
     throw 'Profile builds require -Benchmark.'
+}
+if ($ConsoleOutputOnlyBenchmark -and -not $Benchmark) {
+    throw '-ConsoleOutputOnlyBenchmark requires -Benchmark.'
 }
 if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
     throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
@@ -819,6 +823,9 @@ try {
     )
     if ($Benchmark) {
         $cFlags += '-DBENCH486'
+    }
+    if ($ConsoleOutputOnlyBenchmark) {
+        $cFlags += '-DBENCH486_CONSOLE_OUTPUT_ONLY'
     }
 
     # ---------------------------------------------------------------------------

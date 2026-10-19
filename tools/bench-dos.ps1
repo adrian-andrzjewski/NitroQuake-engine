@@ -374,6 +374,7 @@ param(
     [switch]$DrawingDriverOnly,
     [switch]$ViewControlOnly,
     [switch]$ConsoleInputOnly,
+    [switch]$ConsoleOutputOnly,
     [switch]$ScreenNotifyOnly,
     [switch]$ScreenCenterStringOnly,
     [switch]$ScreenEraseCenterStringOnly,
@@ -806,6 +807,10 @@ $buildParams = @{
         ToolRoot = $ToolRoot
     }
 
+if ($ConsoleOutputOnly) {
+    $buildParams['ConsoleOutputOnlyBenchmark'] = $true
+}
+
 if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName)) {
     $buildParams['LocalOutputDirectoryName'] = $LocalOutputDirectoryName
 }
@@ -1074,6 +1079,9 @@ elseif ($ViewControlOnly) {
 }
 elseif ($ConsoleInputOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchconsoleinput -benchexit'
+}
+elseif ($ConsoleOutputOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchconsoleoutput -benchexit'
 }
 elseif ($ScreenNotifyOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchscreenotify -benchexit'
@@ -1499,6 +1507,7 @@ $result = [ordered]@{
     drawingDriverOnly = [bool]$DrawingDriverOnly
     viewControlOnly = [bool]$ViewControlOnly
     consoleInputOnly = [bool]$ConsoleInputOnly
+    consoleOutputOnly = [bool]$ConsoleOutputOnly
     screenConsoleSetupOnly = [bool]$ScreenConsoleSetupOnly
     screenRefdefOnly = [bool]$ScreenRefdefOnly
     screenDrawRamOnly = [bool]$ScreenDrawRamOnly

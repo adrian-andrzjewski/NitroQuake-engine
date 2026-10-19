@@ -2,7 +2,7 @@
 #ifndef BENCH486_CONPRINT_H
 #define BENCH486_CONPRINT_H
 
-#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+#if defined(BENCH486)
 
 #include "asm_consolecheckresize.h"
 
@@ -19,9 +19,18 @@ extern int con_print_cr_bench, con_print_cr_asm486;
 extern int bench486_memory_failures;
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
 		const unsigned *arguments, float *float_return);
+#ifdef ASM486_CONSOLE_INPUT
 extern void Con_Print_Console_C (char *text);
-extern void Con_Print_asm486 (char *text);
 extern void Con_Linefeed_Console_C (void);
+#define BCP_CON_PRINT_C Con_Print_Console_C
+#define BCP_CON_LINEFEED_C Con_Linefeed_Console_C
+#else
+extern void Con_Print (char *text);
+extern void Con_Linefeed (void);
+#define BCP_CON_PRINT_C Con_Print
+#define BCP_CON_LINEFEED_C Con_Linefeed
+#endif
+extern void Con_Print_asm486 (char *text);
 extern void Con_Linefeed_asm486 (void);
 
 int bench486_console_print_capture_active;
@@ -106,6 +115,18 @@ static bench486_conprint_result_t bench486_conprint_asm_result;
 static char bench486_conprint_high_bytes[] = {
 	(char)0x80, (char)0xff, 'Q', '\n', 0
 };
+
+static unsigned short Bench486ConPrintGetControlWord (void)
+{
+	unsigned short control_word;
+	__asm__ __volatile__ ("fnstcw %0" : "=m" (control_word));
+	return control_word;
+}
+
+static void Bench486ConPrintSetControlWord (unsigned short control_word)
+{
+	__asm__ __volatile__ ("fldcw %0" : : "m" (control_word));
+}
 
 static void Bench486ConPrintSave (bench486_conprint_saved_t *saved)
 {
@@ -227,15 +248,15 @@ static void Bench486ConPrintCase (
 	unsigned abi_c, abi_asm;
 	int passed, i;
 	Bench486ConPrintSave (&saved);
-	original_control_word = Bench486ConsoleInputGetControlWord ();
+	original_control_word = Bench486ConPrintGetControlWord ();
 	test_control_word = (original_control_word & ~0x0c00U) | rounding_mode;
-	Bench486ConsoleInputSetControlWord ((unsigned short)test_control_word);
+	Bench486ConPrintSetControlWord ((unsigned short)test_control_word);
 	abi_c = Bench486ConPrintRun (test_case, (void (*)(void))
-			Con_Print_Console_C, &bench486_conprint_c_result, 0);
-	Bench486ConsoleInputSetControlWord ((unsigned short)test_control_word);
+			BCP_CON_PRINT_C, &bench486_conprint_c_result, 0);
+	Bench486ConPrintSetControlWord ((unsigned short)test_control_word);
 	abi_asm = Bench486ConPrintRun (test_case, (void (*)(void))
 			Con_Print_asm486, &bench486_conprint_asm_result, 1);
-	Bench486ConsoleInputSetControlWord ((unsigned short)original_control_word);
+	Bench486ConPrintSetControlWord ((unsigned short)original_control_word);
 	passed = !Q_memcmp (&bench486_conprint_c_result,
 			&bench486_conprint_asm_result, sizeof(bench486_conprint_c_result)) &&
 			!abi_c && !abi_asm &&
@@ -293,7 +314,7 @@ static void Bench486ConPrintLinefeedCase (void)
 	test_case.realtime_value = 371.375;
 	Bench486ConPrintSave (&saved);
 	Bench486ConPrintInstall (&test_case);
-	abi_c = Bench486Call_asm486 ((void (*)(void))Con_Linefeed_Console_C,
+	abi_c = Bench486Call_asm486 ((void (*)(void))BCP_CON_LINEFEED_C,
 			0, NULL, NULL);
 	Bench486ConPrintCapture (&c_result, 0, abi_c);
 	Bench486ConPrintInstall (&test_case);
@@ -364,5 +385,5 @@ static void Bench486ConPrintCases (void)
 #undef BCP_SOUND_BYTES
 #undef BCP_NOTIFY_COUNT
 
-#endif /* BENCH486 && ASM486_CONSOLE_INPUT */
+#endif /* BENCH486 */
 #endif /* BENCH486_CONPRINT_H */

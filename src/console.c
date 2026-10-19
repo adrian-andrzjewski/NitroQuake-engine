@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <fcntl.h>
 #include "quakedef.h"
 #include "asm_consolecheckresize.h"
+#include "asm_consoleoutput.h"
 
 int 		con_linewidth;
 
@@ -278,7 +279,7 @@ Con_Linefeed
 #define CON_PRINT_C_ENTRY Con_Print
 #endif
 
-#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+#if defined(BENCH486)
 int con_print_cr_bench;
 #define CON_PRINT_CR_STATE con_print_cr_bench
 #define CON_PRINT_LOCAL_SOUND Bench486ConPrintSound
@@ -396,7 +397,45 @@ void CON_PRINT_C_ENTRY (char *txt)
 Con_DebugLog
 ================
 */
-void Con_DebugLog(char *file, char *fmt, ...)
+#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
+#define CON_DEBUGLOG_C_ENTRY Con_DebugLog_Console_C
+#define CON_PRINTF_C_ENTRY Con_Printf_Console_C
+#define CON_DPRINTF_C_ENTRY Con_DPrintf_Console_C
+#define CON_DEBUGLOG_C_CALL Con_DebugLog_Console_C
+#define CON_PRINTF_C_CALL Con_Printf_Console_C
+#define CON_PRINT_C_CALL Con_Print_Console_C
+#elif defined(BENCH486)
+#define CON_DEBUGLOG_C_ENTRY Con_DebugLog
+#define CON_PRINTF_C_ENTRY Con_Printf
+#define CON_DPRINTF_C_ENTRY Con_DPrintf
+#define CON_DEBUGLOG_C_CALL Con_DebugLog
+#define CON_PRINTF_C_CALL Con_Printf
+#define CON_PRINT_C_CALL Con_Print
+#else
+#define CON_DEBUGLOG_C_ENTRY Con_DebugLog
+#define CON_PRINTF_C_ENTRY Con_Printf
+#define CON_DPRINTF_C_ENTRY Con_DPrintf
+#define CON_DEBUGLOG_C_CALL Con_DebugLog
+#define CON_PRINTF_C_CALL Con_Printf
+#define CON_PRINT_C_CALL Con_Print
+#endif
+
+#if defined(BENCH486)
+#define CON_OUTPUT_OPEN Bench486ConsoleOutputOpen
+#define CON_OUTPUT_WRITE Bench486ConsoleOutputWrite
+#define CON_OUTPUT_CLOSE Bench486ConsoleOutputClose
+#define CON_OUTPUT_SYS_PRINTF Bench486ConsoleOutputSysPrintf
+#define CON_OUTPUT_UPDATE_SCREEN Bench486ConsoleOutputUpdateScreen
+#else
+#define CON_OUTPUT_OPEN open
+#define CON_OUTPUT_WRITE write
+#define CON_OUTPUT_CLOSE close
+#define CON_OUTPUT_SYS_PRINTF Sys_Printf
+#define CON_OUTPUT_UPDATE_SCREEN SCR_UpdateScreen
+#endif
+
+#if !defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
+void CON_DEBUGLOG_C_ENTRY (char *file, char *fmt, ...)
 {
     va_list argptr; 
     static char data[1024];
@@ -405,10 +444,11 @@ void Con_DebugLog(char *file, char *fmt, ...)
     va_start(argptr, fmt);
     vsprintf(data, fmt, argptr);
     va_end(argptr);
-    fd = open(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
-    write(fd, data, strlen(data));
-    close(fd);
+    fd = CON_OUTPUT_OPEN(file, O_WRONLY | O_CREAT | O_APPEND, 0666);
+    CON_OUTPUT_WRITE(fd, data, strlen(data));
+    CON_OUTPUT_CLOSE(fd);
 }
+#endif
 
 
 /*
@@ -420,7 +460,8 @@ Handles cursor positioning, line wrapping, etc
 */
 #define	MAXPRINTMSG	4096
 // FIXME: make a buffer size safe vsprintf?
-void Con_Printf (char *fmt, ...)
+#if !defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
+void CON_PRINTF_C_ENTRY (char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
@@ -431,11 +472,11 @@ void Con_Printf (char *fmt, ...)
 	va_end (argptr);
 	
 // also echo to debugging console
-	Sys_Printf ("%s", msg);	// also echo to debugging console
+	CON_OUTPUT_SYS_PRINTF ("%s", msg);	// also echo to debugging console
 
 // log all messages to file
 	if (con_debuglog)
-		Con_DebugLog(va("%s/qconsole.log",com_gamedir), "%s", msg);
+		CON_DEBUGLOG_C_CALL (va("%s/qconsole.log",com_gamedir), "%s", msg);
 
 	if (!con_initialized)
 		return;
@@ -444,7 +485,7 @@ void Con_Printf (char *fmt, ...)
 		return;		// no graphics mode
 
 // write it to the scrollable buffer
-	Con_Print (msg);
+	CON_PRINT_C_CALL (msg);
 	
 // update the screen if the console is displayed
 	if (cls.signon != SIGNONS && !scr_disabled_for_loading )
@@ -454,11 +495,12 @@ void Con_Printf (char *fmt, ...)
 		if (!inupdate)
 		{
 			inupdate = true;
-			SCR_UpdateScreen ();
+			CON_OUTPUT_UPDATE_SCREEN ();
 			inupdate = false;
 		}
 	}
 }
+#endif
 
 /*
 ================
@@ -467,7 +509,8 @@ Con_DPrintf
 A Con_Printf that only shows up if the "developer" cvar is set
 ================
 */
-void Con_DPrintf (char *fmt, ...)
+#if !defined(ASM486_CONSOLE_INPUT) || defined(BENCH486)
+void CON_DPRINTF_C_ENTRY (char *fmt, ...)
 {
 	va_list		argptr;
 	char		msg[MAXPRINTMSG];
@@ -479,8 +522,21 @@ void Con_DPrintf (char *fmt, ...)
 	vsprintf (msg,fmt,argptr);
 	va_end (argptr);
 	
-	Con_Printf ("%s", msg);
+	CON_PRINTF_C_CALL ("%s", msg);
 }
+#endif
+
+#undef CON_OUTPUT_UPDATE_SCREEN
+#undef CON_OUTPUT_SYS_PRINTF
+#undef CON_OUTPUT_CLOSE
+#undef CON_OUTPUT_WRITE
+#undef CON_OUTPUT_OPEN
+#undef CON_PRINT_C_CALL
+#undef CON_PRINTF_C_CALL
+#undef CON_DEBUGLOG_C_CALL
+#undef CON_DPRINTF_C_ENTRY
+#undef CON_PRINTF_C_ENTRY
+#undef CON_DEBUGLOG_C_ENTRY
 
 
 /*
