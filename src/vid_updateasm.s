@@ -2,6 +2,7 @@
 #include "asm_i386.h"
 #include "asm_vidupdate.h"
 #include "asm_viddirectrect.h"
+#include "asm_vidmode.h"
 #undef i386
 .arch i486
 .arch .387
@@ -19,6 +20,256 @@
 #define VID_UPDATE_SET_CVAR C(Cvar_SetValue)
 #define VID_UPDATE_NO_VESA_MESSAGE C(Con_Printf)
 #endif
+#ifdef ASM486_VID_UPDATE_FIXTURE
+#define VID_MODE_SET_VALUE C(Bench486VidModeSetValue)
+#define VID_MODE_PRINTF C(Bench486VidModePrintf)
+#define VID_MODE_ERROR C(Bench486VidModeError)
+#define VID_MODE_RELEASE_EXTRA C(Bench486VidModeReleaseExtra)
+#define VID_MODE_PALETTE_OK C(Bench486VidModePaletteOK)
+#else
+#define VID_MODE_SET_VALUE C(Cvar_SetValue)
+#define VID_MODE_PRINTF C(Con_Printf)
+#define VID_MODE_ERROR C(Sys_Error)
+#define VID_MODE_RELEASE_EXTRA C(VID_ExtraReleaseMode)
+#define VID_MODE_PALETTE_OK C(VID_ExtraPaletteOK)
+#endif
+.text
+.p2align 2
+.globl C(VID_GetModePtr)
+C(VID_GetModePtr):
+	pushl	%ebp
+	movl	%esp,%ebp
+	movl	C(pvidmodes),%eax
+	testl	%eax,%eax
+	jne	.Lvid_mode_ptr_list
+	pushl	$.Lvid_mode_empty_list
+	call	VID_MODE_ERROR
+	addl	$4,%esp
+	xorl	%eax,%eax
+	leave
+	ret
+.Lvid_mode_ptr_list:
+	movl	8(%ebp),%ecx
+	testl	%ecx,%ecx
+	js	.Lvid_mode_ptr_corrupt
+.Lvid_mode_ptr_loop:
+	testl	%ecx,%ecx
+	je	.Lvid_mode_ptr_done
+	movl	VM_MODE_NEXT_OFFSET(%eax),%eax
+	testl	%eax,%eax
+	je	.Lvid_mode_ptr_corrupt
+	decl	%ecx
+	jmp	.Lvid_mode_ptr_loop
+.Lvid_mode_ptr_corrupt:
+	pushl	$.Lvid_mode_corrupt_list
+	call	VID_MODE_ERROR
+	addl	$4,%esp
+	xorl	%eax,%eax
+.Lvid_mode_ptr_done:
+	leave
+	ret
+
+.globl C(VID_ModeInfo)
+C(VID_ModeInfo):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	8(%ebp)
+	call	C(VID_GetModePtr)
+	addl	$4,%esp
+	testl	%eax,%eax
+	jne	.Lvid_mode_info_valid
+	movl	12(%ebp),%ecx
+	testl	%ecx,%ecx
+	je	.Lvid_mode_info_bad
+	movl	$0,(%ecx)
+.Lvid_mode_info_bad:
+	movl	$.Lvid_bad_mode_name,%eax
+	leave
+	ret
+.Lvid_mode_info_valid:
+	movl	12(%ebp),%ecx
+	testl	%ecx,%ecx
+	je	.Lvid_mode_info_name
+	movl	VM_MODE_HEADER_OFFSET(%eax),%edx
+	movl	%edx,(%ecx)
+.Lvid_mode_info_name:
+	movl	VM_MODE_NAME_OFFSET(%eax),%eax
+	leave
+	ret
+
+/* Mode lookup, callback dispatch, and the single VGA fallback attempt. */
+.globl C(VID_SetMode)
+C(VID_SetMode):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$24,%esp
+	movl	8(%ebp),%ebx
+	movl	%ebx,-16(%ebp)		/* requested mode */
+	movl	12(%ebp),%esi		/* palette */
+	movl	C(scr_disabled_for_loading),%eax
+	movl	%eax,-24(%ebp)		/* restore screen suppression */
+
+	movl	C(numvidmodes),%eax
+	cmpl	%eax,%ebx
+	jge	.Lvid_setmode_invalid
+	testl	%ebx,%ebx
+	js	.Lvid_setmode_invalid
+	jmp	.Lvid_setmode_lookup
+
+.Lvid_setmode_invalid:
+	fildl	C(vid_modenum)
+	fstps	-28(%ebp)
+	pushl	-28(%ebp)
+	pushl	$.Lvid_mode_cvar_name
+	call	VID_MODE_SET_VALUE
+	addl	$8,%esp
+	movl	$1,C(vid_nomodecheck)
+	pushl	%ebx
+	pushl	$.Lvid_mode_invalid_format
+	call	VID_MODE_PRINTF
+	addl	$8,%esp
+	movl	$0,C(vid_nomodecheck)
+	cmpl	$0,C(pcurrentmode)
+	jne	.Lvid_setmode_return_false
+	xorl	%ebx,%ebx
+
+.Lvid_setmode_lookup:
+	pushl	%ebx
+	call	C(VID_GetModePtr)
+	addl	$4,%esp
+	cmpl	C(pcurrentmode),%eax
+	jne	.Lvid_setmode_begin
+	movl	$1,%eax
+	jmp	.Lvid_setmode_return
+
+.Lvid_setmode_begin:
+	movl	$1,C(vid_nomodecheck)
+	movl	$1,C(scr_disabled_for_loading)
+	movl	$0,-20(%ebp)		/* attempt */
+.Lvid_setmode_attempt:
+	call	VID_MODE_RELEASE_EXTRA
+	movl	$0,C(vid)+VM_VID_DIRECT_OFFSET
+	pushl	%ebx
+	call	C(VID_GetModePtr)
+	addl	$4,%esp
+	movl	%eax,C(pcurrentmode)
+	movl	%eax,-32(%ebp)		/* current mode */
+	movl	VM_MODE_WIDTH_OFFSET(%eax),%ecx
+	movl	%ecx,C(vid)+VM_VID_WIDTH_OFFSET
+	movl	VM_MODE_HEIGHT_OFFSET(%eax),%ecx
+	movl	%ecx,C(vid)+VM_VID_HEIGHT_OFFSET
+	movl	VM_MODE_ASPECT_OFFSET(%eax),%ecx
+	movl	%ecx,C(vid)+VM_VID_ASPECT_OFFSET
+	movl	VM_MODE_ROWBYTES_OFFSET(%eax),%ecx
+	movl	%ecx,C(vid)+VM_VID_ROWBYTES_OFFSET
+	movl	VM_MODE_SETMODE_OFFSET(%eax),%ecx
+	pushl	%eax
+	pushl	$C(vid)
+	call	*%ecx
+	addl	$8,%esp
+	testl	%eax,%eax
+	jle	.Lvid_setmode_failed
+
+	movl	-32(%ebp),%eax
+	movl	VM_MODE_SETPALETTE_OFFSET(%eax),%ecx
+	pushl	%esi
+	pushl	%eax
+	pushl	$C(vid)
+	call	*%ecx
+	addl	$12,%esp
+	call	VID_MODE_PALETTE_OK
+	testl	%eax,%eax
+	jne	.Lvid_setmode_success
+
+.Lvid_setmode_failed:
+	pushl	%ebx
+	pushl	$.Lvid_mode_fallback_format
+	call	VID_MODE_PRINTF
+	addl	$8,%esp
+	cmpl	$0,%ebx
+	je	.Lvid_setmode_error
+	cmpl	$1,-20(%ebp)
+	jne	.Lvid_setmode_fallback
+.Lvid_setmode_error:
+	pushl	$.Lvid_mode_error_text
+	call	VID_MODE_ERROR
+	addl	$4,%esp
+.Lvid_setmode_fallback:
+	xorl	%ebx,%ebx
+	incl	-20(%ebp)
+	cmpl	$2,-20(%ebp)
+	jl	.Lvid_setmode_attempt
+
+.Lvid_setmode_success:
+	pushl	$768
+	pushl	%esi
+	pushl	$C(vid_current_palette)
+	call	C(Q_memcpy)
+	addl	$12,%esp
+	movl	%ebx,C(vid_modenum)
+	fildl	C(vid_modenum)
+	fstps	-28(%ebp)
+	pushl	-28(%ebp)
+	pushl	$.Lvid_mode_cvar_name
+	call	VID_MODE_SET_VALUE
+	addl	$8,%esp
+	movl	$1,C(vid)+VM_VID_RECALC_REFDEF_OFFSET
+	movl	$1,C(vid_nomodecheck)
+	pushl	$0
+	pushl	C(vid_modenum)
+	call	C(VID_ModeInfo)
+	addl	$8,%esp
+	pushl	%eax
+	pushl	C(vid_modenum)
+	pushl	$.Lvid_mode_success_format
+	call	VID_MODE_PRINTF
+	addl	$12,%esp
+	cmpl	$0,%ebx
+	jne	.Lvid_setmode_restore
+	pushl	$.Lvid_mode_vga_format
+	call	VID_MODE_PRINTF
+	addl	$4,%esp
+.Lvid_setmode_restore:
+	movl	$0,C(vid_nomodecheck)
+	movl	-24(%ebp),%eax
+	movl	%eax,C(scr_disabled_for_loading)
+	cmpl	-16(%ebp),%ebx
+	sete	%al
+	movzbl	%al,%eax
+	jmp	.Lvid_setmode_return
+
+.Lvid_setmode_return_false:
+	xorl	%eax,%eax
+.Lvid_setmode_return:
+	addl	$24,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.section .rodata
+.Lvid_mode_empty_list:
+	.asciz "VID_GetModePtr: empty vid mode list"
+.Lvid_mode_corrupt_list:
+	.asciz "VID_GetModePtr: corrupt vid mode list"
+.Lvid_bad_mode_name:
+	.asciz "Bad mode number"
+.Lvid_mode_cvar_name:
+	.asciz "vid_mode"
+.Lvid_mode_invalid_format:
+	.asciz "No such video mode: %d\n"
+.Lvid_mode_fallback_format:
+	.asciz "Video: mode %d initialization failed; falling back to VGA mode 13h\n"
+.Lvid_mode_error_text:
+	.asciz "VID_SetMode: unable to initialize VGA mode 13h"
+.Lvid_mode_success_format:
+	.asciz "Video mode %d: %s\n"
+.Lvid_mode_vga_format:
+	.asciz "Video: VGA BIOS 0x13 pitch 320, 1 page, RAM copy\n"
 .text
 .p2align 2
 .globl C(VID_Update)

@@ -77,6 +77,7 @@ extern int Bench486ConsoleResizeCases (void);
 #if defined(ASM486_VID_UPDATE_FIXTURE)
 extern int Bench486VidUpdateCases (void);
 extern int Bench486VidDirectRectCases (void);
+extern int Bench486VidModeCases (void);
 #endif
 #if defined(ASM486_PLAYER_TRANSLATION_FIXTURE)
 #include "bench486_playertranslation.h"
@@ -11642,10 +11643,15 @@ static void Bench486_f (void)
 	{
 #if defined(ASM486_VID_UPDATE_FIXTURE)
 		int vid_update_failures, vid_directrect_failures;
+		int vid_mode_failures;
 		vid_update_failures = Bench486VidUpdateCases ();
 		bench486_memory_failures += vid_update_failures != 0;
 		Bench486Printf ("VID_Update C/ASM state and dispatch cases %s failure mask 0x%x\n",
 				vid_update_failures ? "FAIL" : "PASS", vid_update_failures);
+		vid_mode_failures = Bench486VidModeCases ();
+		bench486_memory_failures += vid_mode_failures != 0;
+		Bench486Printf ("DOS video mode C/ASM lookup and transition cases %s failure mask 0x%x\n",
+				vid_mode_failures ? "FAIL" : "PASS", vid_mode_failures);
 		vid_directrect_failures = Bench486VidDirectRectCases ();
 		bench486_memory_failures += vid_directrect_failures != 0;
 		Bench486Printf ("VGA direct-rectangle C/ASM parity %s (6 mode cases and 13 guard cases, failure mask 0x%x)\n",

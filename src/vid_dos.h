@@ -43,6 +43,8 @@ typedef struct vmode_s {
 } vmode_t;
 
 extern vmode_t *pcurrentmode;
+vmode_t *VID_GetModePtr (int modenum);
+char *VID_ModeInfo (int modenum, char **ppheader);
 extern byte VGA_directrect_backingbuf[48*24];
 
 // vid_wait settings

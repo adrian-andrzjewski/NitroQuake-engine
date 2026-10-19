@@ -35,6 +35,35 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "vid_dos.h"
 #include "asm_vidupdate.h"
 #include "asm_viddirectrect.h"
+#include "asm_vidmode.h"
+
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE)
+#define VID_GET_MODE_PTR_C_ENTRY VID_GetModePtr_C
+#define VID_MODE_INFO_C_ENTRY VID_ModeInfo_C
+#define VID_SET_MODE_C_ENTRY VID_SetMode_C
+#define VID_GET_MODE_PTR_C_CALL VID_GetModePtr_C
+#define VID_MODE_INFO_C_CALL VID_ModeInfo_C
+#else
+#define VID_GET_MODE_PTR_C_ENTRY VID_GetModePtr
+#define VID_MODE_INFO_C_ENTRY VID_ModeInfo
+#define VID_SET_MODE_C_ENTRY VID_SetMode
+#define VID_GET_MODE_PTR_C_CALL VID_GetModePtr
+#define VID_MODE_INFO_C_CALL VID_ModeInfo
+#endif
+
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
+#define VID_MODE_SET_VALUE Bench486VidModeSetValue
+#define VID_MODE_PRINTF Bench486VidModePrintf
+#define VID_MODE_ERROR Bench486VidModeError
+#define VID_MODE_RELEASE_EXTRA Bench486VidModeReleaseExtra
+#define VID_MODE_PALETTE_OK Bench486VidModePaletteOK
+#else
+#define VID_MODE_SET_VALUE Cvar_SetValue
+#define VID_MODE_PRINTF Con_Printf
+#define VID_MODE_ERROR Sys_Error
+#define VID_MODE_RELEASE_EXTRA VID_ExtraReleaseMode
+#define VID_MODE_PALETTE_OK VID_ExtraPaletteOK
+#endif
 
 int			vid_modenum;
 vmode_t		*pcurrentmode = NULL;
@@ -124,23 +153,25 @@ void    VID_Init (unsigned char *palette)
 VID_GetModePtr
 =================
 */
-vmode_t *VID_GetModePtr (int modenum)
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+vmode_t *VID_GET_MODE_PTR_C_ENTRY (int modenum)
 {
 	vmode_t	*pv;
 
 	pv = pvidmodes;
 	if (!pv)
-		Sys_Error ("VID_GetModePtr: empty vid mode list");
+		VID_MODE_ERROR ("VID_GetModePtr: empty vid mode list");
 
 	while (modenum--)
 	{
 		pv = pv->pnext;
 		if (!pv)
-			Sys_Error ("VID_GetModePtr: corrupt vid mode list");
+			VID_MODE_ERROR ("VID_GetModePtr: corrupt vid mode list");
 	}
 
 	return pv;
 }
+#endif
 
 /*
 ================
@@ -158,12 +189,13 @@ int VID_NumModes ()
 VID_ModeInfo
 ================
 */
-char *VID_ModeInfo (int modenum, char **ppheader)
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+char *VID_MODE_INFO_C_ENTRY (int modenum, char **ppheader)
 {
 	static char	*badmodestr = "Bad mode number";
 	vmode_t		*pv;
 
-	pv = VID_GetModePtr (modenum);
+	pv = VID_GET_MODE_PTR_C_CALL (modenum);
 
 	if (!pv)
 	{
@@ -178,6 +210,7 @@ char *VID_ModeInfo (int modenum, char **ppheader)
 		return pv->name;
 	}
 }
+#endif
 
 
 /*
@@ -185,7 +218,8 @@ char *VID_ModeInfo (int modenum, char **ppheader)
 VID_SetMode 
 ================
 */
-int VID_SetMode (int modenum, unsigned char *palette)
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+int VID_SET_MODE_C_ENTRY (int modenum, unsigned char *palette)
 {
 	int		stat, requested = modenum, attempt;
 	vmode_t	*pnewmode;
@@ -193,10 +227,10 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 	if ((modenum >= numvidmodes) || (modenum < 0))
 	{
-		Cvar_SetValue ("vid_mode", (float)vid_modenum);
+		VID_MODE_SET_VALUE ("vid_mode", (float)vid_modenum);
 
 		vid_nomodecheck = true;
-		Con_Printf ("No such video mode: %d\n", modenum);
+		VID_MODE_PRINTF ("No such video mode: %d\n", modenum);
 		vid_nomodecheck = false;
 
 		if (pcurrentmode == NULL)
@@ -210,7 +244,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 		}
 	}
 
-	pnewmode = VID_GetModePtr (modenum);
+	pnewmode = VID_GET_MODE_PTR_C_CALL (modenum);
 
 	if (pnewmode == pcurrentmode)
 		return 1;	// already in the desired mode
@@ -221,9 +255,9 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	scr_disabled_for_loading = true;
 	for (attempt = 0; attempt < 2; attempt++)
 	{
-		VID_ExtraReleaseMode ();
+		VID_MODE_RELEASE_EXTRA ();
 		vid.direct = NULL;
-		pcurrentmode = VID_GetModePtr (modenum);
+		pcurrentmode = VID_GET_MODE_PTR_C_CALL (modenum);
 		vid.width = pcurrentmode->width;
 		vid.height = pcurrentmode->height;
 		vid.aspect = pcurrentmode->aspect;
@@ -232,28 +266,41 @@ int VID_SetMode (int modenum, unsigned char *palette)
 		if (stat > 0)
 		{
 			(*pcurrentmode->setpalette) (&vid, pcurrentmode, palette);
-			if (VID_ExtraPaletteOK ()) break;
+			if (VID_MODE_PALETTE_OK ()) break;
 		}
-		Con_Printf ("Video: mode %d initialization failed; falling back to VGA mode 13h\n", modenum);
+		VID_MODE_PRINTF ("Video: mode %d initialization failed; falling back to VGA mode 13h\n", modenum);
 		if (modenum == 0 || attempt == 1)
-			Sys_Error ("VID_SetMode: unable to initialize VGA mode 13h");
+			VID_MODE_ERROR ("VID_SetMode: unable to initialize VGA mode 13h");
 		modenum = 0;
 	}
 	Q_memcpy (vid_current_palette, palette, 768);
 
 	vid_modenum = modenum;
-	Cvar_SetValue ("vid_mode", (float)vid_modenum);
+	VID_MODE_SET_VALUE ("vid_mode", (float)vid_modenum);
 	vid.recalc_refdef = 1;
 
 	vid_nomodecheck = true;
-	Con_Printf ("Video mode %d: %s\n", vid_modenum, VID_ModeInfo (vid_modenum, NULL));
+	VID_MODE_PRINTF ("Video mode %d: %s\n", vid_modenum,
+			VID_MODE_INFO_C_CALL (vid_modenum, NULL));
 	if (modenum == 0)
-		Con_Printf ("Video: VGA BIOS 0x13 pitch 320, 1 page, RAM copy\n");
+		VID_MODE_PRINTF ("Video: VGA BIOS 0x13 pitch 320, 1 page, RAM copy\n");
 	vid_nomodecheck = false;
 	scr_disabled_for_loading = was_disabled;
 
 	return modenum == requested;
 }
+#endif
+
+#undef VID_MODE_PALETTE_OK
+#undef VID_MODE_RELEASE_EXTRA
+#undef VID_MODE_ERROR
+#undef VID_MODE_PRINTF
+#undef VID_MODE_SET_VALUE
+#undef VID_MODE_INFO_C_CALL
+#undef VID_GET_MODE_PTR_C_CALL
+#undef VID_SET_MODE_C_ENTRY
+#undef VID_MODE_INFO_C_ENTRY
+#undef VID_GET_MODE_PTR_C_ENTRY
 
 
 /*
@@ -435,6 +482,7 @@ void VID_Update (vrect_t *rects)
 
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
 #include "bench486_vidupdate.h"
+#include "bench486_vidmode.h"
 #endif
 
 
