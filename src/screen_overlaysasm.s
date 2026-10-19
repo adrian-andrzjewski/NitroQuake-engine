@@ -705,6 +705,265 @@ C(M_Net_Draw):
 	ret
 
 .p2align 2
+.globl C(M_SerialConfig_Draw)
+C(M_SerialConfig_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$24,%esp
+
+	/* Plaque and title preserve the C cache and draw order. */
+	MENU_PAGE_CACHE $.Lmenu_plaque
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_multi_title
+	movl	%eax,-16(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	movl	%eax,-20(%ebp)
+	subl	$4,%esp
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$16,%esp
+
+	/* Build the same title string as va("%s - %s", ...). */
+	cmpl	$1,C(m_multiplayer_cursor)
+	jne	.Lmenu_serial_join_title
+	movl	$.Lmenu_serial_new_game,%esi
+	jmp	.Lmenu_serial_protocol
+.Lmenu_serial_join_title:
+	movl	$.Lmenu_serial_join_game,%esi
+.Lmenu_serial_protocol:
+	cmpl	$0,C(m_net_cursor)
+	jne	.Lmenu_serial_direct_title
+	pushl	$.Lmenu_serial_modem
+	jmp	.Lmenu_serial_format_title
+.Lmenu_serial_direct_title:
+	pushl	$.Lmenu_serial_direct
+.Lmenu_serial_format_title:
+	pushl	%esi
+	pushl	$.Lmenu_serial_title_format
+	call	C(va)
+	addl	$12,%esp
+	movl	-20(%ebp),%ebx
+	pushl	%eax
+	pushl	$32
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	addl	$8,%ebx
+	movl	%ebx,-20(%ebp)
+
+	/* Port label, textbox, and COM value. */
+	pushl	$.Lmenu_serial_port
+	pushl	C(serialConfig_cursor_table)
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$1
+	pushl	$4
+	pushl	$40
+	pushl	$160
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	C(serialConfig_comport)
+	pushl	$.Lmenu_serial_comport_format
+	call	C(va)
+	addl	$8,%esp
+	pushl	%eax
+	pushl	C(serialConfig_cursor_table)
+	pushl	$168
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* IRQ label, one-character textbox, and value. */
+	pushl	$.Lmenu_serial_irq
+	pushl	C(serialConfig_cursor_table)+4
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(serialConfig_cursor_table)+4,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$1
+	pushl	%eax
+	pushl	$160
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	C(serialConfig_irq)
+	pushl	$.Lmenu_serial_number_format
+	call	C(va)
+	addl	$8,%esp
+	pushl	%eax
+	pushl	C(serialConfig_cursor_table)+4
+	pushl	$168
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* Baud label, five-character textbox, and selected speed. */
+	pushl	$.Lmenu_serial_baud
+	pushl	C(serialConfig_cursor_table)+8
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(serialConfig_cursor_table)+8,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$5
+	pushl	%eax
+	pushl	$160
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	movl	C(serialConfig_baud),%edx
+	pushl	C(serialConfig_baudrate)(,%edx,4)
+	pushl	$.Lmenu_serial_number_format
+	call	C(va)
+	addl	$8,%esp
+	pushl	%eax
+	pushl	C(serialConfig_cursor_table)+8
+	pushl	$168
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* The modem setup and phone fields exist only for serial play. */
+	cmpl	$0,C(m_net_cursor)
+	jne	.Lmenu_serial_join_action
+	pushl	$.Lmenu_serial_modem_setup
+	pushl	C(serialConfig_cursor_table)+12
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	cmpl	$0,C(m_multiplayer_cursor)
+	jne	.Lmenu_serial_join_action
+	pushl	$.Lmenu_serial_phone_label
+	pushl	C(serialConfig_cursor_table)+16
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(serialConfig_cursor_table)+16,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$16
+	pushl	%eax
+	pushl	$160
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$C(serialConfig_phone)
+	pushl	C(serialConfig_cursor_table)+16
+	pushl	$168
+	call	C(M_Print)
+	addl	$12,%esp
+
+.Lmenu_serial_join_action:
+	cmpl	$0,C(m_multiplayer_cursor)
+	jne	.Lmenu_serial_start_action
+	movl	C(serialConfig_cursor_table)+20,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$7
+	pushl	%eax
+	pushl	%ebx
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$.Lmenu_serial_connect
+	pushl	C(serialConfig_cursor_table)+20
+	leal	8(%ebx),%eax
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+	jmp	.Lmenu_serial_cursor
+
+.Lmenu_serial_start_action:
+	movl	C(serialConfig_cursor_table)+20,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$2
+	pushl	%eax
+	pushl	%ebx
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$.Lmenu_serial_ok
+	pushl	C(serialConfig_cursor_table)+20
+	leal	8(%ebx),%eax
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+
+.Lmenu_serial_cursor:
+	/* The C cast truncates realtime*4 and preserves the incoming CW. */
+	fldl	C(realtime)
+	fmull	.Lmenu_modem_four
+	fnstcw	-28(%ebp)
+	movw	-28(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-30(%ebp)
+	fldcw	-30(%ebp)
+	fistpl	-32(%ebp)
+	fldcw	-28(%ebp)
+	movl	-32(%ebp),%eax
+	andl	$1,%eax
+	movl	%eax,-24(%ebp)
+
+	/* Main menu cursor. */
+	movl	-24(%ebp),%eax
+	addl	$12,%eax
+	pushl	%eax
+	movl	C(serialConfig_cursor),%edx
+	movl	C(serialConfig_cursor_table)(,%edx,4),%eax
+	pushl	%eax
+	leal	-8(%ebx),%eax
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	/* The phone-number caret follows the C condition even in other modes. */
+	cmpl	$4,C(serialConfig_cursor)
+	jne	.Lmenu_serial_return_reason
+	subl	$12,%esp
+	pushl	$C(serialConfig_phone)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	leal	168(%eax),%eax
+	movl	-24(%ebp),%ecx
+	addl	$10,%ecx
+	pushl	%ecx
+	pushl	C(serialConfig_cursor_table)+16
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lmenu_serial_return_reason:
+	cmpb	$0,C(m_return_reason)
+	je	.Lmenu_serial_done
+	pushl	$C(m_return_reason)
+	pushl	$148
+	pushl	%ebx
+	call	C(M_PrintWhite)
+	addl	$12,%esp
+
+.Lmenu_serial_done:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.p2align 2
 .globl C(M_ModemConfig_Draw)
 C(M_ModemConfig_Draw):
 	pushl	%ebp
@@ -3351,6 +3610,34 @@ C(VID_MenuDraw):
 	.asciz	"TCP/IP"
 .Lmenu_lanconfig_title_format:
 	.asciz	"%s - %s"
+.Lmenu_serial_new_game:
+	.asciz	"New Game"
+.Lmenu_serial_join_game:
+	.asciz	"Join Game"
+.Lmenu_serial_modem:
+	.asciz	"Modem"
+.Lmenu_serial_direct:
+	.asciz	"Direct Connect"
+.Lmenu_serial_title_format:
+	.asciz	"%s - %s"
+.Lmenu_serial_port:
+	.asciz	"Port"
+.Lmenu_serial_comport_format:
+	.asciz	"COM%u"
+.Lmenu_serial_irq:
+	.asciz	"IRQ"
+.Lmenu_serial_number_format:
+	.asciz	"%u"
+.Lmenu_serial_baud:
+	.asciz	"Baud"
+.Lmenu_serial_modem_setup:
+	.asciz	"Modem Setup..."
+.Lmenu_serial_phone_label:
+	.asciz	"Phone number"
+.Lmenu_serial_connect:
+	.asciz	"Connect"
+.Lmenu_serial_ok:
+	.asciz	"OK"
 .Lmenu_lanconfig_address:
 	.asciz	"Address:"
 .Lmenu_lanconfig_port:

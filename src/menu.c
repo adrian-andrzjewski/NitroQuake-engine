@@ -2114,17 +2114,45 @@ void M_Menu_SerialConfig_f (void)
 }
 
 
-void M_SerialConfig_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_SERIALCONFIG_DRAW_C_ENTRY M_SerialConfig_Draw_C
+#define M_SERIALCONFIG_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_SERIALCONFIG_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#define M_SERIALCONFIG_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_SERIALCONFIG_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox_C ((x), (y), (width), (lines))
+#define M_SERIALCONFIG_PRINT(x, y, str) M_Print_C ((x), (y), (str))
+#define M_SERIALCONFIG_PRINT_WHITE(x, y, str) \
+		M_PrintWhite_C ((x), (y), (str))
+#define M_SERIALCONFIG_CHARACTER(x, y, num) \
+		M_DrawCharacter_C ((x), (y), (num))
+#else
+#define M_SERIALCONFIG_DRAW_C_ENTRY M_SerialConfig_Draw
+#define M_SERIALCONFIG_CACHE_PIC(path) Draw_CachePic (path)
+#define M_SERIALCONFIG_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_SERIALCONFIG_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_SERIALCONFIG_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox ((x), (y), (width), (lines))
+#define M_SERIALCONFIG_PRINT(x, y, str) M_Print ((x), (y), (str))
+#define M_SERIALCONFIG_PRINT_WHITE(x, y, str) \
+		M_PrintWhite ((x), (y), (str))
+#define M_SERIALCONFIG_CHARACTER(x, y, num) \
+		M_DrawCharacter ((x), (y), (num))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_SERIALCONFIG_DRAW_C_ENTRY (void)
 {
 	qpic_t	*p;
 	int		basex;
 	char	*startJoin;
 	char	*directModem;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
+	M_SERIALCONFIG_TRANSPIC (16, 4,
+			M_SERIALCONFIG_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_SERIALCONFIG_CACHE_PIC ("gfx/p_multi.lmp");
 	basex = (320-p->width)/2;
-	M_DrawPic (basex, 4, p);
+	M_SERIALCONFIG_PIC (basex, 4, p);
 
 	if (StartingGame)
 		startJoin = "New Game";
@@ -2134,51 +2162,76 @@ void M_SerialConfig_Draw (void)
 		directModem = "Modem";
 	else
 		directModem = "Direct Connect";
-	M_Print (basex, 32, va ("%s - %s", startJoin, directModem));
+	M_SERIALCONFIG_PRINT (basex, 32,
+			va ("%s - %s", startJoin, directModem));
 	basex += 8;
 
-	M_Print (basex, serialConfig_cursor_table[0], "Port");
-	M_DrawTextBox (160, 40, 4, 1);
-	M_Print (168, serialConfig_cursor_table[0], va("COM%u", serialConfig_comport));
+	M_SERIALCONFIG_PRINT (basex, serialConfig_cursor_table[0], "Port");
+	M_SERIALCONFIG_TEXTBOX (160, 40, 4, 1);
+	M_SERIALCONFIG_PRINT (168, serialConfig_cursor_table[0],
+			va("COM%u", serialConfig_comport));
 
-	M_Print (basex, serialConfig_cursor_table[1], "IRQ");
-	M_DrawTextBox (160, serialConfig_cursor_table[1]-8, 1, 1);
-	M_Print (168, serialConfig_cursor_table[1], va("%u", serialConfig_irq));
+	M_SERIALCONFIG_PRINT (basex, serialConfig_cursor_table[1], "IRQ");
+	M_SERIALCONFIG_TEXTBOX (160, serialConfig_cursor_table[1]-8, 1, 1);
+	M_SERIALCONFIG_PRINT (168, serialConfig_cursor_table[1],
+			va("%u", serialConfig_irq));
 
-	M_Print (basex, serialConfig_cursor_table[2], "Baud");
-	M_DrawTextBox (160, serialConfig_cursor_table[2]-8, 5, 1);
-	M_Print (168, serialConfig_cursor_table[2], va("%u", serialConfig_baudrate[serialConfig_baud]));
+	M_SERIALCONFIG_PRINT (basex, serialConfig_cursor_table[2], "Baud");
+	M_SERIALCONFIG_TEXTBOX (160, serialConfig_cursor_table[2]-8, 5, 1);
+	M_SERIALCONFIG_PRINT (168, serialConfig_cursor_table[2],
+			va("%u", serialConfig_baudrate[serialConfig_baud]));
 
 	if (SerialConfig)
 	{
-		M_Print (basex, serialConfig_cursor_table[3], "Modem Setup...");
+		M_SERIALCONFIG_PRINT (basex, serialConfig_cursor_table[3],
+				"Modem Setup...");
 		if (JoiningGame)
 		{
-			M_Print (basex, serialConfig_cursor_table[4], "Phone number");
-			M_DrawTextBox (160, serialConfig_cursor_table[4]-8, 16, 1);
-			M_Print (168, serialConfig_cursor_table[4], serialConfig_phone);
+			M_SERIALCONFIG_PRINT (basex, serialConfig_cursor_table[4],
+					"Phone number");
+			M_SERIALCONFIG_TEXTBOX (160,
+					serialConfig_cursor_table[4]-8, 16, 1);
+			M_SERIALCONFIG_PRINT (168, serialConfig_cursor_table[4],
+					serialConfig_phone);
 		}
 	}
 
 	if (JoiningGame)
 	{
-		M_DrawTextBox (basex, serialConfig_cursor_table[5]-8, 7, 1);
-		M_Print (basex+8, serialConfig_cursor_table[5], "Connect");
+		M_SERIALCONFIG_TEXTBOX (basex,
+				serialConfig_cursor_table[5]-8, 7, 1);
+		M_SERIALCONFIG_PRINT (basex+8, serialConfig_cursor_table[5],
+				"Connect");
 	}
 	else
 	{
-		M_DrawTextBox (basex, serialConfig_cursor_table[5]-8, 2, 1);
-		M_Print (basex+8, serialConfig_cursor_table[5], "OK");
+		M_SERIALCONFIG_TEXTBOX (basex,
+				serialConfig_cursor_table[5]-8, 2, 1);
+		M_SERIALCONFIG_PRINT (basex+8, serialConfig_cursor_table[5], "OK");
 	}
 
-	M_DrawCharacter (basex-8, serialConfig_cursor_table [serialConfig_cursor], 12+((int)(realtime*4)&1));
+	M_SERIALCONFIG_CHARACTER (basex-8,
+			serialConfig_cursor_table[serialConfig_cursor],
+			12+((int)(realtime*4)&1));
 
 	if (serialConfig_cursor == 4)
-		M_DrawCharacter (168 + 8*strlen(serialConfig_phone), serialConfig_cursor_table [serialConfig_cursor], 10+((int)(realtime*4)&1));
+		M_SERIALCONFIG_CHARACTER (168 + 8*strlen(serialConfig_phone),
+				serialConfig_cursor_table[serialConfig_cursor],
+				10+((int)(realtime*4)&1));
 
 	if (*m_return_reason)
-		M_PrintWhite (basex, 148, m_return_reason);
+		M_SERIALCONFIG_PRINT_WHITE (basex, 148, m_return_reason);
 }
+#endif
+
+#undef M_SERIALCONFIG_CHARACTER
+#undef M_SERIALCONFIG_PRINT_WHITE
+#undef M_SERIALCONFIG_PRINT
+#undef M_SERIALCONFIG_TEXTBOX
+#undef M_SERIALCONFIG_PIC
+#undef M_SERIALCONFIG_TRANSPIC
+#undef M_SERIALCONFIG_CACHE_PIC
+#undef M_SERIALCONFIG_DRAW_C_ENTRY
 
 
 void M_SerialConfig_Key (int key)
