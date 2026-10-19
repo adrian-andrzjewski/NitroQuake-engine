@@ -513,6 +513,23 @@ C(M_SinglePlayer_Draw):
 	addl	$16,%esp
 	leave
 	ret
+
+.p2align 2
+.globl C(M_Help_Draw)
+C(M_Help_Draw):
+	subl	$8,%esp
+	pushl	C(help_page)
+	pushl	$.Lmenu_help_format
+	call	C(va)
+	addl	$16,%esp
+	MENU_PAGE_CACHE %eax
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$0
+	pushl	$0
+	call	C(M_DrawPic)
+	addl	$16,%esp
+	ret
 .purgem MENU_PAGE_CACHE
 
 /* Menu pictures share the classic 320-pixel centered coordinate system. */
@@ -877,6 +894,8 @@ C(SCR_DrawConsole):
 	.asciz	"gfx/menudot5.lmp"
 .Lmenu_dot_6:
 	.asciz	"gfx/menudot6.lmp"
+.Lmenu_help_format:
+	.asciz	"gfx/help%i.lmp"
 .Lmenu_dispatch_sound:
 	.asciz	"misc/menu2.wav"
 .Lmenu_dispatch_states:

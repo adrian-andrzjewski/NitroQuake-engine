@@ -49,6 +49,7 @@ void M_DrawTextBox (int x, int y, int width, int lines);
 void M_Draw (void);
 void M_Main_Draw (void);
 void M_SinglePlayer_Draw (void);
+void M_Help_Draw (void);
 extern byte translationTable[256];
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
@@ -62,6 +63,7 @@ void M_DrawTextBox_C (int x, int y, int width, int lines);
 void M_Draw_C (void);
 void M_Main_Draw_C (void);
 void M_SinglePlayer_Draw_C (void);
+void M_Help_Draw_C (void);
 void Bench486MenuTextDrawCharacter (int x, int y, int num);
 void Bench486MenuTextDrawPic (int kind, int x, int y, qpic_t *pic,
 		byte *translation);

@@ -771,6 +771,7 @@ void Bench486ScreenOverlaysCases (void)
 	Bench486MenuTextCases ();
 	Bench486MenuPictureCases ();
 	Bench486MenuPageDrawCases ();
+	Bench486MenuHelpPageCases ();
 	Bench486MenuTextBoxCases ();
 	Bench486MenuDispatchCases ();
 	Bench486ScreenConsoleDrawCases ();

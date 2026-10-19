@@ -1660,10 +1660,27 @@ void M_Menu_Help_f (void)
 
 
 
-void M_Help_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_HELP_DRAW_C_ENTRY M_Help_Draw_C
+#define M_HELP_DRAW_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_HELP_DRAW_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#else
+#define M_HELP_DRAW_C_ENTRY M_Help_Draw
+#define M_HELP_DRAW_CACHE_PIC(path) Draw_CachePic (path)
+#define M_HELP_DRAW_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_HELP_DRAW_C_ENTRY (void)
 {
-	M_DrawPic (0, 0, Draw_CachePic ( va("gfx/help%i.lmp", help_page)) );
+	M_HELP_DRAW_PIC (0, 0, M_HELP_DRAW_CACHE_PIC (
+			va ("gfx/help%i.lmp", help_page)));
 }
+#endif
+
+#undef M_HELP_DRAW_PIC
+#undef M_HELP_DRAW_CACHE_PIC
+#undef M_HELP_DRAW_C_ENTRY
 
 
 void M_Help_Key (int key)

@@ -1,4 +1,4 @@
-/* C/assembly parity for the main and single-player menu picture pages. */
+/* C/assembly parity for menu page picture drawing. */
 #ifndef BENCH486_MENUPAGEDRAW_H
 #define BENCH486_MENUPAGEDRAW_H
 
@@ -12,6 +12,7 @@
 #define BMPD_PATH_SINGLE_TITLE 13
 #define BMPD_PATH_SINGLE_CONTENT 14
 #define BMPD_PATH_DOT_FIRST 15
+#define BMPD_PATH_HELP_FIRST 21
 #define BMPD_PAGE_MAIN 0
 #define BMPD_PAGE_SINGLE 1
 #define BMPD_CASES_PER_MODE 6
@@ -33,6 +34,7 @@ typedef struct bench486_menu_page_draw_case_s
 
 extern int m_main_cursor;
 extern int m_singleplayer_cursor;
+extern int help_page;
 extern double host_time;
 
 static const double bench486_menu_page_times[BMPD_CASES_PER_MODE] =
@@ -161,6 +163,110 @@ static unsigned Bench486MenuPageExpected (
 	return failure;
 }
 
+static unsigned Bench486MenuHelpExpected (int page, unsigned video_width,
+		const bench486_menu_picture_result_t *result)
+{
+	unsigned i;
+	unsigned viewport_offset = (video_width - 320U) >> 1;
+	unsigned help_path = BMPD_PATH_HELP_FIRST + (unsigned)page;
+	unsigned failure = 0;
+
+	if (result->trace.overflow || result->trace.cache_error ||
+			result->trace.count != 2)
+		return 0x4d510040U;
+	failure |= Bench486MenuPageExpectEvent (result, 0,
+			BMPD_EVENT_CACHEPIC, 0, 0,
+			Bench486MenuPageFakePicture (help_path));
+	failure |= Bench486MenuPageExpectEvent (result, 1,
+			BMPD_EVENT_PIC, (int)viewport_offset, 0,
+			Bench486MenuPageFakePicture (help_path));
+	for (i = 0; i < BMPD_GUARD_WORDS; i++)
+		if (result->trace.before[i] != 0x4d500000U + i ||
+				result->trace.after[i] != 0x4d50f000U + i)
+			failure |= 0x4d510050U + i;
+	return failure;
+}
+
+static unsigned Bench486MenuHelpRun (int page, unsigned video_width,
+		unsigned short control_word, void (*function)(void),
+		bench486_menu_picture_result_t *result)
+{
+	unsigned abi;
+	unsigned short cw_before, cw_after;
+	unsigned failure = 0;
+	unsigned saved_width = vid.width;
+	int saved_help_page = help_page;
+
+	vid.width = video_width;
+	help_page = page;
+	__asm__ __volatile__ ("fldcw %0" : : "m" (control_word));
+	Bench486MenuPictureInitTrace ();
+	cw_before = Bench486MenuTextGetControlWord ();
+	bench486_menu_text_trace_active = 1;
+	abi = Bench486Call_asm486 (function, 0, NULL, NULL);
+	bench486_menu_text_trace_active = 0;
+	cw_after = Bench486MenuTextGetControlWord ();
+	Bench486MenuPictureCapture (result, abi, cw_before, cw_after);
+	if ((abi & 0x20U) || cw_before != cw_after)
+		failure |= 0x4d510060U;
+	if (vid.width != video_width || help_page != page)
+		failure |= 0x4d510061U;
+	vid.width = saved_width;
+	help_page = saved_help_page;
+	return failure;
+}
+
+static void Bench486MenuHelpPageCases (void)
+{
+	unsigned page, width_index, rounding, cases = 0, failure = 0;
+	unsigned widths = sizeof (bench486_menu_page_widths) /
+			sizeof (bench486_menu_page_widths[0]);
+	unsigned short original_cw = Bench486MenuTextGetControlWord ();
+	unsigned saved_width = vid.width;
+	int saved_help_page = help_page;
+	bench486_menu_picture_result_t reference, candidate;
+
+	for (page = 0; page < 6 && !failure; page++)
+		for (width_index = 0; width_index < widths && !failure; width_index++)
+			for (rounding = 0; rounding < 4; rounding++)
+			{
+				unsigned video_width = bench486_menu_page_widths[width_index];
+				unsigned short control_word = Bench486MenuPageControlWord (
+						original_cw, 0, rounding);
+				unsigned case_failure;
+
+				case_failure = Bench486MenuHelpRun ((int)page, video_width,
+						control_word, M_Help_Draw_C, &reference);
+				case_failure |= Bench486MenuHelpRun ((int)page, video_width,
+						control_word, M_Help_Draw, &candidate);
+				case_failure |= Bench486MenuHelpExpected ((int)page,
+						video_width, &reference);
+				case_failure |= Bench486MenuHelpExpected ((int)page,
+						video_width, &candidate);
+				case_failure |= Bench486MenuPictureDifference (
+						&reference, &candidate);
+				cases++;
+				if (case_failure)
+				{
+					Bench486Printf (
+							"menu help-page C/assembly FAIL page %u width %u rounding %u code %08x\n",
+							page, video_width, rounding, case_failure);
+					failure = case_failure;
+					break;
+				}
+			}
+	vid.width = saved_width;
+	help_page = saved_help_page;
+	__asm__ __volatile__ ("fldcw %0" : : "m" (original_cw));
+	bench486_menu_text_trace_active = 0;
+	if (failure)
+		bench486_memory_failures++;
+	else
+		Bench486Printf (
+				"menu help pages: %u exact C/assembly cache, draw, and ABI cases PASS\n",
+				cases);
+}
+
 void Bench486MenuPageDrawCases (void)
 {
 	unsigned page, precision_index, rounding, frame, cases = 0;
@@ -263,6 +369,7 @@ void Bench486MenuPageDrawCases (void)
 #undef BMPD_PATH_DOT_FIRST
 #undef BMPD_PATH_SINGLE_CONTENT
 #undef BMPD_PATH_SINGLE_TITLE
+#undef BMPD_PATH_HELP_FIRST
 #undef BMPD_PATH_MAIN_CONTENT
 #undef BMPD_PATH_MAIN_TITLE
 #undef BMPD_PATH_QLAQUE

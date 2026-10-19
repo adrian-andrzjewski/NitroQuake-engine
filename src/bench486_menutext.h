@@ -160,7 +160,13 @@ static const char *bench486_menu_cache_paths[] =
 	"gfx/menudot3.lmp",
 	"gfx/menudot4.lmp",
 	"gfx/menudot5.lmp",
-	"gfx/menudot6.lmp"
+	"gfx/menudot6.lmp",
+	"gfx/help0.lmp",
+	"gfx/help1.lmp",
+	"gfx/help2.lmp",
+	"gfx/help3.lmp",
+	"gfx/help4.lmp",
+	"gfx/help5.lmp"
 };
 
 static const bench486_menu_textbox_case_t bench486_menu_textbox_cases[] =
