@@ -119,10 +119,20 @@ void Sbar_DontShowScores (void)
 Sbar_Changed
 ===============
 */
-void Sbar_Changed (void)
+#if defined(BENCH486) && defined(ASM486_SBAR_PRIMITIVES)
+#define SBAR_CHANGED_C_ENTRY Sbar_Changed_C
+#elif !defined(ASM486_SBAR_PRIMITIVES)
+#define SBAR_CHANGED_C_ENTRY Sbar_Changed
+#endif
+
+#ifdef SBAR_CHANGED_C_ENTRY
+void SBAR_CHANGED_C_ENTRY (void)
 {
 	sb_updates = 0;	// update next frame
 }
+#endif
+
+#undef SBAR_CHANGED_C_ENTRY
 
 /*
 ===============

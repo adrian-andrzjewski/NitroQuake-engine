@@ -15,8 +15,8 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-412 directly reachable renderer entries and 13 directly reachable C
-dependencies: 399/412, or 96.8%, are assembly-owned by reachable-symbol count.
+412 directly reachable renderer entries and 12 directly reachable C
+dependencies: 400/412, or 97.1%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
 size or complexity. The ownership scan now includes `vid_*.s` sources, listing
@@ -26,6 +26,10 @@ directly reachable cache or zone-heap C owners appear in this profile.
 assembly in the release profile, with C references retained for parity; the
 18-case lifecycle fixture and strict release proof are recorded in the
 [VESA lifecycle ledger](ledger/2026-10-19-vesa-lifecycle-assembly-port.md). The
+`Sbar_Changed` refresh-state setter now selects assembly through the existing
+`SbarPrimitiveImplementation=asm` profile; its six-case C/ASM state fixture and
+strict BENCH/release i486 proofs are recorded in the
+[status-bar refresh ledger](ledger/2026-10-19-sbar-changed-assembly-port.md). The
 `M_Options_Draw` page and its slider/checkbox helpers now select assembly; its
 384-case parity fixture and strict i486 release proof are recorded in the
 [options menu ledger](ledger/2026-10-19-options-menu-assembly-port.md).

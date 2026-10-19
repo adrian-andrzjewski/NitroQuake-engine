@@ -5,6 +5,12 @@
 .text
 .p2align 2
 
+/* Sbar_Changed: force the status bar to refresh on the next frame. */
+.globl _Sbar_Changed
+_Sbar_Changed:
+	movl $0,_sb_updates
+	ret
+
 /* Sbar_itoa: format a signed 32-bit value with reciprocal-multiply division.
    The 0xcccccccd high product computes unsigned n / 10 on 386 and later. */
 .globl _Sbar_itoa

@@ -43,6 +43,9 @@ extern void Sbar_DrawCharacter_C (int x, int y, int num);
 extern void Sbar_DrawString_C (int x, int y, char *str);
 extern int Sbar_itoa_C (int num, char *buf);
 extern void Sbar_DrawNum_C (int x, int y, int num, int digits, int color);
+extern int sb_updates;
+extern void Sbar_Changed (void);
+extern void Sbar_Changed_C (void);
 
 void Bench486SbarCapture (int kind, int x, int y, unsigned long value)
 {
@@ -193,6 +196,40 @@ static int Bench486SbarTextEqual (const char *left, const char *right)
 	return *left == *right;
 }
 
+static int Bench486SbarChangedCases (void)
+{
+	static const int initial_updates[] = {
+		-2147483647 - 1, -1, 0, 1, 3, 2147483647
+	};
+	int saved_updates, c_updates, asm_updates;
+	int i, failures;
+
+	saved_updates = sb_updates;
+	failures = 0;
+	for (i = 0; i < sizeof(initial_updates) / sizeof(initial_updates[0]); i++)
+	{
+		sb_updates = initial_updates[i];
+		Sbar_Changed_C ();
+		c_updates = sb_updates;
+
+		sb_updates = initial_updates[i];
+		Sbar_Changed ();
+		asm_updates = sb_updates;
+		if (c_updates != asm_updates || asm_updates != 0)
+		{
+			failures++;
+			Bench486Printf ("sbar changed state C/ASM FAIL initial %d result %d/%d\n",
+					initial_updates[i], c_updates, asm_updates);
+		}
+	}
+	sb_updates = saved_updates;
+
+	Bench486Printf ("sbar changed state C/ASM %s (%d cases, %d failures)\n",
+			failures ? "FAIL" : "PASS",
+			(int)(sizeof(initial_updates) / sizeof(initial_updates[0])), failures);
+	return failures == 0;
+}
+
 static void Bench486SbarPrimitiveCases (void)
 {
 	static const int values[] = {
@@ -207,7 +244,7 @@ static void Bench486SbarPrimitiveCases (void)
 	int saved_width, saved_height;
 	int i, j, color, digits, value_index, game, failures, c_length, asm_length;
 
-	failures = 0;
+	failures = !Bench486SbarChangedCases ();
 	saved_gametype = cl.gametype;
 	saved_width = vid.width;
 	saved_height = vid.height;
