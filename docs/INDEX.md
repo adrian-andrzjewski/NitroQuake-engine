@@ -41,6 +41,7 @@ Operational documents, one experiment ledger, and a rule about how to cite them.
 | [`ledger/2026-10-18-sbar-finale-assembly-port.md`](ledger/2026-10-18-sbar-finale-assembly-port.md) | Finale overlay assembly port and strict i486 parity | New |
 | [`ledger/2026-10-19-screen-pause-loading-assembly-port.md`](ledger/2026-10-19-screen-pause-loading-assembly-port.md) | Pause/loading overlay assembly port and strict i486 parity | New |
 | [`ledger/2026-10-19-game-options-menu-assembly-port.md`](ledger/2026-10-19-game-options-menu-assembly-port.md) | `M_GameOptions_Draw` 96-case C/ASM parity and strict i486 release proof | New |
+| [`ledger/2026-10-19-video-mode-menu-assembly-port.md`](ledger/2026-10-19-video-mode-menu-assembly-port.md) | `VID_MenuDraw` and `M_Video_Draw` 48-case C/ASM parity and strict i486 release proof | New |
 | [`ledger/2026-10-18-zone-memory-trace-assembly-port.md`](ledger/2026-10-18-zone-memory-trace-assembly-port.md) | Zone, cache, and hunk diagnostic trace assembly port and strict i486 parity | New |
 | [`ledger/2026-10-10-d-drawparticle-assembly-port.md`](ledger/2026-10-10-d-drawparticle-assembly-port.md) | Existing `D_DrawParticle` assembly path, C oracle and exact parity evidence | New |
 | [`ledger/2026-10-09-r-blobexplosion-assembly-port.md`](ledger/2026-10-09-r-blobexplosion-assembly-port.md) | `R_BlobExplosion` traceability and pending acceptance gates | New |
@@ -48,7 +49,7 @@ Operational documents, one experiment ledger, and a rule about how to cite them.
 | [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) | The five governing decisions | 384 lines |
 | [`PURE-ASSEMBLER-CANDIDATES.md`](PURE-ASSEMBLER-CANDIDATES.md) | Which functions are worth hand-writing, and which are not | 359 lines |
 | [`VESA-320X200-PERFORMANCE-PLAN.md`](VESA-320X200-PERFORMANCE-PLAN.md) | VESA mode-set performance plan | 124 lines |
-| [`ledger/`](ledger/INDEX.md) | 938 ledger headings across 183 files | 14,543 lines |
+| [`ledger/`](ledger/INDEX.md) | 943 ledger headings across 184 files | 14,598 lines |
 
 The two documents that grew past 5,000 and 3,000 lines were split on
 2026-10-03. Nothing was reworded: the experiment log that sat under a single

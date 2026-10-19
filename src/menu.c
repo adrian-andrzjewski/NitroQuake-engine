@@ -1838,10 +1838,20 @@ void M_Menu_Video_f (void)
 }
 
 
-void M_Video_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_VIDEO_DRAW_C_ENTRY M_Video_Draw_C
+#else
+#define M_VIDEO_DRAW_C_ENTRY M_Video_Draw
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_VIDEO_DRAW_C_ENTRY (void)
 {
 	(*vid_menudrawfn) ();
 }
+#endif
+
+#undef M_VIDEO_DRAW_C_ENTRY
 
 
 void M_Video_Key (int key)

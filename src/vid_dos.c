@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_vidupdate.h"
 #include "asm_viddirectrect.h"
 #include "asm_vidmode.h"
+#include "asm_vidmenu.h"
 
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE)
 #define VID_GET_MODE_PTR_C_ENTRY VID_GetModePtr_C
@@ -722,27 +723,32 @@ extern void M_DrawCharacter (int cx, int line, int num);
 extern void M_DrawTransPic (int x, int y, qpic_t *pic);
 extern void M_DrawPic (int x, int y, qpic_t *pic);
 
-static int	vid_line, vid_wmodes, vid_column_size;
+#define MAX_COLUMN_SIZE	VM_MAX_COLUMN_SIZE
+#define MAX_MODEDESCS	VM_MODE_COUNT
 
-typedef struct
-{
-	int		modenum;
-	char	*desc;
-	int		iscur;
-} modedesc_t;
-
-#define MAX_COLUMN_SIZE	11
-
-#define MAX_MODEDESCS	(MAX_COLUMN_SIZE*3)
-
-static modedesc_t	modedescs[MAX_MODEDESCS];
+int	vid_line, vid_wmodes, vid_column_size;
+vid_menu_mode_description_t vid_modedescs[VM_MODE_COUNT];
 
 /*
 ================
 VID_MenuDraw
 ================
 */
-void VID_MenuDraw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define VID_MENU_DRAW_C_ENTRY VID_MenuDraw_C
+#define VID_MENU_DRAW_CACHE_PIC(path) Bench486VIDMenuCachePic (path)
+#define VID_MENU_DRAW_NUM_MODES() Bench486VIDMenuNumModes ()
+#define VID_MENU_DRAW_MODE_DESCRIPTION(mode) \
+		Bench486VIDMenuGetModeDescription (mode)
+#else
+#define VID_MENU_DRAW_C_ENTRY VID_MenuDraw
+#define VID_MENU_DRAW_CACHE_PIC(path) Draw_CachePic (path)
+#define VID_MENU_DRAW_NUM_MODES() VID_NumModes ()
+#define VID_MENU_DRAW_MODE_DESCRIPTION(mode) VID_GetModeDescription (mode)
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void VID_MENU_DRAW_C_ENTRY (void)
 {
 	qpic_t		*p;
 	char		*ptr;
@@ -750,9 +756,9 @@ void VID_MenuDraw (void)
 	char		temp[100];
 
 	vid_wmodes = 0;
-	nummodes = VID_NumModes ();
+	nummodes = VID_MENU_DRAW_NUM_MODES ();
 	
-	p = Draw_CachePic ("gfx/vidmodes.lmp");
+	p = VID_MENU_DRAW_CACHE_PIC ("gfx/vidmodes.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
 
 	for (i=0 ; i<nummodes ; i++)
@@ -761,7 +767,7 @@ void VID_MenuDraw (void)
 		{
 			if (i != 1)
 			{
-				ptr = VID_GetModeDescription (i);
+			ptr = VID_MENU_DRAW_MODE_DESCRIPTION (i);
 
 				if (ptr)
 				{
@@ -769,15 +775,15 @@ void VID_MenuDraw (void)
 
 					for (j=0 ; j<vid_wmodes ; j++)
 					{
-						if (!strcmp (modedescs[j].desc, ptr))
+						if (!strcmp (vid_modedescs[j].desc, ptr))
 						{
-							if (modedescs[j].modenum != 0)
+							if (vid_modedescs[j].modenum != 0)
 							{
-								modedescs[j].modenum = i;
+								vid_modedescs[j].modenum = i;
 								dup = 1;
 
 								if (i == vid_modenum)
-									modedescs[j].iscur = 1;
+									vid_modedescs[j].iscur = 1;
 							}
 							else
 							{
@@ -790,12 +796,12 @@ void VID_MenuDraw (void)
 
 					if (!dup)
 					{
-						modedescs[vid_wmodes].modenum = i;
-						modedescs[vid_wmodes].desc = ptr;
-						modedescs[vid_wmodes].iscur = 0;
+						vid_modedescs[vid_wmodes].modenum = i;
+						vid_modedescs[vid_wmodes].desc = ptr;
+						vid_modedescs[vid_wmodes].iscur = 0;
 
 						if (i == vid_modenum)
-							modedescs[vid_wmodes].iscur = 1;
+							vid_modedescs[vid_wmodes].iscur = 1;
 
 						vid_wmodes++;
 					}
@@ -811,10 +817,10 @@ void VID_MenuDraw (void)
 
 	for (i=0 ; i<vid_wmodes ; i++)
 	{
-		if (modedescs[i].iscur)
-			M_PrintWhite (column, row, modedescs[i].desc);
+		if (vid_modedescs[i].iscur)
+			M_PrintWhite (column, row, vid_modedescs[i].desc);
 		else
-			M_Print (column, row, modedescs[i].desc);
+			M_Print (column, row, vid_modedescs[i].desc);
 
 		row += 8;
 
@@ -829,7 +835,7 @@ void VID_MenuDraw (void)
 	if (vid_testingmode)
 	{
 		sprintf (temp, "TESTING %s",
-				modedescs[vid_line].desc);
+				vid_modedescs[vid_line].desc);
 		M_Print (13*8, 36 + MAX_COLUMN_SIZE * 8 + 8*4, temp);
 		M_Print (9*8, 36 + MAX_COLUMN_SIZE * 8 + 8*6,
 				"Please wait 5 seconds...");
@@ -840,10 +846,10 @@ void VID_MenuDraw (void)
 				"Press Enter to set mode");
 		M_Print (6*8, 36 + MAX_COLUMN_SIZE * 8 + 8*3,
 				"T to test mode for 5 seconds");
-		ptr = VID_GetModeDescription (vid_modenum);
+		ptr = VID_MENU_DRAW_MODE_DESCRIPTION (vid_modenum);
 		sprintf (temp, "D to make %s the default", ptr);
 		M_Print (6*8, 36 + MAX_COLUMN_SIZE * 8 + 8*5, temp);
-		ptr = VID_GetModeDescription ((int)_vid_default_mode.value);
+		ptr = VID_MENU_DRAW_MODE_DESCRIPTION ((int)_vid_default_mode.value);
 
 		if (ptr)
 		{
@@ -860,6 +866,12 @@ void VID_MenuDraw (void)
 		M_DrawCharacter (column, row, 12+((int)(realtime*4)&1));
 	}
 }
+#endif
+
+#undef VID_MENU_DRAW_C_ENTRY
+#undef VID_MENU_DRAW_CACHE_PIC
+#undef VID_MENU_DRAW_NUM_MODES
+#undef VID_MENU_DRAW_MODE_DESCRIPTION
 
 
 /*
@@ -925,13 +937,13 @@ void VID_MenuKey (int key)
 
 	case K_ENTER:
 		S_LocalSound ("misc/menu1.wav");
-		VID_SetMode (modedescs[vid_line].modenum, vid_current_palette);
+		VID_SetMode (vid_modedescs[vid_line].modenum, vid_current_palette);
 		break;
 
 	case 'T':
 	case 't':
 		S_LocalSound ("misc/menu1.wav");
-		if (VID_SetMode (modedescs[vid_line].modenum, vid_current_palette))
+		if (VID_SetMode (vid_modedescs[vid_line].modenum, vid_current_palette))
 		{
 			vid_testingmode = 1;
 			vid_testendtime = realtime + 5.0;

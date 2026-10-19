@@ -3,6 +3,7 @@
 #include "asm_i386.h"
 #include "asm_menutext.h"
 #include "asm_screenoverlays.h"
+#include "asm_vidmenu.h"
 
 #if defined(ASM486_SCREEN_OVERLAYS)
 .arch i486
@@ -2468,8 +2469,317 @@ C(M_GameOptions_Draw):
 	leave
 	ret
 
+/* Video-menu dispatch and mode-list rendering. */
+.p2align 2
+.globl C(M_Video_Draw)
+C(M_Video_Draw):
+	movl	C(vid_menudrawfn),%eax
+	call	*%eax
+	ret
+
+.p2align 2
+.globl C(VID_MenuDraw)
+C(VID_MenuDraw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$152,%esp
+	movl	$0,C(vid_wmodes)
+
+#ifdef BENCH486
+	call	C(Bench486VIDMenuNumModes)
+#else
+	call	C(VID_NumModes)
+#endif
+	movl	%eax,-16(%ebp)
+
+#ifdef BENCH486
+	pushl	$.Lvm_mode_title
+	call	C(Bench486VIDMenuCachePic)
+#else
+	pushl	$.Lvm_mode_title
+	call	C(Draw_CachePic)
+#endif
+	addl	$4,%esp
+	movl	%eax,-36(%ebp)
+	movl	$320,%eax
+	movl	-36(%ebp),%edx
+	subl	(%edx),%eax
+	cdq
+	movl	$2,%ecx
+	idivl	%ecx
+	pushl	-36(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$12,%esp
+
+	movl	$0,-20(%ebp)
+.Lvm_mode_loop:
+	movl	-20(%ebp),%eax
+	cmpl	-16(%ebp),%eax
+	jge	.Lvm_modes_done
+	cmpl	$1,%eax
+	je	.Lvm_mode_next
+	cmpl	$VM_MODE_COUNT,C(vid_wmodes)
+	jge	.Lvm_mode_next
+	pushl	%eax
+#ifdef BENCH486
+	call	C(Bench486VIDMenuGetModeDescription)
+#else
+	call	C(VID_GetModeDescription)
+#endif
+	addl	$4,%esp
+	movl	%eax,-28(%ebp)
+	testl	%eax,%eax
+	je	.Lvm_mode_next
+	movl	$0,-32(%ebp)
+	movl	$0,-24(%ebp)
+.Lvm_find_duplicate:
+	movl	-24(%ebp),%eax
+	cmpl	C(vid_wmodes),%eax
+	jge	.Lvm_new_description
+	leal	(%eax,%eax,2),%edx
+	leal	C(vid_modedescs)(,%edx,4),%edx
+	pushl	-28(%ebp)
+	pushl	VM_MODE_DESCRIPTION_OFFSET(%edx)
+	call	C(strcmp)
+	addl	$8,%esp
+	testl	%eax,%eax
+	jne	.Lvm_duplicate_next
+	movl	$1,-32(%ebp)
+	movl	-24(%ebp),%eax
+	leal	(%eax,%eax,2),%edx
+	leal	C(vid_modedescs)(,%edx,4),%edx
+	cmpl	$0,VM_MODE_MODE_NUMBER_OFFSET(%edx)
+	je	.Lvm_duplicate_found
+	movl	-20(%ebp),%eax
+	movl	%eax,VM_MODE_MODE_NUMBER_OFFSET(%edx)
+	cmpl	C(vid_modenum),%eax
+	jne	.Lvm_duplicate_found
+	movl	$1,VM_MODE_IS_CURRENT_OFFSET(%edx)
+.Lvm_duplicate_found:
+	jmp	.Lvm_mode_next
+.Lvm_duplicate_next:
+	incl	-24(%ebp)
+	jmp	.Lvm_find_duplicate
+
+.Lvm_new_description:
+	cmpl	$0,-32(%ebp)
+	jne	.Lvm_mode_next
+	movl	C(vid_wmodes),%eax
+	leal	(%eax,%eax,2),%edx
+	leal	C(vid_modedescs)(,%edx,4),%edx
+	movl	-20(%ebp),%eax
+	movl	%eax,VM_MODE_MODE_NUMBER_OFFSET(%edx)
+	movl	-28(%ebp),%eax
+	movl	%eax,VM_MODE_DESCRIPTION_OFFSET(%edx)
+	movl	$0,VM_MODE_IS_CURRENT_OFFSET(%edx)
+	movl	-20(%ebp),%eax
+	cmpl	C(vid_modenum),%eax
+	/* Compare the mode index, not the description pointer. */
+	jne	.Lvm_new_not_current
+	movl	$1,VM_MODE_IS_CURRENT_OFFSET(%edx)
+.Lvm_new_not_current:
+	incl	C(vid_wmodes)
+
+.Lvm_mode_next:
+	incl	-20(%ebp)
+	jmp	.Lvm_mode_loop
+
+.Lvm_modes_done:
+	movl	C(vid_wmodes),%eax
+	addl	$2,%eax
+	movl	$0xaaaaaaab,%edx
+	mull	%edx
+	shrl	$1,%edx
+	movl	%edx,C(vid_column_size)
+
+	movl	$0,-20(%ebp)
+	movl	$16,-40(%ebp)
+	movl	$36,-44(%ebp)
+.Lvm_draw_modes:
+	movl	-20(%ebp),%eax
+	cmpl	C(vid_wmodes),%eax
+	jge	.Lvm_mode_text
+	leal	(%eax,%eax,2),%edx
+	leal	C(vid_modedescs)(,%edx,4),%edx
+	pushl	VM_MODE_DESCRIPTION_OFFSET(%edx)
+	pushl	-44(%ebp)
+	pushl	-40(%ebp)
+	cmpl	$0,VM_MODE_IS_CURRENT_OFFSET(%edx)
+	je	.Lvm_draw_unselected
+	call	C(M_PrintWhite)
+	jmp	.Lvm_after_print_mode
+.Lvm_draw_unselected:
+	call	C(M_Print)
+.Lvm_after_print_mode:
+	addl	$12,%esp
+	addl	$8,-44(%ebp)
+	movl	-20(%ebp),%eax
+	xorl	%edx,%edx
+	movl	C(vid_column_size),%ecx
+	divl	%ecx
+	decl	%ecx
+	cmpl	%ecx,%edx
+	jne	.Lvm_draw_next
+	addl	$104,-40(%ebp)
+	movl	$36,-44(%ebp)
+.Lvm_draw_next:
+	incl	-20(%ebp)
+	jmp	.Lvm_draw_modes
+
+.Lvm_mode_text:
+	cmpl	$0,C(vid_testingmode)
+	je	.Lvm_mode_not_testing
+	movl	C(vid_line),%eax
+	leal	(%eax,%eax,2),%edx
+	leal	C(vid_modedescs)(,%edx,4),%edx
+	pushl	VM_MODE_DESCRIPTION_OFFSET(%edx)
+	pushl	$.Lvm_testing_format
+	leal	-164(%ebp),%eax
+	pushl	%eax
+	call	C(sprintf)
+	addl	$12,%esp
+	leal	-164(%ebp),%eax
+	pushl	%eax
+	pushl	$156
+	pushl	$104
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$.Lvm_wait_message
+	pushl	$172
+	pushl	$72
+	call	C(M_Print)
+	addl	$12,%esp
+	jmp	.Lvm_done
+
+.Lvm_mode_not_testing:
+	pushl	$.Lvm_press_enter
+	pushl	$132
+	pushl	$72
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$.Lvm_test_mode
+	pushl	$148
+	pushl	$48
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	C(vid_modenum)
+#ifdef BENCH486
+	call	C(Bench486VIDMenuGetModeDescription)
+#else
+	call	C(VID_GetModeDescription)
+#endif
+	addl	$4,%esp
+	pushl	%eax
+	pushl	$.Lvm_default_format
+	leal	-164(%ebp),%eax
+	pushl	%eax
+	call	C(sprintf)
+	addl	$12,%esp
+	leal	-164(%ebp),%eax
+	pushl	%eax
+	pushl	$164
+	pushl	$48
+	call	C(M_Print)
+	addl	$12,%esp
+
+	fnstcw	-60(%ebp)
+	movw	-60(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-62(%ebp)
+	fldcw	-62(%ebp)
+	flds	C(_vid_default_mode)+16
+	fistpl	-56(%ebp)
+	fldcw	-60(%ebp)
+	pushl	-56(%ebp)
+#ifdef BENCH486
+	call	C(Bench486VIDMenuGetModeDescription)
+#else
+	call	C(VID_GetModeDescription)
+#endif
+	addl	$4,%esp
+	testl	%eax,%eax
+	je	.Lvm_no_default_description
+	pushl	%eax
+	pushl	$.Lvm_current_default_format
+	leal	-164(%ebp),%eax
+	pushl	%eax
+	call	C(sprintf)
+	addl	$12,%esp
+	leal	-164(%ebp),%eax
+	pushl	%eax
+	pushl	$172
+	pushl	$56
+	call	C(M_Print)
+	addl	$12,%esp
+.Lvm_no_default_description:
+	pushl	$.Lvm_escape
+	pushl	$188
+	pushl	$120
+	call	C(M_Print)
+	addl	$12,%esp
+
+	movl	C(vid_line),%eax
+	cdq
+	idivl	C(vid_column_size)
+	imull	$8,%edx,%edx
+	addl	$36,%edx
+	movl	%edx,-44(%ebp)
+	imull	$104,%eax,%eax
+	addl	$8,%eax
+	movl	%eax,-40(%ebp)
+
+	/* int(realtime * 4) truncates after multiplication under the incoming CW. */
+	fldl	C(realtime)
+	fmull	.Lvm_four
+	fnstcw	-60(%ebp)
+	movw	-60(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-62(%ebp)
+	fldcw	-62(%ebp)
+	fistpl	-56(%ebp)
+	fldcw	-60(%ebp)
+	movl	-56(%ebp),%eax
+	andl	$1,%eax
+	addl	$12,%eax
+	pushl	%eax
+	pushl	-44(%ebp)
+	pushl	-40(%ebp)
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lvm_done:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
 .section .rodata
 .p2align 2
+.Lvm_mode_title:
+	.asciz	"gfx/vidmodes.lmp"
+.Lvm_testing_format:
+	.asciz	"TESTING %s"
+.Lvm_wait_message:
+	.asciz	"Please wait 5 seconds..."
+.Lvm_press_enter:
+	.asciz	"Press Enter to set mode"
+.Lvm_test_mode:
+	.asciz	"T to test mode for 5 seconds"
+.Lvm_default_format:
+	.asciz	"D to make %s the default"
+.Lvm_current_default_format:
+	.asciz	"Current default is %s"
+.Lvm_escape:
+	.asciz	"Esc to exit"
+.Lvm_four:
+	.double	4.0
 .Lmenu_page_ten:
 	.float	10.0
 .Lmenu_plaque:

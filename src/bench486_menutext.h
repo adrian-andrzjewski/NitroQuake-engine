@@ -6,7 +6,7 @@
 
 #include "asm_menutext.h"
 
-#define BMT_MAX_GLYPHS 512
+#define BMT_MAX_GLYPHS 1024
 #define BMT_GUARD_WORDS 2
 #define BMP_MAX_EVENTS 256
 #define BMP_GUARD_WORDS 2

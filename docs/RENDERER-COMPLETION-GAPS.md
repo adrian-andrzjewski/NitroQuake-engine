@@ -15,8 +15,8 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-605 renderer entries, 415 directly reachable entries, and 8 directly
-reachable C dependencies: 407/415, or 98.1%, are assembly-owned by
+605 renderer entries, 415 directly reachable entries, and 7 directly
+reachable C dependencies: 408/415, or 98.3%, are assembly-owned by
 reachable-symbol count. This remains a profile-specific estimate: the
 inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
@@ -31,8 +31,12 @@ assembly in the release profile, with C references retained for parity; the
 `VID_ShiftPalette`, and `VID_Shutdown` lookup, transition, palette, and shutdown
 paths now select assembly through `VideoUpdateImplementation=asm`; their
 C/ASM fixtures and strict BENCH/release gates pass. No directly reachable
-cache, zone-heap, or DOS/VESA video-lifecycle C owner remains in this profile;
-the menu's `M_Video_Draw` wrapper remains C-owned. See the
+cache, zone-heap, or DOS/VESA video-lifecycle C owner remains in this profile.
+The `M_Video_Draw` callback wrapper and `VID_MenuDraw` video-mode list renderer
+now also select assembly through `ScreenOverlaysImplementation=asm`; their
+48-case direct fixture and strict release proof are recorded in the
+[video mode menu ledger](ledger/2026-10-19-video-mode-menu-assembly-port.md).
+See also the
 [video mode, palette, and shutdown port ledger](ledger/2026-10-19-video-mode-assembly-port.md). The
 `Sbar_Changed` refresh-state setter now selects assembly through the existing
 `SbarPrimitiveImplementation=asm` profile; its six-case C/ASM state fixture and
