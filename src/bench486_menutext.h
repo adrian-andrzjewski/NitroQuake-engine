@@ -117,7 +117,7 @@ static const bench486_menu_text_case_t bench486_menu_text_cases[] =
 static bench486_menu_text_trace_t bench486_menu_text_trace;
 static bench486_menu_text_result_t bench486_menu_text_reference;
 static bench486_menu_text_result_t bench486_menu_text_candidate;
-static unsigned bench486_menu_picture_fake_pic[40];
+static unsigned bench486_menu_picture_fake_pic[128];
 static bench486_menu_picture_trace_t bench486_menu_picture_trace;
 static bench486_menu_picture_result_t bench486_menu_picture_reference;
 static bench486_menu_picture_result_t bench486_menu_picture_candidate;
@@ -138,7 +138,7 @@ static const bench486_menu_picture_case_t bench486_menu_picture_cases[] =
 		640, -19, 40, (qpic_t *)(bench486_menu_picture_fake_pic + 3) }
 };
 
-static const char *bench486_menu_textbox_paths[] =
+static const char *bench486_menu_cache_paths[] =
 {
 	"gfx/box_tl.lmp",
 	"gfx/box_ml.lmp",
@@ -149,7 +149,18 @@ static const char *bench486_menu_textbox_paths[] =
 	"gfx/box_bm.lmp",
 	"gfx/box_tr.lmp",
 	"gfx/box_mr.lmp",
-	"gfx/box_br.lmp"
+	"gfx/box_br.lmp",
+	"gfx/qplaque.lmp",
+	"gfx/ttl_main.lmp",
+	"gfx/mainmenu.lmp",
+	"gfx/ttl_sgl.lmp",
+	"gfx/sp_menu.lmp",
+	"gfx/menudot1.lmp",
+	"gfx/menudot2.lmp",
+	"gfx/menudot3.lmp",
+	"gfx/menudot4.lmp",
+	"gfx/menudot5.lmp",
+	"gfx/menudot6.lmp"
 };
 
 static const bench486_menu_textbox_case_t bench486_menu_textbox_cases[] =
@@ -244,11 +255,11 @@ qpic_t *Bench486MenuTextCachePic (char *path)
 
 	if (!bench486_menu_text_trace_active)
 		return Draw_CachePic (path);
-	for (i = 0; i < sizeof(bench486_menu_textbox_paths) /
-			sizeof(bench486_menu_textbox_paths[0]); i++)
+	for (i = 0; i < sizeof(bench486_menu_cache_paths) /
+				sizeof(bench486_menu_cache_paths[0]); i++)
 	{
 		if (!Bench486MenuTextPathEquals (path,
-				bench486_menu_textbox_paths[i]))
+				bench486_menu_cache_paths[i]))
 			continue;
 		pic = (qpic_t *)(bench486_menu_picture_fake_pic + i * 4);
 		if (bench486_menu_picture_trace.count < BMP_MAX_EVENTS)

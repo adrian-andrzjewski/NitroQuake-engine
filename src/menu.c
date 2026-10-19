@@ -409,20 +409,43 @@ void M_Menu_Main_f (void)
 }
 
 
-void M_Main_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_MAIN_DRAW_C_ENTRY M_Main_Draw_C
+#define M_MENU_PAGE_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_MENU_PAGE_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#define M_MENU_PAGE_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#else
+#define M_MAIN_DRAW_C_ENTRY M_Main_Draw
+#define M_SINGLEPLAYER_DRAW_C_ENTRY M_SinglePlayer_Draw
+#define M_MENU_PAGE_CACHE_PIC(path) Draw_CachePic (path)
+#define M_MENU_PAGE_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_MENU_PAGE_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_MAIN_DRAW_C_ENTRY (void)
 {
 	int		f;
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/ttl_main.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
-	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mainmenu.lmp") );
+	M_MENU_PAGE_TRANSPIC (16, 4,
+			M_MENU_PAGE_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_MENU_PAGE_CACHE_PIC ("gfx/ttl_main.lmp");
+	M_MENU_PAGE_PIC ((320-p->width)/2, 4, p);
+	M_MENU_PAGE_TRANSPIC (72, 32,
+			M_MENU_PAGE_CACHE_PIC ("gfx/mainmenu.lmp"));
 
 	f = (int)(host_time * 10)%6;
 
-	M_DrawTransPic (54, 32 + m_main_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
+	M_MENU_PAGE_TRANSPIC (54, 32 + m_main_cursor * 20,
+			M_MENU_PAGE_CACHE_PIC (va ("gfx/menudot%i.lmp", f+1)));
 }
+#endif
+
+#undef M_MENU_PAGE_PIC
+#undef M_MENU_PAGE_TRANSPIC
+#undef M_MENU_PAGE_CACHE_PIC
+#undef M_MAIN_DRAW_C_ENTRY
 
 
 void M_Main_Key (int key)
@@ -492,20 +515,42 @@ void M_Menu_SinglePlayer_f (void)
 }
 
 
-void M_SinglePlayer_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_SINGLEPLAYER_DRAW_C_ENTRY M_SinglePlayer_Draw_C
+#define M_MENU_PAGE_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_MENU_PAGE_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#define M_MENU_PAGE_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#else
+#define M_SINGLEPLAYER_DRAW_C_ENTRY M_SinglePlayer_Draw
+#define M_MENU_PAGE_CACHE_PIC(path) Draw_CachePic (path)
+#define M_MENU_PAGE_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_MENU_PAGE_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_SINGLEPLAYER_DRAW_C_ENTRY (void)
 {
 	int		f;
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/ttl_sgl.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
-	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/sp_menu.lmp") );
+	M_MENU_PAGE_TRANSPIC (16, 4,
+			M_MENU_PAGE_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_MENU_PAGE_CACHE_PIC ("gfx/ttl_sgl.lmp");
+	M_MENU_PAGE_PIC ((320-p->width)/2, 4, p);
+	M_MENU_PAGE_TRANSPIC (72, 32,
+			M_MENU_PAGE_CACHE_PIC ("gfx/sp_menu.lmp"));
 
 	f = (int)(host_time * 10)%6;
 
-	M_DrawTransPic (54, 32 + m_singleplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
+	M_MENU_PAGE_TRANSPIC (54, 32 + m_singleplayer_cursor * 20,
+			M_MENU_PAGE_CACHE_PIC (va ("gfx/menudot%i.lmp", f+1)));
 }
+#endif
+
+#undef M_MENU_PAGE_PIC
+#undef M_MENU_PAGE_TRANSPIC
+#undef M_MENU_PAGE_CACHE_PIC
+#undef M_SINGLEPLAYER_DRAW_C_ENTRY
 
 
 void M_SinglePlayer_Key (int key)

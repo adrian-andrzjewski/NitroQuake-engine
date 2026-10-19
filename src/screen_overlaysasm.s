@@ -406,6 +406,115 @@ C(M_Draw):
 .purgem MENU_DISPATCH_DRAW
 .purgem MENU_DISPATCH_SOUND
 
+/* Main and single-player menu pages share the same animated picture layout. */
+.macro MENU_PAGE_CACHE source
+	subl	$12,%esp
+	pushl	\source
+#ifdef BENCH486
+	call	C(Bench486MenuTextCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$16,%esp
+.endm
+
+.p2align 2
+.globl C(M_Main_Draw)
+C(M_Main_Draw):
+	pushl	C(m_main_cursor)
+	pushl	$.Lmenu_main_content
+	pushl	$.Lmenu_main_title
+	call	.Lmenu_page_draw
+	addl	$12,%esp
+	ret
+
+.p2align 2
+.globl C(M_SinglePlayer_Draw)
+C(M_SinglePlayer_Draw):
+	pushl	C(m_singleplayer_cursor)
+	pushl	$.Lmenu_singleplayer_content
+	pushl	$.Lmenu_singleplayer_title
+	call	.Lmenu_page_draw
+	addl	$12,%esp
+	ret
+
+.p2align 2
+.Lmenu_page_draw:
+	pushl	%ebp
+	movl	%esp,%ebp
+	subl	$40,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_plaque
+	movl	%eax,-12(%ebp)
+	subl	$4,%esp
+	pushl	-12(%ebp)
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	MENU_PAGE_CACHE 8(%ebp)
+	movl	%eax,-16(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	movl	%eax,-20(%ebp)
+	subl	$4,%esp
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	-20(%ebp)
+	call	C(M_DrawPic)
+	addl	$16,%esp
+
+	MENU_PAGE_CACHE 12(%ebp)
+	movl	%eax,-24(%ebp)
+	subl	$4,%esp
+	pushl	-24(%ebp)
+	pushl	$32
+	pushl	$72
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	/* Match the C compiler's temporary round-toward-zero x87 conversion. */
+	flds	.Lmenu_page_ten
+	fmull	C(host_time)
+	fnstcw	-2(%ebp)
+	movw	-2(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-4(%ebp)
+	fldcw	-4(%ebp)
+	fistpl	-8(%ebp)
+	fldcw	-2(%ebp)
+	movl	-8(%ebp),%eax
+	cltd
+	movl	$6,%ecx
+	idivl	%ecx
+	movl	%edx,%ecx
+	incl	%ecx
+
+	subl	$8,%esp
+	pushl	%ecx
+	pushl	$.Lmenu_dot_format
+	call	C(va)
+	addl	$16,%esp
+	MENU_PAGE_CACHE %eax
+	movl	%eax,-28(%ebp)
+	movl	16(%ebp),%ecx
+	leal	(%ecx,%ecx,4),%edx
+	leal	32(,%edx,4),%eax
+	subl	$4,%esp
+	pushl	-28(%ebp)
+	pushl	%eax
+	pushl	$54
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+	leave
+	ret
+.purgem MENU_PAGE_CACHE
+
 /* Menu pictures share the classic 320-pixel centered coordinate system. */
 .p2align 2
 .globl C(M_DrawTransPic)
@@ -742,6 +851,32 @@ C(SCR_DrawConsole):
 
 .section .rodata
 .p2align 2
+.Lmenu_page_ten:
+	.float	10.0
+.Lmenu_plaque:
+	.asciz	"gfx/qplaque.lmp"
+.Lmenu_main_title:
+	.asciz	"gfx/ttl_main.lmp"
+.Lmenu_main_content:
+	.asciz	"gfx/mainmenu.lmp"
+.Lmenu_singleplayer_title:
+	.asciz	"gfx/ttl_sgl.lmp"
+.Lmenu_singleplayer_content:
+	.asciz	"gfx/sp_menu.lmp"
+.Lmenu_dot_format:
+	.asciz	"gfx/menudot%i.lmp"
+.Lmenu_dot_1:
+	.asciz	"gfx/menudot1.lmp"
+.Lmenu_dot_2:
+	.asciz	"gfx/menudot2.lmp"
+.Lmenu_dot_3:
+	.asciz	"gfx/menudot3.lmp"
+.Lmenu_dot_4:
+	.asciz	"gfx/menudot4.lmp"
+.Lmenu_dot_5:
+	.asciz	"gfx/menudot5.lmp"
+.Lmenu_dot_6:
+	.asciz	"gfx/menudot6.lmp"
 .Lmenu_dispatch_sound:
 	.asciz	"misc/menu2.wav"
 .Lmenu_dispatch_states:

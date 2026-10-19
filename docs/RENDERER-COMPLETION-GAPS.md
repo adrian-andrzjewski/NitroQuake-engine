@@ -15,11 +15,14 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-409 directly reachable renderer entries and 29 directly reachable C
-dependencies: 380/409, or 92.9%, are assembly-owned by reachable-symbol count.
+409 directly reachable renderer entries and 27 directly reachable C
+dependencies: 382/409, or 93.4%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
-size or complexity. The `M_Draw` menu frame dispatcher now selects assembly,
+size or complexity. The main and single-player menu pages now select assembly;
+their shared page renderer and 144-case parity fixture are recorded in the
+[menu page ledger](ledger/2026-10-19-main-singleplayer-menu-pages-assembly-port.md).
+The `M_Draw` menu frame dispatcher now selects assembly,
 with its C implementation retained as a BENCH parity oracle; see the
 [menu frame dispatcher ledger](ledger/2026-10-19-menu-frame-dispatch-assembly-port.md).
 The three centered menu picture wrappers now select
