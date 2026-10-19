@@ -1363,7 +1363,32 @@ void M_AdjustSliders (int dir)
 }
 
 
-void M_DrawSlider (int x, int y, float range)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_OPTIONS_SLIDER_C_ENTRY M_DrawSlider_C
+#define M_OPTIONS_CHECKBOX_C_ENTRY M_DrawCheckbox_C
+#define M_OPTIONS_DRAW_C_ENTRY M_Options_Draw_C
+#define M_OPTIONS_CHARACTER M_DrawCharacter_C
+#define M_OPTIONS_PRINT M_Print_C
+#define M_OPTIONS_TRANSPIC M_DrawTransPic_C
+#define M_OPTIONS_PIC M_DrawPic_C
+#define M_OPTIONS_CACHEPIC(path) Bench486MenuTextCachePic (path)
+#define M_OPTIONS_SLIDER M_DrawSlider_C
+#define M_OPTIONS_CHECKBOX M_DrawCheckbox_C
+#else
+#define M_OPTIONS_SLIDER_C_ENTRY M_DrawSlider
+#define M_OPTIONS_CHECKBOX_C_ENTRY M_DrawCheckbox
+#define M_OPTIONS_DRAW_C_ENTRY M_Options_Draw
+#define M_OPTIONS_CHARACTER M_DrawCharacter
+#define M_OPTIONS_PRINT M_Print
+#define M_OPTIONS_TRANSPIC M_DrawTransPic
+#define M_OPTIONS_PIC M_DrawPic
+#define M_OPTIONS_CACHEPIC(path) Draw_CachePic (path)
+#define M_OPTIONS_SLIDER M_DrawSlider
+#define M_OPTIONS_CHECKBOX M_DrawCheckbox
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_OPTIONS_SLIDER_C_ENTRY (int x, int y, float range)
 {
 	int	i;
 
@@ -1371,77 +1396,85 @@ void M_DrawSlider (int x, int y, float range)
 		range = 0;
 	if (range > 1)
 		range = 1;
-	M_DrawCharacter (x-8, y, 128);
+	M_OPTIONS_CHARACTER (x-8, y, 128);
 	for (i=0 ; i<SLIDER_RANGE ; i++)
-		M_DrawCharacter (x + i*8, y, 129);
-	M_DrawCharacter (x+i*8, y, 130);
-	M_DrawCharacter (x + (SLIDER_RANGE-1)*8 * range, y, 131);
+		M_OPTIONS_CHARACTER (x + i*8, y, 129);
+	M_OPTIONS_CHARACTER (x+i*8, y, 130);
+	M_OPTIONS_CHARACTER (x + (SLIDER_RANGE-1)*8 * range, y, 131);
 }
 
-void M_DrawCheckbox (int x, int y, int on)
+void M_OPTIONS_CHECKBOX_C_ENTRY (int x, int y, int on)
 {
-#if 0
 	if (on)
-		M_DrawCharacter (x, y, 131);
+		M_OPTIONS_PRINT (x, y, "on");
 	else
-		M_DrawCharacter (x, y, 129);
-#endif
-	if (on)
-		M_Print (x, y, "on");
-	else
-		M_Print (x, y, "off");
+		M_OPTIONS_PRINT (x, y, "off");
 }
 
-void M_Options_Draw (void)
+void M_OPTIONS_DRAW_C_ENTRY (void)
 {
 	float		r;
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_option.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_OPTIONS_TRANSPIC (16, 4,
+			M_OPTIONS_CACHEPIC ("gfx/qplaque.lmp"));
+	p = M_OPTIONS_CACHEPIC ("gfx/p_option.lmp");
+	M_OPTIONS_PIC ( (320-p->width)/2, 4, p);
 
-	M_Print (16, 32, "    Customize controls");
-	M_Print (16, 40, "         Go to console");
-	M_Print (16, 48, "     Reset to defaults");
+	M_OPTIONS_PRINT (16, 32, "    Customize controls");
+	M_OPTIONS_PRINT (16, 40, "         Go to console");
+	M_OPTIONS_PRINT (16, 48, "     Reset to defaults");
 
-	M_Print (16, 56, "           Screen size");
+	M_OPTIONS_PRINT (16, 56, "           Screen size");
 	r = (scr_viewsize.value - 30) / (120 - 30);
-	M_DrawSlider (220, 56, r);
+	M_OPTIONS_SLIDER (220, 56, r);
 
-	M_Print (16, 64, "            Brightness");
+	M_OPTIONS_PRINT (16, 64, "            Brightness");
 	r = (1.0 - v_gamma.value) / 0.5;
-	M_DrawSlider (220, 64, r);
+	M_OPTIONS_SLIDER (220, 64, r);
 
-	M_Print (16, 72, "           Mouse Speed");
+	M_OPTIONS_PRINT (16, 72, "           Mouse Speed");
 	r = (sensitivity.value - 1)/10;
-	M_DrawSlider (220, 72, r);
+	M_OPTIONS_SLIDER (220, 72, r);
 
-	M_Print (16, 80, "       CD Music Volume");
+	M_OPTIONS_PRINT (16, 80, "       CD Music Volume");
 	r = bgmvolume.value;
-	M_DrawSlider (220, 80, r);
+	M_OPTIONS_SLIDER (220, 80, r);
 
-	M_Print (16, 88, "          Sound Volume");
+	M_OPTIONS_PRINT (16, 88, "          Sound Volume");
 	r = volume.value;
-	M_DrawSlider (220, 88, r);
+	M_OPTIONS_SLIDER (220, 88, r);
 
-	M_Print (16, 96,  "            Always Run");
-	M_DrawCheckbox (220, 96, cl_forwardspeed.value > 200);
+	M_OPTIONS_PRINT (16, 96,  "            Always Run");
+	M_OPTIONS_CHECKBOX (220, 96, cl_forwardspeed.value > 200);
 
-	M_Print (16, 104, "          Invert Mouse");
-	M_DrawCheckbox (220, 104, m_pitch.value < 0);
+	M_OPTIONS_PRINT (16, 104, "          Invert Mouse");
+	M_OPTIONS_CHECKBOX (220, 104, m_pitch.value < 0);
 
-	M_Print (16, 112, "            Lookspring");
-	M_DrawCheckbox (220, 112, lookspring.value);
+	M_OPTIONS_PRINT (16, 112, "            Lookspring");
+	M_OPTIONS_CHECKBOX (220, 112, lookspring.value);
 
-	M_Print (16, 120, "            Lookstrafe");
-	M_DrawCheckbox (220, 120, lookstrafe.value);
+	M_OPTIONS_PRINT (16, 120, "            Lookstrafe");
+	M_OPTIONS_CHECKBOX (220, 120, lookstrafe.value);
 
 	if (vid_menudrawfn)
-		M_Print (16, 128, "         Video Options");
+		M_OPTIONS_PRINT (16, 128, "         Video Options");
 // cursor
-	M_DrawCharacter (200, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
+	M_OPTIONS_CHARACTER (200, 32 + options_cursor*8,
+			12+((int)(realtime*4)&1));
 }
+#endif
+
+#undef M_OPTIONS_SLIDER
+#undef M_OPTIONS_CHECKBOX
+#undef M_OPTIONS_CACHEPIC
+#undef M_OPTIONS_PIC
+#undef M_OPTIONS_TRANSPIC
+#undef M_OPTIONS_PRINT
+#undef M_OPTIONS_CHARACTER
+#undef M_OPTIONS_DRAW_C_ENTRY
+#undef M_OPTIONS_CHECKBOX_C_ENTRY
+#undef M_OPTIONS_SLIDER_C_ENTRY
 
 
 void M_Options_Key (int k)

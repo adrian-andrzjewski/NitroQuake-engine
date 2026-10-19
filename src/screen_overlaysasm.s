@@ -938,6 +938,334 @@ C(M_ModemConfig_Draw):
 	ret
 
 .p2align 2
+.globl C(M_DrawSlider)
+C(M_DrawSlider):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$16,%esp
+	movl	8(%ebp),%ebx		/* x */
+	movl	12(%ebp),%esi		/* y */
+	flds	16(%ebp)			/* range */
+	fsts	-16(%ebp)
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$5,%ah			/* negative or unordered */
+	je	.Lmenu_options_slider_nonnegative
+	fldz
+	fstps	-16(%ebp)
+.Lmenu_options_slider_nonnegative:
+	fld1
+	flds	-16(%ebp)
+	fcomp	%st(1)
+	fnstsw	%ax
+	testb	$69,%ah			/* clamp only when range > 1 */
+	jne	.Lmenu_options_slider_clamped
+	fstps	-16(%ebp)
+	jmp	.Lmenu_options_slider_draw
+.Lmenu_options_slider_clamped:
+	fstp	%st(0)
+
+.Lmenu_options_slider_draw:
+	pushl	$128
+	pushl	%esi
+	leal	-8(%ebx),%eax
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+	xorl	%edi,%edi
+.Lmenu_options_slider_loop:
+	pushl	$129
+	pushl	%esi
+	leal	(%ebx,%edi,8),%eax
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+	incl	%edi
+	cmpl	$10,%edi
+	jne	.Lmenu_options_slider_loop
+	pushl	$130
+	pushl	%esi
+	leal	80(%ebx),%eax
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+	flds	-16(%ebp)
+	fmuls	.Lmenu_options_seventy_two
+	fiaddl	8(%ebp)
+	fnstcw	-22(%ebp)
+	movw	-22(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-24(%ebp)
+	fldcw	-24(%ebp)
+	fistpl	-20(%ebp)
+	fldcw	-22(%ebp)
+	pushl	$131
+	pushl	%esi
+	pushl	-20(%ebp)
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.p2align 2
+.globl C(M_DrawCheckbox)
+C(M_DrawCheckbox):
+	cmpl	$0,12(%esp)
+	je	.Lmenu_options_checkbox_off
+	pushl	$.Lmenu_options_on
+	jmp	.Lmenu_options_checkbox_print
+.Lmenu_options_checkbox_off:
+	pushl	$.Lmenu_options_off
+.Lmenu_options_checkbox_print:
+	pushl	12(%esp)			/* y (after string push) */
+	pushl	12(%esp)			/* x */
+	call	C(M_Print)
+	addl	$12,%esp
+	ret
+
+.p2align 2
+.globl C(M_Options_Draw)
+C(M_Options_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$32,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_plaque
+	pushl	%eax
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$12,%esp
+	MENU_PAGE_CACHE $.Lmenu_options_title
+	movl	%eax,-16(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	movl	%edx,%ecx
+	shrl	$31,%ecx
+	addl	%ecx,%eax
+	sarl	$1,%eax
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_customize
+	pushl	$32
+	pushl	$16
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$.Lmenu_options_console
+	pushl	$40
+	pushl	$16
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$.Lmenu_options_defaults
+	pushl	$48
+	pushl	$16
+	call	C(M_Print)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_screen_size
+	pushl	$56
+	pushl	$16
+	call	C(M_Print)
+	flds	.Lmenu_options_thirty
+	fsubrs	C(scr_viewsize)+16
+	fmuls	.Lmenu_options_inv_ninety
+	fstps	-20(%ebp)
+	addl	$12,%esp
+	pushl	-20(%ebp)
+	pushl	$56
+	pushl	$220
+	call	C(M_DrawSlider)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_brightness
+	pushl	$64
+	pushl	$16
+	call	C(M_Print)
+	fld1
+	fsubs	C(v_gamma)+16
+	fadd	%st(0),%st
+	fstps	-20(%ebp)
+	addl	$12,%esp
+	pushl	-20(%ebp)
+	pushl	$64
+	pushl	$220
+	call	C(M_DrawSlider)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_mouse_speed
+	pushl	$72
+	pushl	$16
+	call	C(M_Print)
+	fld1
+	fsubrs	C(sensitivity)+16
+	fmuls	.Lmenu_options_tenth
+	fstps	-20(%ebp)
+	addl	$12,%esp
+	pushl	-20(%ebp)
+	pushl	$72
+	pushl	$220
+	call	C(M_DrawSlider)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_cd_volume
+	pushl	$80
+	pushl	$16
+	call	C(M_Print)
+	flds	C(bgmvolume)+16
+	fstps	-20(%ebp)
+	addl	$12,%esp
+	pushl	-20(%ebp)
+	pushl	$80
+	pushl	$220
+	call	C(M_DrawSlider)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_sound_volume
+	pushl	$88
+	pushl	$16
+	call	C(M_Print)
+	flds	C(volume)+16
+	fstps	-20(%ebp)
+	addl	$12,%esp
+	pushl	-20(%ebp)
+	pushl	$88
+	pushl	$220
+	call	C(M_DrawSlider)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_always_run
+	pushl	$96
+	pushl	$16
+	call	C(M_Print)
+	flds	C(cl_forwardspeed)+16
+	fcomps	.Lmenu_options_two_hundred
+	fnstsw	%ax
+	testb	$69,%ah
+	jne	.Lmenu_options_forward_off
+	movl	$1,%eax
+	jmp	.Lmenu_options_forward_ready
+.Lmenu_options_forward_off:
+	xorl	%eax,%eax
+.Lmenu_options_forward_ready:
+	addl	$12,%esp
+	pushl	%eax
+	pushl	$96
+	pushl	$220
+	call	C(M_DrawCheckbox)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_invert_mouse
+	pushl	$104
+	pushl	$16
+	call	C(M_Print)
+	fldz
+	fcomps	C(m_pitch)+16
+	fnstsw	%ax
+	testb	$69,%ah
+	jne	.Lmenu_options_pitch_off
+	movl	$1,%eax
+	jmp	.Lmenu_options_pitch_ready
+.Lmenu_options_pitch_off:
+	xorl	%eax,%eax
+.Lmenu_options_pitch_ready:
+	addl	$12,%esp
+	pushl	%eax
+	pushl	$104
+	pushl	$220
+	call	C(M_DrawCheckbox)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_lookspring
+	pushl	$112
+	pushl	$16
+	call	C(M_Print)
+	fnstcw	-22(%ebp)
+	movw	-22(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-24(%ebp)
+	flds	C(lookspring)+16
+	fldcw	-24(%ebp)
+	fistpl	-28(%ebp)
+	fldcw	-22(%ebp)
+	addl	$12,%esp
+	pushl	-28(%ebp)
+	pushl	$112
+	pushl	$220
+	call	C(M_DrawCheckbox)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_options_lookstrafe
+	pushl	$120
+	pushl	$16
+	call	C(M_Print)
+	fnstcw	-22(%ebp)
+	movw	-22(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-24(%ebp)
+	flds	C(lookstrafe)+16
+	fldcw	-24(%ebp)
+	fistpl	-28(%ebp)
+	fldcw	-22(%ebp)
+	addl	$12,%esp
+	pushl	-28(%ebp)
+	pushl	$120
+	pushl	$220
+	call	C(M_DrawCheckbox)
+	addl	$12,%esp
+
+	cmpl	$0,C(vid_menudrawfn)
+	je	.Lmenu_options_cursor
+	pushl	$.Lmenu_options_video
+	pushl	$128
+	pushl	$16
+	call	C(M_Print)
+	addl	$12,%esp
+
+.Lmenu_options_cursor:
+	flds	.Lmenu_options_four
+	fmull	C(realtime)
+	fnstcw	-22(%ebp)
+	movw	-22(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-24(%ebp)
+	fldcw	-24(%ebp)
+	fistpl	-28(%ebp)
+	fldcw	-22(%ebp)
+	movl	-28(%ebp),%eax
+	andl	$1,%eax
+	addl	$12,%eax
+	pushl	%eax
+	movl	C(options_cursor),%edx
+	leal	32(,%edx,8),%eax
+	pushl	%eax
+	pushl	$200
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.p2align 2
 .globl C(M_Help_Draw)
 C(M_Help_Draw):
 	subl	$8,%esp
@@ -1400,6 +1728,51 @@ C(SCR_DrawConsole):
 	.asciz	"Hangup"
 .Lmenu_modem_ok_label:
 	.asciz	"OK"
+.Lmenu_options_title:
+	.asciz	"gfx/p_option.lmp"
+.Lmenu_options_customize:
+	.asciz	"    Customize controls"
+.Lmenu_options_console:
+	.asciz	"         Go to console"
+.Lmenu_options_defaults:
+	.asciz	"     Reset to defaults"
+.Lmenu_options_screen_size:
+	.asciz	"           Screen size"
+.Lmenu_options_brightness:
+	.asciz	"            Brightness"
+.Lmenu_options_mouse_speed:
+	.asciz	"           Mouse Speed"
+.Lmenu_options_cd_volume:
+	.asciz	"       CD Music Volume"
+.Lmenu_options_sound_volume:
+	.asciz	"          Sound Volume"
+.Lmenu_options_always_run:
+	.asciz	"            Always Run"
+.Lmenu_options_invert_mouse:
+	.asciz	"          Invert Mouse"
+.Lmenu_options_lookspring:
+	.asciz	"            Lookspring"
+.Lmenu_options_lookstrafe:
+	.asciz	"            Lookstrafe"
+.Lmenu_options_video:
+	.asciz	"         Video Options"
+.Lmenu_options_on:
+	.asciz	"on"
+.Lmenu_options_off:
+	.asciz	"off"
+.p2align 2
+.Lmenu_options_thirty:
+	.float	30.0
+.Lmenu_options_inv_ninety:
+	.float	0.011111111111111112
+.Lmenu_options_tenth:
+	.float	0.1
+.Lmenu_options_seventy_two:
+	.float	72.0
+.Lmenu_options_two_hundred:
+	.float	200.0
+.Lmenu_options_four:
+	.float	4.0
 .p2align 3
 .Lmenu_modem_four:
 	.double	4.0
