@@ -15,13 +15,16 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-409 directly reachable renderer entries and 21 directly reachable C
-dependencies: 388/409, or 94.9%, are assembly-owned by reachable-symbol count.
+409 directly reachable renderer entries and 20 directly reachable C
+dependencies: 389/409, or 95.1%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
 size or complexity. The ownership scan now includes `vid_*.s` sources, listing
 the exported video assembly entries alongside their C counterparts. No
 directly reachable cache or zone-heap C owners appear in this profile. The
+`M_ModemConfig_Draw` page now selects assembly; its 2,880-case parity fixture and
+strict i486 release proof are recorded in the
+[modem configuration ledger](ledger/2026-10-19-modem-config-menu-assembly-port.md).
 `VID_ExtraDefaultMode` public wrapper now selects assembly in the assembly
 profile, with the C selector retained as a parity oracle; see the
 [VESA default-mode wrapper ledger](ledger/2026-10-19-vesa-default-mode-wrapper-assembly-port.md).

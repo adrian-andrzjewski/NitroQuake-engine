@@ -2211,45 +2211,86 @@ void M_Menu_ModemConfig_f (void)
 }
 
 
-void M_ModemConfig_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_MODEM_DRAW_C_ENTRY M_ModemConfig_Draw_C
+#define M_MODEM_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_MODEM_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#define M_MODEM_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_MODEM_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox_C ((x), (y), (width), (lines))
+#define M_MODEM_PRINT(x, y, str) M_Print_C ((x), (y), (str))
+#define M_MODEM_CHARACTER(x, y, num) M_DrawCharacter_C ((x), (y), (num))
+#else
+#define M_MODEM_DRAW_C_ENTRY M_ModemConfig_Draw
+#define M_MODEM_CACHE_PIC(path) Draw_CachePic (path)
+#define M_MODEM_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_MODEM_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_MODEM_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox ((x), (y), (width), (lines))
+#define M_MODEM_PRINT(x, y, str) M_Print ((x), (y), (str))
+#define M_MODEM_CHARACTER(x, y, num) M_DrawCharacter ((x), (y), (num))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_MODEM_DRAW_C_ENTRY (void)
 {
 	qpic_t	*p;
 	int		basex;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
+	M_MODEM_TRANSPIC (16, 4, M_MODEM_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_MODEM_CACHE_PIC ("gfx/p_multi.lmp");
 	basex = (320-p->width)/2;
-	M_DrawPic (basex, 4, p);
+	M_MODEM_PIC (basex, 4, p);
 	basex += 8;
 
 	if (modemConfig_dialing == 'P')
-		M_Print (basex, modemConfig_cursor_table[0], "Pulse Dialing");
+		M_MODEM_PRINT (basex, modemConfig_cursor_table[0], "Pulse Dialing");
 	else
-		M_Print (basex, modemConfig_cursor_table[0], "Touch Tone Dialing");
+		M_MODEM_PRINT (basex, modemConfig_cursor_table[0], "Touch Tone Dialing");
 
-	M_Print (basex, modemConfig_cursor_table[1], "Clear");
-	M_DrawTextBox (basex, modemConfig_cursor_table[1]+4, 16, 1);
-	M_Print (basex+8, modemConfig_cursor_table[1]+12, modemConfig_clear);
+	M_MODEM_PRINT (basex, modemConfig_cursor_table[1], "Clear");
+	M_MODEM_TEXTBOX (basex, modemConfig_cursor_table[1]+4, 16, 1);
+	M_MODEM_PRINT (basex+8, modemConfig_cursor_table[1]+12,
+			modemConfig_clear);
 	if (modemConfig_cursor == 1)
-		M_DrawCharacter (basex+8 + 8*strlen(modemConfig_clear), modemConfig_cursor_table[1]+12, 10+((int)(realtime*4)&1));
+		M_MODEM_CHARACTER (basex+8 + 8*strlen(modemConfig_clear),
+				modemConfig_cursor_table[1]+12,
+				10+((int)(realtime*4)&1));
 
-	M_Print (basex, modemConfig_cursor_table[2], "Init");
-	M_DrawTextBox (basex, modemConfig_cursor_table[2]+4, 30, 1);
-	M_Print (basex+8, modemConfig_cursor_table[2]+12, modemConfig_init);
+	M_MODEM_PRINT (basex, modemConfig_cursor_table[2], "Init");
+	M_MODEM_TEXTBOX (basex, modemConfig_cursor_table[2]+4, 30, 1);
+	M_MODEM_PRINT (basex+8, modemConfig_cursor_table[2]+12,
+			modemConfig_init);
 	if (modemConfig_cursor == 2)
-		M_DrawCharacter (basex+8 + 8*strlen(modemConfig_init), modemConfig_cursor_table[2]+12, 10+((int)(realtime*4)&1));
+		M_MODEM_CHARACTER (basex+8 + 8*strlen(modemConfig_init),
+				modemConfig_cursor_table[2]+12,
+				10+((int)(realtime*4)&1));
 
-	M_Print (basex, modemConfig_cursor_table[3], "Hangup");
-	M_DrawTextBox (basex, modemConfig_cursor_table[3]+4, 16, 1);
-	M_Print (basex+8, modemConfig_cursor_table[3]+12, modemConfig_hangup);
+	M_MODEM_PRINT (basex, modemConfig_cursor_table[3], "Hangup");
+	M_MODEM_TEXTBOX (basex, modemConfig_cursor_table[3]+4, 16, 1);
+	M_MODEM_PRINT (basex+8, modemConfig_cursor_table[3]+12,
+			modemConfig_hangup);
 	if (modemConfig_cursor == 3)
-		M_DrawCharacter (basex+8 + 8*strlen(modemConfig_hangup), modemConfig_cursor_table[3]+12, 10+((int)(realtime*4)&1));
+		M_MODEM_CHARACTER (basex+8 + 8*strlen(modemConfig_hangup),
+				modemConfig_cursor_table[3]+12,
+				10+((int)(realtime*4)&1));
 
-	M_DrawTextBox (basex, modemConfig_cursor_table[4]-8, 2, 1);
-	M_Print (basex+8, modemConfig_cursor_table[4], "OK");
+	M_MODEM_TEXTBOX (basex, modemConfig_cursor_table[4]-8, 2, 1);
+	M_MODEM_PRINT (basex+8, modemConfig_cursor_table[4], "OK");
 
-	M_DrawCharacter (basex-8, modemConfig_cursor_table [modemConfig_cursor], 12+((int)(realtime*4)&1));
+	M_MODEM_CHARACTER (basex-8,
+			modemConfig_cursor_table[modemConfig_cursor],
+			12+((int)(realtime*4)&1));
 }
+#endif
+
+#undef M_MODEM_CHARACTER
+#undef M_MODEM_PRINT
+#undef M_MODEM_TEXTBOX
+#undef M_MODEM_PIC
+#undef M_MODEM_TRANSPIC
+#undef M_MODEM_CACHE_PIC
+#undef M_MODEM_DRAW_C_ENTRY
 
 
 void M_ModemConfig_Key (int key)

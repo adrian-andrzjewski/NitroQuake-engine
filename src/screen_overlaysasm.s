@@ -704,6 +704,240 @@ C(M_Net_Draw):
 	ret
 
 .p2align 2
+.globl C(M_ModemConfig_Draw)
+C(M_ModemConfig_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$24,%esp
+
+	/* Plaque and title use the same centered picture wrappers as the C path. */
+	MENU_PAGE_CACHE $.Lmenu_plaque
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_multi_title
+	movl	%eax,-20(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	movl	%eax,-16(%ebp)
+	subl	$4,%esp
+	pushl	-20(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$16,%esp
+
+	/* int(realtime * 4) has C cast semantics: truncate, then restore CW. */
+	fldl	C(realtime)
+	fmull	.Lmenu_modem_four
+	fnstcw	-26(%ebp)
+	movw	-26(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-28(%ebp)
+	fldcw	-28(%ebp)
+	fistpl	-32(%ebp)
+	fldcw	-26(%ebp)
+	movl	-32(%ebp),%eax
+	andl	$1,%eax
+	movl	%eax,-24(%ebp)
+
+	/* Dialing mode. */
+	movl	-16(%ebp),%ebx
+	addl	$8,%ebx
+	cmpb	$80,C(modemConfig_dialing)
+	jne	.Lmenu_modem_touch_tone
+	pushl	$.Lmenu_modem_pulse
+	jmp	.Lmenu_modem_dial_label
+.Lmenu_modem_touch_tone:
+	pushl	$.Lmenu_modem_touch
+.Lmenu_modem_dial_label:
+	pushl	C(modemConfig_cursor_table)
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* Clear field. */
+	movl	-16(%ebp),%ebx
+	addl	$8,%ebx
+	pushl	$.Lmenu_modem_clear
+	pushl	C(modemConfig_cursor_table)+4
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(modemConfig_cursor_table)+4,%eax
+	addl	$4,%eax
+	pushl	$1
+	pushl	$16
+	pushl	%eax
+	movl	%ebx,%eax
+	pushl	%eax
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	movl	-16(%ebp),%ebx
+	addl	$16,%ebx
+	movl	C(modemConfig_cursor_table)+4,%eax
+	addl	$12,%eax
+	pushl	$C(modemConfig_clear)
+	pushl	%eax
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	cmpl	$1,C(modemConfig_cursor)
+	jne	.Lmenu_modem_init
+	subl	$12,%esp
+	pushl	$C(modemConfig_clear)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	leal	(%ebx,%eax),%eax
+	movl	-24(%ebp),%ecx
+	addl	$10,%ecx
+	pushl	%ecx
+	movl	C(modemConfig_cursor_table)+4,%edx
+	addl	$12,%edx
+	pushl	%edx
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lmenu_modem_init:
+	movl	-16(%ebp),%ebx
+	addl	$8,%ebx
+	pushl	$.Lmenu_modem_init_label
+	pushl	C(modemConfig_cursor_table)+8
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(modemConfig_cursor_table)+8,%eax
+	addl	$4,%eax
+	pushl	$1
+	pushl	$30
+	pushl	%eax
+	movl	%ebx,%eax
+	pushl	%eax
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	movl	-16(%ebp),%ebx
+	addl	$16,%ebx
+	movl	C(modemConfig_cursor_table)+8,%eax
+	addl	$12,%eax
+	pushl	$C(modemConfig_init)
+	pushl	%eax
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	cmpl	$2,C(modemConfig_cursor)
+	jne	.Lmenu_modem_hangup
+	subl	$12,%esp
+	pushl	$C(modemConfig_init)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	leal	(%ebx,%eax),%eax
+	movl	-24(%ebp),%ecx
+	addl	$10,%ecx
+	pushl	%ecx
+	movl	C(modemConfig_cursor_table)+8,%edx
+	addl	$12,%edx
+	pushl	%edx
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lmenu_modem_hangup:
+	movl	-16(%ebp),%ebx
+	addl	$8,%ebx
+	pushl	$.Lmenu_modem_hangup_label
+	pushl	C(modemConfig_cursor_table)+12
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(modemConfig_cursor_table)+12,%eax
+	addl	$4,%eax
+	pushl	$1
+	pushl	$16
+	pushl	%eax
+	movl	%ebx,%eax
+	pushl	%eax
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	movl	-16(%ebp),%ebx
+	addl	$16,%ebx
+	movl	C(modemConfig_cursor_table)+12,%eax
+	addl	$12,%eax
+	pushl	$C(modemConfig_hangup)
+	pushl	%eax
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	cmpl	$3,C(modemConfig_cursor)
+	jne	.Lmenu_modem_ok
+	subl	$12,%esp
+	pushl	$C(modemConfig_hangup)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	leal	(%ebx,%eax),%eax
+	movl	-24(%ebp),%ecx
+	addl	$10,%ecx
+	pushl	%ecx
+	movl	C(modemConfig_cursor_table)+12,%edx
+	addl	$12,%edx
+	pushl	%edx
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lmenu_modem_ok:
+	movl	-16(%ebp),%ebx
+	addl	$8,%ebx
+	movl	C(modemConfig_cursor_table)+16,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$2
+	pushl	%eax
+	pushl	%ebx
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	movl	C(modemConfig_cursor_table)+16,%eax
+	pushl	$.Lmenu_modem_ok_label
+	pushl	%eax
+	addl	$8,%ebx
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* Final menu cursor, indexed by the selected field. */
+	movl	-24(%ebp),%eax
+	addl	$12,%eax
+	pushl	%eax
+	movl	C(modemConfig_cursor),%edx
+	movl	C(modemConfig_cursor_table)(,%edx,4),%eax
+	pushl	%eax
+	movl	-16(%ebp),%eax
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.p2align 2
 .globl C(M_Help_Draw)
 C(M_Help_Draw):
 	subl	$8,%esp
@@ -1154,6 +1388,22 @@ C(SCR_DrawConsole):
 	.asciz	"gfx/p_multi.lmp"
 .Lmenu_multi_content:
 	.asciz	"gfx/mp_menu.lmp"
+.Lmenu_modem_pulse:
+	.asciz	"Pulse Dialing"
+.Lmenu_modem_touch:
+	.asciz	"Touch Tone Dialing"
+.Lmenu_modem_clear:
+	.asciz	"Clear"
+.Lmenu_modem_init_label:
+	.asciz	"Init"
+.Lmenu_modem_hangup_label:
+	.asciz	"Hangup"
+.Lmenu_modem_ok_label:
+	.asciz	"OK"
+.p2align 3
+.Lmenu_modem_four:
+	.double	4.0
+.p2align 2
 .Lmenu_net_modem:
 	.asciz	"gfx/netmen1.lmp"
 .Lmenu_net_direct_path:

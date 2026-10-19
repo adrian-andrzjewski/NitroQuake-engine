@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-19-modem-config-menu-assembly-port.md`](2026-10-19-modem-config-menu-assembly-port.md) | 4 | renderer port / modem configuration menu drawing (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-net-menu-assembly-port.md`](2026-10-19-net-menu-assembly-port.md) | 4 | renderer port / network protocol menu and help panel (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-multiplayer-menu-assembly-port.md`](2026-10-19-multiplayer-menu-assembly-port.md) | 4 | renderer port / multiplayer menu page (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-menu-saveload-assembly-port.md`](2026-10-19-menu-saveload-assembly-port.md) | 4 | renderer port / Load and Save page drawing (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
@@ -354,6 +355,8 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [`M_ModemConfig_Draw` passes 2,880 exact C/assembly cases and the complete strict i486 release gate](2026-10-19-modem-config-menu-assembly-port.md)
+- `open` [Full-scene parity, FPS measurement, incomplete renderer ownership graph, and remaining console/menu/video C dependencies](2026-10-19-modem-config-menu-assembly-port.md)
 - `measured` [Pause/loading overlays pass 10 exact C/ASM cases and the strict i486 release gate](2026-10-19-screen-pause-loading-assembly-port.md)
 - `open` [Full-scene parity, FPS measurement, unresolved renderer ownership, and remaining menu/video dependencies](2026-10-19-screen-pause-loading-assembly-port.md)
 - `measured` [Zone/cache/hunk diagnostic trace adapters pass 25 C/ASM cases and strict BENCH and release i486 gates](2026-10-18-zone-memory-trace-assembly-port.md)
