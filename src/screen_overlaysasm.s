@@ -537,6 +537,173 @@ C(M_MultiPlayer_Draw):
 	ret
 
 .p2align 2
+.globl C(M_Net_Draw)
+C(M_Net_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$16,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_plaque
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_multi_title
+	movl	%eax,-16(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	subl	$4,%esp
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$16,%esp
+
+	cmpl	$0,C(serialAvailable)
+	je	.Lmenu_net_dim_modem
+	MENU_PAGE_CACHE $.Lmenu_net_modem
+	jmp	.Lmenu_net_row_modem
+.Lmenu_net_dim_modem:
+	MENU_PAGE_CACHE $.Lmenu_net_dim_modem_pic
+.Lmenu_net_row_modem:
+	testl	%eax,%eax
+	je	.Lmenu_net_direct
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$32
+	pushl	$72
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+.Lmenu_net_direct:
+	cmpl	$0,C(serialAvailable)
+	je	.Lmenu_net_dim_direct
+	MENU_PAGE_CACHE $.Lmenu_net_direct_path
+	jmp	.Lmenu_net_row_direct
+.Lmenu_net_dim_direct:
+	MENU_PAGE_CACHE $.Lmenu_net_dim_direct_path
+.Lmenu_net_row_direct:
+	testl	%eax,%eax
+	je	.Lmenu_net_ipx
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$51
+	pushl	$72
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+.Lmenu_net_ipx:
+	cmpl	$0,C(ipxAvailable)
+	je	.Lmenu_net_dim_ipx
+	MENU_PAGE_CACHE $.Lmenu_net_ipx_path
+	jmp	.Lmenu_net_row_ipx
+.Lmenu_net_dim_ipx:
+	MENU_PAGE_CACHE $.Lmenu_net_dim_ipx_path
+.Lmenu_net_row_ipx:
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$70
+	pushl	$72
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	cmpl	$0,C(tcpipAvailable)
+	je	.Lmenu_net_dim_tcpip
+	MENU_PAGE_CACHE $.Lmenu_net_tcpip_path
+	jmp	.Lmenu_net_row_tcpip
+.Lmenu_net_dim_tcpip:
+	MENU_PAGE_CACHE $.Lmenu_net_dim_tcpip_path
+.Lmenu_net_row_tcpip:
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$89
+	pushl	$72
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	cmpl	$5,C(m_net_items)
+	jne	.Lmenu_net_help_box
+	MENU_PAGE_CACHE $.Lmenu_net_fifth
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$108
+	pushl	$72
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+.Lmenu_net_help_box:
+	pushl	$4
+	pushl	$24
+	pushl	$134
+	pushl	$56
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+
+	movl	C(m_net_cursor),%eax
+	shll	$4,%eax
+	movl	$C(net_helpMessage),%esi
+	addl	%eax,%esi
+	xorl	%ebx,%ebx
+.Lmenu_net_help_lines:
+	pushl	(%esi)
+	leal	142(,%ebx,8),%eax
+	pushl	%eax
+	pushl	$64
+	call	C(M_Print)
+	addl	$12,%esp
+	addl	$4,%esi
+	incl	%ebx
+	cmpl	$4,%ebx
+	jl	.Lmenu_net_help_lines
+
+	flds	.Lmenu_page_ten
+	fmull	C(host_time)
+	fnstcw	-18(%ebp)
+	movw	-18(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-20(%ebp)
+	fldcw	-20(%ebp)
+	fistpl	-24(%ebp)
+	fldcw	-18(%ebp)
+	movl	-24(%ebp),%eax
+	cltd
+	movl	$6,%ecx
+	idivl	%ecx
+	incl	%edx
+	pushl	%edx
+	pushl	$.Lmenu_dot_format
+	call	C(va)
+	addl	$8,%esp
+	MENU_PAGE_CACHE %eax
+	movl	C(m_net_cursor),%edx
+	leal	(%edx,%edx,4),%edx
+	shll	$2,%edx
+	addl	$32,%edx
+	subl	$4,%esp
+	pushl	%eax
+	pushl	%edx
+	pushl	$54
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	addl	$16,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.p2align 2
 .globl C(M_Help_Draw)
 C(M_Help_Draw):
 	subl	$8,%esp
@@ -987,6 +1154,24 @@ C(SCR_DrawConsole):
 	.asciz	"gfx/p_multi.lmp"
 .Lmenu_multi_content:
 	.asciz	"gfx/mp_menu.lmp"
+.Lmenu_net_modem:
+	.asciz	"gfx/netmen1.lmp"
+.Lmenu_net_direct_path:
+	.asciz	"gfx/netmen2.lmp"
+.Lmenu_net_ipx_path:
+	.asciz	"gfx/netmen3.lmp"
+.Lmenu_net_tcpip_path:
+	.asciz	"gfx/netmen4.lmp"
+.Lmenu_net_fifth:
+	.asciz	"gfx/netmen5.lmp"
+.Lmenu_net_dim_modem_pic:
+	.asciz	"gfx/dim_modm.lmp"
+.Lmenu_net_dim_direct_path:
+	.asciz	"gfx/dim_drct.lmp"
+.Lmenu_net_dim_ipx_path:
+	.asciz	"gfx/dim_ipx.lmp"
+.Lmenu_net_dim_tcpip_path:
+	.asciz	"gfx/dim_tcp.lmp"
 .Lmenu_no_communications:
 	.asciz	"No Communications Available"
 .Lmenu_dot_format:

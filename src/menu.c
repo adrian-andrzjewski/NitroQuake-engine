@@ -1114,75 +1114,103 @@ void M_Menu_Net_f (void)
 }
 
 
-void M_Net_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_NET_DRAW_C_ENTRY M_Net_Draw_C
+#define M_NET_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_NET_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#define M_NET_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_NET_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox_C ((x), (y), (width), (lines))
+#define M_NET_PRINT(x, y, str) M_Print_C ((x), (y), (str))
+#else
+#define M_NET_DRAW_C_ENTRY M_Net_Draw
+#define M_NET_CACHE_PIC(path) Draw_CachePic (path)
+#define M_NET_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_NET_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_NET_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox ((x), (y), (width), (lines))
+#define M_NET_PRINT(x, y, str) M_Print ((x), (y), (str))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_NET_DRAW_C_ENTRY (void)
 {
 	int		f;
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_NET_TRANSPIC (16, 4, M_NET_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_NET_CACHE_PIC ("gfx/p_multi.lmp");
+	M_NET_PIC ((320-p->width)/2, 4, p);
 
 	f = 32;
 
 	if (serialAvailable)
 	{
-		p = Draw_CachePic ("gfx/netmen1.lmp");
+		p = M_NET_CACHE_PIC ("gfx/netmen1.lmp");
 	}
 	else
 	{
-		p = Draw_CachePic ("gfx/dim_modm.lmp");
+		p = M_NET_CACHE_PIC ("gfx/dim_modm.lmp");
 	}
 
 	if (p)
-		M_DrawTransPic (72, f, p);
+		M_NET_TRANSPIC (72, f, p);
 
 	f += 19;
 
 	if (serialAvailable)
 	{
-		p = Draw_CachePic ("gfx/netmen2.lmp");
+		p = M_NET_CACHE_PIC ("gfx/netmen2.lmp");
 	}
 	else
 	{
-		p = Draw_CachePic ("gfx/dim_drct.lmp");
+		p = M_NET_CACHE_PIC ("gfx/dim_drct.lmp");
 	}
 
 	if (p)
-		M_DrawTransPic (72, f, p);
+		M_NET_TRANSPIC (72, f, p);
 
 	f += 19;
 	if (ipxAvailable)
-		p = Draw_CachePic ("gfx/netmen3.lmp");
+		p = M_NET_CACHE_PIC ("gfx/netmen3.lmp");
 	else
-		p = Draw_CachePic ("gfx/dim_ipx.lmp");
-	M_DrawTransPic (72, f, p);
+		p = M_NET_CACHE_PIC ("gfx/dim_ipx.lmp");
+	M_NET_TRANSPIC (72, f, p);
 
 	f += 19;
 	if (tcpipAvailable)
-		p = Draw_CachePic ("gfx/netmen4.lmp");
+		p = M_NET_CACHE_PIC ("gfx/netmen4.lmp");
 	else
-		p = Draw_CachePic ("gfx/dim_tcp.lmp");
-	M_DrawTransPic (72, f, p);
+		p = M_NET_CACHE_PIC ("gfx/dim_tcp.lmp");
+	M_NET_TRANSPIC (72, f, p);
 
 	if (m_net_items == 5)	// JDC, could just be removed
 	{
 		f += 19;
-		p = Draw_CachePic ("gfx/netmen5.lmp");
-		M_DrawTransPic (72, f, p);
+		p = M_NET_CACHE_PIC ("gfx/netmen5.lmp");
+		M_NET_TRANSPIC (72, f, p);
 	}
 
 	f = (320-26*8)/2;
-	M_DrawTextBox (f, 134, 24, 4);
+	M_NET_TEXTBOX (f, 134, 24, 4);
 	f += 8;
-	M_Print (f, 142, net_helpMessage[m_net_cursor*4+0]);
-	M_Print (f, 150, net_helpMessage[m_net_cursor*4+1]);
-	M_Print (f, 158, net_helpMessage[m_net_cursor*4+2]);
-	M_Print (f, 166, net_helpMessage[m_net_cursor*4+3]);
+	M_NET_PRINT (f, 142, net_helpMessage[m_net_cursor*4+0]);
+	M_NET_PRINT (f, 150, net_helpMessage[m_net_cursor*4+1]);
+	M_NET_PRINT (f, 158, net_helpMessage[m_net_cursor*4+2]);
+	M_NET_PRINT (f, 166, net_helpMessage[m_net_cursor*4+3]);
 
 	f = (int)(host_time * 10)%6;
-	M_DrawTransPic (54, 32 + m_net_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
+	M_NET_TRANSPIC (54, 32 + m_net_cursor * 20,
+			M_NET_CACHE_PIC (va ("gfx/menudot%i.lmp", f+1)));
 }
+#endif
+
+#undef M_NET_PRINT
+#undef M_NET_TEXTBOX
+#undef M_NET_PIC
+#undef M_NET_TRANSPIC
+#undef M_NET_CACHE_PIC
+#undef M_NET_DRAW_C_ENTRY
 
 
 void M_Net_Key (int k)

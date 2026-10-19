@@ -52,12 +52,19 @@ void M_Draw (void);
 void M_Main_Draw (void);
 void M_SinglePlayer_Draw (void);
 void M_MultiPlayer_Draw (void);
+void M_Net_Draw (void);
 void M_Help_Draw (void);
 void M_Load_Draw (void);
 void M_Save_Draw (void);
 extern byte translationTable[256];
 extern int load_cursor;
 extern char m_filenames[MENU_SAVE_SLOT_COUNT][MENU_SAVE_FILENAME_STRIDE];
+extern int m_net_cursor;
+extern int m_net_items;
+extern char *net_helpMessage[16];
+extern qboolean serialAvailable;
+extern qboolean ipxAvailable;
+extern qboolean tcpipAvailable;
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
 void M_DrawCharacter_C (int cx, int line, int num);
@@ -71,6 +78,7 @@ void M_Draw_C (void);
 void M_Main_Draw_C (void);
 void M_SinglePlayer_Draw_C (void);
 void M_MultiPlayer_Draw_C (void);
+void M_Net_Draw_C (void);
 void M_Help_Draw_C (void);
 void M_Load_Draw_C (void);
 void M_Save_Draw_C (void);

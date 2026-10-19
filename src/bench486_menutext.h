@@ -8,7 +8,7 @@
 
 #define BMT_MAX_GLYPHS 512
 #define BMT_GUARD_WORDS 2
-#define BMP_MAX_EVENTS 128
+#define BMP_MAX_EVENTS 256
 #define BMP_GUARD_WORDS 2
 
 #define BMP_EVENT_TRANSPIC 1
@@ -117,7 +117,7 @@ static const bench486_menu_text_case_t bench486_menu_text_cases[] =
 static bench486_menu_text_trace_t bench486_menu_text_trace;
 static bench486_menu_text_result_t bench486_menu_text_reference;
 static bench486_menu_text_result_t bench486_menu_text_candidate;
-static unsigned bench486_menu_picture_fake_pic[128];
+static unsigned bench486_menu_picture_fake_pic[192];
 static bench486_menu_picture_trace_t bench486_menu_picture_trace;
 static bench486_menu_picture_result_t bench486_menu_picture_reference;
 static bench486_menu_picture_result_t bench486_menu_picture_candidate;
@@ -170,7 +170,16 @@ static const char *bench486_menu_cache_paths[] =
 	"gfx/p_load.lmp",
 	"gfx/p_save.lmp",
 	"gfx/p_multi.lmp",
-	"gfx/mp_menu.lmp"
+	"gfx/mp_menu.lmp",
+	"gfx/netmen1.lmp",
+	"gfx/netmen2.lmp",
+	"gfx/netmen3.lmp",
+	"gfx/netmen4.lmp",
+	"gfx/netmen5.lmp",
+	"gfx/dim_modm.lmp",
+	"gfx/dim_drct.lmp",
+	"gfx/dim_ipx.lmp",
+	"gfx/dim_tcp.lmp"
 };
 
 static const bench486_menu_textbox_case_t bench486_menu_textbox_cases[] =
