@@ -15,7 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-19-vesa-lifecycle-assembly-port.md`](2026-10-19-vesa-lifecycle-assembly-port.md) | 4 | renderer port / VESA resource cleanup and palette-ready state (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
-| [`2026-10-19-video-mode-assembly-port.md`](2026-10-19-video-mode-assembly-port.md) | 4 | renderer port / DOS video mode and palette orchestration (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification and ownership`; `Scope and remaining work`) |
+| [`2026-10-19-video-mode-assembly-port.md`](2026-10-19-video-mode-assembly-port.md) | 4 | renderer port / DOS video mode, palette, and shutdown orchestration (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-setup-menu-assembly-port.md`](2026-10-19-setup-menu-assembly-port.md) | 4 | renderer port / player setup menu drawing (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-modem-config-menu-assembly-port.md`](2026-10-19-modem-config-menu-assembly-port.md) | 4 | renderer port / modem configuration menu drawing (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-net-menu-assembly-port.md`](2026-10-19-net-menu-assembly-port.md) | 4 | renderer port / network protocol menu and help panel (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
@@ -359,8 +359,8 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
-- `measured` [`VID_GetModePtr`, `VID_ModeInfo`, `VID_SetMode`, `VID_SetPalette`, and `VID_ShiftPalette` pass C/ASM parity and strict i486 BENCH/release gates](2026-10-19-video-mode-assembly-port.md)
-- `open` [Hardware-specific callbacks, `VID_Shutdown`, FPS, and full-scene parity remain](2026-10-19-video-mode-assembly-port.md)
+- `measured` [`VID_GetModePtr`, `VID_ModeInfo`, `VID_SetMode`, `VID_SetPalette`, `VID_ShiftPalette`, and `VID_Shutdown` pass C/ASM parity and strict i486 BENCH/release gates](2026-10-19-video-mode-assembly-port.md)
+- `open` [Hardware-specific callbacks, FPS, and full-scene parity remain](2026-10-19-video-mode-assembly-port.md)
 - `measured` [`M_ModemConfig_Draw` passes 2,880 exact C/assembly cases and the complete strict i486 release gate](2026-10-19-modem-config-menu-assembly-port.md)
 - `open` [Full-scene parity, FPS measurement, incomplete renderer ownership graph, and remaining console/menu/video C dependencies](2026-10-19-modem-config-menu-assembly-port.md)
 - `measured` [Pause/loading overlays pass 10 exact C/ASM cases and the strict i486 release gate](2026-10-19-screen-pause-loading-assembly-port.md)

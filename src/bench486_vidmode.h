@@ -13,6 +13,8 @@
 #define BVM_EVENT_SET_MODE 5
 #define BVM_EVENT_SET_PALETTE 6
 #define BVM_EVENT_PALETTE_OK 7
+#define BVM_EVENT_SHUTDOWN_INT86 8
+#define BVM_EVENT_SHUTDOWN_EXTRA 9
 #define BVM_EVENT_CAPACITY 40
 #define BVM_MODE_COUNT 3
 
@@ -24,6 +26,7 @@ typedef struct bench486_vidmode_event_s
 	int video_matches;
 	int palette_matches;
 	int palette_is_current;
+	unsigned reg_eax;
 	unsigned width;
 	unsigned height;
 	unsigned rowbytes;
@@ -77,7 +80,9 @@ typedef struct bench486_vidmode_snapshot_s
 	int mode_number;
 	int no_mode_check;
 	int screen_disabled;
+	int testing_mode;
 	float mode_cvar_value;
+	regs_t registers;
 	bench486_vidmode_record_t record;
 } bench486_vidmode_snapshot_t;
 
@@ -191,6 +196,27 @@ int Bench486VidModePaletteOK (void)
 	if (event)
 		event->int_value = result;
 	return result;
+}
+
+int Bench486VidShutdownInt86 (int vector)
+{
+	bench486_vidmode_event_t *event;
+
+	event = Bench486VidModeAppend (BVM_EVENT_SHUTDOWN_INT86);
+	if (event)
+	{
+		event->int_value = vector;
+		event->reg_eax = regs.d.eax;
+	}
+	regs.d.eax = 0x4f138069;
+	regs.x.flags = 0x55aa;
+	return -1;
+}
+
+void Bench486VidShutdownExtra (void)
+{
+	Bench486VidModeAppend (BVM_EVENT_SHUTDOWN_EXTRA);
+	vid_testingmode = 7;
 }
 
 static int Bench486VidModeIndex (vmode_t *mode)
@@ -328,7 +354,9 @@ static void Bench486VidModeCapture (int result,
 	snapshot->mode_number = vid_modenum;
 	snapshot->no_mode_check = vid_nomodecheck;
 	snapshot->screen_disabled = scr_disabled_for_loading;
+	snapshot->testing_mode = vid_testingmode;
 	snapshot->mode_cvar_value = vid_mode.value;
+	memcpy (&snapshot->registers, &regs, sizeof(snapshot->registers));
 	snapshot->record = bench486_vidmode_record;
 }
 
@@ -355,9 +383,12 @@ static int Bench486VidModeSnapshotsEqual (
 			left->mode_number == right->mode_number &&
 			left->no_mode_check == right->no_mode_check &&
 			left->screen_disabled == right->screen_disabled &&
+			left->testing_mode == right->testing_mode &&
 			Bench486VidModeBytesEqual (&left->mode_cvar_value,
 					&right->mode_cvar_value,
 					sizeof(left->mode_cvar_value)) &&
+			Bench486VidModeBytesEqual (&left->registers,
+					&right->registers, sizeof(left->registers)) &&
 			Bench486VidModeRecordsEqual (&left->record, &right->record);
 }
 
@@ -473,14 +504,43 @@ static int Bench486VidModePaletteSnapshotExpected (
 	return 1;
 }
 
+static void Bench486VidModeRunShutdown (int use_assembly,
+		bench486_vidmode_snapshot_t *snapshot)
+{
+	Bench486VidModeResetRecord ();
+	memset (&regs, 0xa5, sizeof(regs));
+	regs.d.eax = 0xa1b2c3d4;
+	vid_testingmode = 1;
+	if (use_assembly)
+		VID_Shutdown ();
+	else
+		VID_Shutdown_C ();
+	Bench486VidModeCapture (0, snapshot);
+}
+
+static int Bench486VidModeShutdownSnapshotExpected (
+		const bench486_vidmode_snapshot_t *snapshot)
+{
+	return snapshot->record.event_count == 2 &&
+			!snapshot->record.overflow &&
+			snapshot->record.events[0].kind == BVM_EVENT_SHUTDOWN_INT86 &&
+			snapshot->record.events[0].int_value == 0x10 &&
+			snapshot->record.events[0].reg_eax == 0xa1b20003 &&
+			snapshot->record.events[1].kind == BVM_EVENT_SHUTDOWN_EXTRA &&
+			snapshot->registers.d.eax == 0x4f138069 &&
+			snapshot->registers.x.flags == 0x55aa &&
+			snapshot->testing_mode == 0;
+}
+
 int Bench486VidModeCases (void)
 {
 	viddef_t saved_video;
+	regs_t saved_regs;
 	vmode_t *saved_current_mode, *saved_mode_list;
 	cvar_t saved_mode_cvar;
 	byte saved_palette[768];
 	int saved_mode_number, saved_mode_count, saved_no_mode_check;
-	int saved_screen_disabled;
+	int saved_screen_disabled, saved_testing_mode;
 	bench486_vidmode_snapshot_t c_snapshot, asm_snapshot;
 	bench486_vidmode_record_t c_record;
 	vmode_t *c_mode, *asm_mode;
@@ -496,6 +556,8 @@ int Bench486VidModeCases (void)
 	saved_mode_count = numvidmodes;
 	saved_no_mode_check = vid_nomodecheck;
 	saved_screen_disabled = scr_disabled_for_loading;
+	saved_testing_mode = vid_testingmode;
+	memcpy (&saved_regs, &regs, sizeof(saved_regs));
 	failures = 0;
 	Bench486VidModeInitModes ();
 	pvidmodes = &bench486_vidmode_modes[0];
@@ -614,6 +676,13 @@ int Bench486VidModeCases (void)
 			failures |= bit;
 	}
 
+	Bench486VidModeRunShutdown (0, &c_snapshot);
+	Bench486VidModeRunShutdown (1, &asm_snapshot);
+	if (!Bench486VidModeSnapshotsEqual (&c_snapshot, &asm_snapshot) ||
+			!Bench486VidModeShutdownSnapshotExpected (&c_snapshot) ||
+			!Bench486VidModeShutdownSnapshotExpected (&asm_snapshot))
+		failures |= (unsigned)1 << 20;
+
 	vid = saved_video;
 	pcurrentmode = saved_current_mode;
 	pvidmodes = saved_mode_list;
@@ -623,6 +692,8 @@ int Bench486VidModeCases (void)
 	numvidmodes = saved_mode_count;
 	vid_nomodecheck = saved_no_mode_check;
 	scr_disabled_for_loading = saved_screen_disabled;
+	vid_testingmode = saved_testing_mode;
+	memcpy (&regs, &saved_regs, sizeof(regs));
 	return failures;
 }
 

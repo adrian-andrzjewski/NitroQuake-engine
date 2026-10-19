@@ -57,6 +57,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define VID_SHIFT_PALETTE_C_ENTRY VID_ShiftPalette
 #endif
 
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE)
+#define VID_SHUTDOWN_C_ENTRY VID_Shutdown_C
+#else
+#define VID_SHUTDOWN_C_ENTRY VID_Shutdown
+#endif
+
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
 #define VID_MODE_SET_VALUE Bench486VidModeSetValue
 #define VID_MODE_PRINTF Bench486VidModePrintf
@@ -69,6 +75,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define VID_MODE_ERROR Sys_Error
 #define VID_MODE_RELEASE_EXTRA VID_ExtraReleaseMode
 #define VID_MODE_PALETTE_OK VID_ExtraPaletteOK
+#endif
+
+#if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
+#define VID_SHUTDOWN_INT86(vector) Bench486VidShutdownInt86 (vector)
+#define VID_SHUTDOWN_EXTRA() Bench486VidShutdownExtra ()
+#else
+#define VID_SHUTDOWN_INT86(vector) dos_int86 (vector)
+#define VID_SHUTDOWN_EXTRA() VID_ShutdownExtra ()
 #endif
 
 int			vid_modenum;
@@ -346,16 +360,22 @@ void VID_SHIFT_PALETTE_C_ENTRY (unsigned char *palette)
 VID_Shutdown
 ================
 */
-void VID_Shutdown (void)
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+void VID_SHUTDOWN_C_ENTRY (void)
 {
 
 	regs.h.ah = 0;
 	regs.h.al = 0x3;
-	dos_int86(0x10);
-	VID_ShutdownExtra ();
+	VID_SHUTDOWN_INT86 (0x10);
+	VID_SHUTDOWN_EXTRA ();
 
 	vid_testingmode = 0;
 }
+#endif
+
+#undef VID_SHUTDOWN_INT86
+#undef VID_SHUTDOWN_EXTRA
+#undef VID_SHUTDOWN_C_ENTRY
 
 
 /*

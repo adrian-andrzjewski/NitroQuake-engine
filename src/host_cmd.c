@@ -11650,7 +11650,7 @@ static void Bench486_f (void)
 				vid_update_failures ? "FAIL" : "PASS", vid_update_failures);
 		vid_mode_failures = Bench486VidModeCases ();
 		bench486_memory_failures += vid_mode_failures != 0;
-		Bench486Printf ("DOS video mode C/ASM lookup, palette, and transition cases %s failure mask 0x%x\n",
+		Bench486Printf ("DOS video mode C/ASM lookup, palette, shutdown, and transition cases %s failure mask 0x%x\n",
 				vid_mode_failures ? "FAIL" : "PASS", vid_mode_failures);
 		vid_directrect_failures = Bench486VidDirectRectCases ();
 		bench486_memory_failures += vid_directrect_failures != 0;

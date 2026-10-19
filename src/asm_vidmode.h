@@ -18,9 +18,11 @@
 #define VM_VID_ASPECT_OFFSET 28
 #define VM_VID_RECALC_REFDEF_OFFSET 36
 #define VM_VID_DIRECT_OFFSET 64
+#define VM_REG_AX_OFFSET 28
 
 #ifndef __ASSEMBLER__
 #include <stddef.h>
+#include "dosisms.h"
 
 typedef char vm_pointer_size_must_match[(sizeof(void *) == 4) ? 1 : -1];
 typedef char vm_mode_next_must_match[
@@ -55,6 +57,8 @@ typedef char vm_vid_recalc_refdef_must_match[
 	(offsetof(viddef_t, recalc_refdef) == VM_VID_RECALC_REFDEF_OFFSET) ? 1 : -1];
 typedef char vm_vid_direct_must_match[
 	(offsetof(viddef_t, direct) == VM_VID_DIRECT_OFFSET) ? 1 : -1];
+typedef char vm_regs_ax_must_match[
+	(offsetof(regs_t, x.ax) == VM_REG_AX_OFFSET) ? 1 : -1];
 
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE)
 vmode_t *VID_GetModePtr_C (int modenum);
@@ -62,6 +66,7 @@ char *VID_ModeInfo_C (int modenum, char **ppheader);
 int VID_SetMode_C (int modenum, unsigned char *palette);
 void VID_SetPalette_C (unsigned char *palette);
 void VID_ShiftPalette_C (unsigned char *palette);
+void VID_Shutdown_C (void);
 #endif
 
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
@@ -70,6 +75,8 @@ void Bench486VidModePrintf (char *format, ...);
 void Bench486VidModeError (char *text);
 void Bench486VidModeReleaseExtra (void);
 int Bench486VidModePaletteOK (void);
+int Bench486VidShutdownInt86 (int vector);
+void Bench486VidShutdownExtra (void);
 int Bench486VidModeCases (void);
 #endif
 #endif

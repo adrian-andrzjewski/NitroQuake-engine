@@ -33,6 +33,13 @@
 #define VID_MODE_RELEASE_EXTRA C(VID_ExtraReleaseMode)
 #define VID_MODE_PALETTE_OK C(VID_ExtraPaletteOK)
 #endif
+#ifdef ASM486_VID_UPDATE_FIXTURE
+#define VID_SHUTDOWN_INT86 C(Bench486VidShutdownInt86)
+#define VID_SHUTDOWN_EXTRA C(Bench486VidShutdownExtra)
+#else
+#define VID_SHUTDOWN_INT86 C(dos_int86)
+#define VID_SHUTDOWN_EXTRA C(VID_ShutdownExtra)
+#endif
 .text
 .p2align 2
 .globl C(VID_GetModePtr)
@@ -290,6 +297,17 @@ C(VID_SetPalette):
 .globl C(VID_ShiftPalette)
 C(VID_ShiftPalette):
 	jmp	C(VID_SetPalette)
+
+/* Restore BIOS text mode, release extended video resources, and clear test mode. */
+.globl C(VID_Shutdown)
+C(VID_Shutdown):
+	movw	$0x0003,VM_REG_AX_OFFSET+C(regs)
+	pushl	$0x10
+	call	VID_SHUTDOWN_INT86
+	addl	$4,%esp
+	call	VID_SHUTDOWN_EXTRA
+	movl	$0,C(vid_testingmode)
+	ret
 
 .section .rodata
 .Lvid_mode_empty_list:
