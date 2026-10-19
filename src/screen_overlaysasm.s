@@ -439,6 +439,28 @@ C(M_SinglePlayer_Draw):
 	ret
 
 .p2align 2
+.globl C(M_MultiPlayer_Draw)
+C(M_MultiPlayer_Draw):
+	pushl	C(m_multiplayer_cursor)
+	pushl	$.Lmenu_multi_content
+	pushl	$.Lmenu_multi_title
+	call	.Lmenu_page_draw
+	addl	$12,%esp
+	cmpl	$0,C(serialAvailable)
+	jne	.Lmenu_multi_done
+	cmpl	$0,C(ipxAvailable)
+	jne	.Lmenu_multi_done
+	cmpl	$0,C(tcpipAvailable)
+	jne	.Lmenu_multi_done
+	pushl	$.Lmenu_no_communications
+	pushl	$148
+	pushl	$52
+	call	C(M_PrintWhite)
+	addl	$12,%esp
+.Lmenu_multi_done:
+	ret
+
+.p2align 2
 .Lmenu_page_draw:
 	pushl	%ebp
 	movl	%esp,%ebp
@@ -961,6 +983,12 @@ C(SCR_DrawConsole):
 	.asciz	"gfx/ttl_sgl.lmp"
 .Lmenu_singleplayer_content:
 	.asciz	"gfx/sp_menu.lmp"
+.Lmenu_multi_title:
+	.asciz	"gfx/p_multi.lmp"
+.Lmenu_multi_content:
+	.asciz	"gfx/mp_menu.lmp"
+.Lmenu_no_communications:
+	.asciz	"No Communications Available"
 .Lmenu_dot_format:
 	.asciz	"gfx/menudot%i.lmp"
 .Lmenu_dot_1:

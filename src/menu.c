@@ -807,24 +807,51 @@ void M_Menu_MultiPlayer_f (void)
 }
 
 
-void M_MultiPlayer_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_MULTIPLAYER_DRAW_C_ENTRY M_MultiPlayer_Draw_C
+#define M_MULTIPLAYER_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_MULTIPLAYER_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#define M_MULTIPLAYER_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_MULTIPLAYER_PRINT_WHITE(x, y, str) \
+		M_PrintWhite_C ((x), (y), (str))
+#else
+#define M_MULTIPLAYER_DRAW_C_ENTRY M_MultiPlayer_Draw
+#define M_MULTIPLAYER_CACHE_PIC(path) Draw_CachePic (path)
+#define M_MULTIPLAYER_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_MULTIPLAYER_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_MULTIPLAYER_PRINT_WHITE(x, y, str) M_PrintWhite ((x), (y), (str))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_MULTIPLAYER_DRAW_C_ENTRY (void)
 {
 	int		f;
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
-	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mp_menu.lmp") );
+	M_MULTIPLAYER_TRANSPIC (16, 4,
+			M_MULTIPLAYER_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_MULTIPLAYER_CACHE_PIC ("gfx/p_multi.lmp");
+	M_MULTIPLAYER_PIC ((320-p->width)/2, 4, p);
+	M_MULTIPLAYER_TRANSPIC (72, 32,
+			M_MULTIPLAYER_CACHE_PIC ("gfx/mp_menu.lmp"));
 
 	f = (int)(host_time * 10)%6;
 
-	M_DrawTransPic (54, 32 + m_multiplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
+	M_MULTIPLAYER_TRANSPIC (54, 32 + m_multiplayer_cursor * 20,
+			M_MULTIPLAYER_CACHE_PIC (va ("gfx/menudot%i.lmp", f+1)));
 
 	if (serialAvailable || ipxAvailable || tcpipAvailable)
 		return;
-	M_PrintWhite ((320/2) - ((27*8)/2), 148, "No Communications Available");
+	M_MULTIPLAYER_PRINT_WHITE ((320/2) - ((27*8)/2), 148,
+			"No Communications Available");
 }
+#endif
+
+#undef M_MULTIPLAYER_PRINT_WHITE
+#undef M_MULTIPLAYER_PIC
+#undef M_MULTIPLAYER_TRANSPIC
+#undef M_MULTIPLAYER_CACHE_PIC
+#undef M_MULTIPLAYER_DRAW_C_ENTRY
 
 
 void M_MultiPlayer_Key (int key)
