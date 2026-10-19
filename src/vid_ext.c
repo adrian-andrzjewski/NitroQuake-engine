@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include "asm_vesaswap.h"
 #include "asm_vesapalette.h"
 #include "asm_vesadefaultmode.h"
+#include "asm_vesalifecycle.h"
 
 #define MAX_VESA_MODES 30
 #define LINEAR_MODE 0x4000
@@ -36,10 +37,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 static vmode_t vesa_modes[VESA_SLOTS];
 static vesa_info_t vesa_info[VESA_SLOTS];
 static char names[VESA_SLOTS][16];
-static byte *ppal;
+byte *VID_extra_palette;
 byte *VID_membase;
-static __dpmi_meminfo mapping;
-static qboolean mapped, palette_ok = true;
+__dpmi_meminfo VID_extra_mapping;
+qboolean VID_extra_mapped, VID_extra_palette_ok = true;
+#define ppal VID_extra_palette
+#define mapping VID_extra_mapping
+#define mapped VID_extra_mapped
+#define palette_ok VID_extra_palette_ok
 int VID_currentpage, VID_displayedpage, VID_pagesize;
 static qboolean vsync_exists, de_exists, wait_probed;
 extern regs_t regs;
@@ -92,23 +97,59 @@ extern void VESA_CopyRects (vrect_t *rects, byte *srcbase, byte *dstbase,
 int VID_ExtraInitMode (viddef_t *lvid, vmode_t *mode);
 void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *mode, vrect_t *rects);
 
-void VID_ExtraReleaseMode (void)
+#if defined(BENCH486)
+#define VID_EXTRA_RELEASE_MODE_C_ENTRY VID_ExtraReleaseMode_C
+#define VID_EXTRA_SHUTDOWN_C_ENTRY VID_ShutdownExtra_C
+#define VID_EXTRA_PALETTE_OK_C_ENTRY VID_ExtraPaletteOK_C
+#define VID_EXTRA_RELEASE_MODE_C_CALL VID_ExtraReleaseMode_C
+#else
+#define VID_EXTRA_RELEASE_MODE_C_ENTRY VID_ExtraReleaseMode
+#define VID_EXTRA_SHUTDOWN_C_ENTRY VID_ShutdownExtra
+#define VID_EXTRA_PALETTE_OK_C_ENTRY VID_ExtraPaletteOK
+#define VID_EXTRA_RELEASE_MODE_C_CALL VID_ExtraReleaseMode
+#endif
+
+#if defined(BENCH486) && defined(ASM486_VESA_LIFECYCLE_FIXTURE)
+#define VID_EXTRA_FREE_MAPPING(ptr) Bench486VesaLifecycleFreeMapping (ptr)
+#define VID_EXTRA_FREE_MEMORY(ptr) Bench486VesaLifecycleFreeDosMemory (ptr)
+#else
+#define VID_EXTRA_FREE_MAPPING(ptr) \
+	__dpmi_free_physical_address_mapping (ptr)
+#define VID_EXTRA_FREE_MEMORY(ptr) dos_freememory (ptr)
+#endif
+
+#if !defined(ASM486_VESA_LIFECYCLE) || defined(BENCH486)
+void VID_EXTRA_RELEASE_MODE_C_ENTRY (void)
 {
-	if (mapped) __dpmi_free_physical_address_mapping (&mapping);
+	if (mapped) VID_EXTRA_FREE_MAPPING (&mapping);
 	mapped = false;
 	VID_membase = NULL;
 	VGA_pcurmode = NULL;
 	palette_ok = true;
 }
 
-void VID_ShutdownExtra (void)
+void VID_EXTRA_SHUTDOWN_C_ENTRY (void)
 {
-	VID_ExtraReleaseMode ();
-	if (ppal) dos_freememory (ppal);
+	VID_EXTRA_RELEASE_MODE_C_CALL ();
+	if (ppal) VID_EXTRA_FREE_MEMORY (ppal);
 	ppal = NULL;
 }
 
-qboolean VID_ExtraPaletteOK (void) { return palette_ok; }
+qboolean VID_EXTRA_PALETTE_OK_C_ENTRY (void) { return palette_ok; }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_VESA_LIFECYCLE)
+void VID_ExtraReleaseMode (void) { VID_ExtraReleaseMode_C (); }
+void VID_ShutdownExtra (void) { VID_ShutdownExtra_C (); }
+qboolean VID_ExtraPaletteOK (void) { return VID_ExtraPaletteOK_C (); }
+#endif
+
+#undef VID_EXTRA_FREE_MEMORY
+#undef VID_EXTRA_FREE_MAPPING
+#undef VID_EXTRA_RELEASE_MODE_C_CALL
+#undef VID_EXTRA_PALETTE_OK_C_ENTRY
+#undef VID_EXTRA_SHUTDOWN_C_ENTRY
+#undef VID_EXTRA_RELEASE_MODE_C_ENTRY
 
 void VID_SetVESAPalette (viddef_t *lvid, vmode_t *mode, byte *pal)
 {

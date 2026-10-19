@@ -12,7 +12,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def function(source, name):
-    start = re.search(r"(?m)^(?:int|void|vmode_t \*)\s+" + name + r"\s*\(", source).start()
+    signature = re.compile(r"(?m)^(?:int|void|vmode_t \*)\s+" + re.escape(name) + r"\s*\(")
+    match = signature.search(source)
+    if match is None:
+        aliases = re.findall(
+            r"(?m)^\s*#define\s+([A-Za-z_]\w*)\s+" + re.escape(name) + r"\s*$",
+            source,
+        )
+        for alias in aliases:
+            source = re.sub(r"\b" + re.escape(alias) + r"\b", name, source)
+        match = signature.search(source)
+    if match is None:
+        raise ValueError("could not find C function %s" % name)
+    start = match.start()
     brace = source.index("{", start)
     depth = 1
     end = brace + 1

@@ -5,7 +5,7 @@ dependencies, with explicitly owned i486 instructions and equivalent output.
 Passing the ISA audit on a C function does not convert that function to assembly.
 Selecting every existing assembly switch does not establish complete ownership.
 
-As of 2026-10-18, the i486 build defaults to the complete 129-entry assembly
+As of 2026-10-19, the i486 build defaults to the complete 138-entry assembly
 selector profile in
 [`i486-asm-selectable-current.json`](../tools/renderer-profiles/i486-asm-selectable-current.json).
 [`i486-c-reference.json`](../tools/renderer-profiles/i486-c-reference.json)
@@ -15,13 +15,17 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-412 directly reachable renderer entries and 16 directly reachable C
-dependencies: 396/412, or 96.1%, are assembly-owned by reachable-symbol count.
+412 directly reachable renderer entries and 13 directly reachable C
+dependencies: 399/412, or 96.8%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
 size or complexity. The ownership scan now includes `vid_*.s` sources, listing
 the exported video assembly entries alongside their C counterparts. No
-directly reachable cache or zone-heap C owners appear in this profile. The
+directly reachable cache or zone-heap C owners appear in this profile.
+`VID_ExtraReleaseMode`, `VID_ShutdownExtra`, and `VID_ExtraPaletteOK` now select
+assembly in the release profile, with C references retained for parity; the
+18-case lifecycle fixture and strict release proof are recorded in the
+[VESA lifecycle ledger](ledger/2026-10-19-vesa-lifecycle-assembly-port.md). The
 `M_Options_Draw` page and its slider/checkbox helpers now select assembly; its
 384-case parity fixture and strict i486 release proof are recorded in the
 [options menu ledger](ledger/2026-10-19-options-menu-assembly-port.md).
@@ -611,9 +615,10 @@ helpers, and is not a complete-call-graph or production-weighted completion
 percentage.
 
 The VGA linear and planar pixel-copy routines already use assembly. The VESA
-palette conversion loop now uses assembly; VESA discovery, wait probing, BIOS
-palette programming, and mode changes remain C-owned. Page-flip assembly calls
-C adapters for hardware-specific operations. See the
+palette conversion loop, resource lifecycle, and default-mode wrapper now use
+assembly; VESA discovery, wait probing, BIOS palette programming, and hardware
+mode changes remain C-owned. Page-flip assembly calls C adapters for
+hardware-specific operations. See the
 [`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md),
 [`Cache_Alloc` port ledger](ledger/2026-10-17-cache-alloc-assembly-port.md),
 [`Cache_Move` port ledger](ledger/2026-10-17-cache-move-assembly-port.md),

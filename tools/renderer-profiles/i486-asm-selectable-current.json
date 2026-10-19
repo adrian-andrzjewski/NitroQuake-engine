@@ -136,6 +136,7 @@
     "VesaSwapBuffersImplementation": "asm",
     "VesaPaletteImplementation": "asm",
     "VesaDefaultModeImplementation": "asm",
+    "VesaLifecycleImplementation": "asm",
     "VideoUpdateImplementation": "asm",
     "ScreenUpdateImplementation": "asm",
     "ScreenNetImplementation": "asm",

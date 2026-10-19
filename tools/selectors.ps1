@@ -164,6 +164,7 @@ $script:AssemblyBackedImplementations = @(
     'VesaSwapBuffersImplementation',
     'VesaPaletteImplementation',
     'VesaDefaultModeImplementation',
+    'VesaLifecycleImplementation',
     'VideoUpdateImplementation',
     'AliasBBoxProjectImplementation',
     'AliasTransformFinalImplementation',
@@ -1883,6 +1884,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'VesaLifecycleImplementation'
+        Manifest   = 'vesaLifecycleImplementation'
+        Suffix     = @{
+            'asm' = 'vesalifecycleasm'
+            'asm-fixture' = 'vesalifecyclefixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_VESA_LIFECYCLE')
+            'asm-fixture' = @('ASM486_VESA_LIFECYCLE', 'ASM486_VESA_LIFECYCLE_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_VESA_LIFECYCLE')
+            'asm-fixture' = @('ASM486_VESA_LIFECYCLE', 'ASM486_VESA_LIFECYCLE_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VideoUpdateImplementation'
         Manifest   = 'videoUpdateImplementation'
         Suffix     = @{
@@ -2122,6 +2141,7 @@ $script:SuffixOrder = @(
     'VesaSwapBuffersImplementation'
     'VesaPaletteImplementation'
     'VesaDefaultModeImplementation'
+    'VesaLifecycleImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
@@ -2248,6 +2268,7 @@ $script:CDefineOrder = @(
     'VesaSwapBuffersImplementation'
     'VesaPaletteImplementation'
     'VesaDefaultModeImplementation'
+    'VesaLifecycleImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'
@@ -2405,6 +2426,7 @@ $script:AsmDefineOrder = @(
     'VesaSwapBuffersImplementation'
     'VesaPaletteImplementation'
     'VesaDefaultModeImplementation'
+    'VesaLifecycleImplementation'
     'VideoUpdateImplementation'
     'TransformFrustumImplementation'
     'TransformPlaneImplementation'

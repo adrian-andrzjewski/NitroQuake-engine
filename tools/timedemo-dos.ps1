@@ -332,6 +332,8 @@ param(
     [string]$VesaPaletteImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaDefaultModeImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaLifecycleImplementation = 'c',
     [ValidateSet('control', 'skipzero')]
     [string]$GibTrailHorizontalIntegration = 'control',
     [ValidatePattern('^[A-Za-z0-9_.-]+$')]
@@ -693,6 +695,7 @@ $buildParams = @{
         VesaSwapBuffersImplementation             = $VesaSwapBuffersImplementation
         VesaPaletteImplementation                 = $VesaPaletteImplementation
         VesaDefaultModeImplementation              = $VesaDefaultModeImplementation
+        VesaLifecycleImplementation                = $VesaLifecycleImplementation
         GibTrailHorizontalIntegration       = $GibTrailHorizontalIntegration
     ToolRoot                             = $ToolRoot
 }
@@ -1607,6 +1610,7 @@ $result = [ordered]@{
     vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
     vesaPaletteImplementation = $VesaPaletteImplementation
     vesaDefaultModeImplementation = $VesaDefaultModeImplementation
+    vesaLifecycleImplementation = $VesaLifecycleImplementation
     gibTrailHorizontalIntegration = $GibTrailHorizontalIntegration
     instrumentation = [bool]$Instrumentation
     frameFpsStats = $fpsStatsEnabled

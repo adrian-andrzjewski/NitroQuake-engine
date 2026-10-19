@@ -136,6 +136,7 @@
     "VesaSwapBuffersImplementation": "c",
     "VesaPaletteImplementation": "c",
     "VesaDefaultModeImplementation": "c",
+    "VesaLifecycleImplementation": "c",
     "VideoUpdateImplementation": "c",
     "ScreenUpdateImplementation": "c",
     "ScreenNetImplementation": "c",

@@ -318,6 +318,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaDefaultModeImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VesaLifecycleImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VideoUpdateImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$AliasStatsImplementation = 'c',
@@ -400,6 +402,7 @@ param(
     [switch]$VesaSwapBuffersOnly,
     [switch]$VesaPaletteOnly,
     [switch]$VesaDefaultModeOnly,
+    [switch]$VesaLifecycleOnly,
     [switch]$VideoUpdateOnly,
     [switch]$ChaseOnly,
     [switch]$HullCheckOnly,
@@ -512,6 +515,9 @@ if ($VesaPaletteOnly -and $VesaPaletteImplementation -ne 'asm-fixture') {
 }
 if ($VesaDefaultModeOnly -and $VesaDefaultModeImplementation -ne 'asm-fixture') {
     throw '-VesaDefaultModeOnly requires -VesaDefaultModeImplementation asm-fixture.'
+}
+if ($VesaLifecycleOnly -and $VesaLifecycleImplementation -ne 'asm-fixture') {
+    throw '-VesaLifecycleOnly requires -VesaLifecycleImplementation asm-fixture.'
 }
 if ($VideoUpdateOnly -and $VideoUpdateImplementation -ne 'asm-fixture') {
     throw '-VideoUpdateOnly requires -VideoUpdateImplementation asm-fixture.'
@@ -1027,6 +1033,9 @@ elseif ($VesaPaletteOnly) {
 elseif ($VesaDefaultModeOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesadefaultmode -benchexit'
 }
+elseif ($VesaLifecycleOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesalifecycle -benchexit'
+}
 elseif ($VideoUpdateOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvidupdate -benchexit'
 }
@@ -1398,6 +1407,7 @@ $result = [ordered]@{
     playerTranslationImplementation = $PlayerTranslationImplementation
     vesaPaletteImplementation = $VesaPaletteImplementation
     vesaDefaultModeImplementation = $VesaDefaultModeImplementation
+    vesaLifecycleImplementation = $VesaLifecycleImplementation
     spriteSetupImplementation = $SpriteSetupImplementation
     spriteOrientationImplementation = $SpriteOrientationImplementation
     buildSelectorVerification = $selectorVerification
@@ -1497,6 +1507,7 @@ $result = [ordered]@{
     menuTranslationOnly = [bool]$MenuTranslationOnly
     vesaPaletteOnly = [bool]$VesaPaletteOnly
     vesaDefaultModeOnly = [bool]$VesaDefaultModeOnly
+    vesaLifecycleOnly = [bool]$VesaLifecycleOnly
     aliasStatsOnly = [bool]$AliasStatsOnly
     printTimesOnly = [bool]$PrintTimesOnly
     worldControlOnly = [bool]$WorldControlOnly

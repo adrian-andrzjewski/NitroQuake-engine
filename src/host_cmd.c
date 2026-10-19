@@ -65,6 +65,9 @@ extern int Bench486VesaCopyRectsCases (void);
 #if defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
 extern int Bench486VesaSwapBuffersCases (void);
 #endif
+#if defined(ASM486_VESA_LIFECYCLE_FIXTURE)
+extern int Bench486VesaLifecycleCases (void);
+#endif
 #if defined(ASM486_SCREEN_CONSOLE_SETUP)
 extern int Bench486ConsoleResizeCases (void);
 #endif
@@ -82,6 +85,11 @@ extern int Bench486VidDirectRectCases (void);
 #include "vid_dos.h"
 #include "vid_vesa.h"
 #include "bench486_vesadefaultmode.h"
+#endif
+#if defined(ASM486_VESA_LIFECYCLE_FIXTURE)
+#include "vid_dos.h"
+#include "vid_vesa.h"
+#include "asm_vesalifecycle.h"
 #endif
 #ifdef ASM486_FILLRECT
 extern void D_FillRect_C (vrect_t *rect, int color);
@@ -10420,6 +10428,31 @@ static void Bench486_f (void)
 			Sys_Quit ();
 		return;
 	}
+	if (COM_CheckParm ("-benchvesalifecycle"))
+	{
+#if defined(ASM486_VESA_LIFECYCLE_FIXTURE)
+		int vesa_lifecycle_failures;
+		vesa_lifecycle_failures = Bench486VesaLifecycleCases ();
+		bench486_memory_failures += vesa_lifecycle_failures != 0;
+		Bench486Printf ("VESA lifecycle parity %s failure count %u\n",
+				vesa_lifecycle_failures ? "FAIL" : "PASS",
+				vesa_lifecycle_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("VESA lifecycle fixture requires VesaLifecycleImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
 	if (COM_CheckParm ("-benchmemory"))
 	{
 		Bench486MemoryCases ();
@@ -14465,3 +14498,7 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("bench486_renderpolys", Bench486RenderPolys_f);
 #endif
 }
+
+#if defined(BENCH486) && defined(ASM486_VESA_LIFECYCLE_FIXTURE)
+#include "bench486_vesalifecycle.h"
+#endif
