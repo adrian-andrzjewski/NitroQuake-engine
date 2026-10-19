@@ -2127,6 +2127,347 @@ C(SCR_DrawConsole):
 	leave
 	ret
 
+.text
+.p2align 2
+.macro MENU_GAMEOPTIONS_PRINT x, y, string
+	pushl	$\string
+	pushl	\y
+	pushl	\x
+	call	C(M_Print)
+	addl	$12,%esp
+.endm
+
+.globl C(M_GameOptions_Draw)
+C(M_GameOptions_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$20,%esp
+
+	/* Quake plaque and centered multiplayer title. */
+	pushl	$.Lmenu_gameoptions_qplaque
+#ifdef BENCH486
+	call	C(Bench486MenuTextCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$4,%esp
+	pushl	%eax
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_gameoptions_title
+#ifdef BENCH486
+	call	C(Bench486MenuTextCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$4,%esp
+	movl	%eax,-16(%ebp)
+	movl	(%eax),%edx
+	movl	$320,%eax
+	subl	%edx,%eax
+	movl	%eax,%edx
+	sarl	$31,%edx
+	andl	$1,%edx
+	addl	%edx,%eax
+	sarl	$1,%eax
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$12,%esp
+
+	pushl	$1
+	pushl	$10
+	pushl	$32
+	pushl	$152
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	MENU_GAMEOPTIONS_PRINT $160,$40,.Lmenu_gameoptions_begin
+
+	MENU_GAMEOPTIONS_PRINT $0,$56,.Lmenu_gameoptions_maxplayers
+	pushl	C(maxplayers)
+	pushl	$.Lmenu_gameoptions_integer
+	call	C(va)
+	addl	$8,%esp
+	pushl	%eax
+	pushl	$56
+	pushl	$160
+	call	C(M_Print)
+	addl	$12,%esp
+
+	MENU_GAMEOPTIONS_PRINT $0,$64,.Lmenu_gameoptions_game_type
+	flds	C(coop)+16
+	ftst
+	fnstsw	%ax
+	fstp	%st(0)
+	testb	$4,%ah			/* unordered NaN remains truthy in C */
+	jne	.Lmenu_gameoptions_coop
+	testb	$64,%ah
+	jne	.Lmenu_gameoptions_deathmatch_path
+.Lmenu_gameoptions_coop:
+	MENU_GAMEOPTIONS_PRINT $160,$64,.Lmenu_gameoptions_cooperative
+	jmp	.Lmenu_gameoptions_teamplay
+.Lmenu_gameoptions_deathmatch_path:
+	MENU_GAMEOPTIONS_PRINT $160,$64,.Lmenu_gameoptions_deathmatch
+
+.Lmenu_gameoptions_teamplay:
+	MENU_GAMEOPTIONS_PRINT $0,$72,.Lmenu_gameoptions_teamplay_label
+	fnstcw	-24(%ebp)
+	movw	-24(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-26(%ebp)
+	fldcw	-26(%ebp)
+	flds	C(teamplay)+16
+	fistpl	-28(%ebp)
+	fldcw	-24(%ebp)
+	movl	-28(%ebp),%eax
+	cmpl	$1,%eax
+	je	.Lmenu_gameoptions_team_one
+	cmpl	$2,%eax
+	je	.Lmenu_gameoptions_team_two
+	cmpl	$3,%eax
+	je	.Lmenu_gameoptions_team_three
+	cmpl	$4,%eax
+	je	.Lmenu_gameoptions_team_four
+	cmpl	$5,%eax
+	je	.Lmenu_gameoptions_team_five
+	cmpl	$6,%eax
+	je	.Lmenu_gameoptions_team_six
+	jmp	.Lmenu_gameoptions_team_default
+
+.Lmenu_gameoptions_team_one:
+	pushl	$.Lmenu_gameoptions_no_friendly_fire
+	jmp	.Lmenu_gameoptions_team_print
+.Lmenu_gameoptions_team_two:
+	pushl	$.Lmenu_gameoptions_friendly_fire
+	jmp	.Lmenu_gameoptions_team_print
+.Lmenu_gameoptions_team_three:
+	cmpl	$0,C(rogue)
+	je	.Lmenu_gameoptions_team_default
+	pushl	$.Lmenu_gameoptions_tag
+	jmp	.Lmenu_gameoptions_team_print
+.Lmenu_gameoptions_team_four:
+	cmpl	$0,C(rogue)
+	je	.Lmenu_gameoptions_team_default
+	pushl	$.Lmenu_gameoptions_capture_flag
+	jmp	.Lmenu_gameoptions_team_print
+.Lmenu_gameoptions_team_five:
+	cmpl	$0,C(rogue)
+	je	.Lmenu_gameoptions_team_default
+	pushl	$.Lmenu_gameoptions_one_flag
+	jmp	.Lmenu_gameoptions_team_print
+.Lmenu_gameoptions_team_six:
+	cmpl	$0,C(rogue)
+	je	.Lmenu_gameoptions_team_default
+	pushl	$.Lmenu_gameoptions_three_team
+	jmp	.Lmenu_gameoptions_team_print
+.Lmenu_gameoptions_team_default:
+	pushl	$.Lmenu_gameoptions_off
+.Lmenu_gameoptions_team_print:
+	pushl	$72
+	pushl	$160
+	call	C(M_Print)
+	addl	$12,%esp
+
+	MENU_GAMEOPTIONS_PRINT $0,$80,.Lmenu_gameoptions_skill
+	flds	C(skill)+16
+	fcomps	.Lmenu_gameoptions_float_zero
+	fnstsw	%ax
+	sahf
+	jp	.Lmenu_gameoptions_nightmare
+	je	.Lmenu_gameoptions_easy_path
+	flds	C(skill)+16
+	fcomps	.Lmenu_gameoptions_float_one
+	fnstsw	%ax
+	sahf
+	jp	.Lmenu_gameoptions_nightmare
+	je	.Lmenu_gameoptions_normal_path
+	flds	C(skill)+16
+	fcomps	.Lmenu_gameoptions_float_two
+	fnstsw	%ax
+	sahf
+	jp	.Lmenu_gameoptions_nightmare
+	je	.Lmenu_gameoptions_hard_path
+	jmp	.Lmenu_gameoptions_nightmare
+.Lmenu_gameoptions_easy_path:
+	MENU_GAMEOPTIONS_PRINT $160,$80,.Lmenu_gameoptions_easy
+	jmp	.Lmenu_gameoptions_frag_limit
+.Lmenu_gameoptions_normal_path:
+	MENU_GAMEOPTIONS_PRINT $160,$80,.Lmenu_gameoptions_normal
+	jmp	.Lmenu_gameoptions_frag_limit
+.Lmenu_gameoptions_hard_path:
+	MENU_GAMEOPTIONS_PRINT $160,$80,.Lmenu_gameoptions_hard
+	jmp	.Lmenu_gameoptions_frag_limit
+.Lmenu_gameoptions_nightmare:
+	MENU_GAMEOPTIONS_PRINT $160,$80,.Lmenu_gameoptions_nightmare_label
+
+.Lmenu_gameoptions_frag_limit:
+	MENU_GAMEOPTIONS_PRINT $0,$88,.Lmenu_gameoptions_frag_limit_label
+	flds	C(fraglimit)+16
+	fcomps	.Lmenu_gameoptions_float_zero
+	fnstsw	%ax
+	sahf
+	jp	.Lmenu_gameoptions_frag_value
+	je	.Lmenu_gameoptions_frag_none
+.Lmenu_gameoptions_frag_value:
+	fnstcw	-24(%ebp)
+	movw	-24(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-26(%ebp)
+	fldcw	-26(%ebp)
+	flds	C(fraglimit)+16
+	fistpl	-28(%ebp)
+	fldcw	-24(%ebp)
+	pushl	-28(%ebp)
+	pushl	$.Lmenu_gameoptions_frags
+	call	C(va)
+	addl	$8,%esp
+	pushl	%eax
+	pushl	$88
+	pushl	$160
+	call	C(M_Print)
+	addl	$12,%esp
+	jmp	.Lmenu_gameoptions_time_limit
+.Lmenu_gameoptions_frag_none:
+	MENU_GAMEOPTIONS_PRINT $160,$88,.Lmenu_gameoptions_none
+
+.Lmenu_gameoptions_time_limit:
+	MENU_GAMEOPTIONS_PRINT $0,$96,.Lmenu_gameoptions_time_limit_label
+	flds	C(timelimit)+16
+	fcomps	.Lmenu_gameoptions_float_zero
+	fnstsw	%ax
+	sahf
+	jp	.Lmenu_gameoptions_time_value
+	je	.Lmenu_gameoptions_time_none
+.Lmenu_gameoptions_time_value:
+	fnstcw	-24(%ebp)
+	movw	-24(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-26(%ebp)
+	fldcw	-26(%ebp)
+	flds	C(timelimit)+16
+	fistpl	-28(%ebp)
+	fldcw	-24(%ebp)
+	pushl	-28(%ebp)
+	pushl	$.Lmenu_gameoptions_minutes
+	call	C(va)
+	addl	$8,%esp
+	pushl	%eax
+	pushl	$96
+	pushl	$160
+	call	C(M_Print)
+	addl	$12,%esp
+	jmp	.Lmenu_gameoptions_episode
+.Lmenu_gameoptions_time_none:
+	MENU_GAMEOPTIONS_PRINT $160,$96,.Lmenu_gameoptions_none
+
+.Lmenu_gameoptions_episode:
+	MENU_GAMEOPTIONS_PRINT $0,$112,.Lmenu_gameoptions_episode_label
+	movl	$C(episodes),%esi
+	movl	$C(levels),%edi
+	cmpl	$0,C(hipnotic)
+	je	.Lmenu_gameoptions_episode_rogue
+	movl	$C(hipnoticepisodes),%esi
+	movl	$C(hipnoticlevels),%edi
+	jmp	.Lmenu_gameoptions_episode_draw
+.Lmenu_gameoptions_episode_rogue:
+	cmpl	$0,C(rogue)
+	je	.Lmenu_gameoptions_episode_draw
+	movl	$C(rogueepisodes),%esi
+	movl	$C(roguelevels),%edi
+.Lmenu_gameoptions_episode_draw:
+	movl	C(startepisode),%eax
+	imull	$12,%eax
+	movl	(%esi,%eax,1),%edx
+	pushl	%edx
+	pushl	$112
+	pushl	$160
+	call	C(M_Print)
+	addl	$12,%esp
+
+	MENU_GAMEOPTIONS_PRINT $0,$120,.Lmenu_gameoptions_level_label
+	movl	C(startepisode),%eax
+	imull	$12,%eax
+	movl	4(%esi,%eax,1),%eax
+	addl	C(startlevel),%eax
+	shll	$3,%eax
+	movl	4(%edi,%eax,1),%edx
+	pushl	%edx
+	pushl	$120
+	pushl	$160
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(startepisode),%eax
+	imull	$12,%eax
+	movl	4(%esi,%eax,1),%eax
+	addl	C(startlevel),%eax
+	shll	$3,%eax
+	movl	(%edi,%eax,1),%edx
+	pushl	%edx
+	pushl	$128
+	pushl	$160
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* The cast in the C cursor expression truncates toward zero. */
+	fnstcw	-24(%ebp)
+	fldl	C(realtime)
+	fmull	.Lmenu_gameoptions_four
+	movw	-24(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-26(%ebp)
+	fldcw	-26(%ebp)
+	fistpl	-28(%ebp)
+	fldcw	-24(%ebp)
+	movl	-28(%ebp),%eax
+	andl	$1,%eax
+	addl	$12,%eax
+	movl	C(gameoptions_cursor),%edx
+	movl	C(gameoptions_cursor_table)(,%edx,4),%ecx
+	pushl	%eax
+	pushl	%ecx
+	pushl	$144
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	cmpl	$0,C(m_serverInfoMessage)
+	je	.Lmenu_gameoptions_done
+	fldl	C(realtime)
+	fsubl	C(m_serverInfoMessageTime)
+	fcompl	.Lmenu_gameoptions_five
+	fnstsw	%ax
+	sahf
+	jp	.Lmenu_gameoptions_server_info_expired
+	jb	.Lmenu_gameoptions_server_info_visible
+.Lmenu_gameoptions_server_info_expired:
+	movl	$0,C(m_serverInfoMessage)
+	jmp	.Lmenu_gameoptions_done
+.Lmenu_gameoptions_server_info_visible:
+	pushl	$4
+	pushl	$24
+	pushl	$138
+	pushl	$56
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	MENU_GAMEOPTIONS_PRINT $64,$146,.Lmenu_gameoptions_server_info_1
+	MENU_GAMEOPTIONS_PRINT $64,$154,.Lmenu_gameoptions_server_info_2
+	MENU_GAMEOPTIONS_PRINT $64,$162,.Lmenu_gameoptions_server_info_3
+	MENU_GAMEOPTIONS_PRINT $64,$170,.Lmenu_gameoptions_server_info_4
+
+.Lmenu_gameoptions_done:
+	addl	$20,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
 .section .rodata
 .p2align 2
 .Lmenu_page_ten:
@@ -2316,9 +2657,85 @@ C(SCR_DrawConsole):
 	.asciz	"???"
 .Lmenu_keys_or:
 	.asciz	"or"
+
+.Lmenu_gameoptions_qplaque:
+	.asciz	"gfx/qplaque.lmp"
+.Lmenu_gameoptions_title:
+	.asciz	"gfx/p_multi.lmp"
+.Lmenu_gameoptions_integer:
+	.asciz	"%i"
+.Lmenu_gameoptions_frags:
+	.asciz	"%i frags"
+.Lmenu_gameoptions_minutes:
+	.asciz	"%i minutes"
+.Lmenu_gameoptions_begin:
+	.asciz	"begin game"
+.Lmenu_gameoptions_maxplayers:
+	.asciz	"      Max players"
+.Lmenu_gameoptions_game_type:
+	.asciz	"        Game Type"
+.Lmenu_gameoptions_cooperative:
+	.asciz	"Cooperative"
+.Lmenu_gameoptions_deathmatch:
+	.asciz	"Deathmatch"
+.Lmenu_gameoptions_teamplay_label:
+	.asciz	"        Teamplay"
+.Lmenu_gameoptions_no_friendly_fire:
+	.asciz	"No Friendly Fire"
+.Lmenu_gameoptions_friendly_fire:
+	.asciz	"Friendly Fire"
+.Lmenu_gameoptions_tag:
+	.asciz	"Tag"
+.Lmenu_gameoptions_capture_flag:
+	.asciz	"Capture the Flag"
+.Lmenu_gameoptions_one_flag:
+	.asciz	"One Flag CTF"
+.Lmenu_gameoptions_three_team:
+	.asciz	"Three Team CTF"
+.Lmenu_gameoptions_off:
+	.asciz	"Off"
+.Lmenu_gameoptions_skill:
+	.asciz	"            Skill"
+.Lmenu_gameoptions_easy:
+	.asciz	"Easy difficulty"
+.Lmenu_gameoptions_normal:
+	.asciz	"Normal difficulty"
+.Lmenu_gameoptions_hard:
+	.asciz	"Hard difficulty"
+.Lmenu_gameoptions_nightmare_label:
+	.asciz	"Nightmare difficulty"
+.Lmenu_gameoptions_frag_limit_label:
+	.asciz	"       Frag Limit"
+.Lmenu_gameoptions_time_limit_label:
+	.asciz	"       Time Limit"
+.Lmenu_gameoptions_none:
+	.asciz	"none"
+.Lmenu_gameoptions_episode_label:
+	.asciz	"         Episode"
+.Lmenu_gameoptions_level_label:
+	.asciz	"           Level"
+.Lmenu_gameoptions_server_info_1:
+	.asciz	"  More than 4 players   "
+.Lmenu_gameoptions_server_info_2:
+	.asciz	" requires using command "
+.Lmenu_gameoptions_server_info_3:
+	.asciz	"line parameters; please "
+.Lmenu_gameoptions_server_info_4:
+	.asciz	"   see techinfo.txt.    "
+
 .p2align 3
 .Lmenu_keys_four:
 	.double	4.0
+.Lmenu_gameoptions_four:
+	.double	4.0
+.Lmenu_gameoptions_five:
+	.double	5.0
+.Lmenu_gameoptions_float_zero:
+	.float	0.0
+.Lmenu_gameoptions_float_one:
+	.float	1.0
+.Lmenu_gameoptions_float_two:
+	.float	2.0
 
 .Lso_pause_path:
 	.asciz	"gfx/pause.lmp"

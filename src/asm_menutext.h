@@ -41,6 +41,8 @@
 
 typedef char mt_vid_width_offset_must_match[
 		(offsetof(viddef_t, width) == MT_VID_WIDTH_OFFSET) ? 1 : -1];
+typedef char mt_cvar_value_offset_must_match[
+		(offsetof(cvar_t, value) == 16) ? 1 : -1];
 
 void M_DrawCharacter (int cx, int line, int num);
 void M_Print (int cx, int cy, char *str);
@@ -61,6 +63,7 @@ void M_MultiPlayer_Draw (void);
 void M_Setup_Draw (void);
 void M_Net_Draw (void);
 void M_ModemConfig_Draw (void);
+void M_GameOptions_Draw (void);
 void M_Help_Draw (void);
 void M_Load_Draw (void);
 void M_Save_Draw (void);
@@ -98,6 +101,7 @@ void M_MultiPlayer_Draw_C (void);
 void M_Setup_Draw_C (void);
 void M_Net_Draw_C (void);
 void M_Options_Draw_C (void);
+void M_GameOptions_Draw_C (void);
 void M_DrawSlider_C (int x, int y, float range);
 void M_DrawCheckbox_C (int x, int y, int on);
 void M_Quit_Draw_C (void);

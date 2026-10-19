@@ -2919,7 +2919,20 @@ int gameoptions_cursor_table[] = {40, 56, 64, 72, 80, 88, 96, 112, 120};
 #define	NUM_GAMEOPTIONS	9
 int		gameoptions_cursor;
 
-void M_GameOptions_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_GAMEOPTIONS_DRAW_C_ENTRY M_GameOptions_Draw_C
+#define M_DrawTransPic M_DrawTransPic_C
+#define M_DrawPic M_DrawPic_C
+#define M_DrawTextBox M_DrawTextBox_C
+#define M_Print M_Print_C
+#define M_DrawCharacter M_DrawCharacter_C
+#define Draw_CachePic Bench486MenuTextCachePic
+#else
+#define M_GAMEOPTIONS_DRAW_C_ENTRY M_GameOptions_Draw
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_GAMEOPTIONS_DRAW_C_ENTRY (void)
 {
 	qpic_t	*p;
 	int		x;
@@ -3043,6 +3056,17 @@ void M_GameOptions_Draw (void)
 	}
 }
 
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#undef Draw_CachePic
+#undef M_DrawCharacter
+#undef M_Print
+#undef M_DrawTextBox
+#undef M_DrawPic
+#undef M_DrawTransPic
+#endif
+#undef M_GAMEOPTIONS_DRAW_C_ENTRY
 
 void M_NetStart_Change (int dir)
 {

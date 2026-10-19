@@ -15,8 +15,8 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-605 renderer entries, 415 directly reachable entries, and 9 directly
-reachable C dependencies: 406/415, or 97.8%, are assembly-owned by
+605 renderer entries, 415 directly reachable entries, and 8 directly
+reachable C dependencies: 407/415, or 98.1%, are assembly-owned by
 reachable-symbol count. This remains a profile-specific estimate: the
 inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
@@ -31,7 +31,8 @@ assembly in the release profile, with C references retained for parity; the
 `VID_ShiftPalette`, and `VID_Shutdown` lookup, transition, palette, and shutdown
 paths now select assembly through `VideoUpdateImplementation=asm`; their
 C/ASM fixtures and strict BENCH/release gates pass. No directly reachable
-cache, zone-heap, or video C owner remains in this profile. See the
+cache, zone-heap, or DOS/VESA video-lifecycle C owner remains in this profile;
+the menu's `M_Video_Draw` wrapper remains C-owned. See the
 [video mode, palette, and shutdown port ledger](ledger/2026-10-19-video-mode-assembly-port.md). The
 `Sbar_Changed` refresh-state setter now selects assembly through the existing
 `SbarPrimitiveImplementation=asm` profile; its six-case C/ASM state fixture and
@@ -40,6 +41,11 @@ strict BENCH/release i486 proofs are recorded in the
 `M_Options_Draw` page and its slider/checkbox helpers now select assembly; its
 384-case parity fixture and strict i486 release proof are recorded in the
 [options menu ledger](ledger/2026-10-19-options-menu-assembly-port.md).
+`M_GameOptions_Draw` now selects assembly for the multiplayer game setup page;
+its 96-case C/ASM fixture covers expansion data, centered title widths, game
+rules, limits, cursor timing, and the server-info timeout. The strict i486
+release proof and remaining direct C owners are recorded in the
+[game-options menu ledger](ledger/2026-10-19-game-options-menu-assembly-port.md).
 `M_Quit_Draw` now selects assembly, with its 624-case parity fixture and strict
 release proof recorded in the
 [quit menu ledger](ledger/2026-10-19-quit-menu-assembly-port.md). The
