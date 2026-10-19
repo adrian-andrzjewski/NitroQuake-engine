@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-19-vesa-default-mode-wrapper-assembly-port.md`](2026-10-19-vesa-default-mode-wrapper-assembly-port.md) | 4 | renderer port / exported VESA default-mode wrapper (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-screen-pause-loading-assembly-port.md`](2026-10-19-screen-pause-loading-assembly-port.md) | 4 | renderer port / pause and loading overlay composition (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification`; `Scope and remaining work`) |
 | [`2026-10-18-surface-cache-lifecycle-assembly-port.md`](2026-10-18-surface-cache-lifecycle-assembly-port.md) | 4 | renderer port / surface-cache sizing, initialization, and flush (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 verification`; `Scope limits and reproduction`) |
 | [`2026-10-18-console-resize-assembly-port.md`](2026-10-18-console-resize-assembly-port.md) | 4 | renderer port / console scrollback resize and reflow (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 build and execution`; `Traceability and remaining scope`) |

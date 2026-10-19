@@ -84,8 +84,9 @@ def c_functions(path: Path) -> set[str]:
 
 
 def renderer_source(name: str, symbol: str) -> bool:
-    return (name.startswith(("r_", "d_", "v_")) or name in RENDERER_SOURCES
-            or (name == "model.c" and original_function(symbol) in RENDER_SUPPORT))
+    return (name.startswith(("r_", "d_", "v_", "vid_")) or
+            name in RENDERER_SOURCES or
+            (name == "model.c" and original_function(symbol) in RENDER_SUPPORT))
 
 
 def _instruction_at(function: dict, offset: int) -> dict | None:

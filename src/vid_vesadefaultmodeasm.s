@@ -47,4 +47,15 @@ C(VID_SelectVesaDefaultMode_asm486):
 	popl	%ebx
 	popl	%ebp
 	ret
+
+#ifdef ASM486_VESA_DEFAULT_MODE
+	.p2align 2
+	.globl C(VID_ExtraDefaultMode)
+C(VID_ExtraDefaultMode):
+	pushl	$C(VID_ExtraInitMode)
+	pushl	C(pvidmodes)
+	call	C(VID_SelectVesaDefaultMode_asm486)
+	addl	$8,%esp
+	ret
+#endif
 #endif

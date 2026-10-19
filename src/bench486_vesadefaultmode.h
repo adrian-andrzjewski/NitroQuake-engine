@@ -91,6 +91,43 @@ static int Bench486VesaDefaultOne (int count, int linear_mask,
 	return failures;
 }
 
+static int Bench486VesaDefaultWrapperOne (int count, int linear_mask,
+		int candidate_mask, int wrong_size_mask, int expected)
+{
+	static bench486_vesa_default_modes_t modes;
+	static bench486_vesa_default_info_t info;
+	static bench486_vesa_default_modes_t saved_modes;
+	static bench486_vesa_default_info_t saved_info;
+	vmode_t *saved_list = pvidmodes;
+	unsigned abi;
+	int i, c_result, asm_result, failures = 0;
+
+	Bench486VesaDefaultBuild (&modes, &info, count, linear_mask,
+			candidate_mask, wrong_size_mask);
+	for (i = 0; i < count; i++)
+		modes.modes[i].setmode = (candidate_mask & (1 << i)) ?
+				VID_ExtraInitMode : Bench486VesaOtherSetMode;
+	Q_memcpy (&saved_modes, &modes, sizeof (modes));
+	Q_memcpy (&saved_info, &info, sizeof (info));
+	pvidmodes = count ? &modes.modes[0] : NULL;
+	c_result = VID_ExtraDefaultMode_C ();
+	asm_result = VID_ExtraDefaultMode ();
+	abi = Bench486Call_asm486 ((void (*)(void))VID_ExtraDefaultMode,
+			0, NULL, NULL);
+	pvidmodes = saved_list;
+	if (c_result != expected || asm_result != expected ||
+			c_result != asm_result)
+		failures |= 1;
+	if (abi)
+		failures |= 2;
+	if (Q_memcmp (&modes, &saved_modes, sizeof (modes)) ||
+			Q_memcmp (&info, &saved_info, sizeof (info)))
+		failures |= 4;
+	if (pvidmodes != saved_list)
+		failures |= 8;
+	return failures;
+}
+
 static int Bench486VesaDefaultModeCases (void)
 {
 	int failures;
@@ -105,6 +142,11 @@ static int Bench486VesaDefaultModeCases (void)
 	failures |= Bench486VesaDefaultOne (5, 0, 6, 0, 1);
 	/* A linear candidate wins immediately, including when it is index zero. */
 	failures |= Bench486VesaDefaultOne (5, 5, 7, 0, 0);
+	/* The selected public wrapper must pass the live mode list and setter. */
+	failures |= Bench486VesaDefaultWrapperOne (0, 0, 0, 0, 0);
+	failures |= Bench486VesaDefaultWrapperOne (5, 0, 20, 0, 2);
+	failures |= Bench486VesaDefaultWrapperOne (5, 8, 9, 0, 3);
+	failures |= Bench486VesaDefaultWrapperOne (4, 0, 15, 9, 1);
 	return failures;
 }
 

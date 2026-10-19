@@ -30,6 +30,8 @@ int VID_SelectVesaDefaultMode_C (vmode_t *modes,
 		int (*setmode)(viddef_t *vid, vmode_t *mode));
 int VID_SelectVesaDefaultMode_asm486 (vmode_t *modes,
 		int (*setmode)(viddef_t *vid, vmode_t *mode));
+int VID_ExtraDefaultMode_C (void);
+int VID_ExtraInitMode (viddef_t *vid, vmode_t *mode);
 
 #if defined(BENCH486) && defined(ASM486_VESA_DEFAULT_MODE_FIXTURE)
 unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,

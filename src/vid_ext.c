@@ -255,14 +255,19 @@ int VID_SelectVesaDefaultMode_C (vmode_t *modes,
 }
 #endif
 
+#if !defined(ASM486_VESA_DEFAULT_MODE) || defined(BENCH486)
+int VID_ExtraDefaultMode_C (void)
+{
+	return VID_SelectVesaDefaultMode_C (pvidmodes, VID_ExtraInitMode);
+}
+#endif
+
+#if !defined(ASM486_VESA_DEFAULT_MODE)
 int VID_ExtraDefaultMode (void)
 {
-#ifdef ASM486_VESA_DEFAULT_MODE
-	return VID_SelectVesaDefaultMode_asm486 (pvidmodes, VID_ExtraInitMode);
-#else
-	return VID_SelectVesaDefaultMode_C (pvidmodes, VID_ExtraInitMode);
-#endif
+	return VID_ExtraDefaultMode_C ();
 }
+#endif
 
 void VID_ReportSystem (void)
 {
