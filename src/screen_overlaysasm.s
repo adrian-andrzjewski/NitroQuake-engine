@@ -2469,6 +2469,84 @@ C(M_GameOptions_Draw):
 	leave
 	ret
 
+/* Search-menu rendering and completion state transition. */
+.p2align 2
+.globl C(M_Search_Draw)
+C(M_Search_Draw):
+	pushl	$.Lmenu_search_draw_multi_title
+#ifdef BENCH486
+	call	C(Bench486MenuTextCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$4,%esp
+	movl	%eax,%ecx
+	movl	$320,%edx
+	subl	(%ecx),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	pushl	%ecx
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$12,%esp
+
+	pushl	$1
+	pushl	$12
+	pushl	$32
+	pushl	$108
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$.Lmenu_search_draw_searching
+	pushl	$40
+	pushl	$116
+	call	C(M_Print)
+	addl	$12,%esp
+
+	cmpl	$0,C(slistInProgress)
+	je	.Lmenu_search_draw_poll_done
+#ifdef BENCH486
+	call	C(Bench486MenuSearchNetPoll)
+#else
+	call	C(NET_Poll)
+#endif
+	ret
+
+.Lmenu_search_draw_poll_done:
+	cmpl	$0,C(searchComplete)
+	jne	.Lmenu_search_draw_check_servers
+	movl	$1,C(searchComplete)
+	fldl	C(realtime)
+	fstpl	C(searchCompleteTime)
+
+.Lmenu_search_draw_check_servers:
+	cmpl	$0,C(hostCacheCount)
+	je	.Lmenu_search_draw_no_servers
+	call	C(M_Menu_ServerList_f)
+	ret
+
+.Lmenu_search_draw_no_servers:
+	pushl	$.Lmenu_search_draw_no_servers_text
+	pushl	$64
+	pushl	$72
+	call	C(M_PrintWhite)
+	addl	$12,%esp
+
+	fldl	C(realtime)
+	fsubl	C(searchCompleteTime)
+	flds	.Lmenu_search_draw_three
+	fxch	%st(1)
+	fcompp
+	fnstsw	%ax
+	testb	$1,%ah
+	jnz	.Lmenu_search_draw_done
+	call	C(M_Menu_LanConfig_f)
+
+.Lmenu_search_draw_done:
+	ret
+
 /* Video-menu dispatch and mode-list rendering. */
 .p2align 2
 .globl C(M_Video_Draw)
@@ -3033,6 +3111,13 @@ C(VID_MenuDraw):
 .Lmenu_gameoptions_server_info_4:
 	.asciz	"   see techinfo.txt.    "
 
+.Lmenu_search_draw_multi_title:
+	.asciz	"gfx/p_multi.lmp"
+.Lmenu_search_draw_searching:
+	.asciz	"Searching..."
+.Lmenu_search_draw_no_servers_text:
+	.asciz	"No Quake servers found"
+
 .p2align 3
 .Lmenu_keys_four:
 	.double	4.0
@@ -3046,6 +3131,8 @@ C(VID_MenuDraw):
 	.float	1.0
 .Lmenu_gameoptions_float_two:
 	.float	2.0
+.Lmenu_search_draw_three:
+	.float	3.0
 
 .Lso_pause_path:
 	.asciz	"gfx/pause.lmp"

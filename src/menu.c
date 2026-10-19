@@ -3260,12 +3260,27 @@ void M_Menu_Search_f (void)
 }
 
 
-void M_Search_Draw (void)
+#if defined(BENCH486) || !defined(ASM486_SCREEN_OVERLAYS)
+#define M_SEARCH_DRAW_C_ENTRY M_Search_Draw_C
+#else
+#define M_SEARCH_DRAW_C_ENTRY M_Search_Draw
+#endif
+
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_SEARCH_DRAW_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_SEARCH_DRAW_NET_POLL() Bench486MenuSearchNetPoll ()
+#else
+#define M_SEARCH_DRAW_CACHE_PIC(path) Draw_CachePic (path)
+#define M_SEARCH_DRAW_NET_POLL() NET_Poll ()
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_SEARCH_DRAW_C_ENTRY (void)
 {
 	qpic_t	*p;
 	int x;
 
-	p = Draw_CachePic ("gfx/p_multi.lmp");
+	p = M_SEARCH_DRAW_CACHE_PIC ("gfx/p_multi.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
 	x = (320/2) - ((12*8)/2) + 4;
 	M_DrawTextBox (x-8, 32, 12, 1);
@@ -3273,7 +3288,7 @@ void M_Search_Draw (void)
 
 	if(slistInProgress)
 	{
-		NET_Poll();
+		M_SEARCH_DRAW_NET_POLL ();
 		return;
 	}
 
@@ -3295,6 +3310,18 @@ void M_Search_Draw (void)
 
 	M_Menu_LanConfig_f ();
 }
+#endif
+
+#if defined(BENCH486) && !defined(ASM486_SCREEN_OVERLAYS)
+void M_Search_Draw (void)
+{
+	M_Search_Draw_C ();
+}
+#endif
+
+#undef M_SEARCH_DRAW_NET_POLL
+#undef M_SEARCH_DRAW_CACHE_PIC
+#undef M_SEARCH_DRAW_C_ENTRY
 
 
 void M_Search_Key (int key)
