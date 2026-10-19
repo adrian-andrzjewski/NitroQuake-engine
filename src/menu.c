@@ -2622,7 +2622,14 @@ int 	lanConfig_port;
 char	lanConfig_portname[6];
 char	lanConfig_joinname[22];
 
-void M_Menu_LanConfig_f (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_MENU_LANCONFIG_ENTRY_C M_Menu_LanConfig_f_C
+#else
+#define M_MENU_LANCONFIG_ENTRY_C M_Menu_LanConfig_f
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_MENU_LANCONFIG_ENTRY_C (void)
 {
 	key_dest = key_menu;
 	m_state = m_lanconfig;
@@ -2642,6 +2649,9 @@ void M_Menu_LanConfig_f (void)
 	m_return_onerror = false;
 	m_return_reason[0] = 0;
 }
+#endif
+
+#undef M_MENU_LANCONFIG_ENTRY_C
 
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
@@ -3430,7 +3440,14 @@ void M_Search_Key (int key)
 int		slist_cursor;
 qboolean slist_sorted;
 
-void M_Menu_ServerList_f (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_MENU_SERVERLIST_ENTRY_C M_Menu_ServerList_f_C
+#else
+#define M_MENU_SERVERLIST_ENTRY_C M_Menu_ServerList_f
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_MENU_SERVERLIST_ENTRY_C (void)
 {
 	key_dest = key_menu;
 	m_state = m_slist;
@@ -3440,6 +3457,9 @@ void M_Menu_ServerList_f (void)
 	m_return_reason[0] = 0;
 	slist_sorted = false;
 }
+#endif
+
+#undef M_MENU_SERVERLIST_ENTRY_C
 
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)

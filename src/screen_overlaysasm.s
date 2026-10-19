@@ -3034,6 +3034,93 @@ C(M_Search_Draw):
 .Lmenu_search_draw_done:
 	ret
 
+/* Menu state entry points reached by the screen-overlay call graph. */
+.p2align 2
+.globl C(M_Menu_LanConfig_f)
+C(M_Menu_LanConfig_f):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%esi
+	pushl	%edi
+	subl	$16,%esp
+
+	movl	$MD_KEY_MENU,C(key_dest)
+	movl	$MD_STATE_LANCONFIG,C(m_state)
+	movl	$1,C(m_entersound)
+
+	movl	C(lanConfig_cursor),%eax
+	cmpl	$-1,%eax
+	jne	.Lmenu_state_lanconfig_starting
+	cmpl	$0,C(m_multiplayer_cursor)
+	jne	.Lmenu_state_lanconfig_default_cursor
+	cmpl	$3,C(m_net_cursor)
+	jne	.Lmenu_state_lanconfig_default_cursor
+	movl	$2,%eax
+	jmp	.Lmenu_state_lanconfig_starting
+.Lmenu_state_lanconfig_default_cursor:
+	movl	$1,%eax
+.Lmenu_state_lanconfig_starting:
+	cmpl	$1,C(m_multiplayer_cursor)
+	jne	.Lmenu_state_lanconfig_store_cursor
+	cmpl	$2,%eax
+	jne	.Lmenu_state_lanconfig_store_cursor
+	movl	$1,%eax
+.Lmenu_state_lanconfig_store_cursor:
+	movl	%eax,C(lanConfig_cursor)
+
+	/* Convert unsigned port text; the destination holds five digits plus NUL. */
+	movl	C(DEFAULTnet_hostport),%eax
+	movl	%eax,C(lanConfig_port)
+	leal	-14(%ebp),%edi
+	movb	$0,(%edi)
+	movl	$10,%ecx
+	testl	%eax,%eax
+	jne	.Lmenu_state_lanconfig_port_digit
+	decl	%edi
+	movb	$'0',(%edi)
+	jmp	.Lmenu_state_lanconfig_port_ready
+.Lmenu_state_lanconfig_port_digit:
+	xorl	%edx,%edx
+	divl	%ecx
+	addb	$'0',%dl
+	decl	%edi
+	movb	%dl,(%edi)
+	testl	%eax,%eax
+	jne	.Lmenu_state_lanconfig_port_digit
+.Lmenu_state_lanconfig_port_ready:
+	movl	%edi,%esi
+	leal	-14(%ebp),%edx
+	subl	%esi,%edx
+	cmpl	$5,%edx
+	jbe	.Lmenu_state_lanconfig_port_length_ready
+	movl	$5,%edx
+.Lmenu_state_lanconfig_port_length_ready:
+	movl	%edx,%ecx
+	cld
+	leal	C(lanConfig_portname),%edi
+	rep	movsb
+	movb	$0,(%edi)
+
+	movl	$0,C(m_return_onerror)
+	movb	$0,C(m_return_reason)
+	leal	-8(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	leave
+	ret
+
+.p2align 2
+.globl C(M_Menu_ServerList_f)
+C(M_Menu_ServerList_f):
+	movl	$MD_KEY_MENU,C(key_dest)
+	movl	$MD_STATE_SERVERLIST,C(m_state)
+	movl	$1,C(m_entersound)
+	movl	$0,C(slist_cursor)
+	movl	$0,C(m_return_onerror)
+	movb	$0,C(m_return_reason)
+	movl	$0,C(slist_sorted)
+	ret
+
 /* Server-list ordering, row formatting, and menu draw path. */
 .p2align 2
 .globl C(M_ServerList_Draw)

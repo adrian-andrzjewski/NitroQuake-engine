@@ -129,6 +129,8 @@ void M_Options_Draw_C (void);
 void M_GameOptions_Draw_C (void);
 void M_Search_Draw_C (void);
 void M_ServerList_Draw_C (void);
+void M_Menu_LanConfig_f_C (void);
+void M_Menu_ServerList_f_C (void);
 void M_DrawSlider_C (int x, int y, float range);
 void M_DrawCheckbox_C (int x, int y, int on);
 void M_Quit_Draw_C (void);

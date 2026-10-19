@@ -15,14 +15,16 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-602 renderer entries, 417 directly reachable entries, and 2 directly
-reachable C dependencies: 415/417, or 99.5%, are assembly-owned by
+602 renderer entries and 417 directly reachable entries. All 417/417, or
+100.0%, of those directly reachable entries are assembly-owned by
 reachable-symbol count. This remains a profile-specific estimate: the
 inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
-size or complexity. The ownership scan now includes `vid_*.s` sources, listing
+size or complexity. The remaining 185 inventory entries are outside the traced
+roots. The ownership scan now includes `vid_*.s` sources, listing
 the exported video assembly entries alongside their C counterparts. No
-directly reachable cache or zone-heap C owners appear in this profile.
+directly reachable C renderer, cache, or zone-heap owners appear in this
+profile.
 `VID_ExtraReleaseMode`, `VID_ShutdownExtra`, and `VID_ExtraPaletteOK` now select
 assembly in the release profile, with C references retained for parity; the
 18-case lifecycle fixture and strict release proof are recorded in the
@@ -69,8 +71,13 @@ its 3,456-case parity fixture and strict i486 release proof are recorded in the
 the centered multiplayer title, animated cursor, and return-reason text. Its
 1,920-case parity fixture and strict i486 release proof are recorded in the
 [server-list menu ledger](ledger/2026-10-19-server-list-menu-assembly-port.md).
-The two directly reachable C menu dependencies left in this profile are
-`M_Menu_LanConfig_f` and `M_Menu_ServerList_f`; both are state-entry routines.
+`M_Menu_LanConfig_f` and `M_Menu_ServerList_f` now also select assembly for the
+two menu state transitions reached by the same profile. Their 1,280-case parity
+fixture and strict release proof are in the
+[menu state-entry ledger](ledger/2026-10-19-menu-state-entry-assembly-port.md).
+No direct C renderer entries remain in the latest measured profile; the
+incomplete call graph and untraced inventory entries keep this from proving a
+whole-codebase port.
 `VID_ExtraDefaultMode` public wrapper now selects assembly in the assembly
 profile, with the C selector retained as a parity oracle; see the
 [VESA default-mode wrapper ledger](ledger/2026-10-19-vesa-default-mode-wrapper-assembly-port.md).
