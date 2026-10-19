@@ -1565,7 +1565,10 @@ char *bindnames[][2] =
 {"+movedown",		"swim down"}
 };
 
-#define	NUMCOMMANDS	(sizeof(bindnames)/sizeof(bindnames[0]))
+#define	NUMCOMMANDS	MD_KEY_BIND_COUNT
+typedef char menu_bindnames_count_must_match[
+		(sizeof(bindnames) / sizeof(bindnames[0]) == MD_KEY_BIND_COUNT) ?
+		1 : -1];
 
 int		keys_cursor;
 int		bind_grab;
@@ -1578,7 +1581,14 @@ void M_Menu_Keys_f (void)
 }
 
 
-void M_FindKeysForCommand (char *command, int *twokeys)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_FIND_KEYS_C_ENTRY M_FindKeysForCommand_C
+#else
+#define M_FIND_KEYS_C_ENTRY M_FindKeysForCommand
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_FIND_KEYS_C_ENTRY (char *command, int *twokeys)
 {
 	int		count;
 	int		j;
@@ -1603,6 +1613,9 @@ void M_FindKeysForCommand (char *command, int *twokeys)
 		}
 	}
 }
+#endif
+
+#undef M_FIND_KEYS_C_ENTRY
 
 void M_UnbindCommand (char *command)
 {
@@ -1623,7 +1636,27 @@ void M_UnbindCommand (char *command)
 }
 
 
-void M_Keys_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_KEYS_DRAW_C_ENTRY M_Keys_Draw_C
+#define M_KEYS_DRAW_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_KEYS_DRAW_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_KEYS_DRAW_PRINT(x, y, text) M_Print_C ((x), (y), (text))
+#define M_KEYS_DRAW_CHARACTER(x, y, num) \
+	M_DrawCharacter_C ((x), (y), (num))
+#define M_KEYS_DRAW_FIND_KEYS(command, keys) \
+	M_FindKeysForCommand_C ((command), (keys))
+#else
+#define M_KEYS_DRAW_C_ENTRY M_Keys_Draw
+#define M_KEYS_DRAW_CACHE_PIC(path) Draw_CachePic (path)
+#define M_KEYS_DRAW_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_KEYS_DRAW_PRINT(x, y, text) M_Print ((x), (y), (text))
+#define M_KEYS_DRAW_CHARACTER(x, y, num) M_DrawCharacter ((x), (y), (num))
+#define M_KEYS_DRAW_FIND_KEYS(command, keys) \
+	M_FindKeysForCommand ((command), (keys))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_KEYS_DRAW_C_ENTRY (void)
 {
 	int		i, l;
 	int		keys[2];
@@ -1631,47 +1664,59 @@ void M_Keys_Draw (void)
 	int		x, y;
 	qpic_t	*p;
 
-	p = Draw_CachePic ("gfx/ttl_cstm.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	p = M_KEYS_DRAW_CACHE_PIC ("gfx/ttl_cstm.lmp");
+	M_KEYS_DRAW_PIC ( (320-p->width)/2, 4, p);
 
 	if (bind_grab)
-		M_Print (12, 32, "Press a key or button for this action");
+		M_KEYS_DRAW_PRINT (12, 32,
+				"Press a key or button for this action");
 	else
-		M_Print (18, 32, "Enter to change, backspace to clear");
+		M_KEYS_DRAW_PRINT (18, 32,
+				"Enter to change, backspace to clear");
 
 // search for known bindings
 	for (i=0 ; i<NUMCOMMANDS ; i++)
 	{
 		y = 48 + 8*i;
 
-		M_Print (16, y, bindnames[i][1]);
+		M_KEYS_DRAW_PRINT (16, y, bindnames[i][1]);
 
 		l = strlen (bindnames[i][0]);
 
-		M_FindKeysForCommand (bindnames[i][0], keys);
+		M_KEYS_DRAW_FIND_KEYS (bindnames[i][0], keys);
 
 		if (keys[0] == -1)
 		{
-			M_Print (140, y, "???");
+			M_KEYS_DRAW_PRINT (140, y, "???");
 		}
 		else
 		{
 			name = Key_KeynumToString (keys[0]);
-			M_Print (140, y, name);
+			M_KEYS_DRAW_PRINT (140, y, name);
 			x = strlen(name) * 8;
 			if (keys[1] != -1)
 			{
-				M_Print (140 + x + 8, y, "or");
-				M_Print (140 + x + 32, y, Key_KeynumToString (keys[1]));
+				M_KEYS_DRAW_PRINT (140 + x + 8, y, "or");
+				M_KEYS_DRAW_PRINT (140 + x + 32, y,
+						Key_KeynumToString (keys[1]));
 			}
 		}
 	}
 
 	if (bind_grab)
-		M_DrawCharacter (130, 48 + keys_cursor*8, '=');
+		M_KEYS_DRAW_CHARACTER (130, 48 + keys_cursor*8, '=');
 	else
-		M_DrawCharacter (130, 48 + keys_cursor*8, 12+((int)(realtime*4)&1));
+		M_KEYS_DRAW_CHARACTER (130, 48 + keys_cursor*8,
+				12+((int)(realtime*4)&1));
 }
+#endif
+
+#undef M_KEYS_DRAW_FIND_KEYS
+#undef M_KEYS_DRAW_CHARACTER
+#undef M_KEYS_DRAW_PRINT
+#undef M_KEYS_DRAW_PIC
+#undef M_KEYS_DRAW_CACHE_PIC
+#undef M_KEYS_DRAW_C_ENTRY
 
 
 void M_Keys_Key (int k)

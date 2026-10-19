@@ -180,7 +180,8 @@ static const char *bench486_menu_cache_paths[] =
 	"gfx/dim_drct.lmp",
 	"gfx/dim_ipx.lmp",
 	"gfx/dim_tcp.lmp",
-	"gfx/p_option.lmp"
+	"gfx/p_option.lmp",
+	"gfx/ttl_cstm.lmp"
 };
 
 static const bench486_menu_textbox_case_t bench486_menu_textbox_cases[] =

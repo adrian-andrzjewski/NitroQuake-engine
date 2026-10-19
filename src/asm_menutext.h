@@ -5,6 +5,7 @@
 #define MT_VID_HEIGHT_OFFSET 24
 #define MENU_SAVE_SLOT_COUNT 12
 #define MENU_SAVE_FILENAME_STRIDE 40
+#define MD_KEY_BIND_COUNT 18
 
 #define MD_STATE_NONE 0
 #define MD_STATE_MAIN 1
@@ -49,6 +50,7 @@ void M_DrawPic (int x, int y, qpic_t *pic);
 void M_DrawTransPicTranslate (int x, int y, qpic_t *pic);
 void M_DrawTextBox (int x, int y, int width, int lines);
 void M_Draw (void);
+void M_Keys_Draw (void);
 void M_Options_Draw (void);
 void M_DrawSlider (int x, int y, float range);
 void M_DrawCheckbox (int x, int y, int on);
@@ -61,6 +63,7 @@ void M_ModemConfig_Draw (void);
 void M_Help_Draw (void);
 void M_Load_Draw (void);
 void M_Save_Draw (void);
+void M_FindKeysForCommand (char *command, int *twokeys);
 extern byte translationTable[256];
 extern int load_cursor;
 extern char m_filenames[MENU_SAVE_SLOT_COUNT][MENU_SAVE_FILENAME_STRIDE];
@@ -87,6 +90,7 @@ void M_DrawPic_C (int x, int y, qpic_t *pic);
 void M_DrawTransPicTranslate_C (int x, int y, qpic_t *pic);
 void M_DrawTextBox_C (int x, int y, int width, int lines);
 void M_Draw_C (void);
+void M_Keys_Draw_C (void);
 void M_Main_Draw_C (void);
 void M_SinglePlayer_Draw_C (void);
 void M_MultiPlayer_Draw_C (void);
@@ -99,6 +103,7 @@ void M_ModemConfig_Draw_C (void);
 void M_Help_Draw_C (void);
 void M_Load_Draw_C (void);
 void M_Save_Draw_C (void);
+void M_FindKeysForCommand_C (char *command, int *twokeys);
 void Bench486MenuTextDrawCharacter (int x, int y, int num);
 void Bench486MenuTextDrawPic (int kind, int x, int y, qpic_t *pic,
 		byte *translation);

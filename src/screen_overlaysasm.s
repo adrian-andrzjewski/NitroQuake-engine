@@ -1032,6 +1032,217 @@ C(M_DrawCheckbox):
 	ret
 
 .p2align 2
+.globl C(M_FindKeysForCommand)
+C(M_FindKeysForCommand):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$4,%esp
+	movl	8(%ebp),%esi		/* command */
+	movl	12(%ebp),%edi		/* twokeys */
+	movl	$-1,0(%edi)
+	movl	$-1,4(%edi)
+	movl	$0,-16(%ebp)		/* count */
+	xorl	%ebx,%ebx		/* key number */
+
+.Lmenu_find_keys_next:
+	cmpl	$256,%ebx
+	jae	.Lmenu_find_keys_done
+	movl	C(keybindings)(,%ebx,4),%eax
+	testl	%eax,%eax
+	je	.Lmenu_find_keys_advance
+	movl	%esi,%ecx
+
+.Lmenu_find_keys_compare:
+	movzbl	(%ecx),%edx
+	testb	%dl,%dl
+	je	.Lmenu_find_keys_match
+	cmpb	%dl,(%eax)
+	jne	.Lmenu_find_keys_advance
+	incl	%ecx
+	incl	%eax
+	jmp	.Lmenu_find_keys_compare
+
+.Lmenu_find_keys_match:
+	movl	-16(%ebp),%ecx
+	movl	%ebx,(%edi,%ecx,4)
+	incl	%ecx
+	movl	%ecx,-16(%ebp)
+	cmpl	$2,%ecx
+	je	.Lmenu_find_keys_done
+
+.Lmenu_find_keys_advance:
+	incl	%ebx
+	jmp	.Lmenu_find_keys_next
+
+.Lmenu_find_keys_done:
+	addl	$4,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.p2align 2
+.globl C(M_Keys_Draw)
+C(M_Keys_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$36,%esp
+
+	subl	$12,%esp
+	pushl	$.Lmenu_keys_title
+#ifdef BENCH486
+	call	C(Bench486MenuTextCachePic)
+#else
+	call	C(Draw_CachePic)
+#endif
+	addl	$16,%esp
+	movl	%eax,-36(%ebp)
+	movl	$320,%eax
+	movl	-36(%ebp),%edx
+	subl	(%edx),%eax
+	movl	%eax,%edx
+	sarl	$31,%edx
+	andl	$1,%edx
+	addl	%edx,%eax
+	sarl	$1,%eax
+	pushl	-36(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$12,%esp
+
+	cmpl	$0,C(bind_grab)
+	je	.Lmenu_keys_prompt_normal
+	pushl	$.Lmenu_keys_prompt_grab
+	pushl	$32
+	pushl	$12
+	call	C(M_Print)
+	addl	$12,%esp
+	jmp	.Lmenu_keys_rows_start
+
+.Lmenu_keys_prompt_normal:
+	pushl	$.Lmenu_keys_prompt_enter
+	pushl	$32
+	pushl	$18
+	call	C(M_Print)
+	addl	$12,%esp
+
+.Lmenu_keys_rows_start:
+	xorl	%ebx,%ebx
+.Lmenu_keys_row:
+	cmpl	$MD_KEY_BIND_COUNT,%ebx
+	jae	.Lmenu_keys_cursor
+	movl	%ebx,%eax
+	shll	$3,%eax
+	leal	C(bindnames)(,%eax),%esi
+	leal	48(,%ebx,8),%edi
+	movl	%edi,-24(%ebp)
+	pushl	4(%esi)
+	pushl	%edi
+	pushl	$16
+	call	C(M_Print)
+	addl	$12,%esp
+
+	leal	-20(%ebp),%eax		/* int keys[2] */
+	pushl	%eax
+	pushl	0(%esi)
+	call	C(M_FindKeysForCommand)
+	addl	$8,%esp
+	cmpl	$-1,-20(%ebp)
+	jne	.Lmenu_keys_have_binding
+	pushl	$.Lmenu_keys_no_binding
+	pushl	-24(%ebp)
+	pushl	$140
+	call	C(M_Print)
+	addl	$12,%esp
+	jmp	.Lmenu_keys_row_advance
+
+.Lmenu_keys_have_binding:
+	pushl	-20(%ebp)
+	call	C(Key_KeynumToString)
+	addl	$4,%esp
+	movl	%eax,-32(%ebp)
+	pushl	%eax
+	pushl	-24(%ebp)
+	pushl	$140
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	-32(%ebp)
+	call	C(strlen)
+	addl	$4,%esp
+	shll	$3,%eax
+	movl	%eax,-28(%ebp)
+	cmpl	$-1,-16(%ebp)
+	je	.Lmenu_keys_row_advance
+
+	movl	-28(%ebp),%eax
+	addl	$148,%eax
+	pushl	$.Lmenu_keys_or
+	pushl	-24(%ebp)
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	-16(%ebp)
+	call	C(Key_KeynumToString)
+	addl	$4,%esp
+	movl	%eax,-32(%ebp)
+	movl	-28(%ebp),%eax
+	addl	$172,%eax
+	pushl	-32(%ebp)
+	pushl	-24(%ebp)
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+
+.Lmenu_keys_row_advance:
+	incl	%ebx
+	jmp	.Lmenu_keys_row
+
+.Lmenu_keys_cursor:
+	cmpl	$0,C(bind_grab)
+	je	.Lmenu_keys_cursor_blink
+	movl	$61,%eax			/* '=' */
+	jmp	.Lmenu_keys_cursor_draw
+
+.Lmenu_keys_cursor_blink:
+	fnstcw	-40(%ebp)
+	movw	-40(%ebp),%ax
+	andw	$0xf3ff,%ax
+	orw	$0x0c00,%ax		/* C float-to-int truncation */
+	movw	%ax,-38(%ebp)
+	fldcw	-38(%ebp)
+	fldl	C(realtime)
+	fmull	.Lmenu_keys_four
+	fistpl	-44(%ebp)
+	fldcw	-40(%ebp)
+	movl	-44(%ebp),%eax
+	andl	$1,%eax
+	addl	$12,%eax
+
+.Lmenu_keys_cursor_draw:
+	pushl	%eax
+	movl	C(keys_cursor),%eax
+	leal	48(,%eax,8),%eax
+	pushl	%eax
+	pushl	$130
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	addl	$36,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.p2align 2
 .globl C(M_Quit_Draw)
 C(M_Quit_Draw):
 	pushl	%ebx
@@ -1903,6 +2114,20 @@ C(SCR_DrawConsole):
 	.asciz	"gfx/box_mr.lmp"
 .Lmenu_box_br:
 	.asciz	"gfx/box_br.lmp"
+
+.Lmenu_keys_title:
+	.asciz	"gfx/ttl_cstm.lmp"
+.Lmenu_keys_prompt_grab:
+	.asciz	"Press a key or button for this action"
+.Lmenu_keys_prompt_enter:
+	.asciz	"Enter to change, backspace to clear"
+.Lmenu_keys_no_binding:
+	.asciz	"???"
+.Lmenu_keys_or:
+	.asciz	"or"
+.p2align 3
+.Lmenu_keys_four:
+	.double	4.0
 
 .Lso_pause_path:
 	.asciz	"gfx/pause.lmp"
