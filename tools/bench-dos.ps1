@@ -286,6 +286,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$SbarFragsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$SbarPrimitiveImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$PlayerTranslationImplementation = 'asm',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$CacheCheckImplementation = 'c',
@@ -313,6 +315,8 @@ param(
     [string]$VesaCopyRectsImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaSwapBuffersImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VgaPresentationImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaPaletteImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
@@ -403,6 +407,7 @@ param(
     [switch]$ZoneHeapOnly,
     [switch]$VesaCopyRectsOnly,
     [switch]$VesaSwapBuffersOnly,
+    [switch]$VgaPresentationOnly,
     [switch]$VesaPaletteOnly,
     [switch]$VesaDefaultModeOnly,
     [switch]$VesaLifecycleOnly,
@@ -513,6 +518,9 @@ if ($VesaCopyRectsOnly -and $VesaCopyRectsImplementation -ne 'asm-fixture') {
 }
 if ($VesaSwapBuffersOnly -and $VesaSwapBuffersImplementation -ne 'asm-fixture') {
     throw '-VesaSwapBuffersOnly requires -VesaSwapBuffersImplementation asm-fixture.'
+}
+if ($VgaPresentationOnly -and $VgaPresentationImplementation -ne 'asm-fixture') {
+    throw '-VgaPresentationOnly requires -VgaPresentationImplementation asm-fixture.'
 }
 if ($VesaPaletteOnly -and $VesaPaletteImplementation -ne 'asm-fixture') {
     throw '-VesaPaletteOnly requires -VesaPaletteImplementation asm-fixture.'
@@ -1037,6 +1045,9 @@ elseif ($VesaCopyRectsOnly) {
 }
 elseif ($VesaSwapBuffersOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesaswap -benchexit'
+}
+elseif ($VgaPresentationOnly) {
+    'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvgaswap -benchexit'
 }
 elseif ($VesaPaletteOnly) {
     'qbench.exe -basedir \quake -nosound -nojoy -nomouse -nocdaudio +bench486 -benchvesapalette -benchexit'

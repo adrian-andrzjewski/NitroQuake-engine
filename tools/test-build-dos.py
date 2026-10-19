@@ -64,7 +64,7 @@ RELEASE_I486_SUFFIX = (
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
     '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
-    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vesapaletteasm-vesadefaultmodeasm-vesalifecycleasm-vesawaitasm-vidupdateasm-frustumasm-transformplaneasm'
+    'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vgaswapasm-vesapaletteasm-vesadefaultmodeasm-vesalifecycleasm-vesawaitasm-vidupdateasm-frustumasm-transformplaneasm'
 )
 
 failures: list[str] = []
@@ -2069,6 +2069,29 @@ def main() -> int:
         if "vesaswapfixtureasm" not in vesa_swap_fixture.get("profileSuffix", ""):
             fail("the VESA swap fixture selector omits its isolated profile token")
 
+    vga_swap_c = dump_flags("-VgaPresentationImplementation", "c")
+    vga_swap_asm = dump_flags("-VgaPresentationImplementation", "asm")
+    vga_swap_fixture = dump_flags("-VgaPresentationImplementation", "asm-fixture")
+    if vga_swap_c and vga_swap_asm:
+        if "-vgaswapasm" not in vga_swap_asm.get("profileSuffix", ""):
+            fail("the VGA presentation assembly selector omits its i486 suffix token")
+        if vga_swap_c.get("profileSuffix") == vga_swap_asm.get("profileSuffix"):
+            fail("the VGA presentation C selector shares the assembly profile suffix")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_VGA_PRESENTATION" in vga_swap_c.get(flags_name, []):
+                fail("the VGA presentation C selector enables ASM486_VGA_PRESENTATION in %s" % flags_name)
+            if "-DASM486_VGA_PRESENTATION" not in vga_swap_asm.get(flags_name, []):
+                fail("the VGA presentation assembly selector omits ASM486_VGA_PRESENTATION from %s" % flags_name)
+        if "vid_vgaswapasm.s" not in vga_swap_asm.get("assemblySources", []):
+            fail("the VGA presentation selector does not compile vid_vgaswapasm.s")
+    if vga_swap_fixture:
+        if "-DASM486_VGA_PRESENTATION_FIXTURE" not in vga_swap_fixture.get("cFlags", []):
+            fail("the VGA presentation fixture selector omits its C fixture define")
+        if "-DASM486_VGA_PRESENTATION_FIXTURE" not in vga_swap_fixture.get("asmFlags", []):
+            fail("the VGA presentation fixture selector omits its assembly fixture define")
+        if "vgaswapfixtureasm" not in vga_swap_fixture.get("profileSuffix", ""):
+            fail("the VGA presentation fixture selector omits its isolated profile token")
+
     vid_update_c = dump_flags("-VideoUpdateImplementation", "c")
     vid_update_asm = dump_flags("-VideoUpdateImplementation", "asm")
     vid_update_fixture = dump_flags("-VideoUpdateImplementation", "asm-fixture")
@@ -2282,7 +2305,7 @@ def main() -> int:
             fail("the zone-heap fixture omits its isolated profile token")
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 84 assembly sources (one is omitted only
+    #    included by another unit), 86 assembly sources (one is omitted only
     #    when no assembly renderer is selected).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
@@ -2294,9 +2317,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 85:
+        if dump.get("allAssemblySourceCount") != 86:
             fail(
-                "%s: expected 85 assembly sources, got %r"
+                "%s: expected 86 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

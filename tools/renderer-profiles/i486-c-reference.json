@@ -134,6 +134,7 @@
     "ZoneHeapImplementation": "c",
     "VesaCopyRectsImplementation": "c",
     "VesaSwapBuffersImplementation": "c",
+    "VgaPresentationImplementation": "c",
     "VesaPaletteImplementation": "c",
     "VesaDefaultModeImplementation": "c",
     "VesaLifecycleImplementation": "c",

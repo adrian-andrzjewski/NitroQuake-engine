@@ -65,6 +65,9 @@ extern int Bench486VesaCopyRectsCases (void);
 #if defined(ASM486_VESA_SWAP_BUFFERS_FIXTURE)
 extern int Bench486VesaSwapBuffersCases (void);
 #endif
+#if defined(ASM486_VGA_PRESENTATION_FIXTURE)
+extern int Bench486VgaPresentationCases (void);
+#endif
 #if defined(ASM486_VESA_LIFECYCLE_FIXTURE)
 extern int Bench486VesaLifecycleCases (void);
 #endif
@@ -11582,6 +11585,31 @@ static void Bench486_f (void)
 #else
 		bench486_memory_failures++;
 		Bench486Printf ("hunk free-mark fixture requires HunkMarkReleaseImplementation=asm-fixture\n");
+#endif
+		Bench486Printf ("486 benchmark correctness %s\n",
+				bench486_memory_failures ? "FAIL" : "PASS");
+		Bench486Printf ("486 benchmark end checksum %u\n", bench486_sink);
+		if (bench486_report_handle != -1)
+		{
+			Sys_FileClose (bench486_report_handle);
+			bench486_report_handle = -1;
+		}
+		if (COM_CheckParm ("-benchexit"))
+			Sys_Quit ();
+		return;
+	}
+	if (COM_CheckParm ("-benchvgaswap"))
+	{
+#if defined(ASM486_VGA_PRESENTATION_FIXTURE)
+		int vga_presentation_failures;
+		vga_presentation_failures = Bench486VgaPresentationCases ();
+		bench486_memory_failures += vga_presentation_failures != 0;
+		Bench486Printf ("VGA C/ASM linear, planar, and retrace presentation cases %s failure mask 0x%x\n",
+				vga_presentation_failures ? "FAIL" : "PASS",
+				vga_presentation_failures);
+#else
+		bench486_memory_failures++;
+		Bench486Printf ("VGA presentation fixture requires VgaPresentationImplementation=asm-fixture\n");
 #endif
 		Bench486Printf ("486 benchmark correctness %s\n",
 				bench486_memory_failures ? "FAIL" : "PASS");

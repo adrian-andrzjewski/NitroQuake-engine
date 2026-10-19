@@ -162,6 +162,7 @@ $script:AssemblyBackedImplementations = @(
     'ZoneHeapImplementation',
     'VesaCopyRectsImplementation',
     'VesaSwapBuffersImplementation',
+    'VgaPresentationImplementation',
     'VesaPaletteImplementation',
     'VesaDefaultModeImplementation',
     'VesaLifecycleImplementation',
@@ -1849,6 +1850,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'VgaPresentationImplementation'
+        Manifest   = 'vgaPresentationImplementation'
+        Suffix     = @{
+            'asm' = 'vgaswapasm'
+            'asm-fixture' = 'vgaswapfixtureasm'
+        }
+        C          = @{
+            'asm' = @('ASM486_VGA_PRESENTATION')
+            'asm-fixture' = @('ASM486_VGA_PRESENTATION', 'ASM486_VGA_PRESENTATION_FIXTURE')
+        }
+        Asm        = @{
+            'asm' = @('ASM486_VGA_PRESENTATION')
+            'asm-fixture' = @('ASM486_VGA_PRESENTATION', 'ASM486_VGA_PRESENTATION_FIXTURE')
+        }
+        SelectsAsm = $true
+    }
+
+    @{
         Param      = 'VesaPaletteImplementation'
         Manifest   = 'vesaPaletteImplementation'
         Suffix     = @{
@@ -2158,6 +2177,7 @@ $script:SuffixOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VgaPresentationImplementation'
     'VesaPaletteImplementation'
     'VesaDefaultModeImplementation'
     'VesaLifecycleImplementation'
@@ -2286,6 +2306,7 @@ $script:CDefineOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VgaPresentationImplementation'
     'VesaPaletteImplementation'
     'VesaDefaultModeImplementation'
     'VesaLifecycleImplementation'
@@ -2445,6 +2466,7 @@ $script:AsmDefineOrder = @(
     'ZoneHeapImplementation'
     'VesaCopyRectsImplementation'
     'VesaSwapBuffersImplementation'
+    'VgaPresentationImplementation'
     'VesaPaletteImplementation'
     'VesaDefaultModeImplementation'
     'VesaLifecycleImplementation'

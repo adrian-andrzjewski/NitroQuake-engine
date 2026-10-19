@@ -18,8 +18,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 85,
-  "assemblySourceCount": 85,
+  "allAssemblySourceCount": 86,
+  "assemblySourceCount": 86,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -290,6 +290,7 @@
     "vid_vesapaletteasm.s",
     "vid_vesaswapasm.s",
     "vid_vesawaitasm.s",
+    "vid_vgaswapasm.s",
     "worlda.s",
     "zone_cacheasm.s",
     "zone_cachefreehighasm.s",

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "dosisms.h"
 #include "vid_dos.h"
 #include "asm_viddirectrect.h"
+#include "asm_vgaswap.h"
 #include <dpmi.h>
 
 extern regs_t regs;
@@ -38,7 +39,7 @@ int		VGA_width, VGA_height, VGA_rowbytes, VGA_bufferrowbytes;
 byte	*VGA_pagebase;
 vmode_t	*VGA_pcurmode;
 
-static int		VGA_planar;
+int		VGA_planar;
 static int		VGA_numpages;
 static int		VGA_buffersize;
 
@@ -231,11 +232,23 @@ void VGA_Init (void)
 VGA_WaitVsync
 ================
 */
-void VGA_WaitVsync (void)
+#if defined(BENCH486)
+#define VGA_WAIT_VSYNC_C_ENTRY VGA_WaitVsync_C
+#define VGA_SWAP_COPY_C_ENTRY VGA_SwapBuffersCopy_C
+#define VGA_SWAP_C_ENTRY VGA_SwapBuffers_C
+#else
+#define VGA_WAIT_VSYNC_C_ENTRY VGA_WaitVsync
+#define VGA_SWAP_COPY_C_ENTRY VGA_SwapBuffersCopy
+#define VGA_SWAP_C_ENTRY VGA_SwapBuffers
+#endif
+
+#if !defined(ASM486_VGA_PRESENTATION) || defined(BENCH486)
+void VGA_WAIT_VSYNC_C_ENTRY (void)
 {
 	while ((inportb (0x3DA) & 0x08) == 0)
 		;
 }
+#endif
 
 
 /*
@@ -451,20 +464,14 @@ void VGA_SetPalette(viddef_t *lvid, vmode_t *pcurrentmode, unsigned char *pal)
 VGA_SwapBuffersCopy
 ================
 */
-void VGA_SwapBuffersCopy (viddef_t *lvid, vmode_t *pcurrentmode,
-	vrect_t *rects)
+#if !defined(ASM486_VGA_PRESENTATION) || defined(BENCH486)
+void VGA_SWAP_COPY_C_ENTRY (viddef_t *lvid, vmode_t *pcurrentmode,
+		vrect_t *rects)
 {
-
 	UNUSED(pcurrentmode);
 
-// TODO: can write a dword at a time
-// TODO: put in ASM
-// TODO: copy only specified rectangles
 	if (VGA_planar)
 	{
-
-	// TODO: copy only specified rectangles
-
 		VGA_UpdatePlanarScreen (lvid->buffer);
 	}
 	else
@@ -473,7 +480,7 @@ void VGA_SwapBuffersCopy (viddef_t *lvid, vmode_t *pcurrentmode,
 		{
 			VGA_UpdateLinearScreen (
 					lvid->buffer + rects->x + (rects->y * lvid->rowbytes),
-		 			VGA_pagebase + rects->x + (rects->y * VGA_rowbytes),
+					VGA_pagebase + rects->x + (rects->y * VGA_rowbytes),
 					rects->width,
 					rects->height,
 					lvid->rowbytes,
@@ -483,6 +490,7 @@ void VGA_SwapBuffersCopy (viddef_t *lvid, vmode_t *pcurrentmode,
 		}
 	}
 }
+#endif
 
 
 /*
@@ -490,13 +498,53 @@ void VGA_SwapBuffersCopy (viddef_t *lvid, vmode_t *pcurrentmode,
 VGA_SwapBuffers
 ================
 */
-void VGA_SwapBuffers (viddef_t *lvid, vmode_t *pcurrentmode, vrect_t *rects)
+#if !defined(ASM486_VGA_PRESENTATION) || defined(BENCH486)
+void VGA_SWAP_C_ENTRY (viddef_t *lvid, vmode_t *pcurrentmode,
+		vrect_t *rects)
 {
 	UNUSED(lvid);
 
 	if (vid_wait.value == VID_WAIT_VSYNC)
+	{
+#if defined(BENCH486)
+		VGA_WaitVsync_C ();
+#else
 		VGA_WaitVsync ();
+#endif
+	}
 
+#if defined(BENCH486)
+	VGA_SwapBuffersCopy_C (lvid, pcurrentmode, rects);
+#else
 	VGA_SwapBuffersCopy (lvid, pcurrentmode, rects);
+#endif
 }
+#endif
+
+#undef VGA_WAIT_VSYNC_C_ENTRY
+#undef VGA_SWAP_COPY_C_ENTRY
+#undef VGA_SWAP_C_ENTRY
+
+#if defined(BENCH486) && !defined(ASM486_VGA_PRESENTATION)
+void VGA_WaitVsync (void)
+{
+	VGA_WaitVsync_C ();
+}
+
+void VGA_SwapBuffersCopy (viddef_t *lvid, vmode_t *pcurrentmode,
+		vrect_t *rects)
+{
+	VGA_SwapBuffersCopy_C (lvid, pcurrentmode, rects);
+}
+
+void VGA_SwapBuffers (viddef_t *lvid, vmode_t *pcurrentmode,
+		vrect_t *rects)
+{
+	VGA_SwapBuffers_C (lvid, pcurrentmode, rects);
+}
+#endif
+
+#if defined(BENCH486) && defined(ASM486_VGA_PRESENTATION_FIXTURE)
+#include "bench486_vgaswap.h"
+#endif
 

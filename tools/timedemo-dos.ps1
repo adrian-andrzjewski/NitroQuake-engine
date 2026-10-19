@@ -329,6 +329,8 @@ param(
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaSwapBuffersImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
+    [string]$VgaPresentationImplementation = 'c',
+    [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaPaletteImplementation = 'c',
     [ValidateSet('c', 'asm', 'asm-fixture')]
     [string]$VesaDefaultModeImplementation = 'c',
@@ -695,6 +697,7 @@ $buildParams = @{
         ZoneHeapImplementation                   = $ZoneHeapImplementation
         VesaCopyRectsImplementation              = $VesaCopyRectsImplementation
         VesaSwapBuffersImplementation             = $VesaSwapBuffersImplementation
+        VgaPresentationImplementation             = $VgaPresentationImplementation
         VesaPaletteImplementation                 = $VesaPaletteImplementation
         VesaDefaultModeImplementation              = $VesaDefaultModeImplementation
         VesaLifecycleImplementation                = $VesaLifecycleImplementation
@@ -1611,6 +1614,7 @@ $result = [ordered]@{
     zoneHeapImplementation = $ZoneHeapImplementation
     vesaCopyRectsImplementation = $VesaCopyRectsImplementation
     vesaSwapBuffersImplementation = $VesaSwapBuffersImplementation
+    vgaPresentationImplementation = $VgaPresentationImplementation
     vesaPaletteImplementation = $VesaPaletteImplementation
     vesaDefaultModeImplementation = $VesaDefaultModeImplementation
     vesaLifecycleImplementation = $VesaLifecycleImplementation
