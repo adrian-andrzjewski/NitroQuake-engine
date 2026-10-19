@@ -1032,6 +1032,47 @@ C(M_DrawCheckbox):
 	ret
 
 .p2align 2
+.globl C(M_Quit_Draw)
+C(M_Quit_Draw):
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	cmpl	$0,C(wasInMenus)
+	je	.Lmenu_quit_textbox
+	movl	C(m_quit_prevstate),%eax
+	movl	%eax,C(m_state)
+	movl	$1,C(m_recursiveDraw)
+	call	C(M_Draw)
+	movl	$MD_STATE_QUIT,C(m_state)
+
+.Lmenu_quit_textbox:
+	pushl	$4
+	pushl	$24
+	pushl	$76
+	pushl	$56
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	movl	C(msgNumber),%eax
+	shll	$4,%eax
+	leal	C(quitMessage)(,%eax),%esi
+	xorl	%ebx,%ebx
+.Lmenu_quit_message_loop:
+	movl	(%esi,%ebx,4),%eax
+	pushl	%eax
+	leal	84(,%ebx,8),%eax
+	pushl	%eax
+	pushl	$64
+	call	C(M_Print)
+	addl	$12,%esp
+	incl	%ebx
+	cmpl	$4,%ebx
+	jne	.Lmenu_quit_message_loop
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
+.p2align 2
 .globl C(M_Options_Draw)
 C(M_Options_Draw):
 	pushl	%ebp

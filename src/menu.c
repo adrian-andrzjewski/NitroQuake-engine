@@ -1917,22 +1917,41 @@ void M_Quit_Key (int key)
 }
 
 
-void M_Quit_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_QUIT_DRAW_C_ENTRY M_Quit_Draw_C
+#define M_QUIT_DRAW_TEXTBOX M_DrawTextBox_C
+#define M_QUIT_DRAW_PRINT M_Print_C
+#define M_QUIT_DRAW_RECURSIVE M_Draw_C
+#else
+#define M_QUIT_DRAW_C_ENTRY M_Quit_Draw
+#define M_QUIT_DRAW_TEXTBOX M_DrawTextBox
+#define M_QUIT_DRAW_PRINT M_Print
+#define M_QUIT_DRAW_RECURSIVE M_Draw
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_QUIT_DRAW_C_ENTRY (void)
 {
 	if (wasInMenus)
 	{
 		m_state = m_quit_prevstate;
 		m_recursiveDraw = true;
-		M_Draw ();
+		M_QUIT_DRAW_RECURSIVE ();
 		m_state = m_quit;
 	}
 
-	M_DrawTextBox (56, 76, 24, 4);
-	M_Print (64, 84,  quitMessage[msgNumber*4+0]);
-	M_Print (64, 92,  quitMessage[msgNumber*4+1]);
-	M_Print (64, 100, quitMessage[msgNumber*4+2]);
-	M_Print (64, 108, quitMessage[msgNumber*4+3]);
+	M_QUIT_DRAW_TEXTBOX (56, 76, 24, 4);
+	M_QUIT_DRAW_PRINT (64, 84,  quitMessage[msgNumber*4+0]);
+	M_QUIT_DRAW_PRINT (64, 92,  quitMessage[msgNumber*4+1]);
+	M_QUIT_DRAW_PRINT (64, 100, quitMessage[msgNumber*4+2]);
+	M_QUIT_DRAW_PRINT (64, 108, quitMessage[msgNumber*4+3]);
 }
+#endif
+
+#undef M_QUIT_DRAW_RECURSIVE
+#undef M_QUIT_DRAW_PRINT
+#undef M_QUIT_DRAW_TEXTBOX
+#undef M_QUIT_DRAW_C_ENTRY
 
 //=============================================================================
 
