@@ -939,6 +939,234 @@ C(M_ModemConfig_Draw):
 	ret
 
 .p2align 2
+.globl C(M_LanConfig_Draw)
+C(M_LanConfig_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$24,%esp
+
+	/* The plaque and title keep the same cache and draw ordering as C. */
+	MENU_PAGE_CACHE $.Lmenu_plaque
+	subl	$4,%esp
+	pushl	%eax
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$16,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_multi_title
+	movl	%eax,-16(%ebp)
+	movl	$320,%edx
+	subl	(%eax),%edx
+	movl	%edx,%eax
+	shrl	$31,%eax
+	addl	%edx,%eax
+	sarl	$1,%eax
+	movl	%eax,-20(%ebp)
+	subl	$4,%esp
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$16,%esp
+
+	/* Build the same formatted title string as va("%s - %s", ...). */
+	cmpl	$1,C(m_multiplayer_cursor)
+	jne	.Lmenu_lanconfig_join_title
+	movl	$.Lmenu_lanconfig_new_game,%esi
+	jmp	.Lmenu_lanconfig_protocol
+.Lmenu_lanconfig_join_title:
+	movl	$.Lmenu_lanconfig_join_game,%esi
+.Lmenu_lanconfig_protocol:
+	cmpl	$2,C(m_net_cursor)
+	jne	.Lmenu_lanconfig_tcp_title
+	pushl	$.Lmenu_lanconfig_ipx
+	jmp	.Lmenu_lanconfig_format_title
+.Lmenu_lanconfig_tcp_title:
+	pushl	$.Lmenu_lanconfig_tcpip
+.Lmenu_lanconfig_format_title:
+	pushl	%esi
+	pushl	$.Lmenu_lanconfig_title_format
+	call	C(va)
+	addl	$12,%esp
+	movl	-20(%ebp),%ebx
+	pushl	%eax
+	pushl	$32
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	addl	$8,%ebx
+	movl	%ebx,-20(%ebp)
+
+	/* Address label and the selected network address. */
+	pushl	$.Lmenu_lanconfig_address
+	pushl	$52
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	cmpl	$2,C(m_net_cursor)
+	jne	.Lmenu_lanconfig_tcp_address
+	movl	$C(my_ipx_address),%esi
+	jmp	.Lmenu_lanconfig_print_address
+.Lmenu_lanconfig_tcp_address:
+	movl	$C(my_tcpip_address),%esi
+.Lmenu_lanconfig_print_address:
+	pushl	%esi
+	pushl	$52
+	leal	72(%ebx),%eax
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* Port label, textbox, and editable port value. */
+	pushl	$.Lmenu_lanconfig_port
+	pushl	C(lanConfig_cursor_table)
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(lanConfig_cursor_table),%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$6
+	pushl	%eax
+	leal	64(%ebx),%eax
+	pushl	%eax
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$C(lanConfig_portname)
+	pushl	C(lanConfig_cursor_table)
+	leal	72(%ebx),%eax
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+
+	/* The join form and the start form have different second fields. */
+	cmpl	$0,C(m_multiplayer_cursor)
+	jne	.Lmenu_lanconfig_start_form
+	pushl	$.Lmenu_lanconfig_search
+	pushl	C(lanConfig_cursor_table)+4
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$.Lmenu_lanconfig_join_at
+	pushl	$108
+	pushl	%ebx
+	call	C(M_Print)
+	addl	$12,%esp
+	movl	C(lanConfig_cursor_table)+8,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$22
+	pushl	%eax
+	leal	8(%ebx),%eax
+	pushl	%eax
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$C(lanConfig_joinname)
+	pushl	C(lanConfig_cursor_table)+8
+	leal	16(%ebx),%eax
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+	jmp	.Lmenu_lanconfig_cursor
+
+.Lmenu_lanconfig_start_form:
+	movl	C(lanConfig_cursor_table)+4,%eax
+	subl	$8,%eax
+	pushl	$1
+	pushl	$2
+	pushl	%eax
+	pushl	%ebx
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$.Lmenu_lanconfig_ok
+	pushl	C(lanConfig_cursor_table)+4
+	leal	8(%ebx),%eax
+	pushl	%eax
+	call	C(M_Print)
+	addl	$12,%esp
+
+.Lmenu_lanconfig_cursor:
+	/* C casts realtime*4 with truncation and restores the incoming CW. */
+	fldl	C(realtime)
+	fmull	.Lmenu_modem_four
+	fnstcw	-28(%ebp)
+	movw	-28(%ebp),%dx
+	orb	$12,%dh
+	movw	%dx,-30(%ebp)
+	fldcw	-30(%ebp)
+	fistpl	-32(%ebp)
+	fldcw	-28(%ebp)
+	movl	-32(%ebp),%eax
+	andl	$1,%eax
+	movl	%eax,-24(%ebp)
+
+	/* Main menu cursor marker. */
+	movl	-24(%ebp),%ecx
+	addl	$12,%ecx
+	pushl	%ecx
+	movl	C(lanConfig_cursor),%edx
+	movl	C(lanConfig_cursor_table)(,%edx,4),%eax
+	pushl	%eax
+	leal	-8(%ebx),%eax
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+	/* Caret follows the editable port or address string. */
+	cmpl	$0,C(lanConfig_cursor)
+	jne	.Lmenu_lanconfig_join_caret
+	subl	$12,%esp
+	pushl	$C(lanConfig_portname)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	leal	72(%ebx,%eax),%eax
+	movl	-24(%ebp),%ecx
+	addl	$10,%ecx
+	pushl	%ecx
+	pushl	C(lanConfig_cursor_table)
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+.Lmenu_lanconfig_join_caret:
+	cmpl	$2,C(lanConfig_cursor)
+	jne	.Lmenu_lanconfig_return_reason
+	subl	$12,%esp
+	pushl	$C(lanConfig_joinname)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	leal	16(%ebx,%eax),%eax
+	movl	-24(%ebp),%ecx
+	addl	$10,%ecx
+	pushl	%ecx
+	pushl	C(lanConfig_cursor_table)+8
+	pushl	%eax
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lmenu_lanconfig_return_reason:
+	cmpb	$0,C(m_return_reason)
+	je	.Lmenu_lanconfig_done
+	pushl	$C(m_return_reason)
+	pushl	$148
+	pushl	%ebx
+	call	C(M_PrintWhite)
+	addl	$12,%esp
+
+.Lmenu_lanconfig_done:
+	leal	-12(%ebp),%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	popl	%ebp
+	ret
+
+.p2align 2
 .globl C(M_DrawSlider)
 C(M_DrawSlider):
 	pushl	%ebp
@@ -3113,6 +3341,26 @@ C(VID_MenuDraw):
 
 .Lmenu_search_draw_multi_title:
 	.asciz	"gfx/p_multi.lmp"
+.Lmenu_lanconfig_new_game:
+	.asciz	"New Game"
+.Lmenu_lanconfig_join_game:
+	.asciz	"Join Game"
+.Lmenu_lanconfig_ipx:
+	.asciz	"IPX"
+.Lmenu_lanconfig_tcpip:
+	.asciz	"TCP/IP"
+.Lmenu_lanconfig_title_format:
+	.asciz	"%s - %s"
+.Lmenu_lanconfig_address:
+	.asciz	"Address:"
+.Lmenu_lanconfig_port:
+	.asciz	"Port"
+.Lmenu_lanconfig_search:
+	.asciz	"Search for local games..."
+.Lmenu_lanconfig_join_at:
+	.asciz	"Join game at:"
+.Lmenu_lanconfig_ok:
+	.asciz	"OK"
 .Lmenu_search_draw_searching:
 	.asciz	"Searching..."
 .Lmenu_search_draw_no_servers_text:

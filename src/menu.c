@@ -2591,17 +2591,41 @@ void M_Menu_LanConfig_f (void)
 }
 
 
-void M_LanConfig_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_LANCONFIG_DRAW_C_ENTRY M_LanConfig_Draw_C
+#define M_LANCONFIG_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_LANCONFIG_TRANSPIC(x, y, pic) M_DrawTransPic_C ((x), (y), (pic))
+#define M_LANCONFIG_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_LANCONFIG_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox_C ((x), (y), (width), (lines))
+#define M_LANCONFIG_PRINT(x, y, str) M_Print_C ((x), (y), (str))
+#define M_LANCONFIG_PRINT_WHITE(x, y, str) M_PrintWhite_C ((x), (y), (str))
+#define M_LANCONFIG_CHARACTER(x, y, num) M_DrawCharacter_C ((x), (y), (num))
+#else
+#define M_LANCONFIG_DRAW_C_ENTRY M_LanConfig_Draw
+#define M_LANCONFIG_CACHE_PIC(path) Draw_CachePic (path)
+#define M_LANCONFIG_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_LANCONFIG_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_LANCONFIG_TEXTBOX(x, y, width, lines) \
+		M_DrawTextBox ((x), (y), (width), (lines))
+#define M_LANCONFIG_PRINT(x, y, str) M_Print ((x), (y), (str))
+#define M_LANCONFIG_PRINT_WHITE(x, y, str) M_PrintWhite ((x), (y), (str))
+#define M_LANCONFIG_CHARACTER(x, y, num) M_DrawCharacter ((x), (y), (num))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_LANCONFIG_DRAW_C_ENTRY (void)
 {
 	qpic_t	*p;
 	int		basex;
 	char	*startJoin;
 	char	*protocol;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
+	M_LANCONFIG_TRANSPIC (16, 4,
+			M_LANCONFIG_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_LANCONFIG_CACHE_PIC ("gfx/p_multi.lmp");
 	basex = (320-p->width)/2;
-	M_DrawPic (basex, 4, p);
+	M_LANCONFIG_PIC (basex, 4, p);
 
 	if (StartingGame)
 		startJoin = "New Game";
@@ -2611,43 +2635,62 @@ void M_LanConfig_Draw (void)
 		protocol = "IPX";
 	else
 		protocol = "TCP/IP";
-	M_Print (basex, 32, va ("%s - %s", startJoin, protocol));
+	M_LANCONFIG_PRINT (basex, 32, va ("%s - %s", startJoin, protocol));
 	basex += 8;
 
-	M_Print (basex, 52, "Address:");
+	M_LANCONFIG_PRINT (basex, 52, "Address:");
 	if (IPXConfig)
-		M_Print (basex+9*8, 52, my_ipx_address);
+		M_LANCONFIG_PRINT (basex+9*8, 52, my_ipx_address);
 	else
-		M_Print (basex+9*8, 52, my_tcpip_address);
+		M_LANCONFIG_PRINT (basex+9*8, 52, my_tcpip_address);
 
-	M_Print (basex, lanConfig_cursor_table[0], "Port");
-	M_DrawTextBox (basex+8*8, lanConfig_cursor_table[0]-8, 6, 1);
-	M_Print (basex+9*8, lanConfig_cursor_table[0], lanConfig_portname);
+	M_LANCONFIG_PRINT (basex, lanConfig_cursor_table[0], "Port");
+	M_LANCONFIG_TEXTBOX (basex+8*8, lanConfig_cursor_table[0]-8, 6, 1);
+	M_LANCONFIG_PRINT (basex+9*8, lanConfig_cursor_table[0],
+			lanConfig_portname);
 
 	if (JoiningGame)
 	{
-		M_Print (basex, lanConfig_cursor_table[1], "Search for local games...");
-		M_Print (basex, 108, "Join game at:");
-		M_DrawTextBox (basex+8, lanConfig_cursor_table[2]-8, 22, 1);
-		M_Print (basex+16, lanConfig_cursor_table[2], lanConfig_joinname);
+		M_LANCONFIG_PRINT (basex, lanConfig_cursor_table[1],
+				"Search for local games...");
+		M_LANCONFIG_PRINT (basex, 108, "Join game at:");
+		M_LANCONFIG_TEXTBOX (basex+8, lanConfig_cursor_table[2]-8, 22, 1);
+		M_LANCONFIG_PRINT (basex+16, lanConfig_cursor_table[2],
+				lanConfig_joinname);
 	}
 	else
 	{
-		M_DrawTextBox (basex, lanConfig_cursor_table[1]-8, 2, 1);
-		M_Print (basex+8, lanConfig_cursor_table[1], "OK");
+		M_LANCONFIG_TEXTBOX (basex, lanConfig_cursor_table[1]-8, 2, 1);
+		M_LANCONFIG_PRINT (basex+8, lanConfig_cursor_table[1], "OK");
 	}
 
-	M_DrawCharacter (basex-8, lanConfig_cursor_table [lanConfig_cursor], 12+((int)(realtime*4)&1));
+	M_LANCONFIG_CHARACTER (basex-8,
+			lanConfig_cursor_table[lanConfig_cursor],
+			12+((int)(realtime*4)&1));
 
 	if (lanConfig_cursor == 0)
-		M_DrawCharacter (basex+9*8 + 8*strlen(lanConfig_portname), lanConfig_cursor_table [0], 10+((int)(realtime*4)&1));
+		M_LANCONFIG_CHARACTER (basex+9*8 + 8*strlen(lanConfig_portname),
+				lanConfig_cursor_table[0],
+				10+((int)(realtime*4)&1));
 
 	if (lanConfig_cursor == 2)
-		M_DrawCharacter (basex+16 + 8*strlen(lanConfig_joinname), lanConfig_cursor_table [2], 10+((int)(realtime*4)&1));
+		M_LANCONFIG_CHARACTER (basex+16 + 8*strlen(lanConfig_joinname),
+				lanConfig_cursor_table[2],
+				10+((int)(realtime*4)&1));
 
 	if (*m_return_reason)
-		M_PrintWhite (basex, 148, m_return_reason);
+		M_LANCONFIG_PRINT_WHITE (basex, 148, m_return_reason);
 }
+#endif
+
+#undef M_LANCONFIG_CHARACTER
+#undef M_LANCONFIG_PRINT_WHITE
+#undef M_LANCONFIG_PRINT
+#undef M_LANCONFIG_TEXTBOX
+#undef M_LANCONFIG_PIC
+#undef M_LANCONFIG_TRANSPIC
+#undef M_LANCONFIG_CACHE_PIC
+#undef M_LANCONFIG_DRAW_C_ENTRY
 
 
 void M_LanConfig_Key (int key)
