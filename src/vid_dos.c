@@ -43,12 +43,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define VID_SET_MODE_C_ENTRY VID_SetMode_C
 #define VID_GET_MODE_PTR_C_CALL VID_GetModePtr_C
 #define VID_MODE_INFO_C_CALL VID_ModeInfo_C
+#define VID_SET_MODE_C_CALL VID_SetMode_C
+#define VID_SET_PALETTE_C_ENTRY VID_SetPalette_C
+#define VID_SHIFT_PALETTE_C_ENTRY VID_ShiftPalette_C
 #else
 #define VID_GET_MODE_PTR_C_ENTRY VID_GetModePtr
 #define VID_MODE_INFO_C_ENTRY VID_ModeInfo
 #define VID_SET_MODE_C_ENTRY VID_SetMode
 #define VID_GET_MODE_PTR_C_CALL VID_GetModePtr
 #define VID_MODE_INFO_C_CALL VID_ModeInfo
+#define VID_SET_MODE_C_CALL VID_SetMode
+#define VID_SET_PALETTE_C_ENTRY VID_SetPalette
+#define VID_SHIFT_PALETTE_C_ENTRY VID_ShiftPalette
 #endif
 
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
@@ -291,7 +297,6 @@ int VID_SET_MODE_C_ENTRY (int modenum, unsigned char *palette)
 }
 #endif
 
-#undef VID_MODE_PALETTE_OK
 #undef VID_MODE_RELEASE_EXTRA
 #undef VID_MODE_ERROR
 #undef VID_MODE_PRINTF
@@ -308,13 +313,14 @@ int VID_SET_MODE_C_ENTRY (int modenum, unsigned char *palette)
 VID_SetPalette
 ================
 */
-void    VID_SetPalette (unsigned char *palette)
+#if !defined(ASM486_VID_UPDATE) || defined(BENCH486)
+void VID_SET_PALETTE_C_ENTRY (unsigned char *palette)
 {
 	if (palette != vid_current_palette)
 		Q_memcpy(vid_current_palette, palette, 768);
 	(*pcurrentmode->setpalette)(&vid, pcurrentmode, vid_current_palette);
-	if (!VID_ExtraPaletteOK ())
-		VID_SetMode (0, vid_current_palette);
+	if (!VID_MODE_PALETTE_OK ())
+		VID_SET_MODE_C_CALL (0, vid_current_palette);
 }
 
 
@@ -323,11 +329,16 @@ void    VID_SetPalette (unsigned char *palette)
 VID_ShiftPalette
 ================
 */
-void    VID_ShiftPalette (unsigned char *palette)
+void VID_SHIFT_PALETTE_C_ENTRY (unsigned char *palette)
 {
-
-	VID_SetPalette (palette);
+	VID_SET_PALETTE_C_ENTRY (palette);
 }
+#endif
+
+#undef VID_MODE_PALETTE_OK
+#undef VID_SET_MODE_C_CALL
+#undef VID_SET_PALETTE_C_ENTRY
+#undef VID_SHIFT_PALETTE_C_ENTRY
 
 
 /*

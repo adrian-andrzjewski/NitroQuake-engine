@@ -60,6 +60,8 @@ typedef char vm_vid_direct_must_match[
 vmode_t *VID_GetModePtr_C (int modenum);
 char *VID_ModeInfo_C (int modenum, char **ppheader);
 int VID_SetMode_C (int modenum, unsigned char *palette);
+void VID_SetPalette_C (unsigned char *palette);
+void VID_ShiftPalette_C (unsigned char *palette);
 #endif
 
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)

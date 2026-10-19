@@ -251,6 +251,46 @@ C(VID_SetMode):
 	leave
 	ret
 
+/* Palette copy, current-mode callback, and the VGA fallback on rejection. */
+.globl C(VID_SetPalette)
+C(VID_SetPalette):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	movl	8(%ebp),%esi
+	cmpl	$C(vid_current_palette),%esi
+	je	.Lvid_setpalette_ready
+	pushl	$768
+	pushl	%esi
+	pushl	$C(vid_current_palette)
+	call	C(Q_memcpy)
+	addl	$12,%esp
+.Lvid_setpalette_ready:
+	movl	C(pcurrentmode),%ebx
+	movl	VM_MODE_SETPALETTE_OFFSET(%ebx),%ecx
+	pushl	$C(vid_current_palette)
+	pushl	%ebx
+	pushl	$C(vid)
+	call	*%ecx
+	addl	$12,%esp
+	call	VID_MODE_PALETTE_OK
+	testl	%eax,%eax
+	jne	.Lvid_setpalette_done
+	pushl	$C(vid_current_palette)
+	pushl	$0
+	call	C(VID_SetMode)
+	addl	$8,%esp
+.Lvid_setpalette_done:
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.globl C(VID_ShiftPalette)
+C(VID_ShiftPalette):
+	jmp	C(VID_SetPalette)
+
 .section .rodata
 .Lvid_mode_empty_list:
 	.asciz "VID_GetModePtr: empty vid mode list"

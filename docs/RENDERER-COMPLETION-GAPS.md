@@ -15,8 +15,8 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-605 renderer entries, 414 directly reachable entries, and 11 directly
-reachable C dependencies: 403/414, or 97.3%, are assembly-owned by
+605 renderer entries, 415 directly reachable entries, and 10 directly
+reachable C dependencies: 405/415, or 97.6%, are assembly-owned by
 reachable-symbol count. This remains a profile-specific estimate: the
 inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
@@ -27,11 +27,12 @@ directly reachable cache or zone-heap C owners appear in this profile.
 assembly in the release profile, with C references retained for parity; the
 18-case lifecycle fixture and strict release proof are recorded in the
 [VESA lifecycle ledger](ledger/2026-10-19-vesa-lifecycle-assembly-port.md). The
-`VID_GetModePtr`, `VID_ModeInfo`, and `VID_SetMode` lookup/orchestration path
-now selects assembly through `VideoUpdateImplementation=asm`; its C/ASM lookup
-and eight transition cases passed, along with strict BENCH and release gates.
-`VID_ShiftPalette` and `VID_Shutdown` remain direct C owners. See the
-[video mode port ledger](ledger/2026-10-19-video-mode-assembly-port.md). The
+`VID_GetModePtr`, `VID_ModeInfo`, `VID_SetMode`, `VID_SetPalette`, and
+`VID_ShiftPalette` lookup, transition, and palette orchestration paths now
+select assembly through `VideoUpdateImplementation=asm`; their C/ASM fixtures
+and strict BENCH/release gates pass. `VID_Shutdown` is the remaining directly
+reachable video C owner. See the
+[video mode and palette port ledger](ledger/2026-10-19-video-mode-assembly-port.md). The
 `Sbar_Changed` refresh-state setter now selects assembly through the existing
 `SbarPrimitiveImplementation=asm` profile; its six-case C/ASM state fixture and
 strict BENCH/release i486 proofs are recorded in the

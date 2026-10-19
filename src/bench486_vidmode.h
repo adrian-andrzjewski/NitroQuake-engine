@@ -23,6 +23,7 @@ typedef struct bench486_vidmode_event_s
 	int mode_index;
 	int video_matches;
 	int palette_matches;
+	int palette_is_current;
 	unsigned width;
 	unsigned height;
 	unsigned rowbytes;
@@ -52,6 +53,20 @@ typedef struct bench486_vidmode_case_s
 	int palette_result_count;
 	int palette_results[4];
 } bench486_vidmode_case_t;
+
+typedef struct bench486_vidpalette_case_s
+{
+	const char *name;
+	int use_shift_entry;
+	int input_is_current_palette;
+	int palette_result_count;
+	int palette_results[4];
+	int mode_result_count;
+	int mode_results[4];
+	int expected_mode_number;
+	int expected_palette_calls;
+	int expected_error_count;
+} bench486_vidpalette_case_t;
 
 typedef struct bench486_vidmode_snapshot_s
 {
@@ -224,6 +239,7 @@ static void Bench486VidModeSetHardwarePalette (viddef_t *video,
 		event->mode_index = Bench486VidModeIndex (mode);
 		event->video_matches = video == &vid;
 		event->palette_matches = palette == bench486_vidmode_input_palette;
+		event->palette_is_current = palette == vid_current_palette;
 	}
 }
 
@@ -356,6 +372,13 @@ static const bench486_vidmode_case_t bench486_vidmode_cases[] = {
 	{ "VGA failure reaches error path", 0, 1, 1, 0, 1, 0, 2, {0,0,0,0}, 0, {0,0,0,0} }
 };
 
+static const bench486_vidpalette_case_t bench486_vidpalette_cases[] = {
+	{ "same palette pointer", 0, 1, 1, {1,0,0,0}, 0, {0,0,0,0}, 1, 1, 0 },
+	{ "copy palette through shift entry", 1, 0, 1, {1,0,0,0}, 0, {0,0,0,0}, 1, 1, 0 },
+	{ "palette rejection falls back to VGA", 0, 0, 2, {0,1,0,0}, 1, {1,0,0,0}, 0, 2, 0 },
+	{ "VGA retry failure reports errors", 1, 0, 1, {0,0,0,0}, 2, {0,0,0,0}, 0, 1, 2 }
+};
+
 static int Bench486VidModeRunCase (const bench486_vidmode_case_t *test,
 		int use_assembly, bench486_vidmode_snapshot_t *snapshot)
 {
@@ -370,6 +393,84 @@ static int Bench486VidModeRunCase (const bench486_vidmode_case_t *test,
 				bench486_vidmode_input_palette);
 	Bench486VidModeCapture (result, snapshot);
 	return result;
+}
+
+static void Bench486VidModeRunPaletteCase (
+		const bench486_vidpalette_case_t *test, int use_assembly,
+		bench486_vidmode_snapshot_t *snapshot)
+{
+	unsigned char *palette;
+	int i;
+
+	Bench486VidModeConfigure (&bench486_vidmode_cases[0]);
+	memset (bench486_vidmode_mode_results, 0,
+			sizeof(bench486_vidmode_mode_results));
+	memset (bench486_vidmode_palette_results, 0,
+			sizeof(bench486_vidmode_palette_results));
+	for (i = 0; i < test->mode_result_count && i < 4; i++)
+		bench486_vidmode_mode_results[i] = test->mode_results[i];
+	for (i = 0; i < test->palette_result_count && i < 4; i++)
+		bench486_vidmode_palette_results[i] = test->palette_results[i];
+	bench486_vidmode_mode_result_count = test->mode_result_count;
+	bench486_vidmode_palette_result_count = test->palette_result_count;
+	bench486_vidmode_mode_result_index = 0;
+	bench486_vidmode_palette_result_index = 0;
+	palette = test->input_is_current_palette ? vid_current_palette :
+			bench486_vidmode_input_palette;
+	if (use_assembly)
+	{
+		if (test->use_shift_entry)
+			VID_ShiftPalette (palette);
+		else
+			VID_SetPalette (palette);
+	}
+	else
+	{
+		if (test->use_shift_entry)
+			VID_ShiftPalette_C (palette);
+		else
+			VID_SetPalette_C (palette);
+	}
+	Bench486VidModeCapture (0, snapshot);
+}
+
+static int Bench486VidModePaletteSnapshotExpected (
+		const bench486_vidpalette_case_t *test,
+		const bench486_vidmode_snapshot_t *snapshot)
+{
+	int palette_calls, error_count, i;
+	byte expected;
+
+	palette_calls = 0;
+	error_count = 0;
+	for (i = 0; i < snapshot->record.event_count; i++)
+	{
+		const bench486_vidmode_event_t *event =
+				&snapshot->record.events[i];
+		if (event->kind == BVM_EVENT_SET_PALETTE)
+		{
+			palette_calls++;
+			if (!event->video_matches || !event->palette_is_current ||
+					event->mode_index < 0)
+				return 0;
+		}
+		else if (event->kind == BVM_EVENT_ERROR)
+			error_count++;
+	}
+	if (palette_calls != test->expected_palette_calls ||
+			error_count != test->expected_error_count ||
+			snapshot->mode_number != test->expected_mode_number ||
+			snapshot->current_mode !=
+					&bench486_vidmode_modes[test->expected_mode_number])
+		return 0;
+	for (i = 0; i < sizeof(snapshot->palette); i++)
+	{
+		expected = test->input_is_current_palette ?
+				(byte)(i ^ 0x5a) : (byte)(i * 37 + 11);
+		if (snapshot->palette[i] != expected)
+			return 0;
+	}
+	return 1;
 }
 
 int Bench486VidModeCases (void)
@@ -496,6 +597,20 @@ int Bench486VidModeCases (void)
 				asm_snapshot.result != test->expected_result ||
 				c_snapshot.mode_number != test->expected_mode_number ||
 				asm_snapshot.mode_number != test->expected_mode_number)
+			failures |= bit;
+	}
+	for (i = 0; i < sizeof(bench486_vidpalette_cases) /
+			sizeof(bench486_vidpalette_cases[0]); i++)
+	{
+		const bench486_vidpalette_case_t *test =
+				&bench486_vidpalette_cases[i];
+		unsigned bit = (unsigned)1 << (16 + i);
+
+		Bench486VidModeRunPaletteCase (test, 0, &c_snapshot);
+		Bench486VidModeRunPaletteCase (test, 1, &asm_snapshot);
+		if (!Bench486VidModeSnapshotsEqual (&c_snapshot, &asm_snapshot) ||
+				!Bench486VidModePaletteSnapshotExpected (test, &c_snapshot) ||
+				!Bench486VidModePaletteSnapshotExpected (test, &asm_snapshot))
 			failures |= bit;
 	}
 
