@@ -922,42 +922,90 @@ void M_Menu_Setup_f (void)
 }
 
 
-void M_Setup_Draw (void)
+#if defined(BENCH486) && defined(ASM486_SCREEN_OVERLAYS)
+#define M_SETUP_DRAW_C_ENTRY M_Setup_Draw_C
+#define M_SETUP_DRAW_CACHE_PIC(path) Bench486MenuTextCachePic (path)
+#define M_SETUP_DRAW_TRANSPIC(x, y, pic) \
+	M_DrawTransPic_C ((x), (y), (pic))
+#define M_SETUP_DRAW_PIC(x, y, pic) M_DrawPic_C ((x), (y), (pic))
+#define M_SETUP_DRAW_PRINT(x, y, text) M_Print_C ((x), (y), (text))
+#define M_SETUP_DRAW_TEXTBOX(x, y, width, lines) \
+	M_DrawTextBox_C ((x), (y), (width), (lines))
+#define M_SETUP_DRAW_TRANSLATE(x, y, pic) \
+	M_DrawTransPicTranslate_C ((x), (y), (pic))
+#define M_SETUP_DRAW_CHARACTER(x, y, num) \
+	M_DrawCharacter_C ((x), (y), (num))
+#define M_SETUP_DRAW_TRANSLATION(top, bottom) \
+	M_BuildTranslationTable_C ((top), (bottom))
+#else
+#define M_SETUP_DRAW_C_ENTRY M_Setup_Draw
+#define M_SETUP_DRAW_CACHE_PIC(path) Draw_CachePic (path)
+#define M_SETUP_DRAW_TRANSPIC(x, y, pic) M_DrawTransPic ((x), (y), (pic))
+#define M_SETUP_DRAW_PIC(x, y, pic) M_DrawPic ((x), (y), (pic))
+#define M_SETUP_DRAW_PRINT(x, y, text) M_Print ((x), (y), (text))
+#define M_SETUP_DRAW_TEXTBOX(x, y, width, lines) \
+	M_DrawTextBox ((x), (y), (width), (lines))
+#define M_SETUP_DRAW_TRANSLATE(x, y, pic) \
+	M_DrawTransPicTranslate ((x), (y), (pic))
+#define M_SETUP_DRAW_CHARACTER(x, y, num) M_DrawCharacter ((x), (y), (num))
+#define M_SETUP_DRAW_TRANSLATION(top, bottom) \
+	M_BuildTranslationTable ((top), (bottom))
+#endif
+
+#if !defined(ASM486_SCREEN_OVERLAYS) || defined(BENCH486)
+void M_SETUP_DRAW_C_ENTRY (void)
 {
 	qpic_t	*p;
 
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
+	M_SETUP_DRAW_TRANSPIC (16, 4,
+			M_SETUP_DRAW_CACHE_PIC ("gfx/qplaque.lmp"));
+	p = M_SETUP_DRAW_CACHE_PIC ("gfx/p_multi.lmp");
+	M_SETUP_DRAW_PIC ((320-p->width)/2, 4, p);
 
-	M_Print (64, 40, "Hostname");
-	M_DrawTextBox (160, 32, 16, 1);
-	M_Print (168, 40, setup_hostname);
+	M_SETUP_DRAW_PRINT (64, 40, "Hostname");
+	M_SETUP_DRAW_TEXTBOX (160, 32, 16, 1);
+	M_SETUP_DRAW_PRINT (168, 40, setup_hostname);
 
-	M_Print (64, 56, "Your name");
-	M_DrawTextBox (160, 48, 16, 1);
-	M_Print (168, 56, setup_myname);
+	M_SETUP_DRAW_PRINT (64, 56, "Your name");
+	M_SETUP_DRAW_TEXTBOX (160, 48, 16, 1);
+	M_SETUP_DRAW_PRINT (168, 56, setup_myname);
 
-	M_Print (64, 80, "Shirt color");
-	M_Print (64, 104, "Pants color");
+	M_SETUP_DRAW_PRINT (64, 80, "Shirt color");
+	M_SETUP_DRAW_PRINT (64, 104, "Pants color");
 
-	M_DrawTextBox (64, 140-8, 14, 1);
-	M_Print (72, 140, "Accept Changes");
+	M_SETUP_DRAW_TEXTBOX (64, 140-8, 14, 1);
+	M_SETUP_DRAW_PRINT (72, 140, "Accept Changes");
 
-	p = Draw_CachePic ("gfx/bigbox.lmp");
-	M_DrawTransPic (160, 64, p);
-	p = Draw_CachePic ("gfx/menuplyr.lmp");
-	M_BuildTranslationTable(setup_top*16, setup_bottom*16);
-	M_DrawTransPicTranslate (172, 72, p);
+	p = M_SETUP_DRAW_CACHE_PIC ("gfx/bigbox.lmp");
+	M_SETUP_DRAW_TRANSPIC (160, 64, p);
+	p = M_SETUP_DRAW_CACHE_PIC ("gfx/menuplyr.lmp");
+	M_SETUP_DRAW_TRANSLATION (setup_top*16, setup_bottom*16);
+	M_SETUP_DRAW_TRANSLATE (172, 72, p);
 
-	M_DrawCharacter (56, setup_cursor_table [setup_cursor], 12+((int)(realtime*4)&1));
+	M_SETUP_DRAW_CHARACTER (56, setup_cursor_table [setup_cursor],
+			12+((int)(realtime*4)&1));
 
 	if (setup_cursor == 0)
-		M_DrawCharacter (168 + 8*strlen(setup_hostname), setup_cursor_table [setup_cursor], 10+((int)(realtime*4)&1));
+		M_SETUP_DRAW_CHARACTER (168 + 8*strlen(setup_hostname),
+				setup_cursor_table [setup_cursor],
+				10+((int)(realtime*4)&1));
 
 	if (setup_cursor == 1)
-		M_DrawCharacter (168 + 8*strlen(setup_myname), setup_cursor_table [setup_cursor], 10+((int)(realtime*4)&1));
+		M_SETUP_DRAW_CHARACTER (168 + 8*strlen(setup_myname),
+				setup_cursor_table [setup_cursor],
+				10+((int)(realtime*4)&1));
 }
+#endif
+
+#undef M_SETUP_DRAW_TRANSLATION
+#undef M_SETUP_DRAW_CHARACTER
+#undef M_SETUP_DRAW_TRANSLATE
+#undef M_SETUP_DRAW_TEXTBOX
+#undef M_SETUP_DRAW_PRINT
+#undef M_SETUP_DRAW_PIC
+#undef M_SETUP_DRAW_TRANSPIC
+#undef M_SETUP_DRAW_CACHE_PIC
+#undef M_SETUP_DRAW_C_ENTRY
 
 
 void M_Setup_Key (int k)

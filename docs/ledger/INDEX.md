@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-19-setup-menu-assembly-port.md`](2026-10-19-setup-menu-assembly-port.md) | 4 | renderer port / player setup menu drawing (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-modem-config-menu-assembly-port.md`](2026-10-19-modem-config-menu-assembly-port.md) | 4 | renderer port / modem configuration menu drawing (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-net-menu-assembly-port.md`](2026-10-19-net-menu-assembly-port.md) | 4 | renderer port / network protocol menu and help panel (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-multiplayer-menu-assembly-port.md`](2026-10-19-multiplayer-menu-assembly-port.md) | 4 | renderer port / multiplayer menu page (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |

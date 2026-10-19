@@ -15,8 +15,8 @@ area-link clipper, and touched-leaf ports add exact C/ASM correctness and
 strict instruction evidence, but no FPS or complete renderer-ownership claim.
 
 The latest 2026-10-19 non-BENCH assembly release ownership inventory contains
-412 directly reachable renderer entries and 17 directly reachable C
-dependencies: 395/412, or 95.9%, are assembly-owned by reachable-symbol count.
+412 directly reachable renderer entries and 16 directly reachable C
+dependencies: 396/412, or 96.1%, are assembly-owned by reachable-symbol count.
 This remains a profile-specific estimate: the inventory has 38 unresolved
 direct callees and `completeCallGraph=false`, and it does not weight routines by
 size or complexity. The ownership scan now includes `vid_*.s` sources, listing
@@ -31,6 +31,9 @@ release proof recorded in the
 `M_Keys_Draw` page and `M_FindKeysForCommand` lookup now select assembly; their
 288 page cases, eight lookup cases, and strict release proof are recorded in the
 [keys menu ledger](ledger/2026-10-19-keys-menu-assembly-port.md). The
+`M_Setup_Draw` player setup page now selects assembly, with its 240-case parity
+fixture and strict release proof recorded in the
+[setup menu ledger](ledger/2026-10-19-setup-menu-assembly-port.md). The
 `M_ModemConfig_Draw` page now selects assembly; its 2,880-case parity fixture and
 strict i486 release proof are recorded in the
 [modem configuration ledger](ledger/2026-10-19-modem-config-menu-assembly-port.md).

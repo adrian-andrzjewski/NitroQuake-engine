@@ -1243,6 +1243,183 @@ C(M_Keys_Draw):
 	ret
 
 .p2align 2
+.globl C(M_Setup_Draw)
+C(M_Setup_Draw):
+	pushl	%ebp
+	movl	%esp,%ebp
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	subl	$24,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_plaque
+	pushl	%eax
+	pushl	$4
+	pushl	$16
+	call	C(M_DrawTransPic)
+	addl	$12,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_multi_title
+	movl	%eax,-16(%ebp)
+	movl	$320,%eax
+	movl	-16(%ebp),%edx
+	subl	(%edx),%eax
+	movl	%eax,%edx
+	sarl	$31,%edx
+	andl	$1,%edx
+	addl	%edx,%eax
+	sarl	$1,%eax
+	pushl	-16(%ebp)
+	pushl	$4
+	pushl	%eax
+	call	C(M_DrawPic)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_setup_hostname_label
+	pushl	$40
+	pushl	$64
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$1
+	pushl	$16
+	pushl	$32
+	pushl	$160
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$C(setup_hostname)
+	pushl	$40
+	pushl	$168
+	call	C(M_Print)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_setup_name_label
+	pushl	$56
+	pushl	$64
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$1
+	pushl	$16
+	pushl	$48
+	pushl	$160
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$C(setup_myname)
+	pushl	$56
+	pushl	$168
+	call	C(M_Print)
+	addl	$12,%esp
+
+	pushl	$.Lmenu_setup_shirt_label
+	pushl	$80
+	pushl	$64
+	call	C(M_Print)
+	addl	$12,%esp
+	pushl	$.Lmenu_setup_pants_label
+	pushl	$104
+	pushl	$64
+	call	C(M_Print)
+	addl	$12,%esp
+
+	pushl	$1
+	pushl	$14
+	pushl	$132
+	pushl	$64
+	call	C(M_DrawTextBox)
+	addl	$16,%esp
+	pushl	$.Lmenu_setup_accept_label
+	pushl	$140
+	pushl	$72
+	call	C(M_Print)
+	addl	$12,%esp
+
+	MENU_PAGE_CACHE $.Lmenu_setup_bigbox
+	pushl	%eax
+	pushl	$64
+	pushl	$160
+	call	C(M_DrawTransPic)
+	addl	$12,%esp
+	MENU_PAGE_CACHE $.Lmenu_setup_player
+	movl	%eax,-20(%ebp)
+	movl	C(setup_bottom),%eax
+	shll	$4,%eax
+	pushl	%eax
+	movl	C(setup_top),%eax
+	shll	$4,%eax
+	pushl	%eax
+	call	C(M_BuildTranslationTable)
+	addl	$8,%esp
+	pushl	-20(%ebp)
+	pushl	$72
+	pushl	$172
+	call	C(M_DrawTransPicTranslate)
+	addl	$12,%esp
+
+	fnstcw	-24(%ebp)
+	movw	-24(%ebp),%ax
+	andw	$0xf3ff,%ax
+	orw	$0x0c00,%ax
+	movw	%ax,-22(%ebp)
+	fldcw	-22(%ebp)
+	fldl	C(realtime)
+	fmull	.Lmenu_keys_four
+	fistpl	-28(%ebp)
+	fldcw	-24(%ebp)
+	andl	$1,-28(%ebp)
+
+	movl	C(setup_cursor),%edx
+	movl	C(setup_cursor_table)(,%edx,4),%eax
+	movl	%eax,-32(%ebp)
+	movl	-28(%ebp),%eax
+	addl	$12,%eax
+	pushl	%eax
+	pushl	-32(%ebp)
+	pushl	$56
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+	cmpl	$0,C(setup_cursor)
+	jne	.Lmenu_setup_name_cursor
+	subl	$12,%esp
+	pushl	$C(setup_hostname)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	addl	$168,%eax
+	movl	%eax,-36(%ebp)
+	movl	-28(%ebp),%eax
+	addl	$10,%eax
+	pushl	%eax
+	pushl	-32(%ebp)
+	pushl	-36(%ebp)
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lmenu_setup_name_cursor:
+	cmpl	$1,C(setup_cursor)
+	jne	.Lmenu_setup_draw_done
+	subl	$12,%esp
+	pushl	$C(setup_myname)
+	call	C(strlen)
+	addl	$16,%esp
+	shll	$3,%eax
+	addl	$168,%eax
+	movl	%eax,-36(%ebp)
+	movl	-28(%ebp),%eax
+	addl	$10,%eax
+	pushl	%eax
+	pushl	-32(%ebp)
+	pushl	-36(%ebp)
+	call	C(M_DrawCharacter)
+	addl	$12,%esp
+
+.Lmenu_setup_draw_done:
+	addl	$24,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
+
+.p2align 2
 .globl C(M_Quit_Draw)
 C(M_Quit_Draw):
 	pushl	%ebx
@@ -1966,6 +2143,20 @@ C(SCR_DrawConsole):
 	.asciz	"gfx/sp_menu.lmp"
 .Lmenu_multi_title:
 	.asciz	"gfx/p_multi.lmp"
+.Lmenu_setup_bigbox:
+	.asciz	"gfx/bigbox.lmp"
+.Lmenu_setup_player:
+	.asciz	"gfx/menuplyr.lmp"
+.Lmenu_setup_hostname_label:
+	.asciz	"Hostname"
+.Lmenu_setup_name_label:
+	.asciz	"Your name"
+.Lmenu_setup_shirt_label:
+	.asciz	"Shirt color"
+.Lmenu_setup_pants_label:
+	.asciz	"Pants color"
+.Lmenu_setup_accept_label:
+	.asciz	"Accept Changes"
 .Lmenu_multi_content:
 	.asciz	"gfx/mp_menu.lmp"
 .Lmenu_modem_pulse:

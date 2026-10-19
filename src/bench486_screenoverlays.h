@@ -282,6 +282,7 @@ static unsigned short Bench486ScreenOverlaysGetControlWord (void)
 #include "bench486_menudraw.h"
 #include "bench486_menuquit.h"
 #include "bench486_menukeys.h"
+#include "bench486_menusetup.h"
 
 static void Bench486ScreenOverlaysInitTrace (void)
 {
@@ -787,6 +788,7 @@ void Bench486ScreenOverlaysCases (void)
 	Bench486MenuDispatchCases ();
 	Bench486MenuQuitCases ();
 	Bench486MenuKeysCases ();
+	Bench486MenuSetupCases ();
 	Bench486ScreenConsoleDrawCases ();
 }
 

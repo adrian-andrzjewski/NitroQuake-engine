@@ -6,9 +6,7 @@
 
 #include "asm_menutext.h"
 
-#define BMK_TITLE_PATH_INDEX \
-	(sizeof(bench486_menu_cache_paths) / \
-	 sizeof(bench486_menu_cache_paths[0]) - 1U)
+#define BMK_TITLE_PATH_INDEX 41U /* gfx/ttl_cstm.lmp */
 #define BMK_BINDING_COUNT MD_KEY_BIND_COUNT
 #define BMK_EVENT_PIC 2
 #define BMK_EVENT_CACHEPIC 4
