@@ -309,7 +309,7 @@ $script:SelectorTable = @(
     @{
         Param      = 'TurbulentImplementation'
         Manifest   = 'turbulentImplementation'
-        Suffix     = @{ 'c' = 'turbc'; 'asm' = 'turbasm' }
+        Suffix     = @{ 'c' = 'turbc'; 'asm' = 'turbasm'; 'pair' = 'turbpair' }
         C          = @{ 'c' = @('ASM486_TURBULENT_C') }
         # 'stosb' is the default and emits no token, so it is absent from Suffix;
         # the C selector's define also reaches the assembler so a selected outer
@@ -317,6 +317,7 @@ $script:SelectorTable = @(
         Asm        = @{
             'c'     = @('ASM486_TURBULENT_C')
             'stosb' = @('ASM486_TURBULENT_STOSB')
+            'pair'  = @('ASM486_TURBULENT_PAIR_LOOP')
         }
         SelectsAsm = $false
     }

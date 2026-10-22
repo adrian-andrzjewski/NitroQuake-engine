@@ -37,22 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // turbulent texture mapping code
 //----------------------------------------------------------------------
 
-	.p2align 4,,15
-.globl C(D_DrawTurbulent8Span_asm486)
-C(D_DrawTurbulent8Span_asm486):
-	pushl	%ebp				// preserve caller's stack frame pointer
-	pushl	%esi				// preserve register variables
-	pushl	%edi
-	pushl	%ebx
-
-	movl	C(r_turb_s),%esi
-	movl	C(r_turb_t),%ecx
-	movl	C(r_turb_pdest),%edi
-	movl	C(r_turb_spancount),%ebx
-	movl	C(r_turb_turb),%ebp	// table base is invariant for this span
-	cld
-
-Llp:
+.macro TURBULENT8_PIXEL
 	movl	%ecx,%eax
 	movl	%esi,%edx
 	sarl	$16,%eax
@@ -74,15 +59,53 @@ Llp:
 	movl	C(r_turb_pbase),%eax
 #ifdef ASM486_TURBULENT_STOSB
 	movb	(%eax,%edx,1),%al
-	decl	%ebx
 	stosb
 #else
 	incl	%edi
 	movb	(%eax,%edx,1),%dl
-	decl	%ebx
 	movb	%dl,-1(%edi)
 #endif
-	jg		Llp
+.endm
+
+	.p2align 4,,15
+.globl C(D_DrawTurbulent8Span_asm486)
+C(D_DrawTurbulent8Span_asm486):
+	pushl	%ebp				// preserve caller's stack frame pointer
+	pushl	%esi				// preserve register variables
+	pushl	%edi
+	pushl	%ebx
+
+	movl	C(r_turb_s),%esi
+	movl	C(r_turb_t),%ecx
+	movl	C(r_turb_pdest),%edi
+	movl	C(r_turb_spancount),%ebx
+	movl	C(r_turb_turb),%ebp	// table base is invariant for this span
+	cld
+
+#ifdef ASM486_TURBULENT_PAIR_LOOP
+	cmpl	$2,%ebx
+	jl	.Lturbulent_span_single_pixel
+	shrl	$1,%ebx
+.Lturbulent_span_pair_loop:
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	decl	%ebx
+	jnz	.Lturbulent_span_pair_loop
+	testl	$1,C(r_turb_spancount)
+	jz	.Lturbulent_span_done
+	TURBULENT8_PIXEL
+	jmp	.Lturbulent_span_done
+
+.Lturbulent_span_single_pixel:
+	TURBULENT8_PIXEL
+#else
+.Lturbulent_span_single_loop:
+	TURBULENT8_PIXEL
+	decl	%ebx
+	jg	.Lturbulent_span_single_loop
+#endif
+
+.Lturbulent_span_done:
 
 	movl	%edi,C(r_turb_pdest)
 
