@@ -309,7 +309,7 @@ $script:SelectorTable = @(
     @{
         Param      = 'TurbulentImplementation'
         Manifest   = 'turbulentImplementation'
-        Suffix     = @{ 'c' = 'turbc'; 'asm' = 'turbasm'; 'pair' = 'turbpair'; 'quad' = 'turbquad'; 'octa' = 'turbocta'; 'twelve' = 'turbtwelve' }
+        Suffix     = @{ 'c' = 'turbc'; 'asm' = 'turbasm'; 'pair' = 'turbpair'; 'quad' = 'turbquad'; 'octa' = 'turbocta'; 'twelve' = 'turbtwelve'; 'fourteen' = 'turbfourteen' }
         C          = @{ 'c' = @('ASM486_TURBULENT_C') }
         # 'stosb' is the default and emits no token, so it is absent from Suffix;
         # the C selector's define also reaches the assembler so a selected outer
@@ -321,6 +321,7 @@ $script:SelectorTable = @(
             'quad'  = @('ASM486_TURBULENT_QUAD_LOOP')
             'octa'  = @('ASM486_TURBULENT_OCTA_LOOP')
             'twelve' = @('ASM486_TURBULENT_TWELVE_LOOP')
+            'fourteen' = @('ASM486_TURBULENT_FOURTEEN_LOOP')
         }
         SelectsAsm = $false
     }
@@ -2557,7 +2558,7 @@ function Set-DefaultI486AssemblySelectors {
         )
         $acceptedDefault = $value -ceq 'asm' -or (
             $property.Name -ceq 'TurbulentImplementation' -and
-            $value -ceq 'twelve'
+            $value -ceq 'fourteen'
         ) -or (
             $property.Name -ceq 'EdgeListMaintenanceImplementation' -and
             $value -ceq 'legacy'

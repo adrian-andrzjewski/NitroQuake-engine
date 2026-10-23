@@ -275,7 +275,7 @@ param(
     [int]$TextureAxisCacheEntries = 256,
     [ValidateSet('c', 'asm')]
     [string]$TextureAxisImplementation = 'c',
-    [ValidateSet('c', 'asm', 'stosb', 'octa', 'twelve')]
+    [ValidateSet('c', 'asm', 'stosb', 'octa', 'twelve', 'fourteen')]
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('control', 'word')]
     [string]$TextureSpanTailStores = 'control',

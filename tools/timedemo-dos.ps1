@@ -43,7 +43,7 @@ param(
     [string]$SolidSurfaceImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$TurbulentScanImplementation = 'c',
-    [ValidateSet('c', 'asm', 'stosb', 'pair', 'quad', 'octa', 'twelve')]
+    [ValidateSet('c', 'asm', 'stosb', 'pair', 'quad', 'octa', 'twelve', 'fourteen')]
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('byte', 'word', 'dword', 'loop', 'stosw')]
     [string]$TextureSpanStores = 'word',

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-23-turbulent-span-fourteen-loop-release-default.md`](2026-10-23-turbulent-span-fourteen-loop-release-default.md) | 1 | renderer performance / promote fourteen-pixel turbulent span loop to the i486 default after a positive matched three-run mean, checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-turbulent-span-twelve-loop-release-default.md`](2026-10-23-turbulent-span-twelve-loop-release-default.md) | 1 | renderer performance / promote twelve-pixel turbulent span loop to the i486 default after a positive matched three-run mean, checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-turbulent-span-paired-loop.md`](2026-10-23-turbulent-span-paired-loop.md) | 1 | renderer performance / promote two-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-23-turbulent-span-octa-loop.md`](2026-10-23-turbulent-span-octa-loop.md) | 1 | renderer performance / promote an opt-in eight-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
@@ -569,6 +570,7 @@ other axis: one row per renderer region, newest entry first.
 - `rejected` [E4, the surface-cache eviction churn (2026-09-29) — premise falsified before it was built, 0 of 8,886 reb...](2026-09-29-harness-and-cost-model.md)
 
 ### texture-spans
+- `promoted` [Fourteen-pixel turbulent span loop (2026-10-23) — **+0.000098 FPS (+0.00062793%)**, exact checksum parity](2026-10-23-turbulent-span-fourteen-loop-release-default.md)
 - `promoted` [Twelve-pixel turbulent span loop (2026-10-23) — **+0.000754 FPS (+0.00483141%)**, exact checksum parity](2026-10-23-turbulent-span-twelve-loop-release-default.md)
 - `promoted` [Four-pixel turbulent span loop (2026-10-23) — **+0.001221667 FPS (+0.00783054%)**, exact checksum parity](2026-10-23-turbulent-span-quad-loop.md)
 
