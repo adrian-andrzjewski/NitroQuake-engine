@@ -87,6 +87,7 @@ Lloop:
 	fxch	%st(1)				// accum | accum3 | accum2 | v[2] | v[1] | v[0]
 	faddp	%st(0),%st(2)		// accum3 | accum | v[2] | v[1] | v[0]
 	movb	tv_lightnormalindex(%esi),%dl
+	addl	$(tv_size),%esi
 	movl	stv_s(%ebp),%eax
 	movl	%eax,fv_v+8(%edi)
 	faddp	%st(0),%st(1)		// z | v[2] | v[1] | v[0]
@@ -104,6 +105,7 @@ Lloop:
 //		fv->flags = pstverts->onseam;
 	movl	stv_onseam(%ebp),%eax
 	movl	%eax,fv_flags(%edi)
+	addl	$(stv_size),%ebp
 
 	leal	(%edx,%edx,2),%eax	// index*3
 
@@ -197,10 +199,8 @@ Lp1:
 	fxch	%st(3)				 // yaccum | xaccum | yaccum2 | xaccum3 |
 								 //  yaccum3 | zi
 	faddp	%st(0),%st(2)		 // xaccum | yaccum | xaccum3 | yaccum3 | zi
-	addl	$(tv_size),%esi
 	faddp	%st(0),%st(2)		 // yaccum | x | yaccum3 | zi
 	faddp	%st(0),%st(2)		 // x | y | zi
-	addl	$(stv_size),%ebp
 	fmul	%st(2),%st(0)		 // x/z | y | zi
 	fxch	%st(1)				 // y | x/z | zi
 	fmul	%st(2),%st(0)		 // y/z | x/z | zi
