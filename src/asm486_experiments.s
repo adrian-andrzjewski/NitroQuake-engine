@@ -9150,16 +9150,11 @@ C(R_BuildLightMap):
 	movl	lm_surface_samples(%esi),%eax
 	movl	%eax,LMB_LIGHTMAP(%ebp)
 
-	// Match `if (r_fullbright.value || !cl.worldmodel->lightdata)` including
-	// negative zero and unordered float values.
-	flds	C(r_fullbright)+lm_cvar_value
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	sahf
-	jp	.Llightmap_fullbright
+	// C float truth is false only for +0 and -0. Shifting away the sign bit
+	// preserves that for every IEEE-754 value, including subnormals and NaNs.
+	movl	C(r_fullbright)+lm_cvar_value,%eax
+	shll	$1,%eax
 	jne	.Llightmap_fullbright
-	jc	.Llightmap_fullbright
 	movl	C(cl)+lm_client_worldmodel,%eax
 	cmpl	$0,lm_model_lightdata(%eax)
 	je	.Llightmap_fullbright
