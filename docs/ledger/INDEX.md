@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-23-alias-transform-t-store-after-fdivrs-promoted.md`](2026-10-23-alias-transform-t-store-after-fdivrs-promoted.md) | 1 | renderer performance / move the alias T-coordinate copy after reciprocal division so it overlaps x87 work after a positive matched mean, exact checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-alias-transform-normal-index-read-hoist-promoted.md`](2026-10-23-alias-transform-normal-index-read-hoist-promoted.md) | 1 | renderer performance / overlap the normal-index read, scaling, and vertex-pointer advance with alias transform arithmetic after a positive matched mean, exact checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-alias-transform-pointer-advance-promoted.md`](2026-10-23-alias-transform-pointer-advance-promoted.md) | 1 | renderer performance / move alias transform source-pointer increments after their final reads following a positive matched mean, exact checksum parity, and full i486 ISA gates |
 | [`2026-10-23-sprite-clip-integer-distance-tests-promoted.md`](2026-10-23-sprite-clip-integer-distance-tests-promoted.md) | 1 | renderer performance / replace repeated sprite distance x87 comparisons with IEEE single-precision integer predicates after a positive matched three-run mean, checksum parity, and complete ISA audits |

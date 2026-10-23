@@ -94,13 +94,12 @@ Lloop:
 	movl	%eax,fv_v+8(%edi)
 	faddp	%st(0),%st(1)		// z | v[2] | v[1] | v[0]
 
-	movl	stv_t(%ebp),%eax
-	movl	%eax,fv_v+12(%edi)
-
 //	// lighting
 //		plightnormal = r_avertexnormals[pverts->lightnormalindex];
 
 	fdivrs	Lfloat_1			// zi | v[2] | v[1] | v[0]
+	movl	stv_t(%ebp),%eax
+	movl	%eax,fv_v+12(%edi)
 
 //		fv->v[2] = pstverts->s;
 //		fv->v[3] = pstverts->t;
