@@ -657,3 +657,4 @@ section below moved verbatim.
 - `Alias bounding-box projection result`
 - `Clipped alias vertex transform result`
 - `Rejected negative-gradient Z-span unroll`
+- [Alias transform indexed integer-coordinate loads (2026-10-23)](2026-10-23-alias-transform-integer-coordinate-table-promoted.md)

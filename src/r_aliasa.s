@@ -33,7 +33,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 Lfloat_1:	.single	1.0
 Ltemp:		.long	0
-Lcoords:	.long	0, 0, 0
+Lcoords_u8:
+	.set	Lcoords_u8_index, 0
+	.rept	256
+	.long	Lcoords_u8_index
+	.set	Lcoords_u8_index, Lcoords_u8_index+1
+	.endr
 
 	.text
 
@@ -66,14 +71,11 @@ Lloop:
 //		zi = 1.0 / (DotProduct(pverts->v, aliastransform[2]) +
 //				aliastransform[2][3]);
 	movb	(%esi),%dl
-	movb	%dl,Lcoords
-	fildl	Lcoords				// v[0]
+	fildl	Lcoords_u8(,%edx,4)		// v[0]
 	movb	1(%esi),%dl
-	movb	%dl,Lcoords+4
-	fildl	Lcoords+4			// v[1] | v[0]
+	fildl	Lcoords_u8(,%edx,4)		// v[1] | v[0]
 	movb	2(%esi),%dl	
-	movb	%dl,Lcoords+8
-	fildl	Lcoords+8			// v[2] | v[1] | v[0]
+	fildl	Lcoords_u8(,%edx,4)		// v[2] | v[1] | v[0]
 
 	fld		%st(2)				// v[0] | v[2] | v[1] | v[0]
 	fmuls	C(aliastransform)+32 // accum | v[2] | v[1] | v[0]
