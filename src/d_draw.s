@@ -832,6 +832,50 @@ LClampNeg:
 
 #define pzspans	4+20
 
+	.macro ZSPAN_ADD_PAIR negative_label
+	movl	%edx,%eax
+	js	\negative_label
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	ZPACK16
+	addl	%ebx,%edx
+	movl	%eax,(%edi)
+	leal	4(%edi),%edi
+	.endm
+
+	.macro ZSPAN_ADD_NEGATIVE_PAIR next_label
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	ZPACK16
+	orl	$0xffff0000,%eax
+	addl	%ebx,%edx
+	movl	%eax,(%edi)
+	leal	4(%edi),%edi
+	jmp	\next_label
+	.endm
+
+	.macro ZSPAN_SUB_PAIR negative_label
+	movl	%edx,%eax
+	js	\negative_label
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	ZPACK16
+	subl	%ebx,%edx
+	movl	%eax,(%edi)
+	leal	4(%edi),%edi
+	.endm
+
+	.macro ZSPAN_SUB_NEGATIVE_PAIR next_label
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	ZPACK16
+	orl	$0xffff0000,%eax
+	subl	%ebx,%edx
+	movl	%eax,(%edi)
+	leal	4(%edi),%edi
+	jmp	\next_label
+	.endm
+
 .globl C(D_DrawZSpans)
 C(D_DrawZSpans):
 	pushl	%ebp				// preserve caller's stack frame
@@ -917,10 +961,69 @@ LZDraw:
 	movw	%ax,(%edi)
 	addl	$2,%edi
 
-// Keep the remaining pixel count on the stack: the i386 packing fallback
-// uses %esi as scratch, while the odd-pixel test needs the original count.
+// Keep the remaining pixel count for the odd-pixel test. The i386 packing
+// fallback uses %esi as scratch; the i486 packer leaves it available.
 LFMiddle:
+	#ifndef TARGET_I386
+	movl	%ecx,%esi
+	shrl	$4,%ecx				// sixteen pixels per main-loop group
+	jz	.LFMiddleGroups16Done
+.LFMiddleGroup16Loop:
+// The previous pair's final ADD sets the next sample's sign in SF.
+	testl	%edx,%edx
+.LFMiddleGroup16Pair1:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeFirst
+.LFMiddleGroup16Pair2:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeSecond
+.LFMiddleGroup16Pair3:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeThird
+.LFMiddleGroup16Pair4:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeFourth
+.LFMiddleGroup16Pair5:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeFifth
+.LFMiddleGroup16Pair6:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeSixth
+.LFMiddleGroup16Pair7:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeSeventh
+.LFMiddleGroup16Pair8:
+	ZSPAN_ADD_PAIR .LFMiddleGroup16NegativeEighth
+.LFMiddleGroup16End:
+	decl	%ecx
+	jnz	.LFMiddleGroup16Loop
+
+.LFMiddleGroups16Done:
+	testl	$8,%esi
+	jz	.LFMiddleGroups8Done
+	testl	%edx,%edx
+.LFMiddleGroup8Pair1:
+	ZSPAN_ADD_PAIR .LFMiddleGroup8NegativeFirst
+.LFMiddleGroup8Pair2:
+	ZSPAN_ADD_PAIR .LFMiddleGroup8NegativeSecond
+.LFMiddleGroup8Pair3:
+	ZSPAN_ADD_PAIR .LFMiddleGroup8NegativeThird
+.LFMiddleGroup8Pair4:
+	ZSPAN_ADD_PAIR .LFMiddleGroup8NegativeFourth
+.LFMiddleGroup8End:
+.LFMiddleGroups8Done:
+	// An eight-pixel group leaves at most one four-pixel chunk and one pair.
+	testl	$4,%esi
+	jz	.LFMiddleGroup4Done
+	testl	%edx,%edx
+.LFMiddleGroup4Pair1:
+	ZSPAN_ADD_PAIR .LFMiddleGroup4NegativeFirst
+.LFMiddleGroup4Pair2:
+	ZSPAN_ADD_PAIR .LFMiddleGroup4NegativeSecond
+.LFMiddleGroup4Done:
+	testl	$2,%esi
+	jz	LFPairDone
+	testl	%edx,%edx
+	ZSPAN_ADD_PAIR .LFMiddleTailNegative
+	#else
+	#ifdef TARGET_I386
 	pushl	%ecx
+	#else
+	movl	%ecx,%esi
+	#endif
 	shrl	$1,%ecx				// aligned dword count = pixels / 2
 	jz		LFPairDone
 LFMiddleLoop:
@@ -950,9 +1053,12 @@ LFNegativeDepthPair:
 	addl	$4,%edi
 	decl	%ecx
 	jnz		LFMiddleLoop
+	#endif
 
 LFPairDone:
+	#ifdef TARGET_I386
 	popl	%esi				// recover remaining pixels for LFLast
+	#endif
 LFLast:
 // do the last, unaligned pixel, if there is one
 	testl	$1,%esi			// is there an odd pixel left to do?
@@ -1025,9 +1131,68 @@ LZDrawNeg:
 	movw	%ax,(%edi)
 	addl	$2,%edi
 
-// Keep the remaining count out of %esi while the 386 packing fallback runs.
+// Keep the remaining count for the odd-pixel test; only the 386 fallback
+// requires saving it on the stack around %esi scratch use.
 LFNegMiddle:
+	#ifndef TARGET_I386
+	movl	%ecx,%esi
+	shrl	$4,%ecx				// sixteen pixels per main-loop group
+	jz	.LFNegMiddleGroups16Done
+.LFNegMiddleGroup16Loop:
+	testl	%edx,%edx
+.LFNegMiddleGroup16Pair1:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeFirst
+.LFNegMiddleGroup16Pair2:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeSecond
+.LFNegMiddleGroup16Pair3:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeThird
+.LFNegMiddleGroup16Pair4:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeFourth
+.LFNegMiddleGroup16Pair5:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeFifth
+.LFNegMiddleGroup16Pair6:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeSixth
+.LFNegMiddleGroup16Pair7:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeSeventh
+.LFNegMiddleGroup16Pair8:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup16NegativeEighth
+.LFNegMiddleGroup16End:
+	decl	%ecx
+	jnz	.LFNegMiddleGroup16Loop
+
+.LFNegMiddleGroups16Done:
+	testl	$8,%esi
+	jz	.LFNegMiddleGroups8Done
+	testl	%edx,%edx
+.LFNegMiddleGroup8Pair1:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup8NegativeFirst
+.LFNegMiddleGroup8Pair2:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup8NegativeSecond
+.LFNegMiddleGroup8Pair3:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup8NegativeThird
+.LFNegMiddleGroup8Pair4:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup8NegativeFourth
+.LFNegMiddleGroup8End:
+.LFNegMiddleGroups8Done:
+
+	testl	$4,%esi
+	jz	.LFNegMiddleGroup4Done
+	testl	%edx,%edx
+.LFNegMiddleGroup4Pair1:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup4NegativeFirst
+.LFNegMiddleGroup4Pair2:
+	ZSPAN_SUB_PAIR .LFNegMiddleGroup4NegativeSecond
+.LFNegMiddleGroup4Done:
+	testl	$2,%esi
+	jz	LFNegPairDone
+	testl	%edx,%edx
+	ZSPAN_SUB_PAIR .LFNegMiddleTailNegative
+	#else
+	#ifdef TARGET_I386
 	pushl	%ecx
+	#else
+	movl	%ecx,%esi
+	#endif
 	shrl	$1,%ecx
 	jz		LFNegPairDone
 LFNegMiddleLoop:
@@ -1054,9 +1219,12 @@ LFNegNegativeDepthPair:
 	addl	$4,%edi
 	decl	%ecx
 	jnz		LFNegMiddleLoop
+	#endif
 
 LFNegPairDone:
+	#ifdef TARGET_I386
 	popl	%esi
+	#endif
 
 LFNegLast:
 // do the last, unaligned pixel, if there is one
@@ -1146,6 +1314,98 @@ LZeroStepDone:
 	jnz		LZeroStepSpanLoop
 
 	jmp		LFDone
+
+	#ifndef TARGET_I386
+.LFMiddleGroup16NegativeFirst:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16Pair2
+
+.LFMiddleGroup16NegativeSecond:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16Pair3
+
+.LFMiddleGroup16NegativeThird:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16Pair4
+
+.LFMiddleGroup16NegativeFourth:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16Pair5
+
+.LFMiddleGroup16NegativeFifth:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16Pair6
+
+.LFMiddleGroup16NegativeSixth:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16Pair7
+
+.LFMiddleGroup16NegativeSeventh:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16Pair8
+
+.LFMiddleGroup16NegativeEighth:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup16End
+
+.LFMiddleGroup8NegativeFirst:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup8Pair2
+
+.LFMiddleGroup8NegativeSecond:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup8Pair3
+
+.LFMiddleGroup8NegativeThird:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup8Pair4
+
+.LFMiddleGroup8NegativeFourth:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup8End
+
+.LFMiddleGroup4NegativeFirst:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup4Pair2
+
+.LFMiddleGroup4NegativeSecond:
+	ZSPAN_ADD_NEGATIVE_PAIR .LFMiddleGroup4Done
+
+.LFNegMiddleGroup16NegativeFirst:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16Pair2
+
+.LFNegMiddleGroup16NegativeSecond:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16Pair3
+
+.LFNegMiddleGroup16NegativeThird:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16Pair4
+
+.LFNegMiddleGroup16NegativeFourth:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16Pair5
+
+.LFNegMiddleGroup16NegativeFifth:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16Pair6
+
+.LFNegMiddleGroup16NegativeSixth:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16Pair7
+
+.LFNegMiddleGroup16NegativeSeventh:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16Pair8
+
+.LFNegMiddleGroup16NegativeEighth:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup16End
+
+.LFNegMiddleGroup8NegativeFirst:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup8Pair2
+
+.LFNegMiddleGroup8NegativeSecond:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup8Pair3
+
+.LFNegMiddleGroup8NegativeThird:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup8Pair4
+
+.LFNegMiddleGroup8NegativeFourth:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup8End
+
+.LFNegMiddleGroup4NegativeFirst:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup4Pair2
+
+.LFNegMiddleGroup4NegativeSecond:
+	ZSPAN_SUB_NEGATIVE_PAIR .LFNegMiddleGroup4Done
+
+.LFMiddleTailNegative:
+	ZSPAN_ADD_NEGATIVE_PAIR LFPairDone
+
+.LFNegMiddleTailNegative:
+	ZSPAN_SUB_NEGATIVE_PAIR LFNegPairDone
+	#endif
 
 LFDone:
 	fldcw	0(%esp)
