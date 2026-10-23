@@ -965,6 +965,8 @@ LZDraw:
 	// nonnegative. The 64-bit product avoids overflow in this test.
 	testl	%edx,%edx
 	js	.LZDrawGeneral
+	cmpl	$24,%ecx
+	jb		.LZDrawGeneral
 	movl	%edx,%esi
 	leal	-1(%ecx),%eax
 	imull	%ebx
