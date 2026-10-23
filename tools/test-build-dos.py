@@ -589,6 +589,13 @@ def main() -> int:
         if "-DASM486_TURBULENT_QUAD_LOOP" not in turbulent_inner_quad.get("asmFlags", []):
             fail("the turbulent four-pixel selector omits ASM486_TURBULENT_QUAD_LOOP from assembly flags")
 
+    turbulent_inner_octa = dump_flags("-TurbulentImplementation", "octa")
+    if turbulent_inner_octa:
+        if "-turbocta" not in turbulent_inner_octa.get("profileSuffix", ""):
+            fail("the turbulent eight-pixel selector does not add its profile token")
+        if "-DASM486_TURBULENT_OCTA_LOOP" not in turbulent_inner_octa.get("asmFlags", []):
+            fail("the turbulent eight-pixel selector omits ASM486_TURBULENT_OCTA_LOOP from assembly flags")
+
     lightmap_build_c = dump_flags("-LightMapBuildImplementation", "c")
     lightmap_build_asm = dump_flags("-LightMapBuildImplementation", "asm")
     if lightmap_build_c and lightmap_build_asm:

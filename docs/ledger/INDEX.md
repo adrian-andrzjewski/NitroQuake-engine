@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-23-turbulent-span-paired-loop.md`](2026-10-23-turbulent-span-paired-loop.md) | 1 | renderer performance / promote two-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
+| [`2026-10-23-turbulent-span-octa-loop.md`](2026-10-23-turbulent-span-octa-loop.md) | 1 | renderer performance / promote an opt-in eight-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-23-turbulent-span-quad-loop.md`](2026-10-23-turbulent-span-quad-loop.md) | 1 | renderer performance / promote four-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-19-menu-state-entry-assembly-port.md`](2026-10-19-menu-state-entry-assembly-port.md) | 4 | renderer port / LAN and server-list menu state entries (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-server-list-menu-assembly-port.md`](2026-10-19-server-list-menu-assembly-port.md) | 4 | renderer port / server-list menu drawing and host-cache sorting (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
