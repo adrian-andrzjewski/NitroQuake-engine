@@ -82,7 +82,35 @@ C(D_DrawTurbulent8Span_asm486):
 	movl	C(r_turb_turb),%ebp	// table base is invariant for this span
 	cld
 
-#ifdef ASM486_TURBULENT_PAIR_LOOP
+#ifdef ASM486_TURBULENT_QUAD_LOOP
+	cmpl	$2,%ebx
+	jl	.Lturbulent_span_single_pixel
+	cmpl	$4,%ebx
+	jl	.Lturbulent_span_quad_tail
+	shrl	$2,%ebx
+.Lturbulent_span_quad_loop:
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	decl	%ebx
+	jnz	.Lturbulent_span_quad_loop
+.Lturbulent_span_quad_tail:
+	movl	C(r_turb_spancount),%ebx
+	andl	$3,%ebx
+	testl	$2,%ebx
+	jz	.Lturbulent_span_quad_odd_tail
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+.Lturbulent_span_quad_odd_tail:
+	testl	$1,%ebx
+	jz	.Lturbulent_span_done
+	TURBULENT8_PIXEL
+	jmp	.Lturbulent_span_done
+
+.Lturbulent_span_single_pixel:
+	TURBULENT8_PIXEL
+#elif defined(ASM486_TURBULENT_PAIR_LOOP)
 	cmpl	$2,%ebx
 	jl	.Lturbulent_span_single_pixel
 	shrl	$1,%ebx

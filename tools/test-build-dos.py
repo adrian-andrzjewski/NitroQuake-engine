@@ -579,9 +579,15 @@ def main() -> int:
     if turbulent_inner_pair:
         if "-turbpair" not in turbulent_inner_pair.get("profileSuffix", ""):
             fail("the turbulent paired-loop selector does not add its profile token")
-        for flags_name in ("cFlags", "asmFlags"):
-            if "-DASM486_TURBULENT_PAIR_LOOP" not in turbulent_inner_pair.get(flags_name, []):
-                fail("the turbulent paired-loop selector omits ASM486_TURBULENT_PAIR_LOOP from %s" % flags_name)
+        if "-DASM486_TURBULENT_PAIR_LOOP" not in turbulent_inner_pair.get("asmFlags", []):
+            fail("the turbulent paired-loop selector omits ASM486_TURBULENT_PAIR_LOOP from assembly flags")
+
+    turbulent_inner_quad = dump_flags("-TurbulentImplementation", "quad")
+    if turbulent_inner_quad:
+        if "-turbquad" not in turbulent_inner_quad.get("profileSuffix", ""):
+            fail("the turbulent four-pixel selector does not add its profile token")
+        if "-DASM486_TURBULENT_QUAD_LOOP" not in turbulent_inner_quad.get("asmFlags", []):
+            fail("the turbulent four-pixel selector omits ASM486_TURBULENT_QUAD_LOOP from assembly flags")
 
     lightmap_build_c = dump_flags("-LightMapBuildImplementation", "c")
     lightmap_build_asm = dump_flags("-LightMapBuildImplementation", "asm")
