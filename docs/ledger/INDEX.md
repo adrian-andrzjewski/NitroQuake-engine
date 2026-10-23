@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-23-bsp-walk-double-distance-integer-test-promoted.md`](2026-10-23-bsp-walk-double-distance-integer-test-promoted.md) | 1 | renderer performance / classify the stored BSP plane dot with exact IEEE-754 binary64 integer checks after a positive matched three-run mean, checksum parity, and complete ISA audits |
 | [`2026-10-23-bmodel-clip-integer-distance-test-promoted.md`](2026-10-23-bmodel-clip-integer-distance-test-promoted.md) | 1 | renderer performance / replace two x87 strict-positive tests with IEEE single-precision integer range checks in brush polygon clipping after a positive matched three-run mean, checksum parity, and complete ISA audits |
 | [`2026-10-23-lightmap-fullbright-integer-truth-promoted.md`](2026-10-23-lightmap-fullbright-integer-truth-promoted.md) | 1 | renderer performance / promote an i486 integer truth test for lightmap `r_fullbright` after a positive matched three-run mean, checksum parity, and complete ISA audits |
 | [`2026-10-23-lightmap-fullbright-mask-promoted.md`](2026-10-23-lightmap-fullbright-mask-promoted.md) | 1 | renderer performance / promote immediate-mask float truth testing in the i486 lightmap builder after a positive matched three-run mean, checksum parity, and complete ISA audits |

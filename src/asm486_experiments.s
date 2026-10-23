@@ -6935,16 +6935,22 @@ C(R_RecursiveWorldNode_asm486):
 	BSP_PLANE_DOT %edx
 	fstpl	-32(%ebp)
 	movl	$1,%edi			// side defaults to back for unordered dot
-	fldl	-32(%ebp)
-	ftst
-	fnstsw	%ax
-	sahf
-	jp	.Lbsp_walk_side_ready	// NaN: C's dot >= 0 is false
-	jc	.Lbsp_walk_side_ready	// negative
+	/* The stored IEEE double is >= 0 through +infinity, plus exactly -0. */
+	movl	-28(%ebp),%eax
+	cmpl	$0x7ff00000,%eax
+	ja	.Lbsp_walk_dot_special
+	jne	.Lbsp_walk_dot_front
+	cmpl	$0,-32(%ebp)		// +infinity is ordered; NaNs have nonzero low bits
+	je	.Lbsp_walk_dot_front
+	jmp	.Lbsp_walk_side_ready
+.Lbsp_walk_dot_special:
+	cmpl	$0x80000000,%eax	// only negative zero reaches the front side
+	jne	.Lbsp_walk_side_ready
+	cmpl	$0,-32(%ebp)
+	jne	.Lbsp_walk_side_ready
+.Lbsp_walk_dot_front:
 	movl	$0,%edi			// positive or zero
 .Lbsp_walk_side_ready:
-	fstp	%st(0)			// discard the FTST operand before descending
-
 	// Save the parent continuation, then enter its front child. Record layout:
 	// node, clip flags, double plane dot, side, stage, and optional framecount.
 	subl	$BSP_WALK_RECORD_BYTES,%esp
