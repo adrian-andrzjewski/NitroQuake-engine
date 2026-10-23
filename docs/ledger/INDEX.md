@@ -658,3 +658,4 @@ section below moved verbatim.
 - `Clipped alias vertex transform result`
 - `Rejected negative-gradient Z-span unroll`
 - [Alias transform indexed integer-coordinate loads (2026-10-23)](2026-10-23-alias-transform-integer-coordinate-table-promoted.md)
+- [Alias transform 16-bit coordinate table (2026-10-23)](2026-10-23-alias-transform-u16-coordinate-table-promoted.md)

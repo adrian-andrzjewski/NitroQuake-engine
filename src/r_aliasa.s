@@ -36,7 +36,7 @@ Ltemp:		.long	0
 Lcoords_u8:
 	.set	Lcoords_u8_index, 0
 	.rept	256
-	.long	Lcoords_u8_index
+	.word	Lcoords_u8_index
 	.set	Lcoords_u8_index, Lcoords_u8_index+1
 	.endr
 
@@ -71,11 +71,11 @@ Lloop:
 //		zi = 1.0 / (DotProduct(pverts->v, aliastransform[2]) +
 //				aliastransform[2][3]);
 	movb	(%esi),%dl
-	fildl	Lcoords_u8(,%edx,4)		// v[0]
+	filds	Lcoords_u8(,%edx,2)		// v[0]
 	movb	1(%esi),%dl
-	fildl	Lcoords_u8(,%edx,4)		// v[1] | v[0]
+	filds	Lcoords_u8(,%edx,2)		// v[1] | v[0]
 	movb	2(%esi),%dl	
-	fildl	Lcoords_u8(,%edx,4)		// v[2] | v[1] | v[0]
+	filds	Lcoords_u8(,%edx,2)		// v[2] | v[1] | v[0]
 
 	fld		%st(2)				// v[0] | v[2] | v[1] | v[0]
 	fmuls	C(aliastransform)+32 // accum | v[2] | v[1] | v[0]
