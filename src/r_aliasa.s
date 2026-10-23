@@ -75,6 +75,9 @@ Lloop:
 	filds	Lcoords_u8(,%edx,2)		// v[1] | v[0]
 	movb	2(%esi),%dl	
 	filds	Lcoords_u8(,%edx,2)		// v[2] | v[1] | v[0]
+	movb	tv_lightnormalindex(%esi),%dl
+	leal	(%edx,%edx,2),%edx	// index*3
+	addl	$(tv_size),%esi
 
 	fld		%st(2)				// v[0] | v[2] | v[1] | v[0]
 	fmuls	C(aliastransform)+32 // accum | v[2] | v[1] | v[0]
@@ -87,9 +90,6 @@ Lloop:
 								 //  v[0]
 	fxch	%st(1)				// accum | accum3 | accum2 | v[2] | v[1] | v[0]
 	faddp	%st(0),%st(2)		// accum3 | accum | v[2] | v[1] | v[0]
-	movb	tv_lightnormalindex(%esi),%dl
-	leal	(%edx,%edx,2),%edx	// index*3
-	addl	$(tv_size),%esi
 	movl	stv_s(%ebp),%eax
 	movl	%eax,fv_v+8(%edi)
 	faddp	%st(0),%st(1)		// z | v[2] | v[1] | v[0]
