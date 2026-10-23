@@ -843,6 +843,16 @@ LClampNeg:
 	leal	4(%edi),%edi
 	.endm
 
+	.macro ZSPAN_ADD_PAIR_NONNEGATIVE
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	ZPACK16
+	addl	%ebx,%edx
+	movl	%eax,(%edi)
+	leal	4(%edi),%edi
+	.endm
+
 	.macro ZSPAN_ADD_NEGATIVE_PAIR next_label
 	addl	%ebx,%edx
 	shrl	$16,%eax
@@ -950,6 +960,26 @@ movl	espan_t_count(%ebp),%ecx
 // %ebp = current span (list cursor)
 
 LZDraw:
+	#ifndef TARGET_I386
+	// A nonnegative start and end prove every fixed-step sample stays
+	// nonnegative. The 64-bit product avoids overflow in this test.
+	testl	%edx,%edx
+	js	.LZDrawGeneral
+	movl	%edx,%esi
+	leal	-1(%ecx),%eax
+	imull	%ebx
+	addl	%esi,%eax
+	adcl	$0,%edx
+	testl	%edx,%edx
+	jnz	.LZDrawRestoreGeneral
+	testl	%eax,%eax
+	js	.LZDrawRestoreGeneral
+	movl	%esi,%edx
+	jmp	.LZDrawNonnegative
+.LZDrawRestoreGeneral:
+	movl	%esi,%edx
+	#endif
+.LZDrawGeneral:
 
 // do a single pixel up front, if necessary to dword align the destination
 	testl	$2,%edi
@@ -960,6 +990,55 @@ LZDraw:
 	decl	%ecx
 	movw	%ax,(%edi)
 	addl	$2,%edi
+	#ifndef TARGET_I386
+	jmp		LFMiddle
+.LZDrawNonnegative:
+	// This copy uses the endpoint proof above to omit per-pair sign branches.
+	testl	$2,%edi
+	jz		.LZDrawNonnegativeMiddle
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	decl	%ecx
+	movw	%ax,(%edi)
+	addl	$2,%edi
+
+.LZDrawNonnegativeMiddle:
+	movl	%ecx,%esi
+	shrl	$4,%ecx
+	jz		.LZDrawNonnegativeGroups16Done
+.LZDrawNonnegativeGroup16Loop:
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	decl	%ecx
+	jnz		.LZDrawNonnegativeGroup16Loop
+
+.LZDrawNonnegativeGroups16Done:
+	testl	$8,%esi
+	jz		.LZDrawNonnegativeGroups8Done
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+
+.LZDrawNonnegativeGroups8Done:
+	testl	$4,%esi
+	jz		.LZDrawNonnegativeGroup4Done
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+
+.LZDrawNonnegativeGroup4Done:
+	testl	$2,%esi
+	jz		LFPairDone
+	ZSPAN_ADD_PAIR_NONNEGATIVE
+	jmp		LFPairDone
+	#endif
 
 // Keep the remaining pixel count for the odd-pixel test. The i386 packing
 // fallback uses %esi as scratch; the i486 packer leaves it available.
