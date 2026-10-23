@@ -50,7 +50,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     '-memasm-fillrectasm-zpointasm-skyasm-warpasm-solidasm-axisasm-surfaceasm-surfacedrawasm-surfacez'
-    'asm-surfacegradasm-surfacesasm-mipasm-turbocta-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hf'
+    'asm-surfacegradasm-surfacesasm-mipasm-turbtwelve-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hf'
     'lat-surf1hflatidxhoist-aliasclipasm-aliasclipzasm-aliasmatrixasm-aliaslightingasm-aliasframeasm-'
     'aliaskinasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dligh'
     'torchestrationasm-dlightpushasm-dlightcontribasm-marklightsasm-lightmapbuildasm-bspdotasm-bspcli'
@@ -256,10 +256,10 @@ def main() -> int:
         for flags_name in ("cFlags", "asmFlags"):
             if "-DASM486_EDGE_LIST" in default_dump.get(flags_name, []):
                 fail("the i486 default must retain the faster legacy edge-list assembly in %s" % flags_name)
-        if "turbocta" not in default_dump.get("profileSuffix", ""):
-            fail("the i486 default must select the measured eight-pixel turbulent span loop")
-        if "-DASM486_TURBULENT_OCTA_LOOP" not in default_dump.get("asmFlags", []):
-            fail("the i486 default must compile the eight-pixel turbulent span loop")
+        if "turbtwelve" not in default_dump.get("profileSuffix", ""):
+            fail("the i486 default must select the measured twelve-pixel turbulent span loop")
+        if "-DASM486_TURBULENT_TWELVE_LOOP" not in default_dump.get("asmFlags", []):
+            fail("the i486 default must compile the twelve-pixel turbulent span loop")
         bsp_walk_define = "-DASM486_BSP_WALK"
         if any(bsp_walk_define not in default_dump.get(language, [])
                for language in ("cFlags", "asmFlags")):
@@ -604,6 +604,13 @@ def main() -> int:
             fail("the turbulent eight-pixel selector does not add its profile token")
         if "-DASM486_TURBULENT_OCTA_LOOP" not in turbulent_inner_octa.get("asmFlags", []):
             fail("the turbulent eight-pixel selector omits ASM486_TURBULENT_OCTA_LOOP from assembly flags")
+
+    turbulent_inner_twelve = dump_flags("-TurbulentImplementation", "twelve")
+    if turbulent_inner_twelve:
+        if "-turbtwelve" not in turbulent_inner_twelve.get("profileSuffix", ""):
+            fail("the turbulent twelve-pixel selector does not add its profile token")
+        if "-DASM486_TURBULENT_TWELVE_LOOP" not in turbulent_inner_twelve.get("asmFlags", []):
+            fail("the turbulent twelve-pixel selector omits ASM486_TURBULENT_TWELVE_LOOP from assembly flags")
 
     lightmap_build_c = dump_flags("-LightMapBuildImplementation", "c")
     lightmap_build_asm = dump_flags("-LightMapBuildImplementation", "asm")

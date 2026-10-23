@@ -55,7 +55,7 @@ param(
     [string]$WarpScreenImplementation = 'c',
     [ValidateSet('c', 'asm')]
     [string]$SolidSurfaceImplementation = 'c',
-    [ValidateSet('c', 'asm', 'stosb', 'pair', 'quad', 'octa')]
+    [ValidateSet('c', 'asm', 'stosb', 'pair', 'quad', 'octa', 'twelve')]
     [string]$TurbulentImplementation = 'stosb',
     [ValidateSet('c', 'asm')]
     [string]$TurbulentScanImplementation = 'c',

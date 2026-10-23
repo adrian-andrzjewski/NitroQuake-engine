@@ -82,7 +82,57 @@ C(D_DrawTurbulent8Span_asm486):
 	movl	C(r_turb_turb),%ebp	// table base is invariant for this span
 	cld
 
-#ifdef ASM486_TURBULENT_OCTA_LOOP
+#ifdef ASM486_TURBULENT_TWELVE_LOOP
+	subl	$12,%ebx
+	jc	.Lturbulent_span_twelve_short
+.Lturbulent_span_twelve_loop:
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	subl	$12,%ebx
+	jnc	.Lturbulent_span_twelve_loop
+	addl	$12,%ebx
+	jmp	.Lturbulent_span_twelve_tail
+.Lturbulent_span_twelve_short:
+	addl	$12,%ebx
+.Lturbulent_span_twelve_tail:
+	testl	$8,%ebx
+	jz	.Lturbulent_span_twelve_four_tail
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+.Lturbulent_span_twelve_four_tail:
+	testl	$4,%ebx
+	jz	.Lturbulent_span_twelve_two_tail
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+.Lturbulent_span_twelve_two_tail:
+	testl	$2,%ebx
+	jz	.Lturbulent_span_twelve_one_tail
+	TURBULENT8_PIXEL
+	TURBULENT8_PIXEL
+.Lturbulent_span_twelve_one_tail:
+	testl	$1,%ebx
+	jz	.Lturbulent_span_done
+	TURBULENT8_PIXEL
+	jmp	.Lturbulent_span_done
+#elif defined(ASM486_TURBULENT_OCTA_LOOP)
 	cmpl	$8,%ebx
 	jl	.Lturbulent_span_octa_tail
 	shrl	$3,%ebx
