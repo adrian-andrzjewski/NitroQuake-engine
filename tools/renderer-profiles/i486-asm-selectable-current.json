@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "i486-asm-selectable-current",
-  "description": "Default i486 release profile selecting every accepted assembly implementation, including status-bar composition, inventory and primitives, SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle. Use the C-reference profile for parity comparisons.",
+  "description": "Default i486 release profile selecting every accepted assembly implementation, including status-bar composition, inventory and primitives, SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle. Retain legacy handwritten edge-list assembly because it benchmarks faster than the replacement i486 selector. Use the C-reference profile for parity comparisons.",
   "selectors": {
     "MemoryImplementation": "asm",
     "FillRectImplementation": "asm",
@@ -111,7 +111,7 @@
     "ZSubmodelPolygonsImplementation": "asm",
     "EdgeDrawingImplementation": "asm",
     "ScanEdgesImplementation": "asm",
-    "EdgeListMaintenanceImplementation": "asm",
+    "EdgeListMaintenanceImplementation": "legacy",
     "BackwardSpansImplementation": "asm",
     "EfragStoreImplementation": "asm",
     "EmitCachedEdgeImplementation": "asm",

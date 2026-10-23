@@ -63,7 +63,7 @@ RELEASE_I486_SUFFIX = (
     'm-screennotifyasm-screencenterasm-screeneraseasm-screenconsolesetupasm-screenrefdefasm-screendra'
     'wramasm-screenoverlaysasm-screenupdateasm-screennetasm-screenturtleasm-chaseasm-hullcheckasm-hullforentityasm-clipmoveentityasm-cliptolinksasm-findtouchedleafsasm-aliascontrolasm-'
     'aliasstatsasm-printtimesasm-worldcontrolasm-renderworldasm-renderfaceasm-bmodelasm-bmodelclipasm'
-    '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-edgelistasm-backspan'
+    '-bmodelsetupasm-submodelpolysasm-zsubmodelpolysasm-edgedrawasm-scanedgesasm-backspan'
     'sasm-efragstoreasm-emitcachedasm-renderpolyasm-sbarprimitivesasm-sbardrawasm-sbarinventoryasm-sbarfragsasm-playertranslationasm-cachecheckasm-cacheallocasm-cachemoveasm-cachefreeasm-cachefreehighasm-cachefreelowasm-cachetryallocasm-hunkmarkfreeasm-hunktempallocasm-hunknamedallocasm-zoneheapasm-vesacopyasm-vesaswapasm-vgaswapasm-vesapaletteasm-vesadefaultmodeasm-vesalifecycleasm-vesawaitasm-vidupdateasm-frustumasm-transformplaneasm'
 )
 
@@ -251,6 +251,11 @@ def main() -> int:
         if any(blob_explosion_define not in default_dump.get(language, [])
                for language in ("cFlags", "asmFlags")):
             fail("the default i486 BlobExplosion selector must compile its assembly implementation")
+        if "edgelistasm" in default_dump.get("profileSuffix", ""):
+            fail("the slower replacement edge-list selector must stay out of the i486 default profile")
+        for flags_name in ("cFlags", "asmFlags"):
+            if "-DASM486_EDGE_LIST" in default_dump.get(flags_name, []):
+                fail("the i486 default must retain the faster legacy edge-list assembly in %s" % flags_name)
         bsp_walk_define = "-DASM486_BSP_WALK"
         if any(bsp_walk_define not in default_dump.get(language, [])
                for language in ("cFlags", "asmFlags")):
@@ -1276,8 +1281,10 @@ def main() -> int:
     edge_list_c = dump_flags("-EdgeListMaintenanceImplementation", "c")
     edge_list_asm = dump_flags("-EdgeListMaintenanceImplementation", "asm")
     if edge_list_legacy and edge_list_c and edge_list_asm:
-        if edge_list_legacy.get("profileSuffix") == RELEASE_I486_SUFFIX:
-            fail("the edge-list legacy default shares the retained i486 profile suffix")
+        if edge_list_legacy.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the edge-list legacy assembly does not match the i486 release profile")
+        if edge_list_asm.get("profileSuffix") == RELEASE_I486_SUFFIX:
+            fail("the slower edge-list replacement assembly shares the i486 release profile")
         if "edgelistc" not in edge_list_c.get("profileSuffix", ""):
             fail("the edge-list C selector does not add its profile token")
         if "edgelistasm" not in edge_list_asm.get("profileSuffix", ""):

@@ -2554,7 +2554,11 @@ function Set-DefaultI486AssemblySelectors {
             $entry.C.ContainsKey($value) -or
             $entry.Asm.ContainsKey($value)
         )
-        if ($null -eq $entry -or $value -cne 'asm' -or -not $hasValue) {
+        $acceptedDefault = $value -ceq 'asm' -or (
+            $property.Name -ceq 'EdgeListMaintenanceImplementation' -and
+            $value -ceq 'legacy'
+        )
+        if ($null -eq $entry -or -not $hasValue -or -not $acceptedDefault) {
             throw "The default i486 profile has an invalid assembly selector '$($property.Name)=$($property.Value)'."
         }
         $selectedNames[$property.Name] = $true
