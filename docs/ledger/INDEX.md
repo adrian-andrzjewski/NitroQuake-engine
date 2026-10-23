@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-23-bmodel-clip-integer-distance-test-promoted.md`](2026-10-23-bmodel-clip-integer-distance-test-promoted.md) | 1 | renderer performance / replace two x87 strict-positive tests with IEEE single-precision integer range checks in brush polygon clipping after a positive matched three-run mean, checksum parity, and complete ISA audits |
 | [`2026-10-23-lightmap-fullbright-integer-truth-promoted.md`](2026-10-23-lightmap-fullbright-integer-truth-promoted.md) | 1 | renderer performance / promote an i486 integer truth test for lightmap `r_fullbright` after a positive matched three-run mean, checksum parity, and complete ISA audits |
 | [`2026-10-23-lightmap-fullbright-mask-promoted.md`](2026-10-23-lightmap-fullbright-mask-promoted.md) | 1 | renderer performance / promote immediate-mask float truth testing in the i486 lightmap builder after a positive matched three-run mean, checksum parity, and complete ISA audits |
 | [`2026-10-23-turbulent-span-fourteen-loop-release-default.md`](2026-10-23-turbulent-span-fourteen-loop-release-default.md) | 1 | renderer performance / promote fourteen-pixel turbulent span loop to the i486 default after a positive matched three-run mean, checksum parity, and complete i486 ISA gates |

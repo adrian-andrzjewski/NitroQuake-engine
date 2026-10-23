@@ -10628,12 +10628,11 @@ C(R_RecursiveClipBPoly_asm486):
 	BPC_DOT3	%esi,%edi
 	fsubs	BPC_TDIST(%ebp)
 	fstps	BPC_LASTDIST(%ebp)
-	flds	BPC_LASTDIST(%ebp)
-	ftst
-	fnstsw	%ax
-	sahf
-	fstp	%st(0)
-	ja	.Lbpclip_last_front
+	/* IEEE single bits are positive iff bits-1 is <= 0x7f7fffff. */
+	movl	BPC_LASTDIST(%ebp),%eax
+	decl	%eax
+	cmpl	$0x7f7fffff,%eax
+	jbe	.Lbpclip_last_front
 	movl	$1,BPC_LASTSIDE(%ebp)
 	jmp	.Lbpclip_last_side_ready
 .Lbpclip_last_front:
@@ -10646,12 +10645,10 @@ C(R_RecursiveClipBPoly_asm486):
 	BPC_DOT3	%esi,%edi
 	fsubs	BPC_TDIST(%ebp)
 	fstps	BPC_DIST(%ebp)
-	flds	BPC_DIST(%ebp)
-	ftst
-	fnstsw	%ax
-	sahf
-	fstp	%st(0)
-	ja	.Lbpclip_front
+	movl	BPC_DIST(%ebp),%eax
+	decl	%eax
+	cmpl	$0x7f7fffff,%eax
+	jbe	.Lbpclip_front
 	movl	$1,BPC_SIDE(%ebp)
 	jmp	.Lbpclip_side_ready
 .Lbpclip_front:
