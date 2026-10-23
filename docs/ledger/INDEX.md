@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-23-lightmap-fullbright-integer-truth-promoted.md`](2026-10-23-lightmap-fullbright-integer-truth-promoted.md) | 1 | renderer performance / promote an i486 integer truth test for lightmap `r_fullbright` after a positive matched three-run mean, checksum parity, and complete ISA audits |
+| [`2026-10-23-lightmap-fullbright-mask-promoted.md`](2026-10-23-lightmap-fullbright-mask-promoted.md) | 1 | renderer performance / promote immediate-mask float truth testing in the i486 lightmap builder after a positive matched three-run mean, checksum parity, and complete ISA audits |
 | [`2026-10-23-turbulent-span-fourteen-loop-release-default.md`](2026-10-23-turbulent-span-fourteen-loop-release-default.md) | 1 | renderer performance / promote fourteen-pixel turbulent span loop to the i486 default after a positive matched three-run mean, checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-turbulent-span-twelve-loop-release-default.md`](2026-10-23-turbulent-span-twelve-loop-release-default.md) | 1 | renderer performance / promote twelve-pixel turbulent span loop to the i486 default after a positive matched three-run mean, checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-turbulent-span-paired-loop.md`](2026-10-23-turbulent-span-paired-loop.md) | 1 | renderer performance / promote two-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |

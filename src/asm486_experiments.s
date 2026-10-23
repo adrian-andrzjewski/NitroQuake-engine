@@ -9150,10 +9150,9 @@ C(R_BuildLightMap):
 	movl	lm_surface_samples(%esi),%eax
 	movl	%eax,LMB_LIGHTMAP(%ebp)
 
-	// C float truth is false only for +0 and -0. Shifting away the sign bit
-	// preserves that for every IEEE-754 value, including subnormals and NaNs.
-	movl	C(r_fullbright)+lm_cvar_value,%eax
-	shll	$1,%eax
+	// C float truth is false only for +0 and -0. Test the magnitude bits;
+	// subnormals and NaNs remain true.
+	testl	$0x7fffffff,C(r_fullbright)+lm_cvar_value
 	jne	.Llightmap_fullbright
 	movl	C(cl)+lm_client_worldmodel,%eax
 	cmpl	$0,lm_model_lightdata(%eax)
