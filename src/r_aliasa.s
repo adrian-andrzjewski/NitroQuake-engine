@@ -63,14 +63,13 @@ C(R_AliasTransformAndProjectFinalVerts):
 	movl	pstverts(%esp),%ebp
 	movl	fv(%esp),%edi
 	movl	C(r_anumverts),%ecx
-	subl	%edx,%edx
 
 Lloop:
 
 //	// transform and project
 //		zi = 1.0 / (DotProduct(pverts->v, aliastransform[2]) +
 //				aliastransform[2][3]);
-	movb	(%esi),%dl
+	movzbl	(%esi),%edx
 	filds	Lcoords_u8(,%edx,2)		// v[0]
 	movb	1(%esi),%dl
 	filds	Lcoords_u8(,%edx,2)		// v[1] | v[0]
@@ -89,6 +88,7 @@ Lloop:
 	fxch	%st(1)				// accum | accum3 | accum2 | v[2] | v[1] | v[0]
 	faddp	%st(0),%st(2)		// accum3 | accum | v[2] | v[1] | v[0]
 	movb	tv_lightnormalindex(%esi),%dl
+	leal	(%edx,%edx,2),%edx	// index*3
 	addl	$(tv_size),%esi
 	movl	stv_s(%ebp),%eax
 	movl	%eax,fv_v+8(%edi)
@@ -109,16 +109,14 @@ Lloop:
 	movl	%eax,fv_flags(%edi)
 	addl	$(stv_size),%ebp
 
-	leal	(%edx,%edx,2),%eax	// index*3
-
 	fxch	%st(3)				// v[0] | v[2] | v[1] | zi
 
 //		lightcos = DotProduct (plightnormal, r_plightvec);
-	flds	C(r_avertexnormals)(,%eax,4)
+	flds	C(r_avertexnormals)(,%edx,4)
 	fmuls	C(r_plightvec)
-	flds	C(r_avertexnormals)+4(,%eax,4)
+	flds	C(r_avertexnormals)+4(,%edx,4)
 	fmuls	C(r_plightvec)+4
-	flds	C(r_avertexnormals)+8(,%eax,4)
+	flds	C(r_avertexnormals)+8(,%edx,4)
 	fmuls	C(r_plightvec)+8
 	fxch	%st(1)
 	faddp	%st(0),%st(2)
