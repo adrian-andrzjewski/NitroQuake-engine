@@ -197,13 +197,13 @@ C(R_ClipSpriteFace_asm486):
 	testl	%ebx,%ebx
 	jle	.Lsprite_clip_return_count
 
-	/* C's dists[i] >= 0 is true for +0, false for negative and unordered. */
-	flds	(%ecx)
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	testb	$0x01,%ah
-	jnz	.Lsprite_clip_front_done
+	/* dists[i] >= 0 accepts either zero and ordered positive values. */
+	movl	(%ecx),%eax
+	cmpl	$0x7f800000,%eax
+	jbe	.Lsprite_clip_current_nonnegative
+	cmpl	$0x80000000,%eax
+	jne	.Lsprite_clip_front_done
+.Lsprite_clip_current_nonnegative:
 	movl	0(%esi),%eax
 	movl	%eax,0(%edi)
 	movl	4(%esi),%eax
@@ -219,45 +219,30 @@ C(R_ClipSpriteFace_asm486):
 .Lsprite_clip_front_done:
 
 	/* Equality checks precede the side test in the reference routine. */
-	flds	(%ecx)
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	andb	$0x45,%ah
-	cmpb	$0x40,%ah
+	movl	(%ecx),%eax
+	andl	$0x7fffffff,%eax
+	testl	%eax,%eax
 	je	.Lsprite_clip_next_vertex
-	flds	4(%ecx)
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	andb	$0x45,%ah
-	cmpb	$0x40,%ah
+	movl	4(%ecx),%eax
+	andl	$0x7fffffff,%eax
+	testl	%eax,%eax
 	je	.Lsprite_clip_next_vertex
 
 	/* Strict > 0 tests: unordered values are treated as not in front. */
-	flds	(%ecx)
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	andb	$0x45,%ah
-	cmpb	$0,%ah
-	jne	.Lsprite_clip_current_back
-	flds	4(%ecx)
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	andb	$0x45,%ah
-	cmpb	$0,%ah
-	je	.Lsprite_clip_next_vertex
+	movl	(%ecx),%eax
+	decl	%eax
+	cmpl	$0x7f7fffff,%eax
+	ja	.Lsprite_clip_current_back
+	movl	4(%ecx),%eax
+	decl	%eax
+	cmpl	$0x7f7fffff,%eax
+	jbe	.Lsprite_clip_next_vertex
 	jmp	.Lsprite_clip_crossing
 .Lsprite_clip_current_back:
-	flds	4(%ecx)
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	andb	$0x45,%ah
-	cmpb	$0,%ah
-	jne	.Lsprite_clip_next_vertex
+	movl	4(%ecx),%eax
+	decl	%eax
+	cmpl	$0x7f7fffff,%eax
+	ja	.Lsprite_clip_next_vertex
 
 .Lsprite_clip_crossing:
 	/* frac = dists[i] / (dists[i] - dists[i+1]), rounded to float. */
