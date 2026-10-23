@@ -2555,6 +2555,9 @@ function Set-DefaultI486AssemblySelectors {
             $entry.Asm.ContainsKey($value)
         )
         $acceptedDefault = $value -ceq 'asm' -or (
+            $property.Name -ceq 'TurbulentImplementation' -and
+            $value -ceq 'octa'
+        ) -or (
             $property.Name -ceq 'EdgeListMaintenanceImplementation' -and
             $value -ceq 'legacy'
         )

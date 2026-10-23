@@ -12,7 +12,7 @@
     "TextureAxisImplementation": "asm",
     "SurfaceCacheImplementation": "asm",
     "MipLevelImplementation": "asm",
-    "TurbulentImplementation": "asm",
+    "TurbulentImplementation": "octa",
     "TurbulentScanImplementation": "asm",
     "SurfaceDrawImplementation": "asm",
     "SurfaceZGradientImplementation": "asm",

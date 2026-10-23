@@ -16,6 +16,7 @@ later insertion above it.
 |---|---:|---|
 | [`2026-10-23-turbulent-span-paired-loop.md`](2026-10-23-turbulent-span-paired-loop.md) | 1 | renderer performance / promote two-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-23-turbulent-span-octa-loop.md`](2026-10-23-turbulent-span-octa-loop.md) | 1 | renderer performance / promote an opt-in eight-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
+| [`2026-10-23-turbulent-span-octa-release-default.md`](2026-10-23-turbulent-span-octa-release-default.md) | 1 | renderer performance / promote the eight-pixel turbulent span loop to the i486 default after a positive matched three-run mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-23-turbulent-span-quad-loop.md`](2026-10-23-turbulent-span-quad-loop.md) | 1 | renderer performance / promote four-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-22-edge-list-legacy-default-promoted.md`](2026-10-22-edge-list-legacy-default-promoted.md) | 1 | renderer performance / retain legacy edge-list assembly as the i486 default after a positive matched mean |
 | [`2026-10-19-menu-state-entry-assembly-port.md`](2026-10-19-menu-state-entry-assembly-port.md) | 4 | renderer port / LAN and server-list menu state entries (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
