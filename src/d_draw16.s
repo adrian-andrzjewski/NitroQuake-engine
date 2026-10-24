@@ -512,10 +512,10 @@ LProfileZeroStatsDone:
 
 	addl	%edx,%eax			// add in sstep
 						// (tstep >> 16) * cachewidth + (sstep >> 16);
-	movl	tfracf,%edx
 	movl	%eax,advancetable+4	// advance base in t
 	addl	C(cachewidth),%eax	// ((tstep >> 16) + 1) * cachewidth +
 						//  (sstep >> 16);
+	movl	tfracf,%edx
 	jmp		LSetUpCommon
 
 LNonZeroSetup:
@@ -556,19 +556,19 @@ LProfileNonZeroStatsDone:
 #endif
 	addl	%edx,%eax			// add in sstep
 						// (tstep >> 16) * cachewidth + (sstep >> 16);
-	movl	tfracf,%edx
 	movl	%eax,advancetable+4	// advance base in t
 	addl	%ebx,%eax			// ((tstep >> 16) + 1) * cachewidth +
 						//  (sstep >> 16);
+	movl	tfracf,%edx
 
 LSetUpCommon:
-	shll	$12,%ebp			// left-justify sstep fractional part
 	movl	sfracf,%ebx
 	shll	$12,%ecx			// left-justify tstep fractional part
+	shll	$12,%ebp			// left-justify sstep fractional part
 	movl	%eax,advancetable	// advance extra in t
 
-	movl	%ecx,tstep
 	addl	%ecx,%edx			// advance tfrac fractional part by tstep frac
+	movl	%ecx,tstep
 
 	sbbl	%ecx,%ecx			// turn tstep carry into -1 (0 if none)
 	addl	%ebp,%ebx			// advance sfrac fractional part by sstep frac
@@ -882,21 +882,21 @@ LSpan16BranchA8Done:
 	SPAN16_STORE_WORD(7)
 #else
 	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
 	addl	tstep,%edx
 	sbbl	%ecx,%ecx
-	movb	(%esi),%ah
 	addl	%ebp,%ebx
+	movb	(%esi),%ah		// MOV preserves the S-step carry for ADC below.
 	adcl	advancetable+4(,%ecx,4),%esi
+	addl	tstep,%edx		// Store and byte load preserve this T-step carry.
 	SPAN16_STORE_WORD(1)
 
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
@@ -908,8 +908,8 @@ LSpan16BranchA8Done:
 	SPAN16_STORE_WORD(3)
 
 	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
@@ -921,8 +921,8 @@ LSpan16BranchA8Done:
 	SPAN16_STORE_WORD(5)
 
 	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
@@ -1261,8 +1261,8 @@ LSpan16LoopB:
 	adcl	advancetable+4(,%ecx,4),%esi
 #else
 	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
@@ -1274,8 +1274,8 @@ LSpan16LoopB:
 	SPAN16_STORE_WORD(9)
 
 	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
@@ -1287,8 +1287,8 @@ LSpan16LoopB:
 	SPAN16_STORE_WORD(11)
 
 	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 
@@ -1300,8 +1300,8 @@ LSpan16LoopB:
 	SPAN16_STORE_WORD(13)
 
 	addl	tstep,%edx
-	sbbl	%ecx,%ecx
 	movb	(%esi),%al
+	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
 #endif
