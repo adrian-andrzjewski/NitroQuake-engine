@@ -1250,7 +1250,7 @@ LZDrawNeg:
 	#ifndef TARGET_I386
 	// A nonnegative start and end prove every subtract-step sample stays
 	// nonnegative. Keep this long-span fast path parallel to LZDraw's add path.
-	cmpl	$22,%ecx
+	cmpl	$21,%ecx
 	jb		.LZDrawNegGeneral
 	testl	%edx,%edx
 	js		.LZDrawNegGeneral
