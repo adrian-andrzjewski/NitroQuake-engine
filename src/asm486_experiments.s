@@ -6890,11 +6890,11 @@ C(R_RecursiveWorldNode_asm486):
 .Lbsp_walk_profile_node_done:
 #endif
 
+	cmpl	$-2,0(%ebx)			// solid
+	je	.Lbsp_walk_node_complete
 	movl	C(r_visframecount),%eax
 	cmpl	%eax,4(%ebx)
 	jne	.Lbsp_walk_node_complete
-	cmpl	$-2,0(%ebx)			// solid
-	je	.Lbsp_walk_node_complete
 
 	cmpl	$0,-20(%ebp)
 	je	.Lbsp_walk_clip_done

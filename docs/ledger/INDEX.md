@@ -16,6 +16,7 @@ later insertion above it.
 |---|---:|---|
 | [`2026-10-24-span16-x87-pop-s-compute-t-promoted.md`](2026-10-24-span16-x87-pop-s-compute-t-promoted.md) | 1 | renderer performance / remove the remaining x87 exchange in Span16 by popping the S endpoint before computing T, after a positive strict mean, exact checksum parity, and the complete i486 ISA gate |
 | [`2026-10-24-span16-fistp-stack-order-promoted.md`](2026-10-24-span16-fistp-stack-order-promoted.md) | 1 | renderer performance / remove one x87 stack exchange from each full-width Span16 segment by storing endpoint T then S after a positive strict mean, exact checksum parity, and the complete i486 ISA gate |
+| [`2026-10-24-bsp-walk-solid-first-check-promoted.md`](2026-10-24-bsp-walk-solid-first-check-promoted.md) | 1 | renderer performance / check solid BSP nodes before loading the visibility frame after a positive strict mean and full i486 ISA gate |
 | [`2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md`](2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md) | 1 | renderer performance / schedule the second fixed-point step between SHLD and ROR in the nonnegative i486 Z-span pair loop after a positive strict mean |
 | [`2026-10-24-zspan-positive-gradient-overflow-guard-promoted.md`](2026-10-24-zspan-positive-gradient-overflow-guard-promoted.md) | 1 | renderer performance / replace the positive-gradient Z-span endpoint 64-bit carry chain with signed overflow checks after a positive strict mean and full i486 ISA audit |
 | [`2026-10-24-zspan-negative-cutoff21-promoted.md`](2026-10-24-zspan-negative-cutoff21-promoted.md) | 1 | renderer performance / lower the negative-gradient Z-span fast-path cutoff to 21 pixels after a positive strict mean, checksum parity, and complete i486 ISA audit |
@@ -604,6 +605,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### world-bsp
 
+- `promoted` [`R_RecursiveWorldNode` solid-node early cull before visibility lookup: **+0.000065333 FPS (+0.00041088%)**, exact checksum parity and complete i486 ISA gate](2026-10-24-bsp-walk-solid-first-check-promoted.md)
 - `measured` [`Selector-set frame performance and BSP call removal (2026-10-06)`](2026-10-06-renderer-selector-benchmarks.md)
 - `in progress` [`R_RecursiveClipBPoly` now has a selectable i486 assembly entry](2026-10-05-bmodel-polygon-clip-assembly-port.md)
 - `in progress` [`demo1` wall leak traced to the split fraction and fixed](2026-10-05-bmodel-polygon-clip-assembly-port.md)
