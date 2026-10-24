@@ -850,13 +850,15 @@ LClampNeg:
 	#ifdef TARGET_I386
 	ZPACK16
 	addl	%ebx,%edx
+	movl	%eax,(%edi)
+	leal	4(%edi),%edi
 	#else
 	shldl	$16,%edx,%eax
 	addl	%ebx,%edx
-	rorl	$16,%eax
-	#endif
-	movl	%eax,(%edi)
 	leal	4(%edi),%edi
+	rorl	$16,%eax
+	movl	%eax,-4(%edi)
+	#endif
 	.endm
 
 	.macro ZSPAN_ADD_NEGATIVE_PAIR next_label

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-24-zspan-destination-lea-shld-gap-promoted.md`](2026-10-24-zspan-destination-lea-shld-gap-promoted.md) | 1 | renderer performance / schedule the destination pointer increment between SHLD and ROR in the nonnegative i486 Z-span pair path after a positive strict mean and full i486 ISA gate |
 | [`2026-10-24-span16-x87-pop-s-compute-t-promoted.md`](2026-10-24-span16-x87-pop-s-compute-t-promoted.md) | 1 | renderer performance / remove the remaining x87 exchange in Span16 by popping the S endpoint before computing T, after a positive strict mean, exact checksum parity, and the complete i486 ISA gate |
 | [`2026-10-24-span16-fistp-stack-order-promoted.md`](2026-10-24-span16-fistp-stack-order-promoted.md) | 1 | renderer performance / remove one x87 stack exchange from each full-width Span16 segment by storing endpoint T then S after a positive strict mean, exact checksum parity, and the complete i486 ISA gate |
 | [`2026-10-24-bsp-walk-solid-first-check-promoted.md`](2026-10-24-bsp-walk-solid-first-check-promoted.md) | 1 | renderer performance / check solid BSP nodes before loading the visibility frame after a positive strict mean and full i486 ISA gate |
