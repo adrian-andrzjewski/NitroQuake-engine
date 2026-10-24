@@ -963,7 +963,7 @@ LZDraw:
 	#ifndef TARGET_I386
 	// A nonnegative start and end prove every fixed-step sample stays
 	// nonnegative. The 64-bit product avoids overflow in this test.
-	cmpl	$20,%ecx
+	cmpl	$22,%ecx
 	jb		.LZDrawGeneral
 	testl	%edx,%edx
 	js	.LZDrawGeneral
