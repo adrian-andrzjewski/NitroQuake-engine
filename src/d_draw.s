@@ -847,8 +847,14 @@ LClampNeg:
 	movl	%edx,%eax
 	addl	%ebx,%edx
 	shrl	$16,%eax
+	#ifdef TARGET_I386
 	ZPACK16
 	addl	%ebx,%edx
+	#else
+	shldl	$16,%edx,%eax
+	addl	%ebx,%edx
+	rorl	$16,%eax
+	#endif
 	movl	%eax,(%edi)
 	leal	4(%edi),%edi
 	.endm

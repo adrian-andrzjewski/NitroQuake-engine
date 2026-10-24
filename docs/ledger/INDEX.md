@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md`](2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md) | 1 | renderer performance / schedule the second fixed-point step between SHLD and ROR in the nonnegative i486 Z-span pair loop after a positive strict mean |
 | [`2026-10-23-alias-transform-t-store-after-fdivrs-promoted.md`](2026-10-23-alias-transform-t-store-after-fdivrs-promoted.md) | 1 | renderer performance / move the alias T-coordinate copy after reciprocal division so it overlaps x87 work after a positive matched mean, exact checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-alias-transform-normal-index-read-hoist-promoted.md`](2026-10-23-alias-transform-normal-index-read-hoist-promoted.md) | 1 | renderer performance / overlap the normal-index read, scaling, and vertex-pointer advance with alias transform arithmetic after a positive matched mean, exact checksum parity, and complete i486 ISA gates |
 | [`2026-10-23-alias-transform-pointer-advance-promoted.md`](2026-10-23-alias-transform-pointer-advance-promoted.md) | 1 | renderer performance / move alias transform source-pointer increments after their final reads following a positive matched mean, exact checksum parity, and full i486 ISA gates |
@@ -616,6 +617,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### z-spans
 
+- `promoted` [`D_DrawZSpans` second-step scheduling within SHLD/ROR (2026-10-24) — **+0.000007000 FPS (+0.00004423%)**, exact checksum parity](2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md)
 - `measured` [`D_DrawZSpans` -> exact i486 assembly parity (2026-10-10)](2026-10-10-d-drawzspans-assembly-parity.md)
 - `measured` [117 exact C/assembly guarded depth-buffer cases, including negative background depth](2026-10-10-d-drawzspans-assembly-parity.md)
 - `measured` [Complete linked i486 audit with zero violations or exemptions](2026-10-10-d-drawzspans-assembly-parity.md)
