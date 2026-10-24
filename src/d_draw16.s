@@ -346,9 +346,8 @@ LNotLastSegment:
 	fmul	%st(4),%st(0)	// s = s/z * z
 	fxch	%st(1)
 	fmul	%st(3),%st(0)	// t = t/z * z
-	fxch	%st(1)
+	fistpl	tnext			// store T first to avoid swapping the x87 stack
 	fistpl	snext
-	fistpl	tnext
 	movl	snext,%eax
 	movl	tnext,%edx
 
