@@ -1101,13 +1101,15 @@ Lv_loop_mip2:
 	subl	%ebx,%ebx	// high word must be 0 in loop for addressing
 
 Lblockloop8_mip2:
-	movl	%ebp,C(lightdelta)
+	// Start the independent texel reads before saving and scaling the light
+	// delta, so they can be ready by the first two colormap lookups.
 	movb	2(%esi),%cl
+	movb	3(%esi),%bl
+	movl	%ebp,C(lightdelta)
 
 	sarl	$2,%ebp
 	movb	%dh,%bh
 
-	movb	3(%esi),%bl
 	addl	%ebp,%edx
 
 	movb	%dh,%ch

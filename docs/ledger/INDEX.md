@@ -36,6 +36,7 @@ later insertion above it.
 | [`2026-10-23-turbulent-span-octa-release-default.md`](2026-10-23-turbulent-span-octa-release-default.md) | 1 | renderer performance / promote the eight-pixel turbulent span loop to the i486 default after a positive matched three-run mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-23-turbulent-span-quad-loop.md`](2026-10-23-turbulent-span-quad-loop.md) | 1 | renderer performance / promote four-pixel turbulent span loop after a positive strict mean, checksum parity, and complete i486 ISA gate |
 | [`2026-10-22-edge-list-legacy-default-promoted.md`](2026-10-22-edge-list-legacy-default-promoted.md) | 1 | renderer performance / retain legacy edge-list assembly as the i486 default after a positive matched mean |
+| [`2026-10-21-surf8-mip2-texel-loads-promoted.md`](2026-10-21-surf8-mip2-texel-loads-promoted.md) | 1 | renderer performance / promote early mip-2 source-texel loads |
 | [`2026-10-19-menu-state-entry-assembly-port.md`](2026-10-19-menu-state-entry-assembly-port.md) | 4 | renderer port / LAN and server-list menu state entries (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-server-list-menu-assembly-port.md`](2026-10-19-server-list-menu-assembly-port.md) | 4 | renderer port / server-list menu drawing and host-cache sorting (`Behavior and selector`; `Direct C/assembly parity`; `Strict i486 release verification and ownership`; `Scope and remaining work`) |
 | [`2026-10-19-video-mode-menu-assembly-port.md`](2026-10-19-video-mode-menu-assembly-port.md) | 4 | renderer port / DOS video-mode menu list and callback renderer (`Video mode menu behavior and selector`; `Direct C/ASM parity matrix`; `Strict i486 release audit and current ownership`; `Remaining video-menu port scope`) |
@@ -592,6 +593,7 @@ other axis: one row per renderer region, newest entry first.
 - `promoted` [Fourteen-pixel turbulent span loop (2026-10-23) — **+0.000098 FPS (+0.00062793%)**, exact checksum parity](2026-10-23-turbulent-span-fourteen-loop-release-default.md)
 - `promoted` [Twelve-pixel turbulent span loop (2026-10-23) — **+0.000754 FPS (+0.00483141%)**, exact checksum parity](2026-10-23-turbulent-span-twelve-loop-release-default.md)
 - `promoted` [Four-pixel turbulent span loop (2026-10-23) — **+0.001221667 FPS (+0.00783054%)**, exact checksum parity](2026-10-23-turbulent-span-quad-loop.md)
+- `promoted` [Mip-2 surface texel-load schedule — **+0.00004720%** with exact parity](2026-10-21-surf8-mip2-texel-loads-promoted.md)
 
 - `measured` [The general surface-block path is **6.85% of frame at 0.77 cycles per instruction**, and one instruction ...](2026-10-03-region-pricing-sweep.md)
 - `measured` [The span16 per-segment setup is 2.37% of frame and contains no x87 at all — **`texture-spans` is re-opened**](2026-10-02-edge-scan-and-texture-spans.md)
