@@ -113,6 +113,13 @@ Lv_loop_mip0:
 	jne	LSurfaceBlockMip0NotHorizontalFlat
 	cmpl	%ecx,%ebx
 	jne	LSurfaceBlockMip0NotHorizontalFlat
+	testl	%ecx,%ecx
+	jnz	LSurfaceBlockMip0NotFullyFlat
+	xorl	%ebx,%ebx
+	xorl	%ecx,%ecx
+	call	LSurf8Mip0FullyFlat
+	jmp	LSurfaceBlockMip0Done
+LSurfaceBlockMip0NotFullyFlat:
 	movl	%ecx,%ebp
 	xorl	%ebx,%ebx
 	xorl	%ecx,%ecx
@@ -532,6 +539,73 @@ LSkip_mip0:
 	movb	%al,(%edi)
 .endm
 
+.macro SURF8_MIP0_FULLY_FLAT_ROW
+	movb	15(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf0:
+	movb	%al,15(%edi)
+	movb	14(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf1:
+	movb	%al,14(%edi)
+	movb	13(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf2:
+	movb	%al,13(%edi)
+	movb	12(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf3:
+	movb	%al,12(%edi)
+	movb	11(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf4:
+	movb	%al,11(%edi)
+	movb	10(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf5:
+	movb	%al,10(%edi)
+	movb	9(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf6:
+	movb	%al,9(%edi)
+	movb	8(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf7:
+	movb	%al,8(%edi)
+	movb	7(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf8:
+	movb	%al,7(%edi)
+	movb	6(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf9:
+	movb	%al,6(%edi)
+	movb	5(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf10:
+	movb	%al,5(%edi)
+	movb	4(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf11:
+	movb	%al,4(%edi)
+	movb	3(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf12:
+	movb	%al,3(%edi)
+	movb	2(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf13:
+	movb	%al,2(%edi)
+	movb	1(%esi),%bl
+	movb	0x12345678(%ebx),%al
+.LLBPatchflatf14:
+	movb	%al,1(%edi)
+	movb	(%esi),%cl
+	movb	0x12345678(%ecx),%al
+.LLBPatchflatf15:
+	movb	%al,(%edi)
+.endm
+
 	.p2align 4,,15
 LSurf8Mip0HorizontalFlat:
 	pushl	$16
@@ -542,6 +616,20 @@ LSurf8Mip0HorizontalFlatRow:
 	addl	C(surfrowbytes),%edi
 	decl	(%esp)
 	jnz	LSurf8Mip0HorizontalFlatRow
+	addl	$4,%esp
+	ret
+
+	.p2align 4,,15
+LSurf8Mip0FullyFlat:
+	movb	%dh,%bh
+	movb	%dh,%ch
+	pushl	$16
+LSurf8Mip0FullyFlatRow:
+	SURF8_MIP0_FULLY_FLAT_ROW
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	decl	(%esp)
+	jnz	LSurf8Mip0FullyFlatRow
 	addl	$4,%esp
 	ret
 #endif
@@ -1595,6 +1683,22 @@ SURF8_PATCH_ROW p
 	.long	.LLBPatchflat13-4
 	.long	.LLBPatchflat14-4
 	.long	.LLBPatchflat15-4
+	.long	.LLBPatchflatf0-4
+	.long	.LLBPatchflatf1-4
+	.long	.LLBPatchflatf2-4
+	.long	.LLBPatchflatf3-4
+	.long	.LLBPatchflatf4-4
+	.long	.LLBPatchflatf5-4
+	.long	.LLBPatchflatf6-4
+	.long	.LLBPatchflatf7-4
+	.long	.LLBPatchflatf8-4
+	.long	.LLBPatchflatf9-4
+	.long	.LLBPatchflatf10-4
+	.long	.LLBPatchflatf11-4
+	.long	.LLBPatchflatf12-4
+	.long	.LLBPatchflatf13-4
+	.long	.LLBPatchflatf14-4
+	.long	.LLBPatchflatf15-4
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	.long	.LLBPatchm1fa_0-4
@@ -1758,7 +1862,7 @@ C(R_Surf8Patch):
 	movl	$32,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
-	addl	$16,%ecx
+	addl	$32,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	// Eight rows of eight colormap sites each.
