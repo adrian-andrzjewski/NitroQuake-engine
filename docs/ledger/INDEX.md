@@ -619,6 +619,7 @@ other axis: one row per renderer region, newest entry first.
 ### z-spans
 
 - `promoted` [`D_DrawZSpans` second-step scheduling within SHLD/ROR (2026-10-24) — **+0.000007000 FPS (+0.00004423%)**, exact checksum parity](2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md)
+- `promoted` [`D_DrawZSpans` positive-gradient cutoff lowered to 21 pixels (2026-10-24) — **+0.000339480 FPS (+0.00214342%)**, exact checksum parity](2026-10-24-zspan-positive-cutoff21-promoted.md)
 - `measured` [`D_DrawZSpans` -> exact i486 assembly parity (2026-10-10)](2026-10-10-d-drawzspans-assembly-parity.md)
 - `measured` [117 exact C/assembly guarded depth-buffer cases, including negative background depth](2026-10-10-d-drawzspans-assembly-parity.md)
 - `measured` [Complete linked i486 audit with zero violations or exemptions](2026-10-10-d-drawzspans-assembly-parity.md)
