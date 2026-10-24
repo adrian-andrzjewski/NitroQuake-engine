@@ -996,16 +996,12 @@ LZDraw:
 	jb		.LZDrawGeneral
 	testl	%edx,%edx
 	js	.LZDrawGeneral
-	movl	%edx,%esi
 	leal	-1(%ecx),%eax
 	imull	%ebx,%eax
-	jo	.LZDrawRestoreGeneral
-	addl	%esi,%eax
-	js	.LZDrawRestoreGeneral
-	movl	%esi,%edx
+	jo	.LZDrawGeneral
+	addl	%edx,%eax
+	js	.LZDrawGeneral
 	jmp	.LZDrawNonnegative
-.LZDrawRestoreGeneral:
-	movl	%esi,%edx
 	#endif
 .LZDrawGeneral:
 
