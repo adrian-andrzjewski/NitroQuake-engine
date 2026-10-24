@@ -881,6 +881,22 @@ LClampNeg:
 	leal	4(%edi),%edi
 	.endm
 
+	.macro ZSPAN_SUB_PAIR_NONNEGATIVE
+	movl	%edx,%eax
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	#ifdef TARGET_I386
+	ZPACK16
+	subl	%ebx,%edx
+	#else
+	shldl	$16,%edx,%eax
+	subl	%ebx,%edx
+	rorl	$16,%eax
+	#endif
+	movl	%eax,(%edi)
+	leal	4(%edi),%edi
+	.endm
+
 	.macro ZSPAN_SUB_NEGATIVE_PAIR next_label
 	subl	%ebx,%edx
 	shrl	$16,%eax
@@ -1234,6 +1250,79 @@ LFNegSpanLoop:
 // %ebp = current span (list cursor)
 
 LZDrawNeg:
+	#ifndef TARGET_I386
+	// A nonnegative start and end prove every subtract-step sample stays
+	// nonnegative. Keep this long-span fast path parallel to LZDraw's add path.
+	cmpl	$22,%ecx
+	jb		.LZDrawNegGeneral
+	testl	%edx,%edx
+	js		.LZDrawNegGeneral
+	movl	%edx,%esi
+	leal	-1(%ecx),%eax
+	negl	%eax
+	imull	%ebx
+	addl	%esi,%eax
+	adcl	$0,%edx
+	testl	%edx,%edx
+	jnz		.LZDrawNegRestoreGeneral
+	testl	%eax,%eax
+	js		.LZDrawNegRestoreGeneral
+	movl	%esi,%edx
+	jmp		.LZDrawSubNonnegative
+
+.LZDrawNegRestoreGeneral:
+	movl	%esi,%edx
+	jmp		.LZDrawNegGeneral
+
+.LZDrawSubNonnegative:
+	// The endpoint proof lets this loop omit every per-pair sign test.
+	testl	$2,%edi
+	jz		.LZDrawSubNonnegativeMiddle
+	movl	%edx,%eax
+	subl	%ebx,%edx
+	shrl	$16,%eax
+	decl	%ecx
+	movw	%ax,(%edi)
+	addl	$2,%edi
+
+.LZDrawSubNonnegativeMiddle:
+	movl	%ecx,%esi
+	shrl	$4,%ecx
+	jz		.LZDrawSubNonnegativeGroups16Done
+.LZDrawSubNonnegativeGroup16Loop:
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	decl	%ecx
+	jnz		.LZDrawSubNonnegativeGroup16Loop
+
+.LZDrawSubNonnegativeGroups16Done:
+	testl	$8,%esi
+	jz		.LZDrawSubNonnegativeGroups8Done
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+
+.LZDrawSubNonnegativeGroups8Done:
+	testl	$4,%esi
+	jz		.LZDrawSubNonnegativeGroup4Done
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+
+.LZDrawSubNonnegativeGroup4Done:
+	testl	$2,%esi
+	jz		LFNegPairDone
+	ZSPAN_SUB_PAIR_NONNEGATIVE
+	jmp		LFNegPairDone
+	#endif
+
+.LZDrawNegGeneral:
 
 // do a single pixel up front, if necessary to dword align the destination
 	testl	$2,%edi
