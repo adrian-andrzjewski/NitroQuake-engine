@@ -884,9 +884,16 @@ LClampNeg:
 	.macro ZSPAN_SUB_NEGATIVE_PAIR next_label
 	subl	%ebx,%edx
 	shrl	$16,%eax
+	#ifdef TARGET_I386
 	ZPACK16
 	orl	$0xffff0000,%eax
 	subl	%ebx,%edx
+	#else
+	shldl	$16,%edx,%eax
+	subl	%ebx,%edx
+	rorl	$16,%eax
+	orl	$0xffff0000,%eax
+	#endif
 	movl	%eax,(%edi)
 	leal	4(%edi),%edi
 	jmp	\next_label
