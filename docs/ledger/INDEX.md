@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-24-span16-x87-pop-s-compute-t-promoted.md`](2026-10-24-span16-x87-pop-s-compute-t-promoted.md) | 1 | renderer performance / remove the remaining x87 exchange in Span16 by popping the S endpoint before computing T, after a positive strict mean, exact checksum parity, and the complete i486 ISA gate |
 | [`2026-10-24-span16-fistp-stack-order-promoted.md`](2026-10-24-span16-fistp-stack-order-promoted.md) | 1 | renderer performance / remove one x87 stack exchange from each full-width Span16 segment by storing endpoint T then S after a positive strict mean, exact checksum parity, and the complete i486 ISA gate |
 | [`2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md`](2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md) | 1 | renderer performance / schedule the second fixed-point step between SHLD and ROR in the nonnegative i486 Z-span pair loop after a positive strict mean |
 | [`2026-10-24-zspan-positive-gradient-overflow-guard-promoted.md`](2026-10-24-zspan-positive-gradient-overflow-guard-promoted.md) | 1 | renderer performance / replace the positive-gradient Z-span endpoint 64-bit carry chain with signed overflow checks after a positive strict mean and full i486 ISA audit |
@@ -582,6 +583,8 @@ other axis: one row per renderer region, newest entry first.
 - `rejected` [E4, the surface-cache eviction churn (2026-09-29) — premise falsified before it was built, 0 of 8,886 reb...](2026-09-29-harness-and-cost-model.md)
 
 ### texture-spans
+
+- `promoted` [Span16 x87 T calculation after popping S (2026-10-24) - **+0.015692978 FPS (+0.09898219%)**, exact checksum parity](2026-10-24-span16-x87-pop-s-compute-t-promoted.md)
 
 - `promoted` [Span16 x87 endpoint stores in stack order (2026-10-24) - **+0.015733684 FPS (+0.09933753%)**, exact checksum parity](2026-10-24-span16-fistp-stack-order-promoted.md)
 - `promoted` [Fourteen-pixel turbulent span loop (2026-10-23) — **+0.000098 FPS (+0.00062793%)**, exact checksum parity](2026-10-23-turbulent-span-fourteen-loop-release-default.md)
