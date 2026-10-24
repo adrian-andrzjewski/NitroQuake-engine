@@ -990,20 +990,17 @@ movl	espan_t_count(%ebp),%ecx
 
 LZDraw:
 	#ifndef TARGET_I386
-	// A nonnegative start and end prove every fixed-step sample stays
-	// nonnegative. The 64-bit product avoids overflow in this test.
+	// A nonnegative start and endpoint prove every fixed-step sample stays
+	// nonnegative. Reject product overflow and a negative endpoint here.
 	cmpl	$22,%ecx
 	jb		.LZDrawGeneral
 	testl	%edx,%edx
 	js	.LZDrawGeneral
 	movl	%edx,%esi
 	leal	-1(%ecx),%eax
-	imull	%ebx
+	imull	%ebx,%eax
+	jo	.LZDrawRestoreGeneral
 	addl	%esi,%eax
-	adcl	$0,%edx
-	testl	%edx,%edx
-	jnz	.LZDrawRestoreGeneral
-	testl	%eax,%eax
 	js	.LZDrawRestoreGeneral
 	movl	%esi,%edx
 	jmp	.LZDrawNonnegative
