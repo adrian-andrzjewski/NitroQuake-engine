@@ -992,7 +992,7 @@ LZDraw:
 	#ifndef TARGET_I386
 	// A nonnegative start and endpoint prove every fixed-step sample stays
 	// nonnegative. Reject product overflow and a negative endpoint here.
-	cmpl	$20,%ecx
+	cmpl	$19,%ecx
 	jb		.LZDrawGeneral
 	testl	%edx,%edx
 	js	.LZDrawGeneral
