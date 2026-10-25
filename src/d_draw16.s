@@ -148,6 +148,8 @@ LSpanLoop:
 	fildl	espan_t_v(%ebx)
 	fildl	espan_t_u(%ebx)
 	movl	espan_t_v(%ebx),%eax
+	movl	C(tadjust),%edx
+	movl	C(sadjust),%esi
 
 	fld		%st(1)			// dv | du | dv
 	fmuls	C(d_sdivzstepv)	// dv*d_sdivzstepv | du | dv
@@ -208,8 +210,6 @@ LSpanLoop:
 //
 	pushl	espan_t_pnext(%ebx)	// preserve the next span before %ebx is reused
 
-	movl	C(tadjust),%edx
-	movl	C(sadjust),%esi
 	movl	C(viewspantable)(,%eax,4),%edi	// row base
 	movl	espan_t_u(%ebx),%ecx
 	addl	%ecx,%edi				// pdest = &pdestspan[scans->u];
