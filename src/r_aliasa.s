@@ -113,11 +113,11 @@ Lloop:
 //		lightcos = DotProduct (plightnormal, r_plightvec);
 	flds	C(r_avertexnormals)(,%edx,4)
 	fmuls	C(r_plightvec)
-	flds	C(r_avertexnormals)+4(,%edx,4)
-	fmuls	C(r_plightvec)+4
 	flds	C(r_avertexnormals)+8(,%edx,4)
 	fmuls	C(r_plightvec)+8
-	fxch	%st(1)
+	flds	C(r_avertexnormals)+4(,%edx,4)
+	fmuls	C(r_plightvec)+4
+	// Component 1 is on top, so the next add forms component 0 + 1 first.
 	faddp	%st(0),%st(2)
 	fld		%st(2)				 // v[0] | laccum | laccum2 | v[0] | v[2] |
 								 //  v[1] | zi
