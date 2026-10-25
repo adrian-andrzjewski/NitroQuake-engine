@@ -13,7 +13,7 @@ loop accesses.
 
 Both variants used DOSBox-X 2026.08.31, the pinned 32 MB i486 profile
 (`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`),
-`demo1`, three uninstrumented runs, and the same 152 renderer build selectors.
+`demo1`, three uninstrumented runs, and the same 159 build selectors.
 
 | Variant | Result | FPS samples | Mean FPS | Median FPS |
 |---|---|---|---:|---:|

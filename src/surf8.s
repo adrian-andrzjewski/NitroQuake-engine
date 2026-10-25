@@ -608,29 +608,27 @@ LSkip_mip0:
 
 	.p2align 4,,15
 LSurf8Mip0HorizontalFlat:
-	pushl	$16
+	movb	$16,%ah			// row counter; flat-row macro leaves AH untouched
 LSurf8Mip0HorizontalFlatRow:
 	SURF8_MIP0_HORIZONTAL_FLAT_ROW
 	addl	%ebp,%edx
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
-	decl	(%esp)
+	decb	%ah
 	jnz	LSurf8Mip0HorizontalFlatRow
-	addl	$4,%esp
 	ret
 
 	.p2align 4,,15
 LSurf8Mip0FullyFlat:
 	movb	%dh,%bh
 	movb	%dh,%ch
-	pushl	$16
+	movb	$16,%ah			// row counter; flat-row macro leaves AH untouched
 LSurf8Mip0FullyFlatRow:
 	SURF8_MIP0_FULLY_FLAT_ROW
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
-	decl	(%esp)
+	decb	%ah
 	jnz	LSurf8Mip0FullyFlatRow
-	addl	$4,%esp
 	ret
 #endif
 
