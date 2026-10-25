@@ -1082,12 +1082,7 @@ LSurf8Mip1FullyFlat:
 
 	.p2align 4,,15
 LSurf8Mip1HorizontalFlat:
-	// The eight rows are unrolled below, so this loop runs once per block: the
-	// counter is the number of ROW-BODIES here, not the block height. (A block
-	// of eight rows unrolled eight times and then looped eight times would
-	// draw sixty-four rows and run off the end of the surface cache.)
-	pushl	$1
-LSurf8Mip1HorizontalFlatRow:
+	// All eight rows are unrolled here and emitted once per block.
 	SURF8_MIP1_FLAT_ROW a
 	SURF8_MIP1_FLAT_ROW b
 	SURF8_MIP1_FLAT_ROW c
@@ -1096,9 +1091,6 @@ LSurf8Mip1HorizontalFlatRow:
 	SURF8_MIP1_FLAT_ROW f
 	SURF8_MIP1_FLAT_ROW g
 	SURF8_MIP1_FLAT_ROW h
-	decl	(%esp)
-	jnz	LSurf8Mip1HorizontalFlatRow
-	addl	$4,%esp
 	ret
 #endif
 
