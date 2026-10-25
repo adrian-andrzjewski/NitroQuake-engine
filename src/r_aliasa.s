@@ -79,11 +79,10 @@ Lloop:
 	leal	(%edx,%edx,2),%edx	// index*3
 	addl	$(tv_size),%esi
 
-	fld		%st(2)				// v[0] | v[2] | v[1] | v[0]
-	fmuls	C(aliastransform)+32 // accum | v[2] | v[1] | v[0]
-	fld		%st(2)				// v[1] | accum | v[2] | v[1] | v[0]
-	fmuls	C(aliastransform)+36 // accum2 | accum | v[2] | v[1] | v[0]
-	fxch	%st(1)				// accum | accum2 | v[2] | v[1] | v[0]
+	fld		%st(1)				// v[1] | v[2] | v[1] | v[0]
+	fmuls	C(aliastransform)+36 // accum2 | v[2] | v[1] | v[0]
+	fld		%st(3)				// v[0] | accum2 | v[2] | v[1] | v[0]
+	fmuls	C(aliastransform)+32 // accum | accum2 | v[2] | v[1] | v[0]
 	fadds	C(aliastransform)+44 // accum | accum2 | v[2] | v[1] | v[0]
 	fld		%st(2)				// v[2] | accum | accum2 | v[2] | v[1] | v[0]
 	fmuls	C(aliastransform)+40 // accum3 | accum | accum2 | v[2] | v[1] |
