@@ -474,69 +474,61 @@ LSkip_mip0:
 	movb	%dh,%bh
 	movb	%dh,%ch
 	movb	15(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat0:
-	movb	%al,15(%edi)
 	movb	14(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat1:
-	movb	%al,14(%edi)
+	rorl	$16,%eax
 	movb	13(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat2:
-	movb	%al,13(%edi)
 	movb	12(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat3:
-	movb	%al,12(%edi)
+	movl	%eax,12(%edi)
 	movb	11(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat4:
-	movb	%al,11(%edi)
 	movb	10(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat5:
-	movb	%al,10(%edi)
+	rorl	$16,%eax
 	movb	9(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat6:
-	movb	%al,9(%edi)
 	movb	8(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat7:
-	movb	%al,8(%edi)
+	movl	%eax,8(%edi)
 	movb	7(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat8:
-	movb	%al,7(%edi)
 	movb	6(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat9:
-	movb	%al,6(%edi)
+	rorl	$16,%eax
 	movb	5(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat10:
-	movb	%al,5(%edi)
 	movb	4(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat11:
-	movb	%al,4(%edi)
+	movl	%eax,4(%edi)
 	movb	3(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat12:
-	movb	%al,3(%edi)
 	movb	2(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat13:
-	movb	%al,2(%edi)
+	rorl	$16,%eax
 	movb	1(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflat14:
-	movb	%al,1(%edi)
 	movb	(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflat15:
-	movb	%al,(%edi)
+	movl	%eax,(%edi)
 .endm
 
 .macro SURF8_MIP0_FULLY_FLAT_ROW
@@ -600,14 +592,15 @@ LSkip_mip0:
 
 	.p2align 4,,15
 LSurf8Mip0HorizontalFlat:
-	movb	$16,%ah			// row counter; flat-row macro leaves AH untouched
+	pushl	$16
 LSurf8Mip0HorizontalFlatRow:
 	SURF8_MIP0_HORIZONTAL_FLAT_ROW
 	addl	%ebp,%edx
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
-	decb	%ah
+	decl	(%esp)
 	jnz	LSurf8Mip0HorizontalFlatRow
+	addl	$4,%esp
 	ret
 
 	.p2align 4,,15
