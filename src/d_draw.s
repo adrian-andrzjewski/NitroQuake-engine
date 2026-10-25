@@ -223,7 +223,7 @@ LSpanLoop:
 // d_scantable plus d_viewbuffer.  C D_DrawSpans8 still multiplies screenwidth.
 //
 	movl	espan_t_v(%ebx),%eax
-	movl	%ebx,pspantemp	// preserve spans pointer
+	pushl	espan_t_pnext(%ebx)	// preserve the next span before %ebx is reused
 
 	movl	C(tadjust),%edx
 	movl	C(sadjust),%esi
@@ -792,8 +792,7 @@ LEndSpan:
 	fstp %st(0)
 	fstp %st(0)
 
-	movl	pspantemp,%ebx				// restore spans pointer
-	movl	espan_t_pnext(%ebx),%ebx	// point to next span
+	popl	%ebx					// point to the next span
 	testl	%ebx,%ebx			// any more spans?
 	movb	%al,7(%edi)
 	jnz		LSpanLoop			// more spans
