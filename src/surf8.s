@@ -541,69 +541,61 @@ LSkip_mip0:
 
 .macro SURF8_MIP0_FULLY_FLAT_ROW
 	movb	15(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf0:
-	movb	%al,15(%edi)
 	movb	14(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf1:
-	movb	%al,14(%edi)
+	rorl	$16,%eax
 	movb	13(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf2:
-	movb	%al,13(%edi)
 	movb	12(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf3:
-	movb	%al,12(%edi)
+	movl	%eax,12(%edi)
 	movb	11(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf4:
-	movb	%al,11(%edi)
 	movb	10(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf5:
-	movb	%al,10(%edi)
+	rorl	$16,%eax
 	movb	9(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf6:
-	movb	%al,9(%edi)
 	movb	8(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf7:
-	movb	%al,8(%edi)
+	movl	%eax,8(%edi)
 	movb	7(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf8:
-	movb	%al,7(%edi)
 	movb	6(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf9:
-	movb	%al,6(%edi)
+	rorl	$16,%eax
 	movb	5(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf10:
-	movb	%al,5(%edi)
 	movb	4(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf11:
-	movb	%al,4(%edi)
+	movl	%eax,4(%edi)
 	movb	3(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf12:
-	movb	%al,3(%edi)
 	movb	2(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf13:
-	movb	%al,2(%edi)
+	rorl	$16,%eax
 	movb	1(%esi),%bl
-	movb	0x12345678(%ebx),%al
+	movb	0x12345678(%ebx),%ah
 .LLBPatchflatf14:
-	movb	%al,1(%edi)
 	movb	(%esi),%cl
 	movb	0x12345678(%ecx),%al
 .LLBPatchflatf15:
-	movb	%al,(%edi)
+	movl	%eax,(%edi)
 .endm
 
 	.p2align 4,,15
@@ -622,12 +614,12 @@ LSurf8Mip0HorizontalFlatRow:
 LSurf8Mip0FullyFlat:
 	movb	%dh,%bh
 	movb	%dh,%ch
-	movb	$16,%ah			// row counter; flat-row macro leaves AH untouched
+	movb	$16,%dl			// low byte is free after the light index is copied
 LSurf8Mip0FullyFlatRow:
 	SURF8_MIP0_FULLY_FLAT_ROW
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
-	decb	%ah
+	decb	%dl
 	jnz	LSurf8Mip0FullyFlatRow
 	ret
 #endif
