@@ -132,8 +132,7 @@ Lloop:
 //		{
 	fsts	Ltemp
 	movl	C(r_ambientlight),%eax
-	movb	Ltemp+3,%dl
-	testb	$0x80,%dl
+	testb	$0x80,Ltemp+3
 	jz		Lsavelight	// no need to clamp if only ambient lit, because
 						//  r_ambientlight is preclamped
 
