@@ -203,11 +203,10 @@ Lp1:
 	fadds	C(aliasxcenter)		 // u | y/z | zi
 	fxch	%st(1)				 // y/z | u | zi
 	fadds	C(aliasycenter)		 // v | u | zi
-	fxch	%st(2)				 // zi | u | v
 // FIXME: fast float->int conversion?
-	fistpl	fv_v+20(%edi)		 // u | v
-	fistpl	fv_v+0(%edi)		 // v
-	fistpl	fv_v+4(%edi)
+	fistpl	fv_v+4(%edi)		 // u | zi
+	fistpl	fv_v+0(%edi)		 // zi
+	fistpl	fv_v+20(%edi)
 
 //	}
 
