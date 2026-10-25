@@ -123,22 +123,11 @@ Lloop:
 //		{
 	fsts	Ltemp
 	movl	C(r_ambientlight),%eax
+	// The common nonnegative-light case only discards the dot product;
+	// let it fall straight into projection and keep shaded-light work cold.
 	testb	$0x80,Ltemp+3
-	jz		Lsavelight	// no need to clamp if only ambient lit, because
-						//  r_ambientlight is preclamped
-
-//			temp += (int)(r_shadelight * lightcos);
-	fmuls	C(r_shadelight)
-// FIXME: fast float->int conversion?
-	fistpl	Ltemp
-	addl	Ltemp,%eax
-
-//		// clamp; because we limited the minimum ambient and shading light, we
-//		// don't have to clamp low light, just bright
-//			if (temp < 0)
-//				temp = 0;
-	jns		Lp1
-	subl	%eax,%eax
+	jnz		Lnegative_light
+	fstp	%st(0)
 
 //		}
 
@@ -215,8 +204,14 @@ Lp1:
 	popl	%ebp				// restore the caller's stack frame
 	ret
 
-Lsavelight:
-	fstp	%st(0)
+	// Cold path: calculate and clamp shaded light, then rejoin projection.
+Lnegative_light:
+	fmuls	C(r_shadelight)
+	// FIXME: fast float->int conversion?
+	fistpl	Ltemp
+	addl	Ltemp,%eax
+	jns		Lp1
+	subl	%eax,%eax
 	jmp		Lp1
 
 // R_AliasProjectFinalVert with one x87 control-word transition per call.
