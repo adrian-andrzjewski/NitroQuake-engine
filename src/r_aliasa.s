@@ -116,13 +116,7 @@ Lloop:
 	fmuls	C(r_plightvec)+4
 	// Component 1 is on top, so the next add forms component 0 + 1 first.
 	faddp	%st(0),%st(2)
-	fld		%st(2)				 // v[0] | laccum | laccum2 | v[0] | v[2] |
-								 //  v[1] | zi
-	fmuls	C(aliastransform)+0  // xaccum | laccum | laccum2 | v[0] | v[2] |
-								 //  v[1] | zi
-	fxch	%st(2)				 // laccum2 | laccum | xaccum | v[0] | v[2] |
-								 //  v[1] | zi
-	faddp	%st(0),%st(1)		 // laccum | xaccum | v[0] | v[2] | v[1] | zi
+	faddp	%st(0),%st(1)		 // laccum | v[0] | v[2] | v[1] | zi
 
 //		temp = r_ambientlight;
 //		if (lightcos < 0)
@@ -149,6 +143,8 @@ Lloop:
 //		}
 
 Lp1:
+	fld		%st(0)				 // v[0] | v[0] | v[2] | v[1] | zi
+	fmuls	C(aliastransform)+0  // xaccum | v[0] | v[2] | v[1] | zi
 
 //		fv->v[4] = temp;
 //
