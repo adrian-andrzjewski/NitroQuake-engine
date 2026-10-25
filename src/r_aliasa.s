@@ -84,13 +84,11 @@ Lloop:
 	fld		%st(3)				// v[0] | accum2 | v[2] | v[1] | v[0]
 	fmuls	C(aliastransform)+32 // accum | accum2 | v[2] | v[1] | v[0]
 	fadds	C(aliastransform)+44 // accum | accum2 | v[2] | v[1] | v[0]
-	fld		%st(2)				// v[2] | accum | accum2 | v[2] | v[1] | v[0]
-	fmuls	C(aliastransform)+40 // accum3 | accum | accum2 | v[2] | v[1] |
-								 //  v[0]
-	fxch	%st(1)				// accum | accum3 | accum2 | v[2] | v[1] | v[0]
-	faddp	%st(0),%st(2)		// accum3 | accum | v[2] | v[1] | v[0]
+	faddp	%st(0),%st(1)		// accum | v[2] | v[1] | v[0]
 	movl	stv_s(%ebp),%eax
 	movl	%eax,fv_v+8(%edi)
+	fld		%st(1)				// v[2] | accum | v[2] | v[1] | v[0]
+	fmuls	C(aliastransform)+40 // accum3 | accum | v[2] | v[1] | v[0]
 	faddp	%st(0),%st(1)		// z | v[2] | v[1] | v[0]
 
 //	// lighting
