@@ -704,15 +704,13 @@ Lv_loop_mip1:
 	jne	LSurfaceBlockMip1NotFullyFlat
 	xorl	%ebx,%ebx		// colormap indexes start at zero
 	xorl	%ecx,%ecx
-	call	LSurf8Mip1FullyFlat
-	jmp	LSurfaceBlockMip1Done
+	jmp	LSurf8Mip1FullyFlat
 LSurfaceBlockMip1NotFullyFlat:
 #endif
 	movl	%ecx,%ebp		// constant per-row vertical step
 	xorl	%ebx,%ebx		// colormap indexes start at zero
 	xorl	%ecx,%ecx
-	call	LSurf8Mip1HorizontalFlat
-	jmp	LSurfaceBlockMip1Done
+	jmp	LSurf8Mip1HorizontalFlat
 LSurfaceBlockMip1NotHorizontalFlat:
 #endif
 
@@ -1075,7 +1073,7 @@ LSurf8Mip1FullyFlat:
 	SURF8_MIP1_FULLY_FLAT_ROW F
 	SURF8_MIP1_FULLY_FLAT_ROW G
 	SURF8_MIP1_FULLY_FLAT_ROW H
-	ret
+	jmp	LSurfaceBlockMip1Done
 #endif
 
 	.p2align 4,,15
@@ -1089,7 +1087,7 @@ LSurf8Mip1HorizontalFlat:
 	SURF8_MIP1_FLAT_ROW f
 	SURF8_MIP1_FLAT_ROW g
 	SURF8_MIP1_FLAT_ROW h
-	ret
+	jmp	LSurfaceBlockMip1Done
 #endif
 
 
