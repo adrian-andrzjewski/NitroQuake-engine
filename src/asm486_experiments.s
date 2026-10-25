@@ -2313,11 +2313,11 @@ C(R_RenderFace_asm486):
 
 	/* if ((surface_p) >= surf_max) */
 	movl	C(surface_p),%eax
+	movl	24(%ebx),%edx
 	cmpl	C(surf_max),%eax
 	jae	.Lrf_early_surfaces
 
 	/* if (edge_p + fa->numedges + 4) >= edge_max */
-	movl	24(%ebx),%edx
 	leal	4(%edx),%ecx
 	shll	$5,%ecx
 	addl	C(edge_p),%ecx
