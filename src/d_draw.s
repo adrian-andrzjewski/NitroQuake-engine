@@ -999,22 +999,12 @@ LZDraw:
 	jo	.LZDrawGeneral
 	addl	%edx,%eax
 	js	.LZDrawGeneral
-	jmp	.LZDrawNonnegative
 	#endif
-.LZDrawGeneral:
 
-// do a single pixel up front, if necessary to dword align the destination
-	testl	$2,%edi
-	jz		LFMiddle
-	movl	%edx,%eax
-	addl	%ebx,%edx
-	shrl	$16,%eax
-	decl	%ecx
-	movw	%ax,(%edi)
-	addl	$2,%edi
 	#ifndef TARGET_I386
-	jmp		LFMiddle
 .LZDrawNonnegative:
+	// The proven path is the common case. Fall through after its endpoint checks,
+	// keeping the general sign-checking path out of line.
 	// This copy uses the endpoint proof above to omit per-pair sign branches.
 	testl	$2,%edi
 	jz		.LZDrawNonnegativeMiddle
@@ -1080,6 +1070,23 @@ LZDraw:
 	jz		LFPairDone
 	ZSPAN_ADD_PAIR_NONNEGATIVE
 	jmp		LFPairDone
+	#endif
+
+	#ifndef TARGET_I386
+.LZDrawGeneral:
+	#endif
+
+// do a single pixel up front, if necessary to dword align the destination
+	testl	$2,%edi
+	jz		LFMiddle
+	movl	%edx,%eax
+	addl	%ebx,%edx
+	shrl	$16,%eax
+	decl	%ecx
+	movw	%ax,(%edi)
+	addl	$2,%edi
+	#ifndef TARGET_I386
+	jmp		LFMiddle
 	#endif
 
 // Keep the remaining pixel count for the odd-pixel test. The i386 packing
