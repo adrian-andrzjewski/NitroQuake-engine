@@ -147,6 +147,7 @@ LSpanLoop:
 // FIXME: pipeline FILD?
 	fildl	espan_t_v(%ebx)
 	fildl	espan_t_u(%ebx)
+	movl	espan_t_v(%ebx),%eax
 
 	fld		%st(1)			// dv | du | dv
 	fmuls	C(d_sdivzstepv)	// dv*d_sdivzstepv | du | dv
@@ -205,7 +206,6 @@ LSpanLoop:
 // Row addresses come from viewspantable (filled in D_SetupFrame) instead of
 // d_scantable plus d_viewbuffer.  C D_DrawSpans8 still multiplies screenwidth.
 //
-	movl	espan_t_v(%ebx),%eax
 	pushl	espan_t_pnext(%ebx)	// preserve the next span before %ebx is reused
 
 	movl	C(tadjust),%edx
