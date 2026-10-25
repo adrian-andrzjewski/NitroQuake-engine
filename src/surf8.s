@@ -117,14 +117,12 @@ Lv_loop_mip0:
 	jnz	LSurfaceBlockMip0NotFullyFlat
 	xorl	%ebx,%ebx
 	xorl	%ecx,%ecx
-	call	LSurf8Mip0FullyFlat
-	jmp	LSurfaceBlockMip0Done
+	jmp	LSurf8Mip0FullyFlat
 LSurfaceBlockMip0NotFullyFlat:
 	movl	%ecx,%ebp
 	xorl	%ebx,%ebx
 	xorl	%ecx,%ecx
-	call	LSurf8Mip0HorizontalFlat
-	jmp	LSurfaceBlockMip0Done
+	jmp	LSurf8Mip0HorizontalFlat
 LSurfaceBlockMip0NotHorizontalFlat:
 #endif
 
@@ -601,7 +599,7 @@ LSurf8Mip0HorizontalFlatRow:
 	decl	(%esp)
 	jnz	LSurf8Mip0HorizontalFlatRow
 	addl	$4,%esp
-	ret
+	jmp	LSurfaceBlockMip0Done
 
 	.p2align 4,,15
 LSurf8Mip0FullyFlat:
@@ -614,7 +612,7 @@ LSurf8Mip0FullyFlatRow:
 	addl	C(surfrowbytes),%edi
 	decb	%dl
 	jnz	LSurf8Mip0FullyFlatRow
-	ret
+	jmp	LSurfaceBlockMip0Done
 #endif
 
 
