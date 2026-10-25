@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-26-edge-step-second-u-store-after-compare-promoted.md`](2026-10-26-edge-step-second-u-store-after-compare-promoted.md) | 1 | renderer performance / schedule the second `R_StepActiveU` U-store after its compare with a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-25-renderface-numedges-load-hoist-promoted.md`](2026-10-25-renderface-numedges-load-hoist-promoted.md) | 1 | renderer performance / load `fa->numedges` before the surface-capacity branch in `R_RenderFace` after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-25-zspan-common-fastpath-fallthrough-promoted.md`](2026-10-25-zspan-common-fastpath-fallthrough-promoted.md) | 1 | renderer performance / make the proven nonnegative Z-span path fall through into its fast loop after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-25-alias-nonnegative-light-fallthrough-promoted.md`](2026-10-25-alias-nonnegative-light-fallthrough-promoted.md) | 1 | renderer performance / let common nonnegative alias light fall through to projection after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
@@ -317,6 +318,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### edge-scan
 
+- `promoted` [Second `R_StepActiveU` U-store after compare (2026-10-26) - strict mean **+0.000007667 FPS (+0.0000481%)**, exact checksum parity and full i486 audit](2026-10-26-edge-step-second-u-store-after-compare-promoted.md)
 - `closed` [The per-edge dispatch remainder, decomposed (2026-10-02, second pass) — `edge-scan` is now 78% mapped and...](2026-10-02-edge-scan-and-texture-spans.md)
 - `measured` [The complete `edge-scan` map — 78% of the bucket accounted for](2026-10-02-edge-scan-and-texture-spans.md)
 - `measured` [A fifth probe trap, and it is a different failure from the other four](2026-10-02-edge-scan-and-texture-spans.md)
