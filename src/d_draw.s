@@ -383,18 +383,15 @@ LNotLastSegment:
 	addl	%eax,%ebp
 	addl	%edx,%ecx
 
-	movl	C(bbextents),%eax
-	movl	C(bbextentt),%edx
-
 	cmpl	$2048,%ebp
 	jl		LClampLow2
-	cmpl	%eax,%ebp
+	cmpl	C(bbextents),%ebp
 	ja		LClampHigh2
 LClampReentry2:
 
 	cmpl	$2048,%ecx
 	jl		LClampLow3
-	cmpl	%edx,%ecx
+	cmpl	C(bbextentt),%ecx
 	ja		LClampHigh3
 LClampReentry3:
 
