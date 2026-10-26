@@ -175,16 +175,16 @@ Lre_loop:
 #endif
 // Match C: both unlink stores, then advance.  Odd-length tails no longer
 // take a special Lre_done path just to finish prev->next.
-	movl	et_next(%eax),%ecx
 	movl	et_prev(%eax),%edx
+	movl	et_next(%eax),%ecx
 	movl	%ecx,et_next(%edx)
 	movl	%edx,et_prev(%ecx)
 	movl	et_nextremove(%eax),%eax
 	testl	%eax,%eax
 	jz		Lre_done
 
-	movl	et_next(%eax),%ecx
 	movl	et_prev(%eax),%edx
+	movl	et_next(%eax),%ecx
 	movl	%ecx,et_next(%edx)
 	movl	%edx,et_prev(%ecx)
 	movl	et_nextremove(%eax),%eax
