@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-26-zspan-general-add-pair-stosl-promoted.md`](2026-10-26-zspan-general-add-pair-stosl-promoted.md) | 1 | renderer performance / promote STOSL for the general positive-sample Z-span pair after a 0.021634 FPS strict gain, exact checksum parity, and complete i486 ISA pass |
 | [`2026-10-26-zspan-nonnegative-stosl-promoted.md`](2026-10-26-zspan-nonnegative-stosl-promoted.md) | 1 | renderer performance / promote STOSL for the nonnegative Z-span pair store after a 0.137316 FPS strict gain, exact checksum parity, and complete i486 ISA pass |
 | [`2026-10-26-edge-step-second-u-store-after-compare-promoted.md`](2026-10-26-edge-step-second-u-store-after-compare-promoted.md) | 1 | renderer performance / schedule the second `R_StepActiveU` U-store after its compare with a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-26-edge-step-fourth-next-load-hoist-promoted.md`](2026-10-26-edge-step-fourth-next-load-hoist-promoted.md) | 1 | renderer performance / hoist the fourth `R_StepActiveU` next-link load ahead of its U update after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
@@ -642,6 +643,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### z-spans
 
+- `promoted` [D_DrawZSpans general positive-sample pair store with STOSL (2026-10-26) — **+0.021634 FPS (+0.1345%)**, exact checksum parity and strict i486 pass](2026-10-26-zspan-general-add-pair-stosl-promoted.md)
 - `promoted` [D_DrawZSpans nonnegative pair store with STOSL (2026-10-26) — **+0.137316 FPS (+0.861%)**, exact checksum parity](2026-10-26-zspan-nonnegative-stosl-promoted.md)
 
 - `promoted` [`D_DrawZSpans` second-step scheduling within SHLD/ROR (2026-10-24) — **+0.000007000 FPS (+0.00004423%)**, exact checksum parity](2026-10-24-zspan-nonnegative-step-between-shld-ror-promoted.md)

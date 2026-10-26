@@ -835,8 +835,12 @@ LClampNeg:
 	shrl	$16,%eax
 	ZPACK16
 	addl	%ebx,%edx
+	#ifdef TARGET_I386
 	movl	%eax,(%edi)
 	leal	4(%edi),%edi
+	#else
+	stosl
+	#endif
 	.endm
 
 	.macro ZSPAN_ADD_PAIR_NONNEGATIVE
