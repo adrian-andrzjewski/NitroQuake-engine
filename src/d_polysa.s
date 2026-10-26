@@ -1610,8 +1610,7 @@ LScanLoop:
 
 // Last packaged row: Bresenham step is dead (caller re-inits or
 // right-edge SetUpForLineScan).  Same pattern as Aff8 last-group skip.
-	decl	%ecx
-	testl	$0xFFFF,%ecx
+	decw	%cx
 	jz		LScanDone
 
 //		errorterm += erroradjustup;
