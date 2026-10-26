@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-26-edge-step-second-u-store-after-compare-promoted.md`](2026-10-26-edge-step-second-u-store-after-compare-promoted.md) | 1 | renderer performance / schedule the second `R_StepActiveU` U-store after its compare with a positive strict mean, exact checksum parity, and complete i486 ISA gate |
+| [`2026-10-26-edge-step-fourth-next-load-hoist-promoted.md`](2026-10-26-edge-step-fourth-next-load-hoist-promoted.md) | 1 | renderer performance / hoist the fourth `R_StepActiveU` next-link load ahead of its U update after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-26-bsp-walk-framecount-register-cache-promoted.md`](2026-10-26-bsp-walk-framecount-register-cache-promoted.md) | 1 | renderer performance / cache the frame count in a register across the BSP node-surface loop after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-26-alias-scan-low-word-decrement-promoted.md`](2026-10-26-alias-scan-low-word-decrement-promoted.md) | 1 | renderer performance / replace the alias scan counter 32-bit decrement and low-word test with a 16-bit decrement after a positive matched mean and strict i486 ISA gate |
 | [`2026-10-25-renderface-numedges-load-hoist-promoted.md`](2026-10-25-renderface-numedges-load-hoist-promoted.md) | 1 | renderer performance / load `fa->numedges` before the surface-capacity branch in `R_RenderFace` after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
@@ -321,6 +322,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### edge-scan
 
+- `promoted` [Fourth `R_StepActiveU` next-link load hoist (2026-10-26) — strict mean **+0.000001 FPS**, exact checksum parity and full i486 audit](2026-10-26-edge-step-fourth-next-load-hoist-promoted.md)
 - `promoted` [Second `R_StepActiveU` U-store after compare (2026-10-26) - strict mean **+0.000007667 FPS (+0.0000481%)**, exact checksum parity and full i486 audit](2026-10-26-edge-step-second-u-store-after-compare-promoted.md)
 - `closed` [The per-edge dispatch remainder, decomposed (2026-10-02, second pass) — `edge-scan` is now 78% mapped and...](2026-10-02-edge-scan-and-texture-spans.md)
 - `measured` [The complete `edge-scan` map — 78% of the bucket accounted for](2026-10-02-edge-scan-and-texture-spans.md)

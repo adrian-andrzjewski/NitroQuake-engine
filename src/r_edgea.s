@@ -256,9 +256,9 @@ LNextEdge:
 	jl		LPushBack
 	movl	et_next(%edx),%esi
 
+	movl	et_next(%esi),%edx
 	movl	et_u(%esi),%edi
 	addl	et_u_step(%esi),%edi
-	movl	et_next(%esi),%edx
 	movl	%edi,et_u(%esi)
 	cmpl	%eax,%edi
 	jnl		LNextEdge
