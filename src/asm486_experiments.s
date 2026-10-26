@@ -6992,7 +6992,7 @@ C(R_RecursiveWorldNode_asm486):
 	movzwl	36(%ebx),%edx		// firstsurface
 	shll	$6,%edx			// sizeof(msurface_t) == 64
 	addl	%edx,%eax
-	movl	%eax,-36(%ebp)
+	movl	%eax,%esi			// keep the sequential surface cursor in a callee-saved register
 
 	// C executes these comparisons in order and treats unordered as false.
 	fldl	-32(%ebp)
@@ -7024,7 +7024,6 @@ C(R_RecursiveWorldNode_asm486):
 	movl	C(r_framecount),%ebx
 #endif
 .Lbsp_walk_surface_loop:
-	movl	-36(%ebp),%esi
 	cmpl	%ebx,0(%esi)
 	jne	.Lbsp_walk_surface_next
 	movl	16(%esi),%eax		// flags
@@ -7067,7 +7066,7 @@ C(R_RecursiveWorldNode_asm486):
 #endif
 
 .Lbsp_walk_surface_next:
-	addl	$64,-36(%ebp)
+	addl	$64,%esi
 	decl	-40(%ebp)
 	jnz	.Lbsp_walk_surface_loop
 
