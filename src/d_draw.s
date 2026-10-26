@@ -851,9 +851,8 @@ LClampNeg:
 	#else
 	shldl	$16,%edx,%eax
 	addl	%ebx,%edx
-	leal	4(%edi),%edi
 	rorl	$16,%eax
-	movl	%eax,-4(%edi)
+	stosl
 	#endif
 	.endm
 
