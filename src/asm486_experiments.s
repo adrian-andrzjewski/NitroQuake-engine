@@ -7018,14 +7018,14 @@ C(R_RecursiveWorldNode_asm486):
 	movl	-40(%ebp),%eax
 	testl	%eax,%eax
 	je	.Lbsp_walk_surface_sequence_done
+#ifdef ASM486_BSP_FRAME_COUNT
+	movl	-24(%ebp),%ebx
+#else
+	movl	C(r_framecount),%ebx
+#endif
 .Lbsp_walk_surface_loop:
 	movl	-36(%ebp),%esi
-#ifdef ASM486_BSP_FRAME_COUNT
-	cmpl	-24(%ebp),0(%esi)
-#else
-	movl	C(r_framecount),%eax
-	cmpl	%eax,0(%esi)
-#endif
+	cmpl	%ebx,0(%esi)
 	jne	.Lbsp_walk_surface_next
 	movl	16(%esi),%eax		// flags
 	andl	$2,%eax
@@ -7075,6 +7075,7 @@ C(R_RecursiveWorldNode_asm486):
 	incl	C(r_currentkey)		// all surfaces on the node share one key
 
 .Lbsp_walk_back_child:
+	movl	0(%esp),%ebx			// restore the current node from its continuation
 	movl	%edi,%eax
 	xorl	$1,%eax			// !side
 	movl	28(%ebx,%eax,4),%eax
