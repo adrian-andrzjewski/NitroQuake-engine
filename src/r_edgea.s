@@ -492,11 +492,10 @@ Lgs_edgeloop:
 	movl	C(surfaces),%ecx
 #endif
 
-	movl	et_surfs(%ebx),%edi
+	movzwl	et_surfs(%ebx),%esi
+	movzwl	et_surfs+2(%ebx),%edi
 	movl	C(surfaces),%eax
-	movl	%edi,%esi
-	andl	$0xFFFF0000,%edi
-	andl	$0xFFFF,%esi
+	testl	%esi,%esi
 	jz		Lgs_leading		// not a trailing edge
 
 // it has a left surface, so a surface is going away for this span
@@ -506,21 +505,26 @@ Lgs_edgeloop:
 	jz		Lgs_trailing
 
 // both leading and trailing
+	// EDI survives TrailingEdge; form the leading surface pointer before the
+	// call so the global surfaces base does not need to be reloaded afterward.
+	shll	$(SURF_T_SHIFT),%edi
+	addl	%eax,%edi
 	call	TrailingEdge
-	movl	C(surfaces),%eax
+	jmp	Lgs_leading_body
 
 // ---------------------------------------------------------------
 // handle a leading edge
 // ---------------------------------------------------------------
 
 Lgs_leading:
+	// Leading-only edges still carry an index here; convert it with the
+	// surfaces base already loaded at Lgs_edgeloop.
+	shll	$(SURF_T_SHIFT),%edi
+	addl	%eax,%edi
+Lgs_leading_body:
 #ifdef PROFILE486
 	incl	C(bench486_edge_leading)
 #endif
-	shrl	$16-SURF_T_SHIFT,%edi
-	// %eax still holds surfaces: loaded at Lgs_edgeloop, and reloaded after
-	// TrailingEdge when both edges are present.  Skip a dead third load.
-	addl	%eax,%edi
 #ifdef EDGE_SCAN_PROBE_LEADIN
 	// Dead-scratch probe, 6 instructions, at LPatch2 rather than at
 	// Lgs_leading.  The first version sat at the label and faulted the run:
