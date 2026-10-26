@@ -146,9 +146,9 @@ LSpanLoop:
 //
 // FIXME: pipeline FILD?
 	fildl	espan_t_v(%ebx)
-	fildl	espan_t_u(%ebx)
 	movl	espan_t_v(%ebx),%eax
 	movl	C(tadjust),%edx
+	fildl	espan_t_u(%ebx)
 
 	fld		%st(1)			// dv | du | dv
 	fmuls	C(d_sdivzstepv)	// dv*d_sdivzstepv | du | dv
