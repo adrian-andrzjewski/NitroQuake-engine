@@ -866,8 +866,12 @@ LClampNeg:
 	ZPACK16
 	orl	$0xffff0000,%eax
 	addl	%ebx,%edx
+	#ifdef TARGET_I386
 	movl	%eax,(%edi)
 	leal	4(%edi),%edi
+	#else
+	stosl
+	#endif
 	jmp	\next_label
 	.endm
 
