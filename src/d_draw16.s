@@ -1513,16 +1513,15 @@ LSpan16AfterStoresB:
 	movl	%edx,s
 	movl	%ebx,t
 
-	movl	counttemp,%ecx		// retrieve count
-
 //
 // determine whether last span or not
 //
-	cmpl	$16,%ecx				// are there multiple segments remaining?
+	cmpl	$16,counttemp		// are there multiple segments remaining?
 #ifndef ASM486_SPAN16_WORD_STOS
 	movb	%al,-1(%edi)
 #endif
 	ja		LNotLastSegment		// yes
+	movl	counttemp,%ecx		// retrieve count for the final segment
 
 //
 // last segment of scan
