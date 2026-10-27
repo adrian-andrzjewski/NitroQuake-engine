@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-27-zspan-zero-step-positive-rep-promoted.md`](2026-10-27-zspan-zero-step-positive-rep-promoted.md) | 1 | renderer performance / pack repeated positive-depth zero-step Z samples into aligned dword stores after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-27-span16-deferred-count-load-promoted.md`](2026-10-27-span16-deferred-count-load-promoted.md) | 1 | renderer performance / skip the repeated remaining-count load when entering another full Span16 segment after a positive strict mean and complete i486 ISA gate |
 | [`2026-10-27-span16-counttemp-direct-subtract-promoted.md`](2026-10-27-span16-counttemp-direct-subtract-promoted.md) | 1 | renderer performance / subtract each full Span16 segment directly from the seeded remaining count after a positive strict mean and complete i486 ISA gate |
 | [`2026-10-27-span16-counttemp-middle-segment-promoted.md`](2026-10-27-span16-counttemp-middle-segment-promoted.md) | 1 | renderer performance / remove the repeated count load and writeback from full Span16 middle segments after a positive strict mean and complete i486 ISA gate |

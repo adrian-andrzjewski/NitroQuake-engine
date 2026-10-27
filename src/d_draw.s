@@ -1485,12 +1485,26 @@ LZeroStepClamp:
 	fstp	%st(0)
 
 LZeroStepStore:
-	movl	%edx,%eax
-	shrl	$16,%eax
 	testl	%edx,%edx
 	js		LZeroStepNegativeStore
+	movl	%edx,%eax
+	shrl	$16,%eax
+	testl	$2,%edi
+	jz		LZeroStepPositivePairs
+	movw	%ax,(%edi)
+	addl	$2,%edi
+	decl	%ecx
+LZeroStepPositivePairs:
+	movl	%ecx,%esi
+	shrl	$1,%ecx
+	movl	%eax,%edx
+	shll	$16,%edx
+	orl	%edx,%eax
 	rep
-	stosw
+	stosl
+	testl	$1,%esi
+	jz		LZeroStepDone
+	movw	%ax,(%edi)
 	jmp		LZeroStepDone
 
 // Match the C pair packer's sign extension for negative background depth:
