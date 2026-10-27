@@ -391,7 +391,7 @@ param(
     # This constant is the hash of the profile with its line endings NORMALISED to
     # LF, not of the bytes on disk. See Get-TextFileHash below: hashing the working
     # copy made the promotion gate depend on the machine's git configuration.
-    [string]$ExpectedProfileSha256 = '2B93E3A471D7E8578BB08DB65165ECF68605824604155E387500695E6611F7D3',
+    [string]$ExpectedProfileSha256 = '532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA',
     [int]$ExpectedFrames = 969,
     [uint32]$ExpectedChecksum = 1047377823,
     [switch]$AllowGateOverride
