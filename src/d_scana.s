@@ -56,13 +56,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	addl	%eax,%edx
 	addl	C(r_turb_sstep),%esi
 	addl	C(r_turb_tstep),%ecx
-	movl	C(r_turb_pbase),%eax
 #ifdef ASM486_TURBULENT_STOSB
+	#ifdef ASM486_TURBULENT_FOURTEEN_LOOP
+	movb	(%ebx,%edx,1),%al
+	#else
+	movl	C(r_turb_pbase),%eax
 	movb	(%eax,%edx,1),%al
+	#endif
 	stosb
 #else
 	incl	%edi
+	#ifdef ASM486_TURBULENT_FOURTEEN_LOOP
+	movb	(%ebx,%edx,1),%dl
+	#else
+	movl	C(r_turb_pbase),%eax
 	movb	(%eax,%edx,1),%dl
+	#endif
 	movb	%dl,-1(%edi)
 #endif
 .endm
@@ -83,7 +92,10 @@ C(D_DrawTurbulent8Span_asm486):
 	cld
 
 #ifdef ASM486_TURBULENT_FOURTEEN_LOOP
-	subl	$14,%ebx
+	// Keep the count in a stack local so EBX can cache the texture base.
+	pushl	%ebx
+	movl	C(r_turb_pbase),%ebx
+	subl	$14,(%esp)
 	jc	.Lturbulent_span_fourteen_short
 .Lturbulent_span_fourteen_loop:
 	TURBULENT8_PIXEL
@@ -100,14 +112,14 @@ C(D_DrawTurbulent8Span_asm486):
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
-	subl	$14,%ebx
+	subl	$14,(%esp)
 	jnc	.Lturbulent_span_fourteen_loop
-	addl	$14,%ebx
+	addl	$14,(%esp)
 	jmp	.Lturbulent_span_fourteen_tail
 .Lturbulent_span_fourteen_short:
-	addl	$14,%ebx
+	addl	$14,(%esp)
 .Lturbulent_span_fourteen_tail:
-	testl	$8,%ebx
+	testl	$8,(%esp)
 	jz	.Lturbulent_span_fourteen_four_tail
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
@@ -118,19 +130,19 @@ C(D_DrawTurbulent8Span_asm486):
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
 .Lturbulent_span_fourteen_four_tail:
-	testl	$4,%ebx
+	testl	$4,(%esp)
 	jz	.Lturbulent_span_fourteen_two_tail
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
 .Lturbulent_span_fourteen_two_tail:
-	testl	$2,%ebx
+	testl	$2,(%esp)
 	jz	.Lturbulent_span_fourteen_one_tail
 	TURBULENT8_PIXEL
 	TURBULENT8_PIXEL
 .Lturbulent_span_fourteen_one_tail:
-	testl	$1,%ebx
+	testl	$1,(%esp)
 	jz	.Lturbulent_span_done
 	TURBULENT8_PIXEL
 	jmp	.Lturbulent_span_done
@@ -270,6 +282,9 @@ C(D_DrawTurbulent8Span_asm486):
 #endif
 
 .Lturbulent_span_done:
+	#ifdef ASM486_TURBULENT_FOURTEEN_LOOP
+	addl	$4,%esp			// discard the stack-local span count
+	#endif
 
 	movl	%edi,C(r_turb_pdest)
 

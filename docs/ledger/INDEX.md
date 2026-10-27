@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-27-turbulent-span-fourteen-base-cache-promoted.md`](2026-10-27-turbulent-span-fourteen-base-cache-promoted.md) | 1 | renderer performance / cache the turbulent texture base in EBX for fourteen-pixel spans after a positive strict mean, exact framebuffer parity, and complete i486 ISA audit |
 | [`2026-10-27-zspan-zero-step-positive-rep-promoted.md`](2026-10-27-zspan-zero-step-positive-rep-promoted.md) | 1 | renderer performance / pack repeated positive-depth zero-step Z samples into aligned dword stores after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-27-span16-deferred-count-load-promoted.md`](2026-10-27-span16-deferred-count-load-promoted.md) | 1 | renderer performance / skip the repeated remaining-count load when entering another full Span16 segment after a positive strict mean and complete i486 ISA gate |
 | [`2026-10-27-span16-counttemp-direct-subtract-promoted.md`](2026-10-27-span16-counttemp-direct-subtract-promoted.md) | 1 | renderer performance / subtract each full Span16 segment directly from the seeded remaining count after a positive strict mean and complete i486 ISA gate |
@@ -610,6 +611,7 @@ other axis: one row per renderer region, newest entry first.
 - `promoted` [Span16 x87 T calculation after popping S (2026-10-24) - **+0.015692978 FPS (+0.09898219%)**, exact checksum parity](2026-10-24-span16-x87-pop-s-compute-t-promoted.md)
 
 - `promoted` [Span16 x87 endpoint stores in stack order (2026-10-24) - **+0.015733684 FPS (+0.09933753%)**, exact checksum parity](2026-10-24-span16-fistp-stack-order-promoted.md)
+- `promoted` [Fourteen-pixel turbulent span texture-base cache (2026-10-27) — **+0.012646 FPS (+0.078227%)**, exact checksum parity and complete i486 ISA audit](2026-10-27-turbulent-span-fourteen-base-cache-promoted.md)
 - `promoted` [Fourteen-pixel turbulent span loop (2026-10-23) — **+0.000098 FPS (+0.00062793%)**, exact checksum parity](2026-10-23-turbulent-span-fourteen-loop-release-default.md)
 - `promoted` [Twelve-pixel turbulent span loop (2026-10-23) — **+0.000754 FPS (+0.00483141%)**, exact checksum parity](2026-10-23-turbulent-span-twelve-loop-release-default.md)
 - `promoted` [Four-pixel turbulent span loop (2026-10-23) — **+0.001221667 FPS (+0.00783054%)**, exact checksum parity](2026-10-23-turbulent-span-quad-loop.md)
