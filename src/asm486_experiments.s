@@ -2193,6 +2193,9 @@ C(R_GenerateSpansBackward_asm486):
 	movl	C(surfaces),%edi
 	shll	$6,%eax
 	addl	%eax,%edi
+	decl	st_spanstate(%edi)
+	jnz	.Lbackspan_generate_leading
+	incl	st_spanstate(%edi)
 	pushl	%ebx
 	pushl	%edi
 	call	C(R_TrailingEdge_asm486)
