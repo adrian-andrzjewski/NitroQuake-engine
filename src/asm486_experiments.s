@@ -1463,7 +1463,9 @@ C(R_EdgeDrawing_asm486):
 
 	/* C's float truth test treats signed zero as false and NaN as true. */
 	call	.Ledge_drawing_dspeeds_enabled
-	testl	%eax,%eax
+	/* r_dspeeds cannot change during this synchronous render pass. */
+	movl	%eax,%ebx
+	testl	%ebx,%ebx
 	jz	.Ledge_drawing_after_rw_start_time
 	call	C(Sys_FloatTime)
 	fstps	C(rw_time1)
@@ -1485,8 +1487,7 @@ C(R_EdgeDrawing_asm486):
 	/* Only the world is drawn back-to-front without Z compares. */
 	call	C(D_TurnZOn)
 
-	call	.Ledge_drawing_dspeeds_enabled
-	testl	%eax,%eax
+	testl	%ebx,%ebx
 	jz	.Ledge_drawing_after_entity_start_time
 	call	C(Sys_FloatTime)
 	fstps	C(rw_time2)
@@ -1502,8 +1503,7 @@ C(R_EdgeDrawing_asm486):
 	call	C(R_EdgeDrawingProfileBrushLeave_asm486)
 #endif
 
-	call	.Ledge_drawing_dspeeds_enabled
-	testl	%eax,%eax
+	testl	%ebx,%ebx
 	jz	.Ledge_drawing_after_entity_end_time
 	call	C(Sys_FloatTime)
 	fstps	C(db_time2)
@@ -1511,8 +1511,7 @@ C(R_EdgeDrawing_asm486):
 	movl	%eax,C(se_time1)
 .Ledge_drawing_after_entity_end_time:
 
-	call	.Ledge_drawing_dspeeds_enabled
-	testl	%eax,%eax
+	testl	%ebx,%ebx
 	jnz	.Ledge_drawing_after_extra_update
 	call	C(S_ExtraUpdate)
 .Ledge_drawing_after_extra_update:
@@ -1537,17 +1536,13 @@ C(R_EdgeDrawing_asm486):
 	ret
 
 .Ledge_drawing_dspeeds_enabled:
-	flds	C(r_dspeeds)+16
-	ftst
-	fnstsw	%ax
-	fstp	%st(0)
-	sahf
-	jp	.Ledge_drawing_dspeeds_true
-	jne	.Ledge_drawing_dspeeds_true
-	xorl	%eax,%eax
-	ret
-.Ledge_drawing_dspeeds_true:
-	movl	$1,%eax
+	/* Float truth is all magnitude bits set: both signed zeros are false,
+	 * while every finite nonzero value and NaN is true.  Integer masking
+	 * preserves those C semantics without touching x87 state. */
+	movl	C(r_dspeeds)+16,%eax
+	andl	$0x7fffffff,%eax
+	setnz	%al
+	movzbl	%al,%eax
 	ret
 #endif
 
@@ -1878,21 +1873,18 @@ C(R_InsertNewEdges_asm486):
 	movl	20(%esp),%esi		/* sorted active-list cursor */
 .Linsert_new_edges_next:
 	movl	et_next(%ebx),%edi	/* preserve the source-chain successor */
+	movl	et_u(%ebx),%edx	/* target U is stable until this edge is inserted */
 .Linsert_new_edges_search:
-	movl	et_u(%esi),%eax
-	cmpl	et_u(%ebx),%eax
+	cmpl	%edx,et_u(%esi)
 	jge	.Linsert_new_edges_found
 	movl	et_next(%esi),%esi
-	movl	et_u(%esi),%eax
-	cmpl	et_u(%ebx),%eax
+	cmpl	%edx,et_u(%esi)
 	jge	.Linsert_new_edges_found
 	movl	et_next(%esi),%esi
-	movl	et_u(%esi),%eax
-	cmpl	et_u(%ebx),%eax
+	cmpl	%edx,et_u(%esi)
 	jge	.Linsert_new_edges_found
 	movl	et_next(%esi),%esi
-	movl	et_u(%esi),%eax
-	cmpl	et_u(%ebx),%eax
+	cmpl	%edx,et_u(%esi)
 	jge	.Linsert_new_edges_found
 	movl	et_next(%esi),%esi
 	jmp	.Linsert_new_edges_search
@@ -1974,13 +1966,13 @@ C(R_StepActiveU_asm486):
 	je	.Lstep_active_u_done
 	movl	et_next(%ebx),%esi		/* pnext_edge */
 	movl	et_prev(%ebx),%edx
-	movl	et_next(%ebx),%eax
+	movl	%esi,%eax
 	movl	%edx,et_prev(%eax)
 	movl	%eax,et_next(%edx)
 	movl	et_prev(%edx),%edi		/* previous edge's previous edge */
+	movl	et_u(%ebx),%edx		/* keep target U out of the search loop */
 .Lstep_active_u_find:
-	movl	et_u(%edi),%eax
-	cmpl	et_u(%ebx),%eax
+	cmpl	%edx,et_u(%edi)
 	jle	.Lstep_active_u_reinsert
 	movl	et_prev(%edi),%edi
 	jmp	.Lstep_active_u_find
@@ -2322,25 +2314,23 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(bench486_emitcachededge_calls)
 #endif
 
-	.equ RF_PCLIP, -16
-	.equ RF_TEDGE, -24
-	.equ RF_INDEX, -28
-	.equ RF_MEDGE, -32
-	.equ RF_VERT0, -36
-	.equ RF_VERT1, -40
+	.equ RF_PCLIP, 24
+	.equ RF_TEDGE, 16
+	.equ RF_MEDGE, 8
 
 	.text
 	.globl C(R_RenderFace_asm486)
 C(R_RenderFace_asm486):
 	pushl	%ebp
-	movl	%esp,%ebp
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
 	subl	$28,%esp
 
-	movl	8(%ebp),%ebx			/* msurface_t *fa */
-	movl	20(%ebp),%esi			/* model surfedges + firstedge */
+	/* Keep the model edge base in callee-saved EBP; locals use ESP offsets. */
+	movl	56(%esp),%ebp			/* medge_t *pedges */
+	movl	48(%esp),%ebx			/* msurface_t *fa */
+	movl	60(%esp),%esi			/* model surfedges + firstedge */
 
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
@@ -2348,7 +2338,7 @@ C(R_RenderFace_asm486):
 	incl	C(bench486_renderface_calls)
 	movl	24(%ebx),%eax
 	addl	%eax,C(bench486_renderface_edge_setups)
-	movl	12(%ebp),%eax
+	movl	52(%esp),%eax
 	andl	$15,%eax
 	movl	%eax,%edx
 	shrl	$1,%edx
@@ -2377,12 +2367,14 @@ C(R_RenderFace_asm486):
 	addl	C(edge_p),%ecx
 	cmpl	C(edge_max),%ecx
 	jae	.Lrf_early_edges
+	/* Keep remaining surfedges in callee-saved EDI across R_ClipEdge. */
+	movl	%edx,%edi
 
 	incl	C(c_faceclip)
 
 	/* Build the same 3..0 clip chain as the C reference. */
 	xorl	%eax,%eax
-	movl	12(%ebp),%edx
+	movl	52(%esp),%edx
 	testl	$8,%edx
 	je	.Lrf_clip2
 	movl	$C(view_clipplanes)+72,%ecx
@@ -2407,7 +2399,7 @@ C(R_RenderFace_asm486):
 	movl	%eax,16(%ecx)
 	movl	%ecx,%eax
 .Lrf_clip_ready:
-	movl	%eax,RF_PCLIP(%ebp)
+	movl	%eax,RF_PCLIP(%esp)
 
 	movl	$0,C(r_emitted)
 	movl	$0,C(r_nearzi)
@@ -2430,42 +2422,24 @@ C(R_RenderFace_asm486):
 .Lrf_profile_edges_done:
 #endif
 
-	movl	$0,RF_INDEX(%ebp)
-.Lrf_edge_loop:
-	movl	RF_INDEX(%ebp),%edi
-	cmpl	24(%ebx),%edi
-	jge	.Lrf_edges_done
-	movl	(%esi,%edi,4),%eax
-	movl	16(%ebp),%ecx			/* medge_t *pedges */
-	testl	%eax,%eax
-	jle	.Lrf_reverse_edge
-	leal	(%ecx,%eax,8),%edx
-	movl	%edx,RF_MEDGE(%ebp)
-	movl	%edx,C(r_pedge)
-	movzwl	0(%edx),%eax
-	movzwl	2(%edx),%edx
-	jmp	.Lrf_edge_vertices
-.Lrf_reverse_edge:
-	negl	%eax
-	leal	(%ecx,%eax,8),%edx
-	movl	%edx,RF_MEDGE(%ebp)
-	movl	%edx,C(r_pedge)
-	movzwl	2(%edx),%eax
-	movzwl	0(%edx),%edx
-.Lrf_edge_vertices:
-	/* EAX/EDX are the ordered vertex indices; form byte addresses. */
-	movl	C(r_pcurrentvertbase),%ecx
-	leal	(%eax,%eax,2),%eax
-	leal	(%ecx,%eax,4),%eax
-	movl	%eax,RF_VERT0(%ebp)
-	movl	C(r_pcurrentvertbase),%ecx
-	leal	(%edx,%edx,2),%edx
-	leal	(%ecx,%edx,4),%edx
-	movl	%edx,RF_VERT1(%ebp)
+	/* EBX becomes the stable current-vertex base for both endpoints. */
+	movl	C(r_pcurrentvertbase),%ebx
+	testl	%edi,%edi
+	jle	.Lrf_edges_done
 
+	/* Select the cache-free submodel path once before processing any edge. */
 	cmpl	$0,C(insubmodel)
-	jne	.Lrf_clip_edge
-	movl	RF_MEDGE(%ebp),%ecx
+	jne	.Lrf_submodel_edge_loop
+.Lrf_edge_loop:
+	lodsl						/* consume surfedge and advance the cursor */
+	testl	%eax,%eax
+	jg	.Lrf_forward_edge
+	negl	%eax
+	leal	(%ebp,%eax,8),%ecx
+	jmp	.Lrf_edge_ready
+.Lrf_forward_edge:
+	leal	(%ebp,%eax,8),%ecx
+.Lrf_edge_ready:
 	movl	4(%ecx),%eax
 	testl	$0x80000000,%eax
 	je	.Lrf_check_regular_cache
@@ -2479,12 +2453,11 @@ C(R_RenderFace_asm486):
 	movl	C(edge_p),%eax
 	subl	C(r_edges),%eax
 	cmpl	4(%ecx),%eax
-	jbe	.Lrf_clip_edge
+	jbe	.Lrf_clip_edge_offset_ready
 	movl	4(%ecx),%edx
 	addl	C(r_edges),%edx
-	movl	28(%edx),%eax
-	cmpl	%ecx,%eax
-	jne	.Lrf_clip_edge
+	cmpl	%ecx,28(%edx)
+	jne	.Lrf_clip_edge_offset_ready
 
 	/* Match the cached-edge surface assignment used by R_EmitCachedEdge. */
 #ifdef PROFILE486
@@ -2525,15 +2498,35 @@ C(R_RenderFace_asm486):
 .Lrf_clip_edge:
 	movl	C(edge_p),%eax
 	subl	C(r_edges),%eax
+.Lrf_clip_edge_offset_ready:
+	movl	%ecx,C(r_pedge)
+	movl	%ecx,RF_MEDGE(%esp)
 	movl	%eax,C(cacheoffset)
 	movl	$0,C(r_leftclipped)
 	movl	$0,C(r_rightclipped)
-	pushl	RF_PCLIP(%ebp)
-	pushl	RF_VERT1(%ebp)
-	pushl	RF_VERT0(%ebp)
+
+	/* Reload the signed surfedge only on the clipping path. */
+	movl	-4(%esi),%eax
+	testl	%eax,%eax
+	jle	.Lrf_reverse_vertices
+	movzwl	0(%ecx),%eax
+	movzwl	2(%ecx),%edx
+	jmp	.Lrf_vertices_ready
+.Lrf_reverse_vertices:
+	movzwl	2(%ecx),%eax
+	movzwl	0(%ecx),%edx
+.Lrf_vertices_ready:
+	/* EAX/EDX are the ordered vertex indices; form byte addresses. */
+	leal	(%eax,%eax,2),%eax
+	leal	(%ebx,%eax,4),%eax
+	leal	(%edx,%edx,2),%edx
+	leal	(%ebx,%edx,4),%edx
+	pushl	RF_PCLIP(%esp)
+	pushl	%edx
+	pushl	%eax
 	call	C(R_ClipEdge)
 	addl	$12,%esp
-	movl	RF_MEDGE(%ebp),%ecx
+	movl	RF_MEDGE(%esp),%ecx
 	movl	C(cacheoffset),%eax
 	movl	%eax,4(%ecx)
 	cmpl	$0,C(r_leftclipped)
@@ -2547,16 +2540,74 @@ C(R_RenderFace_asm486):
 	movl	$1,C(r_lastvertvalid)
 
 .Lrf_next_edge:
-	incl	RF_INDEX(%ebp)
-	jmp	.Lrf_edge_loop
+	decl	%edi
+	jnz	.Lrf_edge_loop
+	jmp	.Lrf_edges_done
+
+/* Submodel edges never use the regular edge cache. Keep that branch outside
+ * the loop and use a dedicated clipping loop without changing clip behavior. */
+.Lrf_submodel_edge_loop:
+	lodsl
+	testl	%eax,%eax
+	jg	.Lrf_submodel_forward_edge
+	negl	%eax
+	leal	(%ebp,%eax,8),%ecx
+	jmp	.Lrf_submodel_edge_ready
+.Lrf_submodel_forward_edge:
+	leal	(%ebp,%eax,8),%ecx
+.Lrf_submodel_edge_ready:
+	movl	%ecx,C(r_pedge)
+	movl	%ecx,RF_MEDGE(%esp)
+	movl	C(edge_p),%eax
+	subl	C(r_edges),%eax
+	movl	%eax,C(cacheoffset)
+	movl	$0,C(r_leftclipped)
+	movl	$0,C(r_rightclipped)
+
+	/* Reload the signed surfedge only on the clipping path. */
+	movl	-4(%esi),%eax
+	testl	%eax,%eax
+	jle	.Lrf_submodel_reverse_vertices
+	movzwl	0(%ecx),%eax
+	movzwl	2(%ecx),%edx
+	jmp	.Lrf_submodel_vertices_ready
+.Lrf_submodel_reverse_vertices:
+	movzwl	2(%ecx),%eax
+	movzwl	0(%ecx),%edx
+.Lrf_submodel_vertices_ready:
+	/* EAX/EDX are the ordered vertex indices; form byte addresses. */
+	leal	(%eax,%eax,2),%eax
+	leal	(%ebx,%eax,4),%eax
+	leal	(%edx,%edx,2),%edx
+	leal	(%ebx,%edx,4),%edx
+	pushl	RF_PCLIP(%esp)
+	pushl	%edx
+	pushl	%eax
+	call	C(R_ClipEdge)
+	addl	$12,%esp
+	movl	RF_MEDGE(%esp),%ecx
+	movl	C(cacheoffset),%eax
+	movl	%eax,4(%ecx)
+	cmpl	$0,C(r_leftclipped)
+	je	.Lrf_submodel_left_flag_done
+	movl	$1,C(makeleftedge)
+.Lrf_submodel_left_flag_done:
+	cmpl	$0,C(r_rightclipped)
+	je	.Lrf_submodel_right_flag_done
+	movl	$1,C(makerightedge)
+.Lrf_submodel_right_flag_done:
+	movl	$1,C(r_lastvertvalid)
+	decl	%edi
+	jnz	.Lrf_submodel_edge_loop
 
 .Lrf_edges_done:
+	movl	48(%esp),%ebx			/* restore msurface_t *fa */
 	cmpl	$0,C(makeleftedge)
 	je	.Lrf_right_clip
-	leal	RF_TEDGE(%ebp),%eax
+	leal	RF_TEDGE(%esp),%eax
 	movl	%eax,C(r_pedge)
 	movl	$0,C(r_lastvertvalid)
-	movl	RF_PCLIP(%ebp),%eax
+	movl	RF_PCLIP(%esp),%eax
 	movl	16(%eax),%eax
 	pushl	%eax
 	pushl	$C(r_leftenter)
@@ -2567,7 +2618,7 @@ C(R_RenderFace_asm486):
 .Lrf_right_clip:
 	cmpl	$0,C(makerightedge)
 	je	.Lrf_post_surface
-	leal	RF_TEDGE(%ebp),%eax
+	leal	RF_TEDGE(%esp),%eax
 	movl	%eax,C(r_pedge)
 	movl	$0,C(r_lastvertvalid)
 	movl	$1,C(r_nearzionly)
@@ -2631,7 +2682,7 @@ C(R_RenderFace_asm486):
 #endif
 
 .Lrf_return:
-	leal	-12(%ebp),%esp
+	addl	$28,%esp
 	popl	%edi
 	popl	%esi
 	popl	%ebx
@@ -4111,50 +4162,47 @@ C(D_CalcGradients_asm486):
 // the discrete dynamic-light probe for phantom dlight marks.
 C(D_CacheSurfaceHit_asm486):
 	.globl C(D_CacheSurfaceHit_asm486)
-	pushl	%ebx
-	movl	8(%esp),%ebx		// cache
-	testl	%ebx,%ebx
+	movl	4(%esp),%eax		// cache
+	testl	%eax,%eax
 	jz	.Lsurface_cache_miss
-	cmpl	$0,24(%ebx)		// cache->dlight
+	cmpl	$0,24(%eax)		// cache->dlight
 	jne	.Lsurface_cache_miss
-	movl	20(%esp),%edx		// r_drawsurf.texture
-	cmpl	SURFCACHE_TEXTURE_OFFSET(%ebx),%edx	// cache->texture
+	movl	16(%esp),%edx		// r_drawsurf.texture
+	cmpl	SURFCACHE_TEXTURE_OFFSET(%eax),%edx	// cache->texture
 	jne	.Lsurface_cache_miss
-	movl	24(%esp),%edx		// r_drawsurf.lightadj
+	movl	20(%esp),%edx		// r_drawsurf.lightadj
 	movl	(%edx),%ecx
-	cmpl	8(%ebx),%ecx
+	cmpl	8(%eax),%ecx
 	jne	.Lsurface_cache_miss
-	movl	28(%esp),%edx		// surface
-	cmpb	$255,57(%edx)		// styles[1] unused
+	movl	24(%esp),%ecx		// surface
+	cmpb	$255,57(%ecx)		// styles[1] unused
 	je	.Lsurface_cache_check_dlight
-	movl	24(%esp),%edx		// r_drawsurf.lightadj
 	movl	4(%edx),%ecx
-	cmpl	12(%ebx),%ecx
+	cmpl	12(%eax),%ecx
 	jne	.Lsurface_cache_miss
 	movl	8(%edx),%ecx
-	cmpl	16(%ebx),%ecx
+	cmpl	16(%eax),%ecx
 	jne	.Lsurface_cache_miss
 	movl	12(%edx),%ecx
-	cmpl	20(%ebx),%ecx
+	cmpl	20(%eax),%ecx
 	jne	.Lsurface_cache_miss
 
 .Lsurface_cache_check_dlight:
-	movl	12(%esp),%edx		// surface->dlightframe
-	cmpl	16(%esp),%edx		// current frame
+	movl	8(%esp),%edx		// surface->dlightframe
+	cmpl	12(%esp),%edx		// current frame
 	jne	.Lsurface_cache_hit
-	pushl	28(%esp)			// R_DlightContributes(surface)
+	pushl	%eax			// preserve cache across R_DlightContributes
+	pushl	28(%esp)			// surface
 	call	C(R_DlightContributes)
 	addl	$4,%esp
 	testl	%eax,%eax
+	popl	%eax
 	jne	.Lsurface_cache_miss
 .Lsurface_cache_hit:
-	movl	%ebx,%eax
-	popl	%ebx
 	ret
 
 .Lsurface_cache_miss:
 	xorl	%eax,%eax
-	popl	%ebx
 	ret
 
 	.p2align 4,,15
@@ -6937,7 +6985,9 @@ C(R_RecursiveWorldNodeClip_asm486):
 // regparm(2): EAX=node and EDX=clipflags.  Use explicit records on the
 // caller's stack to keep depth-first order without a function call per child.
 // A parent record holds its front-to-back continuation while both subtrees
-// are visited. The plane-dot and frustum helpers keep their reference order.
+// are visited. EBX keeps the current node and EDI its clip flags across child
+// transitions; ESI carries the pending side while the parent record is built.
+// The plane-dot and frustum helpers keep their reference order.
 C(R_RecursiveWorldNode_asm486):
 	.globl C(R_RecursiveWorldNode_asm486)
 	pushl	%ebp
@@ -6947,13 +6997,10 @@ C(R_RecursiveWorldNode_asm486):
 	pushl	%edi
 	subl	$48,%esp
 	movl	%esp,-52(%ebp)		// bottom of the explicit continuation stack
-	movl	%eax,-56(%ebp)		// current node
-	movl	%edx,-60(%ebp)		// current clip flags
+	movl	%eax,%ebx			// current node stays in a callee-saved register
+	movl	%edx,%edi			// current clip flags stay in a callee-saved register
 
 .Lbsp_walk_node_enter:
-	movl	-56(%ebp),%ebx
-	movl	-60(%ebp),%eax
-	movl	%eax,-20(%ebp)		// clipflags
 
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
@@ -6985,15 +7032,15 @@ C(R_RecursiveWorldNode_asm486):
 	cmpl	%eax,4(%ebx)
 	jne	.Lbsp_walk_node_complete
 
-	cmpl	$0,-20(%ebp)
+	cmpl	$0,%edi
 	je	.Lbsp_walk_clip_done
-	pushl	-20(%ebp)
+	pushl	%edi
 	pushl	%ebx
 	call	C(R_RecursiveWorldNodeClip_asm486)
 	addl	$8,%esp
 	testl	%eax,%eax
 	js	.Lbsp_walk_node_complete
-	movl	%eax,-20(%ebp)
+	movl	%eax,%edi
 .Lbsp_walk_clip_done:
 
 #ifdef ASM486_BSP_FRAME_COUNT
@@ -7008,7 +7055,7 @@ C(R_RecursiveWorldNode_asm486):
 	movl	24(%ebx),%edx		// node->plane
 	BSP_PLANE_DOT %edx
 	fstpl	-32(%ebp)
-	movl	$1,%edi			// side defaults to back for unordered dot
+	movl	$1,%esi			// side defaults to back for unordered dot
 	/* The stored IEEE double is >= 0 through +infinity, plus exactly -0. */
 	movl	-28(%ebp),%eax
 	cmpl	$0x7ff00000,%eax
@@ -7023,47 +7070,41 @@ C(R_RecursiveWorldNode_asm486):
 	cmpl	$0,-32(%ebp)
 	jne	.Lbsp_walk_side_ready
 .Lbsp_walk_dot_front:
-	movl	$0,%edi			// positive or zero
+	movl	$0,%esi			// positive or zero
 .Lbsp_walk_side_ready:
+
 	// Save the parent continuation, then enter its front child. Record layout:
 	// node, clip flags, double plane dot, side, stage, and optional framecount.
 	subl	$BSP_WALK_RECORD_BYTES,%esp
 	movl	%ebx,0(%esp)
-	movl	-20(%ebp),%eax
-	movl	%eax,4(%esp)
+	movl	%edi,4(%esp)			// preserve the parent clip flags
 	movl	-32(%ebp),%eax
 	movl	%eax,8(%esp)
 	movl	-28(%ebp),%eax
 	movl	%eax,12(%esp)
-	movl	%edi,16(%esp)
+	movl	%esi,16(%esp)			// preserve the side for the back child
 	movl	$1,20(%esp)			// resume after front child
 #ifdef ASM486_BSP_FRAME_COUNT
 	movl	-24(%ebp),%eax
 	movl	%eax,24(%esp)
 #endif
-	movl	%edi,%eax
-	movl	28(%ebx,%eax,4),%eax
-	movl	%eax,-56(%ebp)
-	movl	-20(%ebp),%eax
-	movl	%eax,-60(%ebp)
+	movl	%esi,%eax
+	movl	28(%ebx,%eax,4),%ebx
 	jmp	.Lbsp_walk_node_enter
 
 // Visit this node's marked surfaces in the same order as the C traversal.
 .Lbsp_walk_resume_after_front:
 	movl	$2,20(%esp)			// parent now awaits its back child
 	movl	0(%esp),%ebx
-	movl	4(%esp),%eax
-	movl	%eax,-20(%ebp)
+	movl	4(%esp),%edi			// restore parent clip flags
 	movl	8(%esp),%eax
 	movl	%eax,-32(%ebp)
 	movl	12(%esp),%eax
 	movl	%eax,-28(%ebp)
-	movl	16(%esp),%edi
 #ifdef ASM486_BSP_FRAME_COUNT
 	movl	24(%esp),%eax
 	movl	%eax,-24(%ebp)
 #endif
-
 .Lbsp_walk_surface_start:
 	movzwl	38(%ebx),%eax		// unsigned short numsurfaces
 	movl	%eax,-40(%ebp)
@@ -7128,7 +7169,7 @@ C(R_RecursiveWorldNode_asm486):
 	cmpl	$5000,%eax			// MAX_BTOFPOLYS
 	jge	.Lbsp_walk_surface_next
 	movl	C(pbtofpolys),%edx
-	movl	-20(%ebp),%ecx
+	movl	%edi,%ecx			// current clip flags
 	movl	%ecx,(%edx,%eax,8)
 	movl	%esi,4(%edx,%eax,8)
 	incl	%eax
@@ -7136,7 +7177,7 @@ C(R_RecursiveWorldNode_asm486):
 	jmp	.Lbsp_walk_surface_next
 
 .Lbsp_walk_render_poly:
-	pushl	-20(%ebp)
+	pushl	%edi
 	pushl	%esi
 	call	C(R_RenderPoly)
 	addl	$8,%esp
@@ -7146,7 +7187,7 @@ C(R_RecursiveWorldNode_asm486):
 #ifdef PROFILE486
 	call	C(R_BspProfileRenderFaceEnter_asm486)
 #endif
-	pushl	-20(%ebp)
+	pushl	%edi
 	pushl	%esi
 	call	C(R_RenderFace)
 	addl	$8,%esp
@@ -7164,12 +7205,9 @@ C(R_RecursiveWorldNode_asm486):
 
 .Lbsp_walk_back_child:
 	movl	0(%esp),%ebx			// restore the current node from its continuation
-	movl	%edi,%eax
+	movl	16(%esp),%eax			// parent side was saved in its record
 	xorl	$1,%eax			// !side
-	movl	28(%ebx,%eax,4),%eax
-	movl	%eax,-56(%ebp)
-	movl	-20(%ebp),%eax
-	movl	%eax,-60(%ebp)
+	movl	28(%ebx,%eax,4),%ebx
 	jmp	.Lbsp_walk_node_enter
 
 .Lbsp_walk_leaf:
