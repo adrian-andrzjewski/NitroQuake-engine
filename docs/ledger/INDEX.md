@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [2026-10-27-d-cachesurface-hit-key-store-deferral-promoted.md](2026-10-27-d-cachesurface-hit-key-store-deferral-promoted.md) | 1 | renderer performance / defer surface-cache draw-key stores on hits after a positive strict mean, exact checksum parity, and complete i486 audit |
 | [`2026-10-27-r-scan-edges-cached-state-promoted.md`](2026-10-27-r-scan-edges-cached-state-promoted.md) | 1 | renderer performance / cache the draw callback and surface base, and clear span-state entries in bounded groups after a positive matched mean and strict i486 audit |
 | [`2026-10-27-alias-draw-span-count-decrement-promoted.md`](2026-10-27-alias-draw-span-count-decrement-promoted.md) | 1 | renderer performance / decrement the alias span count once and remove one common-path branch after a positive strict mean, exact checksum parity, and complete i486 ISA audit |
 | [`2026-10-27-turbulent-lookup-interleave-promoted.md`](2026-10-27-turbulent-lookup-interleave-promoted.md) | 1 | renderer performance / interleave independent sine-table lookups in the turbulent span pixel loop after a positive three-run mean, exact checksum parity, and strict i486 ISA audit |

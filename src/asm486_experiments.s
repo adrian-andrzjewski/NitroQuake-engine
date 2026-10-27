@@ -4654,27 +4654,62 @@ C(D_CacheSurface):
 .Lcache_surface_static_texture:
 	movl	cs_surface_cachespots(%esi,%ebx,4),%eax
 	movl	%eax,-16(%ebp)		// cache
-	movl	%edi,-20(%ebp)		// texture
-	pushl	$C(d_lightstylevalue)
-	pushl	$C(r_drawsurf)
-	pushl	%edi
+
+	// Compare cache keys before preparing drawsurf fields. The hit path returns
+	// only the cache; rebuild paths fill all five drawsurf fields below.
+	movl	-16(%ebp),%edx		// cache
+	testl	%edx,%edx
+	jz	.Lcache_surface_keys_only
+	cmpl	$0,24(%edx)		// cache->dlight
+	jne	.Lcache_surface_keys_only
+	cmpl	SURFCACHE_TEXTURE_OFFSET(%edx),%edi
+	jne	.Lcache_surface_keys_only
+	movzbl	56(%esi),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	cmpl	8(%edx),%ecx
+	jne	.Lcache_surface_keys_only
+	movzbl	57(%esi),%eax		// styles[1], also the unused sentinel
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	cmpl	$255,%eax
+	je	.Lcache_surface_dlight_check
+	cmpl	12(%edx),%ecx
+	jne	.Lcache_surface_keys_only
+	movzbl	58(%esi),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	cmpl	16(%edx),%ecx
+	jne	.Lcache_surface_keys_only
+	movzbl	59(%esi),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	cmpl	20(%edx),%ecx
+	jne	.Lcache_surface_keys_only
+	jmp	.Lcache_surface_dlight_check
+
+.Lcache_surface_keys_only:
+	movl	%edi,C(r_drawsurf)+28	// texture
+	movzbl	56(%esi),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	movl	%ecx,C(r_drawsurf)+12
+	movzbl	57(%esi),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	movl	%ecx,C(r_drawsurf)+16
+	movzbl	58(%esi),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	movl	%ecx,C(r_drawsurf)+20
+	movzbl	59(%esi),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
+	movl	%ecx,C(r_drawsurf)+24
+	jmp	.Lcache_surface_miss
+
+.Lcache_surface_dlight_check:
+	movl	cs_surface_dlightframe(%esi),%edx
+	cmpl	C(r_framecount),%edx
+	jne	.Lcache_surface_hit
 	pushl	%esi
-	call	C(D_CacheSurfaceKeys_asm486)
-	addl	$16,%esp
-	movl	$C(r_drawsurf),%eax
-	leal	12(%eax),%eax		// &r_drawsurf.lightadj[0]
-	pushl	%esi			// surface for C-equivalent hit predicate
-	pushl	%eax
-	pushl	%edi
-	pushl	C(r_framecount)
-	movl	cs_surface_dlightframe(%esi),%eax
-	pushl	%eax
-	pushl	-16(%ebp)
-	call	C(D_CacheSurfaceHit_asm486)
-	addl	$24,%esp
+	call	C(R_DlightContributes)
+	addl	$4,%esp
 	testl	%eax,%eax
-	jz	.Lcache_surface_miss
-	movl	%eax,-16(%ebp)
+	jne	.Lcache_surface_keys_only
+.Lcache_surface_hit:
 #ifdef PROFILE486
 	leal	-64(%ebp),%eax
 	pushl	%eax
