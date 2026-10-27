@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-27-alias-draw-span-count-decrement-promoted.md`](2026-10-27-alias-draw-span-count-decrement-promoted.md) | 1 | renderer performance / decrement the alias span count once and remove one common-path branch after a positive strict mean, exact checksum parity, and complete i486 ISA audit |
+| [`2026-10-27-turbulent-lookup-interleave-promoted.md`](2026-10-27-turbulent-lookup-interleave-promoted.md) | 1 | renderer performance / interleave independent sine-table lookups in the turbulent span pixel loop after a positive three-run mean, exact checksum parity, and strict i486 ISA audit |
 | [`2026-10-27-turbulent-span-fourteen-base-cache-promoted.md`](2026-10-27-turbulent-span-fourteen-base-cache-promoted.md) | 1 | renderer performance / cache the turbulent texture base in EBX for fourteen-pixel spans after a positive strict mean, exact framebuffer parity, and complete i486 ISA audit |
 | [`2026-10-27-zspan-zero-step-positive-rep-promoted.md`](2026-10-27-zspan-zero-step-positive-rep-promoted.md) | 1 | renderer performance / pack repeated positive-depth zero-step Z samples into aligned dword stores after a positive strict mean, exact checksum parity, and complete i486 ISA gate |
 | [`2026-10-27-span16-deferred-count-load-promoted.md`](2026-10-27-span16-deferred-count-load-promoted.md) | 1 | renderer performance / skip the repeated remaining-count load when entering another full Span16 segment after a positive strict mean and complete i486 ISA gate |

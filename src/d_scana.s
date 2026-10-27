@@ -39,12 +39,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 .macro TURBULENT8_PIXEL
 	movl	%ecx,%eax
-	movl	%esi,%edx
 	sarl	$16,%eax
-	sarl	$16,%edx
 	andl	$(CYCLE-1),%eax
-	andl	$(CYCLE-1),%edx
 	movl	(%ebp,%eax,4),%eax
+	movl	%esi,%edx
+	sarl	$16,%edx
+	andl	$(CYCLE-1),%edx
 	movl	(%ebp,%edx,4),%edx
 	addl	%esi,%eax
 	sarl	$16,%eax
