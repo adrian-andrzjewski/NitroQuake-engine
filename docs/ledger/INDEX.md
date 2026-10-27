@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-27-span16-counttemp-middle-segment-promoted.md`](2026-10-27-span16-counttemp-middle-segment-promoted.md) | 1 | renderer performance / remove the repeated count load and writeback from full Span16 middle segments after a positive strict mean and complete i486 ISA gate |
+| [`2026-10-27-span16-shorttail-memory-decrement-promoted.md`](2026-10-27-span16-shorttail-memory-decrement-promoted.md) | 1 | renderer performance / decrement the final Span16 short-tail count directly in memory after a positive strict mean and complete i486 ISA gate |
 | [`2026-10-26-zspan-sub-pair-stosl-promoted.md`](2026-10-26-zspan-sub-pair-stosl-promoted.md) | 1 | renderer performance / promote STOSL in the general subtract-pair Z-span fallback after a 0.000005 FPS strict gain, exact checksum parity, and complete i486 ISA pass |
 | [`2026-10-26-zspan-negative-depth-add-stosl-promoted.md`](2026-10-26-zspan-negative-depth-add-stosl-promoted.md) | 1 | renderer performance / promote STOSL in the negative-depth Z-span pair after a 0.000008 FPS strict gain, exact checksum parity, and complete i486 ISA pass |
 | [`2026-10-26-zspan-general-add-pair-stosl-promoted.md`](2026-10-26-zspan-general-add-pair-stosl-promoted.md) | 1 | renderer performance / promote STOSL for the general positive-sample Z-span pair after a 0.021634 FPS strict gain, exact checksum parity, and complete i486 ISA pass |

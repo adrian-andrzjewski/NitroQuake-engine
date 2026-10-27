@@ -1047,10 +1047,9 @@ LSpan16AfterStoresA:
 	cmpl	$16,counttemp		// full segment remains? Keep the count in memory.
 	ja		LSetupNotLast2	// yes
 
-	movl	counttemp,%ecx
-	decl	%ecx
-	movl	%ecx,counttemp	// only the short-tail path changes the count
+	decl	counttemp		// test the one-pixel tail in memory
 	jz		LFDIVInFlight2	// if only one pixel, no need to start an FDIV
+	movl	counttemp,%ecx
 	movl	%ecx,spancountminus1
 	fildl	spancountminus1
 
