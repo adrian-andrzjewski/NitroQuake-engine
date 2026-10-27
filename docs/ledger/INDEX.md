@@ -612,6 +612,7 @@ other axis: one row per renderer region, newest entry first.
 
 - `promoted` [Span16 x87 endpoint stores in stack order (2026-10-24) - **+0.015733684 FPS (+0.09933753%)**, exact checksum parity](2026-10-24-span16-fistp-stack-order-promoted.md)
 - `promoted` [Fourteen-pixel turbulent span texture-base cache (2026-10-27) — **+0.012646 FPS (+0.078227%)**, exact checksum parity and complete i486 ISA audit](2026-10-27-turbulent-span-fourteen-base-cache-promoted.md)
+- `promoted` [Fold T-index scaling into the turbulent shift and mask (2026-10-27) — **+0.016066699 FPS (+0.099309%)**, exact checksum parity and full strict i486 audit](2026-10-27-turbulent-t-index-fuse-promoted.md)
 - `promoted` [Fourteen-pixel turbulent span loop (2026-10-23) — **+0.000098 FPS (+0.00062793%)**, exact checksum parity](2026-10-23-turbulent-span-fourteen-loop-release-default.md)
 - `promoted` [Twelve-pixel turbulent span loop (2026-10-23) — **+0.000754 FPS (+0.00483141%)**, exact checksum parity](2026-10-23-turbulent-span-twelve-loop-release-default.md)
 - `promoted` [Four-pixel turbulent span loop (2026-10-23) — **+0.001221667 FPS (+0.00783054%)**, exact checksum parity](2026-10-23-turbulent-span-quad-loop.md)

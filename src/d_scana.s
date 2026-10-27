@@ -49,10 +49,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	addl	%esi,%eax
 	sarl	$16,%eax
 	addl	%ecx,%edx
-	sarl	$16,%edx
+	shrl	$10,%edx
 	andl	$(TURB_TEX_SIZE-1),%eax
-	andl	$(TURB_TEX_SIZE-1),%edx
-	shll	$6,%edx
+	andl	$(((TURB_TEX_SIZE-1)<<6)),%edx
 	addl	%eax,%edx
 	addl	C(r_turb_sstep),%esi
 	addl	C(r_turb_tstep),%ecx
