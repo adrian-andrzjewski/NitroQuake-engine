@@ -1044,11 +1044,12 @@ LSpan16AfterStoresA:
 //
 // start FDIV for end of next segment in flight, so it can overlap
 //
-	movl	counttemp,%ecx
-	cmpl	$16,%ecx			// more than one segment after this?
+	cmpl	$16,counttemp		// full segment remains? Keep the count in memory.
 	ja		LSetupNotLast2	// yes
 
+	movl	counttemp,%ecx
 	decl	%ecx
+	movl	%ecx,counttemp	// only the short-tail path changes the count
 	jz		LFDIVInFlight2	// if only one pixel, no need to start an FDIV
 	movl	%ecx,spancountminus1
 	fildl	spancountminus1
@@ -1084,8 +1085,6 @@ LSetupNotLast2:
 							// this is what we've gone to all this trouble to
 							//  overlap
 LFDIVInFlight2:
-	movl	%ecx,counttemp
-
 #ifdef ASM486_SPAN16_NO_ROW_CROSS
 	cmpl	$1,jumptemp
 	jne		LSpan16ControlStoresB
