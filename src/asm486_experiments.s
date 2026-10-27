@@ -1617,6 +1617,9 @@ C(R_ScanEdges_asm486):
 	shll	$4,%eax
 	addl	%esi,%eax
 	movl	%eax,C(max_span_p)
+	/* Save the span base for flush resets; cache the fixed row callback in ESI. */
+	movl	%esi,-28(%ebp)
+	movl	C(pdrawfunc),%esi
 
 	/* Establish the background edge pair and terminal sentinels. */
 	movl	C(r_refdef)+rd_vrect_x,%eax
@@ -1656,12 +1659,14 @@ C(R_ScanEdges_asm486):
 	movl	%edx,C(edge_sentinel)+et_prev
 
 	/* The C loop scans [vrect.y, vrectbottom - 1), then draws the final row. */
-	movl	C(r_refdef)+rd_vrectbottom,%edi
-	decl	%edi
+	movl	C(r_refdef)+rd_vrectbottom,%eax
+	decl	%eax
+	movl	%eax,-32(%ebp)
+	movl	C(surfaces),%edi
 	movl	C(r_refdef)+rd_vrect_y,%ebx
-.Lscan_edges_row:
-	cmpl	%edi,%ebx
+	cmpl	-32(%ebp),%ebx
 	jge	.Lscan_edges_last_row
+.Lscan_edges_row:
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
 	je	.Lscan_edges_count_row_done
@@ -1671,8 +1676,7 @@ C(R_ScanEdges_asm486):
 	movl	%ebx,C(current_iv)
 	fildl	C(current_iv)
 	fstps	C(fv)
-	movl	C(surfaces),%eax
-	movl	$1,st_spanstate+64(%eax)
+	movl	$1,st_spanstate+64(%edi)
 
 	movl	C(newedges)(,%ebx,4),%eax
 	testl	%eax,%eax
@@ -1689,8 +1693,7 @@ C(R_ScanEdges_asm486):
 	call	C(R_InsertNewEdges)
 	addl	$8,%esp
 .Lscan_edges_no_new_edges:
-	movl	C(pdrawfunc),%eax
-	call	*%eax
+	call	*%esi
 
 	/* Flush spans before the next line when the reserved span buffer is low. */
 	movl	C(span_p),%eax
@@ -1710,17 +1713,66 @@ C(R_ScanEdges_asm486):
 .Lscan_edges_flush_culled:
 	call	C(R_DrawCulledPolys)
 .Lscan_edges_clear_spans:
-	movl	C(surfaces),%eax
-	leal	st_size(%eax),%eax
+	leal	st_size(%edi),%eax
 	movl	C(surface_p),%edx
+	leal	(14*st_size)(%eax),%ecx
+	cmpl	%edx,%ecx
+	ja	.Lscan_edges_clear_span_tail
 .Lscan_edges_clear_span_loop:
+	movl	$0,st_spans(%eax)
+	movl	$0,st_spans+st_size(%eax)
+	movl	$0,st_spans+(2*st_size)(%eax)
+	movl	$0,st_spans+(3*st_size)(%eax)
+	movl	$0,st_spans+(4*st_size)(%eax)
+	movl	$0,st_spans+(5*st_size)(%eax)
+	movl	$0,st_spans+(6*st_size)(%eax)
+	movl	$0,st_spans+(7*st_size)(%eax)
+	movl	$0,st_spans+(8*st_size)(%eax)
+	movl	$0,st_spans+(9*st_size)(%eax)
+	movl	$0,st_spans+(10*st_size)(%eax)
+	movl	$0,st_spans+(11*st_size)(%eax)
+	movl	$0,st_spans+(12*st_size)(%eax)
+	movl	$0,st_spans+(13*st_size)(%eax)
+	addl	$(14*st_size),%eax
+	leal	(14*st_size)(%eax),%ecx
+	cmpl	%edx,%ecx
+	jbe	.Lscan_edges_clear_span_loop
+.Lscan_edges_clear_span_tail:
+	leal	(8*st_size)(%eax),%ecx
+	cmpl	%edx,%ecx
+	ja	.Lscan_edges_clear_span_tail_four
+	movl	$0,st_spans(%eax)
+	movl	$0,st_spans+st_size(%eax)
+	movl	$0,st_spans+(2*st_size)(%eax)
+	movl	$0,st_spans+(3*st_size)(%eax)
+	movl	$0,st_spans+(4*st_size)(%eax)
+	movl	$0,st_spans+(5*st_size)(%eax)
+	movl	$0,st_spans+(6*st_size)(%eax)
+	movl	$0,st_spans+(7*st_size)(%eax)
+	addl	$(8*st_size),%eax
+.Lscan_edges_clear_span_tail_four:
+	leal	(4*st_size)(%eax),%ecx
+	cmpl	%edx,%ecx
+	ja	.Lscan_edges_clear_span_tail_two
+	movl	$0,st_spans(%eax)
+	movl	$0,st_spans+st_size(%eax)
+	movl	$0,st_spans+(2*st_size)(%eax)
+	movl	$0,st_spans+(3*st_size)(%eax)
+	addl	$(4*st_size),%eax
+.Lscan_edges_clear_span_tail_two:
+	leal	(2*st_size)(%eax),%ecx
+	cmpl	%edx,%ecx
+	ja	.Lscan_edges_clear_span_tail_one
+	movl	$0,st_spans(%eax)
+	movl	$0,st_spans+st_size(%eax)
+	addl	$(2*st_size),%eax
+.Lscan_edges_clear_span_tail_one:
 	cmpl	%edx,%eax
 	jae	.Lscan_edges_spans_cleared
 	movl	$0,st_spans(%eax)
-	addl	$st_size,%eax
-	jmp	.Lscan_edges_clear_span_loop
 .Lscan_edges_spans_cleared:
-	movl	%esi,C(span_p)
+	movl	-28(%ebp),%eax
+	movl	%eax,C(span_p)
 .Lscan_edges_no_flush:
 
 	movl	C(removeedges)(,%ebx,4),%eax
@@ -1751,7 +1803,8 @@ C(R_ScanEdges_asm486):
 	addl	$4,%esp
 .Lscan_edges_no_step:
 	incl	%ebx
-	jmp	.Lscan_edges_row
+	cmpl	-32(%ebp),%ebx
+	jl	.Lscan_edges_row
 
 .Lscan_edges_last_row:
 #ifdef PROFILE486
@@ -1763,8 +1816,7 @@ C(R_ScanEdges_asm486):
 	movl	%ebx,C(current_iv)
 	fildl	C(current_iv)
 	fstps	C(fv)
-	movl	C(surfaces),%eax
-	movl	$1,st_spanstate+64(%eax)
+	movl	$1,st_spanstate+64(%edi)
 	movl	C(newedges)(,%ebx,4),%eax
 	testl	%eax,%eax
 	je	.Lscan_edges_last_no_edges
@@ -1780,8 +1832,7 @@ C(R_ScanEdges_asm486):
 	call	C(R_InsertNewEdges)
 	addl	$8,%esp
 .Lscan_edges_last_no_edges:
-	movl	C(pdrawfunc),%eax
-	call	*%eax
+	call	*%esi
 
 	cmpl	$0,C(r_drawculledpolys)
 	jne	.Lscan_edges_final_culled
