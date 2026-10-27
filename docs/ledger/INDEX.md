@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [2026-10-28-alias-raster-constant-pointer-cache-promoted.md](2026-10-28-alias-raster-constant-pointer-cache-promoted.md) | 1 | renderer performance / retain alias-raster triangle-constant pointers in callee-saved registers after a positive matched mean, exact checksum parity, and full i486 ISA gate |
 | [2026-10-27-edge-trailing-spanstate-fastpath-promoted.md](2026-10-27-edge-trailing-spanstate-fastpath-promoted.md) | 1 | renderer performance / bypass backward trailing-edge helper calls on non-transition spans after a positive strict mean, exact checksum parity, and complete i486 audit |
 | [2026-10-27-d-cachesurface-hit-key-store-deferral-promoted.md](2026-10-27-d-cachesurface-hit-key-store-deferral-promoted.md) | 1 | renderer performance / defer surface-cache draw-key stores on hits after a positive strict mean, exact checksum parity, and complete i486 audit |
 | [`2026-10-27-r-scan-edges-cached-state-promoted.md`](2026-10-27-r-scan-edges-cached-state-promoted.md) | 1 | renderer performance / cache the draw callback and surface base, and clear span-state entries in bounded groups after a positive matched mean and strict i486 audit |

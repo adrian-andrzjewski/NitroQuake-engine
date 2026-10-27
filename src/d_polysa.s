@@ -2247,7 +2247,9 @@ C(D_RasterizeAliasPolySmooth_asm486):
 	// left bottom -32, right bottom -36, working light step -40,
 	// original right count -44, skin width -48, s/t base -52/-56,
 	// s/t extra -60/-64, edge height -68, span start -72.
+	// These triangle-constant pointers survive the cdecl helpers below.
 	movl	C(pedgetable),%esi
+	movl	C(a_spans),%ebx
 	movl	8(%esi),%eax
 	movl	%eax,-24(%ebp)
 	movl	24(%esi),%eax
@@ -2278,7 +2280,7 @@ C(D_RasterizeAliasPolySmooth_asm486):
 	addl	$4,%esp
 
 	// Top (or only) left edge: initialize the first span package.
-	movl	C(a_spans),%eax
+	movl	%ebx,%eax
 	movl	%eax,C(d_pedgespanpackage)
 	movl	-24(%ebp),%edi
 	movl	4(%edi),%eax
@@ -2330,7 +2332,6 @@ C(D_RasterizeAliasPolySmooth_asm486):
 	ALIAS_CALL_SCAN_LEFT -16
 
 .LAliasRasterLeftBottom:
-	movl	C(pedgetable),%esi
 	cmpl	$2,4(%esi)
 	jne	.LAliasRasterRightTop
 	movl	-32(%ebp),%eax
@@ -2386,7 +2387,7 @@ C(D_RasterizeAliasPolySmooth_asm486):
 	ALIAS_CALL_SCAN_LEFT -68
 
 .LAliasRasterRightTop:
-	movl	C(a_spans),%eax
+	movl	%ebx,%eax
 	movl	%eax,C(d_pedgespanpackage)
 	ALIAS_CALL_LINE_SCAN -28,-36
 	movl	$0,C(d_aspancount)
@@ -2394,7 +2395,7 @@ C(D_RasterizeAliasPolySmooth_asm486):
 	incl	%eax
 	movl	%eax,C(d_countextrastep)
 
-	movl	C(a_spans),%eax
+	movl	%ebx,%eax
 	movl	-20(%ebp),%ecx
 	shll	$5,%ecx
 	addl	%ecx,%eax
@@ -2402,19 +2403,18 @@ C(D_RasterizeAliasPolySmooth_asm486):
 	movl	%edx,-44(%ebp)
 	movl	$-999999,spanpackage_t_count(%eax)
 #ifdef PROFILE486
-	pushl	C(a_spans)
+	pushl	%ebx
 	call	C(D_PolysetDrawSpansProfiled)
 #else
-	pushl	C(a_spans)
+	pushl	%ebx
 	call	C(D_PolysetDrawSpans8)
 #endif
 	addl	$4,%esp
 
 	// Optional lower right edge starts at the saved top-edge span count.
-	movl	C(pedgetable),%esi
 	cmpl	$2,20(%esi)
 	jne	.LAliasRasterDone
-	movl	C(a_spans),%eax
+	movl	%ebx,%eax
 	movl	-20(%ebp),%ecx
 	shll	$5,%ecx
 	addl	%ecx,%eax
@@ -2440,7 +2440,7 @@ C(D_RasterizeAliasPolySmooth_asm486):
 	movl	C(ubasestep),%eax
 	incl	%eax
 	movl	%eax,C(d_countextrastep)
-	movl	C(a_spans),%eax
+	movl	%ebx,%eax
 	movl	-20(%ebp),%ecx
 	addl	-68(%ebp),%ecx
 	shll	$5,%ecx
