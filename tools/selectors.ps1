@@ -309,7 +309,7 @@ $script:SelectorTable = @(
     @{
         Param      = 'TurbulentImplementation'
         Manifest   = 'turbulentImplementation'
-        Suffix     = @{ 'c' = 'turbc'; 'asm' = 'turbasm'; 'pair' = 'turbpair'; 'quad' = 'turbquad'; 'octa' = 'turbocta'; 'twelve' = 'turbtwelve'; 'fourteen' = 'turbfourteen' }
+        Suffix     = @{ 'c' = 'turbc'; 'asm' = 'turbasm'; 'pair' = 'turbpair'; 'quad' = 'turbquad'; 'octa' = 'turbocta'; 'twelve' = 'turbtwelve'; 'fourteen' = 'turbfourteen'; 'fourteen-stosb' = 'turbfourteensb' }
         C          = @{ 'c' = @('ASM486_TURBULENT_C') }
         # 'stosb' is the default and emits no token, so it is absent from Suffix;
         # the C selector's define also reaches the assembler so a selected outer
@@ -322,6 +322,8 @@ $script:SelectorTable = @(
             'octa'  = @('ASM486_TURBULENT_OCTA_LOOP')
             'twelve' = @('ASM486_TURBULENT_TWELVE_LOOP')
             'fourteen' = @('ASM486_TURBULENT_FOURTEEN_LOOP')
+            # Combine the fourteen-pixel cached texture base with the byte store.
+            'fourteen-stosb' = @('ASM486_TURBULENT_FOURTEEN_LOOP', 'ASM486_TURBULENT_STOSB')
         }
         SelectsAsm = $false
     }
@@ -2558,7 +2560,7 @@ function Set-DefaultI486AssemblySelectors {
         )
         $acceptedDefault = $value -ceq 'asm' -or (
             $property.Name -ceq 'TurbulentImplementation' -and
-            $value -ceq 'fourteen'
+            $value -ceq 'fourteen-stosb'
         ) -or (
             $property.Name -ceq 'EdgeListMaintenanceImplementation' -and
             $value -ceq 'legacy'

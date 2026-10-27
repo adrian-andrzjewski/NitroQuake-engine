@@ -50,7 +50,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     '-memasm-fillrectasm-zpointasm-skyasm-warpasm-solidasm-axisasm-surfaceasm-surfacedrawasm-surfacez'
-    'asm-surfacegradasm-surfacesasm-mipasm-turbfourteen-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hf'
+    'asm-surfacegradasm-surfacesasm-mipasm-turbfourteensb-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hf'
     'lat-surf1hflatidxhoist-aliasclipasm-aliasclipzasm-aliasmatrixasm-aliaslightingasm-aliasframeasm-'
     'aliaskinasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dligh'
     'torchestrationasm-dlightpushasm-dlightcontribasm-marklightsasm-lightmapbuildasm-bspdotasm-bspcli'
@@ -618,6 +618,14 @@ def main() -> int:
             fail("the turbulent fourteen-pixel selector does not add its profile token")
         if "-DASM486_TURBULENT_FOURTEEN_LOOP" not in turbulent_inner_fourteen.get("asmFlags", []):
             fail("the turbulent fourteen-pixel selector omits ASM486_TURBULENT_FOURTEEN_LOOP from assembly flags")
+
+    turbulent_inner_fourteen_stosb = dump_flags("-TurbulentImplementation", "fourteen-stosb")
+    if turbulent_inner_fourteen_stosb:
+        if "-turbfourteensb" not in turbulent_inner_fourteen_stosb.get("profileSuffix", ""):
+            fail("the fourteen-pixel STOSB selector does not add its profile token")
+        for define in ("-DASM486_TURBULENT_FOURTEEN_LOOP", "-DASM486_TURBULENT_STOSB"):
+            if define not in turbulent_inner_fourteen_stosb.get("asmFlags", []):
+                fail("the fourteen-pixel STOSB selector omits %s from assembly flags" % define)
 
     lightmap_build_c = dump_flags("-LightMapBuildImplementation", "c")
     lightmap_build_asm = dump_flags("-LightMapBuildImplementation", "asm")
