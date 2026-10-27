@@ -950,13 +950,11 @@ LNoTurnover:
 	movl	%edi,C(d_aspancount)
 
 LRightEdgeStepped:
-	cmpl	$1,%eax
-
-	jl		LNextSpan
-	jz		LExactlyOneLong
+	decl	%eax
+	jle		.LAff8ShortOrEmpty
 
 	movl	%eax,%edx			// count
-	addl	$7,%edx
+	addl	$8,%edx
 
 	shrl	$3,%edx				// count of full and partial loops
 	movl	spanpackage_t_sfrac(%esi),%ebx
@@ -964,7 +962,7 @@ LRightEdgeStepped:
 	movw	%dx,%bx
 	movl	spanpackage_t_pz(%esi),%ecx
 
-	negl	%eax
+	notl	%eax
 
 	movl	spanpackage_t_pdest(%esi),%edi
 	andl	$7,%eax		// 0->0, 1->7, 2->6, ... , 7->1
@@ -1290,6 +1288,9 @@ LNextSpanESISet:
 	popl	%esi
 	ret
 
+.LAff8ShortOrEmpty:
+	jz		LExactlyOneLong
+	jmp		LNextSpan
 
 // draw a one-long span
 
