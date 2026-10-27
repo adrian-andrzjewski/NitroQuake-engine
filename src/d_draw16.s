@@ -273,6 +273,7 @@ LCleanup1:
 
 	.p2align 4,,15
 LSetupNotLast1:
+	movl	%ecx,counttemp	// seed the remaining full-span count
 // finish up the s and t calcs
 	fxch	%st(1)			// z*64k | 1/z | t/z | s/z
 
@@ -351,9 +352,8 @@ LNotLastSegment:
 	movl	tnext,%edx
 
 	movb	(%esi),%bl	// get first source texel
-	subl	$16,%ecx		// count off this segments' pixels
+	subl	$16,counttemp	// count off this segment in memory
 	movl	C(sadjust),%ebp
-	movl	%ecx,counttemp	// remember count of remaining pixels
 
 	movl	C(tadjust),%ecx
 	movb	%bl,(%edi)	// store first dest pixel
