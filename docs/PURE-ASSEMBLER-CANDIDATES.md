@@ -814,13 +814,14 @@ paid for in instruction count, memory traffic, or arithmetic.
 The lightmap-combination helper is implemented as the selectable
 `R_BuildLightMapStyles_asm486` path. The full `R_BuildLightMap` dispatcher and
 the dynamic-light orchestration and projection now have selectable assembly
-entries. Their C references remain available; parity and the i486 ISA gate
-determine promotion, while timing is used to catch material regressions.
+entries. Their C references remain available; exact parity and the full i486
+ISA gate are required, and the pinned timedemo decides performance under the
+any-positive pooled-mean rule.
 
 | Area | Location | Feasibility | Recommended boundary |
 |---|---|---:|---|
 | Active dynamic-light enumeration | `src/r_light.c:R_PushDlights` | **Implemented and promoted for i486** | `DynamicLightPushImplementation=c|asm` selects the 32-slot active-light loop and dispatch to `R_MarkLights`. Five direct fixture cases passed; six scenes, two repeats each, had exact frame checksums and exact 320x200 framebuffer/palette captures. Assembly is the i486 default; C remains selectable and i386 remains C. See the R_PushDlights ledger. The four-path combined profile also passed six-scene exact parity. |
-| Lightmap combination | `src/r_surf.c:R_BuildLightMap` | Implemented | The assembly dispatcher owns bounds, cache, path selection, dynamic-light dispatch, and normalization calls; C remains the release default. |
+| Lightmap combination | `src/r_surf.c:R_BuildLightMap` | Implemented; assembly not promoted | The assembly dispatcher owns bounds, cache, path selection, dynamic-light dispatch, and normalization calls. A matched three-run comparison measured the C dispatcher **+0.0124666%** faster with exact checksum parity and a full strict i486 audit; C remains the release default. See the [2026-10-28 selector comparison](ledger/2026-10-28-lightmap-build-assembly-rejected.md). |
 | Dynamic-light accumulation | `src/r_surf.c:R_AddDynamicLights` | Implemented | Assembly owns sparse light-bit traversal, x87 projection, culling, and dispatch; the texel sample loop remains independently selectable. |
 | BSP dynamic-light marking | `src/r_light.c:R_MarkLights` | **Implemented and promoted for i486** | `MarkLightsImplementation=c|asm` selects the recursive i486 BSP walk. The 128-case x87 fixture, exact Demo 1 comparison, and six-scene paired comparison with transient notices disabled passed. With notices enabled, the only captured differences were expiring console text in rows 1–23; all other framebuffer pixels and palettes matched. Assembly is the i486 default, C remains selectable, and the separate i386 default remains C. See the renderer-port ledger. The four-path combined profile also passed six-scene exact parity. |
 | Alias setup | `src/r_alias.c:R_AliasPreparePoints`, `R_AliasSetViewMatrix`, `R_AliasSetUpTransform`, `R_AliasSetupLighting`, `R_AliasSetupFrame`, `R_AliasSetupSkin`, `src/asm486_experiments.s:R_AliasSetViewMatrix_asm486`, `R_ConcatTransforms_asm486`, `src/r_aclip.c` clipping, `src/d_polyse.c:D_PolysetCalcGradients`, `D_PolysetSetUpForLineScan`, `D_PolysetSetEdgeTable`, `D_PolysetUpdateTables`, and `D_RasterizeAliasPolySmooth` | **Partial, not promoted** | `AliasPrepareImplementation=control|local|asm` selects the C control reference, a local C-loop variant, or the i486 clipped-vertex assembly loop; `asm` is now the i486 default and passed two-repeat exact Demo 2 parity. `AliasMatrixCompositionImplementation=c|special|asm` selects generic C, the specialized diagonal C path, or assembly view-basis setup plus both `R_ConcatTransforms_asm486` products; three view-basis fixtures, two matrix fixtures, and two-repeat exact Demo 2 parity passed, and assembly is now the i486 default. `AliasClipImplementation=c|asm` selects the generic clip pass and triangle-level clipping orchestration; `AliasClipZImplementation=c|asm` independently selects the Z-plane intersection callback and requires `AliasClipImplementation=asm`. `AliasSetupLightingImplementation=c|asm` selects ambient/shade and light-vector setup; 24 direct cases and a two-repeat Demo 2 pair passed exact comparison. `AliasSetupFrameImplementation=c|asm` selects single/group alias model animation frame resolution; 56 direct cases and a two-repeat Demo 2 pair passed exact comparison. `AliasSetupSkinImplementation=c|asm` selects single/group skin resolution; 56 direct cases and a two-repeat Demo 2 pair passed exact comparison. `AliasGradientImplementation=c|asm` selects the existing x87 gradient routine; eight direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasLineScanImplementation=c|asm` selects table lookup and large-edge setup; 16,416 direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasEdgeTableImplementation=c|asm` selects the original 12-way signed-Y table lookup; 1,372 direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasSkinTableImplementation=c|asm` selects the cache-key comparison and 480 byte-stride skin-row pointers; 64 direct cases and a two-repeat Demo 2 pair passed exact comparison, and assembly remains the i486 default. `AliasRasterizeImplementation=c|asm` selects the triangle rasterization orchestration and span-package setup; the focused Demo 2 pair matched exactly on both repeats, and assembly remains the i486 default. Preserve projection, clipping, and triangle order exactly. |
@@ -861,10 +862,13 @@ surface bounds, cache decisions, fullbright and ambient branches, helper
 selection, dynamic-light dispatch, and normalization orchestration to assembler.
 The single-style cached table and ambient clear/fill loops also run in assembly.
 Style accumulation, fused accumulation, dynamic-light sampling, and
-normalization remain independently selectable helpers. The C dispatcher is
-retained as the benchmark reference, and C remains the release default pending
-a matched timedemo comparison with a positive pooled mean. Exact output parity
-and the strict i486 audit remain required.
+normalization remain independently selectable helpers. The C dispatcher
+remains the release default. A matched three-run comparison measured C at
+**16.240118 FPS** and assembly at **16.238093667 FPS**, a C gain of
+**0.002024333 FPS (+0.0124666%)**. All six runs matched the pinned checksum,
+and both variants passed the strict i486 audit. Keep the assembly path
+selectable but unpromoted; see the
+[comparison ledger](ledger/2026-10-28-lightmap-build-assembly-rejected.md).
 
 ### 2. `R_AddDynamicLights` orchestration
 
