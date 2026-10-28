@@ -10233,8 +10233,7 @@ C(R_AddDynamicLights):
 	testl	%edi,%edi
 	je	.Ldlight_orchestration_done
 	bsfl	%edi,%ebx
-	leal	-1(%edi),%edx
-	andl	%edx,%edi
+	btrl	%ebx,%edi
 
 	// int project(lnum, surf, smax, tmax, &local0, &local1,
 	//             &local0_int, &local1_int, &limit, &irad, &all_lit)

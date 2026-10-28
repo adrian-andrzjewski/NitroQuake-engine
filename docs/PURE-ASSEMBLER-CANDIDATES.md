@@ -38,6 +38,16 @@ Scope: i486 DOS NitroQuake software renderer
 > gain remains visible in the ledger. See
 > `docs/ledger/2026-10-28-dlight-edi-mask-register-promoted.md`.
 
+> **Dynamic-light mask clear with `BTR` (2026-10-28):** replacing the `LEA`
+> and `AND` mask-clear sequence with `btrl %ebx,%edi` averaged **16.240115667
+> FPS** against **16.240104667 FPS** for the EDI/`AND` control (**+0.000011
+> FPS, +0.00006773%**). Exact 969-frame checksum parity and the complete strict
+> i486 audit passed. The candidate median improved by 0.000006 FPS, while its
+> spread was 0.000024 FPS and the trailing control drifted 0.000013 FPS above
+> the control median. The positive mean qualifies under the current rule; see
+> `docs/ledger/2026-10-28-dlight-btr-mask-clear-promoted.md` for the timing
+> caveat and run artifacts.
+
 > **Z-span U-coordinate load before x87 origin add (2026-10-22):** the strict
 > candidate averaged **15.601291333 FPS** against **15.601303 FPS** for control
 > (**−0.000011667 FPS, −0.00007478%**). Exact 969-frame checksum parity and the

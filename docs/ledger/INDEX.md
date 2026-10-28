@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-28-dlight-btr-mask-clear-promoted.md`](2026-10-28-dlight-btr-mask-clear-promoted.md) | 1 | renderer performance / replace two instructions with `BTR` to clear the selected dynamic-light bit after a positive strict mean and exact checksum parity |
 | [`2026-10-28-dlight-edi-mask-register-promoted.md`](2026-10-28-dlight-edi-mask-register-promoted.md) | 1 | renderer performance / keep the sparse dynamic-light mask in EDI and remove per-light stack traffic after a positive matched strict mean with exact checksum parity |
 | [`2026-10-28-lightmap-build-assembly-rejected.md`](2026-10-28-lightmap-build-assembly-rejected.md) | 1 | renderer performance / retain the C lightmap dispatcher after a strict three-run comparison measured it +0.0124666% faster than assembly with exact checksum parity |
 | [`2026-10-28-zspan-positive-pair-depth-step-reorder-promoted.md`](2026-10-28-zspan-positive-pair-depth-step-reorder-promoted.md) | 1 | renderer performance / reorder the positive-pair Z-span depth add after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00003695% mean) |
