@@ -10192,7 +10192,7 @@ C(R_AddDynamicLightProject_asm486):
 .set DLO_SURF,        -4
 .set DLO_SMAX,        -8
 .set DLO_TMAX,       -12
-.set DLO_BITS,       -16
+// -16 remains unused; keep the sparse surface-light mask in EDI.
 .set DLO_CONTRIB,    -20
 .set DLO_LOCAL0,     -24
 .set DLO_LOCAL1,     -28
@@ -10224,19 +10224,17 @@ C(R_AddDynamicLights):
 	sarl	$4,%eax
 	incl	%eax
 	movl	%eax,DLO_TMAX(%ebp)
-	movl	dl_surface_dlightbits(%esi),%eax
-	movl	%eax,DLO_BITS(%ebp)
+	// The ASM callees preserve EDI; the C sample fallback follows i386 ABI.
+	movl	dl_surface_dlightbits(%esi),%edi
 	movl	C(r_dlight_contributed),%eax
 	movl	%eax,DLO_CONTRIB(%ebp)
 
 .Ldlight_orchestration_next:
-	movl	DLO_BITS(%ebp),%eax
-	testl	%eax,%eax
+	testl	%edi,%edi
 	je	.Ldlight_orchestration_done
-	bsfl	%eax,%ebx
-	leal	-1(%eax),%edx
-	andl	%edx,%eax
-	movl	%eax,DLO_BITS(%ebp)
+	bsfl	%edi,%ebx
+	leal	-1(%edi),%edx
+	andl	%edx,%edi
 
 	// int project(lnum, surf, smax, tmax, &local0, &local1,
 	//             &local0_int, &local1_int, &limit, &irad, &all_lit)

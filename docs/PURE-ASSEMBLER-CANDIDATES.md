@@ -1,6 +1,6 @@
 # Pure-Assembler Conversion Candidates
 
-Date: 2026-09-28, updated 2026-10-22
+Date: 2026-09-28, updated 2026-10-28
 Scope: i486 DOS NitroQuake software renderer
 
 > **Scope update (2026-10-04):** this document records the earlier performance
@@ -26,6 +26,17 @@ Scope: i486 DOS NitroQuake software renderer
 > parity plus the strict i486 ISA audit remain required. Below-0.05% conclusions
 > in historical entries describe the old policy; measured regressions remain
 > closed for the implementation that lost.
+
+> **Dynamic-light remaining-mask scan in EDI (2026-10-28):** keeping the
+> sparse surface-light mask in callee-saved `EDI` removed the per-light stack
+> reload and store. The strict candidate averaged **16.240113 FPS** against
+> **16.240109333 FPS** for control (**+0.000003667 FPS, +0.00002258%**).
+> Exact 969-frame checksum parity and the complete strict i486 audit passed.
+> Both medians were **16.240111 FPS**; the candidate spread was 0.000008 FPS,
+> and the trailing control drifted 0.000005 FPS above the control median. The
+> positive mean qualifies under the current policy, while the near-noise-sized
+> gain remains visible in the ledger. See
+> `docs/ledger/2026-10-28-dlight-edi-mask-register-promoted.md`.
 
 > **Z-span U-coordinate load before x87 origin add (2026-10-22):** the strict
 > candidate averaged **15.601291333 FPS** against **15.601303 FPS** for control
