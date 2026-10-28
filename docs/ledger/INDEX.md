@@ -718,3 +718,4 @@ section below moved verbatim.
 - [Alias transform 16-bit coordinate table (2026-10-23)](2026-10-23-alias-transform-u16-coordinate-table-promoted.md)
 - [Alias transform early normal-index scale (2026-10-23)](2026-10-23-alias-transform-normal-index-hoist-promoted.md)
 - [Surface-cache unused style lookup removal (2026-10-28)](2026-10-28-surface-cache-unused-style-lookup-promoted.md)
+- [Surface-cache second style sentinel check (2026-10-28) — **+0.000082 FPS (+0.000505%)**, exact checksum parity and full i486 audit](2026-10-28-surface-cache-style2-sentinel-promoted.md)
