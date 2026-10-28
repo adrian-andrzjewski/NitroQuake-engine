@@ -520,8 +520,7 @@ LProfileZeroStatsDone:
 
 LNonZeroSetup:
 	sarl	$20,%edx			// sstep >>= 16;
-	movl	C(cachewidth),%ebx
-	imull	%ebx,%eax
+	imull	C(cachewidth),%eax
 
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
@@ -557,7 +556,7 @@ LProfileNonZeroStatsDone:
 	addl	%edx,%eax			// add in sstep
 						// (tstep >> 16) * cachewidth + (sstep >> 16);
 	movl	%eax,advancetable+4	// advance base in t
-	addl	%ebx,%eax			// ((tstep >> 16) + 1) * cachewidth +
+	addl	C(cachewidth),%eax	// ((tstep >> 16) + 1) * cachewidth +
 						//  (sstep >> 16);
 	movl	tfracf,%edx
 

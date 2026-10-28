@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-28-span16-cachewidth-memory-operand-promoted.md`](2026-10-28-span16-cachewidth-memory-operand-promoted.md) | 1 | renderer performance / use direct-memory cachewidth operands in Span16 setup after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.05146%) |
 | [2026-10-28-d-polyset-x-midpoint-memory-add-promoted.md](2026-10-28-d-polyset-x-midpoint-memory-add-promoted.md) | 1 | renderer performance / remove the unconditional X-midpoint source load and defer it to the equal-Y edge tie-break after a positive matched mean, exact checksum parity, and complete i486 ISA audit (+0.009289% mean) |
 | [2026-10-28-d-polyset-x-difference-memory-source-promoted.md](2026-10-28-d-polyset-x-difference-memory-source-promoted.md) | 1 | renderer performance / use memory-source subtraction in the three recursive alias-triangle X checks after a positive matched mean, exact checksum parity, and complete i486 ISA audit (+0.050976% mean) |
 | [2026-10-28-d-polyset-y-difference-memory-source-promoted.md](2026-10-28-d-polyset-y-difference-memory-source-promoted.md) | 1 | renderer performance / use memory-source subtraction in the three recursive alias-triangle Y checks after a positive matched mean, exact checksum parity, and complete i486 ISA audit |
