@@ -2466,8 +2466,7 @@ C(R_RenderFace_asm486):
 	incl	C(bench486_emitcachededge_calls)
 .Lrf_cached_profile_done:
 #endif
-	movzwl	16(%edx),%eax
-	testl	%eax,%eax
+	cmpw	$0,16(%edx)
 	jne	.Lrf_cached_surf1
 	movl	C(surface_p),%eax
 	subl	C(surfaces),%eax
