@@ -681,11 +681,10 @@ C(D_PolysetRecursiveTriangle):
 //	if (d < -1 || d > 1)
 //		goto split;
 	// y only needed for |dy|; LSplit reloads from memory.
-	movl	4(%esi),%ebp
-	movl	4(%ebx),%ecx
-	subl	%ecx,%ebp
-	incl	%ebp
-	cmpl	$2,%ebp
+	movl	4(%esi),%eax
+	subl	4(%ebx),%eax
+	incl	%eax
+	cmpl	$2,%eax
 	ja		LSplit
 	// lp3[0] only needed for the next edge check; LSplit overwrites %eax.
 	movl	0(%edi),%eax
@@ -702,11 +701,10 @@ C(D_PolysetRecursiveTriangle):
 //	d = lp3[1] - lp2[1];
 //	if (d < -1 || d > 1)
 //		goto split2;
-	movl	4(%edi),%ebp
-	movl	4(%esi),%ecx
-	subl	%ecx,%ebp
-	incl	%ebp
-	cmpl	$2,%ebp
+	movl	4(%edi),%eax
+	subl	4(%esi),%eax
+	incl	%eax
+	cmpl	$2,%eax
 	ja		LSplit2
 	// lp1[0] only needed for the next edge check; LSplit2 overwrites %eax.
 	movl	0(%ebx),%eax
@@ -733,11 +731,10 @@ C(D_PolysetRecursiveTriangle):
 //
 //	return;			// entire tri is filled
 //
-	movl	4(%ebx),%ebp
-	movl	4(%edi),%ecx
-	subl	%ecx,%ebp
-	incl	%ebp
-	cmpl	$2,%ebp
+	movl	4(%ebx),%eax
+	subl	4(%edi),%eax
+	incl	%eax
+	cmpl	$2,%eax
 	jna		LDone
 
 LSplit3:
