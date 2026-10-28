@@ -39,6 +39,16 @@ the current strict control's **16.241887 FPS** (**+0.020008667 FPS,
 executable i486 audit passed with zero above-i486, unknown, or exempt
 instructions. See the [leading-edge compare ledger](ledger/2026-10-28-edge-leading-insubmodel-compare-promoted.md).
 
+### Edge-scan leading-edge spanstate check (2026-10-28)
+
+The leading-edge path no longer stages `st_spanstate` in `%edx`. After the
+bmodel dispatch, each path compares the field directly; the rare inverted-span
+exit increments it in memory. The strict candidate averaged **16.281853333
+FPS** against the current strict control's **16.261895667 FPS**
+(**+0.019957666 FPS, +0.1227%**). All runs retained 969 frames and checksum
+`1047377823`; the complete executable i486 gate passed. See the
+[spanstate compare ledger](ledger/2026-10-28-edge-leading-spanstate-direct-compare-promoted.md).
+
 Moving the Z-span U-coordinate load before the x87 origin add measured
 **15.601291333 FPS** against the control's **15.601303 FPS**
 (**−0.000011667 FPS, −0.00007478%**). All runs retained 969 frames and checksum

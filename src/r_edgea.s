@@ -541,7 +541,6 @@ Lgs_leading_body:
 #endif
 	movl	0x12345678,%esi		// surf2 = surfaces[1].next;
 LPatch2:
-	movl	st_spanstate(%edi),%edx
 	cmpl	$0,st_insubmodel(%edi)
 	jnz		Lbmodel_leading
 
@@ -549,13 +548,13 @@ LPatch2:
 
 // don't start a span if this is an inverted span, with the end edge preceding
 // the start edge (that is, we've already seen the end edge)
-	testl	%edx,%edx
+	cmpl	$0,st_spanstate(%edi)
 	jnz		Lxl_done
 
 
 // if (surf->key < surf2->key)
 //		goto newtop;
-	// spanstate was 0; C's ++spanstate == 1 → store 1 (no incl/%edx).
+	// C's ++spanstate == 1; store 1 directly to avoid a memory increment.
 	movl	$1,st_spanstate(%edi)
 	movl	st_key(%edi),%eax
 	cmpl	st_key(%esi),%eax
@@ -600,10 +599,10 @@ Lbmodel_leading:
 
 // don't start a span if this is an inverted span, with the end edge preceding
 // the start edge (that is, we've already seen the end edge)
-	testl	%edx,%edx
+	cmpl	$0,st_spanstate(%edi)
 	jnz		Lxl_done
 
-	// spanstate was 0; store 1 instead of incl/%edx (Lxl_done still uses incl).
+	// C's ++spanstate == 1; store 1 directly to avoid a memory increment.
 	movl	$1,st_spanstate(%edi)
 	// Match C's r_bmodelactive++ with a single incl (no load/store pair).
 	incl	C(r_bmodelactive)
@@ -870,8 +869,7 @@ Lxl_done:
 #ifdef PROFILE486
 	incl	C(bench486_edge_xldone)
 #endif
-	incl	%edx
-	movl	%edx,st_spanstate(%edi)
+	incl	st_spanstate(%edi)
 
 	jmp		Lgs_nextedge
 
