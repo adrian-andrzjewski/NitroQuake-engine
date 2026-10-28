@@ -456,9 +456,9 @@ LSpan16RowCrossFallback:
 //
 	movl	%ecx,%eax
 	movl	%ebp,%edx
+	sarl	$20,%edx			// sstep >>= 16; independent of the T branch
 	sarl	$20,%eax			// tstep >>= 16;
 	jnz		LNonZeroSetup
-	sarl	$20,%edx			// sstep >>= 16;
 	// The common zero-tstep case does not need cachewidth in a register:
 	// ebx is replaced by sfracf below, so add the row stride from memory.
 	// Keep the profile-only accounting in both setup arms so the release path
@@ -519,7 +519,6 @@ LProfileZeroStatsDone:
 	jmp		LSetUpCommon
 
 LNonZeroSetup:
-	sarl	$20,%edx			// sstep >>= 16;
 	imull	C(cachewidth),%eax
 
 #ifdef PROFILE486
