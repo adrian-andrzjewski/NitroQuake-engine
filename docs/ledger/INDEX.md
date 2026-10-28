@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-28-surface-cache-style2-direct-compare-promoted.md`](2026-10-28-surface-cache-style2-direct-compare-promoted.md) | 1 | renderer performance / compare the style2 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00008004%) |
 | [`2026-10-28-renderface-cached-surface-compare-promoted.md`](2026-10-28-renderface-cached-surface-compare-promoted.md) | 1 | renderer performance / replace the cached-edge surface load and test with one direct 16-bit compare after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.006188%) |
 | [`2026-10-28-d-polyset-scan-left-height-lowword-promoted.md`](2026-10-28-d-polyset-scan-left-height-lowword-promoted.md) | 1 | renderer performance / merge the left-edge scan height into the low-word loop counter after a positive matched strict mean, exact framebuffer checksum parity, and full i486 ISA audit |
 | [`2026-10-28-dlight-btr-mask-clear-promoted.md`](2026-10-28-dlight-btr-mask-clear-promoted.md) | 1 | renderer performance / replace two instructions with `BTR` to clear the selected dynamic-light bit after a positive strict mean and exact checksum parity |
@@ -784,6 +785,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### surface-cache
 
+- `promoted` [Surface-cache style2 sentinel direct compare (2026-10-28) — **+0.000013 FPS (+0.00008004%)**, exact checksum parity and full strict i486 audit](2026-10-28-surface-cache-style2-direct-compare-promoted.md)
 - `rejected` [`surf8` mip-1 8-row loop alignment screen (2026-10-27) — **−0.002048 FPS (−0.0127149%)**, exact checksum parity](2026-10-27-surf8-mip1-loop-alignment-screen-rejected.md)
 - `rejected` [`surf8` mip-0 16-row loop alignment screen (2026-10-27) — **−0.001361 FPS (−0.0084497%)**, exact checksum parity](2026-10-27-surf8-mip0-loop-alignment-screen-rejected.md)
 - `promoted` [Surface-cache key preparation/comparison fusion (2026-10-20) — **0.0400% faster** with exact checksum parity](2026-10-20-cache-key-fusion.md)

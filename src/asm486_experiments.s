@@ -4725,10 +4725,10 @@ C(D_CacheSurface):
 	movl	C(d_lightstylevalue)(,%eax,4),%ecx
 	cmpl	12(%edx),%ecx
 	jne	.Lcache_surface_keys_only
-	movzbl	58(%esi),%eax
-	cmpl	$255,%eax
+	cmpb	$255,58(%esi)
 	je	.Lcache_surface_dlight_check
 	// styles[2] terminates the active style list; later keys are unused.
+	movzbl	58(%esi),%eax
 	movl	C(d_lightstylevalue)(,%eax,4),%ecx
 	cmpl	16(%edx),%ecx
 	jne	.Lcache_surface_keys_only
