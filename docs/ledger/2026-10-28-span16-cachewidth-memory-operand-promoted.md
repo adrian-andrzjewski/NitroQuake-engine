@@ -40,3 +40,9 @@ provider instructions. The executable SHA-256 is
 The timedemo checksum verifies Quake's rendered framebuffer. It does not
 verify DOSBox's host window presentation; the reported black display remains
 unresolved. The candidate selected `VgaPresentationImplementation=asm`.
+
+Follow-up: one source of VGA gaps was traced to `VGA_UpdateLinearScreen`
+dropping dirty-rectangle row tails. The low-level transfer is fixed and covered
+by an independent expected-buffer fixture; host-window visual acceptance is
+still pending. See the
+[`VGA linear copy tail-fix ledger`](2026-10-28-vga-linear-copy-tail-fix.md).

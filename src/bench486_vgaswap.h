@@ -9,6 +9,7 @@
 static byte bench486_vga_swap_source[BENCH486_VGA_SWAP_SOURCE_SIZE];
 static byte bench486_vga_swap_c_dest[BENCH486_VGA_SWAP_DEST_SIZE];
 static byte bench486_vga_swap_asm_dest[BENCH486_VGA_SWAP_DEST_SIZE];
+static byte bench486_vga_swap_expected[BENCH486_VGA_SWAP_DEST_SIZE];
 
 static void Bench486VgaSwapFill (byte *buffer, int size, byte value)
 {
@@ -42,19 +43,42 @@ static void Bench486VgaSwapSeedRects (vrect_t *rects)
 	Q_memset (rects, 0, 3 * sizeof(*rects));
 	rects[0].x = 4;
 	rects[0].y = 1;
-	rects[0].width = 12;
+	rects[0].width = 11;
 	rects[0].height = 3;
 	rects[0].pnext = &rects[1];
 	rects[1].x = 20;
 	rects[1].y = 4;
-	rects[1].width = 16;
+	rects[1].width = 14;
 	rects[1].height = 2;
 	rects[1].pnext = &rects[2];
 	rects[2].x = 40;
 	rects[2].y = 1;
-	rects[2].width = 8;
+	rects[2].width = 9;
 	rects[2].height = 6;
 	rects[2].pnext = NULL;
+}
+
+static void Bench486VgaSwapBuildExpected (const vrect_t *rects)
+{
+	const vrect_t *rect;
+	int row, column;
+	int source_offset, dest_offset;
+
+	Bench486VgaSwapFill (bench486_vga_swap_expected,
+		BENCH486_VGA_SWAP_DEST_SIZE, 0xa7);
+	for (rect = rects; rect; rect = rect->pnext)
+	{
+		for (row = 0; row < rect->height; row++)
+		{
+			source_offset = BENCH486_VGA_SWAP_GUARD +
+				(rect->y + row) * 64 + rect->x;
+			dest_offset = BENCH486_VGA_SWAP_GUARD +
+				(rect->y + row) * 80 + rect->x;
+			for (column = 0; column < rect->width; column++)
+				bench486_vga_swap_expected[dest_offset + column] =
+					bench486_vga_swap_source[source_offset + column];
+		}
+	}
 }
 
 int Bench486VgaPresentationCases (void)
@@ -97,12 +121,15 @@ int Bench486VgaPresentationCases (void)
 		BENCH486_VGA_SWAP_DEST_SIZE, 0xa7);
 	Bench486VgaSwapFill (bench486_vga_swap_asm_dest,
 		BENCH486_VGA_SWAP_DEST_SIZE, 0xa7);
+	Bench486VgaSwapBuildExpected (rects);
 	VGA_pagebase = bench486_vga_swap_c_dest + BENCH486_VGA_SWAP_GUARD;
 	VGA_SwapBuffersCopy_C (&vid, &mode, rects);
 	VGA_pagebase = bench486_vga_swap_asm_dest + BENCH486_VGA_SWAP_GUARD;
 	VGA_SwapBuffersCopy (&vid, &mode, rects);
 	if (!Bench486VgaSwapEqual (bench486_vga_swap_c_dest,
-			bench486_vga_swap_asm_dest, BENCH486_VGA_SWAP_DEST_SIZE))
+			bench486_vga_swap_asm_dest, BENCH486_VGA_SWAP_DEST_SIZE) ||
+		!Bench486VgaSwapEqual (bench486_vga_swap_c_dest,
+			bench486_vga_swap_expected, BENCH486_VGA_SWAP_DEST_SIZE))
 		failures |= 1;
 
 	/* A null rectangle list is a no-op in linear mode. */

@@ -135,6 +135,10 @@ C(VGA_UpdateLinearScreen):
 LLRowLoop:
 	movl	%ebx,%ecx
 	rep/movsl	(%esi),(%edi)
+	/* Dirty rectangles can end on any byte; copy the 1-3 byte tail. */
+	movl	width(%esp),%ecx
+	andl	$3,%ecx
+	rep/movsb	(%esi),(%edi)
 	addl	%eax,%esi
 	addl	%edx,%edi
 	decl	%ebp

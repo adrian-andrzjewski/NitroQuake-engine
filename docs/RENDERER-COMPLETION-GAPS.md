@@ -651,9 +651,15 @@ function-count proxy is specific to this BENCH inventory, includes fixture
 helpers, and is not a complete-call-graph or production-weighted completion
 percentage.
 
-The VGA linear and planar pixel-copy routines already use assembly. The VESA
-palette conversion loop, resource lifecycle, default-mode wrapper, and
-per-frame wait gates now use assembly; VESA discovery, one-time wait probing,
+The VGA linear and planar pixel-copy routines already use assembly. An
+October 28 review found that `VGA_UpdateLinearScreen` skipped the one-to-three
+trailing bytes in unaligned dirty-rectangle rows. The copy now handles those
+tails, and the VGA fixture checks widths with all three remainder sizes against
+an independent expected display buffer. The focused DOSBox-X fixture and
+strict i486 gates pass; see the
+[`VGA linear copy tail-fix ledger`](ledger/2026-10-28-vga-linear-copy-tail-fix.md).
+The VESA palette conversion loop, resource lifecycle, default-mode wrapper,
+and per-frame wait gates now use assembly; VESA discovery, one-time wait probing,
 BIOS palette programming, and hardware mode changes remain C-owned. Page-flip
 assembly calls C adapters for hardware-specific operations. See the
 [`Cache_Check` port ledger](ledger/2026-10-17-cache-check-assembly-port.md),

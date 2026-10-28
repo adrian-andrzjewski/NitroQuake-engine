@@ -25,6 +25,7 @@ later insertion above it.
 | [`2026-10-28-d-polyset-x-difference-memory-source-promoted.md`](2026-10-28-d-polyset-x-difference-memory-source-promoted.md) | 1 | renderer performance / use memory-source subtraction in the three recursive alias-triangle X checks after a positive matched mean, exact checksum parity, and complete i486 ISA audit (+0.050976% mean) |
 | [`2026-10-28-d-polyset-y-difference-memory-source-promoted.md`](2026-10-28-d-polyset-y-difference-memory-source-promoted.md) | 1 | renderer performance / use memory-source subtraction in the three recursive alias-triangle Y checks after a positive matched mean, exact checksum parity, and complete i486 ISA audit |
 | [`2026-10-28-alias-raster-constant-pointer-cache-promoted.md`](2026-10-28-alias-raster-constant-pointer-cache-promoted.md) | 1 | renderer performance / retain alias-raster triangle-constant pointers in callee-saved registers after a positive matched mean, exact checksum parity, and full i486 ISA gate |
+| [`2026-10-28-vga-linear-copy-tail-fix.md`](2026-10-28-vga-linear-copy-tail-fix.md) | 1 | renderer correctness / copy one-to-three trailing bytes on VGA dirty-rectangle rows and verify the destination against an independent expected buffer under the strict i486 gate |
 | [`2026-10-27-edge-trailing-spanstate-fastpath-promoted.md`](2026-10-27-edge-trailing-spanstate-fastpath-promoted.md) | 1 | renderer performance / bypass backward trailing-edge helper calls on non-transition spans after a positive strict mean, exact checksum parity, and complete i486 audit |
 | [`2026-10-27-r-scan-edges-cached-state-promoted.md`](2026-10-27-r-scan-edges-cached-state-promoted.md) | 1 | renderer performance / cache the draw callback and surface base, and clear span-state entries in bounded groups after a positive matched mean and strict i486 audit |
 | [`2026-10-27-alias-draw-span-count-decrement-promoted.md`](2026-10-27-alias-draw-span-count-decrement-promoted.md) | 1 | renderer performance / decrement the alias span count once and remove one common-path branch after a positive strict mean, exact checksum parity, and complete i486 ISA audit |
@@ -580,6 +581,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderer port
 
+- `measured` [VGA linear dirty-rectangle copies preserve one-to-three-byte row tails against an independent expected display buffer](2026-10-28-vga-linear-copy-tail-fix.md)
 - `measured` [`VID_GetModePtr`, `VID_ModeInfo`, `VID_SetMode`, `VID_SetPalette`, `VID_ShiftPalette`, and `VID_Shutdown` pass C/ASM parity and strict i486 BENCH/release gates](2026-10-19-video-mode-assembly-port.md)
 - `open` [Hardware-specific callbacks, FPS, and full-scene parity remain](2026-10-19-video-mode-assembly-port.md)
 - `measured` [`M_ModemConfig_Draw` passes 2,880 exact C/assembly cases and the complete strict i486 release gate](2026-10-19-modem-config-menu-assembly-port.md)
