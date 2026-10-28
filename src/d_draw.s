@@ -854,8 +854,8 @@ LClampNeg:
 	leal	4(%edi),%edi
 	#else
 	shldl	$16,%edx,%eax
-	addl	%ebx,%edx
 	rorl	$16,%eax
+	addl	%ebx,%edx
 	stosl
 	#endif
 	.endm
