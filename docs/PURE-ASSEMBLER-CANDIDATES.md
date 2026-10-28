@@ -1,6 +1,6 @@
 # Pure-Assembler Conversion Candidates
 
-Date: 2026-09-28, updated 2026-10-10
+Date: 2026-09-28, updated 2026-10-22
 Scope: i486 DOS NitroQuake software renderer
 
 > **Scope update (2026-10-04):** this document records the earlier performance
@@ -18,6 +18,495 @@ Scope: i486 DOS NitroQuake software renderer
 > primarily to establish i486 CPU compatibility while preserving the reference
 > renderer's behavior. Timing remains useful diagnostic evidence, but a slower
 > assembly path is not a reason to reject a correct i486 implementation.
+
+> **Performance acceptance update (2026-10-21):** promotion accepts any positive
+> pooled mean from at least three matched, uninstrumented samples per variant,
+> regardless of the gain size or whether it is smaller than run-to-run variation.
+> Record the samples and spread. Exact frame-count and framebuffer-checksum
+> parity plus the strict i486 ISA audit remain required. Below-0.05% conclusions
+> in historical entries describe the old policy; measured regressions remain
+> closed for the implementation that lost.
+
+> **Z-span U-coordinate load before x87 origin add (2026-10-22):** the strict
+> candidate averaged **15.601291333 FPS** against **15.601303 FPS** for control
+> (**−0.000011667 FPS, −0.00007478%**). Exact 969-frame checksum parity and the
+> complete strict i486 audit passed; the negative mean rejects the move, which
+> has been restored. See
+> `docs/ledger/2026-10-22-zspan-u-load-before-origin-add-rejected.md`.
+
+> **Span16 endpoint reload interleave (2026-10-22):** delaying the `snext` and
+> `tnext` reloads averaged **15.601293333 FPS** against **15.601303 FPS** for
+> control (**−0.000009667 FPS, −0.00006196%**). Exact 969-frame checksum parity
+> and the complete strict i486 audit passed; the negative mean rejects this
+> schedule, which has been restored. See
+> `docs/ledger/2026-10-22-span16-fistp-reload-interleave-rejected.md`.
+
+> **Span16 count update overlapped with x87 endpoint math (2026-10-22):** the
+> strict candidate averaged **15.601281333 FPS** against **15.601303 FPS** for
+> control (**−0.000021667 FPS, −0.00013888%**). Exact 969-frame checksum parity
+> and the complete strict i486 audit passed; the negative pooled mean rejects
+> the schedule, which has been restored. See
+> `docs/ledger/2026-10-22-span16-counttemp-x87-overlap-rejected.md`.
+
+> **Span16 S-adjust load overlapped with x87 endpoint math (2026-10-22):** the
+> strict candidate averaged **15.601299 FPS** against **15.601303 FPS** for
+> control (**−0.000004 FPS, −0.00002564%**). Exact 969-frame checksum parity
+> and the complete strict i486 audit passed; the negative pooled mean rejects
+> the move, which has been restored. See
+> `docs/ledger/2026-10-22-span16-sadjust-x87-overlap-rejected.md`.
+
+> **Span16 first texel load overlapped with x87 endpoint math (2026-10-22):**
+> the strict candidate averaged **15.601298 FPS** against **15.601303 FPS** for
+> control (**−0.000005 FPS, −0.00003205%**). Exact 969-frame checksum parity
+> and the complete strict i486 audit passed; the negative pooled mean rejects
+> the move, which has been restored. See
+> `docs/ledger/2026-10-22-span16-first-texel-x87-overlap-rejected.md`.
+
+> **Span16 S-add before first A-half high-byte fetch (2026-10-21):** the strict
+> candidate averaged **15.564258 FPS** against **15.564256667 FPS** for control
+> (**+0.000001333 FPS, +0.00000857%**). The parity screen was **−0.000002333
+> FPS** against control. Exact 969-frame checksum parity and the complete strict
+> i486 audit passed; the positive strict mean qualifies under the current rule.
+> See `docs/ledger/2026-10-21-span16-s-add-before-first-high-fetch-promoted.md`.
+
+> **Span16 T-step addition before word store (2026-10-21):** the strict
+> candidate averaged **15.564260333 FPS** against **15.564258 FPS** for control
+> (**+0.000002333 FPS, +0.00001499%**). The parity screen was **−0.000004667
+> FPS** against control. Exact 969-frame checksum parity and the complete strict
+> i486 audit passed; the positive strict mean qualifies under the current rule.
+> See `docs/ledger/2026-10-21-span16-tstep-before-word-store-promoted.md`.
+
+> **Span16 T-step/store overlap extension (2026-10-21):** the parity screen
+> averaged **15.564255333 FPS** against **15.564251667 FPS** for control
+> (**+0.000003667 FPS**), but the strict candidate averaged **15.564256333 FPS**
+> against **15.564260333 FPS** (**−0.000004 FPS, −0.00002570%**). Exact
+> 969-frame checksum parity and the complete strict i486 audit passed. The
+> negative strict mean rejects the five additional moves; the first-store
+> overlap remains active. See
+> `docs/ledger/2026-10-21-span16-tstep-overlap-extension-rejected.md`.
+
+> **Span16 A-half T-step/store overlap (2026-10-21):** the parity screen
+> averaged **15.564256667 FPS** against **15.564251667 FPS** for control
+> (**+0.000005 FPS**), but the strict candidate averaged **15.564259333 FPS**
+> against **15.564260333 FPS** (**−0.000001 FPS, −0.00000643%**). Exact
+> 969-frame checksum parity and the complete strict i486 audit passed. The
+> negative strict mean rejects moving the additions before stores 3 and 5; the
+> first-store overlap remains active. See
+> `docs/ledger/2026-10-21-span16-tstep-a-half-overlap-rejected.md`.
+
+> **Span16 B-half T-step/store overlap (2026-10-22):** the parity screen
+> averaged **15.564256333 FPS** against **15.564251667 FPS** for control
+> (**+0.000004667 FPS**), but the strict candidate averaged **15.564257 FPS**
+> against **15.564260333 FPS** (**−0.000003333 FPS, −0.00002142%**). Exact
+> 969-frame checksum parity and the complete strict i486 audit passed. The
+> negative strict mean rejects moving the additions before stores 9, 11, and
+> 13; the first-store overlap remains active. See
+> `docs/ledger/2026-10-22-span16-tstep-b-half-overlap-rejected.md`.
+
+> **Span16 store 3 T-step overlap (2026-10-22):** the parity screen averaged
+> **15.564251 FPS** against **15.564251667 FPS** for control (**−0.000000667
+> FPS**), and the strict candidate averaged **15.564254667 FPS** against
+> **15.564260333 FPS** (**−0.000005667 FPS, −0.00003641%**). Exact 969-frame
+> checksum parity and the complete strict i486 audit passed. The negative
+> strict mean rejects the store 3 move; the first-store overlap remains active.
+> See `docs/ledger/2026-10-22-span16-tstep-store3-overlap-rejected.md`.
+
+> **Span16 store 5 T-step overlap (2026-10-22):** the parity screen averaged
+> **15.564255 FPS** against **15.564251667 FPS** for control (**+0.000003333
+> FPS**), but the strict candidate averaged **15.564259 FPS** against
+> **15.564260333 FPS** (**−0.000001333 FPS, −0.00000857%**). Exact 969-frame
+> checksum parity and the complete strict i486 audit passed. The negative
+> strict mean rejects the store 5 move; the first-store overlap remains active.
+> See `docs/ledger/2026-10-22-span16-tstep-store5-overlap-rejected.md`.
+
+> **Span16 store 9 T-step overlap (2026-10-22):** the parity screen averaged
+> **15.564258667 FPS** against **15.564251667 FPS** for control (**+0.000007
+> FPS**), but the strict candidate averaged **15.564255333 FPS** against
+> **15.564260333 FPS** (**−0.000005 FPS, −0.00003212%**). Exact 969-frame
+> checksum parity and the complete strict i486 audit passed. The negative
+> strict mean rejects the store 9 move; the first-store overlap remains active.
+> See `docs/ledger/2026-10-22-span16-tstep-store9-overlap-rejected.md`.
+
+> **Span16 word stores after the final address ADC (2026-10-21):** the strict
+> candidate averaged **15.537289000 FPS** against a pooled six-run control mean
+> of **15.518328500 FPS** (**+0.018960500 FPS, +0.12218%**). The control retains
+> one slow 15.423568 FPS run; the candidate was **−0.000008 FPS** against the
+> earlier clean three-run block alone. A separate parity screen was positive by
+> **+0.000001000 FPS**. Exact 969-frame checksum parity and the complete strict
+> i486 audit passed. The pooled positive mean qualifies under the current rule;
+> timing remains noisy. See
+> `docs/ledger/2026-10-21-span16-store-after-adc-promoted.md`.
+
+> **Span16 S-step add before source fetch (2026-10-21):** moving the S-fraction
+> add before the paired low-byte load averaged **15.537289333 FPS** against
+> **15.537294667 FPS** for control (**−0.000005333 FPS, −0.00003433%**). Exact
+> 969-frame checksum parity held; the parity-only screen skipped the strict ISA
+> audit. Its negative pooled mean rejects the reorder, which has been restored.
+> See `docs/ledger/2026-10-21-span16-s-add-before-fetch-screen-rejected.md`.
+
+> **Span16 T-carry extraction after low-byte fetch (2026-10-21):** moving
+> `sbbl %ecx,%ecx` after each `movb (%esi),%al` averaged **15.537292000 FPS**
+> against **15.537289000 FPS** for the matched strict control
+> (**+0.000003000 FPS, +0.00001931%**). A separate parity screen was positive
+> by **+0.000007333 FPS**. Exact frame/checksum parity and the full strict i486
+> audit passed; the positive mean qualifies despite being below the spread. See
+> `docs/ledger/2026-10-21-span16-tcarry-after-fetch-promoted.md`.
+
+> **Span16 T-step store after fractional add (2026-10-21):** moving the
+> `tstep` store immediately after the T-fraction addition averaged
+> **15.537295000 FPS** against **15.537292000 FPS** for strict control
+> (**+0.000003000 FPS, +0.00001931%**). The parity-only screen was also positive
+> by **+0.000000667 FPS**. All nine runs retained 969 frames and checksum
+> `1047377823`; the full strict i486 audit passed. The positive mean qualifies
+> below the spread. See
+> `docs/ledger/2026-10-21-span16-tstep-store-after-add-promoted.md`.
+
+> **Span16 `advancetable` store after T-fraction add (2026-10-21):** moving
+> the store from before `addl %ecx,%edx` to just after it averaged
+> **15.537293000 FPS** against **15.537295000 FPS** for strict control
+> (**−0.000002000 FPS**). All six runs retained 969 frames and checksum
+> `1047377823`; the parity-only candidate skipped the ISA audit. Its negative
+> mean rejects the order, and the original placement remains active. See
+> `docs/ledger/2026-10-21-span16-advancetable-store-after-tfrac-add-screen-rejected.md`.
+
+> **Span16 S-step shift after T-carry (2026-10-21):** the parity-only screen
+> averaged **15.537301333 FPS**, above the strict control's **15.537295000 FPS**,
+> but the strict candidate averaged **15.537289333 FPS** (**−0.000005667 FPS,
+> −0.00003647%**). All nine runs retained 969 frames and checksum
+> `1047377823`; the full strict i486 audit passed. The negative strict mean
+> rejects the deferral, and the original shift position remains active. See
+> `docs/ledger/2026-10-21-span16-sstep-shift-after-tcarry-rejected.md`.
+
+> **Span16 S-step shift after `advancetable` store (2026-10-21):** the
+> three-run parity-only screen averaged **15.537293667 FPS** against
+> **15.537295000 FPS** control (**−0.000001333 FPS, −0.00000858%**). Exact
+> 969-frame checksum parity held; the negative mean rejects the order, and the
+> original shift position remains active. See
+> `docs/ledger/2026-10-21-span16-sstep-shift-after-advancetable-screen-rejected.md`.
+
+> **Span16 S-step shift after T-step shift (2026-10-21):** the strict candidate
+> averaged **15.537297000 FPS** against **15.537295000 FPS** for strict control
+> (**+0.000002000 FPS, +0.00001287%**). The parity-only screen was positive by
+> **+0.000003667 FPS**. All nine runs retained 969 frames and checksum
+> `1047377823`; the full strict i486 audit passed. The positive mean qualifies
+> below the spread. See
+> `docs/ledger/2026-10-21-span16-sstep-shift-after-tstep-shift-promoted.md`.
+
+> **Span16 `sfracf` reload after T-step shift (2026-10-21):** the parity-only
+> screen averaged **15.537292000 FPS** against **15.537297000 FPS** control
+> (**−0.000005000 FPS, −0.00003218%**). All six runs retained exact 969-frame
+> checksum parity. The negative mean rejects the load order; the promoted
+> `sfracf`-before-T-shift sequence remains active. See
+> `docs/ledger/2026-10-21-span16-sfracf-after-tstep-shift-screen-rejected.md`.
+
+> **Span16 S-first/store/T-shift setup permutation (2026-10-21):** the
+> parity-only screen averaged **15.537292333 FPS** against **15.537297000 FPS**
+> control (**−0.000004667 FPS, −0.00003004%**). Exact 969-frame checksum parity
+> held; the negative mean rejects the order and the promoted schedule remains
+> active. See
+> `docs/ledger/2026-10-21-span16-s-first-store-t-shift-screen-rejected.md`.
+
+> **Span16 `sfracf` reload after both shifts (2026-10-21):** the parity-only
+> screen averaged **15.537290667 FPS** against **15.537297000 FPS** control
+> (**−0.000006333 FPS, −0.00004076%**). All six runs retained exact 969-frame
+> checksum parity. The negative mean rejects the load order; the promoted
+> `sfracf`-before-shifts sequence remains active. See
+> `docs/ledger/2026-10-21-span16-sfracf-after-both-shifts-screen-rejected.md`.
+
+> **Span16 T-carry deferral to high-byte loads (2026-10-21):** extending the
+> low-byte-only promotion to high-byte fetches averaged **15.537297000 FPS**
+> against **15.537302000 FPS** for control (**−0.000005000 FPS, −0.00003219%**).
+> Exact 969-frame checksum parity held; the parity-only screen skipped the
+> strict ISA audit. Its negative mean rejects the extension; the promoted
+> low-byte-only schedule remains active. See
+> `docs/ledger/2026-10-21-span16-tcarry-after-all-fetches-screen-rejected.md`.
+
+> **Span16 `loadfirst` recheck (2026-10-21):** against the promoted low-byte
+> T-carry schedule, `loadfirst` averaged **15.537290000 FPS** against
+> **15.537302000 FPS** for control (**−0.000012000 FPS, −0.00007724%**). Exact
+> 969-frame checksum parity held; the parity-only screen skipped the strict ISA
+> audit. Its negative mean leaves `control` as default and `loadfirst` opt-in.
+> See `docs/ledger/2026-10-21-span16-loadfirst-current-control-rejected.md`.
+
+> **Span16 `loadfirst` recheck after S-step shift promotion (2026-10-21):**
+> it averaged **15.537296000 FPS** against **15.537297000 FPS** for the new
+> strict control (**−0.000001000 FPS, −0.00000644%**). All six runs retained
+> exact 969-frame checksum parity. The negative mean keeps `control` as default;
+> the recheck is appended to
+> `docs/ledger/2026-10-21-span16-loadfirst-current-control-rejected.md`.
+
+> **Span16 `advancetable` store after `sfracf` load (2026-10-21):** the
+> parity-only screen averaged **15.537296333 FPS** against **15.537297000 FPS**
+> control (**−0.000000667 FPS, −0.00000429%**). Exact 969-frame checksum parity
+> held; the negative mean rejects the earlier store placement. See
+> `docs/ledger/2026-10-21-span16-advancetable-store-after-sfracf-screen-rejected.md`.
+
+> **Current Span16 setup-store schedule (2026-10-21):** moving the independent
+> `advancetable` store after both fractional shifts averaged **15.537297000 FPS**
+> against a pooled six-run strict control mean of **15.537295333 FPS**
+> (**+0.000001667 FPS, +0.00001072%**). A separate three-run parity screen was
+> positive by **+0.000000333 FPS**. These gains are below the spread but
+> positive. Exact 969-frame checksum parity and the complete linked i486 audit
+> passed. See
+> `docs/ledger/2026-10-21-span16-store-after-tstep-shift-promoted.md`.
+>
+> **Earlier Span16 setup-store placement (2026-10-21):** placing the
+> `advancetable` store after the `sfracf` reload but before the T-step shift
+> averaged **15.537294000 FPS** against **15.537290333 FPS** control
+> (**+0.000003667 FPS, +0.00002360%**). It was promoted then and is now
+> superseded in source by the post-shift schedule. See
+> `docs/ledger/2026-10-21-span16-advancetable-store-hoist-promoted.md`.
+
+> **Span16 deferred `tfracf` reload (2026-10-21):** delaying the reload until
+> after the `advancetable+4` store and cachewidth addition averaged
+> **15.537299333 FPS** against **15.537290667 FPS** for control
+> (**+0.000008667 FPS, +0.00005580%**). Exact frame/checksum parity held and the
+> complete linked i486 audit passed. The positive mean qualifies regardless of
+> spread; see
+> `docs/ledger/2026-10-21-span16-deferred-tfracf-reload-promoted.md`.
+
+> **Span16 base-store order screen (2026-10-21):** moving the `advancetable+4`
+> store ahead of the `tfracf` reload in both setup arms averaged **15.537288333
+> FPS** against **15.537290667 FPS** for control across three alternating
+> pairs (**−0.000002333 FPS**). Exact frame/checksum parity held; the negative
+> pooled mean was rejected and the original order restored. The visual screen
+> skipped the ISA audit. See
+> `docs/ledger/2026-10-21-span16-base-store-before-tfracf-screen-rejected.md`.
+
+> **Z-span timing update (2026-10-20):** the i486 `D_DrawZSpans` middle loop now
+> handles sixteen pixels per iteration for both gradient directions. The
+> unroll is promoted: six added strict samples averaged 15.531288 FPS, and all
+> nine candidate samples averaged 15.518568667 FPS (**+0.0792%** against the
+> matched control mean), including one slow outlier. Exact framebuffer parity
+> and the linked i486 audit passed; see
+> `docs/ledger/2026-10-20-zspan-middle-unroll16.md`.
+>
+> **Z-span unroll follow-up (2026-10-20):** a 32-pixel main-loop group
+> averaged **15.534157 FPS** against the current 16-pixel control's
+> **15.536974 FPS** (**−0.01813%**) with exact framebuffer parity. All three
+> samples were slower; the visual-only screen skipped the ISA audit, and the
+> 16-pixel grouping remains active. See
+> `docs/ledger/2026-10-20-zspan-middle-unroll32-rejected.md`.
+>
+> **Texture-span recheck (2026-10-20):** the prior `loadfirst` schedule was
+> remeasured against the current build after removing the old gain floor. Its
+> nine-run average matched the ten-run control to the displayed precision, and
+> the follow-up control/candidate block means were identical. It remains an
+> opt-in experiment; see
+> `docs/ledger/2026-10-20-texture-span-loadfirst-recheck.md`.
+>
+> **Texture-span store recheck (2026-10-20):** six `dword`-store samples
+> averaged 15.425266 FPS against the current word-store control's 15.531288
+> FPS, with exact frame/checksum parity. The visual-only screen skipped the
+> ISA audit; the measured slowdown rejects the candidate. See
+> `docs/ledger/2026-10-20-texture-span-dword-recheck.md`.
+>
+> **Texture-span tail-store screen (2026-10-20):** `TextureSpanTailStores=word`
+> averaged **15.358172 FPS** against the current **15.536975 FPS** build
+> (**−1.1508%**) with exact frame/checksum parity. The visual-only screen
+> skipped the ISA audit; the measured slowdown rejects the candidate and
+> `control` remains the default. See
+> `docs/ledger/2026-10-20-texture-span-tail-word-rejected.md`.
+>
+> **RenderFace timing update (2026-10-20):** the assembly-only cache-offset
+> reuse in `R_RenderFace_asm486` and its owner-compare fusion are both promoted.
+> The follow-up fusion gained **+0.01623%** over the prior promoted source, with
+> exact checksum parity and a strict linked i486 audit. The cached-offset load
+> hoist (**−0.01029%**), branchless surfedge magnitude (**−0.04172%** over six
+> samples), and larger triangle/quad unroll (**−0.00317%**) were measured
+> slower and removed. See the five
+> `2026-10-20-renderface-*.md` ledger entries.
+
+> **RenderFace branch-layout update (2026-10-21):** making positive surfedges
+> the taken branch in both regular and submodel loops averaged **15.537297333
+> FPS** in the strict three-run set, **+0.0020768%** over the preceding
+> promoted source. All runs retained the 969-frame checksum and the linked
+> i486 audit passed. The positive three-run pooled mean qualifies even though
+> it is below the run-to-run spread; no minimum gain is required. See
+> `docs/ledger/2026-10-21-renderface-positive-edge-branch-layout.md`.
+
+> **Texture-span `stosw` screen (2026-10-21):** the `TextureSpanStores=stosw`
+> assembly variant averaged **15.522019667 FPS**, **−0.0983%** against the
+> promoted indexed word-store control. All samples retained the 969-frame
+> checksum and were slower; the parity-only screen skipped the ISA audit. The
+> indexed word-store path remains the default. See
+> `docs/ledger/2026-10-21-texture-span-stosw-rejected.md`.
+
+> **Texture-span early-store schedule (2026-10-21):** promoted under the
+> positive-mean rule. The twelve-run pooled mean was **15.537298083 FPS** versus
+> **15.537297833 FPS** for control (**+0.0000016%**). The delta is inside run
+> variation; all 24 samples retained 969 frames and checksum `1047377823`. The
+> candidate passes the strict linked i486 audit. See
+> `docs/ledger/2026-10-21-texture-span-early-store-promoted.md`.
+
+> **Texture-span load-first plus early-store combination (2026-10-21):** the
+> strict candidate averaged **15.537288333 FPS** against **15.537291333 FPS**
+> for control (**−0.0000193%**). All six runs retained 969 frames and checksum
+> `1047377823`; the candidate's complete linked i486 audit passed. The negative
+> mean rejects this combination, while the separately promoted early-store
+> schedule remains active. See
+> `docs/ledger/2026-10-21-texture-span-loadfirst-early-store-rejected.md`.
+
+> **Alias-raster depth-store schedule (2026-10-21):** moving the Z-buffer word
+> store after the colormap lookup averaged **15.537301333 FPS** against
+> **15.537289333 FPS** for control (**+0.0000772%**) across three alternating
+> pairs. All six runs retained 969 frames and checksum `1047377823`; the strict
+> linked i486 audit and a direct strict-binary parity run passed. See
+> `docs/ledger/2026-10-21-alias-raster-depth-store-reorder.md`.
+>
+> **Alias-raster pre-lookup depth store (2026-10-21):** moving the Z-buffer
+> store after the texel load and before light/colormap work averaged
+> **15.537295667 FPS** against **15.537289667 FPS** for the preceding schedule
+> (**+0.0000386%**) over three alternating pairs. The positive pooled mean
+> qualifies even though it is smaller than the paired spread. All six runs
+> retained 969 frames and checksum `1047377823`; the complete linked i486 audit
+> and a direct strict-binary parity run passed. See
+> `docs/ledger/2026-10-21-alias-raster-prelookup-depth-store-promoted.md`.
+
+> **Z-span accumulator schedule (2026-10-21):** moving the second Z-step
+> arithmetic to immediately before each packed framebuffer store averaged
+> **15.537298667 FPS** over three candidate samples, against a pooled control
+> mean of **15.499629667 FPS** (**+0.2430%**). One control sample at
+> **15.424306 FPS** drives most of that delta; the other two pairs alone show
+> a smaller positive mean. All six runs retained 969 frames and checksum
+> `1047377823`; the strict linked i486 audit and direct strict-binary parity
+> run passed. The candidate is promoted under the positive-mean rule. See
+> `docs/ledger/2026-10-21-zspan-step-before-store-promoted.md`.
+
+> **Z-span step before sign branch (2026-10-22):** advancing the accumulator
+> before the add/sub pair's sign check averaged **15.601289 FPS** against the
+> strict control's **15.601303 FPS** (**−0.000014 FPS, −0.00008974%**). The
+> trailing control was **15.601297 FPS**. All seven runs retained 969 frames
+> and checksum `1047377823`; the complete strict i486 audit passed. The
+> negative mean rejects the schedule and the original branch order is restored.
+> See `docs/ledger/2026-10-22-zspan-step-before-sign-branch-rejected.md`.
+
+> **Z-span sign-check/copy order (2026-10-21):** moving `testl %edx,%edx`
+> before `movl %edx,%eax` in the add/sub pair macros passed exact output parity
+> and the complete strict i486 audit, but averaged **15.537287333 FPS** against
+> **15.537292000 FPS** for control (**−0.000004667 FPS**). All six runs matched
+> 969 frames and checksum `1047377823`. Its negative pooled mean rejects the
+> reorder, leaving the original instruction order active. See
+> `docs/ledger/2026-10-21-zspan-sign-check-before-copy-screen-rejected.md`.
+
+> **Z-span step between `SHLD` and `ROR` (2026-10-21):** the parity-only
+> screen averaged **15.537290333 FPS** against fresh control at
+> **15.537285333 FPS**, but the audited strict candidate averaged
+> **15.537294333 FPS** against strict control at **15.537297000 FPS**
+> (**−0.000002667 FPS**). All runs retained 969 frames and checksum
+> `1047377823`, and the complete strict i486 audit passed. The negative strict
+> mean rejects the schedule. See
+> `docs/ledger/2026-10-21-zspan-step-between-shld-ror-screen-rejected.md`.
+
+> **Edge-scan surface-base register cache (2026-10-21):** the parity-only
+> screen averaged **15.538371667 FPS** against control at **15.537290333 FPS**
+> (**+0.001081333 FPS**), but the audited strict candidate averaged
+> **15.500427 FPS** after a 15.424542 FPS third sample. All runs retained 969
+> frames and checksum `1047377823`; the full i486 audit passed. Including every
+> sample gives a negative strict delta of **−0.036870 FPS**, so the cache is
+> rejected and reverted. See
+> `docs/ledger/2026-10-21-edge-scan-surface-base-cache-screen-rejected.md`.
+
+> **Edge-scan bottom-tested row loop (2026-10-21):** moving the scanline bound
+> test to the loop bottom removed the unconditional jump from each main-row
+> iteration. The strict mean was **15.538384 FPS** against control at
+> **15.537297 FPS** (**+0.001087 FPS, +0.00699607%**); the parity screen was
+> also positive by **+0.001092333 FPS**. All runs retained 969 frames and
+> checksum `1047377823`, and the complete strict i486 audit passed. The change
+> is promoted under the any-positive rule. See
+> `docs/ledger/2026-10-21-edge-scan-bottom-tested-row-loop-promoted.md`.
+
+> **Edge-scan surface-index decode (2026-10-21):** reading `et_surfs` as two
+> unsigned halfwords removed the packed-field copy and masks from each edge
+> iteration. The strict three-run mean was **15.564254 FPS**, **+0.025870 FPS
+> (+0.16649093%)** over the active strict control at **15.538384 FPS**. The
+> parity-screen mean was **15.564257 FPS**. All runs retained 969 frames and
+> checksum `1047377823`; the full strict i486 gate passed with zero
+> above-i486, unknown, or exempt instructions. Promoted under the any-positive
+> rule. See `docs/ledger/2026-10-21-edge-scan-surface-index-decode-promoted.md`.
+
+> **Edge-scan leading-pointer retention (2026-10-21):** precomputing the
+> leading-surface pointer before `TrailingEdge` let the both-edge path reuse
+> `%edi` after the helper and skip the post-call `surfaces` reload. The strict
+> mean was **15.564256667 FPS** against **15.564254 FPS** for control
+> (**+0.000002667 FPS, +0.0000171354%**); the parity-screen mean was also
+> positive by **+0.000001667 FPS**. All runs matched 969 frames and checksum
+> `1047377823`, and the full strict i486 gate passed. Although the gain is
+> smaller than the observed spread, it qualifies under the any-positive rule.
+> See `docs/ledger/2026-10-21-edge-scan-leading-pointer-retained-promoted.md`.
+
+> **Surface-cache hit key-pointer retention (2026-10-21):** keeping the
+> `r_drawsurf.lightadj` pointer live across the style sentinel check and
+> removing its reload averaged **15.537292667 FPS** against **15.537291333 FPS**
+> for control (**+0.00000858%**). All six runs retained 969 frames and checksum
+> `1047377823`; the complete linked i486 audit passed. This positive pooled
+> mean is promoted under the user's no-minimum-gain rule even though it is
+> smaller than the run spread. The preceding load-gap variant tied and was
+> removed. See
+> `docs/ledger/2026-10-21-surface-cache-hit-key-pointer-retained-promoted.md`.
+
+> **Surface-cache single-style fall-through (2026-10-21):** the strict
+> three-run mean was **15.499113 FPS** against the promoted key-pointer
+> control's **15.537292667 FPS** (**−0.245729%**). One sample at 15.422742 FPS
+> is a clear outlier but remains in the pooled mean. All six runs retained the
+> expected checksum and the candidate passed the complete i486 audit; its
+> negative mean rejects this branch layout. See
+> `docs/ledger/2026-10-21-surface-cache-hit-single-style-fallthrough-rejected.md`.
+
+> **Surface-cache texture preload (2026-10-21):** loading the requested texture
+> pointer before testing the cache dynamic-light flag averaged **15.537290667
+> FPS** against the promoted key-pointer control's **15.537292667 FPS**
+> (**−0.000002 FPS, −0.00001287%**). All six runs retained 969 frames and
+> checksum `1047377823`; the candidate passed the complete strict i486 audit.
+> Its negative pooled mean rejects the ordering. See
+> `docs/ledger/2026-10-21-surface-cache-hit-texture-preload-rejected.md`.
+
+> **Surface-cache texture check first (2026-10-21):** moving the requested
+> texture comparison ahead of the dynamic-light flag test averaged
+> **15.537286667 FPS** against the promoted key-pointer control's
+> **15.537292667 FPS** (**−0.000006 FPS, −0.00003862%**). All six runs retained
+> 969 frames and checksum `1047377823`; the candidate passed the complete strict
+> i486 audit. Its negative pooled mean rejects the order. See
+> `docs/ledger/2026-10-21-surface-cache-hit-texture-check-first-rejected.md`.
+
+> **Mip-2 horizontal-flat surface block (2026-10-21):** the assembly-only
+> four-row specialization passed exact parity and the complete strict i486
+> audit, but averaged **15.537008 FPS** against **15.537292667 FPS** for the
+> promoted-source control (**−0.000284667 FPS, −0.00183215%**). All six runs
+> retained 969 frames and checksum `1047377823`; the negative mean rejects it.
+> See `docs/ledger/2026-10-21-surf8-mip2-horizontal-flat-rejected.md`.
+
+> **Mip-2 source texel-load schedule (2026-10-21):** loading texels 2 and 3
+> before the light-delta save and shift averaged **15.537300 FPS** against
+> **15.537292667 FPS** for control (**+0.000007333 FPS, +0.00004720%**). The
+> positive pooled mean qualifies even though it is below the run spread. All
+> six runs retained 969 frames and checksum `1047377823`; the strict linked
+> i486 audit passed. This schedule is promoted. See
+> `docs/ledger/2026-10-21-surf8-mip2-texel-loads-promoted.md`.
+
+> **Mip-2 row-state reload schedule (2026-10-21):** moving the `lightright`
+> and `lightdelta` reloads ahead of the final two colormap reads averaged
+> **15.537290667 FPS** against the promoted texel-load control's **15.537300000
+> FPS** (**−0.000009333 FPS, −0.00006007%**). All six runs retained 969 frames
+> and checksum `1047377823`; the strict linked i486 audit passed. The negative
+> pooled mean rejects this schedule, leaving the separate texel-load promotion
+> active. See
+> `docs/ledger/2026-10-21-surf8-mip2-rowstate-reload-rejected.md`.
+
+> **Mip-2 light-delta reload prefetch (2026-10-21):** moving only the
+> `lightdelta` reload between the final two colormap reads averaged
+> **15.537292 FPS** against the promoted texel-load control's **15.537300 FPS**
+> (**−0.000008 FPS, −0.00005149%**). All six strict runs retained 969 frames
+> and checksum `1047377823`; the full linked i486 audit passed. The negative
+> pooled mean rejects this isolated move. See
+> `docs/ledger/2026-10-21-surf8-mip2-lightdelta-prefetch-rejected.md`.
+
+> **Mip-2 texel-read order screen (2026-10-21):** swapping the texel 2 and
+> texel 3 loads averaged **15.537293667 FPS** against the promoted order's
+> **15.537300000 FPS** (**−0.000006333 FPS, −0.00004076%**). All three runs
+> retained 969 frames and checksum `1047377823`; the parity-only screen skipped
+> the ISA audit. Its negative mean leaves the promoted load order active. See
+> `docs/ledger/2026-10-21-surf8-mip2-texel-read-order-screen-rejected.md`.
 
 > **Implementation update (2026-10-04):** `D_DrawSkyScans8` now has a complete
 > selectable i486 assembly path, including viewport/time setup, UV projection,
@@ -339,7 +828,7 @@ determine promotion, while timing is used to catch material regressions.
 | Surface dispatch | `src/d_edge.c:D_DrawSurfaces` | Implemented | The selectable assembly dispatcher owns the per-frame surface loop; cache, gradient, mip, and drawing callees remain independent selectors. The world walk has its own assembly selector; shared render callees remain open. |
 | BSP traversal | `src/r_bsp.c:R_RecursiveWorldNode` | **Implemented and promoted for i486** | `BspWalkImplementation=c|asm` selects the recursive assembly walk; three 969-frame runs retained the reference checksum and matched captures byte-for-byte. Assembly is the i486 release default, C remains selectable, and i386 remains on C. The assembly path preserves traversal and face order, calls the selectable face renderer and efrag walk, and still calls the shared polygon renderer. |
 | World-render orchestration | `src/r_bsp.c:R_RenderWorld` | **Implemented, not promoted** | `RenderWorldImplementation=c|asm` selects the assembly setup, frame-local polygon queue, BSP dispatch, and optional polygon replay; C remains the release default. C and assembly timedemo PCX captures matched byte-for-byte. |
-| Face/edge setup | `src/r_draw.c:R_RenderFace`, `R_RenderBmodelFace`, `R_EmitCachedEdge` | **Implemented, not promoted** | Selectable i486 assembly is available for both face paths and cached-edge insertion, with C references retained. The face paths and combined BSP configuration passed the exact framebuffer checksum; `R_EmitCachedEdge` also passed the pinned checksum and instrumented call-count check. Single samples are not comparative performance evidence; C remains the release default. `R_ClipEdge` and edge projection/emission are legacy handwritten assembly under `id386`. |
+| Face/edge setup | `src/r_draw.c:R_RenderFace`, `R_RenderBmodelFace`, `R_EmitCachedEdge` | **`R_RenderFace` promoted for i486** | `RenderFaceImplementation=c|asm` selects the world-face path. A matched three-run comparison averaged **15.564252667 FPS** for assembly and **15.502609667 FPS** for C (**+0.39763%**); all six runs matched 969 frames and checksum `1047377823`, and the candidate passed the full linked strict i486 audit. The checked-in i486 profile already selects assembly; C remains selectable and i386 remains C. The separate B-model face and cached-edge paths retain their own selectors and port status. `R_ClipEdge` and edge projection/emission are legacy handwritten assembly under `id386`. See the [RenderFace promotion ledger](ledger/2026-10-22-renderface-assembly-promoted.md). |
 | Entity efrags | `src/r_efrag.c:R_StoreEfrags` | **Implemented, not promoted** | `EfragStoreImplementation=c|asm` selects the list walk; compile-time layout checks protect its 32-bit field offsets. Combined renderer selectors passed the pinned checksum; C remains the release default. |
 | Particle state and simulation | `src/r_part.c:R_ClearParticles`, `R_DrawParticles` | Implemented | `ParticleUpdateImplementation=c|asm` selects free-list initialization and particle simulation, including dead-list maintenance, draw order, position, velocity, and ramp updates. The C draw wrapper retains lifecycle and PROFILE486 glue; `D_DrawParticle` remains the existing driver rasterizer. C references remain independently selectable. |
 | Particle rasterization | `src/d_part.c:D_DrawParticle_C`, `src/d_parta.s:D_DrawParticle` | **Existing assembly path, parity verified** | The 32-bit assembly rasterizer predates this tranche. `ParticleDrawImplementation=c|asm` exposes it beside the retained C oracle; this work verifies the existing routine rather than claiming a new assembly port. Its 104-case fixture passed across four x87 rounding modes, and the strict two-repeat `demo2-wizspike-event` pair matched seven post-warmup checksums and exact indexed-frame/palette captures. See the [`D_DrawParticle` verification ledger](ledger/2026-10-10-d-drawparticle-assembly-port.md). |
@@ -348,9 +837,17 @@ determine promotion, while timing is used to catch material regressions.
 | Animated sprite-frame selection | `src/r_sprite.c:R_GetSpriteframe` | **Implemented and promoted for i486** | `SpriteFrameImplementation=c|asm` selects single/group frame resolution with the original interval boundary and x87 conversion behavior. Twelve direct cases and a two-repeat Demo 2 comparison passed exactly; focused linked ISA audit passed. Assembly is now the i486 default; C remains selectable and i386 remains C. |
 | Sprite draw orchestration | `src/d_sprite.c:D_DrawSprite` | **Implemented and promoted for i486** | `SpriteDrawImplementation=c|asm` selects vertex bounds/rounding, span storage, sprite cache setup, vertex closure, and stage dispatch, with C retained. Direct color/depth fixtures and a two-repeat Demo 2 pair passed exact comparison; sprite sub-stages remain independently selectable. Assembly is now the i486 default; C remains selectable and i386 remains C. It also passed the combined four-path, six-scene exact comparison. |
 | Sprite setup orchestration | `src/r_sprite.c:R_SetupAndDrawSprite` | **Implemented and promoted for i486** | `SpriteSetupImplementation=c|asm` selects backface culling, poster construction, four-plane clipping, transform, near-plane clamp, perspective projection, `nearzi`, and draw dispatch. Five direct fixtures and a two-repeat Demo 2 pair passed exact frame/checksum comparisons; focused i486 object and linked-runtime audits passed. Assembly is now the i486 default; C remains selectable and i386 remains C. |
-| Edge-drawing orchestration | `src/r_main.c:R_EdgeDrawing` | **Implemented, not promoted** | `EdgeDrawingImplementation=c|asm` selects stack-buffer setup, world dispatch, scans, Z-enable, brush-entity dispatch, and update flow. C and ASM passed smoke and the pinned checksum; live captures were coherent but landed at slightly different demo states. |
-| Edge scanline loop | `src/r_edge.c:R_ScanEdges` | **Implemented, not promoted** | `ScanEdgesImplementation=c|asm` selects the aligned span buffer, row loop, edge updates, span flushes, and final draw. C and ASM passed smoke and the pinned 969-frame checksum. Single runs showed no speed gain, and matched-frame visual acceptance remains open. |
-| Active-edge maintenance | `src/r_edge.c:R_InsertNewEdges`, `R_RemoveEdges`, `R_StepActiveU` | **Implemented, not promoted** | `EdgeListMaintenanceImplementation=legacy|c|asm` preserves the original `id386` assembly as the default, exposes the true C reference, and adds replacement i486 assembly. C and ASM matched the pinned checksum, with no gain in single samples; visual acceptance remains open. |
+| Edge-drawing orchestration | `src/r_main.c:R_EdgeDrawing` | **Helper timings promoted; full live visual acceptance pending** | `EdgeDrawingImplementation=c|asm` selects stack-buffer setup, world dispatch, scans, Z-enable, brush-entity dispatch, and update flow. The assembly `r_dspeeds` helper uses an integer bit test, then caches the result in `EBX`; the changes gained **+0.000168667 FPS (+0.00108130%)** and **+0.000105667 FPS (+0.00067741%)** in successive strict three-run comparisons with exact checksum parity. See the [integer-truth ledger](ledger/2026-10-22-edge-drawing-dspeeds-integer-truth-promoted.md) and [cache ledger](ledger/2026-10-22-edge-drawing-dspeeds-cache-promoted.md). The full assembly route's live captures were coherent but landed at slightly different demo states, so visual acceptance remains pending. |
+| Edge scanline loop | `src/r_edge.c:R_ScanEdges` | **Callback cache, surface-base cache, bottom-tested and two-/four-/eight-span clears, and twelve-/fourteen-span clears with grouped tails promoted; thirteen-span grouped-tail batch and zero-register fourteen-span stores rejected; fifteen-/sixteen-span batches rejected; full live visual acceptance pending** | `ScanEdgesImplementation=c|asm` selects the aligned span buffer, row loop, edge updates, span flushes, and final draw. C and ASM passed smoke and the pinned checksum. Caching `pdrawfunc` in `ESI` gained **+0.001084333 FPS (+0.00695142%)**; caching `surfaces` in `EDI` with the row limit in a local gained a further **+0.001120 FPS (+0.00717957%)** in successive strict three-run comparisons. The bottom-tested span-clear loop gained **+0.000087667 FPS (+0.00056193%)**; clearing two surfaces per iteration gained **+0.000101667 FPS (+0.00065167%)**; clearing four surfaces per iteration gained **+0.000099 FPS (+0.00063457%)**; clearing eight surfaces per iteration gained **+0.000033 FPS (+0.00021152%)**; grouping the eight-span tail into 4/2/1 spans gained **+0.000007 FPS (+0.00004487%)**; increasing the batch to twelve spans with an 8/4/2/1 tail gained **+0.000008333 FPS (+0.00005341%)**; increasing it to fourteen spans with the same tail gained **+0.000015 FPS (+0.00009615%)**, promoted on its positive mean despite overlapping samples. Thirteen spans was rejected at **−0.000000333 FPS (−0.00000214%)** against fourteen under the any-positive rule. Reusing zeroed ECX for the fourteen-span stores was rejected at **−0.000013667 FPS (−0.00008759%)** against immediate stores. Fifteen spans was rejected at **−0.000001 FPS (−0.00000641%)** against fourteen, and sixteen-span unrolling was rejected at **−0.015811333 FPS (−0.10134649%)** with one slow sample retained in the mean. All runs retained exact 969-frame checksum parity and passed the complete strict i486 audit. A local `max_span_p` comparison was tested and rejected at **−0.000010 FPS**. See the [callback-cache ledger](ledger/2026-10-22-scan-edges-callback-cache-promoted.md), [surface-base ledger](ledger/2026-10-22-scan-edges-surface-base-cache-promoted.md), [bottom-tested span-clear ledger](ledger/2026-10-22-scan-edges-clear-span-bottom-tested-promoted.md), [two-span unroll ledger](ledger/2026-10-22-scan-edges-clear-span-unroll2-promoted.md), [four-span unroll ledger](ledger/2026-10-22-scan-edges-clear-span-unroll4-promoted.md), [eight-span unroll ledger](ledger/2026-10-22-scan-edges-clear-span-unroll8-promoted.md), [eight-span grouped-tail ledger](ledger/2026-10-22-scan-edges-clear-span-unroll8-group-tail-promoted.md), [twelve-span grouped-tail ledger](ledger/2026-10-22-scan-edges-clear-span-unroll12-group-tail-promoted.md), [fourteen-span grouped-tail ledger](ledger/2026-10-22-scan-edges-clear-span-unroll14-group-tail-promoted.md), [thirteen-span rejection ledger](ledger/2026-10-22-scan-edges-clear-span-unroll13-group-tail-rejected.md), [zero-register store rejection ledger](ledger/2026-10-22-scan-edges-clear-span14-zero-register-rejected.md), [fifteen-span rejection ledger](ledger/2026-10-22-scan-edges-clear-span-unroll15-rejected.md), [sixteen-span rejection ledger](ledger/2026-10-22-scan-edges-clear-span-unroll16-rejected.md), and [max-span rejection ledger](ledger/2026-10-22-scan-edges-maxspan-local-cache-rejected.md). Full live-frame visual acceptance remains open. |
+| Active-edge maintenance | `src/r_edge.c:R_InsertNewEdges`, `R_RemoveEdges`, `R_StepActiveU` | **Target-U schedule promoted inside replacement assembly; selector remains opt-in** | `EdgeListMaintenanceImplementation=legacy|c|asm` preserves the original `id386` assembly as the default, exposes the true C reference, and adds replacement i486 assembly. Target-U load caching improved the replacement assembly by **0.0596%** across three runs with exact checksum parity. The replacement assembly selector averaged **0.2193% slower** than `legacy` across three runs, so `legacy` remains the default. In the active legacy search, moving the `R_InsertNewEdges` fourth-probe successor load after its comparison tested **0.24775% slower**; preloading the first, second, and third `R_StepActiveU` successors tested **0.00371%, 0.00242%, and 0.00269% slower**, respectively. Moving the `R_StepActiveU` fourth-probe successor load before the U fetch/add, between the U fetch and add, after the U store, or between the order compare and branch tested **0.0000556%, 0.0000897%, 0.0001047%, and 0.0000150% slower**, respectively. All eight changes were rejected, so the original branch/load schedules remain. Matched-frame visual acceptance remains open; see the [edge-list cache ledger](ledger/2026-10-22-edge-list-target-u-cache-promoted.md), [`R_InsertNewEdges` rejection ledger](ledger/2026-10-22-edge-insert-probe4-earlyout-rejected.md), [first edge-step rejection ledger](ledger/2026-10-22-edge-step-successor-prefetch-rejected.md), [second edge-step rejection ledger](ledger/2026-10-22-edge-step-second-successor-prefetch-rejected.md), [third edge-step rejection ledger](ledger/2026-10-22-edge-step-third-successor-prefetch-rejected.md), [first fourth-probe edge-step rejection ledger](ledger/2026-10-22-edge-step-fourth-successor-load-early-rejected.md), [second fourth-probe edge-step rejection ledger](ledger/2026-10-22-edge-step-fourth-successor-load-between-u-add-rejected.md), [third fourth-probe edge-step rejection ledger](ledger/2026-10-22-edge-step-fourth-successor-load-after-store-rejected.md), and [fourth fourth-probe edge-step rejection ledger](ledger/2026-10-22-edge-step-fourth-successor-load-after-compare-rejected.md). |
+
+> **R_ScanEdges fourteen-span loop alignment (2026-10-22):** adding 16-byte
+> code alignment averaged **15.601279 FPS** against control at **15.601303 FPS**
+> (**−0.000024 FPS, −0.00015383%**). The trailing control was **15.601291 FPS**.
+> All seven runs retained 969 frames and checksum `1047377823`; the complete
+> strict i486 audit passed. The negative mean rejects the directive, leaving
+> the unaligned loop active. See
+> `docs/ledger/2026-10-22-scan-edges-clear-span14-alignment-rejected.md`.
 
 ### 1. `R_BuildLightMap`
 
@@ -366,7 +863,8 @@ The single-style cached table and ambient clear/fill loops also run in assembly.
 Style accumulation, fused accumulation, dynamic-light sampling, and
 normalization remain independently selectable helpers. The C dispatcher is
 retained as the benchmark reference, and C remains the release default pending
-repeatable performance evidence.
+a matched timedemo comparison with a positive pooled mean. Exact output parity
+and the strict i486 audit remain required.
 
 ### 2. `R_AddDynamicLights` orchestration
 

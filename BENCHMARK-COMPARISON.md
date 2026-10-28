@@ -18,12 +18,16 @@ record for a later README benchmark section.
   machine-readable `timedemo.txt` or framebuffer-checksum report.
 
 **Per-frame FPS collection was OFF for every number in the table.** It costs two
-`Sys_FloatTime` reads per frame, which is 0.0117 s over 969 frames — 0.020%, or
-**39% of the 0.05% promotion gate** — so it is now opt-in via `-FpsStats`
-rather than on by default. A run with it enabled prints a warning that its
-result is a diagnostic and not a promotion measurement, and the resolved value
-is written to the report JSON as `frameFpsStats`. Confirmed 2026-10-01: with it
-off the tree reproduces this baseline at 59.227628 s median
+`Sys_FloatTime` reads per frame, about 0.0117 s over 969 frames, so it remains
+opt-in via `-FpsStats` to keep promotion comparisons uninstrumented. The 0.05%
+floor referenced in the historical measurements below was removed on
+2026-10-20. Promotion accepts any positive pooled mean from at least three
+matched runs per variant, including a delta smaller than run-to-run variation;
+record the samples and spread with the result. Exact parity and the strict i486
+audit remain required gates. A run with FPS collection enabled prints a warning
+that its result is diagnostic rather than a promotion measurement, and the
+resolved value is written to the report JSON as `frameFpsStats`. Confirmed
+2026-10-01: with it off the tree reproduces this baseline at 59.227628 s median
 (59.227596 / 59.227628 / 59.227631), a 0.0005% difference; with it on, the same
 binary measures 59.239011 s.
 
