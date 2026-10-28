@@ -29,6 +29,16 @@ Entries that were rejected for measured slowdown, incorrect output, an
 inapplicable workload, or an obsolete implementation remain closed for those
 reasons.
 
+### Edge-scan leading-edge bmodel dispatch (2026-10-28)
+
+In `R_GenerateSpans`, the leading-edge bmodel test now compares
+`st_insubmodel(%edi)` directly with zero, replacing the separate load to `%eax`
+and register `test`. The strict candidate averaged **16.261895667 FPS** against
+the current strict control's **16.241887 FPS** (**+0.020008667 FPS,
++0.1232%**). All runs retained 969 frames and checksum `1047377823`; the full
+executable i486 audit passed with zero above-i486, unknown, or exempt
+instructions. See the [leading-edge compare ledger](ledger/2026-10-28-edge-leading-insubmodel-compare-promoted.md).
+
 Moving the Z-span U-coordinate load before the x87 origin add measured
 **15.601291333 FPS** against the control's **15.601303 FPS**
 (**−0.000011667 FPS, −0.00007478%**). All runs retained 969 frames and checksum

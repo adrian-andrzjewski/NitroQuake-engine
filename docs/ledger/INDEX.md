@@ -497,6 +497,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### edge-scan
 
+- `promoted` [`R_GenerateSpans` leading-edge `insubmodel` direct compare (2026-10-28) — strict mean **+0.020008667 FPS (+0.1232%)**, exact checksum parity and complete executable i486 gate](2026-10-28-edge-leading-insubmodel-compare-promoted.md)
 - `rejected` [`TrailingEdge` `current_iv` load interleave (2026-10-26) — parity-screen mean **−0.000017333 FPS**, exact checksum parity](2026-10-26-edge-trailing-current-iv-load-screen-rejected.md)
 - `rejected` [`R_GenerateSpans` `Lnewtop` `current_iv` preload (2026-10-26) — strict mean **−0.000000333 FPS**, exact checksum parity and complete i486 audit](2026-10-26-edge-newtop-current-iv-preload-rejected.md)
 - `rejected` [`R_GenerateSpans` spanstate-first leading-edge dispatch (2026-10-26) — parity-screen mean **−0.000012334 FPS**, exact checksum parity](2026-10-26-edge-leading-spanstate-first-screen-rejected.md)

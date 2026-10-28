@@ -542,8 +542,7 @@ Lgs_leading_body:
 	movl	0x12345678,%esi		// surf2 = surfaces[1].next;
 LPatch2:
 	movl	st_spanstate(%edi),%edx
-	movl	st_insubmodel(%edi),%eax
-	testl	%eax,%eax
+	cmpl	$0,st_insubmodel(%edi)
 	jnz		Lbmodel_leading
 
 // handle a leading non-bmodel edge
