@@ -671,8 +671,7 @@ C(D_PolysetRecursiveTriangle):
 //	if (d < -1 || d > 1)
 //		goto split;
 	movl	0(%esi),%eax
-	movl	0(%ebx),%edx
-	subl	%edx,%eax
+	subl	0(%ebx),%eax
 	incl	%eax
 	cmpl	$2,%eax
 	ja		LSplit
@@ -692,8 +691,7 @@ C(D_PolysetRecursiveTriangle):
 //	d = lp3[0] - lp2[0];
 //	if (d < -1 || d > 1)
 //		goto split2;
-	movl	0(%esi),%edx
-	subl	%edx,%eax
+	subl	0(%esi),%eax
 	incl	%eax
 	cmpl	$2,%eax
 	ja		LSplit2
@@ -712,8 +710,7 @@ C(D_PolysetRecursiveTriangle):
 //	d = lp1[0] - lp3[0];
 //	if (d < -1 || d > 1)
 //		goto split3;
-	movl	0(%edi),%edx
-	subl	%edx,%eax
+	subl	0(%edi),%eax
 	incl	%eax
 	cmpl	$2,%eax
 	ja		LSplit3

@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [2026-10-28-d-polyset-x-difference-memory-source-promoted.md](2026-10-28-d-polyset-x-difference-memory-source-promoted.md) | 1 | renderer performance / use memory-source subtraction in the three recursive alias-triangle X checks after a positive matched mean, exact checksum parity, and complete i486 ISA audit (+0.050976% mean) |
 | [2026-10-28-d-polyset-y-difference-memory-source-promoted.md](2026-10-28-d-polyset-y-difference-memory-source-promoted.md) | 1 | renderer performance / use memory-source subtraction in the three recursive alias-triangle Y checks after a positive matched mean, exact checksum parity, and complete i486 ISA audit |
 | [2026-10-28-alias-raster-constant-pointer-cache-promoted.md](2026-10-28-alias-raster-constant-pointer-cache-promoted.md) | 1 | renderer performance / retain alias-raster triangle-constant pointers in callee-saved registers after a positive matched mean, exact checksum parity, and full i486 ISA gate |
 | [2026-10-27-edge-trailing-spanstate-fastpath-promoted.md](2026-10-27-edge-trailing-spanstate-fastpath-promoted.md) | 1 | renderer performance / bypass backward trailing-edge helper calls on non-transition spans after a positive strict mean, exact checksum parity, and complete i486 audit |
