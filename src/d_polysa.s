@@ -766,7 +766,7 @@ LSplit:
 //	new[3] = (lp1[3] + lp2[3]) >> 1;
 //	new[5] = (lp1[5] + lp2[5]) >> 1;
 // Memory addl for s/t/zi midpoints (drop lp2 preloads into %edx).
-// x/y keep lp1 live in %ecx/%eax for the nodraw compares below.
+// Keep lp1.y live in %eax; load lp1.x only on the equal-Y tie-break path.
 	movl	8(%ebx),%eax
 	addl	8(%esi),%eax
 	sarl	$1,%eax
@@ -782,9 +782,8 @@ LSplit:
 	sarl	$1,%eax
 	movl	%eax,20(%esp)
 
-	movl	0(%ebx),%ecx
 	movl	0(%esi),%edx
-	addl	%ecx,%edx
+	addl	0(%ebx),%edx
 	sarl	$1,%edx
 	movl	%edx,0(%esp)
 
@@ -806,7 +805,7 @@ LSplit:
 // Equal-y must not clobber %edx with lp2[0].
 	jnz		LDraw
 	movl	0(%esi),%eax
-	cmpl	%ecx,%eax
+	cmpl	0(%ebx),%eax
 	jl		LNoDraw
 
 LDraw:
