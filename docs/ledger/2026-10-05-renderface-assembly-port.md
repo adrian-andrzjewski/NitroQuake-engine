@@ -26,10 +26,18 @@ has compile-time layout checks for these fields and the surface, edge, vertex,
 and clipping structures.
 
 The selector passed DOS smoke and completed the pinned 969-frame timedemo with
-the reference framebuffer checksum `1047377823`. One assembly sample took
-`59.302341 s` (`16.339996 FPS`). The preceding three-run C median was
-`59.170075 s`; this single, non-alternating sample is about 0.22% slower and is
-not promotion evidence. C remains the release default.
+the reference framebuffer checksum `1047377823`. The original single assembly
+sample below was not promotion evidence. A current matched comparison now
+shows a **+0.39763%** mean improvement over C across three uninstrumented runs;
+the full strict i486 audit passed, and `RenderFaceImplementation=asm` is
+promoted for i486. See the [2026-10-22 promotion ledger](2026-10-22-renderface-assembly-promoted.md)
+for samples and run metadata. C remains available explicitly and remains the
+i386 default.
+
+The earlier single assembly sample took `59.302341 s` (`16.339996 FPS`). The
+preceding three-run C median was `59.170075 s`; this single,
+non-alternating result measured about 0.22% slower and was correctly not used
+as promotion evidence at the time.
 
 The release ISA gate reported 172 enforced above-i486 instructions against a
 173-instruction baseline, with no unclassified instructions. The smoke build

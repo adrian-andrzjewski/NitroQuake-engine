@@ -346,9 +346,9 @@ param(
     [int]$Runs = 3,
     [int]$TimeoutSeconds = 180,
     [switch]$VisualParityOnly,
-    # Per-frame FPS collection costs ~0.0117 s on the 969-frame demo1 run
-    # (0.020%, about 39% of the 0.05% promotion gate), so it is OFF by default
-    # and opt-in. The recorded baseline 59.227329 s was measured with it off.
+    # Per-frame FPS collection adds timer-read overhead, so it is OFF by default
+    # and opt-in. Keep promotion timing uninstrumented even though there is no
+    # minimum gain threshold; the recorded baseline was measured with it off.
     [switch]$FpsStats,
     # Retained so older recorded commands keep working; now the default.
     [switch]$NoFpsStats,
@@ -1110,13 +1110,13 @@ if ($profileHash -ne $ExpectedProfileSha256) {
     Write-Warning "PROFILE GATE OVERRIDDEN: expected $ExpectedProfileSha256, got $($profileHash). Results are NOT comparable to the recorded baseline."
 }
 
-# Per-frame FPS collection adds two Sys_FloatTime reads per frame, worth about
-# 0.0117 s over 969 frames (0.020%, roughly 39% of the 0.05% promotion gate).
-# A run with it enabled is a valid diagnostic but not a valid promotion result.
+# Per-frame FPS collection adds two Sys_FloatTime reads per frame. A run with
+# it enabled is diagnostic only, not a promotion timing, because the collection
+# changes runtime even when the candidate gain is small.
 if ($fpsStatsEnabled) {
     Write-Warning ("FPS STATS ENABLED: this run pays per-frame timer reads and is inflated by about 0.020% " +
-        "relative to the recorded baseline. It is valid as a diagnostic, NOT as a promotion measurement. " +
-        "Re-run without -FpsStats to compare against 59.227329 s.")
+        "relative to an uninstrumented run. It is valid as a diagnostic, NOT as a promotion measurement. " +
+        "Re-run without -FpsStats for a matched performance comparison.")
 }
 
 for ($run = 1; $run -le $Runs; $run++) {

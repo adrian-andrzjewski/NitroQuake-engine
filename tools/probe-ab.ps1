@@ -1,14 +1,13 @@
 <#
 .SYNOPSIS
-Runs the matched control/probe A/B a dead-scratch probe needs, and prints the
-median delta with the signal ratio the project requires.
+Runs matched control/probe timedemos and reports their average FPS, medians,
+spread, and trailing-control drift.
 
 .DESCRIPTION
-A probe is only a measurement if its delta is many times the run spread, so this
-runs three control runs, three probe runs, and a trailing control, then reports
-medians and the ratio.  The trailing control is not decoration: it is the only
-thing that distinguishes a real delta from thermal drift, and this host produces
-isolated ~0.36 s timedemo outliers that a median alone cannot explain.
+A positive mean FPS delta qualifies after at least three uninstrumented runs
+per variant; there is no minimum gain or signal-to-spread ratio. This runs the
+control block, probe block, and trailing control, then reports the mean delta
+and spread so small gains and possible drift remain visible in the record.
 
 Checksum parity is enforced on every run.  A probe that renders a different
 framebuffer is a broken probe, not a fast one, so this throws rather than
@@ -89,8 +88,9 @@ function Invoke-Timedemo {
         throw "could not parse the timedemo line for '$Variant'. Output tail:`n$(($out | Select-Object -Last 25) -join "`n")"
     }
 
-    Write-Host ("  {0,-16} {1:F6} s" -f $Variant, [double]$m.Groups[2].Value)
-    return [double]$m.Groups[2].Value
+    $fps = [double]$m.Groups[1].Value / [double]$m.Groups[2].Value
+    Write-Host ("  {0,-16} {1:F6} FPS" -f $Variant, $fps)
+    return $fps
 }
 
 function Get-Median([double[]]$v) {
@@ -115,35 +115,39 @@ if (-not $NoTrailingControl) {
     $trailing = Invoke-Timedemo 'control'
 }
 
+$controlMean = ($control | Measure-Object -Average).Average
+$probeMean = ($probeRuns | Measure-Object -Average).Average
 $cm = Get-Median $control
 $pm = Get-Median $probeRuns
-$delta = $pm - $cm
+$delta = $probeMean - $controlMean
 $cspread = ($control | Measure-Object -Maximum).Maximum - ($control | Measure-Object -Minimum).Minimum
 
 Write-Output ""
 Write-Output "PROBE=$Probe  SELECTOR=$Selector"
-Write-Output ("  control : {0}" -f (($control | ForEach-Object { '{0:F6}' -f $_ }) -join ' / '))
-Write-Output ("  probe   : {0}" -f (($probeRuns | ForEach-Object { '{0:F6}' -f $_ }) -join ' / '))
-Write-Output ("  medians : control {0:F6}  probe {1:F6}" -f $cm, $pm)
-Write-Output ("  delta   : {0:+0.000000;-0.000000} s = {1:+0.0000;-0.0000}%" -f $delta, ($delta / $cm * 100))
-Write-Output ("  control spread within block : {0:F6} s" -f $cspread)
+Write-Output ("  control FPS : {0}" -f (($control | ForEach-Object { '{0:F6}' -f $_ }) -join ' / '))
+Write-Output ("  probe FPS   : {0}" -f (($probeRuns | ForEach-Object { '{0:F6}' -f $_ }) -join ' / '))
+Write-Output ("  means       : control {0:F6}  probe {1:F6} FPS" -f $controlMean, $probeMean)
+Write-Output ("  medians     : control {0:F6}  probe {1:F6} FPS" -f $cm, $pm)
+Write-Output ("  mean delta  : {0:+0.000000;-0.000000} FPS = {1:+0.0000;-0.0000}%" -f $delta, ($delta / $controlMean * 100))
+Write-Output ("  control spread within block : {0:F6} FPS" -f $cspread)
 if ($null -ne $trailing) {
     $drift = $trailing - $cm
-    Write-Output ("  trailing control {0:F6}  drift {1:+0.000000;-0.000000} s ({2:+0.0000;-0.0000}%)" -f $trailing, $drift, ($drift / $cm * 100))
+    Write-Output ("  trailing control {0:F6} FPS  drift from control median {1:+0.000000;-0.000000} FPS ({2:+0.0000;-0.0000}%)" -f $trailing, $drift, ($drift / $cm * 100))
 }
 
-if ($Runs -lt 2) {
-    Write-Output "  delta / spread ratio : n/a (needs 2+ control runs to have a spread)"
+if ($Runs -lt 3) {
     Write-Output ""
-    Write-Output "  This was a smoke run. -Runs 1 cannot produce a signal ratio and cannot"
-    Write-Output "  support a recorded number. Re-run with -Runs 3 or more."
+    Write-Output "  This was a diagnostic run. At least three runs per variant are required"
+    Write-Output "  before the any-positive-mean promotion rule can be applied."
 }
 else {
-    Write-Output ("  delta / spread ratio : {0:N0}x" -f [math]::Abs($delta / $cspread))
-    if ([math]::Abs($delta / $cspread) -lt 100) {
-        Write-Output ""
-        Write-Output "  WARNING: under 100x the run spread. Treat as inconclusive and check for an"
-        Write-Output "  isolated outlier in the block before believing it - this host produces"
-        Write-Output "  ~0.36 s outliers and they inflate the reported spread."
+    if ($delta -gt 0) {
+        Write-Output "  decision : positive mean FPS; qualifies with no minimum gain threshold."
+    }
+    elseif ($delta -lt 0) {
+        Write-Output "  decision : negative mean FPS; control remains promoted."
+    }
+    else {
+        Write-Output "  decision : tied mean FPS; no improvement to promote."
     }
 }

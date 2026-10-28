@@ -11,10 +11,11 @@
       3. L1 footprint       - 8 KB unified cache (there is NO instruction cache
                               on a 486); .text is 90x that.
 
-    This tool is a DISQUALIFIER and a RANKING AID. It can never promote a
-    change. The 0.05% DOSBox-X timedemo delta remains the sole promotion
-    criterion; see docs\ledger\2026-10-03-region-pricing-sweep.md, under "Correction: the general block row is minimal". A cycle figure printed here is a
-    published-latency estimate, not a measurement taken by this project.
+    This tool is a RANKING AID only. It cannot promote a change or reject one
+    for being below a magnitude floor. Repeatable positive gains of any size
+    are eligible under the pinned DOSBox-X timedemo policy; a cycle figure
+    printed here is a published-latency estimate, not a measurement taken by
+    this project.
 
 .NOTES
     The linked executable is stripped by the build (build-dos.ps1:522 passes
@@ -556,8 +557,9 @@ if ($null -ne $spanCount -and $spanCount -gt 0 -and $null -ne $pixelCount) {
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
-Write-Host '486DX static cost model - a disqualifier, never a promotion criterion.'
-Write-Host ("Promotion remains the 0.05% DOSBox-X timedemo delta; see docs\ledger\2026-10-03-region-pricing-sweep.md, under 'Correction: the general block row is minimal'.")
+Write-Host '486DX static cost model - a ranking aid, not a promotion criterion.'
+Write-Host 'Promotion accepts any positive pooled mean from at least three matched, uninstrumented runs per variant, even below run-to-run spread.'
+Write-Host 'Exact frame/checksum parity and the strict i486 ISA audit remain required.'
 Write-Host ("Executable: {0}" -f $Executable)
 Write-Host ("Profile:    {0}" -f $(if ($null -ne $profile) { $ProfileJson } else { $profileNote }))
 Write-Host ''

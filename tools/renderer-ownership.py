@@ -289,8 +289,8 @@ def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
 
     The selected R_BeginEdgeFrame assembly entry chooses between the forward
     and backward span functions and stores that address in pdrawfunc. The
-    selected R_ScanEdges assembly entry must load that pointer immediately
-    before each of its two indirect calls. The backward public entry is a
+    selected R_ScanEdges assembly entry caches that pointer in ESI once, then
+    calls through ESI at both scanline sites. The backward public entry is a
     small assembly tail binding to R_GenerateSpansBackward_asm486.
     """
     if (manifest.get("worldControlImplementation") != "asm" or
@@ -419,12 +419,8 @@ def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
 
     pointer_loads = [relocation for relocation in consumer["relocations"]
                      if relocation["symbol"].lower() == "_pdrawfunc"]
-    if len(pointer_loads) != 2:
-        raise ValueError("_pdrawfunc closure expected two pointer loads in _R_ScanEdges_asm486")
-    pointer_load_offsets = [int(relocation["instructionOffset"], 16)
-                            for relocation in pointer_loads]
-    if len(set(pointer_load_offsets)) != len(pointer_load_offsets):
-        raise ValueError("_pdrawfunc closure found duplicate pointer-load relocation records")
+    if len(pointer_loads) != 1:
+        raise ValueError("_pdrawfunc closure expected one cached pointer load in _R_ScanEdges_asm486")
     call_instructions = [instruction for instruction in consumer["instructions"]
                          if instruction["operation"] == "call" and
                          instruction["operands"].replace(" ", "").startswith("*")]
@@ -433,26 +429,31 @@ def resolve_pdrawfunc_targets(manifest: dict, units: dict[str, dict],
     if len(consumer_entry["indirectTransfers"]) != 2:
         raise ValueError("_pdrawfunc closure found an unpaired indirect transfer in _R_ScanEdges_asm486")
 
+    relocation = pointer_loads[0]
+    if relocation["type"] != "DIR32":
+        raise ValueError("_pdrawfunc closure requires a DIR32 relocation for the cached pointer load")
+    load_instruction = _instruction_at(consumer, int(relocation["instructionOffset"], 16))
+    if (load_instruction is None or load_instruction["operation"] not in {"mov", "movl"} or
+            re.fullmatch(r"0x[0-9a-fA-F]+,%esi", load_instruction["operands"].replace(" ", "")) is None):
+        raise ValueError("_pdrawfunc closure found an unexpected cached pointer load in _R_ScanEdges_asm486")
+    load_index = consumer["instructions"].index(load_instruction)
+    if any(instruction["operation"].startswith("j")
+           for instruction in consumer["instructions"][:load_index]):
+        raise ValueError("_pdrawfunc closure found control flow before the cached pointer load")
+
     call_offsets = []
-    for relocation in pointer_loads:
-        if relocation["type"] != "DIR32":
-            raise ValueError("_pdrawfunc closure requires DIR32 relocations for pointer loads")
-        load_instruction = _instruction_at(consumer, int(relocation["instructionOffset"], 16))
-        if (load_instruction is None or load_instruction["operation"] not in {"mov", "movl"} or
-                re.fullmatch(r"0x[0-9a-fA-F]+,%eax", load_instruction["operands"].replace(" ", "")) is None):
-            raise ValueError("_pdrawfunc closure found an unexpected _R_ScanEdges_asm486 pointer load")
-        load_index = consumer["instructions"].index(load_instruction)
-        if load_index + 1 >= len(consumer["instructions"]):
-            raise ValueError("_pdrawfunc closure found no indirect call after a pointer load")
-        call_instruction = consumer["instructions"][load_index + 1]
-        if call_instruction["operation"] != "call" or call_instruction["operands"].replace(" ", "") != "*%eax":
-            raise ValueError("_pdrawfunc closure found no call through the loaded _pdrawfunc pointer")
+    for call_instruction in call_instructions:
+        if call_instruction["operands"].replace(" ", "") != "*%esi":
+            raise ValueError("_pdrawfunc closure found an indirect call outside the cached ESI pointer")
+        call_index = consumer["instructions"].index(call_instruction)
+        if load_index >= call_index:
+            raise ValueError("_pdrawfunc closure found an indirect call before the cached pointer load")
+        if any(_writes_register(instruction, "esi")
+               for instruction in consumer["instructions"][load_index + 1:call_index]):
+            raise ValueError("_pdrawfunc closure found an ESI clobber before a cached pointer call")
         call_address = int(call_instruction["offset"], 16)
-        if any(instruction["operation"].startswith("j") and _branch_target(instruction) == call_address
-               for instruction in consumer["instructions"]):
-            raise ValueError("_pdrawfunc closure found a branch that bypasses a pointer load")
         call_offset = "0x" + call_instruction["offset"]
-        if not any(item["offset"] == call_offset and item["instruction"] == "call *%eax"
+        if not any(item["offset"] == call_offset and item["instruction"] == "call *%esi"
                    for item in consumer_entry["indirectTransfers"]):
             raise ValueError("_pdrawfunc closure call does not match the reported indirect transfer")
         call_offsets.append(call_offset)
