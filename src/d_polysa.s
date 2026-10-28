@@ -1546,12 +1546,11 @@ C(D_PolysetScanLeftEdge):
 	pushl	%edi
 	pushl	%ebx
 
-	movl	height(%esp),%eax
 	movl	C(d_sfrac),%ecx
-	andl	$0xFFFF,%eax
 	movl	C(d_ptex),%ebx
-	orl		%eax,%ecx
 	movl	C(d_pedgespanpackage),%esi
+	// The height occupies only the low 16-bit scan counter in ECX.
+	orw	height(%esp),%cx
 	movl	C(d_tfrac),%edx
 
 // Spill light/zi/aspancount so %edi/%ebp can hold running d_pdest/d_pz
