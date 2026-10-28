@@ -4720,9 +4720,10 @@ C(D_CacheSurface):
 	cmpl	8(%edx),%ecx
 	jne	.Lcache_surface_keys_only
 	movzbl	57(%esi),%eax		// styles[1], also the unused sentinel
-	movl	C(d_lightstylevalue)(,%eax,4),%ecx
 	cmpl	$255,%eax
 	je	.Lcache_surface_dlight_check
+	// Do not fetch the lightstyle table for the unused-style sentinel.
+	movl	C(d_lightstylevalue)(,%eax,4),%ecx
 	cmpl	12(%edx),%ecx
 	jne	.Lcache_surface_keys_only
 	movzbl	58(%esi),%eax

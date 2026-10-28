@@ -717,3 +717,4 @@ section below moved verbatim.
 - [Alias transform indexed integer-coordinate loads (2026-10-23)](2026-10-23-alias-transform-integer-coordinate-table-promoted.md)
 - [Alias transform 16-bit coordinate table (2026-10-23)](2026-10-23-alias-transform-u16-coordinate-table-promoted.md)
 - [Alias transform early normal-index scale (2026-10-23)](2026-10-23-alias-transform-normal-index-hoist-promoted.md)
+- [Surface-cache unused style lookup removal (2026-10-28)](2026-10-28-surface-cache-unused-style-lookup-promoted.md)
