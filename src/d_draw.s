@@ -902,8 +902,12 @@ LClampNeg:
 	subl	%ebx,%edx
 	rorl	$16,%eax
 	#endif
+	#ifdef TARGET_I386
 	movl	%eax,(%edi)
 	leal	4(%edi),%edi
+	#else
+	stosl
+	#endif
 	.endm
 
 	.macro ZSPAN_SUB_NEGATIVE_PAIR next_label
