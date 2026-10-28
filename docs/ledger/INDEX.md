@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-28-surface-cache-hit-inline-return-promoted.md`](2026-10-28-surface-cache-hit-inline-return-promoted.md) | 1 | renderer performance / inline the surface-cache hit epilogue and remove its unconditional jump after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00249156%) |
 | [`2026-10-28-surface-cache-style1-direct-compare-promoted.md`](2026-10-28-surface-cache-style1-direct-compare-promoted.md) | 1 | renderer performance / compare the style1 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00218581%) |
 | [`2026-10-28-surface-cache-style2-direct-compare-promoted.md`](2026-10-28-surface-cache-style2-direct-compare-promoted.md) | 1 | renderer performance / compare the style2 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00008004%) |
 | [`2026-10-28-renderface-cached-surface-compare-promoted.md`](2026-10-28-renderface-cached-surface-compare-promoted.md) | 1 | renderer performance / replace the cached-edge surface load and test with one direct 16-bit compare after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.006188%) |
@@ -786,6 +787,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### surface-cache
 
+- `promoted` [Surface-cache hit inline epilogue (2026-10-28) — **+0.000404667 FPS (+0.00249156%)**, exact checksum parity and full strict i486 audit](2026-10-28-surface-cache-hit-inline-return-promoted.md)
 - `promoted` [Surface-cache style1 sentinel direct compare (2026-10-28) — **+0.000355 FPS (+0.00218581%)**, exact checksum parity and full strict i486 audit](2026-10-28-surface-cache-style1-direct-compare-promoted.md)
 - `promoted` [Surface-cache style2 sentinel direct compare (2026-10-28) — **+0.000013 FPS (+0.00008004%)**, exact checksum parity and full strict i486 audit](2026-10-28-surface-cache-style2-direct-compare-promoted.md)
 - `rejected` [`surf8` mip-1 8-row loop alignment screen (2026-10-27) — **−0.002048 FPS (−0.0127149%)**, exact checksum parity](2026-10-27-surf8-mip1-loop-alignment-screen-rejected.md)

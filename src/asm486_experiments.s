@@ -4771,7 +4771,12 @@ C(D_CacheSurface):
 	addl	$4,%esp
 #endif
 	movl	-16(%ebp),%eax
-	jmp	.Lcache_surface_return
+	addl	$52,%esp
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	leave
+	ret
 
 .Lcache_surface_miss:
 #ifdef PROFILE486
