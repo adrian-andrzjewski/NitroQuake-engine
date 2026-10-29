@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md`](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md) | 1 | renderer performance / remove the `TrailingEdge` bmodel-flag register load and test after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.1197%) |
+| [`2026-10-29-edge-genspans-loop-alignment-rejected.md`](2026-10-29-edge-genspans-loop-alignment-rejected.md) | 1 | renderer performance / reject 16-byte `R_GenerateSpans` loop-head alignment after a negative pooled parity screen with exact checksum parity |
 | [`2026-10-29-renderface-edge-marker-memory-test-promoted.md`](2026-10-29-renderface-edge-marker-memory-test-promoted.md) | 1 | renderer performance / test the RenderFace cached-offset marker in memory and defer its load until the marked path after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0205%) |
 | [`2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md`](2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md) | 1 | renderer performance / reject comparing `r_leftclipped` directly in memory after a negative pooled parity screen with exact checksum parity |
 | [`2026-10-29-r-clipsprite-clipcurrent-direct-compare-promoted.md`](2026-10-29-r-clipsprite-clipcurrent-direct-compare-promoted.md) | 1 | renderer performance / replace the sprite clip buffer load/test with one direct memory compare after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0001553%) |
@@ -505,6 +506,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### edge-scan
 
+- `rejected` [`R_GenerateSpans` edge-loop 16-byte alignment (2026-10-29) — parity-screen mean **−0.001233 FPS (−0.00755860%)**, exact checksum parity](2026-10-29-edge-genspans-loop-alignment-rejected.md)
 - `promoted` [`TrailingEdge` bmodel direct compare (2026-10-29) — strict mean **+0.019496 FPS (+0.1197%)**, exact checksum parity and complete executable i486 gate](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md)
 - `promoted` [`R_GenerateSpans` leading-edge spanstate direct compare (2026-10-28) — strict mean **+0.019957666 FPS (+0.1227%)**, exact checksum parity and complete executable i486 gate](2026-10-28-edge-leading-spanstate-direct-compare-promoted.md)
 - `promoted` [`R_GenerateSpans` leading-edge `insubmodel` direct compare (2026-10-28) — strict mean **+0.020008667 FPS (+0.1232%)**, exact checksum parity and complete executable i486 gate](2026-10-28-edge-leading-insubmodel-compare-promoted.md)

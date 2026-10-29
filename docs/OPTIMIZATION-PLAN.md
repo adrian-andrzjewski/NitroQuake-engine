@@ -120,6 +120,15 @@ retained 969 frames and checksum `1047377823`; the complete executable i486
 gate passed. See the
 [sprite clip-current ledger](ledger/2026-10-29-r-clipsprite-clipcurrent-direct-compare-promoted.md).
 
+### `R_GenerateSpans` edge-loop alignment rejected (2026-10-29)
+
+Aligning `Lgs_edgeloop` to 16 bytes averaged **16.311311667 FPS** on the
+three-run parity screen against the committed strict control's **16.312544667
+FPS** (**−0.001233 FPS, −0.00755860%**). Every run retained 969 frames and
+checksum `1047377823`; the strict i486 audit was skipped because the screen was
+negative. The alignment directive was removed. See the
+[edge-loop alignment ledger](ledger/2026-10-29-edge-genspans-loop-alignment-rejected.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
