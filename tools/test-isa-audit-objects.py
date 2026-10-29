@@ -184,6 +184,13 @@ def main() -> int:
                           ".data\n.byte 0x0f,0x45,0xc0,0xda,0xc0\n", encoding="ascii")
         subprocess.run([str(compiler), "-c", "-x", "assembler", str(source),
                         "-o", str(objects / "fixture.obj")], check=True, capture_output=True)
+        secondary_source = build / "secondary.s"
+        secondary_source.write_text(
+            ".text\n.globl _case_cross_object\n_case_cross_object:\n.byte 0x40\nret\n",
+            encoding="ascii",
+        )
+        subprocess.run([str(compiler), "-c", "-x", "assembler", str(secondary_source),
+                        "-o", str(objects / "secondary.obj")], check=True, capture_output=True)
         report = build / "audit.json"
         details = build / "instructions.jsonl"
         result = subprocess.run([
@@ -199,6 +206,9 @@ def main() -> int:
             continue
         if (result.returncode == 0) != (group == "permitted"):
             failures.append(f"{group}: unexpected gate exit {result.returncode}")
+        audit_report = json.loads(report.read_text(encoding="utf-8-sig"))
+        if audit_report.get("objectCount") != 2:
+            failures.append(f"{group}: cross-object audit saw {audit_report.get('objectCount')} objects, expected 2")
         first_by_symbol = {}
         for line in details.read_text(encoding="utf-8-sig").splitlines():
             entry = json.loads(line)
@@ -213,6 +223,9 @@ def main() -> int:
                 failures.append(f"{group}/{name}: {encoding} classified {entry['isa']} ({entry['decoded']})")
             if accepted and " ".join(entry["bytes"]).lower() != encoding:
                 failures.append(f"{group}/{name}: incomplete byte decoding: {entry['bytes']}")
+        cross_object = first_by_symbol.get("_case_cross_object")
+        if cross_object is None or cross_object["isa"] != "i386":
+            failures.append(f"{group}: secondary object instruction was not audited as i386")
     for failure in failures:
         print("FAIL: " + failure)
     print(f"Object fixture reports: {work}")

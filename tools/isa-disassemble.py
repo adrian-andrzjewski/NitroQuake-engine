@@ -2,8 +2,8 @@
 
 The pinned objdump truncates its raw-byte column at some COFF symbols even with
 -D. Extract each proved CODE range into its own raw binary, batch those binaries
-through objdump, then attribute whole instructions to the original symbols.
-Never decode data ranges.
+across objects through objdump, then attribute whole instructions to the original
+symbols. Never decode data ranges.
 """
 from __future__ import annotations
 import argparse
@@ -12,6 +12,7 @@ from collections import defaultdict
 import json
 from pathlib import Path
 import re
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -105,21 +106,53 @@ def restore_relative_target(line: str, item) -> str:
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--target',type=Path,required=True)
+    parser.add_argument('--target',type=Path)
     parser.add_argument('--section',default='.text')
     parser.add_argument('--start',type=lambda n:int(n,0))
     parser.add_argument('--end',type=lambda n:int(n,0))
     parser.add_argument('--mode',type=int,choices=(16,32),default=32)
     parser.add_argument('--ranges-json',type=Path)
+    parser.add_argument('--batch-manifest',type=Path,
+        help='JSON object containing targetIndex, path and ranges entries for multiple objects.')
+    parser.add_argument('--batch-output-directory',type=Path,
+        help='Write bounded per-target disassembly files for a multi-target batch.')
     parser.add_argument('--objdump',type=Path,required=True)
     args=parser.parse_args()
 
-    if args.ranges_json is None:
+    if args.batch_manifest is None and args.batch_output_directory is not None:
+        parser.error('--batch-output-directory requires --batch-manifest')
+    multi_target=False
+    if args.batch_manifest is not None:
+        if args.target is not None or args.ranges_json is not None or args.start is not None or args.end is not None:
+            parser.error('--batch-manifest cannot be combined with single-target range arguments')
+        if args.batch_output_directory is None:
+            parser.error('--batch-output-directory is required with --batch-manifest')
+        manifest=json.loads(args.batch_manifest.read_text(encoding='utf-8-sig'))
+        target_groups=manifest.get('targets') if isinstance(manifest,dict) else None
+        if not isinstance(target_groups,list) or not target_groups:
+            raise ValueError('Batch manifest must contain a nonempty targets array.')
+        multi_target=True
+        range_markers=True
+        pending=[]
+        for group in target_groups:
+            target_index=int(group['targetIndex'])
+            target=Path(group['path'])
+            ranges=group.get('ranges')
+            if not isinstance(ranges,list) or not ranges:
+                raise ValueError(f'Target {target_index} has no CODE ranges.')
+            for range_index,item in enumerate(ranges):
+                pending.append((target,target_index,range_index,item))
+    elif args.ranges_json is None:
+        if args.target is None:
+            parser.error('--target is required without --batch-manifest')
         if args.start is None or args.end is None:
             parser.error('--start and --end are required without --ranges-json')
         ranges=[dict(section=args.section,start=args.start,end=args.end,codeMode=args.mode)]
         range_markers=False
+        pending=[(args.target,0,index,item) for index,item in enumerate(ranges)]
     else:
+        if args.target is None:
+            parser.error('--target is required with --ranges-json')
         if args.start is not None or args.end is not None:
             parser.error('--start/--end cannot be combined with --ranges-json')
         ranges=json.loads(args.ranges_json.read_text(encoding='utf-8-sig'))
@@ -127,21 +160,24 @@ def main():
         if not isinstance(ranges,list) or not ranges:
             raise ValueError('Range manifest must be a nonempty JSON array.')
         range_markers=True
+        pending=[(args.target,0,index,item) for index,item in enumerate(ranges)]
 
     section_cache={}
     normalized=[]
     def address(value):
         return int(value,0) if isinstance(value,str) else int(value)
-    for index,item in enumerate(ranges):
+    for index,(target,target_index,range_index,item) in enumerate(pending):
         section=str(item.get('section','.text'))
         start=address(item['start']); end=address(item['end'])
         mode=int(item.get('codeMode',32))
         if mode not in (16,32): raise ValueError(f'Unsupported code mode {mode}.')
-        if section not in section_cache:
-            section_cache[section]=code_section(args.target,section)
-        vma,data,symbols=section_cache[section]
+        cache_key=(str(target.resolve()),section)
+        if cache_key not in section_cache:
+            section_cache[cache_key]=code_section(target,section)
+        vma,data,symbols=section_cache[cache_key]
         if not vma<=start<end<=vma+len(data): raise ValueError(f'Range {index} outside CODE bytes.')
-        normalized.append(dict(index=index,section=section,start=start,end=end,mode=mode,
+        normalized.append(dict(index=index,target=target,targetIndex=target_index,rangeIndex=range_index,
+            section=section,start=start,end=end,mode=mode,
             vma=vma,data=data,symbols=symbols,offsets=[pair[0] for pair in symbols]))
 
     with tempfile.TemporaryDirectory(prefix='isa-raw-') as directory:
@@ -155,6 +191,11 @@ def main():
 
         file_pattern=re.compile(r'(?P<name>range-(?P<index>\d{5})\.bin):\s+file format binary\s*$')
         address_pattern=re.compile(r'^(?P<indent>\s*)(?P<address>[0-9a-fA-F]+):(?P<rest>\t.*)$')
+        old_batches_by_target=defaultdict(lambda:defaultdict(int))
+        for item in normalized:
+            old_batches_by_target[item['targetIndex']][item['mode']]+=1
+        old_objdump_runs=sum((count+31)//32 for modes in old_batches_by_target.values() for count in modes.values())
+        objdump_runs=sum((len(items)+31)//32 for items in by_mode.values())
         for mode,items in by_mode.items():
             # Keep command lines below Windows' native limit with long temp paths.
             for batch_start in range(0,len(items),32):
@@ -167,7 +208,7 @@ def main():
                 command.extend(item['raw'].name for item in batch)
                 run=subprocess.run(command,cwd=directory,capture_output=True,text=True)
                 if run.returncode:
-                    raise RuntimeError(f"objdump failed for '{args.target}': {run.stderr.strip()}")
+                    raise RuntimeError(f"objdump failed for '{batch[0]['target']}': {run.stderr.strip()}")
                 item_by_index={item['index']:item for item in batch}
                 current=None; active=None; seen=set(); outputs={}
                 try:
@@ -181,7 +222,10 @@ def main():
                             seen.add(current['index']); active=None
                             output=current['decoded'].open('w',encoding='ascii',newline='\n')
                             outputs[current['index']]=output
-                            if range_markers: output.write(f'@@ISA-RANGE {index}@@\n')
+                            if multi_target:
+                                output.write(f"@@ISA-TARGET {current['targetIndex']} RANGE {current['rangeIndex']}@@\n")
+                            elif range_markers:
+                                output.write(f'@@ISA-RANGE {index}@@\n')
                             output.write(f"Disassembly of section {current['section']}:\n")
                             continue
                         if current is None: continue
@@ -202,9 +246,33 @@ def main():
                 if seen!={item['index'] for item in batch}:
                     raise ValueError('Batched objdump output omitted one or more input ranges.')
 
-        for item in normalized:
-            for line in item['decoded'].read_text(encoding='ascii').splitlines():
-                print(line)
+        if multi_target:
+            output_root=args.batch_output_directory
+            if output_root.exists() and any(output_root.iterdir()):
+                raise ValueError(f'Batch output directory is not empty: {output_root}')
+            output_root.mkdir(parents=True,exist_ok=True)
+            outputs={}
+            try:
+                for item in normalized:
+                    target_index=item['targetIndex']
+                    if target_index not in outputs:
+                        output_path=output_root/f'target-{target_index:05d}.txt'
+                        outputs[target_index]=output_path.open('w',encoding='ascii',newline='\n')
+                    output=outputs[target_index]
+                    with item['decoded'].open('r',encoding='ascii',newline='') as decoded:
+                        expected=f"@@ISA-TARGET {target_index} RANGE {item['rangeIndex']}@@\n"
+                        if decoded.readline()!=expected:
+                            raise ValueError('Decoded range target marker does not match its manifest.')
+                        output.write(f"@@ISA-RANGE {item['rangeIndex']}@@\n")
+                        shutil.copyfileobj(decoded,output)
+            finally:
+                for output in outputs.values(): output.close()
+            print(f'Cross-object ISA batch: {len(normalized)} ranges across {len(outputs)} targets; '
+                f'{objdump_runs} objdump processes versus {old_objdump_runs} per-target batches.')
+        else:
+            for item in normalized:
+                for line in item['decoded'].read_text(encoding='ascii').splitlines():
+                    print(line)
 
 
 if __name__=='__main__': main()

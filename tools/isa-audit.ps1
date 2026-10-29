@@ -370,15 +370,16 @@ if (-not [string]::IsNullOrWhiteSpace($ObjectCodeDataProofJson)) {
     }
 }
 
-foreach ($target in $targets) {
+function Get-TargetCodeRanges {
+    param([Parameter(Mandatory=$true)][object]$Target)
     $targetRanges = New-Object System.Collections.Generic.List[object]
-    if ($target.kind -eq 'executable' -and $addressRanges.Count -gt 0) {
+    if ($Target.kind -eq 'executable' -and $addressRanges.Count -gt 0) {
         foreach ($range in $addressRanges) { $targetRanges.Add($range) }
     }
-    elseif ($target.kind -eq 'object' -and $objectCodeRanges.ContainsKey($target.name)) {
-        $proof = $objectCodeRanges[$target.name]
-        if ((Get-FileHash -LiteralPath $target.path -Algorithm SHA256).Hash -ne $proof.objectSha256) {
-            throw "Code/data proof does not match '$($target.path)'."
+    elseif ($Target.kind -eq 'object' -and $objectCodeRanges.ContainsKey($Target.name)) {
+        $proof = $objectCodeRanges[$Target.name]
+        if ((Get-FileHash -LiteralPath $Target.path -Algorithm SHA256).Hash -ne $proof.objectSha256) {
+            throw "Code/data proof does not match '$($Target.path)'."
         }
         foreach ($range in $proof.ranges) {
             if ($range.kind -ne 'code') { continue }
@@ -393,8 +394,8 @@ foreach ($target in $targets) {
         # -d stops at every symbol, including a patch label in the immediate
         # byte of an INT instruction. -D crosses those labels correctly, but
         # must be restricted to actual CODE sections so it never decodes .data.
-        $headers = & $objdump -h $target.path 2>$null
-        if ($LASTEXITCODE -ne 0) { throw "objdump section discovery failed on '$($target.path)'." }
+        $headers = & $objdump -h $Target.path 2>$null
+        if ($LASTEXITCODE -ne 0) { throw "objdump section discovery failed on '$($Target.path)'." }
         $pendingSection = $null
         foreach ($headerLine in $headers) {
             if ($headerLine -match '^\s*\d+\s+(\S+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+') {
@@ -406,7 +407,7 @@ foreach ($target in $targets) {
             }
             elseif ($null -ne $pendingSection -and $headerLine -match '\bCODE\b') {
                 if ($pendingSection.size -gt 0 -and ($null -eq $allowedSectionKeys -or
-                    $allowedSectionKeys.Contains($target.name + '|' + $pendingSection.section))) {
+                    $allowedSectionKeys.Contains($Target.name + '|' + $pendingSection.section))) {
                     $targetRanges.Add([pscustomobject]@{
                         start = $pendingSection.start
                         end = $pendingSection.start + $pendingSection.size
@@ -419,26 +420,67 @@ foreach ($target in $targets) {
             }
         }
     }
+    return ,$targetRanges.ToArray()
+}
+
+# Disassemble all selected objects in one bounded stream. Each object/range
+# remains a separate raw input to objdump, but sharing the process batches
+# across objects avoids hundreds of interpreter and objdump startups.
+$targetRangeSets = New-Object System.Collections.Generic.List[object]
+$batchTargets = New-Object System.Collections.Generic.List[object]
+for ($targetIndex = 0; $targetIndex -lt $targets.Count; $targetIndex++) {
+    $candidate = $targets[$targetIndex]
+    $targetRanges = Get-TargetCodeRanges -Target $candidate
+    $targetRangeSets.Add($targetRanges)
     if ($targetRanges.Count -gt 0) {
+        $batchTargets.Add([pscustomobject]@{
+            targetIndex = $targetIndex
+            path = [IO.Path]::GetFullPath($candidate.path)
+            ranges = $targetRanges
+        })
+    }
+}
+
+$batchOutputRoot = $null
+try {
+    if ($batchTargets.Count -gt 0) {
+        $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/')
+        $batchOutputRoot = [IO.Path]::GetFullPath((Join-Path $temporaryRoot ('isa-batch-' + [guid]::NewGuid().ToString('N'))))
+        if (-not $batchOutputRoot.StartsWith($temporaryRoot + [IO.Path]::DirectorySeparatorChar,
+                [StringComparison]::OrdinalIgnoreCase)) {
+            throw "ISA batch output escaped the temporary directory: '$batchOutputRoot'."
+        }
+        New-Item -ItemType Directory -Path $batchOutputRoot -ErrorAction Stop | Out-Null
+        $batchManifestPath = [IO.Path]::GetTempFileName()
+        try {
+            $batchManifest = ConvertTo-Json -InputObject @{ targets = $batchTargets.ToArray() } -Depth 8
+            [IO.File]::WriteAllText($batchManifestPath, $batchManifest, [Text.UTF8Encoding]::new($false))
+            $batchSummary = & python (Join-Path $PSScriptRoot 'isa-disassemble.py') `
+                --batch-manifest $batchManifestPath --batch-output-directory $batchOutputRoot --objdump $objdump
+            $batchDisassemblerExitCode = $LASTEXITCODE
+        }
+        finally {
+            Remove-Item -LiteralPath $batchManifestPath -Force -ErrorAction SilentlyContinue
+        }
+        if ($batchDisassemblerExitCode -ne 0) {
+            throw "Cross-object batched objdump failed with exit code $batchDisassemblerExitCode."
+        }
+        Write-Host ('  {0}' -f ($batchSummary -join ' '))
+    }
+
+    for ($targetIndex = 0; $targetIndex -lt $targets.Count; $targetIndex++) {
+        $target = $targets[$targetIndex]
+        $targetRanges = $targetRangeSets[$targetIndex]
+        if ($targetRanges.Count -gt 0) {
     $symbol = '<none>'
     $section = '<none>'
     $codeMode = 32
     $targetRange = $null
-    $rangesJsonPath = [IO.Path]::GetTempFileName()
-    try {
-        # Batch this target's disjoint CODE ranges without joining their instruction streams.
-        $rangesJson = ConvertTo-Json -InputObject @($targetRanges.ToArray()) -Depth 6
-        [IO.File]::WriteAllText($rangesJsonPath, $rangesJson, [Text.UTF8Encoding]::new($false))
-        $lines = & python (Join-Path $PSScriptRoot 'isa-disassemble.py') `
-            --target $target.path --ranges-json $rangesJsonPath --objdump $objdump
-        $disassemblerExitCode = $LASTEXITCODE
+    $targetDisassemblyPath = Join-Path $batchOutputRoot ('target-{0:D5}.txt' -f $targetIndex)
+    if (-not (Test-Path -LiteralPath $targetDisassemblyPath -PathType Leaf)) {
+        throw "Batched objdump omitted target '$($target.path)'."
     }
-    finally {
-        Remove-Item -LiteralPath $rangesJsonPath -Force -ErrorAction SilentlyContinue
-    }
-    if ($disassemblerExitCode -ne 0) {
-        throw "Batched objdump failed on '$($target.path)' with exit code $disassemblerExitCode."
-    }
+    $lines = Get-Content -LiteralPath $targetDisassemblyPath
     foreach ($line in $lines) {
         $rangeMatch = [regex]::Match($line, '^@@ISA-RANGE (?<index>\d+)@@$')
         if ($rangeMatch.Success) {
@@ -764,6 +806,12 @@ foreach ($target in $targets) {
             $instructionDetailLines.Add(($detail | ConvertTo-Json -Depth 4 -Compress))
         }
     }
+    }
+}
+}
+finally {
+    if ($null -ne $batchOutputRoot -and (Test-Path -LiteralPath $batchOutputRoot -PathType Container)) {
+        Remove-Item -LiteralPath $batchOutputRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 

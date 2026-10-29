@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-29-cross-object-isa-batching.md`](2026-10-29-cross-object-isa-batching.md) | 1 | verification performance / batch proved instruction ranges across objects while preserving exact audit output |
 | [`2026-10-29-edge-sort-nonbmodel-sixteen-unroll-promoted.md`](2026-10-29-edge-sort-nonbmodel-sixteen-unroll-promoted.md) | 1 | renderer performance / check sixteen active surfaces per non-bmodel sort back-edge after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00003676%) |
 | [`2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md`](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md) | 1 | renderer performance / remove the `TrailingEdge` bmodel-flag register load and test after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.1197%) |
 | [`2026-10-29-edge-sort-nonbmodel-exit-branch-promoted.md`](2026-10-29-edge-sort-nonbmodel-exit-branch-promoted.md) | 1 | renderer performance / invert the non-bmodel active-surface search exit branch after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0344%) |
