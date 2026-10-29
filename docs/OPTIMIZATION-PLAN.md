@@ -70,6 +70,16 @@ against the fresh strict control's **16.301349 FPS**
 `1047377823`; the complete executable i486 gate passed. See the
 [near-z-only compare ledger](ledger/2026-10-29-renderface-nearzionly-direct-compare-promoted.md).
 
+### RenderFace cacheoffset sentinel direct compare (2026-10-29)
+
+The `R_RenderFace` near-z-only return now compares `C(cacheoffset)` directly
+with its fully-clipped sentinel, removing a load into `%eax` that was not used
+after the branch. The strict candidate averaged **16.304901 FPS** against the
+fresh strict control's **16.304283 FPS** (**+0.000618 FPS, +0.00379%**). All
+runs retained 969 frames and checksum `1047377823`; the complete executable
+i486 gate passed. See the
+[cacheoffset compare ledger](ledger/2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md).
+
 Moving the Z-span U-coordinate load before the x87 origin add measured
 **15.601291333 FPS** against the control's **15.601303 FPS**
 (**−0.000011667 FPS, −0.00007478%**). All runs retained 969 frames and checksum
