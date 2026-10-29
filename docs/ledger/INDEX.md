@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md`](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md) | 1 | renderer performance / remove the `TrailingEdge` bmodel-flag register load and test after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.1197%) |
+| [`2026-10-29-renderface-shared-edge-address-promoted.md`](2026-10-29-renderface-shared-edge-address-promoted.md) | 1 | renderer performance / share signed-edge address formation and remove a negative-path jump and duplicate `lea` after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0261%) |
 | [`2026-10-29-renderface-nearzionly-direct-compare-promoted.md`](2026-10-29-renderface-nearzionly-direct-compare-promoted.md) | 1 | renderer performance / replace the `R_RenderFace` near-z-only load/test with one direct compare after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0180%) |
 | [`2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md`](2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md) | 1 | renderer performance / compare the `R_RenderFace` cacheoffset sentinel directly in memory and remove its unused register load after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00379%) |
 | [`2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md`](2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md) | 1 | renderer performance / replace the unrolled mip-0 row's absolute `lightdelta` global spill/reload with balanced stack operations after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0001288%) |
@@ -580,6 +581,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderface
 
+- `promoted` [`R_RenderFace` shared signed-edge address calculation (2026-10-29) — strict mean **+0.004255 FPS (+0.02609641%)**, exact checksum parity and complete executable i486 gate](2026-10-29-renderface-shared-edge-address-promoted.md)
 - `promoted` [`R_RenderFace` cacheoffset sentinel direct compare (2026-10-29) — strict mean **+0.000618 FPS (+0.00379%)**, exact checksum parity and complete executable i486 gate](2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md)
 - `promoted` [`R_RenderFace` near-z-only direct compare (2026-10-29) — strict mean **+0.002934 FPS (+0.0180%)**, exact checksum parity and complete executable i486 gate](2026-10-29-renderface-nearzionly-direct-compare-promoted.md)
 - `promoted` [`R_RenderFace` cached-edge surface check with one direct 16-bit compare (2026-10-28) — **+0.001005 FPS (+0.006188%)**, exact checksum parity and complete i486 ISA audit](2026-10-28-renderface-cached-surface-compare-promoted.md)

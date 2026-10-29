@@ -2432,12 +2432,11 @@ C(R_RenderFace_asm486):
 	jne	.Lrf_submodel_edge_loop
 .Lrf_edge_loop:
 	lodsl						/* consume surfedge and advance the cursor */
+	/* Positive and negative edges share the address calculation. */
 	testl	%eax,%eax
-	jg	.Lrf_forward_edge
+	jg	.Lrf_edge_address_ready
 	negl	%eax
-	leal	(%ebp,%eax,8),%ecx
-	jmp	.Lrf_edge_ready
-.Lrf_forward_edge:
+.Lrf_edge_address_ready:
 	leal	(%ebp,%eax,8),%ecx
 .Lrf_edge_ready:
 	movl	4(%ecx),%eax
@@ -2547,12 +2546,11 @@ C(R_RenderFace_asm486):
  * the loop and use a dedicated clipping loop without changing clip behavior. */
 .Lrf_submodel_edge_loop:
 	lodsl
+	/* Positive and negative edges share the address calculation. */
 	testl	%eax,%eax
-	jg	.Lrf_submodel_forward_edge
+	jg	.Lrf_submodel_edge_address_ready
 	negl	%eax
-	leal	(%ebp,%eax,8),%ecx
-	jmp	.Lrf_submodel_edge_ready
-.Lrf_submodel_forward_edge:
+.Lrf_submodel_edge_address_ready:
 	leal	(%ebp,%eax,8),%ecx
 .Lrf_submodel_edge_ready:
 	movl	%ecx,C(r_pedge)

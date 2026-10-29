@@ -80,6 +80,16 @@ runs retained 969 frames and checksum `1047377823`; the complete executable
 i486 gate passed. See the
 [cacheoffset compare ledger](ledger/2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md).
 
+### RenderFace shared signed-edge address calculation (2026-10-29)
+
+Both regular and submodel edge loops retain the strict-positive branch and
+negative-edge negation, then converge on one scaled address calculation. This
+removes the nonpositive path's unconditional jump and duplicate `lea`. The
+strict candidate averaged **16.309177 FPS** against the committed parent's
+**16.304922 FPS** (**+0.004255 FPS, +0.02609641%**). All runs retained 969
+frames and checksum `1047377823`; the complete executable i486 gate passed.
+See the [shared edge-address ledger](ledger/2026-10-29-renderface-shared-edge-address-promoted.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
