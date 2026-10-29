@@ -573,9 +573,9 @@ incl	C(bench486_edge_sort_iters)
 #ifdef EDGE_SCAN_PROBE_SORT
 	// Dead-scratch probe, 6 instructions, duplicated into %ecx, which is
 	// dead in both sort loops.  Deliberately placed BEFORE the real
-	// `cmpl st_key(%esi),%eax': both the jge/jg back-edge and the jne to
-	// LInsertAndExit read that compare's flags, so a probe after it would
-	// clobber them.
+	// `cmpl st_key(%esi),%eax': the non-bmodel `jl` exit and the bmodel
+	// `jg` back-edge / `jne` insert branch read that compare's flags, so a
+	// probe after it would clobber them.
 	movl	st_next(%esi),%ecx
 	cmpl	st_key(%esi),%ecx
 	movl	st_next(%esi),%ecx
@@ -585,9 +585,8 @@ incl	C(bench486_edge_sort_iters)
 #endif
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
-	jge		Lsortloopnb
-
-	jmp	LInsertAndExit
+	jl		LInsertAndExit
+	jmp	Lsortloopnb
 
 
 // handle a leading bmodel edge

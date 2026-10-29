@@ -129,6 +129,16 @@ checksum `1047377823`; the strict i486 audit was skipped because the screen was
 negative. The alignment directive was removed. See the
 [edge-loop alignment ledger](ledger/2026-10-29-edge-genspans-loop-alignment-rejected.md).
 
+### `R_GenerateSpans` non-bmodel sort exit branch (2026-10-29)
+
+`Lsortloopnb` now branches directly to insertion when the key comparison ends
+the search and takes the unconditional backward branch only when it continues.
+The strict candidate averaged **16.318158667 FPS** against the committed
+strict control's **16.312544667 FPS** (**+0.005614 FPS, +0.03441523%**). All
+runs retained 969 frames and checksum `1047377823`; the complete executable
+i486 gate passed. See the
+[sort-exit ledger](ledger/2026-10-29-edge-sort-nonbmodel-exit-branch-promoted.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
