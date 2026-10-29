@@ -1,84 +1,62 @@
 # NitroQuake documentation
 
-Operational documents, one experiment ledger, and a rule about how to cite them.
+Use this page to find the maintained workflow guides, implementation rules, and
+historical evidence. Each document below has one clear subject; dated reports
+remain available as evidence and are not the current source of policy.
 
-## Read in this order
+## Current workflow
 
-1. **[`../BUILD-DOS.md`](../BUILD-DOS.md)** - operational reference. Building the
-   DOS renderer from Windows, the probe switches, the timedemo gate, what each
-   script enforces, and the committed default baseline. Start here to *run*
-   anything.
-2. **[`../RENDERING-VALIDATION.md`](../RENDERING-VALIDATION.md)** - deterministic
-   rendering scenarios, image comparison tolerances, and failure artifacts.
-3. **[`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md)** - the state of record. The
-   convergence statement, the current baseline and evidence, the promoted and
-   reverted change tables, the standing decisions, and the open work. Start
-   here to *know* something.
-4. **[`ledger/INDEX.md`](ledger/INDEX.md)** - all the dated experiments, indexed
-   by day and by renderer region. Start here to find out *whether something was
-   tried*.
-5. **[`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md)** - the five decisions that
-   govern the work, and why each was corrected. Read before proposing an
-   optimisation.
+| Need | Start here |
+|---|---|
+| Build, run, and inspect the DOS renderer; use probes and timedemos | [`../BUILD-DOS.md`](../BUILD-DOS.md) |
+| Run deterministic rendering checks and review image differences | [`../RENDERING-VALIDATION.md`](../RENDERING-VALIDATION.md) |
+| Verify selector ownership, object code, linked binaries, and allowed ISA | [`ISA-VERIFICATION.md`](ISA-VERIFICATION.md) |
+| Read the current i486 status, accepted and reverted work, baseline, and open work | [`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md) |
+| Read optimization policy, performance acceptance, and current decisions | [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) |
+| Find a dated experiment and its recorded result | [`ledger/INDEX.md`](ledger/INDEX.md) |
 
-## The documents
+## Implementation references
 
-| Document | What it is | Size |
-|---|---|---:|
-| [`../BUILD-DOS.md`](../BUILD-DOS.md) | Operational build, run, probe and tooling reference | ~1,460 lines |
-| [`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md) | State of record: convergence, baseline, decisions, next steps | ~1,580 lines |
-| [`../BENCHMARK-COMPARISON.md`](../BENCHMARK-COMPARISON.md) | Current build against the supplied executables | 139 lines |
-| [`../VIDEO-DOS-VALIDATION.md`](../VIDEO-DOS-VALIDATION.md) | DOS VESA default validation, 2026-09-26 | 127 lines |
-| [`../RENDERING-VALIDATION.md`](../RENDERING-VALIDATION.md) | Deterministic render scenarios, PCX comparison and temporal checks | New |
-| [`ISA-VERIFICATION.md`](ISA-VERIFICATION.md) | Source-bound object, executable, startup and provider verification | New |
-| [`RENDERER-ASSEMBLY-CONVENTIONS.md`](RENDERER-ASSEMBLY-CONVENTIONS.md) | Assembly ownership, ABI, arithmetic, modules and acceptance rules | New |
-| [`RENDERER-COMPLETION-GAPS.md`](RENDERER-COMPLETION-GAPS.md) | Accepted conversions and remaining ownership/scenario gates | New |
-| [`ledger/2026-10-10-d-drawzspans-assembly-parity.md`](ledger/2026-10-10-d-drawzspans-assembly-parity.md) | `D_DrawZSpans` exact C/assembly depth-buffer parity and i486 audit | New |
-| [`ledger/2026-10-11-r-parseparticleeffect-assembly-port.md`](ledger/2026-10-11-r-parseparticleeffect-assembly-port.md) | `R_ParseParticleEffect` parser-state fixture, exact event-scene parity and i486 audit | New |
-| [`ledger/2026-10-10-screen-center-string-assembly-parity.md`](ledger/2026-10-10-screen-center-string-assembly-parity.md) | `SCR_DrawCenterString` C/assembly parity and i486 audit | New |
-| [`ledger/2026-10-18-sbar-deathmatch-assembly-port.md`](ledger/2026-10-18-sbar-deathmatch-assembly-port.md) | Full intermission deathmatch scoreboard assembly port and strict i486 parity | New |
-| [`ledger/2026-10-18-sbar-intermission-assembly-port.md`](ledger/2026-10-18-sbar-intermission-assembly-port.md) | Normal intermission overlay assembly port and strict i486 parity | New |
-| [`ledger/2026-10-18-sbar-finale-assembly-port.md`](ledger/2026-10-18-sbar-finale-assembly-port.md) | Finale overlay assembly port and strict i486 parity | New |
-| [`ledger/2026-10-19-screen-pause-loading-assembly-port.md`](ledger/2026-10-19-screen-pause-loading-assembly-port.md) | Pause/loading overlay assembly port and strict i486 parity | New |
-| [`ledger/2026-10-19-game-options-menu-assembly-port.md`](ledger/2026-10-19-game-options-menu-assembly-port.md) | `M_GameOptions_Draw` 96-case C/ASM parity and strict i486 release proof | New |
-| [`ledger/2026-10-19-video-mode-menu-assembly-port.md`](ledger/2026-10-19-video-mode-menu-assembly-port.md) | `VID_MenuDraw` and `M_Video_Draw` 48-case C/ASM parity and strict i486 release proof | New |
-| [`ledger/2026-10-18-zone-memory-trace-assembly-port.md`](ledger/2026-10-18-zone-memory-trace-assembly-port.md) | Zone, cache, and hunk diagnostic trace assembly port and strict i486 parity | New |
-| [`ledger/2026-10-10-d-drawparticle-assembly-port.md`](ledger/2026-10-10-d-drawparticle-assembly-port.md) | Existing `D_DrawParticle` assembly path, C oracle and exact parity evidence | New |
-| [`ledger/2026-10-09-r-blobexplosion-assembly-port.md`](ledger/2026-10-09-r-blobexplosion-assembly-port.md) | `R_BlobExplosion` traceability and pending acceptance gates | New |
-| [`../DPMI-HDPMI32.md`](../DPMI-HDPMI32.md) | CWSDPMI vs HDPMI32 host experiment | 111 lines |
-| [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) | The five governing decisions | 384 lines |
-| [`PURE-ASSEMBLER-CANDIDATES.md`](PURE-ASSEMBLER-CANDIDATES.md) | Which functions are worth hand-writing, and which are not | 359 lines |
-| [`VESA-320X200-PERFORMANCE-PLAN.md`](VESA-320X200-PERFORMANCE-PLAN.md) | VESA mode-set performance plan | 124 lines |
-| [`ledger/`](ledger/INDEX.md) | 943 ledger headings across 184 files | 14,598 lines |
+| Subject | Document |
+|---|---|
+| Assembly module ownership, ABI, register use, and arithmetic conventions | [`RENDERER-ASSEMBLY-CONVENTIONS.md`](RENDERER-ASSEMBLY-CONVENTIONS.md) |
+| Remaining assembly ownership and validation gates | [`RENDERER-COMPLETION-GAPS.md`](RENDERER-COMPLETION-GAPS.md) |
+| Functions considered for full assembler conversion | [`PURE-ASSEMBLER-CANDIDATES.md`](PURE-ASSEMBLER-CANDIDATES.md) |
+| VESA 320x200 performance proposal and its acceptance gates | [`VESA-320X200-PERFORMANCE-PLAN.md`](VESA-320X200-PERFORMANCE-PLAN.md) |
 
-The two documents that grew past 5,000 and 3,000 lines were split on
-2026-10-03. Nothing was reworded: the experiment log that sat under a single
-`## Current state` heading in `ASM486-HANDOFF.md`, and the result write-ups that
-sat inside `BUILD-DOS.md`, moved verbatim into `ledger/`. Sections that existed
-in both documents were recorded once, in the ledger, and the copy in
-`BUILD-DOS.md` became a pointer.
+## Benchmark and historical references
 
-## The citation rule
+These documents record a specific comparison, experiment, or checkpoint. Use
+the current workflow guides above for present-day instructions and defaults.
 
-**Cite by heading, never by line number.** This is not a style preference; it is
-a recorded failure. An audit on 2026-10-03 found ten of twelve line-number
-citations in this material wrong. Each had been verified when written, and each
-was invalidated by a later insertion above it in the same file - the project has
-now paid for it three separate ways. The rule, its evidence and its two
-load-bearing anchors are in `../ASM486-HANDOFF.md` under "Process rules".
+| Record | Scope |
+|---|---|
+| [`../BENCHMARK-COMPARISON.md`](../BENCHMARK-COMPARISON.md) | Comparison with the supplied DOS executables |
+| [`../VIDEO-DOS-VALIDATION.md`](../VIDEO-DOS-VALIDATION.md) | Dated DOS VESA validation from 2026-09-26 |
+| [`../DPMI-HDPMI32.md`](../DPMI-HDPMI32.md) | CWSDPMI and HDPMI32 host experiment |
+| [`../RESTART-HANDOFF-20261007.md`](../RESTART-HANDOFF-20261007.md) | Restart checkpoint from 2026-10-07 |
 
-In practice:
+The root [`../readme.txt`](../readme.txt) and [`../gnu.txt`](../gnu.txt) are
+upstream project documentation and licensing material.
+
+## Evidence and citations
+
+**Cite by heading, never by line number.** An audit on 2026-10-03 found ten of
+twelve line-number citations in this material wrong. Later insertions had
+invalidated each citation. The recorded rule and its rationale are in
+[`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md) under “Process rules”.
+
+For a historical result, cite both the file and its heading. The ledger index
+links each record file and reports its subsection count; the file itself holds
+the full evidence. Its date and measured result do not make it a current
+baseline. The [`ledger/INDEX.md`](ledger/INDEX.md) also contains a curated
+cross-reference by renderer region.
 
 > good: `docs/ledger/2026-10-03-clamp-fusion-and-the-1.0-rate.md`, under
-> "The clamp fusion is measured at **0.0000%**".
+> “The clamp fusion is measured at **0.0000%**”.
 >
 > bad: `ASM486-HANDOFF.md:1851`.
 
-Across files, name the file *and* the heading. A bare `ASM486-HANDOFF.md`
-citation is how a reader ends up reading a probe table when the text meant a
-different entry entirely.
-
-`tools/doc-structure-check.ps1` enforces this, and it is the first gate in
-`tools/run-tests.ps1`. It reports a line-number citation even inside a code
-span; the only exemption is a "> bad:" line quoting the examples above.
-
+`tools/doc-structure-check.ps1` checks citations, relative Markdown links,
+heading levels, and the ledger file inventory with its per-file subsection
+counts. It is the first gate in `tools/run-tests.ps1`.

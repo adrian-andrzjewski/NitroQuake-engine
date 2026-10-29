@@ -10,7 +10,7 @@
     for that three separate ways, and the recorded rule is to cite by heading and
     never by ":NNNN".
 
-    A rule nobody runs is worth little, so this checks it.  The checks are:
+    A rule nobody runs is worth little, so this checks it. The checks are:
 
       1. No document cites another document by line number.  This is the rule the
          ledger states, and the reason the log was split into docs/ledger/ rather
@@ -20,12 +20,14 @@
          pointers is worse than the monolith, because the pointer looks like an
          answer.
 
-      3. Every entry in docs/ledger/ appears in docs/ledger/INDEX.md, and every
-         file in docs/ledger/ is indexed.  The index is the only way to find a
-         result now that the log is fifteen files.
+      3. Every ledger file appears exactly once in the Files inventory, and its
+         Entries count matches the number of level-two headings in that file.
+         Repeated subsection names are normal across records and are not treated
+         as duplicate experiments.
 
-      4. No two ledger files carry the same top-level heading.  Duplication was
-         the defect that motivated the split; this is what stops it returning.
+      4. Every ledger file has one unique top-level title. This catches missing
+         or duplicate record identities without confusing repeated section
+         labels such as "Results" or "Scope" with duplicate records.
 
       5. No heading is skipped a level (H1 -> H3).  Re-parented sub-headings were
          demoted one step precisely so that a section's children are below it.
@@ -119,56 +121,58 @@ foreach ($d in $docs) {
     }
 }
 
-# ------------------------------------------------- check 3: the ledger index
+# ------------------------------------------------- checks 3 and 4: the ledger
 $ledgerDir = Join-Path $RepoRoot 'docs/ledger'
 $ledgerIndex = Join-Path $ledgerDir 'INDEX.md'
+$ledgerFiles = @(
+    Get-ChildItem -Path $ledgerDir -Filter '*.md' -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -ne 'INDEX.md' } |
+        Sort-Object Name
+)
+
 if (Test-Path -LiteralPath $ledgerIndex) {
     $indexText = [IO.File]::ReadAllText($ledgerIndex)
-    $ledgerFiles = Get-ChildItem -Path $ledgerDir -Filter '*.md' -File | Where-Object { $_.Name -ne 'INDEX.md' }
+    $filesSection = [regex]::Match($indexText, '(?ms)^## Files\r?\n(.*?)(?=^## |\z)')
+    if (-not $filesSection.Success) {
+        Add-Finding 'ledger-files-section-missing' 'docs/ledger/INDEX.md' 0 'the complete Files inventory section is missing'
+    }
+    else {
+        $inventory = $filesSection.Groups[1].Value
+        $rowPattern = [regex]::new('(?m)^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)\s*\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*$')
+        $indexed = @{}
+        $filesByName = @{}
+        foreach ($lf in $ledgerFiles) { $filesByName[$lf.Name] = $lf }
 
-    foreach ($lf in $ledgerFiles) {
-        if ($indexText -notmatch [regex]::Escape($lf.Name)) {
-            Add-Finding 'ledger-file-unindexed' "docs/ledger/$($lf.Name)" 0 'file is not listed in INDEX.md'
-        }
-        # every H2 in the file is one ledger entry and must be indexed
-        $entryCount = 0
-        foreach ($h in [regex]::Matches([IO.File]::ReadAllText($lf.FullName), '(?m)^## (.+)$')) {
-            $entryCount++
-            $needle = $h.Groups[1].Value.Trim()
-            if ($needle.Length -gt 40) { $needle = $needle.Substring(0, 40) }
-            if ($indexText -notmatch [regex]::Escape($needle)) {
-                Add-Finding 'ledger-entry-unindexed' "docs/ledger/$($lf.Name)" 0 "entry not in INDEX.md: $needle"
+        foreach ($row in $rowPattern.Matches($inventory)) {
+            $target = $row.Groups[1].Value -replace '\\', '/'
+            $name = ($target -split '/')[-1]
+            if ($target -ne $name) {
+                Add-Finding 'ledger-index-path-invalid' 'docs/ledger/INDEX.md' 0 "inventory links must target a file in docs/ledger/: $target"
+            }
+
+            if ($indexed.ContainsKey($name)) {
+                Add-Finding 'ledger-file-duplicate-index' 'docs/ledger/INDEX.md' 0 "file is listed more than once: $name"
+                continue
+            }
+            $indexed[$name] = $true
+
+            if (-not $filesByName.ContainsKey($name)) {
+                Add-Finding 'ledger-index-unknown-file' 'docs/ledger/INDEX.md' 0 "inventory points to a file that is not in docs/ledger/: $name"
+                continue
+            }
+
+            $lf = $filesByName[$name]
+            $actualCount = [regex]::Matches([IO.File]::ReadAllText($lf.FullName), '(?m)^## ').Count
+            $claimedCount = [int]$row.Groups[2].Value
+            if ($claimedCount -ne $actualCount) {
+                Add-Finding 'ledger-entry-count-wrong' "docs/ledger/$name" 0 "INDEX.md says $claimedCount entries; the file has $actualCount level-two headings"
             }
         }
 
-        # The Files table's Entries column must be that file's heading count.
-        #
-        # Check 3 above proves every entry is *indexed*; it says nothing about the
-        # number the index prints, which is how the table came to claim 74 entries
-        # in total while six of its own per-file counts were wrong and the three
-        # sourced-from-BUILD-DOS files were listed as holding none. A count that
-        # nobody recomputes is a count that rots, and this file exists because a
-        # number nobody recomputes did.
-        $rowPattern = [regex]::Escape($lf.Name) + '\)\s*\|\s*(\d+)\s*\|'
-        $rowMatch = [regex]::Match($indexText, $rowPattern)
-        if ($rowMatch.Success) {
-            $claimed = [int]$rowMatch.Groups[1].Value
-            if ($claimed -ne $entryCount) {
-                Add-Finding 'ledger-entry-count-wrong' "docs/ledger/$($lf.Name)" 0 "INDEX.md says $claimed entries, the file has $entryCount '## ' headings"
+        foreach ($lf in $ledgerFiles) {
+            if (-not $indexed.ContainsKey($lf.Name)) {
+                Add-Finding 'ledger-file-unindexed' "docs/ledger/$($lf.Name)" 0 'file has no row in the Files inventory'
             }
-        }
-    }
-
-    # And the stated grand total must be the sum of the heading counts.
-    $grandTotal = 0
-    foreach ($lf in $ledgerFiles) {
-        $grandTotal += [regex]::Matches([IO.File]::ReadAllText($lf.FullName), '(?m)^## ').Count
-    }
-    $statedMatch = [regex]::Match($indexText, '\*\*(\d+)\s+(?:entries|headings)\*\*')
-    if ($statedMatch.Success) {
-        $stated = [int]$statedMatch.Groups[1].Value
-        if ($stated -ne $grandTotal) {
-            Add-Finding 'ledger-total-wrong' 'docs/ledger/INDEX.md' 0 "INDEX.md states $stated headings, the ledger holds $grandTotal across $($ledgerFiles.Count) files"
         }
     }
 }
@@ -176,18 +180,22 @@ else {
     Add-Finding 'ledger-index-missing' 'docs/ledger/INDEX.md' 0 'the ledger index is missing'
 }
 
-# --------------------------------------- check 4: no duplicated top headings
-$seen = @{}
-foreach ($lf in (Get-ChildItem -Path $ledgerDir -Filter '*.md' -File -ErrorAction SilentlyContinue)) {
-    foreach ($h in [regex]::Matches([IO.File]::ReadAllText($lf.FullName), '(?m)^## (.+)$')) {
-        $t = $h.Groups[1].Value.Trim()
-        if (-not $seen.ContainsKey($t)) { $seen[$t] = @() }
-        $seen[$t] += $lf.Name
+# -- check 4: one unique H1 title per ledger file
+$seenTitles = @{}
+foreach ($lf in $ledgerFiles) {
+    $titles = [regex]::Matches([IO.File]::ReadAllText($lf.FullName), '(?m)^# (.+)$')
+    if ($titles.Count -ne 1) {
+        Add-Finding 'ledger-title-count' "docs/ledger/$($lf.Name)" 0 "expected one H1 title, found $($titles.Count)"
+        continue
     }
+
+    $title = $titles[0].Groups[1].Value.Trim()
+    if (-not $seenTitles.ContainsKey($title)) { $seenTitles[$title] = @() }
+    $seenTitles[$title] += $lf.Name
 }
-foreach ($t in $seen.Keys) {
-    if ($seen[$t].Count -gt 1) {
-        Add-Finding 'duplicate-ledger-heading' ($seen[$t] -join ', ') 0 "same entry title in $($seen[$t].Count) files: $t"
+foreach ($title in $seenTitles.Keys) {
+    if ($seenTitles[$title].Count -gt 1) {
+        Add-Finding 'duplicate-ledger-title' ($seenTitles[$title] -join ', ') 0 "multiple ledger files use the same H1 title: $title"
     }
 }
 
@@ -206,12 +214,12 @@ Write-Host ('=' * 78)
 Write-Host '  doc-structure-check'
 Write-Host ('=' * 78)
 Write-Host ("  documents scanned : {0}" -f $docs.Count)
-Write-Host ("  ledger files      : {0}" -f (Get-ChildItem -Path $ledgerDir -Filter '*.md' -File -ErrorAction SilentlyContinue).Count)
+Write-Host ("  ledger files      : {0}" -f $ledgerFiles.Count)
 
 if ($findings.Count -eq 0) {
     Write-Host ''
-    Write-Host '  PASS - no line-number citations, no dangling links, no skipped'
-    Write-Host '         heading levels, and the ledger index is complete.'
+    Write-Host '  PASS - citations and links are valid, heading levels are sound,'
+    Write-Host '         and the ledger inventory and counts match.'
     exit 0
 }
 
