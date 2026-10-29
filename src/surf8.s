@@ -136,7 +136,7 @@ LSurfaceBlockMip0NotHorizontalFlat:
 	subl	%ebx,%ebx	// high word must be 0 in loop for addressing
 #if defined(ASM486_SURF8_MIP0_ROWS4) || defined(ASM486_SURF8_MIP0_ROWS8) || defined(ASM486_SURF8_MIP0_ROWS16)
 .macro SURF8_MIP0_ROW suffix
-	movl	%ebp,C(lightdelta)
+	pushl	%ebp
 	movb	14(%esi),%cl
 
 	sarl	$4,%ebp
@@ -261,7 +261,7 @@ LSurfaceBlockMip0NotHorizontalFlat:
 
 	movb	0x12345678(%ecx),%al
 .LLBPatch\suffix\()_15:
-	movl	C(lightdelta),%ebp
+	popl	%ebp
 
 	movl	%eax,(%edi)
 	addl	C(sourcetstep),%esi

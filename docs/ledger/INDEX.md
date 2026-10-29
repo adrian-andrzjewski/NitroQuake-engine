@@ -17,6 +17,7 @@ later insertion above it.
 | [`2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md`](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md) | 1 | renderer performance / remove the `TrailingEdge` bmodel-flag register load and test after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.1197%) |
 | [`2026-10-29-renderface-nearzionly-direct-compare-promoted.md`](2026-10-29-renderface-nearzionly-direct-compare-promoted.md) | 1 | renderer performance / replace the `R_RenderFace` near-z-only load/test with one direct compare after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0180%) |
 | [`2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md`](2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md) | 1 | renderer performance / compare the `R_RenderFace` cacheoffset sentinel directly in memory and remove its unused register load after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00379%) |
+| [`2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md`](2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md) | 1 | renderer performance / replace the unrolled mip-0 row's absolute `lightdelta` global spill/reload with balanced stack operations after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0001288%) |
 | [`2026-10-28-surface-cache-hit-inline-return-promoted.md`](2026-10-28-surface-cache-hit-inline-return-promoted.md) | 1 | renderer performance / inline the surface-cache hit epilogue and remove its unconditional jump after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00249156%) |
 | [`2026-10-28-surface-cache-style1-direct-compare-promoted.md`](2026-10-28-surface-cache-style1-direct-compare-promoted.md) | 1 | renderer performance / compare the style1 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00218581%) |
 | [`2026-10-28-surface-cache-style2-direct-compare-promoted.md`](2026-10-28-surface-cache-style2-direct-compare-promoted.md) | 1 | renderer performance / compare the style2 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00008004%) |
@@ -792,6 +793,10 @@ other axis: one row per renderer region, newest entry first.
 - `promoted` [mip-1 horizontal-flat surface blocks (2026-10-01) — **PROMOTED, 0.0513%**](2026-10-01-attribution-corrections.md)
 - `measured` [Horizontal-flat mip-0 surface blocks (2026-09-29)](2026-09-29-alias-and-surface-block-experiments.md)
 - `measured` [Pre-surface-block-loop control and PROFILE486 baseline (2026-09-28)](2026-09-29-alias-and-surface-block-experiments.md)
+
+### surface-blocks
+
+- `promoted` [`surf8` mip-0 row lightdelta stack spill (2026-10-29) — strict mean **+0.000021 FPS (+0.0001288%)**, exact checksum parity and complete executable i486 gate](2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md)
 
 ### surface-cache
 

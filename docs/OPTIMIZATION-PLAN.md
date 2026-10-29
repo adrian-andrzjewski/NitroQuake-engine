@@ -80,6 +80,16 @@ runs retained 969 frames and checksum `1047377823`; the complete executable
 i486 gate passed. See the
 [cacheoffset compare ledger](ledger/2026-10-29-renderface-cacheoffset-sentinel-direct-compare-promoted.md).
 
+### Surface mip-0 lightdelta stack spill (2026-10-29)
+
+`SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
+`pushl`/`popl` pair instead of storing and reloading it through the absolute
+`C(lightdelta)` global. The strict candidate averaged **16.304922 FPS** against
+the fresh strict control's **16.304901 FPS** (**+0.000021 FPS, +0.0001288%**).
+All runs retained 969 frames and checksum `1047377823`; the complete executable
+i486 gate passed. See the
+[mip-0 stack-spill ledger](ledger/2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md).
+
 Moving the Z-span U-coordinate load before the x87 origin add measured
 **15.601291333 FPS** against the control's **15.601303 FPS**
 (**−0.000011667 FPS, −0.00007478%**). All runs retained 969 frames and checksum
