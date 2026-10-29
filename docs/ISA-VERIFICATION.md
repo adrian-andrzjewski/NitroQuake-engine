@@ -65,6 +65,10 @@ output `.text`, the mapper checks its allocated-section proof, characteristics,
 size, and exact linked bytes. DIR32 data relocations are checked against their
 mapped section-relative targets. These bytes are recorded in `data-ranges.json`
 and remain outside the CODE ranges sent to the instruction decoder.
+The decoder batches up to 32 proved CODE ranges into one pinned `objdump`
+process. Each range remains a separate raw-binary input, so decoding starts at
+its proven boundary and never flows through adjacent data; output markers restore
+the matching section, code mode, symbol range and address before classification.
 The linked audit also accounts continuously for every byte in output `.text`,
 including wrapped input contributions such as `.text.unlikely` and `.rodata`.
 It checks the actual bytes and address ranges of linker `*fill*` records. The

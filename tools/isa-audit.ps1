@@ -419,22 +419,42 @@ foreach ($target in $targets) {
             }
         }
     }
-    foreach ($targetRange in $targetRanges) {
+    if ($targetRanges.Count -gt 0) {
     $symbol = '<none>'
     $section = '<none>'
     $codeMode = 32
-    if ($null -ne $targetRange -and $null -ne $targetRange.PSObject.Properties['codeMode']) {
-        $codeMode = [int]$targetRange.codeMode
+    $targetRange = $null
+    $rangesJsonPath = [IO.Path]::GetTempFileName()
+    try {
+        # Batch this target's disjoint CODE ranges without joining their instruction streams.
+        $rangesJson = ConvertTo-Json -InputObject @($targetRanges.ToArray()) -Depth 6
+        [IO.File]::WriteAllText($rangesJsonPath, $rangesJson, [Text.UTF8Encoding]::new($false))
+        $lines = & python (Join-Path $PSScriptRoot 'isa-disassemble.py') `
+            --target $target.path --ranges-json $rangesJsonPath --objdump $objdump
+        $disassemblerExitCode = $LASTEXITCODE
     }
-    $selectedSection = if ($null -ne $targetRange.PSObject.Properties['section']) { $targetRange.section } else { '.text' }
-    $lines = & python (Join-Path $PSScriptRoot 'isa-disassemble.py') `
-        --target $target.path --section $selectedSection `
-        --start ('0x{0:x}' -f [long]$targetRange.start) `
-        --end ('0x{0:x}' -f [long]$targetRange.end) --mode $codeMode --objdump $objdump
-    if ($LASTEXITCODE -ne 0) {
-        throw "objdump failed on '$($target.path)' with exit code $LASTEXITCODE."
+    finally {
+        Remove-Item -LiteralPath $rangesJsonPath -Force -ErrorAction SilentlyContinue
+    }
+    if ($disassemblerExitCode -ne 0) {
+        throw "Batched objdump failed on '$($target.path)' with exit code $disassemblerExitCode."
     }
     foreach ($line in $lines) {
+        $rangeMatch = [regex]::Match($line, '^@@ISA-RANGE (?<index>\d+)@@$')
+        if ($rangeMatch.Success) {
+            $rangeIndex = [int]$rangeMatch.Groups['index'].Value
+            if ($rangeIndex -lt 0 -or $rangeIndex -ge $targetRanges.Count) {
+                throw "Disassembler returned invalid range index $rangeIndex for '$($target.path)'."
+            }
+            $targetRange = $targetRanges[$rangeIndex]
+            $symbol = '<none>'
+            $section = '<none>'
+            $codeMode = 32
+            if ($null -ne $targetRange.PSObject.Properties['codeMode']) {
+                $codeMode = [int]$targetRange.codeMode
+            }
+            continue
+        }
         $sectionMatch = $sectionPattern.Match($line)
         if ($sectionMatch.Success) {
             $section = $sectionMatch.Groups[1].Value
