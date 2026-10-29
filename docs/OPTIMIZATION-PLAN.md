@@ -139,6 +139,15 @@ runs retained 969 frames and checksum `1047377823`; the complete executable
 i486 gate passed. See the
 [sort-exit ledger](ledger/2026-10-29-edge-sort-nonbmodel-exit-branch-promoted.md).
 
+### `R_GenerateSpans` non-bmodel sort pair unroll (2026-10-29)
+
+`Lsortloopnb` checks two active-surface nodes per back-edge, branching to
+insertion as soon as either comparison ends the search. The strict candidate
+averaged **16.321015333 FPS** against the committed strict control's
+**16.318158667 FPS** (**+0.002856667 FPS, +0.01750606%**). All runs retained
+969 frames and checksum `1047377823`; the complete executable i486 gate passed.
+See the [sort-pair unroll ledger](ledger/2026-10-29-edge-sort-nonbmodel-pair-unroll-promoted.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
