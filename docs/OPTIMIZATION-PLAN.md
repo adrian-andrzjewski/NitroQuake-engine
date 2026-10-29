@@ -60,6 +60,16 @@ averaged **16.301349 FPS** against a fresh strict control's **16.281853 FPS**
 `1047377823`; the complete executable i486 gate passed. See the
 [trailing-edge compare ledger](ledger/2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md).
 
+### RenderFace nearzi-only direct compare (2026-10-29)
+
+`R_RenderFace` now compares `C(r_nearzionly)` directly with zero instead of
+loading it into `%eax` and testing the register. The value only controlled the
+near-z-only early return. The strict candidate averaged **16.304283 FPS**
+against the fresh strict control's **16.301349 FPS**
+(**+0.002934 FPS, +0.0180%**). All runs retained 969 frames and checksum
+`1047377823`; the complete executable i486 gate passed. See the
+[near-z-only compare ledger](ledger/2026-10-29-renderface-nearzionly-direct-compare-promoted.md).
+
 Moving the Z-span U-coordinate load before the x87 origin add measured
 **15.601291333 FPS** against the control's **15.601303 FPS**
 (**−0.000011667 FPS, −0.00007478%**). All runs retained 969 frames and checksum

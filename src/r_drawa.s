@@ -242,8 +242,7 @@ LP1:
 // // for right edges, all we want is the effect on 1/z
 //	if (r_nearzionly)
 //		return;
-	movl	C(r_nearzionly),%eax
-	testl	%eax,%eax
+	cmpl	$0,C(r_nearzionly)
 	jz		LP2
 LPop5AndDone:
 	movl	C(cacheoffset),%eax

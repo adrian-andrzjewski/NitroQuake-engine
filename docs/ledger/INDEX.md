@@ -15,6 +15,7 @@ later insertion above it.
 | File | Entries | Region |
 |---|---:|---|
 | [`2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md`](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md) | 1 | renderer performance / remove the `TrailingEdge` bmodel-flag register load and test after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.1197%) |
+| [`2026-10-29-renderface-nearzionly-direct-compare-promoted.md`](2026-10-29-renderface-nearzionly-direct-compare-promoted.md) | 1 | renderer performance / replace the `R_RenderFace` near-z-only load/test with one direct compare after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.0180%) |
 | [`2026-10-28-surface-cache-hit-inline-return-promoted.md`](2026-10-28-surface-cache-hit-inline-return-promoted.md) | 1 | renderer performance / inline the surface-cache hit epilogue and remove its unconditional jump after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00249156%) |
 | [`2026-10-28-surface-cache-style1-direct-compare-promoted.md`](2026-10-28-surface-cache-style1-direct-compare-promoted.md) | 1 | renderer performance / compare the style1 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00218581%) |
 | [`2026-10-28-surface-cache-style2-direct-compare-promoted.md`](2026-10-28-surface-cache-style2-direct-compare-promoted.md) | 1 | renderer performance / compare the style2 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00008004%) |
@@ -577,6 +578,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### renderface
 
+- `promoted` [`R_RenderFace` near-z-only direct compare (2026-10-29) — strict mean **+0.002934 FPS (+0.0180%)**, exact checksum parity and complete executable i486 gate](2026-10-29-renderface-nearzionly-direct-compare-promoted.md)
 - `promoted` [`R_RenderFace` cached-edge surface check with one direct 16-bit compare (2026-10-28) — **+0.001005 FPS (+0.006188%)**, exact checksum parity and complete i486 ISA audit](2026-10-28-renderface-cached-surface-compare-promoted.md)
 - `rejected` [`R_RenderFace` edge cache sentinel sign-test screen (2026-10-27) — **−0.000020667 FPS (−0.0001283%)**, exact checksum parity](2026-10-27-renderface-edge-cache-sign-test-screen-rejected.md)
 - `promoted` [`R_RenderFace` assembly selected for i486 (2026-10-22) — **+0.39763%** against the matched C reference](2026-10-22-renderface-assembly-promoted.md)
