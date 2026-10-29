@@ -354,12 +354,12 @@ TrailingEdge:
 	decl	st_spanstate(%esi)
 	jnz		LInverted
 
-	movl	st_insubmodel(%esi),%ecx
+	// Compare in memory; the patched MOV below preserves these branch flags.
+	cmpl	$0,st_insubmodel(%esi)
 	movl	0x12345678,%edx		// surfaces[1].st_next
 LPatch0:
 	// World surfaces have insubmodel==0; skip the counter.  Bmodels match
 	// C's r_bmodelactive-- with a single decl instead of load/sub/store.
-	testl	%ecx,%ecx
 	jz		LSkipBmodelDec
 	decl	C(r_bmodelactive)
 LSkipBmodelDec:

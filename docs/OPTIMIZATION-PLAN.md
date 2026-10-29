@@ -49,6 +49,17 @@ FPS** against the current strict control's **16.261895667 FPS**
 `1047377823`; the complete executable i486 gate passed. See the
 [spanstate compare ledger](ledger/2026-10-28-edge-leading-spanstate-direct-compare-promoted.md).
 
+### Edge-scan trailing-edge bmodel dispatch (2026-10-29)
+
+`TrailingEdge` now compares `st_insubmodel(%esi)` directly with zero. The
+independent patched `surfaces[1].st_next` load remains between the compare and
+branch and preserves the flags, removing the register load and `testl` while
+keeping `LPatch0` immediately after its patched load. The strict candidate
+averaged **16.301349 FPS** against a fresh strict control's **16.281853 FPS**
+(**+0.019496 FPS, +0.1197%**). All runs retained 969 frames and checksum
+`1047377823`; the complete executable i486 gate passed. See the
+[trailing-edge compare ledger](ledger/2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md).
+
 Moving the Z-span U-coordinate load before the x87 origin add measured
 **15.601291333 FPS** against the control's **15.601303 FPS**
 (**−0.000011667 FPS, −0.00007478%**). All runs retained 969 frames and checksum

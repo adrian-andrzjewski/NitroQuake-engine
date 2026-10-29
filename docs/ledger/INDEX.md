@@ -14,6 +14,7 @@ later insertion above it.
 
 | File | Entries | Region |
 |---|---:|---|
+| [`2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md`](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md) | 1 | renderer performance / remove the `TrailingEdge` bmodel-flag register load and test after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.1197%) |
 | [`2026-10-28-surface-cache-hit-inline-return-promoted.md`](2026-10-28-surface-cache-hit-inline-return-promoted.md) | 1 | renderer performance / inline the surface-cache hit epilogue and remove its unconditional jump after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00249156%) |
 | [`2026-10-28-surface-cache-style1-direct-compare-promoted.md`](2026-10-28-surface-cache-style1-direct-compare-promoted.md) | 1 | renderer performance / compare the style1 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00218581%) |
 | [`2026-10-28-surface-cache-style2-direct-compare-promoted.md`](2026-10-28-surface-cache-style2-direct-compare-promoted.md) | 1 | renderer performance / compare the style2 sentinel directly in memory and skip the byte load when unused after a positive strict mean, exact checksum parity, and complete i486 ISA audit (+0.00008004%) |
@@ -497,6 +498,7 @@ other axis: one row per renderer region, newest entry first.
 
 ### edge-scan
 
+- `promoted` [`TrailingEdge` bmodel direct compare (2026-10-29) — strict mean **+0.019496 FPS (+0.1197%)**, exact checksum parity and complete executable i486 gate](2026-10-29-edge-trailing-insubmodel-direct-compare-promoted.md)
 - `promoted` [`R_GenerateSpans` leading-edge spanstate direct compare (2026-10-28) — strict mean **+0.019957666 FPS (+0.1227%)**, exact checksum parity and complete executable i486 gate](2026-10-28-edge-leading-spanstate-direct-compare-promoted.md)
 - `promoted` [`R_GenerateSpans` leading-edge `insubmodel` direct compare (2026-10-28) — strict mean **+0.020008667 FPS (+0.1232%)**, exact checksum parity and complete executable i486 gate](2026-10-28-edge-leading-insubmodel-compare-promoted.md)
 - `rejected` [`TrailingEdge` `current_iv` load interleave (2026-10-26) — parity-screen mean **−0.000017333 FPS**, exact checksum parity](2026-10-26-edge-trailing-current-iv-load-screen-rejected.md)
