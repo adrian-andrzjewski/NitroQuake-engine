@@ -127,8 +127,7 @@ C(R_ClipSpriteFace_asm486):
 	movl	%eax,-28(%ebp)
 	movl	12(%ebp),%eax
 	movl	%eax,-24(%ebp)
-	movl	C(clip_current),%eax
-	testl	%eax,%eax
+	cmpl	$0,C(clip_current)
 	je	.Lsprite_clip_input_zero
 	leal	C(clip_verts)+400,%eax
 	movl	%eax,-16(%ebp)

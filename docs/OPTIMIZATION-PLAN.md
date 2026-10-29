@@ -110,6 +110,16 @@ matched, but the pooled mean was negative, so the assembly was restored and no
 strict audit was run. See the
 [rejected compare ledger](ledger/2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md).
 
+### Sprite clip-current direct compare (2026-10-29)
+
+`R_ClipSpriteFace_asm486` now compares `clip_current` directly with zero,
+removing the load into `%eax` and register test before the buffer-selection
+branch. The strict candidate averaged **16.312544667 FPS** against the current
+parent's **16.312519333 FPS** (**+0.000025333 FPS, +0.00015530%**). All runs
+retained 969 frames and checksum `1047377823`; the complete executable i486
+gate passed. See the
+[sprite clip-current ledger](ledger/2026-10-29-r-clipsprite-clipcurrent-direct-compare-promoted.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
