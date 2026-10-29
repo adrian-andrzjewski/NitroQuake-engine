@@ -602,6 +602,36 @@ incl	C(bench486_edge_sort_iters)
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
 	jl		LInsertAndExit
+	// Continue through two more surfaces before the loop back-edge.
+	// Keep PROFILE486's count and the sort probe per surface comparison.
+#ifdef PROFILE486
+	incl	C(bench486_edge_sort_iters)
+#endif
+#ifdef EDGE_SCAN_PROBE_SORT
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+#endif
+	movl	st_next(%esi),%esi
+	cmpl	st_key(%esi),%eax
+	jl		LInsertAndExit
+#ifdef PROFILE486
+	incl	C(bench486_edge_sort_iters)
+#endif
+#ifdef EDGE_SCAN_PROBE_SORT
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+#endif
+	movl	st_next(%esi),%esi
+	cmpl	st_key(%esi),%eax
+	jl		LInsertAndExit
 	jmp	Lsortloopnb
 
 

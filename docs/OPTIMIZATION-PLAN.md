@@ -148,6 +148,15 @@ averaged **16.321015333 FPS** against the committed strict control's
 969 frames and checksum `1047377823`; the complete executable i486 gate passed.
 See the [sort-pair unroll ledger](ledger/2026-10-29-edge-sort-nonbmodel-pair-unroll-promoted.md).
 
+### `R_GenerateSpans` non-bmodel sort four-way unroll (2026-10-29)
+
+`Lsortloopnb` checks four active-surface nodes per back-edge, branching to
+insertion as soon as any comparison ends the search. The strict candidate
+averaged **16.321664 FPS** against the committed strict control's
+**16.321015333 FPS** (**+0.000648667 FPS, +0.00397443%**). All runs retained
+969 frames and checksum `1047377823`; the complete executable i486 gate passed.
+See the [sort-four unroll ledger](ledger/2026-10-29-edge-sort-nonbmodel-four-unroll-promoted.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
