@@ -90,6 +90,16 @@ strict candidate averaged **16.309177 FPS** against the committed parent's
 frames and checksum `1047377823`; the complete executable i486 gate passed.
 See the [shared edge-address ledger](ledger/2026-10-29-renderface-shared-edge-address-promoted.md).
 
+### RenderFace cached-edge marker memory test (2026-10-29)
+
+The regular edge loop tests the cached-offset high bit directly in memory and
+loads the offset into `%eax` only on the marked path that needs its frame value.
+The strict candidate averaged **16.312519333 FPS** against the committed
+parent's **16.309177 FPS** (**+0.003342333 FPS, +0.02049357%**). All runs
+retained 969 frames and checksum `1047377823`; the complete executable i486
+gate passed. See the
+[marker-test ledger](ledger/2026-10-29-renderface-edge-marker-memory-test-promoted.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced

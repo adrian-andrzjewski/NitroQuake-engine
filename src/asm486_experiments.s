@@ -2439,9 +2439,10 @@ C(R_RenderFace_asm486):
 .Lrf_edge_address_ready:
 	leal	(%ebp,%eax,8),%ecx
 .Lrf_edge_ready:
-	movl	4(%ecx),%eax
-	testl	$0x80000000,%eax
+	/* Fetch the cached offset only when its high-bit frame marker is set. */
+	testl	$0x80000000,4(%ecx)
 	je	.Lrf_check_regular_cache
+	movl	4(%ecx),%eax
 	andl	$0x7fffffff,%eax
 	cmpl	C(r_framecount),%eax
 	jne	.Lrf_clip_edge
