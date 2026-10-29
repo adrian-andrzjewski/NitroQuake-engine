@@ -100,6 +100,16 @@ retained 969 frames and checksum `1047377823`; the complete executable i486
 gate passed. See the
 [marker-test ledger](ledger/2026-10-29-renderface-edge-marker-memory-test-promoted.md).
 
+### `R_ClipEdge` left-clipped direct compare rejected (2026-10-29)
+
+The `R_ClipEdge` both-clipped branch compared `r_leftclipped` directly in
+memory instead of loading it into `%eax` and testing the register. Its
+three-run parity screen averaged **16.274258333 FPS** against the committed
+parent's **16.312519333 FPS** (**−0.038261 FPS, −0.23454991%**). The checksum
+matched, but the pooled mean was negative, so the assembly was restored and no
+strict audit was run. See the
+[rejected compare ledger](ledger/2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md).
+
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
 `SURF8_MIP0_ROW` now preserves the unshifted `%ebp` delta with a balanced
