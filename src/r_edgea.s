@@ -586,12 +586,12 @@ incl	C(bench486_edge_sort_iters)
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
 	jl		LInsertAndExit
-	// Walk a second surface before taking the loop back-edge.
+	// Continue in groups of eight surfaces, exiting at the insertion point.
 #ifdef PROFILE486
 	incl	C(bench486_edge_sort_iters)
 #endif
 #ifdef EDGE_SCAN_PROBE_SORT
-	// Repeat the sort probe for the second comparison in this unrolled pair.
+	// Repeat the sort probe before the next comparison in this group.
 	movl	st_next(%esi),%ecx
 	cmpl	st_key(%esi),%ecx
 	movl	st_next(%esi),%ecx
@@ -602,7 +602,6 @@ incl	C(bench486_edge_sort_iters)
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
 	jl		LInsertAndExit
-	// Continue through two more surfaces before the loop back-edge.
 	// Keep PROFILE486's count and the sort probe per surface comparison.
 #ifdef PROFILE486
 	incl	C(bench486_edge_sort_iters)
@@ -629,6 +628,62 @@ incl	C(bench486_edge_sort_iters)
 	movl	st_next(%esi),%ecx
 	cmpl	st_key(%esi),%ecx
 #endif
+	movl	st_next(%esi),%esi
+	cmpl	st_key(%esi),%eax
+	jl		LInsertAndExit
+	#ifdef PROFILE486
+	incl	C(bench486_edge_sort_iters)
+	#endif
+	#ifdef EDGE_SCAN_PROBE_SORT
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	#endif
+	movl	st_next(%esi),%esi
+	cmpl	st_key(%esi),%eax
+	jl		LInsertAndExit
+	#ifdef PROFILE486
+	incl	C(bench486_edge_sort_iters)
+	#endif
+	#ifdef EDGE_SCAN_PROBE_SORT
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	#endif
+	movl	st_next(%esi),%esi
+	cmpl	st_key(%esi),%eax
+	jl		LInsertAndExit
+	#ifdef PROFILE486
+	incl	C(bench486_edge_sort_iters)
+	#endif
+	#ifdef EDGE_SCAN_PROBE_SORT
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	#endif
+	movl	st_next(%esi),%esi
+	cmpl	st_key(%esi),%eax
+	jl		LInsertAndExit
+	#ifdef PROFILE486
+	incl	C(bench486_edge_sort_iters)
+	#endif
+	#ifdef EDGE_SCAN_PROBE_SORT
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	movl	st_next(%esi),%ecx
+	cmpl	st_key(%esi),%ecx
+	#endif
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
 	jl		LInsertAndExit
