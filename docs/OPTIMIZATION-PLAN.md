@@ -35,6 +35,14 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Client update bit-count loop removal promoted (2026-10-30)
+
+`CL_ParseUpdate` no longer scans all 16 update bits to increment the unread
+`bitcounts` array. Three matched 320x200 runs averaged **16.328159333 FPS**,
+**+0.006439 FPS (+0.0394505%)** over control. All runs retained 969 frames,
+checksum `1047377823`, and identical recorded event traces; the full linked
+i486 gate passed. See the [client parser ledger](ledger/2026-10-30-cl-parseupdate-bitcounts-promoted.md).
+
 ### RenderWorld assembly selector rejected (2026-10-30)
 
 The C and assembly `R_RenderWorld` selectors were the only build difference.
