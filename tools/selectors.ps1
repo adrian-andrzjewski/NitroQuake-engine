@@ -420,9 +420,9 @@ $script:SelectorTable = @(
     @{
         Param      = 'TextureSpanAddressing'
         Manifest   = 'textureSpanAddressing'
-        Suffix     = @{ 'branch' = 'spanaddrbranch' }
+        Suffix     = @{}
         C          = @{}
-        Asm        = @{ 'branch' = @('ASM486_SPAN16_BRANCH_ADDRESS') }
+        Asm        = @{}
         SelectsAsm = $false
     }
 

@@ -79,7 +79,7 @@ param(
     [string]$TextureSpanStores = 'word',
     [ValidateSet('control', 'loadfirst')]
     [string]$TextureSpanLoadOrder = 'control',
-    [ValidateSet('control', 'branch')]
+    [ValidateSet('control')]
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',

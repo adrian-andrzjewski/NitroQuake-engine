@@ -231,6 +231,9 @@ void D_CacheSurfaceSetup_asm486 (msurface_t *surface, int miplevel,
 		drawsurf_t *drawsurf);
 void D_CacheSurfaceKeys_asm486 (msurface_t *surface, texture_t *texture,
 		drawsurf_t *drawsurf, int *lightstylevalues);
+surfcache_t *D_CacheSurfaceCheckAndPrepare_asm486 (msurface_t *surface,
+		texture_t *texture, drawsurf_t *drawsurf, int *lightstylevalues,
+		surfcache_t *cache);
 void D_CacheSurfaceStoreTags_asm486 (surfcache_t *cache,
 		drawsurf_t *drawsurf);
 void D_CacheSurfaceAttach_asm486 (msurface_t *surface, int miplevel,

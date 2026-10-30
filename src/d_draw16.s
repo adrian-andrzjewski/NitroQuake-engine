@@ -146,9 +146,18 @@ LSpanLoop:
 //
 // FIXME: pipeline FILD?
 	fildl	espan_t_v(%ebx)
+	fildl	espan_t_u(%ebx)
+	// Keep the independent integer loads behind both x87 loads so they can
+	// occupy the FPU's conversion window before the dependent arithmetic.
 	movl	espan_t_v(%ebx),%eax
 	movl	C(tadjust),%edx
-	fildl	espan_t_u(%ebx)
+	// Fetch the span's destination and continuation state while x87 setup runs.
+	pushl	espan_t_pnext(%ebx)
+	movl	C(sadjust),%esi
+	movl	C(viewspantable)(,%eax,4),%edi
+	movl	espan_t_u(%ebx),%ecx
+	addl	%ecx,%edi
+	movl	espan_t_count(%ebx),%ecx
 
 	fld		%st(1)			// dv | du | dv
 	fmuls	C(d_sdivzstepv)	// dv*d_sdivzstepv | du | dv
@@ -207,14 +216,6 @@ LSpanLoop:
 // Row addresses come from viewspantable (filled in D_SetupFrame) instead of
 // d_scantable plus d_viewbuffer.  C D_DrawSpans8 still multiplies screenwidth.
 //
-	pushl	espan_t_pnext(%ebx)	// preserve the next span before %ebx is reused
-
-	movl	C(sadjust),%esi
-	movl	C(viewspantable)(,%eax,4),%edi	// row base
-	movl	espan_t_u(%ebx),%ecx
-	addl	%ecx,%edi				// pdest = &pdestspan[scans->u];
-	movl	espan_t_count(%ebx),%ecx
-
 //
 // now start the FDIV for the end of the span
 //
@@ -709,7 +710,7 @@ LSpan16LoopA:
 	decl	jumptemp
 	stosb
 	jnz		LSpan16LoopA
-#elif defined(ASM486_SPAN16_WORD_STORES) && !defined(ASM486_SPAN16_BRANCH_ADDRESS)
+#elif defined(ASM486_SPAN16_WORD_STORES)
 #ifdef ASM486_SPAN16_WORD_STOS
 	incl	%edi
 #endif
@@ -765,118 +766,6 @@ LSpan16LoopA:
 	sbbl	%ecx,%ecx
 	addl	%ebp,%ebx
 	adcl	advancetable+4(,%ecx,4),%esi
-	SPAN16_STORE_WORD(7)
-#elif defined(ASM486_SPAN16_BRANCH_ADDRESS)
-	// Opt-in address-update experiment: replace the indexed two-entry
-	// advance table with direct base/extra adds selected by the T carry.
-	// The S carry is produced after the selection test, so ADC keeps the
-	// original fixed-point order and source cursor semantics.
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA1Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA1Done
-LSpan16BranchA1Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA1Done:
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%ah
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA2Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA2Done
-LSpan16BranchA2Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA2Done:
-	SPAN16_STORE_WORD(1)
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA3Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA3Done
-LSpan16BranchA3Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA3Done:
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%ah
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA4Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA4Done
-LSpan16BranchA4Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA4Done:
-	SPAN16_STORE_WORD(3)
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA5Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA5Done
-LSpan16BranchA5Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA5Done:
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%ah
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA6Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA6Done
-LSpan16BranchA6Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA6Done:
-	SPAN16_STORE_WORD(5)
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA7Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA7Done
-LSpan16BranchA7Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA7Done:
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%ah
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchA8Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchA8Done
-LSpan16BranchA8Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchA8Done:
 	SPAN16_STORE_WORD(7)
 #else
 	addl	tstep,%edx
@@ -1209,7 +1098,7 @@ LSpan16LoopB:
 	decl	jumptemp
 	stosb
 	jnz		LSpan16LoopB
-#elif defined(ASM486_SPAN16_WORD_STORES) && !defined(ASM486_SPAN16_BRANCH_ADDRESS)
+#elif defined(ASM486_SPAN16_WORD_STORES)
 #ifdef ASM486_SPAN16_LOAD_FIRST
 	movb	(%esi),%al
 	addl	tstep,%edx
@@ -1302,198 +1191,6 @@ LSpan16LoopB:
 	adcl	advancetable+4(,%ecx,4),%esi
 #endif
 
-#elif defined(ASM486_SPAN16_BRANCH_ADDRESS)
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchB1Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchB1Done
-LSpan16BranchB1Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchB1Done:
-	movb	(%esi),%ah
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchB2Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchB2Done
-LSpan16BranchB2Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchB2Done:
-	SPAN16_STORE_WORD(9)
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchB3Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchB3Done
-LSpan16BranchB3Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchB3Done:
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%ah
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchB4Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchB4Done
-LSpan16BranchB4Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchB4Done:
-	SPAN16_STORE_WORD(11)
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchB5Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchB5Done
-LSpan16BranchB5Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchB5Done:
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%ah
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchB6Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchB6Done
-LSpan16BranchB6Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchB6Done:
-	SPAN16_STORE_WORD(13)
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	(%esi),%al
-	testl	%ecx,%ecx
-	jnz		LSpan16BranchB7Carry
-	addl	%ebp,%ebx
-	adcl	advancetable+4,%esi
-	jmp		LSpan16BranchB7Done
-LSpan16BranchB7Carry:
-	addl	%ebp,%ebx
-	adcl	advancetable,%esi
-LSpan16BranchB7Done:
-
-#elif defined(ASM486_SPAN16_DWORD_STORES)
-	movb	(%esi),%al
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-	movb	(%esi),%ah
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-	rorl	$16,%eax
-	movb	(%esi),%al
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-	movb	(%esi),%ah
-	rorl	$16,%eax
-	movl	%eax,8(%edi)
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-
-	movb	(%esi),%al
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-	movb	(%esi),%ah
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-	rorl	$16,%eax
-	movb	(%esi),%al
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-	movb	(%esi),%ah
-	rorl	$16,%eax
-	movl	%eax,12(%edi)
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	addl	%ebp,%ebx
-	adcl	advancetable+4(,%ecx,4),%esi
-	shrl	$24,%eax
-#else
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	%al,8(%edi)
-	addl	%ebp,%ebx
-	movb	(%esi),%al
-	adcl	advancetable+4(,%ecx,4),%esi
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	%al,9(%edi)
-	addl	%ebp,%ebx
-	movb	(%esi),%al
-	adcl	advancetable+4(,%ecx,4),%esi
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	%al,10(%edi)
-	addl	%ebp,%ebx
-	movb	(%esi),%al
-	adcl	advancetable+4(,%ecx,4),%esi
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	%al,11(%edi)
-	addl	%ebp,%ebx
-	movb	(%esi),%al
-	adcl	advancetable+4(,%ecx,4),%esi
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	%al,12(%edi)
-	addl	%ebp,%ebx
-	movb	(%esi),%al
-	adcl	advancetable+4(,%ecx,4),%esi
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	%al,13(%edi)
-	addl	%ebp,%ebx
-	movb	(%esi),%al
-	adcl	advancetable+4(,%ecx,4),%esi
-
-	addl	tstep,%edx
-	sbbl	%ecx,%ecx
-	movb	%al,14(%edi)
-	addl	%ebp,%ebx
-	movb	(%esi),%al
-	adcl	advancetable+4(,%ecx,4),%esi
 #endif
 
 LSpan16AfterStoresB:

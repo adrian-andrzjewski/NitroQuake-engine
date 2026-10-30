@@ -29,6 +29,415 @@ Entries that were rejected for measured slowdown, incorrect output, an
 inapplicable workload, or an obsolete implementation remain closed for those
 reasons.
 
+## Active resolution target
+
+Per the user's direction on 2026-10-29, optimize and qualify the renderer at
+320x200 only. Higher resolutions are outside the active 486 performance scope
+because they are too slow for the target class of hardware.
+
+### RenderWorld assembly selector rejected (2026-10-30)
+
+The C and assembly `R_RenderWorld` selectors were the only build difference.
+Three uninstrumented 320x200 pairs averaged **16.329198333 FPS** for C and
+**16.329114333 FPS** for assembly (**-0.000084 FPS, -0.0005144%**). Assembly
+lost all three pairs; all six runs rendered 969 frames with checksum
+`1047377823`, and both builds passed the full i486 gate. The C selector remains
+the default. See the [RenderWorld selector ledger](ledger/2026-10-30-render-world-asm-timing-rejected.md).
+
+### RenderFace empty-clip fast branch rejected (2026-10-30)
+
+Adding a `testl`/branch to skip four clip-plane checks when no low clip bits
+were set preserved the 320x200 output and passed the strict i486 executable
+gate, but five alternating uninstrumented pairs averaged **16.3196218 FPS**
+against **16.3217274 FPS** control (**-0.0021056 FPS, -0.0129006%**). All runs
+rendered 969 frames with checksum `1047377823`; two correctly configured
+visual captures passed golden and repeated-frame checks. The added decision cost
+more than it saved here, so the shortcut was reverted. See the [RenderFace
+empty-clip ledger](ledger/2026-10-30-renderface-empty-clipflags-fastpath-rejected.md).
+
+### Non-bmodel edge-sort 10-vs-12 unroll recheck (2026-10-30)
+
+The ten-comparison candidate preserved comparison order and passed all five
+969-frame checksum checks, but averaged **16.3217204 FPS** against **16.3217212
+FPS** for the twelve-comparison control (**-0.0000008 FPS, -0.00000490%**).
+The paired spread was -0.000030 to +0.000024 FPS. This is no measurable gain;
+leave the twelve-comparison worktree path in place. The candidate's renderer
+ISA audit was skipped after the non-positive mean. See the [edge-sort unroll
+ledger](ledger/2026-10-30-edge-sort-unroll-10-vs-12-rejected.md).
+
+### Non-bmodel edge-sort sixteen-continuation trial rejected (2026-10-30)
+
+Adding two comparisons to the promoted fourteen-continuation `Lsortloopnb`
+group averaged **16.321720 FPS** against **16.321713667 FPS** for a fresh
+fourteen-continuation control (**+0.000006333 FPS, +0.00003880%**). The
+candidate's 0.000064 FPS spread exceeded the mean delta. All six runs retained
+969 frames and checksum `1047377823`; both complete i486 audits passed. The
+candidate was restored because the result did not establish a measurable gain.
+See the [sixteen-continuation trial ledger](ledger/2026-10-30-edge-sort-nonbmodel-sixteen-continuation-rejected.md).
+
+### Non-bmodel edge-sort fifteen-continuation trial rejected (2026-10-30)
+
+Adding one comparison to the promoted fourteen-continuation `Lsortloopnb`
+group averaged **16.328151667 FPS** against **16.328159333 FPS** for its
+matched control (**-0.000007667 FPS, -0.00004696%**). All six runs rendered
+969 frames with checksum `1047377823` and identical recorded event traces; the
+candidate passed the full i486 audit. The source was restored because the mean
+was negative and below both sample spreads. See the [fifteen-continuation
+trial ledger](ledger/2026-10-30-edge-sort-nonbmodel-fifteen-continuation-rejected.md).
+
+### Non-bmodel edge-sort thirteen-continuation trial rejected (2026-10-30)
+
+Reducing the retained fourteen-continuation `Lsortloopnb` body by one ordered
+comparison averaged **16.328471 FPS** against **16.328474667 FPS** control
+(**-0.000003667 FPS, -0.00002246%**). All six runs retained 969 frames, final
+checksum `1047377823`, and matching event traces. The isolated timing build
+skipped ISA audit; the candidate was restored after the negative mean. See the
+[thirteen-continuation trial ledger](ledger/2026-10-30-edge-sort-nonbmodel-thirteen-continuation-rejected.md).
+
+Adding two comparisons to the retained non-bmodel sort group was also rejected.
+The three-run candidate averaged **16.321728333 FPS** against **16.321726000
+FPS** for control (**+0.000002333 FPS, +0.0000143%**), below both sample
+spreads. All six runs retained 969 frames and checksum `1047377823`; the
+candidate passed the complete i486 gate. The source was restored without a
+fixed-step frame-stream or PCX comparison because timing showed no measurable
+gain. See the [current-source sixteen-comparison recheck ledger](ledger/2026-10-30-edge-sort-nonbmodel-sixteen-current-source-recheck-rejected.md).
+
+### 320x200 framebuffer page-offset pad (2026-10-30)
+
+`VGA_FreeAndAllocVidbuffer` reserves 16 extra bytes for a single-buffer
+320x200 mode and moves the RAM framebuffer start by 16 bytes, changing its 4 KB
+page offset from 1,024 to 1,040 while preserving 16-byte alignment. The
+surface-cache base remains unchanged. The strict DOSBox-X candidate averaged
+**16.329118 FPS** against **16.329114333 FPS** for control
+(**+0.000003667 FPS, +0.00002246%**); both three-run sets retained 969 frames
+and checksum `1047377823`. The delta is below the sample spreads but meets the
+current positive-mean rule. All linked object, executable, startup, and DPMI
+provider i486 gates passed. DOSBox-X does not model the page-conflict mechanism
+that motivated the layout change, so its physical-486 benefit is unverified.
+See the [framebuffer page-offset ledger](ledger/2026-10-30-vga-framebuffer-page-offset-pad-promoted.md).
+
+### Surface-cache leaf hit fast path rejected (2026-10-30)
+
+A leaf return for static-texture surface-cache hits averaged **16.325488 FPS**
+against **16.321713667 FPS** control (**+0.003774333 FPS, +0.0231%**) across
+three uninstrumented 320x200 runs. The i486 ISA audit passed, and both builds
+retained the final checksum `1047377823`. However, 34 of 970 per-frame
+checksums differed in the matched capture runs. Frame 500 was byte-identical,
+but that does not establish full parity; the source change was restored. See
+the [surface-cache leaf fast-path ledger](ledger/2026-10-30-surface-cache-hit-fastpath-rejected.md).
+
+### Surface-cache hit pointer in EBX, current-source recheck retained (2026-10-30)
+
+Keeping the cache pointer in `%ebx` through the hit-key checks gained **0.000315333
+FPS (+0.0019312%)** in three matched 320x200 runs on the current source tree.
+All six timedemos retained the 969-frame final checksum and matching event
+traces. A separate fixed-step comparison matched all 970 per-frame checksums;
+the captured frame was byte-identical to control and passed the committed golden
+comparison. The full linked i486 audit passed. This is a recheck of the
+2026-10-29 register schedule against a changed current-source baseline; its older
+negative result remains documented, while this current-source version is
+retained. See the [EBX current-source recheck ledger](ledger/2026-10-30-surface-cache-hit-ebx-current-recheck-promoted.md).
+
+### Surface-cache hit-key order rejected (2026-10-30)
+
+Checking the cached texture pointer before `cache->dlight` averaged **16.328385333
+FPS**, versus **16.328474667 FPS** for the retained order (**-0.000089333 FPS,
+-0.000547102%**). All six 320x200 runs retained the 969-frame final checksum
+and event traces, and the full i486 audit passed. The reorder was reverted. See
+the [key-order ledger](ledger/2026-10-30-surface-cache-key-order-rejected.md).
+
+### Surface-cache hit pointer register reuse (2026-10-29)
+
+Keeping the cache pointer in `%edi` across `R_DlightContributes` passed the
+320x200 checksum and complete i486 gates. Two parity screens pooled to a small
+positive delta of **0.000006333 FPS (+0.0000388%)**, but the matched strict
+three-run means were both **16.321711333 FPS**. The strict comparison has no
+positive gain, so the stack save/restore remains. See the
+[cache-pointer register ledger](ledger/2026-10-29-surface-cache-hit-edi-pointer-strict-rejected.md).
+
+### Z-span row-index load interleave (2026-10-29)
+
+In both `D_DrawZSpans` loops, the row-table index load now sits between the
+coordinate `FILD` operations, without changing the x87 arithmetic sequence.
+The strict 320x200 candidate averaged **16.321714333 FPS** against **16.321711333
+FPS** control (**+0.000003 FPS, +0.00001838%**). All six strict runs retained
+969 frames and checksum `1047377823`; the complete linked i486 ISA audit passed.
+Two full visual runs passed the golden comparison, and both 970-entry frame
+checksum streams exactly matched the control. See the
+[Z-span row-index ledger](ledger/2026-10-29-zspan-row-index-load-interleave-promoted.md).
+
+### Z-span row-table lookup before second FILD rejected (2026-10-30)
+
+Moving the `zspantable[espan_t_v]` lookup before the second coordinate `FILD`
+in both positive- and negative-gradient Z-span loops passed the complete i486
+gate and retained all six 969-frame final checksums. The candidate mean was
+**16.321718333 FPS**, **0.000016 FPS slower (-0.0000980%)** than the fresh
+control mean of **16.321734333 FPS**. The lookup returned to its previous
+position. See the [Z-row lookup ledger](ledger/2026-10-30-zspan-row-table-before-fild-rejected.md).
+
+### Z-span pair add schedule, current-source recheck rejected (2026-10-30)
+
+Moving the independent second inverse-depth add between `SHLD` and `ROR`
+averaged **16.328468667 FPS**, versus **16.328474667 FPS** for the retained
+current-source control (**-0.000006 FPS, -0.0000367%**). All six runs retained
+the 969-frame final checksum and event traces; the complete i486 audit passed.
+The change was reverted. This rechecks a similar 2026-10-21 schedule against
+the current baseline; see the [current-source ledger](ledger/2026-10-30-zspan-pair-add-schedule-rejected.md).
+
+### Z-span 64-pixel nonnegative group rejected (2026-10-30)
+
+Doubling the nonnegative depth loop group from 32 to 64 pixels averaged
+**16.326761 FPS** versus **16.328474667 FPS** control (**-0.001713667 FPS,
+-0.01049496%**). Although all six runs ended at checksum `1047377823`, exact
+per-frame comparison found 149/970 mismatches and frame 169 changed 18,825 of
+64,000 pixels. The candidate fails visual parity and was reverted; its timing
+is diagnostic only. The complete linked i486 gate passed. See the [64-pixel
+Z-span ledger](ledger/2026-10-30-zspan-unroll-64-rejected.md).
+
+### Span16 tfrac load between address store and cache-width add rejected (2026-10-30)
+
+Moving the `tfracf` load between the `advancetable+4` store and `cachewidth`
+add in both setup arms averaged **16.328472 FPS**, **0.000002667 FPS slower
+(-0.00001633%)** than the retained control. All six runs ended at checksum
+`1047377823` with matching event traces; the captured frame-169 images matched
+pixel-for-pixel. Repeated control captures themselves differed at 18
+intermediate frame checksums, so the 19 candidate/control checksum differences
+do not isolate a candidate-caused rendering change. The candidate passed the
+complete linked i486 gate and was reverted for its negative mean. See the
+[Span16 setup-schedule ledger](ledger/2026-10-30-span16-tfrac-between-store-width-rejected.md).
+
+### Span16 x87/integer load scheduling (2026-10-29)
+
+In `D_DrawSpans16`, both coordinate `FILD` operations now precede the
+independent row, destination, count, and continuation loads. These loads run
+before the dependent x87 arithmetic while preserving its stack and operation
+order. The strict candidate averaged **16.321723 FPS** against the original
+schedule's **16.320915667 FPS** (**+0.000807333 FPS, +0.004947%**), and improved
+the prior paired-`FILD` schedule by **0.000013667 FPS (+0.00008373%)**. All nine
+runs rendered 969 frames with framebuffer checksum `1047377823`; the complete
+linked i486 audit passed. See the [FILD-window setup ledger](ledger/2026-10-29-span16-fild-window-setup-promoted.md)
+and the [paired-`FILD` predecessor ledger](ledger/2026-10-29-span16-x87-load-schedule-promoted.md).
+
+A follow-up that placed `tadjust` between the two `FILD` loads passed checksum
+and ISA gates but averaged **16.321708 FPS**, 0.000001333 FPS below the paired-`FILD`
+schedule. It was rejected; see the [spaced-schedule ledger](ledger/2026-10-29-span16-x87-load-spaced-rejected.md).
+
+A split schedule that moved the next-span push and `sadjust` load back after
+the initial `FDIV` averaged **16.321720333 FPS**, 0.000002667 FPS below the
+current schedule. It passed screen parity but was rejected without a strict
+audit; see the [split-schedule ledger](ledger/2026-10-29-span16-split-fdiv-overlap-rejected.md).
+
+Moving only the T-adjust load between the S- and T-endpoint FISTPs screened
+**0.000003333 FPS faster** than a fresh control recheck, but the strict
+candidate averaged **16.321712667 FPS**, **0.000001667 FPS below** that current
+control and **0.000010333 FPS below** the original strict control. The complete
+i486 audit and exact checksum gates passed; the negative strict mean rejects
+the schedule. The original load placement remains active. See the
+[T-adjust endpoint-window ledger](ledger/2026-10-29-span16-tadjust-between-endpoint-fistps-rejected.md).
+
+Moving the `snext` reload to immediately after its FISTP, ahead of the T-endpoint
+multiply/FISTP, averaged **16.321709667 FPS** against **16.321714333 FPS** for
+the fresh control recheck (**−0.000004667 FPS, −0.00002859%**). All runs kept
+969 frames and checksum `1047377823`; the strict audit was skipped after the
+negative mean. The reload remains after both endpoint FISTPs. See the
+[`snext` reload ledger](ledger/2026-10-29-span16-snext-reload-during-t-endpoint-rejected.md).
+
+Two carry-table preload schedules also passed the 320x200 checksum screen but
+lost to the current schedule: loading the selected base after the S fractional
+add averaged **16.262853333 FPS** (**−0.360683%**), while moving the store and
+load before the S add averaged **16.304894333 FPS** (**−0.103106%**). Both
+preserved all 969 frames and checksum `1047377823`; neither received a strict
+ISA audit after its timing regression. The indexed memory-operand ADC remains
+active; see the [carry-table schedule ledger](ledger/2026-10-29-span16-carry-table-preload-schedules-rejected.md).
+
+Moving the U-coordinate load before the row-table lookup also passed the
+320x200 checksum screen but averaged **16.321715 FPS**, **0.000008 FPS
+(-0.000049%)** below the strict control. It was reverted without a strict ISA
+audit; see the [U-load schedule ledger](ledger/2026-10-29-span16-u-load-before-rowbase-rejected.md).
+
+Moving the independent `tfracf` load ahead of the address-table store and
+cache-width add also passed the 320x200 checksum screen but averaged
+**16.321717 FPS**, **0.000013333 FPS (0.00008169%)** below the fresh parity
+control. All runs retained 969 frames and checksum `1047377823`; the full
+strict i486 audit was skipped after the negative mean. The original load order
+was restored. See the
+[`tfracf` load ledger](ledger/2026-10-29-span16-tfrac-load-hoist-rejected.md).
+
+Moving the eight low-byte texture fetches into the gap between the S fractional
+add and indexed ADC also passed the 320x200 checksum screen, but averaged
+**16.321708667 FPS** against **16.321723000 FPS** control (**−0.000014333
+FPS, −0.0000878%**). All runs retained 969 frames and checksum `1047377823`;
+the strict ISA audit was skipped after the negative mean. The original fetch
+placement was restored; see the [low-byte fetch schedule ledger](ledger/2026-10-29-span16-low-byte-fetch-in-sadd-adc-gap-rejected.md).
+
+Rechecking `TextureSpanLoadOrder=loadfirst` against the promoted FILD-window
+control averaged **16.321716667 FPS** against **16.321723000 FPS**
+(**−0.000006333 FPS, −0.0000388%**). All six runs retained 969 frames and
+checksum `1047377823`; the parity-only candidate skipped the strict ISA audit
+after its negative mean. `control` remains the default; see the
+[FILD-window loadfirst recheck ledger](ledger/2026-10-29-span16-loadfirst-fild-window-recheck-rejected.md).
+
+The compact `TextureSpanStores=loop` variant replaced the unrolled packed-word
+stores with per-byte `STOSB` loops. Its 320x200 parity screen averaged
+**15.676116667 FPS**, **0.645606333 FPS (3.9555%)** below the strict word-store
+control. All runs retained 969 frames and checksum `1047377823`; the strict
+ISA audit was skipped after the large timing regression. The loop-store
+selector remains rejected; see the [loop-store ledger](ledger/2026-10-29-span16-loop-stores-rejected.md).
+
+The unrolled `TextureSpanStores=byte` variant also regressed, averaging
+**16.203579333 FPS**, **0.118143667 FPS (0.7238%)** below the strict word-store
+control. All runs retained 969 frames and checksum `1047377823`; the strict
+ISA audit was skipped after the negative mean. The packed word-store schedule
+remains active; see the [byte-store ledger](ledger/2026-10-29-span16-byte-stores-rejected.md).
+
+Aligning `LNotLastSegment` to a 16-byte boundary tested the 486 instruction
+fetch path for repeated full segments. Its 320x200 parity screen averaged
+**16.255337667 FPS**, **0.066376666 FPS (0.406677%)** below the fresh parity
+control, with a 0.164067 FPS spread caused by one slow sample. All runs retained
+969 frames and checksum `1047377823`; the full strict i486 audit was skipped
+after the negative mean. The directive was removed. See the
+[Span16 alignment ledger](ledger/2026-10-29-span16-full-segment-entry-alignment-rejected.md).
+
+Rechecking `TextureSpanRowPath=norowcross` against the current 320x200 source
+averaged **16.233645667 FPS** versus **16.329116 FPS** for control
+(-0.095470333 FPS, -0.584663%). Every run retained 969 frames and checksum
+`1047377823`; the slowdown exceeded both run sets' spread. The default row
+path remains `control`; see the
+[current-source recheck ledger](ledger/2026-10-29-span16-norowcross-current-recheck-rejected.md).
+
+The current-source instrumented 320x200 profile again ranked texture spans
+first. It recorded 969 frames and checksum `1047377823`; the 80.266266-second
+profile run included 2,011,784 `Sys_FloatTime` reads at 5.779 microseconds per
+read, so its FPS is diagnostic only. After subtracting each node's direct timer
+floor, the largest self times were texture spans **18.201 s**, surface cache
+**7.115 s**, Z spans **6.848 s**, render-face **6.429 s**, and edge scan
+**6.212 s**. This floor adjustment does not remove all profiler overhead from
+the denominator; use these values to rank current regions, not to claim real
+486 frame shares. The profile also counted 1,454,477 texture spans over
+43,956,325 pixels and 3,513,513 perspective segments, 42,031,379 Z-span pixels,
+375,707 BSP nodes, and 670,748 surface tests. Artifact:
+`out/dos-timedemo-20261029-221148/quake/profile.jsn`; source fingerprint
+`44509FBCD86F71677CB86F0C91A0596427353981E6A2EBE3D659C2C9ABE56693`.
+
+In `D_PolysetDrawSpans8`, moving each passing pixel's Z-buffer store before
+the texture fetch in both unrolled eight-pixel groups produced a 320x200 mean
+of **16.321720 FPS**, **0.000003 FPS (0.00001838%)** below the strict control.
+All runs retained 969 frames and checksum `1047377823`; the strict ISA audit
+was skipped after the negative mean. The original store schedule was restored;
+see the [alias-span Z-store ledger](ledger/2026-10-29-alias-span-z-store-before-texel-load-screen-rejected.md).
+
+Aligning `D_PolysetDrawSpans8`'s `LDrawLoop` entry to 16 bytes screened
+**0.000002000 FPS faster**, but the strict candidate averaged **16.321711333
+FPS** against **16.321723000 FPS** control (**−0.000011667 FPS,
+−0.00007148%**). All runs retained 969 frames and checksum `1047377823`; the
+complete executable, startup, and provider i486 audits passed. The strict loss
+rejects the layout change, and the alignment directive was removed. See the
+[alias-span alignment ledger](ledger/2026-10-29-alias-span-hotloop-alignment-rejected.md).
+
+The alias span's runtime colormap patcher writes to `LPatchN-4`, so each
+`LPatch` label must remain immediately after its five-byte lookup instruction.
+An attempted Z-store move between that lookup and label redirected the patch
+into the store and prevented the 320x200 timedemo from starting; the instruction
+order was restored without recording timing. See the
+[runtime-patch constraint ledger](ledger/2026-10-29-alias-span-z-store-after-colormap-invalid.md).
+
+The patch-safe schedule that put the alias Z-store after the colormap lookup
+kept the `LPatchN-4` displacement valid and rendered exact checksums, but its
+three-run mean was **16.279602 FPS** against **16.321723 FPS** control
+(**−0.042121 FPS, −0.2581%**). One sample was **16.195342 FPS**; a fresh control
+recheck stayed within a 0.000021 FPS spread, but all candidate samples remain
+in the mean. The store was restored and the strict ISA audit was skipped after
+the loss. See the
+[deferred-store ledger](ledger/2026-10-29-alias-span-deferred-z-store-after-colormap-screen-rejected.md).
+
+Preloading the carry-selected alias-span address delta into `%eax` before the
+S-fraction add, then using a register `ADC`, averaged **16.299054333 FPS**
+against **16.321723000 FPS** control (**−0.022668667 FPS, −0.1389%**). All
+runs retained exact 969-frame checksum parity; the strict ISA audit was skipped
+after the negative screen mean. The added load did not pay for itself, so the
+original indexed-memory `ADC` remains active. See the
+[carry-delta preload ledger](ledger/2026-10-29-alias-span-carry-delta-preload-screen-rejected.md).
+
+Moving that table read earlier, immediately after the T-carry mask and before
+the independent Z and S-fraction updates, also lost: the 320x200 parity screen
+averaged **16.299063667 FPS**, **0.022650666 FPS (0.138776%)** below the fresh
+parity control. All runs retained 969 frames and checksum `1047377823`; the
+provider ISA proof passed, while the full i486 audit was skipped after the
+negative mean. The schedule was reverted, leaving the indexed-memory `ADC` in
+place. See the
+[early carry-delta preload ledger](ledger/2026-10-29-alias-span-early-carry-delta-preload-rejected.md).
+
+Keeping the `D_CacheSurface` hit pointer in `%ebx` removed its unconditional
+stack spill and hit-path reload, while misses saved the cache pointer and
+reloaded the mip level. The 320x200 parity screen averaged **16.280218333
+FPS**, **0.041504667 FPS (0.2543%)** below the strict control. The first two
+samples were near control, but the third was **16.196545 FPS** and created a
+0.125530 FPS spread; all runs retained exact checksum parity. The full pooled
+mean was kept and the candidate was reverted without a strict audit. See the
+[cache-register ledger](ledger/2026-10-29-surface-cache-hit-cache-register-rejected.md).
+
+That paragraph records the older source baseline. The register schedule was
+retested against the current surface-cache flow on 2026-10-30 and retained after
+a positive three-run mean plus full frame-stream and image parity; see the
+[current-source recheck ledger](ledger/2026-10-30-surface-cache-hit-ebx-current-recheck-promoted.md).
+
+The branch-selected Span16 address update was rejected before timing. Its first
+320x200 frame hash differed from the control, and the full-run framebuffer
+checksum also failed exact parity. The current indexed carry-table path remains
+active; see the [branch-address parity ledger](ledger/2026-10-29-span16-branch-address-parity-rejected.md).
+
+A direct-`JC` follow-up to that opt-in path was interrupted after the user
+reported visible horizontal-line artifacts. The candidate source was restored;
+the default control path then completed 969 frames with checksum `1047377823`.
+No timing was retained for the interrupted candidate. A later named
+`demo1-vga-full` 320x200 validation captured frame 169 and passed the committed
+golden comparison with 12 of 64,000 pixels changed (mean absolute channel error
+0.0009375); checksum `1047377823` and all 969 frames matched. The visual build
+skipped its separate ISA audit.
+
+The rejected branch-address implementation and its selector have since been
+removed from `src/d_draw16.s` and the DOS build, benchmark, smoke, and timedemo
+wrappers. `TextureSpanAddressing` now accepts only `control`, preventing the
+known bad path from being selected again. A current-source i486 build passed
+the complete linked ISA audit (314,318 instructions; zero above-i486,
+unclassified, or exempt instructions). The fresh 320x200 visual-only replay
+passed twice: both 971-entry frame-checksum streams matched the prior control
+with zero differences, and both golden comparisons retained the same 12-pixel
+delta. Its report is
+`out/render-validation-20261029-horizontal-line-fix-visual-rebuilt/render-validation-result.json`.
+
+A current-source repeat on 2026-10-30 used source-tree fingerprint
+`BFA0E1915D6AAB6A95DABA044EF27068093FEF9A5383F040B75B8B6A4CE78973`. Both
+`demo1-vga-full` captures passed the 320x200 golden comparison with the same
+12-pixel delta, and their 970-entry checksum streams matched across all 964
+post-warmup frames. Their PCX files were byte-identical (SHA-256
+`D63788DE7D75959CC45A0ACFEA50DE772A03145D9788D23AB7431FD068594F96`); visual
+inspection of frame 169 showed no horizontal-line artifact. The report is
+`out/render-validation-20261030-110945/render-validation-result.json`.
+
+A guarded power-of-two cache-width shift was tested in the Span16 initial and
+full-segment address setup, with the original `IMUL` retained for other widths.
+The two candidate 320x200 parity-screen samples averaged **16.209385 FPS**
+against **16.321706 FPS** for the fresh control (**−0.112321 FPS,
+−0.688169%**). All runs retained 969 frames and checksum `1047377823`; the
+candidate's two samples differed by only 0.000002 FPS. It was removed after
+the repeated loss, before the strict ISA audit. See the
+[power-of-two multiply ledger](ledger/2026-10-29-span16-pow2-cachewidth-multiply-screen-rejected.md).
+
+### Surface-cache key preparation only on misses (2026-10-29)
+
+The assembly cache path now compares the current texture and light-style keys
+before writing `r_drawsurf.texture` and the four `lightadj` values. Hits return
+without those miss-only stores; misses call the existing key-preparation helper.
+The dynamic-light contribution check is unchanged. The candidate's three-run
+320x200 mean was **16.321731 FPS** versus **16.321714 FPS** for a fresh matched
+control (**+0.000017 FPS, +0.000104%**). All six runs rendered 969 frames with
+checksum `1047377823`. The `demo1-vga-full` golden comparison passed at 320x200,
+and the strict build/runtime ISA audits found zero above-i486, unknown, or
+exempt instructions. The gain is smaller than the candidate spread, but remains
+under the positive-mean rule. See the
+[surface-cache miss-only key ledger](ledger/2026-10-29-surface-cache-prepare-keys-on-miss-promoted.md).
+
 ### Edge-scan leading-edge bmodel dispatch (2026-10-28)
 
 In `R_GenerateSpans`, the leading-edge bmodel test now compares
@@ -100,6 +509,14 @@ retained 969 frames and checksum `1047377823`; the complete executable i486
 gate passed. See the
 [marker-test ledger](ledger/2026-10-29-renderface-edge-marker-memory-test-promoted.md).
 
+Replacing the sign-test branch and conditional `NEG` with `CLTD/XOR/SUB`
+branchless magnitude formation in both `R_RenderFace` edge loops averaged
+**16.317098333 FPS**, **0.004624667 FPS (0.0283344%)** below the strict
+control. All runs retained 969 frames and checksum `1047377823`; the strict
+ISA audit was skipped after the negative mean, and the original branches were
+restored. See the
+[branchless-magnitude ledger](ledger/2026-10-29-renderface-branchless-edge-magnitude-rejected.md).
+
 ### `R_ClipEdge` left-clipped direct compare rejected (2026-10-29)
 
 The `R_ClipEdge` both-clipped branch compared `r_leftclipped` directly in
@@ -128,6 +545,23 @@ FPS** (**−0.001233 FPS, −0.00755860%**). Every run retained 969 frames and
 checksum `1047377823`; the strict i486 audit was skipped because the screen was
 negative. The alignment directive was removed. See the
 [edge-loop alignment ledger](ledger/2026-10-29-edge-genspans-loop-alignment-rejected.md).
+
+### `R_GenerateSpans` edge-index/base load interleave rejected (2026-10-29)
+
+Moving the independent `surfaces` base load between the two edge-index loads
+averaged **16.321719667 FPS**, **0.000003333 FPS (-0.00002042%)** below the
+strict control. All runs retained 969 frames and checksum `1047377823`; the
+complete executable i486 audit passed. The original load order was restored.
+See the [edge-load interleave ledger](ledger/2026-10-29-edge-surface-base-load-interleave-rejected.md).
+
+### `R_GenerateSpans` edge base load before indices rejected (2026-10-29)
+
+Moving the `surfaces` base load ahead of both edge-index loads produced a
+positive **+0.000002333 FPS** parity screen, but the full strict three-run mean
+was **16.321716 FPS**, **0.000007 FPS (-0.00004288%)** below the strict
+control. All runs retained 969 frames and checksum `1047377823`; the complete
+executable i486 audit passed. The original load order was restored. See the
+[base-load schedule ledger](ledger/2026-10-29-edge-surface-base-before-indices-rejected.md).
 
 ### `R_GenerateSpans` non-bmodel sort exit branch (2026-10-29)
 
@@ -175,6 +609,47 @@ candidate averaged **16.321711667 FPS** against the eight-way strict control's
 **16.321705667 FPS** (**+0.000006 FPS, +0.00003676%**). All runs retained 969
 frames and checksum `1047377823`; the complete executable i486 gate passed.
 See the [sort-sixteen unroll ledger](ledger/2026-10-29-edge-sort-nonbmodel-sixteen-unroll-promoted.md).
+
+### `R_GenerateSpans` non-bmodel sort twelve-way unroll (2026-10-29)
+
+The active unroll is now twelve comparisons per back-edge. Against a fresh
+sixteen-way control, the 320x200 parity-screen mean improved by
+**0.000006667 FPS (+0.00004083%)**. This is below both three-run sample
+spreads, so the gain is tiny and noisy; it is retained under the positive
+pooled-mean policy. All six runs completed 969 frames with checksum
+`1047377823`. The candidate's 971-entry frame-checksum stream and captured PCX
+exactly matched the control, and the exact changed `r_edgea.obj` passed the
+strict linked i486 audit (314,306 instructions, no above-target, unknown, or
+exempt instructions). See the
+[sort-twelve unroll ledger](ledger/2026-10-29-edge-sort-nonbmodel-twelve-unroll-promoted.md).
+
+### `R_GenerateSpans` non-bmodel sort thirty-two-way unroll rejected (2026-10-29)
+
+Extending the non-bmodel sort loop from sixteen to thirty-two comparisons per
+backedge averaged **16.321723 FPS**, exactly matching the strict control.
+Every run retained 969 frames and checksum `1047377823`; the screen build
+skipped the strict ISA audit. The extra unroll was removed because it produced
+no measurable gain. See the
+[sort-thirty-two ledger](ledger/2026-10-29-edge-sort-nonbmodel-thirtytwo-unroll-rejected.md).
+
+The intermediate twenty-four-way unroll was screened twice against a fresh
+sixteen-way control. Its two three-run means moved in opposite directions; the
+six-run pooled mean was only **+0.000002333 FPS (+0.0000143%)**, while the
+repeated screen was slower and the candidate median remained below control.
+The gain was not repeatable, so the eight added comparisons were removed. All
+six candidate runs retained 969 frames and checksum `1047377823`; both screens
+used `VisualParityOnly`, with no strict ISA audit after the timing result. See
+the [sort-twenty-four ledger](ledger/2026-10-29-edge-sort-nonbmodel-twentyfour-unroll-rejected.md).
+
+### `R_GenerateSpans` trailing-edge direct-call layout rejected for parity (2026-10-29)
+
+Moving `Lgs_nextedge` immediately after a direct `call TrailingEdge` broke the
+fall-through from `LInsertAndExit`: ordinary leading edges entered `Lxl_done`
+and incremented `st_spanstate`. The first 320x200 run rendered 969 frames but
+failed checksum (`3586745294` versus `1047377823`); its 18.693908 FPS is invalid.
+The original `pushl $Lgs_nextedge; jmp TrailingEdge` sequence and continuation
+placement were restored. See the
+[trailing-edge layout ledger](ledger/2026-10-29-edge-trailing-return-call-parity-rejected.md).
 
 ### Surface mip-0 lightdelta stack spill (2026-10-29)
 
@@ -1302,18 +1777,27 @@ promote a change.
 The reasoning is the harness's own, recorded in `ledger/2026-09-29-harness-and-cost-model.md` under
 "**What this harness can and cannot measure**" ("**Applying the rule.**" inside it):
 DOSBox-X prices x87 at ~1.04 cy/op where a 486DX spends roughly 12, and models
-neither fetch boundaries, write-buffer occupancy, nor 4 KB page aliasing. A
-measured win is therefore sound, but a measured null only proves the emulator
-could not see the cost.
+neither fetch boundaries, write-buffer occupancy, nor 486 L1 set pressure. A
+measured win is evidence for this emulated workload; a measured null cannot
+settle effects the emulator does not model.
 
 DOSBox-X does not model x87 latency, fetch boundaries, write-buffer occupancy,
-or 4 KB aliasing accurately. Those costs cannot be validated by a DOSBox-X
-timedemo alone. The Z-span x87 prologue remains an unmeasured real-486
-hypothesis, not a measured speedup; keep it distinct from improvements that
-the pinned timedemo can verify.
+or 486 L1 cache occupancy and replacement accurately. Equal 4 KB offsets imply
+that corresponding 16-byte lines map to the same L1 set; they do not prove a
+conflict or a stall in the 486's four-way cache. The 2026-10-30 cost-model
+correction records the current allocation offsets and limits of that inference.
+These effects cannot be validated by a DOSBox-X timedemo alone. The cost model's
+80-cycle Z-span figure sums published x87 latencies without modeling overlap
+with integer work. It is a gross no-overlap projection, not net elapsed time or
+an attainable 4.46% speedup; see the
+[x87 overlap correction](ledger/2026-10-30-zspan-x87-overlap-model-correction.md).
+The Z-span prologue remains an unmeasured real-486 hypothesis, distinct from
+improvements the pinned timedemo can verify.
 
-`tools/486-cost-model.ps1` can help rank experiments across those axes. Its
-output is a report, never a result or a reason to reject a small candidate.
+`tools/486-cost-model.ps1` estimates x87 costs and reports cache footprint and
+set mapping. Its cache-layout output is not a conflict or speed prediction; the
+whole report is a ranking aid, never a result or a reason to reject a small
+candidate.
 
 ## Decision 2 — price the prize before asking about the hit rate
 

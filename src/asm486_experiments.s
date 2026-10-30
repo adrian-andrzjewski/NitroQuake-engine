@@ -4596,6 +4596,78 @@ C(D_CacheSurfaceKeys_asm486):
 	popl	%esi
 	ret
 
+// surfcache_t *D_CacheSurfaceCheckAndPrepare_asm486(msurface_t *surface,
+//     texture_t *texture, drawsurf_t *drawsurf, int *lightstylevalues,
+//     surfcache_t *cache)
+// Return a valid cache hit without writing the miss-only drawsurf cache keys.
+// If the entry misses, prepare the same texture and four style tags consumed
+// by the existing rebuild path.
+C(D_CacheSurfaceCheckAndPrepare_asm486):
+	.globl C(D_CacheSurfaceCheckAndPrepare_asm486)
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	movl	16(%esp),%ebx		// surface
+	movl	20(%esp),%esi		// texture
+	movl	28(%esp),%edx		// d_lightstylevalue
+	movl	32(%esp),%eax		// cache
+	testl	%eax,%eax
+	jz		.Ldsc_check_prepare_miss
+	cmpl	$0,24(%eax)		// cache->dlight
+	jne		.Ldsc_check_prepare_miss
+	cmpl	SURFCACHE_TEXTURE_OFFSET(%eax),%esi
+	jne		.Ldsc_check_prepare_miss
+	movzbl	56(%ebx),%ecx		// styles[0]
+	movl	(%edx,%ecx,4),%edi
+	cmpl	8(%eax),%edi		// lightadj[0]
+	jne		.Ldsc_check_prepare_miss
+	cmpb	$255,57(%ebx)		// styles[1] unused
+	je		.Ldsc_check_prepare_dlight
+	movzbl	57(%ebx),%ecx
+	movl	(%edx,%ecx,4),%edi
+	cmpl	12(%eax),%edi
+	jne		.Ldsc_check_prepare_miss
+	movzbl	58(%ebx),%ecx
+	movl	(%edx,%ecx,4),%edi
+	cmpl	16(%eax),%edi
+	jne		.Ldsc_check_prepare_miss
+	movzbl	59(%ebx),%ecx
+	movl	(%edx,%ecx,4),%edi
+	cmpl	20(%eax),%edi
+	jne		.Ldsc_check_prepare_miss
+
+.Ldsc_check_prepare_dlight:
+	movl	4(%ebx),%ecx		// surface->dlightframe
+	cmpl	C(r_framecount),%ecx
+	jne		.Ldsc_check_prepare_return
+	// Strict control schedule: preserve the cache pointer across the call on
+	// the stack, matching the pre-experiment implementation.
+	pushl	%eax
+	pushl	%ebx				// surface
+	call	C(R_DlightContributes)
+	addl	$4,%esp
+	testl	%eax,%eax
+	popl	%eax
+	jz		.Ldsc_check_prepare_return
+
+.Ldsc_check_prepare_miss:
+	// Prepare all keys for the cache rebuild path. Reload stack arguments so
+	// this also works after R_DlightContributes clobbers caller-saved registers.
+	movl	24(%esp),%ecx		// drawsurf
+	movl	28(%esp),%edx		// d_lightstylevalue
+	pushl	%edx
+	pushl	%ecx
+	pushl	%esi
+	pushl	%ebx
+	call	C(D_CacheSurfaceKeys_asm486)
+	addl	$16,%esp
+	xorl	%eax,%eax
+.Ldsc_check_prepare_return:
+	popl	%edi
+	popl	%esi
+	popl	%ebx
+	ret
+
 // void D_CacheSurfaceStoreTags_asm486(surfcache_t *cache,
 //                                      drawsurf_t *drawsurf)
 // Copy the texture and four light-style cache tags from the prepared draw.
@@ -4701,42 +4773,45 @@ C(D_CacheSurface):
 	movl	%eax,%edi
 .Lcache_surface_static_texture:
 	movl	cs_surface_cachespots(%esi,%ebx,4),%eax
-	movl	%eax,-16(%ebp)		// cache
+	movl	%eax,%ebx			// keep cache in saved register through hit test
 
 	// Compare cache keys before preparing drawsurf fields. The hit path returns
 	// only the cache; rebuild paths fill all five drawsurf fields below.
-	movl	-16(%ebp),%edx		// cache
-	testl	%edx,%edx
+	testl	%ebx,%ebx
 	jz	.Lcache_surface_keys_only
-	cmpl	$0,24(%edx)		// cache->dlight
+	cmpl	$0,24(%ebx)		// cache->dlight
 	jne	.Lcache_surface_keys_only
-	cmpl	SURFCACHE_TEXTURE_OFFSET(%edx),%edi
+	cmpl	SURFCACHE_TEXTURE_OFFSET(%ebx),%edi
 	jne	.Lcache_surface_keys_only
 	movzbl	56(%esi),%eax
 	movl	C(d_lightstylevalue)(,%eax,4),%ecx
-	cmpl	8(%edx),%ecx
+	cmpl	8(%ebx),%ecx
 	jne	.Lcache_surface_keys_only
 	cmpb	$255,57(%esi)		// styles[1], also the unused sentinel
 	je	.Lcache_surface_dlight_check
 	// Do not fetch the lightstyle table for the unused-style sentinel.
 	movzbl	57(%esi),%eax
 	movl	C(d_lightstylevalue)(,%eax,4),%ecx
-	cmpl	12(%edx),%ecx
+	cmpl	12(%ebx),%ecx
 	jne	.Lcache_surface_keys_only
 	cmpb	$255,58(%esi)
 	je	.Lcache_surface_dlight_check
 	// styles[2] terminates the active style list; later keys are unused.
 	movzbl	58(%esi),%eax
 	movl	C(d_lightstylevalue)(,%eax,4),%ecx
-	cmpl	16(%edx),%ecx
+	cmpl	16(%ebx),%ecx
 	jne	.Lcache_surface_keys_only
 	movzbl	59(%esi),%eax
 	movl	C(d_lightstylevalue)(,%eax,4),%ecx
-	cmpl	20(%edx),%ecx
+	cmpl	20(%ebx),%ecx
 	jne	.Lcache_surface_keys_only
 	jmp	.Lcache_surface_dlight_check
 
 .Lcache_surface_keys_only:
+	// Misses need both the original cache pointer and mip level; the hit path
+	// keeps the cache pointer in saved EBX and avoids a stack spill/reload.
+	movl	%ebx,-16(%ebp)
+	movl	12(%ebp),%ebx		// restore miplevel for the rebuild path
 	movl	%edi,C(r_drawsurf)+28	// texture
 	movzbl	56(%esi),%eax
 	movl	C(d_lightstylevalue)(,%eax,4),%ecx
@@ -4768,7 +4843,7 @@ C(D_CacheSurface):
 	call	C(D_CacheSurfaceProfileHit_asm486)
 	addl	$4,%esp
 #endif
-	movl	-16(%ebp),%eax
+	movl	%ebx,%eax
 	addl	$52,%esp
 	popl	%edi
 	popl	%esi

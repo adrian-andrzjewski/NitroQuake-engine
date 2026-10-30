@@ -53,7 +53,7 @@ param(
     [string]$TextureSpanRowPath = 'control',
     [ValidateSet('control', 'loadfirst')]
     [string]$TextureSpanLoadOrder = 'control',
-    [ValidateSet('control', 'branch')]
+    [ValidateSet('control')]
     [string]$TextureSpanAddressing = 'control',
     [ValidateSet('control', 'branch')]
     [string]$AliasSpanAddressing = 'control',
@@ -683,15 +683,6 @@ if ($AliasSkinTableOnly -and $AliasSkinTableImplementation -ne 'asm') {
 }
 if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
     throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
-}
-if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanStores -ne 'word') {
-    throw 'The branch texture-span address path requires -TextureSpanStores word.'
-}
-if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanLoadOrder -ne 'control') {
-    throw 'The branch texture-span address path requires -TextureSpanLoadOrder control.'
-}
-if ($TextureSpanAddressing -eq 'branch' -and $TextureSpanRowPath -ne 'control') {
-    throw 'The branch texture-span address path requires -TextureSpanRowPath control.'
 }
 if ($TextureSpanStores -eq 'stosw' -and
 		($TextureSpanLoadOrder -ne 'control' -or

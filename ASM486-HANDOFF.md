@@ -538,9 +538,11 @@ Two corollaries that cost real time to find:
 
 That no optimisation exists. Two of the ten closures were *strengthened* this week from "no candidate
 found" to "no candidate can exist here", which is a better claim — but it is still a claim about
-instruction removal. The three axes the project calls inadmissible remain real and unpromotable
-without hardware this repository does not have: the Z-span x87 prologue, code layout and unified-cache
-displacement, and 4 KB page aliasing.
+instruction removal. The 486-specific effects the emulator cannot settle still
+need hardware evidence: the Z-span x87 prologue, code layout and unified-cache
+displacement, and L1 set occupancy/replacement. Equal 4 KB offsets mean
+corresponding lines select the same cache set; that alone does not establish a
+conflict. See the 2026-10-30 cache-layout correction in the ledger.
 
 ### Where the remaining prizes actually are
 

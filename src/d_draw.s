@@ -958,8 +958,8 @@ C(D_DrawZSpans):
 LFSpanLoop:
 // set up the initial 1/z value
 	fildl	espan_t_v(%ebp)
-	fildl	espan_t_u(%ebp)
 	movl	espan_t_v(%ebp),%ecx
+	fildl	espan_t_u(%ebp)
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
@@ -1228,8 +1228,8 @@ LFNegSpan:
 LFNegSpanLoop:
 // set up the initial 1/z value
 	fildl	espan_t_v(%ebp)
-	fildl	espan_t_u(%ebp)
 	movl	espan_t_v(%ebp),%ecx
+	fildl	espan_t_u(%ebp)
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi

@@ -586,7 +586,7 @@ incl	C(bench486_edge_sort_iters)
 	movl	st_next(%esi),%esi
 	cmpl	st_key(%esi),%eax
 	jl		LInsertAndExit
-	// Continue in groups of sixteen surfaces, exiting at the insertion point.
+// Continue in groups of fourteen surfaces, exiting at the insertion point.
 #ifdef PROFILE486
 	incl	C(bench486_edge_sort_iters)
 #endif
@@ -692,20 +692,6 @@ incl	C(bench486_edge_sort_iters)
 	#endif
 	#ifdef EDGE_SCAN_PROBE_SORT
 	// Preserve the diagnostic probe at every individual surface comparison.
-	movl	st_next(%esi),%ecx
-	cmpl	st_key(%esi),%ecx
-	movl	st_next(%esi),%ecx
-	cmpl	st_key(%esi),%ecx
-	movl	st_next(%esi),%ecx
-	cmpl	st_key(%esi),%ecx
-	#endif
-	movl	st_next(%esi),%esi
-	cmpl	st_key(%esi),%eax
-	jl		LInsertAndExit
-	#ifdef PROFILE486
-	incl	C(bench486_edge_sort_iters)
-	#endif
-	#ifdef EDGE_SCAN_PROBE_SORT
 	movl	st_next(%esi),%ecx
 	cmpl	st_key(%esi),%ecx
 	movl	st_next(%esi),%ecx
@@ -1072,7 +1058,6 @@ LPatch4:
 	popl	%edi
 	popl	%ebp				// restore the caller's stack frame
 	ret
-
 
 // ---------------------------------------------------------------
 // 1/z sorting for bmodels in the same leaf

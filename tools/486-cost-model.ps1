@@ -3,13 +3,18 @@
     Static 486DX cost model for the NitroQuake DOS renderer.
 
 .DESCRIPTION
-    Prices three axes that the pinned DOSBox-X harness cannot see:
+    Sums published x87 instruction latencies as a ranking aid and reports
+    cache-layout facts that the pinned DOSBox-X harness cannot measure on an
+    actual 486. The x87 sum assumes no overlap with integer instructions; a
+    486DX can execute integer work in parallel with its FPU, so this is not a
+    prediction of net elapsed cycles.
 
       1. x87 latency        - DOSBox-X measures ~1.04 cy/op; a 486DX spends ~12.
-      2. 4 KB page aliasing - not modelled at all, and the precondition is
-                              physically present in the video buffer layout.
+      2. L1 set mapping     - the 486 has a four-way, 128-set cache with
+                              16-byte lines. Matching offsets indicate set
+                              congruence, not a guaranteed cache conflict.
       3. L1 footprint       - 8 KB unified cache (there is NO instruction cache
-                              on a 486); .text is 90x that.
+                              on a 486); .text is much larger than the cache.
 
     This tool is a RANKING AID only. It cannot promote a change or reject one
     for being below a magnitude floor. Repeatable positive gains of any size
@@ -37,9 +42,14 @@ param(
     [string]$ToolRoot,
     [string]$Objdump,
 
-    # Frame dimensions used for the buffer-layout aliasing computation.
+    # Frame dimensions used for the buffer and L1 set-mapping computation.
     [int]$ScreenWidth = 320,
     [int]$ScreenHeight = 200,
+
+    # Extra bytes between the surface cache and RAM framebuffer. -1 follows
+    # VGA_FreeAndAllocVidbuffer's current single-buffer rule: 16 bytes at
+    # 320x200 and zero for other dimensions. Pass 0 for the historical layout.
+    [int]$FramebufferPad = -1,
 
     # Directory of retained .obj files for the same build as -Executable. The
     # link step strips (-s), so the image carries no symbols and per-function
@@ -66,6 +76,17 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+if ($FramebufferPad -eq -1) {
+    if ($ScreenWidth -eq 320 -and $ScreenHeight -eq 200) {
+        $FramebufferPad = 16
+    }
+    else {
+        $FramebufferPad = 0
+    }
+}
+if ($FramebufferPad -lt 0 -or $FramebufferPad -gt 4096) {
+    throw 'FramebufferPad must be -1 (automatic) or between 0 and 4096.'
+}
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
     $SourceRoot = Join-Path $repoRoot 'src'
 }
@@ -470,7 +491,7 @@ foreach ($path in $asmPaths) {
 $pathRows = @($pathRows | Sort-Object { $_.X87Cycles } -Descending)
 
 # The Z-span prologue, documented in docs\ledger\2026-10-03-region-pricing-sweep.md under "The general surface-block path" and
-# d_draw.s:LFSpanLoop. The ledger calls it "nine serialized x87 operations";
+# d_draw.s:LFSpanLoop. The ledger calls it "nine x87 operations";
 # the source region actually contains twelve x87 instructions. Both numbers
 # are reported so the discrepancy stays visible rather than being baked in.
 $prologue = @($asmPaths | Where-Object { $_.Label -eq 'LFSpanLoop' })
@@ -486,15 +507,20 @@ if ($prologue.Count -eq 1) {
 }
 
 # ---------------------------------------------------------------------------
-# Section 3 - 4 KB page aliasing precondition (vid_vga.c:299-304)
+# Section 3 - 486 L1 set mapping (vid_vga.c:277-344)
 # ---------------------------------------------------------------------------
 $zbufferSize = [int64]$ScreenWidth * $ScreenHeight * 2          # sizeof(short)
 $surfcacheOffset = $zbufferSize
-$bufferOffset = $surfcacheOffset + $SurfaceCacheSize
+$bufferOffset = $surfcacheOffset + $SurfaceCacheSize + $FramebufferPad
 
 $surfcachePage = $surfcacheOffset % 4096
 $bufferPage = $bufferOffset % 4096
-$aliasCollision = ($surfcacheOffset % 4096) -eq ($bufferOffset % 4096)
+$cacheLineBytes = 16
+$cacheSetCount = 128
+$cacheWays = 4
+$surfcacheSetRelative = [int](($surfcacheOffset / $cacheLineBytes) % $cacheSetCount)
+$bufferSetRelative = [int](($bufferOffset / $cacheLineBytes) % $cacheSetCount)
+$sameL1Set = ($surfcacheSetRelative -eq $bufferSetRelative)
 
 # ---------------------------------------------------------------------------
 # Section 4 - L1 footprint
@@ -587,7 +613,7 @@ Write-Host ''
 
 if ($null -ne $objectFacts) {
     Write-Host ("1b. Per-function x87 cost from the retained objects ({0} objects, symbols intact)" -f $objectFacts.objectCount)
-    Write-Host ("   {0,-20} {1,-34} {2,6} {3,10}" -f 'OBJECT', 'SYMBOL', 'X87', '486 CYCLES')
+    Write-Host ("   {0,-20} {1,-34} {2,6} {3,10}" -f 'OBJECT', 'SYMBOL', 'X87', 'LATENCY SUM')
     $objShown = 0
     foreach ($row in $objectFacts.symbols) {
         if ($objShown -ge $Top) { break }
@@ -606,7 +632,7 @@ else {
 }
 
 Write-Host '2. x87 cost per assembly path (source-level; the image has no symbols)'
-Write-Host ("   {0,-18} {1,-16} {2,6} {3,6} {4,10}" -f 'FILE', 'LABEL', 'OPS', 'X87', '486 CYCLES')
+Write-Host ("   {0,-18} {1,-16} {2,6} {3,6} {4,10}" -f 'FILE', 'LABEL', 'OPS', 'X87', 'LATENCY SUM')
 $shown = 0
 foreach ($row in $pathRows) {
     if ($shown -ge $Top) { break }
@@ -618,7 +644,7 @@ Write-Host ''
 
 Write-Host '3. Z-span x87 prologue (d_draw.s LFSpanLoop) - the documented anchor'
 Write-Host ("   x87 instructions in region   {0,6}   (ledger records 'nine')" -f $prologueX87)
-Write-Host ("   486DX cost per span         {0,6:N0} cycles" -f $prologueCycles)
+Write-Host ("   486 x87 latency sum/span   {0,6:N0} cycles (no overlap)" -f $prologueCycles)
 Write-Host ("   DOSBox-X cost per span      {0,6:N1} cycles  (measured, 9 ops)" -f 9.4)
 if ($null -ne $zSpanCalls) {
     Write-Host ("   z-spans node calls          {0,6:N0}" -f $zSpanCalls)
@@ -628,8 +654,9 @@ if ($projectionAvailable) {
     if ($null -ne $pixelsPerSpan) {
         Write-Host ("   pixels per span            {0,12:N2}   (ledger records 30.7)" -f $pixelsPerSpan)
     }
-    Write-Host ("   486DX projection            {0,12:N0} cycles = {1,6:N2}% of the profiled frame" -f
+    Write-Host ("   No-overlap sum projection   {0,12:N0} cycles = {1,6:N2}% of profiled frame time" -f
         $prologueCycleTotal, $prologuePercent)
+    Write-Host '   This is not net elapsed time; integer/FPU overlap and dependencies are not modeled.'
     Write-Host ("   the percentage scales linearly with -CpuHz; at {0:N1} MHz it is {1:N2}%" -f
         ($CpuHz * 2 / 1e6), ($prologuePercent * 0.5))
 }
@@ -648,30 +675,28 @@ if ($prologueOps.Count -gt 0) {
 }
 Write-Host ''
 
-Write-Host '4. 4 KB page aliasing precondition (vid_vga.c:299-304)'
+Write-Host '4. 486 L1 cache-set relationship (relative to the video allocation base)'
 Write-Host ("   zbuffer                  offset {0,12:N0}  size {1,12:N0}" -f 0, $zbufferSize)
-Write-Host ("   vid_surfcache            offset {0,12:N0}  page offset {1,6:N0}" -f $surfcacheOffset, $surfcachePage)
-Write-Host ("   lvid->buffer             offset {0,12:N0}  page offset {1,6:N0}" -f $bufferOffset, $bufferPage)
-if ($aliasCollision) {
-    Write-Host ("   COLLISION: surfcache and framebuffer share a 4 KB page offset ({0})." -f $surfcachePage)
-    Write-Host '   A load from one and a store to the other in the same loop stalls on a real 486.'
-    Write-Host '   DOSBox-X does not model paging, so this axis is DISQUALIFIED here.'
+Write-Host ("   vid_surfcache            offset {0,12:N0}  4 KB offset {1,6:N0}  relative set {2,3}" -f $surfcacheOffset, $surfcachePage, $surfcacheSetRelative)
+Write-Host ("   lvid->buffer             offset {0,12:N0}  4 KB offset {1,6:N0}  relative set {2,3}" -f $bufferOffset, $bufferPage, $bufferSetRelative)
+Write-Host ("   framebuffer pad          {0,12:N0} bytes" -f $FramebufferPad)
+if ($sameL1Set) {
+    Write-Host ("   Corresponding lines select the same L1 set ({0} ways, {1}-byte lines)." -f $cacheWays, $cacheLineBytes)
+    Write-Host '   This is only potential set pressure: matching sets do not prove a conflict or a stall.'
 }
 else {
-    Write-Host '   No page-offset collision at this geometry.'
+    Write-Host ("   Corresponding lines select different L1 sets ({0} ways, {1}-byte lines)." -f $cacheWays, $cacheLineBytes)
 }
+Write-Host '   DOSBox-X does not model the 486 L1 cache; this layout report is not a speed measurement.'
 Write-Host ''
 
-Write-Host '5. Disqualification verdicts'
-Write-Host '   x87 latency        DISQUALIFIED as a target - DOSBox-X prices every x87 op at'
-Write-Host '                      ~1.04 cy against a 486DX figure above. A change whose payoff'
-Write-Host '                      is FP-op count cannot be promoted under the timedemo gate.'
-Write-Host ("   L1 footprint       DISQUALIFIED - .text spans {0:N0} unified-cache windows and" -f $l1Windows)
+Write-Host '5. Measurement limits'
+Write-Host '   x87 latency        UNMODELED for a 486 - DOSBox-X prices x87 near 1.04 cy/op.'
+Write-Host '                      The projection above ranks possible gains; it is not an'
+Write-Host '                      observed 486 speedup.'
+Write-Host ("   L1 footprint       UNMODELED - .text spans {0:N0} unified-cache windows and" -f $l1Windows)
 Write-Host '                      DOSBox-X does not model cache displacement.'
-if ($aliasCollision) {
-    Write-Host '   4 KB aliasing      DISQUALIFIED - precondition is present, but the mechanism'
-    Write-Host '                      is not modelled, so a null result would be uninformative.'
-}
+Write-Host '   L1 set mapping     UNMODELED - cache-set occupancy and replacement are not represented.'
 Write-Host ''
 Write-Host '   Work whose payoff is instruction count, memory traffic, or arithmetic stays'
 Write-Host '   admissible. That is where optimization effort belongs.'
@@ -687,27 +712,36 @@ if (-not [string]::IsNullOrWhiteSpace($Json)) {
         l1_ratio = [Math]::Round($l1Ratio, 2)
         zspan_prologue = [ordered]@{
             x87_instructions = $prologueX87
-            cycles_486_per_span = $prologueCycles
+            x87_latency_sum_486_cycles_per_span_no_overlap = $prologueCycles
             cycles_dosbox_x_per_span = 9.4
             spans = $spanCount
             pixels_per_span = $pixelsPerSpan
-            projected_cycles = $prologueCycleTotal
-            projected_percent_of_frame = $(if ($projectionAvailable) {
+            gross_no_overlap_cycles = $prologueCycleTotal
+            gross_no_overlap_percent_of_profile = $(if ($projectionAvailable) {
                 [Math]::Round($prologuePercent, 2)
             }
             else { $null })
             cpu_hz = $CpuHz
         }
-        aliasing = [ordered]@{
+        cache_set_mapping = [ordered]@{
             zbuffer_size = $zbufferSize
             surfcache_offset = $surfcacheOffset
             buffer_offset = $bufferOffset
+            framebuffer_pad = $FramebufferPad
             surfcache_page_offset = $surfcachePage
             buffer_page_offset = $bufferPage
-            collision = $aliasCollision
+            cache_line_bytes = $cacheLineBytes
+            cache_set_count = $cacheSetCount
+            cache_ways = $cacheWays
+            surfcache_set_relative = $surfcacheSetRelative
+            buffer_set_relative = $bufferSetRelative
+            same_l1_set = $sameL1Set
         }
-        disqualifies = @('x87-latency', 'l1-footprint',
-            $(if ($aliasCollision) { '4kb-aliasing' } else { $null }))
+        measurement_limits = [ordered]@{
+            x87_latency = 'The 486 cycle projection is estimated; DOSBox-X prices x87 differently.'
+            l1_footprint = 'Unified-cache displacement is not modeled by DOSBox-X.'
+            l1_set_mapping = 'Set congruence is reported; occupancy and replacement are not measured.'
+        }
     }
     $Json = Resolve-InputPath $Json
     $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $Json -Encoding utf8

@@ -276,7 +276,15 @@ VGA_FreeAndAllocVidbuffer
 */
 qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 {
-	int		tsize, tbuffersize;
+	int		tsize, tbuffersize, bufferpad;
+
+	// Shift the single-buffer 320x200 framebuffer by one 486 cache line from
+	// the surface cache. Corresponding lines then use different L1 sets, which
+	// may reduce set pressure while Span16 reads texture and writes pixels; the
+	// four-way cache means matching sets alone do not prove a conflict. Sixteen
+	// bytes preserves alignment for the packed renderer stores.
+	bufferpad = allocnewbuffer && lvid->width == 320 && lvid->height == 200 ?
+			16 : 0;
 
 	if (allocnewbuffer)
 	{
@@ -292,7 +300,7 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 
 	tsize = D_SurfaceCacheForRes (lvid->width, lvid->height);
 
-	tbuffersize += tsize;
+	tbuffersize += tsize + bufferpad;
 
 // see if there's enough memory, allowing for the normal mode 0x13 pixel,
 // z, and surface buffers
@@ -331,7 +339,8 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 	
 	if (allocnewbuffer)
 	{
-		lvid->buffer = (void *)( (byte *)vid_surfcache + vid_surfcachesize);
+		lvid->buffer = (void *)( (byte *)vid_surfcache + vid_surfcachesize +
+				bufferpad);
 		lvid->conbuffer = lvid->buffer;
 	}
 

@@ -439,10 +439,8 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	cache = surface->cachespots[miplevel];
 
 #ifdef ASM486_SURFACE_CACHE_CHECK
-	D_CacheSurfaceKeys_asm486 (surface, tex, &r_drawsurf,
-			d_lightstylevalue);
-	if (D_CacheSurfaceHit_asm486 (cache, surface->dlightframe,
-			r_framecount, r_drawsurf.texture, r_drawsurf.lightadj, surface))
+	if (D_CacheSurfaceCheckAndPrepare_asm486 (surface, tex, &r_drawsurf,
+			d_lightstylevalue, cache))
 #else
 	// Hit on tex/lightadj with a clean sticky dlight bit.  Unmarked frames
 	// return immediately; phantom marks probe the discrete sample walk and
