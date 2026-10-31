@@ -409,6 +409,15 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'ZSpanStartSchedule'
+        Manifest   = 'zSpanStartSchedule'
+        Suffix     = @{ 'nofxch' = 'zspannofxch' }
+        C          = @{}
+        Asm        = @{ 'nofxch' = @('ASM486_ZSPAN_NO_FXCH') }
+        SelectsAsm = $false
+    }
+
+    @{
         Param      = 'TextureSpanLoadOrder'
         Manifest   = 'textureSpanLoadOrder'
         Suffix     = @{ 'loadfirst' = 'spanloadfirst' }
@@ -2054,6 +2063,7 @@ $script:SuffixOrder = @(
     'TextureSpanStores'
     'TextureSpanTailStores'
     'TextureSpanRowPath'
+    'ZSpanStartSchedule'
     'TextureSpanLoadOrder'
     'TextureSpanAddressing'
     'AliasSpanAddressing'
@@ -2487,6 +2497,7 @@ $script:AsmDefineOrder = @(
     'TurbulentScanImplementation'
     'TextureSpanStores'
     'TextureSpanRowPath'
+    'ZSpanStartSchedule'
     'TextureSpanTailStores'
     'TextureSpanLoadOrder'
     'TextureSpanAddressing'
@@ -2580,6 +2591,16 @@ function Set-DefaultI486AssemblySelectors {
     foreach ($entry in $script:SelectorTable) {
         if ($entry.SelectsAsm -and -not $selectedNames.ContainsKey($entry.Param)) {
             throw "The default i486 assembly selector profile omits '$($entry.Param)'."
+        }
+    }
+
+    # This measured x87 schedule is independent of the selectable C/assembly
+    # implementation profile. Apply it to omitted i486 builds only; the i386
+    # target and explicit control comparisons retain the original schedule.
+    if ($BoundParameters.Keys -notcontains 'ZSpanStartSchedule') {
+        $variable = Get-Variable -Name 'ZSpanStartSchedule' -Scope 1 -ErrorAction SilentlyContinue
+        if ($null -ne $variable) {
+            Set-Variable -Name 'ZSpanStartSchedule' -Value 'nofxch' -Scope 1
         }
     }
 }

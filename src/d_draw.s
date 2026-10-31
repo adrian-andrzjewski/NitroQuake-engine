@@ -961,6 +961,16 @@ LFSpanLoop:
 	movl	espan_t_v(%ebp),%ecx
 	fildl	espan_t_u(%ebp)
 	fmuls	C(d_zistepu)
+#ifdef ASM486_ZSPAN_NO_FXCH
+	// Add the origin term before the final exchange; this removes the second
+	// FXCH used by the control schedule while preserving every depth operation.
+	fadds	C(d_ziorigin)
+	fxch	%st(1)
+	movl	C(zspantable)(,%ecx,4),%edi
+	fmuls	C(d_zistepv)
+	movl	espan_t_u(%ebp),%edx
+	faddp	%st(0),%st(1)
+#else
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
@@ -968,6 +978,7 @@ LFSpanLoop:
 	fadds	C(d_ziorigin)
 	movl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
+#endif
 
 // clamp if z is nearer than 2 (1/z > 0.5)
 	fcoms	float_point5
@@ -1231,6 +1242,15 @@ LFNegSpanLoop:
 	movl	espan_t_v(%ebp),%ecx
 	fildl	espan_t_u(%ebp)
 	fmuls	C(d_zistepu)
+#ifdef ASM486_ZSPAN_NO_FXCH
+	// Keep the negative-gradient setup in the same one-exchange schedule.
+	fadds	C(d_ziorigin)
+	fxch	%st(1)
+	movl	C(zspantable)(,%ecx,4),%edi
+	fmuls	C(d_zistepv)
+	movl	espan_t_u(%ebp),%edx
+	faddp	%st(0),%st(1)
+#else
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
@@ -1238,6 +1258,7 @@ LFNegSpanLoop:
 	fadds	C(d_ziorigin)
 	movl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
+#endif
 
 // clamp if z is nearer than 2 (1/z > 0.5)
 	fcoms	float_point5

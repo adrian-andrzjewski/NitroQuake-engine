@@ -801,6 +801,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
+- `rejected` [`R_RenderFace` direct no-clip emitter entry (2026-10-31) — **−0.011087 FPS (−0.0679%)**, with a 49-pixel frame-99 delta](2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md)
 - `rejected` [`R_ClipEdge` left-clipped direct compare screen (2026-10-29) — **−0.038261 FPS (−0.23454991%)**, exact checksum parity](2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md)
 - `promoted` [`R_ClipSpriteFace` clip-current direct compare (2026-10-29) — strict mean **+0.000025333 FPS (+0.00015530%)**, exact checksum parity and complete executable i486 gate](2026-10-29-r-clipsprite-clipcurrent-direct-compare-promoted.md)
 - `promoted` [`R_RenderFace` cached-offset marker memory test (2026-10-29) — strict mean **+0.003342333 FPS (+0.02049357%)**, exact checksum parity and complete executable i486 gate](2026-10-29-renderface-edge-marker-memory-test-promoted.md)
@@ -1135,6 +1136,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### z-spans
 
+- `promoted` [`D_DrawZSpans` no-FXCH start schedule (2026-10-31) — **+0.011660 FPS (+0.0714%)**; 117 exact C/ASM cases and accepted 37-pixel frame delta](2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md)
 - `corrected` [Z-span x87 latency projection (2026-10-30) — 80 cycles/span is a no-overlap sum, not net runtime or an attainable ceiling](2026-10-30-zspan-x87-overlap-model-correction.md)
 - `rejected` [D_DrawZSpans negative-gradient nonnegative pair store with STOSL (2026-10-27 current-source recheck) — **−0.000004667 FPS (−0.0000290%)**, exact checksum parity and complete ISA audit](2026-10-27-zspan-negative-gradient-stosl-current-recheck-rejected.md)
 - `rejected` [D_DrawZSpans positive-gradient cutoff 20 recheck (2026-10-27) — **−0.000657334 FPS (−0.004082%)**, exact checksum parity and complete ISA audit](2026-10-27-zspan-cutoff20-recheck-rejected.md)

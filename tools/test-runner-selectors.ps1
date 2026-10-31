@@ -37,6 +37,17 @@ foreach ($runner in @('bench-dos.ps1', 'timedemo-dos.ps1', 'smoke-dos.ps1', 'cov
         $defaults.Extent.Text + "`n" + $assign.Extent.Text + "`n" +
         $forwardText + "`nreturn ,`$buildParams")
     $defaulted = & $harness -CpuTarget 'i486'
+    if ($runnerCommand.Parameters.ContainsKey('ZSpanStartSchedule') -and
+        $defaulted['ZSpanStartSchedule'] -ne 'nofxch') {
+        throw "$runner must default the i486 Z-span schedule to nofxch."
+    }
+    if ($runnerCommand.Parameters.ContainsKey('ZSpanStartSchedule')) {
+        $i386Defaults = & $harness -CpuTarget 'i386'
+        if ($i386Defaults['ZSpanStartSchedule'] -ne 'control') {
+            throw "$runner must retain the control Z-span schedule for i386."
+        }
+        $checks += 2
+    }
     foreach ($property in $candidate.selectors.PSObject.Properties) {
         if ($runnerCommand.Parameters.ContainsKey($property.Name) -and
             $defaulted[$property.Name] -ne $property.Value) {

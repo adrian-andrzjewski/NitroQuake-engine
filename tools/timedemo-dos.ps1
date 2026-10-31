@@ -51,6 +51,8 @@ param(
     [string]$TextureSpanTailStores = 'control',
     [ValidateSet('control', 'norowcross')]
     [string]$TextureSpanRowPath = 'control',
+    [ValidateSet('control', 'nofxch')]
+    [string]$ZSpanStartSchedule = 'control',
     [ValidateSet('control', 'loadfirst')]
     [string]$TextureSpanLoadOrder = 'control',
     [ValidateSet('control')]
@@ -592,6 +594,7 @@ $buildParams = @{
     TextureSpanStores                    = $TextureSpanStores
     TextureSpanTailStores                = $TextureSpanTailStores
     TextureSpanRowPath                   = $TextureSpanRowPath
+    ZSpanStartSchedule                   = $ZSpanStartSchedule
     TextureSpanLoadOrder                 = $TextureSpanLoadOrder
     TextureSpanAddressing                = $TextureSpanAddressing
     AliasSpanAddressing                  = $AliasSpanAddressing
@@ -1471,6 +1474,7 @@ $result = [ordered]@{
     textureSpanStores = $TextureSpanStores
     textureSpanTailStores = $TextureSpanTailStores
     textureSpanRowPath = $TextureSpanRowPath
+    zSpanStartSchedule = $ZSpanStartSchedule
     textureSpanLoadOrder = $TextureSpanLoadOrder
     textureSpanAddressing = $TextureSpanAddressing
     aliasSpanAddressing = $AliasSpanAddressing
