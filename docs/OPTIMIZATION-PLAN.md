@@ -124,6 +124,24 @@ provider i486 gates passed. DOSBox-X does not model the page-conflict mechanism
 that motivated the layout change, so its physical-486 benefit is unverified.
 See the [framebuffer page-offset ledger](ledger/2026-10-30-vga-framebuffer-page-offset-pad-promoted.md).
 
+### Static surface-cache hit leaf entry recheck promoted (2026-10-31)
+
+Moving the common static-texture cache-hit probe ahead of `D_CacheSurface`'s
+saved-register and 52-byte frame setup gained **0.003130 FPS (+0.019160%)** in
+three matched uninstrumented 320x200 runs: **16.339184667 FPS** versus
+**16.336054667 FPS** control. All runs rendered 969 frames, ended at checksum
+`1047377823`, and recorded matching timedemo event traces. For exact frame
+parity, the repository's `host_framerate 0.0783` autoexec was applied: the
+control checksum stream matched two candidate streams across all 970 rendered
+frames, and frame 169 PCX files were byte-identical. The complete linked i486
+gate passed 314,334 executable instructions with zero above-i486, unknown, or
+exempt instructions; startup and provider proofs also passed with zero
+exemptions. See the [static-hit leaf entry ledger](ledger/2026-10-31-surface-cache-hit-leaf-entry-promoted.md).
+
+The earlier Oct 30 leaf-path result below remains historical: its raw timedemo
+frame stream lacked the deterministic render-validation autoexec used in this
+recheck.
+
 ### Surface-cache leaf hit fast path rejected (2026-10-30)
 
 A leaf return for static-texture surface-cache hits averaged **16.325488 FPS**

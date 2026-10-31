@@ -4741,6 +4741,59 @@ C(D_CacheSurfaceSetDlight_asm486):
 // selectors and the C dispatcher remains available in benchmark builds.
 C(D_CacheSurface):
 	.globl C(D_CacheSurface)
+#ifndef PROFILE486
+	// The common static-texture cache hit needs only caller-saved registers.
+	// Probe it before building the full C-call frame; any animated texture,
+	// cache miss, key mismatch, or current-frame dynamic-light case falls back
+	// to the complete path below.
+	movl	4(%esp),%eax		// surface
+	movl	cs_surface_texinfo(%eax),%edx
+	movl	cs_texinfo_texture(%edx),%ecx
+	cmpl	$0,cs_texture_anim_total(%ecx)
+	jne	.Lcache_surface_full_entry
+	movl	C(currententity),%edx
+	cmpl	$0,cs_entity_frame(%edx)
+	je	.Lcache_surface_fast_static
+	cmpl	$0,cs_texture_alternate_anims(%ecx)
+	jne	.Lcache_surface_full_entry
+.Lcache_surface_fast_static:
+	movl	8(%esp),%edx		// miplevel
+	movl	cs_surface_cachespots(%eax,%edx,4),%edx
+	testl	%edx,%edx
+	jz	.Lcache_surface_full_entry
+	cmpl	$0,24(%edx)		// cache->dlight
+	jne	.Lcache_surface_full_entry
+	cmpl	SURFCACHE_TEXTURE_OFFSET(%edx),%ecx
+	jne	.Lcache_surface_full_entry
+	movl	4(%esp),%ecx		// retain surface for style and dlight keys
+	movzbl	56(%ecx),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%eax
+	cmpl	8(%edx),%eax
+	jne	.Lcache_surface_full_entry
+	cmpb	$255,57(%ecx)		// unused style sentinel
+	je	.Lcache_surface_fast_dlight
+	movzbl	57(%ecx),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%eax
+	cmpl	12(%edx),%eax
+	jne	.Lcache_surface_full_entry
+	cmpb	$255,58(%ecx)
+	je	.Lcache_surface_fast_dlight
+	movzbl	58(%ecx),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%eax
+	cmpl	16(%edx),%eax
+	jne	.Lcache_surface_full_entry
+	movzbl	59(%ecx),%eax
+	movl	C(d_lightstylevalue)(,%eax,4),%eax
+	cmpl	20(%edx),%eax
+	jne	.Lcache_surface_full_entry
+.Lcache_surface_fast_dlight:
+	movl	cs_surface_dlightframe(%ecx),%eax
+	cmpl	C(r_framecount),%eax
+	je	.Lcache_surface_full_entry
+	movl	%edx,%eax
+	ret
+.Lcache_surface_full_entry:
+#endif
 	pushl	%ebp
 	movl	%esp,%ebp
 	pushl	%ebx
