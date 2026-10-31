@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-10-31-alias-line-scan-negative-division-promoted.md](2026-10-31-alias-line-scan-negative-division-promoted.md) | 5 | alias rasterization / replace the double divide for negative long-edge line setup with one exact magnitude divide; +0.139512% at 320x200, 16,416 setup cases pass, and strict source-bound i486 audit |
 | [2026-10-31-surface-cache-hit-leaf-entry-promoted.md](2026-10-31-surface-cache-hit-leaf-entry-promoted.md) | 4 | renderer performance / move the eligible static-texture hit return before callee-save and local-frame setup; +0.019160% in matched 320x200 runs, exact frame/PCX/checksum/event parity, and full i486 audit |
 | [2026-10-31-span16-perspective-arithmetic-trials-rejected.md](2026-10-31-span16-perspective-arithmetic-trials-rejected.md) | 5 | renderer performance / reject zero-step reciprocal reuse after a 0.7705% slowdown; reject the FDIV stack rewrite after visible texture banding; reject direct stack-slot updates after two frame differences and a slower three-run mean |
 | [2026-10-30-span8-alignment-and-prologue-schedules-rejected.md](2026-10-30-span8-alignment-and-prologue-schedules-rejected.md) | 2 | renderer performance / reject 8-pixel body alignment after a negligible negative 320x200 mean; reject combined and isolated span-row/pointer schedules after 9–32 per-frame checksum differences despite matching final checksums |

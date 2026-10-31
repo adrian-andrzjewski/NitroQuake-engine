@@ -556,9 +556,9 @@ C(D_PolysetCalcGradients_asm486):
 //----------------------------------------------------------------------
 // Bresenham-style line-scan setup for alias triangle edges.
 // The small-step table is the C adivtab[64*64] (two 32-bit integers per row).
-// Larger positive edge heights use signed division followed by the same
-// floor-division correction as D_PolysetSetUpForLineScan_C. Non-positive
-// large heights retain the reference error path through the C helper.
+// Larger positive edge heights use integer division. Negative horizontal
+// deltas use an unsigned magnitude divide and exact floor correction, avoiding
+// a second divide. Non-positive large heights retain the reference C path.
 //----------------------------------------------------------------------
 
 .globl C(D_PolysetSetUpForLineScan_asm486)
@@ -608,24 +608,30 @@ C(D_PolysetSetUpForLineScan_asm486):
 	ret
 
 .LPolysetLineScanNegative:
-	cdq
-	idivl	%ecx
-	movl	%eax,C(ubasestep)
-	movl	16(%ebp),%eax
-	subl	8(%ebp),%eax
+	// Preserve the legacy C result for INT_MIN, whose signed magnitude
+	// overflows even though rasterizer edge deltas never reach it.
+	cmpl	$0x80000000,%eax
+	je	.LPolysetLineScanC
+	// Floor division of a negative numerator can be derived from one unsigned
+	// divide of its magnitude: -m/d = -q when rem is zero, otherwise -q-1.
+	// The remainder accumulator is d-rem in the non-exact case.
 	negl	%eax
-	cdq
-	idivl	%ecx
+	xorl	%edx,%edx
+	divl	%ecx
 	testl	%edx,%edx
-	jz	.LPolysetLineScanNegativeDone
-	decl	C(ubasestep)
+	jz	.LPolysetLineScanNegativeExact
+	negl	%eax
+	decl	%eax
+	movl	%eax,C(ubasestep)
 	subl	%edx,%ecx
 	movl	%ecx,C(erroradjustup)
 	leave
 	ret
-.LPolysetLineScanNegativeDone:
+
+.LPolysetLineScanNegativeExact:
+	negl	%eax
+	movl	%eax,C(ubasestep)
 	movl	%edx,C(erroradjustup)
-	// ubasestep was stored from the signed tm/tn quotient above.
 	leave
 	ret
 
