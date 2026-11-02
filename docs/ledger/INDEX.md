@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-02-renderface-trivial-frustum-cull-rejected.md](2026-11-02-renderface-trivial-frustum-cull-rejected.md) | 4 | renderer performance / reject the per-face all-vertices-outside frustum check after a -0.53017% DOSBox-X result; exact Z stream, color parity unresolved, strict i486 audit |
 | [2026-11-02-alias-span-constant-depth-reject-rejected.md](2026-11-02-alias-span-constant-depth-reject-rejected.md) | 4 | alias rasterization / reject per-span occlusion scan (-0.0724%) and whole-model Z-rectangle scan (+0.00064%, below noise); spot PCX/Z parity, incomplete color-hash parity, both reverted |
 | [2026-11-02-zspan-pair-add-schedule-recheck-rejected.md](2026-11-02-zspan-pair-add-schedule-recheck-rejected.md) | 3 | Z-span performance / recheck the SHLD/ROR depth-add schedule on the current combined source; no repeatable gain across ten 320x200 runs, exact checksum/event traces, full i486 audit |
 | [2026-11-02-alias-span-register-entry-promoted.md](2026-11-02-alias-span-register-entry-promoted.md) | 3 | alias rasterization / pass prepared span pointer in EAX to remove stack argument traffic; +0.0078% across two 320x200 screens, exact full checksum-stream and golden-frame parity, strict i486 audit |
