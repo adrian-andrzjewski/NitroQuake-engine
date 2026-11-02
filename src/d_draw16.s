@@ -50,6 +50,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern C(bench486_span_segments)
 	.extern C(bench486_span_unit_stride_segments)
 	.extern C(bench486_span_unit_stride_pixels)
+	.extern C(bench486_texture_span_same_row_links)
 #endif
 
 //----------------------------------------------------------------------
@@ -150,6 +151,17 @@ LSpanLoop:
 	// Keep the independent integer loads behind both x87 loads so they can
 	// occupy the FPU's conversion window before the dependent arithmetic.
 	movl	espan_t_v(%ebx),%eax
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz		LSpan16SameRowStatsDone
+	movl	espan_t_pnext(%ebx),%edx
+	testl	%edx,%edx
+	jz		LSpan16SameRowStatsDone
+	cmpl	espan_t_v(%edx),%eax
+	jne		LSpan16SameRowStatsDone
+	incl	C(bench486_texture_span_same_row_links)
+LSpan16SameRowStatsDone:
+#endif
 	movl	C(tadjust),%edx
 	// Fetch the span's destination and continuation state while x87 setup runs.
 	pushl	espan_t_pnext(%ebx)

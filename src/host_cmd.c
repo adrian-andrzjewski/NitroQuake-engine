@@ -241,6 +241,7 @@ unsigned long bench486_surface_cache_requested_bytes;
 unsigned long bench486_surface_cache_reclaimed_bytes;
 unsigned long bench486_surface_cache_thrash_frames;
 unsigned long bench486_texture_span_count;
+unsigned long bench486_texture_span_same_row_links;
 unsigned long bench486_texture_span_pixels;
 unsigned long bench486_texture_span_segments;
 unsigned long bench486_texture_span_buckets[5];
@@ -1600,7 +1601,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"frames\": %lu, \"bsp_nodes\": %lu, \"bsp_solid_culls\": %lu, \"bsp_visibility_culls\": %lu, \"bsp_leaf_nodes\": %lu, \"bsp_internal_nodes\": %lu, \"bsp_surface_tests\": %lu,\n"
 			"    \"scanlines\": %lu, \"edge_insert_calls\": %lu, \"edge_remove_calls\": %lu, \"edge_step_calls\": %lu, \"span_flushes\": %lu,\n"
 			"    \"surfaces\": %lu, \"surface_drawn\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
-			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu, \"gib_trail_particles\": %lu,\n"
+			"    \"texture_spans\": %lu, \"texture_span_same_row_links\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu, \"gib_trail_particles\": %lu,\n"
 			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu,\n"
 			"    \"renderface_calls\": %lu, \"renderface_emitted\": %lu, \"clipedge_calls\": %lu, \"clipedge_plane_tests\": %lu, \"clipedge_fully_clipped\": %lu, \"clipvert_clips\": %lu, \"emitcachededge_calls\": %lu,\n"
 			"    \"clipvertex_world_endpoint_uses\": %lu, \"clipvertex_world_unique_uses\": %lu,\n"
@@ -1621,7 +1622,8 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_surface_sky_count, bench486_surface_background_count,
 			bench486_surface_turbulent_count, bench486_surface_normal_count,
 			bench486_surface_solid_count,
-			bench486_texture_span_count, bench486_texture_span_pixels,
+			bench486_texture_span_count, bench486_texture_span_same_row_links,
+			bench486_texture_span_pixels,
 			bench486_texture_span_segments, bench486_alias_models,
 			bench486_alias_vertices, bench486_particle_count,
 			bench486_gib_trail_particles,
@@ -1723,6 +1725,7 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_surface_cache_reclaimed_bytes = 0;
 	bench486_surface_cache_thrash_frames = 0;
 	bench486_texture_span_count = 0;
+	bench486_texture_span_same_row_links = 0;
 	bench486_texture_span_pixels = 0;
 	bench486_texture_span_segments = 0;
 	bench486_texture_span_buckets[0] = 0;

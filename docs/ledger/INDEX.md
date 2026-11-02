@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-02-span16-same-row-link-census.md](2026-11-02-span16-same-row-link-census.md) | 3 | renderer performance / only 31,256 of 1,454,547 texture-span links share a row (2.1488%); no reuse candidate, qprof used only for attribution, and cross-run frame streams differ at six frames |
 | [2026-11-02-clipvertex-distance-cache-rejected.md](2026-11-02-clipvertex-distance-cache-rejected.md) | 3 | renderer performance / retain PROFILE486 vertex-reuse counts, reject the lazy exact-distance cache after the trial ended with visible artifacts and an incomplete timedemo; no FPS claim |
 | [2026-11-02-clipedge-shared-endpoint-cache-rejected.md](2026-11-02-clipedge-shared-endpoint-cache-rejected.md) | 4 | renderer performance / reject shared endpoint distance reuse after -0.229% and -0.339% DOSBox-X results; corrected assembly profile: 789,751 calls, 1.479M plane tests; eager world cache estimate costs about 10x current dot work |
 | [2026-11-02-renderface-trivial-frustum-cull-rejected.md](2026-11-02-renderface-trivial-frustum-cull-rejected.md) | 4 | renderer performance / reject the per-face all-vertices-outside frustum check after a -0.53017% DOSBox-X result; exact Z stream, color parity unresolved, strict i486 audit |
@@ -1051,6 +1052,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### texture-spans
 
+- `measured` [Span16 adjacent same-row link census (2026-11-02) — only 2.1488% of texture spans have an adjacent same-row successor; no reuse candidate justified](2026-11-02-span16-same-row-link-census.md)
 - `rejected` [Span16 no-row-cross specialization current-source recheck (2026-10-29) — three-run mean **−0.095470333 FPS (−0.584663%)**, 969-frame final checksum parity; strict ISA and frame-stream audits skipped](2026-10-29-span16-norowcross-current-recheck-rejected.md)
 - `rejected` [Span16 same-row specialized path (2026-10-27) — strict mean **−0.091043334 FPS (−0.565237%)**, exact checksum parity and complete ISA audit](2026-10-27-span16-row-path-rejected.md)
 - `rejected` [Span16 high-byte load before T-carry capture (2026-10-26) — repeat screen **−0.000014 FPS**, exact checksum parity; candidate restored](2026-10-26-span16-high-byte-load-before-tcarry-screen-rejected.md)
