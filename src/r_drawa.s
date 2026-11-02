@@ -61,6 +61,7 @@ Lzi0:			.long		0
 	.extern C(bench486_clipedge_plane_tests)
 	.extern C(bench486_clipedge_fully_clipped)
 	.extern C(bench486_clipvert_clips)
+	.extern C(Bench486ProfileClipPlaneEndpoints)
 #endif
 
 	.p2align 4,,15
@@ -98,6 +99,17 @@ Lcliploop:
 	je	.Lclip_profile_plane_done
 	incl	C(bench486_clipedge_plane_tests)
 .Lclip_profile_plane_done:
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lclip_profile_pair_done
+	/* Profile-only: measure repeated world-vertex/clip-plane distance pairs. */
+	pushl	%edx				// preserve pv1 across the C helper
+	pushl	%ebx				// clip plane
+	pushl	%edx				// pv1
+	pushl	%esi				// pv0
+	call	C(Bench486ProfileClipPlaneEndpoints)
+	addl	$12,%esp
+	popl	%edx
+.Lclip_profile_pair_done:
 #endif
 
 //			d0 = DotProduct (pv0->position, clip->normal) - clip->dist;

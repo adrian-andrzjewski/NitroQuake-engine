@@ -38,6 +38,35 @@ established, so this is not a per-frame pixel-equivalence claim. The separate
 three-run uninstrumented control remained 16.458229 FPS median. The restoration
 run used `-VisualParityOnly`, which skips the linked i486 ISA audit.
 
-Keep the profile-only endpoint and unique-vertex counters for future
-measurements. Do not retain or promote the cache. A retry first needs an
-isolated per-vertex/per-plane hit profile and a completed pixel-parity run.
+## Per-vertex/per-plane reuse profile
+
+A follow-up `PROFILE486` probe counted exact `(world vertex ID, clip-plane
+slot)` pairs in the assembly clipper, with a per-frame seen bitset for each
+plane. Synthetic vertices were excluded. The capture is
+`out/dos-timedemo-20261102-225644/quake/PROFILE.JSN`, using DOSBox-X
+2026.08.31, `cputype=486`, 320x200 `demo1`, and 969 timedemo frames. It counted:
+
+| Plane slot | Endpoint uses | Unique pairs | Repeated hits | Hit rate |
+|---:|---:|---:|---:|---:|
+| 0 | 959,660 | 323,697 | 635,963 | 66.27% |
+| 1 | 762,944 | 253,496 | 509,448 | 66.77% |
+| 2 | 519,644 | 166,006 | 353,638 | 68.05% |
+| 3 | 393,207 | 130,641 | 262,566 | 66.78% |
+| Total | 2,635,455 | 873,840 | 1,761,615 | 66.84% |
+
+The profile run reported 9.439039 FPS; this is instrumentation-heavy and is
+not a performance result. The final framebuffer checksum matched the pinned
+`1047377823` gate, but 37 intermediate checksum records differed from the
+earlier independently-run profile stream at
+`out/dos-timedemo-20261102-195029`. Cross-run intermediate pixel parity is
+therefore unproven; the equal final checksum does not resolve those
+differences. The instrumentation build passed the strict i486 audit: 321,846
+relocated instructions, 529 startup rows, and 9,207 DPMI-provider instructions,
+with zero above-i486, unknown, or exempt instructions.
+
+Repeated pairs are common, but this does not overturn the rejected cache
+trials: the measured cache variants were slower, and no new cache
+implementation or uninstrumented timing was tested. Keep the per-plane
+profile counters as diagnostic-only `PROFILE486` instrumentation; do not
+promote a distance cache without a separate completed pixel-parity run and
+repeatable 320x200 timing gain.
