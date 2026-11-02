@@ -611,6 +611,7 @@ static unsigned long bench486_svc_damage_event_frames[
 static int bench486_timedemo_frame_capture_index = -1;
 static qboolean bench486_timedemo_frame_checksums_enabled;
 static int bench486_timedemo_frame_checksum_handle = -1;
+static int bench486_timedemo_z_checksum_handle = -1;
 static qboolean bench486_timedemo_stats_enabled;
 static qboolean bench486_timedemo_stats_active;
 static qboolean bench486_timedemo_frame_started;
@@ -681,6 +682,8 @@ void Bench486ResetTimedemoFrameChecksums (int enabled)
 
 	if (bench486_timedemo_frame_checksum_handle != -1)
 		Sys_FileClose (bench486_timedemo_frame_checksum_handle);
+	if (bench486_timedemo_z_checksum_handle != -1)
+		Sys_FileClose (bench486_timedemo_z_checksum_handle);
 	bench486_timedemo_frame_checksum_count = 0;
 	bench486_timedemo_frame_checksum_overflow = 0;
 	bench486_timedemo_rendered_frame_count = 0;
@@ -709,6 +712,9 @@ void Bench486ResetTimedemoFrameChecksums (int enabled)
 		bench486_timedemo_frame_capture_index = Q_atoi (com_argv[parm + 1]);
 	bench486_timedemo_frame_checksum_handle = enabled ?
 			Sys_FileOpenWrite ("framechecksums.txt") : -1;
+	parm = COM_CheckParm ("-zchecksums");
+	bench486_timedemo_z_checksum_handle = enabled && parm ?
+			Sys_FileOpenWrite ("framezchecksums.txt") : -1;
 }
 
 void Bench486RecordBlobExplosionEvent (void)
@@ -791,7 +797,7 @@ void Bench486RecordSvcDamageEvent (void)
 void Bench486TimedemoFrameChecksumRecord (void)
 {
 	char	text[32];
-	unsigned checksum;
+	unsigned checksum, zchecksum;
 	unsigned long frame;
 
 	/* Keep event timing meaningful even when checksum output is disabled. */
@@ -820,6 +826,14 @@ void Bench486TimedemoFrameChecksumRecord (void)
 	{
 		sprintf (text, "%lu %u\n", frame, checksum);
 		Sys_FileWrite (bench486_timedemo_frame_checksum_handle, text,
+				Q_strlen(text));
+	}
+	if (bench486_timedemo_z_checksum_handle != -1)
+	{
+		zchecksum = d_pzbuffer ? Bench486Checksum ((byte *)d_pzbuffer,
+				(int)(d_zrowbytes * vid.height)) : 0;
+		sprintf (text, "%lu %u\n", frame, zchecksum);
+		Sys_FileWrite (bench486_timedemo_z_checksum_handle, text,
 				Q_strlen(text));
 	}
 }
@@ -2202,6 +2216,15 @@ void Bench486WriteTimedemoFrameChecksum (int report_handle)
 			Q_strlen(text));
 	Sys_FileClose (bench486_timedemo_frame_checksum_handle);
 	bench486_timedemo_frame_checksum_handle = -1;
+	if (bench486_timedemo_z_checksum_handle != -1)
+	{
+		sprintf (text, "frames %lu\n",
+				bench486_timedemo_frame_checksum_count);
+		Sys_FileWrite (bench486_timedemo_z_checksum_handle, text,
+				Q_strlen(text));
+		Sys_FileClose (bench486_timedemo_z_checksum_handle);
+		bench486_timedemo_z_checksum_handle = -1;
+	}
 }
 
 #define BENCH486_MEMORY_SAMPLES	5

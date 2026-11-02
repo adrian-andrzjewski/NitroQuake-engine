@@ -35,6 +35,16 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Alias constant-depth full-occlusion rejection rejected (2026-11-02)
+
+An exact Z scan can skip a long alias span only when its horizontal inverse-
+depth step is zero and every existing Z value is strictly nearer. The
+candidate preserved the frame-50 PCX exactly and all 970 per-frame Z hashes,
+but repeated-control color hashes showed wall-clock-dependent output. In three
+uninstrumented 320x200 DOSBox-X runs, the scan was **0.011920 FPS (0.0724%)
+slower** than control, so it was removed. The full i486 audit passed. See the
+[alias span occlusion ledger](ledger/2026-11-02-alias-span-constant-depth-reject-rejected.md).
+
 ### Client update bit-count loop removal promoted (2026-10-30)
 
 `CL_ParseUpdate` no longer scans all 16 update bits to increment the unread

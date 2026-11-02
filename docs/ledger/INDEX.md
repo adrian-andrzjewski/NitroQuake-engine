@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-02-alias-span-constant-depth-reject-rejected.md](2026-11-02-alias-span-constant-depth-reject-rejected.md) | 4 | alias rasterization / exact constant-depth full-span occlusion scan; frame-50 pixel and full Z-hash parity, but -0.0724% in three 320x200 DOSBox-X runs, so reverted |
 | [2026-11-02-zspan-pair-add-schedule-recheck-rejected.md](2026-11-02-zspan-pair-add-schedule-recheck-rejected.md) | 3 | Z-span performance / recheck the SHLD/ROR depth-add schedule on the current combined source; no repeatable gain across ten 320x200 runs, exact checksum/event traces, full i486 audit |
 | [2026-11-02-alias-span-register-entry-promoted.md](2026-11-02-alias-span-register-entry-promoted.md) | 3 | alias rasterization / pass prepared span pointer in EAX to remove stack argument traffic; +0.0078% across two 320x200 screens, exact full checksum-stream and golden-frame parity, strict i486 audit |
 | [2026-11-01-alias-span-triangle-constant-setup-promoted.md](2026-11-01-alias-span-triangle-constant-setup-promoted.md) | 3 | alias rasterization / prepare triangle-constant span steps once per triangle; +0.0149% across 15 320x200 runs, exact fixed-clock frame and full checksum-stream parity, and full i486 audit |
@@ -659,6 +660,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### alias
 
+- rejected [Alias span constant-depth full-occlusion rejection (2026-11-02) - exact test condition, frame-50 pixel parity and full Z-hash parity; three DOSBox-X runs were 0.0724% slower](2026-11-02-alias-span-constant-depth-reject-rejected.md)
 - promoted [Alias span triangle-constant setup (2026-11-01) - +0.0149% across three uninstrumented screens, exact final checksums/events, complete i486 audit](2026-11-01-alias-span-triangle-constant-setup-promoted.md)
 - promoted [Alias span prepared-entry register argument (2026-11-02) - +0.0078% over prepared-only, exact full fixed-clock checksum stream, golden frame, and strict i486 audit](2026-11-02-alias-span-register-entry-promoted.md)
 - `documented` [Alias-stat leaf behavior and ownership](2026-10-09-alias-stats-assembly-port.md)
