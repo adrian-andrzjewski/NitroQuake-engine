@@ -258,6 +258,9 @@ unsigned long bench486_clipedge_plane_tests;
 unsigned long bench486_clipedge_fully_clipped;
 unsigned long bench486_emitcachededge_calls;
 unsigned long bench486_clipvert_clips;
+unsigned long bench486_clipvertex_world_endpoint_uses;
+unsigned long bench486_clipvertex_world_unique_uses;
+unsigned long bench486_clipvertex_seen_world[2048];
 // R_RenderFace premise counters. The admissible part of renderface is its C
 // scaffolding; the inadmissible part is the assembly clipper's x87 chain.
 // These price the population split before any probe is built: edges that hit
@@ -1600,6 +1603,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu, \"gib_trail_particles\": %lu,\n"
 			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu,\n"
 			"    \"renderface_calls\": %lu, \"renderface_emitted\": %lu, \"clipedge_calls\": %lu, \"clipedge_plane_tests\": %lu, \"clipedge_fully_clipped\": %lu, \"clipvert_clips\": %lu, \"emitcachededge_calls\": %lu,\n"
+			"    \"clipvertex_world_endpoint_uses\": %lu, \"clipvertex_world_unique_uses\": %lu,\n"
 			"    \"texture_span_buckets\": [%lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_widths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_final_lengths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
@@ -1627,6 +1631,8 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_clipedge_calls, bench486_clipedge_plane_tests,
 			bench486_clipedge_fully_clipped, bench486_clipvert_clips,
 			bench486_emitcachededge_calls,
+			bench486_clipvertex_world_endpoint_uses,
+			bench486_clipvertex_world_unique_uses,
 			bench486_texture_span_buckets[0], bench486_texture_span_buckets[1],
 			bench486_texture_span_buckets[2], bench486_texture_span_buckets[3],
 			bench486_texture_span_buckets[4],
@@ -1736,6 +1742,10 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_clipedge_fully_clipped = 0;
 	bench486_emitcachededge_calls = 0;
 	bench486_clipvert_clips = 0;
+	bench486_clipvertex_world_endpoint_uses = 0;
+	bench486_clipvertex_world_unique_uses = 0;
+	memset (bench486_clipvertex_seen_world, 0,
+			sizeof(bench486_clipvertex_seen_world));
 	for (i=0 ; i<17 ; i++)
 	{
 		bench486_texture_widths[i] = 0;
@@ -1835,9 +1845,19 @@ void Bench486ResetTimedemoCounters (void)
 
 void Bench486BeginTimedemoProfile (void)
 {
+	memset (bench486_clipvertex_seen_world, 0,
+			sizeof(bench486_clipvertex_seen_world));
 	bench486_profile_frame_active = true;
 	Bench486ProfileEnter (BENCH486_PROFILE_FRAME);
 	bench486_profile_pending_leaves = 1;
+}
+
+void Bench486ProfileClipVertexFrameStart (void)
+{
+	if (!bench486_profile_frame_active)
+		return;
+	memset (bench486_clipvertex_seen_world, 0,
+			sizeof(bench486_clipvertex_seen_world));
 }
 #endif
 

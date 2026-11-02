@@ -711,6 +711,8 @@ void _Host_Frame (float time)
 #endif
 
 #ifdef PROFILE486
+	if (bench486_profile_frame_active)
+		Bench486ProfileClipVertexFrameStart ();
 	bench486_frame_start = Sys_FloatTime ();
 #endif
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_FRAME);

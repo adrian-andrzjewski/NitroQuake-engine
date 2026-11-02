@@ -264,6 +264,7 @@ void Bench486ProfileEnter (int node);
 void Bench486ProfileLeave (void);
 void Bench486ProfileWork (int node, unsigned long items,
 		unsigned long bytes);
+void Bench486ProfileClipVertexFrameStart (void);
 
 #define BENCH486_PROFILE_ENTER(node) Bench486ProfileEnter (node)
 #define BENCH486_PROFILE_LEAVE() Bench486ProfileLeave ()

@@ -2311,11 +2311,16 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(bench486_renderface_faces)
 	.extern C(bench486_renderface_general_edges)
 	.extern C(bench486_emitcachededge_calls)
+	.extern C(bench486_clipvertex_world_endpoint_uses)
+	.extern C(bench486_clipvertex_world_unique_uses)
+	.extern C(bench486_clipvertex_seen_world)
 #endif
 
 	.equ RF_PCLIP, 24
 	.equ RF_TEDGE, 16
 	.equ RF_MEDGE, 8
+	.equ RF_VERTEX0, 0
+	.equ RF_VERTEX1, 4
 
 	.text
 	.globl C(R_RenderFace_asm486)
@@ -2514,6 +2519,37 @@ C(R_RenderFace_asm486):
 	movzwl	2(%ecx),%eax
 	movzwl	0(%ecx),%edx
 .Lrf_vertices_ready:
+	/* Count distinct world-model endpoints once per profiled frame. */
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lrf_profile_vertex_count_done
+	cmpl	$0,C(insubmodel)
+	jne	.Lrf_profile_vertex_count_done
+	cmpl	$0,RF_PCLIP(%esp)
+	je	.Lrf_profile_vertex_count_done
+	movl	%eax,RF_VERTEX0(%esp)
+	movl	%edx,RF_VERTEX1(%esp)
+	addl	$2,C(bench486_clipvertex_world_endpoint_uses)
+	movl	RF_VERTEX0(%esp),%ecx
+	movl	%ecx,%edx
+	shrl	$5,%ecx
+	andl	$31,%edx
+	btsl	%edx,C(bench486_clipvertex_seen_world)(,%ecx,4)
+	jc	.Lrf_profile_vertex1
+	incl	C(bench486_clipvertex_world_unique_uses)
+.Lrf_profile_vertex1:
+	movl	RF_VERTEX1(%esp),%ecx
+	movl	%ecx,%edx
+	shrl	$5,%ecx
+	andl	$31,%edx
+	btsl	%edx,C(bench486_clipvertex_seen_world)(,%ecx,4)
+	jc	.Lrf_profile_vertex_restore
+	incl	C(bench486_clipvertex_world_unique_uses)
+.Lrf_profile_vertex_restore:
+	movl	RF_VERTEX0(%esp),%eax
+	movl	RF_VERTEX1(%esp),%edx
+.Lrf_profile_vertex_count_done:
+#endif
 	/* EAX/EDX are the ordered vertex indices; form byte addresses. */
 	leal	(%eax,%eax,2),%eax
 	leal	(%ebx,%eax,4),%eax

@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-02-clipvertex-distance-cache-rejected.md](2026-11-02-clipvertex-distance-cache-rejected.md) | 3 | renderer performance / retain PROFILE486 vertex-reuse counts, reject the lazy exact-distance cache after the trial ended with visible artifacts and an incomplete timedemo; no FPS claim |
 | [2026-11-02-clipedge-shared-endpoint-cache-rejected.md](2026-11-02-clipedge-shared-endpoint-cache-rejected.md) | 4 | renderer performance / reject shared endpoint distance reuse after -0.229% and -0.339% DOSBox-X results; corrected assembly profile: 789,751 calls, 1.479M plane tests; eager world cache estimate costs about 10x current dot work |
 | [2026-11-02-renderface-trivial-frustum-cull-rejected.md](2026-11-02-renderface-trivial-frustum-cull-rejected.md) | 4 | renderer performance / reject the per-face all-vertices-outside frustum check after a -0.53017% DOSBox-X result; exact Z stream, color parity unresolved, strict i486 audit |
 | [2026-11-02-alias-span-constant-depth-reject-rejected.md](2026-11-02-alias-span-constant-depth-reject-rejected.md) | 4 | alias rasterization / reject per-span occlusion scan (-0.0724%) and whole-model Z-rectangle scan (+0.00064%, below noise); spot PCX/Z parity, incomplete color-hash parity, both reverted |
