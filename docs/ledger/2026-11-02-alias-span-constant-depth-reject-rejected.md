@@ -79,18 +79,56 @@ did not save enough per-pixel work on fully occluded spans. It was rejected and
 the assembly and selector changes were removed. These are DOSBox-X results,
 not measurements of physical 486 cache or bus behavior.
 
-The next higher-grain candidate is whole-model rejection in
-`R_AliasCheckBBox`: it runs after `R_EdgeDrawing` has populated world Z and
-before `R_AliasDrawModel` transforms vertices or generates spans. A safe test
-would need a padded projection of the active frame's model bounds and must
-reject only when every Z word in that rectangle is strictly nearer than a
-conservative upper bound for the model's inverse depth; near-plane crossings
-must fall through. An existing instrumented profile
-(`out/dos-timedemo-20261101-174832/quake/PROFILE.JSN`) counted 5,470 alias
-model draws and 153,852 alias draw-span calls over 969 frames. The profile's
-timer is diagnostic, so these counts identify a possible target but do not
-establish a speed estimate. The rectangle scan's cost and actual fully hidden
-model count remain unmeasured.
+### Whole-model bounding-box rejection follow-up
+
+The higher-grain candidate was implemented as an opt-in check in
+`R_AliasCheckBBox`, after world Z is populated and before
+`R_AliasDrawModel` transforms vertices or generates spans. It projected the
+active frame's bounds, expanded and clamped the rectangle, then scanned every
+Z word. It rejected only when every stored signed depth was strictly nearer
+than the candidate model-depth bound; equality and near-plane crossings fell
+through. The temporary selector and assembly/C changes were removed after the
+screen below.
+
+The same instrumented profile cited above counted 5,470 alias model draws and
+153,852 alias draw-span calls over 969 frames. Those are workload counts, not
+a speed estimate: the timedemo confirms that bounding-box Z scanning does not
+pay for itself in this scene.
+
+Three uninstrumented runs per variant used the same candidate binary, DOSBox-X
+2026.08.31, pinned i486 profile, `demo1`, data root, `host_framerate 0.05`, and
+`con_notifytime 0`. `r_aliasocclusion` was the only changed runtime setting.
+
+| Variant | FPS samples | Median |
+|---|---|---:|
+| Control (`r_aliasocclusion 0`) | 16.458121, 16.458332, 16.458223 | 16.458223 |
+| Whole-model scan (`r_aliasocclusion 1`) | 16.457986, 16.458329, 16.458429 | 16.458329 |
+
+The median delta was **+0.000106 FPS (+0.00064%)**, below run-to-run
+measurement resolution and not a demonstrated improvement. All six runs
+completed 969 frames with framebuffer checksum `1047377823` and matching event
+traces. The full linked i486 audit passed (314,499 relocated instructions,
+529 startup rows, 9,207 provider instructions, and zero above-i486, unknown,
+or exempt instructions).
+
+The per-frame Z-checksum stream matched between the first control and candidate
+screens (SHA-256
+`ADD0639C313F2C5C5C86677FA927724F67D9ED20468874306AC045B3E47B77DD`).
+Captured 320x200 frames 50 and 137 matched byte-for-byte; their PCX SHA-256
+values were respectively
+`EC99F9746E81A5333570AF4D9ECBFF26355809560F3C1E281775BD94B5C5A1C7` and
+`5ED1442F205B16B8FFF70860F8F2AB79642D6`. The color-hash stream differed at
+frames 137, 225, 428, 474, 627, and 657 between the first control and
+candidate; repeated controls differed at frames 225, 261, 428, 449, 452, and
+912. These streams do not establish complete per-frame color parity. This is
+additional reason not to promote a candidate with no measurable gain.
+
+Timing artifacts: `out/dos-timedemo-20261102-134028` (control) and
+`out/dos-timedemo-20261102-134405` (candidate). The first color/Z-hash screen
+and its repeated control are under `133253`, `133502`, and `133738`; frame-137
+capture runs are under `134939` (control) and `135144` (candidate). The
+candidate passed the build and linked ISA gates, but all source changes were
+restored. These are DOSBox-X measurements, not physical-486 results.
 
 Run artifacts remain under `out/`: parity hashes at
 `dos-timedemo-20261102-103719` (control), `103926` (candidate), and `104219`
