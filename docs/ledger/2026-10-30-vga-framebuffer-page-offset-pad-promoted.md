@@ -45,3 +45,37 @@ Artifacts:
 - Control: `out/dos-timedemo-20261029-224006/timedemo-result.json`
 - Candidate: `out/dos-timedemo-20261029-232707/timedemo-result.json`
 - Candidate ISA report: `out/profile-107ff6406936b458/isa-qbench/isa-audit-linked.json`
+
+### Reassessment (2026-11-02)
+
+The tiny positive mean was accepted under the then-current any-positive rule,
+but it is below both sample spreads and is not repeatable evidence of a DOSBox
+speedup. The Intel486 write-through/no-allocation policy also means the
+set-color explanation applies only when the affected destination lines are
+already resident; it does not describe a cold streaming-write conflict. See
+[`2026-10-30-vga-cache-set-model-correction.md`](2026-10-30-vga-cache-set-model-correction.md)
+for the allocator-address and physical-cache caveats. Keep this result as a
+historical layout experiment, not as a verified performance win. No genuine
+486 timing was available for either disposition.
+
+The current combined renderer was rechecked with the same pinned DOSBox-X
+profile on 2026-11-02, three uninstrumented runs per layout:
+
+| Layout | FPS samples | Spread | Mean FPS | Final checksum |
+|---|---|---:|---:|---:|
+| No pad | 16.346963 / 16.346953 / 16.346945 | 0.000018 | 16.346953667 | `1047377823` |
+| 16-byte pad | 16.346944 / 16.346952 / 16.346944 | 0.000008 | 16.346946667 | `1047377823` |
+
+The pad delta is **-0.000007000 FPS (-0.0000428%)**, smaller than either
+sample spread. All six runs rendered 969 frames and produced the same final
+checksum and timedemo event streams. Both builds passed the complete i486 ISA
+gate (314,326 and 314,349 linked instructions, respectively; zero above-486,
+unknown, or exempt instructions). This reverses the sign of the earlier tiny
+positive mean and confirms that the DOSBox result is flat. The profile hash was
+`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA` for both
+layouts. These timings still say nothing about physical 486 cache behavior.
+
+Artifacts for the current recheck (preserved under ignored `out/`):
+
+- No-pad timedemo: `out/dos-timedemo-20261102-084901/timedemo-result.json`
+- 16-byte-pad timedemo: `out/dos-timedemo-20261102-090605/timedemo-result.json`

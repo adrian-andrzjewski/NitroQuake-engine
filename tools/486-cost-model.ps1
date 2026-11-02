@@ -13,7 +13,10 @@
       2. L1 set mapping     - the 486 has a four-way, 128-set cache with
                               16-byte lines. Matching offsets indicate set
                               congruence, not a guaranteed cache conflict.
-      3. L1 footprint       - 8 KB unified cache (there is NO instruction cache
+      3. Write policy       - standard Intel486 caches are write-through and do
+                              not allocate on write misses. Set coloring of a
+                              streaming store matters only for resident lines.
+      4. L1 footprint       - 8 KB unified cache (there is NO instruction cache
                               on a 486); .text is much larger than the cache.
 
     This tool is a RANKING AID only. It cannot promote a change or reject one

@@ -278,11 +278,12 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 {
 	int		tsize, tbuffersize, bufferpad;
 
-	// Shift the single-buffer 320x200 framebuffer by one 486 cache line from
-	// the surface cache. Corresponding lines then use different L1 sets, which
-	// may reduce set pressure while Span16 reads texture and writes pixels; the
-	// four-way cache means matching sets alone do not prove a conflict. Sixteen
-	// bytes preserves alignment for the packed renderer stores.
+	// Add one cache line between the surface cache and single-buffer 320x200
+	// framebuffer. The high hunk grows downward, so this changes the relative
+	// set mapping by moving the Z-buffer and surface-cache base. Standard
+	// Intel486 write misses do not allocate lines; any L1 benefit depends on
+	// already-resident data. DOSBox timing does not validate the cache theory.
+	// Sixteen bytes preserves packed-store alignment.
 	bufferpad = allocnewbuffer && lvid->width == 320 && lvid->height == 200 ?
 			16 : 0;
 
