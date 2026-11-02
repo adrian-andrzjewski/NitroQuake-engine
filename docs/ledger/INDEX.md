@@ -1055,6 +1055,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### texture-spans
 
+- `abandoned` [Span16 destination-aligned word stores (2026-11-02) — the initial byte-packing path differed on 969 of 970 frame records; corrected source was not revalidated](2026-11-02-span16-destination-aligned-word-stores-abandoned.md)
 - `rejected` [Span16 linear row-major address delta (2026-11-02) — i486 audit passed, but 969 of 970 indexed framebuffer checksums differed; reverted](2026-11-02-span16-linear-address-delta-rejected.md)
 - `measured` [Span16 adjacent same-row link census (2026-11-02) — only 2.1488% of texture spans have an adjacent same-row successor; no reuse candidate justified](2026-11-02-span16-same-row-link-census.md)
 - `rejected` [Span16 no-row-cross specialization current-source recheck (2026-10-29) — three-run mean **−0.095470333 FPS (−0.584663%)**, 969-frame final checksum parity; strict ISA and frame-stream audits skipped](2026-10-29-span16-norowcross-current-recheck-rejected.md)
