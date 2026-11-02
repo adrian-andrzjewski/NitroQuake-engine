@@ -266,6 +266,9 @@ unsigned long bench486_clipvertex_plane_distance_uses[4];
 unsigned long bench486_clipvertex_plane_distance_unique[4];
 unsigned long bench486_clipvertex_plane_distance_hits[4];
 unsigned long bench486_clipvertex_plane_seen[4][2048];
+unsigned long bench486_clipvertex_plane_lru_uses[4];
+unsigned long bench486_clipvertex_plane_lru_hits[4];
+static unsigned long bench486_clipvertex_plane_lru_vertex[4];
 static unsigned long bench486_clipvertex_world_base;
 static unsigned long bench486_clipvertex_world_bytes;
 // R_RenderFace premise counters. The admissible part of renderface is its C
@@ -1673,6 +1676,9 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"  \"clipvertex_plane_distance_reuse\": {"
 			"\"uses_by_plane\": [%lu, %lu, %lu, %lu], "
 			"\"unique_by_plane\": [%lu, %lu, %lu, %lu], "
+			"\"hits_by_plane\": [%lu, %lu, %lu, %lu]},\n"
+			"  \"clipvertex_plane_lru_cache\": {"
+			"\"uses_by_plane\": [%lu, %lu, %lu, %lu], "
 			"\"hits_by_plane\": [%lu, %lu, %lu, %lu]}\n}\n",
 			bench486_clipvertex_plane_distance_uses[0],
 			bench486_clipvertex_plane_distance_uses[1],
@@ -1685,7 +1691,15 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_clipvertex_plane_distance_hits[0],
 			bench486_clipvertex_plane_distance_hits[1],
 			bench486_clipvertex_plane_distance_hits[2],
-			bench486_clipvertex_plane_distance_hits[3]);
+			bench486_clipvertex_plane_distance_hits[3],
+			bench486_clipvertex_plane_lru_uses[0],
+			bench486_clipvertex_plane_lru_uses[1],
+			bench486_clipvertex_plane_lru_uses[2],
+			bench486_clipvertex_plane_lru_uses[3],
+			bench486_clipvertex_plane_lru_hits[0],
+			bench486_clipvertex_plane_lru_hits[1],
+			bench486_clipvertex_plane_lru_hits[2],
+			bench486_clipvertex_plane_lru_hits[3]);
 	Sys_FileClose (file_handle);
 }
 
@@ -1780,6 +1794,12 @@ void Bench486ResetTimedemoCounters (void)
 			sizeof(bench486_clipvertex_plane_distance_hits));
 	memset (bench486_clipvertex_plane_seen, 0,
 			sizeof(bench486_clipvertex_plane_seen));
+	memset (bench486_clipvertex_plane_lru_uses, 0,
+			sizeof(bench486_clipvertex_plane_lru_uses));
+	memset (bench486_clipvertex_plane_lru_hits, 0,
+			sizeof(bench486_clipvertex_plane_lru_hits));
+	memset (bench486_clipvertex_plane_lru_vertex, 0,
+			sizeof(bench486_clipvertex_plane_lru_vertex));
 	bench486_clipvertex_world_base = 0;
 	bench486_clipvertex_world_bytes = 0;
 	for (i=0 ; i<17 ; i++)
@@ -1896,6 +1916,8 @@ void Bench486ProfileClipVertexFrameStart (void)
 			sizeof(bench486_clipvertex_seen_world));
 	memset (bench486_clipvertex_plane_seen, 0,
 			sizeof(bench486_clipvertex_plane_seen));
+	memset (bench486_clipvertex_plane_lru_vertex, 0,
+			sizeof(bench486_clipvertex_plane_lru_vertex));
 	if (cl.worldmodel && cl.worldmodel->vertexes &&
 		cl.worldmodel->numvertexes > 0)
 	{
@@ -1951,6 +1973,10 @@ void Bench486ProfileClipPlaneEndpoints (mvertex_t *pv0, mvertex_t *pv1,
 			continue;
 
 		bench486_clipvertex_plane_distance_uses[plane_index]++;
+		bench486_clipvertex_plane_lru_uses[plane_index]++;
+		if (bench486_clipvertex_plane_lru_vertex[plane_index] == vertex_address)
+			bench486_clipvertex_plane_lru_hits[plane_index]++;
+		bench486_clipvertex_plane_lru_vertex[plane_index] = vertex_address;
 		seen_word = &bench486_clipvertex_plane_seen[plane_index]
 				[vertex_index >> 5];
 		bit = 1UL << (vertex_index & 31);

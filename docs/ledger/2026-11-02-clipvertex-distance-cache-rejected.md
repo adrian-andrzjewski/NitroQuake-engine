@@ -70,3 +70,33 @@ implementation or uninstrumented timing was tested. Keep the per-plane
 profile counters as diagnostic-only `PROFILE486` instrumentation; do not
 promote a distance cache without a separate completed pixel-parity run and
 repeatable 320x200 timing gain.
+
+## One-entry-per-plane locality probe
+
+A second profile pass simulated a one-entry last-world-endpoint cache for each
+plane. It visited the clipper's endpoints in order (`pv0`, then `pv1`) and
+counted a hit only when the current world vertex matched that plane's most
+recent world endpoint. Synthetic vertices remained excluded. The capture is
+`out/dos-timedemo-20261102-231726/quake/PROFILE.JSN`:
+
+| Plane slot | Endpoint uses | One-entry hits | Hit rate |
+|---:|---:|---:|---:|
+| 0 | 959,660 | 283,804 | 29.57% |
+| 1 | 762,942 | 224,746 | 29.46% |
+| 2 | 519,642 | 152,794 | 29.40% |
+| 3 | 393,207 | 116,349 | 29.59% |
+| Total | 2,635,451 | 777,693 | 29.51% |
+
+This is a tag-only locality simulation, not a timed cache implementation. The
+9.383819 FPS profile is instrumentation-heavy. Its final framebuffer checksum
+matched `1047377823`, while 10 checksum records differed from the immediately
+prior profile run and 38 differed from the earlier control stream; this is
+not cross-run pixel-parity evidence. The linked executable's i486 audit passed
+321,491 instructions with zero opcode mismatches, above-i486 instructions,
+unknown instructions, or exempt sites.
+
+The one-entry model's hit rate does not overturn the measured first-plane
+cache regressions above, which were -0.22904% and -0.33874%. No multi-entry
+cache or shared-vector cache was implemented or timed. Keep the probe as
+diagnostic-only `PROFILE486` data; do not promote the simple last-endpoint
+cache based on hit rate alone.
