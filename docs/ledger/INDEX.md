@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-02-surface-cache-6000-recheck-rejected.md](2026-11-02-surface-cache-6000-recheck-rejected.md) | 4 | surface cache / reject 6000 KB default: +0.0129% DOSBox-X median but 27 per-frame checksum differences against two identical 2400 KB control streams |
 | [2026-11-02-span16-same-row-link-census.md](2026-11-02-span16-same-row-link-census.md) | 3 | renderer performance / only 31,256 of 1,454,547 texture-span links share a row (2.1488%); no reuse candidate, qprof used only for attribution, and cross-run frame streams differ at six frames |
 | [2026-11-02-clipvertex-distance-cache-rejected.md](2026-11-02-clipvertex-distance-cache-rejected.md) | 3 | renderer performance / retain PROFILE486 vertex-reuse counts, reject the lazy exact-distance cache after the trial ended with visible artifacts and an incomplete timedemo; no FPS claim |
 | [2026-11-02-clipedge-shared-endpoint-cache-rejected.md](2026-11-02-clipedge-shared-endpoint-cache-rejected.md) | 4 | renderer performance / reject shared endpoint distance reuse after -0.229% and -0.339% DOSBox-X results; corrected assembly profile: 789,751 calls, 1.479M plane tests; eager world cache estimate costs about 10x current dot work |
@@ -1040,6 +1041,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### surface-cache
 
+- `rejected` [Surface-cache 6000 KB recheck (2026-11-02) — **+0.002110 FPS (+0.0129076%)** in DOSBox-X, rejected after 27 frame-checksum differences against two identical 2400 KB control streams](2026-11-02-surface-cache-6000-recheck-rejected.md)
 - `promoted` [Surface-cache hit inline epilogue (2026-10-28) — **+0.000404667 FPS (+0.00249156%)**, exact checksum parity and full strict i486 audit](2026-10-28-surface-cache-hit-inline-return-promoted.md)
 - `promoted` [Surface-cache style1 sentinel direct compare (2026-10-28) — **+0.000355 FPS (+0.00218581%)**, exact checksum parity and full strict i486 audit](2026-10-28-surface-cache-style1-direct-compare-promoted.md)
 - `promoted` [Surface-cache style2 sentinel direct compare (2026-10-28) — **+0.000013 FPS (+0.00008004%)**, exact checksum parity and full strict i486 audit](2026-10-28-surface-cache-style2-direct-compare-promoted.md)
