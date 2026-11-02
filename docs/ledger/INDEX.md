@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-02-span16-linear-address-delta-rejected.md](2026-11-02-span16-linear-address-delta-rejected.md) | 3 | texture spans / reject row-major Q32.32 address accumulation after 969 of 970 indexed framebuffer checksums differed; i486 ISA audit passed; no timing claim |
 | [2026-11-02-surface-cache-6000-recheck-rejected.md](2026-11-02-surface-cache-6000-recheck-rejected.md) | 4 | surface cache / reject 6000 KB default: +0.0129% DOSBox-X median but 27 per-frame checksum differences against two identical 2400 KB control streams |
 | [2026-11-02-span16-same-row-link-census.md](2026-11-02-span16-same-row-link-census.md) | 3 | renderer performance / only 31,256 of 1,454,547 texture-span links share a row (2.1488%); no reuse candidate, qprof used only for attribution, and cross-run frame streams differ at six frames |
 | [2026-11-02-clipvertex-distance-cache-rejected.md](2026-11-02-clipvertex-distance-cache-rejected.md) | 3 | renderer performance / retain PROFILE486 vertex-reuse counts, reject the lazy exact-distance cache after the trial ended with visible artifacts and an incomplete timedemo; no FPS claim |
@@ -1054,6 +1055,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### texture-spans
 
+- `rejected` [Span16 linear row-major address delta (2026-11-02) — i486 audit passed, but 969 of 970 indexed framebuffer checksums differed; reverted](2026-11-02-span16-linear-address-delta-rejected.md)
 - `measured` [Span16 adjacent same-row link census (2026-11-02) — only 2.1488% of texture spans have an adjacent same-row successor; no reuse candidate justified](2026-11-02-span16-same-row-link-census.md)
 - `rejected` [Span16 no-row-cross specialization current-source recheck (2026-10-29) — three-run mean **−0.095470333 FPS (−0.584663%)**, 969-frame final checksum parity; strict ISA and frame-stream audits skipped](2026-10-29-span16-norowcross-current-recheck-rejected.md)
 - `rejected` [Span16 same-row specialized path (2026-10-27) — strict mean **−0.091043334 FPS (−0.565237%)**, exact checksum parity and complete ISA audit](2026-10-27-span16-row-path-rejected.md)
