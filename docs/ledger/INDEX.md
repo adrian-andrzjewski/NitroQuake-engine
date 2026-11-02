@@ -18,6 +18,10 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-02-zspan-pair-add-schedule-recheck-rejected.md](2026-11-02-zspan-pair-add-schedule-recheck-rejected.md) | 3 | Z-span performance / recheck the SHLD/ROR depth-add schedule on the current combined source; no repeatable gain across ten 320x200 runs, exact checksum/event traces, full i486 audit |
+| [2026-11-02-alias-span-register-entry-promoted.md](2026-11-02-alias-span-register-entry-promoted.md) | 3 | alias rasterization / pass prepared span pointer in EAX to remove stack argument traffic; +0.0078% across two 320x200 screens, exact full checksum-stream and golden-frame parity, strict i486 audit |
+| [2026-11-01-alias-span-triangle-constant-setup-promoted.md](2026-11-01-alias-span-triangle-constant-setup-promoted.md) | 3 | alias rasterization / prepare triangle-constant span steps once per triangle; +0.0149% across 15 320x200 runs, exact fixed-clock frame and full checksum-stream parity, and full i486 audit |
+| [2026-11-01-edge-sort-nonbmodel-sixteen-recheck-rejected.md](2026-11-01-edge-sort-nonbmodel-sixteen-recheck-rejected.md) | 1 | renderer performance / reject the 16-comparison continuation: no standalone or combined gain across 20 candidate runs; exact final checksums/event traces and strict i486 audit |
 | [2026-10-31-alias-line-scan-negative-division-promoted.md](2026-10-31-alias-line-scan-negative-division-promoted.md) | 5 | alias rasterization / replace the double divide for negative long-edge line setup with one exact magnitude divide; +0.139512% at 320x200, 16,416 setup cases pass, and strict source-bound i486 audit |
 | [2026-10-31-surface-cache-hit-leaf-entry-promoted.md](2026-10-31-surface-cache-hit-leaf-entry-promoted.md) | 4 | renderer performance / move the eligible static-texture hit return before callee-save and local-frame setup; +0.019160% in matched 320x200 runs, exact frame/PCX/checksum/event parity, and full i486 audit |
 | [2026-10-31-span16-perspective-arithmetic-trials-rejected.md](2026-10-31-span16-perspective-arithmetic-trials-rejected.md) | 5 | renderer performance / reject zero-step reciprocal reuse after a 0.7705% slowdown; reject the FDIV stack rewrite after visible texture banding; reject direct stack-slot updates after two frame differences and a slower three-run mean |
@@ -655,6 +659,8 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### alias
 
+- promoted [Alias span triangle-constant setup (2026-11-01) - +0.0149% across three uninstrumented screens, exact final checksums/events, complete i486 audit](2026-11-01-alias-span-triangle-constant-setup-promoted.md)
+- promoted [Alias span prepared-entry register argument (2026-11-02) - +0.0078% over prepared-only, exact full fixed-clock checksum stream, golden frame, and strict i486 audit](2026-11-02-alias-span-register-entry-promoted.md)
 - `documented` [Alias-stat leaf behavior and ownership](2026-10-09-alias-stats-assembly-port.md)
 - `documented` [Alias-stat selector and oracle](2026-10-09-alias-stats-assembly-port.md)
 - `pending` [Alias-stat validation status](2026-10-09-alias-stats-assembly-port.md)
@@ -714,6 +720,7 @@ not exhaustive; the Files table above is the complete inventory.
 ### edge-scan
 
 - `rejected` [`R_GenerateSpans` non-bmodel fifteen-continuation trial (2026-10-30) — strict mean **−0.000007667 FPS (−0.00004696%)**, exact 969-frame checksum and event traces, complete i486 audit](2026-10-30-edge-sort-nonbmodel-fifteen-continuation-rejected.md)
+- `rejected` [Sixteen-comparison edge-sort recheck (2026-11-01) - no standalone or combined gain across twenty candidate runs; bracketed control was faster; exact checksum and strict i486 audit](2026-11-01-edge-sort-nonbmodel-sixteen-recheck-rejected.md)
 - `rejected` [`R_GenerateSpans` non-bmodel sixteen-comparison current-source recheck (2026-10-30) — **+0.000002333 FPS (+0.0000143%)**, below both sample spreads; exact final checksum and complete i486 audit](2026-10-30-edge-sort-nonbmodel-sixteen-current-source-recheck-rejected.md)
 - `rejected` [`R_GenerateSpans` trailing-edge direct-call layout rejected for parity (2026-10-29) — checksum `3586745294` instead of `1047377823`; invalid timing](2026-10-29-edge-trailing-return-call-parity-rejected.md)
 - `promoted` [`R_GenerateSpans` non-bmodel sort fourteen-way unroll (2026-10-30) — strict mean **+0.000016 FPS (+0.0000980%)**, exact fixed-step 970-record checksum and 320x200 PCX parity, complete i486 audit](2026-10-30-edge-sort-nonbmodel-fourteen-unroll-promoted.md)
@@ -1137,6 +1144,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### z-spans
 
+- `rejected` [`D_DrawZSpans` second-step scheduling within SHLD/ROR recheck (2026-11-02) — ten current-source candidate runs produced no repeatable gain; pooled median **−0.000006 FPS (−0.0000367%)**, exact checksum/event traces, and full i486 audit](2026-11-02-zspan-pair-add-schedule-recheck-rejected.md)
 - `promoted` [`D_DrawZSpans` no-FXCH start schedule (2026-10-31) — **+0.011660 FPS (+0.0714%)**; 117 exact C/ASM cases and accepted 37-pixel frame delta](2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md)
 - `corrected` [Z-span x87 latency projection (2026-10-30) — 80 cycles/span is a no-overlap sum, not net runtime or an attainable ceiling](2026-10-30-zspan-x87-overlap-model-correction.md)
 - `rejected` [D_DrawZSpans negative-gradient nonnegative pair store with STOSL (2026-10-27 current-source recheck) — **−0.000004667 FPS (−0.0000290%)**, exact checksum parity and complete ISA audit](2026-10-27-zspan-negative-gradient-stosl-current-recheck-rejected.md)

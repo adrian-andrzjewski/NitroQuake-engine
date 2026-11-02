@@ -911,6 +911,15 @@ C(D_PolysetDrawSpans8):
 	movl	%ecx,tstep
 
 	movl	spanpackage_t_count(%esi),%edx
+	jmp	LSpanLoop
+.globl C(D_PolysetDrawSpans8Prepared)
+C(D_PolysetDrawSpans8Prepared):
+	pushl	%esi
+	pushl	%ebx
+	movl	%eax,%esi			// internal entry receives span pointer in caller-saved EAX
+	pushl	%ebp
+	pushl	%edi
+	movl	spanpackage_t_count(%esi),%edx
 
 LSpanLoop:
 
@@ -2277,6 +2286,20 @@ C(D_RasterizeAliasPolySmooth_asm486):
 #endif
 	addl	$4,%esp
 
+#ifndef PROFILE486
+    // Span texture and depth steps are triangle constants; prepare them once.
+    movl C(r_zistepx),%ecx
+    rorl $16,%ecx
+    movl %ecx,lzistepx
+    movl C(a_ststepxwhole),%ecx
+    movl %ecx,advancetable+4
+    addl C(r_affinetridesc)+atd_skinwidth,%ecx
+    movl %ecx,advancetable
+    movl C(a_tstepxfrac),%ecx
+    movw C(r_lstepx),%cx
+    movl %ecx,tstep
+#endif
+
 	// Top (or only) left edge: initialize the first span package.
 	movl	%ebx,%eax
 	movl	%eax,C(d_pedgespanpackage)
@@ -2403,11 +2426,11 @@ C(D_RasterizeAliasPolySmooth_asm486):
 #ifdef PROFILE486
 	pushl	%ebx
 	call	C(D_PolysetDrawSpansProfiled)
-#else
-	pushl	%ebx
-	call	C(D_PolysetDrawSpans8)
-#endif
 	addl	$4,%esp
+#else
+	movl	%ebx,%eax
+	call	C(D_PolysetDrawSpans8Prepared)
+#endif
 
 	// Optional lower right edge starts at the saved top-edge span count.
 	cmpl	$2,20(%esi)
@@ -2447,11 +2470,11 @@ C(D_RasterizeAliasPolySmooth_asm486):
 #ifdef PROFILE486
 	pushl	-72(%ebp)
 	call	C(D_PolysetDrawSpansProfiled)
-#else
-	pushl	-72(%ebp)
-	call	C(D_PolysetDrawSpans8)
-#endif
 	addl	$4,%esp
+#else
+	movl	-72(%ebp),%eax
+	call	C(D_PolysetDrawSpans8Prepared)
+#endif
 
 .LAliasRasterDone:
 	addl	$60,%esp
