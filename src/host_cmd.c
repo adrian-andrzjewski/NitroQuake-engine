@@ -254,6 +254,8 @@ unsigned long bench486_renderface_calls;
 unsigned long bench486_renderface_general_edges;
 unsigned long bench486_renderface_emitted;
 unsigned long bench486_clipedge_calls;
+unsigned long bench486_clipedge_plane_tests;
+unsigned long bench486_clipedge_fully_clipped;
 unsigned long bench486_emitcachededge_calls;
 unsigned long bench486_clipvert_clips;
 // R_RenderFace premise counters. The admissible part of renderface is its C
@@ -1597,7 +1599,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"surfaces\": %lu, \"surface_drawn\": %lu, \"surface_span_count\": %lu, \"surface_span_pixels\": %lu, \"surface_span_segments\": %lu, \"surface_sky\": %lu, \"surface_background\": %lu, \"surface_turbulent\": %lu, \"surface_normal\": %lu, \"surface_solid\": %lu,\n"
 			"    \"texture_spans\": %lu, \"texture_pixels\": %lu, \"texture_segments\": %lu, \"alias_models\": %lu, \"alias_vertices\": %lu, \"particles\": %lu, \"gib_trail_particles\": %lu,\n"
 			"    \"present_rects\": %lu, \"present_pixels\": %lu, \"sound_updates\": %lu, \"sound_mixes\": %lu,\n"
-			"    \"renderface_calls\": %lu, \"renderface_emitted\": %lu, \"clipedge_calls\": %lu, \"emitcachededge_calls\": %lu,\n"
+			"    \"renderface_calls\": %lu, \"renderface_emitted\": %lu, \"clipedge_calls\": %lu, \"clipedge_plane_tests\": %lu, \"clipedge_fully_clipped\": %lu, \"clipvert_clips\": %lu, \"emitcachededge_calls\": %lu,\n"
 			"    \"texture_span_buckets\": [%lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_widths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_final_lengths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
@@ -1622,7 +1624,9 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_present_rects, bench486_present_pixels,
 			bench486_sound_update_calls, bench486_sound_mix_calls,
 			bench486_renderface_calls, bench486_renderface_emitted,
-			bench486_clipedge_calls, bench486_emitcachededge_calls,
+			bench486_clipedge_calls, bench486_clipedge_plane_tests,
+			bench486_clipedge_fully_clipped, bench486_clipvert_clips,
+			bench486_emitcachededge_calls,
 			bench486_texture_span_buckets[0], bench486_texture_span_buckets[1],
 			bench486_texture_span_buckets[2], bench486_texture_span_buckets[3],
 			bench486_texture_span_buckets[4],
@@ -1728,6 +1732,8 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_renderface_early_edges = 0;
 	bench486_renderface_faces = 0;
 	bench486_clipedge_calls = 0;
+	bench486_clipedge_plane_tests = 0;
+	bench486_clipedge_fully_clipped = 0;
 	bench486_emitcachededge_calls = 0;
 	bench486_clipvert_clips = 0;
 	for (i=0 ; i<17 ; i++)

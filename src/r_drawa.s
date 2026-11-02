@@ -55,9 +55,23 @@ Lzi0:			.long		0
 #define pv1		8+12
 #define clip	12+12
 
+#ifdef PROFILE486
+	.extern C(bench486_profile_frame_active)
+	.extern C(bench486_clipedge_calls)
+	.extern C(bench486_clipedge_plane_tests)
+	.extern C(bench486_clipedge_fully_clipped)
+	.extern C(bench486_clipvert_clips)
+#endif
+
 	.p2align 4,,15
 .globl C(R_ClipEdge)
 C(R_ClipEdge):
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lclip_profile_call_done
+	incl	C(bench486_clipedge_calls)
+.Lclip_profile_call_done:
+#endif
 	pushl	%esi				// preserve register variables
 	pushl	%edi
 	pushl	%ebx
@@ -79,6 +93,12 @@ C(R_ClipEdge):
 //		{
 
 Lcliploop:
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lclip_profile_plane_done
+	incl	C(bench486_clipedge_plane_tests)
+.Lclip_profile_plane_done:
+#endif
 
 //			d0 = DotProduct (pv0->position, clip->normal) - clip->dist;
 //			d1 = DotProduct (pv1->position, clip->normal) - clip->dist;
@@ -495,6 +515,13 @@ Lp2:
 	testl	%eax,%eax
 	jns		Lp3
 
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lclip_profile_reject_done
+	incl	C(bench486_clipedge_fully_clipped)
+.Lclip_profile_reject_done:
+#endif
+
 //				// both points are clipped
 //				// we do cache fully clipped edges
 //					if (!leftclipped)
@@ -515,6 +542,12 @@ Lp2:
 //				}
 
 Lp1:
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lclip_profile_cross_done
+	incl	C(bench486_clipvert_clips)
+.Lclip_profile_cross_done:
+#endif
 
 //			// point 0 is unclipped
 //				if (d1 >= 0)
@@ -613,6 +646,12 @@ Ltestright:
 //			}
 
 Lp3:
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lclip_profile_cross2_done
+	incl	C(bench486_clipvert_clips)
+.Lclip_profile_cross2_done:
+#endif
 
 //			// only point 0 is clipped
 //				r_lastvertvalid = false;
