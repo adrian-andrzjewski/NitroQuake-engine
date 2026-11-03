@@ -35,20 +35,18 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
-### R_ClipEdge world vertex projection cache promoted (2026-11-03)
+### R_ClipEdge world vertex projection cache withdrawn (2026-11-03)
 
-A 128-slot direct-mapped cache of exact 80-bit projection outputs for original
-world edge endpoints gained **0.008702 FPS (+0.0529%)** in three matched,
-uninstrumented 320x200 DOSBox-X runs. The candidate retained 969 frames and
-checksum `1047377823` in each run. Two paired `demo1-vga-full` runs matched all
-964 compared per-frame checksums and both captured framebuffers exactly. Both
-variants explicitly selected `ZSpanStartSchedule=nofxch`, so this establishes
-parity for the cache change with that schedule shared; it does not establish
-pixel parity against the restored default schedule. The complete strict i486
-gate passed with zero above-i486 or unclassified instructions. This result is
-DOSBox-X evidence, not a physical-486 measurement; the exact scene, samples, and
-ISA report are in the [projection-cache ledger]
-(ledger/2026-11-03-r-clipedge-projection-cache-promoted.md).
+The cache's original **+0.0529% DOSBox-X result** used the explicit
+`ZSpanStartSchedule=nofxch` path and does not qualify the restored `control`
+default. During control-schedule requalification, two paired runs produced a
+repeatable one-frame checksum difference at index 412 (candidate
+`542392344`, no-cache `3788779729`). A later fixed-cadence rerun matched all 964
+post-warmup checksums and the captured frame exactly, so the earlier divergence
+remains unexplained. Because parity was inconsistent across invocations, the
+projection cache has been removed from the active renderer. Its measured gain
+is not accepted. See the [projection-cache withdrawal ledger]
+(ledger/2026-11-03-r-clipedge-projection-cache-withdrawn.md).
 
 ### Z-span no-FXCH default restored to control (2026-11-03)
 

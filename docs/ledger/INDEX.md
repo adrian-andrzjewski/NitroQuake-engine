@@ -18,7 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
-| [2026-11-03-r-clipedge-projection-cache-promoted.md](2026-11-03-r-clipedge-projection-cache-promoted.md) | 4 | renderer performance / exact 80-bit world endpoint projection cache with explicit no-FXCH schedule; +0.0529% on pinned 320x200 DOSBox-X, exact paired framebuffer and checksum parity, strict i486 audit |
+| [2026-11-03-r-clipedge-projection-cache-withdrawn.md](2026-11-03-r-clipedge-projection-cache-withdrawn.md) | 4 | renderer performance / withdraw the 80-bit world endpoint cache after inconsistent control-schedule parity across reruns; +0.0529% under no-FXCH is not accepted |
 | [2026-11-03-zspan-row-recurrence-rejected.md](2026-11-03-zspan-row-recurrence-rejected.md) | 3 | Z-spans / reject vertical-term recurrence after 38 per-frame checksum differences, despite matching final checksum and one captured PCX |
 | [2026-11-03-bsp-clip-plane-order-census-rejected.md](2026-11-03-bsp-clip-plane-order-census-rejected.md) | 4 | renderer performance / reject all BSP plane reorders after `0123` had the lowest modeled test count; zero clip-mask prediction mismatches, DOSBox timedemo parity and strict i486 audit |
 | [2026-11-02-renderface-outcode-cache-rejected.md](2026-11-02-renderface-outcode-cache-rejected.md) | 3 | renderer performance / reject cached vertex frustum signs after 13 per-frame color-checksum mismatches; no valid speed result |

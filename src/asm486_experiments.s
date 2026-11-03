@@ -2301,13 +2301,6 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(r_rightenter)
 	.extern C(currententity)
 
-#if defined(ASM486_RENDER_FACE) && defined(ASM486_RENDER_WORLD)
-	.extern C(rf_projection_cache_active)
-	.extern C(rf_projection_cache_vertex0)
-	.extern C(rf_projection_cache_vertex1)
-	.extern C(rf_projection_cache_tags)
-#endif
-
 #ifdef PROFILE486
 	.extern C(bench486_profile_frame_active)
 	.extern C(bench486_renderface_calls)
@@ -2563,12 +2556,6 @@ C(R_RenderFace_asm486):
 	leal	(%edx,%edx,2),%edx
 	leal	(%ebx,%edx,4),%edx
 	pushl	RF_PCLIP(%esp)
-	/* These original edge endpoints are safe projection-cache keys; clipverts
-	 * created recursively by R_ClipEdge have different addresses. */
-#if defined(ASM486_RENDER_FACE) && defined(ASM486_RENDER_WORLD)
-	movl	%eax,C(rf_projection_cache_vertex0)
-	movl	%edx,C(rf_projection_cache_vertex1)
-#endif
 	pushl	%edx
 	pushl	%eax
 	call	C(R_ClipEdge)
@@ -10649,15 +10636,6 @@ C(R_RenderWorld_asm486):
 	call	C(R_RenderWorldProfileEnter_asm486)
 #endif
 
-#if defined(ASM486_RENDER_FACE) && defined(ASM486_RENDER_WORLD)
-	/* Clear the small direct-mapped projection cache once per world traversal. */
-	cld
-	movl	$C(rf_projection_cache_tags),%edi
-	xorl	%eax,%eax
-	movl	$128,%ecx
-	rep	stosl
-#endif
-
 	// pbtofpolys points at this frame's full 5000-entry back-to-front queue.
 	leal	RW_POLY_BASE(%ebp),%eax
 	movl	%eax,C(pbtofpolys)
@@ -10679,13 +10657,7 @@ C(R_RenderWorld_asm486):
 	movl	%eax,C(r_pcurrentvertbase)
 	movl	164(%ebx),%eax
 	movl	$15,%edx
-#if defined(ASM486_RENDER_FACE) && defined(ASM486_RENDER_WORLD)
-	movl	$1,C(rf_projection_cache_active)
-#endif
 	call	C(R_RecursiveWorldNode)
-#if defined(ASM486_RENDER_FACE) && defined(ASM486_RENDER_WORLD)
-	movl	$0,C(rf_projection_cache_active)
-#endif
 
 	// Replay queued polygons from back to front, including element zero.
 	cmpl	$0,C(r_worldpolysbacktofront)

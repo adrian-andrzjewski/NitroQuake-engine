@@ -27,11 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "asm_draw.h"
 #include "d_ifacea.h"
 
-#if defined(ASM486_RENDER_FACE) && defined(ASM486_RENDER_WORLD)
-#define ASM486_CLIP_PROJECT_CACHE 1
-#define RF_PROJECT_CACHE_ENTRIES 128
-#endif
-
 #if	id386
 
 // !!! if these are changed, they must be changed in r_draw.c too !!!
@@ -49,33 +44,6 @@ Lv:				.long		0
 Lu0:			.long		0
 Lv0:			.long		0
 Lzi0:			.long		0
-
-#ifdef ASM486_CLIP_PROJECT_CACHE
-	.section .bss
-	.p2align 4
-	.globl C(rf_projection_cache_active)
-C(rf_projection_cache_active):
-	.long	0
-	.globl C(rf_projection_cache_vertex0)
-C(rf_projection_cache_vertex0):
-	.long	0
-	.globl C(rf_projection_cache_vertex1)
-C(rf_projection_cache_vertex1):
-	.long	0
-	.globl C(rf_projection_cache_tags)
-C(rf_projection_cache_tags):
-	.zero	RF_PROJECT_CACHE_ENTRIES*4
-	.globl C(rf_projection_cache_u)
-C(rf_projection_cache_u):
-	.zero	RF_PROJECT_CACHE_ENTRIES*10
-	.globl C(rf_projection_cache_lzi)
-C(rf_projection_cache_lzi):
-	.zero	RF_PROJECT_CACHE_ENTRIES*10
-	.globl C(rf_projection_cache_v)
-C(rf_projection_cache_v):
-	.zero	RF_PROJECT_CACHE_ENTRIES*10
-	.text
-#endif
 
 	.text
 
@@ -789,30 +757,6 @@ Ltestright2:
 // %edx preserved
 LTransformAndProject:
 
-#ifdef ASM486_CLIP_PROJECT_CACHE
-	cmpl	$0,C(rf_projection_cache_active)
-	je		.Lproject_transform
-	cmpl	C(rf_projection_cache_vertex0),%esi
-	je		.Lproject_cache_eligible
-	cmpl	C(rf_projection_cache_vertex1),%esi
-	jne		.Lproject_transform
-.Lproject_cache_eligible:
-	movl	%esi,%eax
-	shrl	$2,%eax
-	andl	$(RF_PROJECT_CACHE_ENTRIES-1),%eax
-	movl	%eax,%ecx
-	shll	$2,%eax
-	cmpl	%esi,C(rf_projection_cache_tags)(,%eax,1)
-	jne		.Lproject_transform
-	leal	(%ecx,%ecx,4),%ecx
-	shll	$1,%ecx				// slot * 10, extended-precision values
-	fldt	C(rf_projection_cache_u)(,%ecx,1)
-	fldt	C(rf_projection_cache_lzi)(,%ecx,1)
-	fldt	C(rf_projection_cache_v)(,%ecx,1)
-	ret
-.Lproject_transform:
-#endif
-
 //	// transform and project
 //		VectorSubtract (world, modelorg, local);
 	flds	mv_position+0(%esi)
@@ -935,34 +879,6 @@ LClampP2:
 	fstp	%st(0)
 	flds	C(r_refdef)+rd_fvrectbottom_adj
 LClampP3:
-
-#ifdef ASM486_CLIP_PROJECT_CACHE
-	cmpl	$0,C(rf_projection_cache_active)
-	je		.Lproject_return
-	cmpl	C(rf_projection_cache_vertex0),%esi
-	je		.Lproject_store
-	cmpl	C(rf_projection_cache_vertex1),%esi
-	jne		.Lproject_return
-.Lproject_store:
-	movl	%esi,%eax
-	shrl	$2,%eax
-	andl	$(RF_PROJECT_CACHE_ENTRIES-1),%eax
-	movl	%eax,%ecx
-	leal	(%ecx,%ecx,4),%ecx
-	shll	$1,%ecx				// slot * 10
-	fld		%st(0)
-	fstpt	C(rf_projection_cache_v)(,%ecx,1)
-	fld		%st(1)
-	fstpt	C(rf_projection_cache_lzi)(,%ecx,1)
-	fld		%st(2)
-	fstpt	C(rf_projection_cache_u)(,%ecx,1)
-	movl	%esi,%eax
-	shrl	$2,%eax
-	andl	$(RF_PROJECT_CACHE_ENTRIES-1),%eax
-	shll	$2,%eax
-	movl	%esi,C(rf_projection_cache_tags)(,%eax,1)
-.Lproject_return:
-#endif
 	ret
 
 #endif	// id386
