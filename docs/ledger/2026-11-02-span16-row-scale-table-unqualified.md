@@ -32,12 +32,11 @@ result, full pixel comparison, or hardware result was obtained.
 
 ## Disposition
 
-The `rowtable8` candidate remains unqualified and is removed from the active
-source and selector profiles. The initial revision contained a register
-liveness bug: it used EAX for the lookup index without restoring the fractional
-T step consumed by the final-segment entry handlers. The corrected experiment
-is preserved in the local Git stash for further diagnosis. `control` remains
-the only active `TextureSpanAddressing` option. No performance gain is accepted.
+The `rowtable8` candidate is rejected and removed from the active source,
+selector profiles, and local Git stash. Exact parity and strict i486 checks
+passed after the register fix, but the candidate was slower in all three
+320x200 DOSBox-X runs. `control` remains the only active
+`TextureSpanAddressing` option.
 
 ## 2026-11-03 register fix and paired validation
 
@@ -49,21 +48,30 @@ post-warmup frame checksums differed. The original comparison and diff are
 `out/rowtable8-parity-current-20261103/framebuffer-diffs/demo1-vga-full-run-01.png`.
 
 The defect was corrected by restoring the fractional T step to EAX after the
-table lookup. The repaired candidate passed the strict i486 build gate. A
-fresh, source-matched `demo1-vga-full` pair at 320x200 then passed exact parity:
-all **964 of 964** compared frame checksums matched, and frame 169 had **0 of
-64,000** pixel-index differences with an exact palette match. The paired report
-is `out/rowtable8-parity-repaired-full-20261103/render-parity-result.json`.
+table lookup. The repaired source passed the complete source-bound i486 audit:
+314,447 linked instructions, zero above-i486, unknown, or exempt instructions.
+Three fresh source-matched `demo1-vga-full` runs then passed exact parity. All
+**964 of 964** compared post-warmup checksums matched in each run, and each
+320x200 frame 169 capture had **0 of 64,000** pixel-index differences and an
+exact palette match. Both profile builds passed the strict i486 gate. The full
+report is `out/rowtable8-source-matched-repeat-20261103/render-parity-result.json`.
 
-One separate repaired-candidate run compared offline against a control report
-from a different source-tree fingerprint and showed 407 checksum differences
-of 964 (frames 28 through 948). Two control runs matched each other exactly;
-the later fresh source-matched candidate pair also matched exactly. This leaves
-the earlier candidate run unexplained and warrants repeated source-matched
-parity before the experiment can be promoted. Details are in
-`out/rowtable8-parity-repaired-compare-20261103.json` and
-`out/rowtable8-control-repeat-compare-20261103.json`.
+The timedemo used non-`PROFILE486` qbench builds (`profileBuild=false` and
+`instrumentation=false`) with runtime per-frame checksum capture enabled for
+both profiles. The DOSBox-X profile was pinned to
+`tools/dosbox-x-486-high.conf` (SHA-256
+`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`). The
+three-run control median was **12.813826 FPS** (median 75.621447 seconds); the
+candidate median was **12.758711 FPS** (median 75.948112 seconds), a **0.4301%
+regression**. Every candidate run took longer than every control run. No other
+DOSBox-X process was running during the screen. These are DOSBox-X results, not
+physical 486 measurements. The measurements include the same per-frame
+checksum overhead on both sides and should be treated as a rejection screen,
+not a checksum-free timing estimate. The per-profile reports and timedemo results are in
+`out/rowtable8-source-matched-repeat-20261103/reference/` and
+`out/rowtable8-source-matched-repeat-20261103/candidate/`.
 
-No valid performance comparison was obtained: the DOSBox-X timings ran while a
-separate Quake2 DOSBox-X instance was active. The results are not physical 486
-measurements. No speedup is claimed.
+The earlier 407-frame standalone comparison used different source-tree
+fingerprints and was inconclusive. The three later source-matched runs resolve
+that discrepancy and qualify the corrected candidate's rendering behavior;
+the measured slowdown rejects its performance value.
