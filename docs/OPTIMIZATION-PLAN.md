@@ -35,6 +35,18 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Z-span monotone constant-depth runs promoted (2026-11-03)
+
+When the guarded monotone start and end depths share an upper 16-bit word,
+`D_DrawZSpans` now fills the span with that value using aligned dword stores.
+The change passed 169 exact C/assembly cases, all 970 per-frame checksums with
+notifications disabled, an exact captured-frame comparison, and the complete
+strict i486 gate. Three uninstrumented 320x200 runs improved the control median
+from **16.464303** to **16.484395 FPS (+0.1220%)**; aligned `rep stosl` also
+improved the intermediate word-store variant by **0.0256%**. The exact samples
+and the control hitch are recorded in the [Z-span constant-depth ledger]
+(ledger/2026-11-03-zspan-constant-depth-runs-promoted.md).
+
 ### R_ClipEdge world vertex projection cache withdrawn (2026-11-03)
 
 The cache's original **+0.0529% DOSBox-X result** used the explicit

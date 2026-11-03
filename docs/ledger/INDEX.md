@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-03-zspan-constant-depth-runs-promoted.md](2026-11-03-zspan-constant-depth-runs-promoted.md) | 4 | Z-spans / promote monotone constant-depth fills with aligned `rep stosl` after 0.1220% median gain, exact 970-frame parity, and full i486 audit |
 | [2026-11-03-r-clipedge-projection-cache-withdrawn.md](2026-11-03-r-clipedge-projection-cache-withdrawn.md) | 4 | renderer performance / withdraw the 80-bit world endpoint cache after inconsistent control-schedule parity across reruns; +0.0529% under no-FXCH is not accepted |
 | [2026-11-03-zspan-row-recurrence-rejected.md](2026-11-03-zspan-row-recurrence-rejected.md) | 3 | Z-spans / reject vertical-term recurrence after 38 per-frame checksum differences, despite matching final checksum and one captured PCX |
 | [2026-11-03-bsp-clip-plane-order-census-rejected.md](2026-11-03-bsp-clip-plane-order-census-rejected.md) | 4 | renderer performance / reject all BSP plane reorders after `0123` had the lowest modeled test count; zero clip-mask prediction mismatches, DOSBox timedemo parity and strict i486 audit |
@@ -824,7 +825,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
-- `promoted` [`R_ClipEdge` exact world-endpoint projection cache (2026-11-03) — strict mean +0.008702 FPS (+0.0529%), exact paired scene parity and complete i486 gate](2026-11-03-r-clipedge-projection-cache-promoted.md)
+- `withdrawn` [`R_ClipEdge` exact world-endpoint projection cache (2026-11-03) — +0.0529% result invalidated by inconsistent parity; removed](2026-11-03-r-clipedge-projection-cache-withdrawn.md)
 - `rejected` [`R_RenderFace` direct no-clip emitter entry (2026-10-31) — **−0.011087 FPS (−0.0679%)**, with a 49-pixel frame-99 delta](2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md)
 - `rejected` [`R_ClipEdge` left-clipped direct compare screen (2026-10-29) — **−0.038261 FPS (−0.23454991%)**, exact checksum parity](2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md)
 - `promoted` [`R_ClipSpriteFace` clip-current direct compare (2026-10-29) — strict mean **+0.000025333 FPS (+0.00015530%)**, exact checksum parity and complete executable i486 gate](2026-10-29-r-clipsprite-clipcurrent-direct-compare-promoted.md)

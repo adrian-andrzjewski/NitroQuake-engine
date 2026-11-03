@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef PROFILE486
 	.extern C(bench486_zspan_pixels)
 	.extern C(bench486_zspan_spans)
+	.extern C(bench486_zspan_constant_runs)
+	.extern C(bench486_zspan_constant_pixels)
 #endif
 
 #if	id386
@@ -928,6 +930,26 @@ LClampNeg:
 	jmp	\next_label
 	.endm
 
+	.macro ZSPAN_FILL_CONSTANT_WORD
+	movzwl	%ax,%eax
+	movl	%eax,%edx
+	shll	$16,%edx
+	orl	%edx,%eax
+	testl	$2,%edi
+	jz	.LZSpanConstantAligned\@
+	movw	%ax,(%edi)
+	addl	$2,%edi
+	decl	%ecx
+.LZSpanConstantAligned\@:
+	movl	%ecx,%edx
+	shrl	$1,%ecx
+	rep stosl
+	testl	$1,%edx
+	jz	.LZSpanConstantDone\@
+	movw	%ax,(%edi)
+.LZSpanConstantDone\@:
+	.endm
+
 .globl C(D_DrawZSpans)
 C(D_DrawZSpans):
 	pushl	%ebp				// preserve caller's stack frame
@@ -1025,6 +1047,23 @@ LZDraw:
 	jo	.LZDrawGeneral
 	addl	%edx,%eax
 	js	.LZDrawGeneral
+	// With a nonnegative monotone sequence and a proven nonoverflowing
+	// endpoint, equal high words prove every depth sample stores the same word.
+	movl	%edx,%esi
+	shrl	$16,%esi
+	shrl	$16,%eax
+	cmpl	%esi,%eax
+	jne	.LZDrawNonnegative
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz	.LZDrawNonnegativeConstantStatsDone
+	incl	C(bench486_zspan_constant_runs)
+	addl	%ecx,C(bench486_zspan_constant_pixels)
+.LZDrawNonnegativeConstantStatsDone:
+#endif
+	movw	%si,%ax
+	ZSPAN_FILL_CONSTANT_WORD
+	jmp	LFSpanDone
 	#endif
 
 	#ifndef TARGET_I386
@@ -1301,6 +1340,24 @@ LZDrawNeg:
 	jnz		.LZDrawNegRestoreGeneral
 	testl	%eax,%eax
 	js		.LZDrawNegRestoreGeneral
+	// A descending integer sequence with equal nonnegative endpoint high words
+	// is constant in the stored Z format. Preserve %esi for the normal path.
+	movl	%esi,%edx
+	shrl	$16,%edx
+	shrl	$16,%eax
+	cmpl	%edx,%eax
+	jne	.LZDrawNegConstantMiss
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz	.LZDrawNegConstantStatsDone
+	incl	C(bench486_zspan_constant_runs)
+	addl	%ecx,C(bench486_zspan_constant_pixels)
+.LZDrawNegConstantStatsDone:
+#endif
+	movw	%dx,%ax
+	ZSPAN_FILL_CONSTANT_WORD
+	jmp	LFNegSpanDone
+.LZDrawNegConstantMiss:
 	movl	%esi,%edx
 	jmp		.LZDrawSubNonnegative
 
