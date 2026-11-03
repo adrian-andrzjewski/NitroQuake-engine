@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-03-r-clipedge-projection-cache-promoted.md](2026-11-03-r-clipedge-projection-cache-promoted.md) | 4 | renderer performance / exact 80-bit world endpoint projection cache; +0.0529% on pinned 320x200 DOSBox-X, exact paired framebuffer and checksum parity, strict i486 audit |
 | [2026-11-03-bsp-clip-plane-order-census-rejected.md](2026-11-03-bsp-clip-plane-order-census-rejected.md) | 4 | renderer performance / reject all BSP plane reorders after `0123` had the lowest modeled test count; zero clip-mask prediction mismatches, DOSBox timedemo parity and strict i486 audit |
 | [2026-11-02-span16-row-scale-table-unqualified.md](2026-11-02-span16-row-scale-table-unqualified.md) | 4 | texture spans / reject row-scale table after repaired 3-run exact parity and strict i486 audit; median 0.4301% slower on pinned 320x200 DOSBox-X profile |
 | [2026-11-02-span16-linear-address-delta-rejected.md](2026-11-02-span16-linear-address-delta-rejected.md) | 3 | texture spans / reject row-major Q32.32 address accumulation after 969 of 970 indexed framebuffer checksums differed; i486 ISA audit passed; no timing claim |
@@ -819,6 +820,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
+- `promoted` [`R_ClipEdge` exact world-endpoint projection cache (2026-11-03) — strict mean +0.008702 FPS (+0.0529%), exact paired scene parity and complete i486 gate](2026-11-03-r-clipedge-projection-cache-promoted.md)
 - `rejected` [`R_RenderFace` direct no-clip emitter entry (2026-10-31) — **−0.011087 FPS (−0.0679%)**, with a 49-pixel frame-99 delta](2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md)
 - `rejected` [`R_ClipEdge` left-clipped direct compare screen (2026-10-29) — **−0.038261 FPS (−0.23454991%)**, exact checksum parity](2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md)
 - `promoted` [`R_ClipSpriteFace` clip-current direct compare (2026-10-29) — strict mean **+0.000025333 FPS (+0.00015530%)**, exact checksum parity and complete executable i486 gate](2026-10-29-r-clipsprite-clipcurrent-direct-compare-promoted.md)

@@ -35,6 +35,18 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### R_ClipEdge world vertex projection cache promoted (2026-11-03)
+
+A 128-slot direct-mapped cache of exact 80-bit projection outputs for original
+world edge endpoints gained **0.008702 FPS (+0.0529%)** in three matched,
+uninstrumented 320x200 DOSBox-X runs. The candidate retained 969 frames and
+checksum `1047377823` in each run. Two paired `demo1-vga-full` runs matched all
+964 compared per-frame checksums and both captured framebuffers exactly. The
+complete strict i486 gate passed with zero above-i486 or unclassified
+instructions. This result is DOSBox-X evidence, not a physical-486 measurement;
+the exact scene, samples, and ISA report are in the [projection-cache ledger]
+(ledger/2026-11-03-r-clipedge-projection-cache-promoted.md).
+
 ### Z-span row recurrence rejected (2026-11-03)
 
 An instrumented census found that 97.67% of linked surface spans continue on
