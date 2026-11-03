@@ -47,7 +47,18 @@ static const bench486_zspans_gradient_t bench486_zspans_gradients[] =
 		-1.0f / 65536.0f },
 	/* D_DrawSurfaces assigns -0.9 to SURF_DRAWBACKGROUND before calling the
 	 * Z-span writer. Its negative packed-pair words are part of the reference. */
-	{ "background-depth", -0.9f, 0.0f, 0.0f }
+	{ "background-depth", -0.9f, 0.0f, 0.0f },
+	/* These nonzero steps quantize to exactly one 2^-31 unit per pixel.
+	 * The first pair exercises equal high words in the positive and negative
+	 * long-span shortcuts; the second pair crosses a 16-bit boundary and must
+	 * fall back to the normal per-pixel writer. */
+	{ "constant-positive", 0.125f, 1.0f / 2147483648.0f, 0.0f },
+	{ "constant-negative", 0.125f + 1.0f / 32768.0f +
+			2.0f / 67108864.0f, -1.0f / 2147483648.0f, 0.0f },
+	{ "boundary-positive", 0.125f + 1.0f / 32768.0f -
+			1.0f / 67108864.0f, 1.0f / 2147483648.0f, 0.0f },
+	{ "boundary-negative", 0.125f + 1.0f / 32768.0f,
+			-1.0f / 2147483648.0f, 0.0f }
 };
 
 static bench486_zspans_buffer_t bench486_zspans_c_buffer;
@@ -106,7 +117,8 @@ static void Bench486ZSpansCases (void)
 			{
 				int u;
 				spans[span_index].u =
-						gradient_index == 4 ? 0 :
+						gradient_index == 10 ? 1 :
+						(gradient_index == 4 || gradient_index >= 9) ? 0 :
 						2 + ((length_index + span_index) & 1);
 				spans[span_index].v = 1 + span_index * 3;
 				spans[span_index].count = bench486_zspans_lengths[
