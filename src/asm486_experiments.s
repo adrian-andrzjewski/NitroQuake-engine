@@ -2377,8 +2377,22 @@ C(R_RenderFace_asm486):
 	incl	C(c_faceclip)
 
 	/* Build the same 3..0 clip chain as the C reference. */
-	xorl	%eax,%eax
+	/* The common full mask can link that chain without per-plane tests. */
 	movl	52(%esp),%edx
+	cmpl	$15,%edx
+	jne	.Lrf_clip_masked
+	movl	$C(view_clipplanes),%ecx
+	movl	$0,88(%ecx)
+	leal	72(%ecx),%eax
+	movl	%eax,64(%ecx)
+	leal	48(%ecx),%eax
+	movl	%eax,40(%ecx)
+	leal	24(%ecx),%eax
+	movl	%eax,16(%ecx)
+	movl	%ecx,%eax
+	jmp	.Lrf_clip_ready
+.Lrf_clip_masked:
+	xorl	%eax,%eax
 	testl	$8,%edx
 	je	.Lrf_clip2
 	movl	$C(view_clipplanes)+72,%ecx

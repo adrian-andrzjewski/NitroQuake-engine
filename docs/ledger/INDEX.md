@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-03-renderface-fourclip-mask-fastpath-promoted.md](2026-11-03-renderface-fourclip-mask-fastpath-promoted.md) | 4 | `R_RenderFace` / directly link the full four-plane clip chain; +0.0443% median on DOSBox-X, exact pixel parity and full i486 audit |
 | [2026-11-03-span16-same-texel-endpoint-census.md](2026-11-03-span16-same-texel-endpoint-census.md) | 3 | texture spans / conservative endpoint test found 0 qualifying segments out of 2,059,043 full segments; no repeated-texel fast path or FPS claim |
 | [2026-11-03-zspan-constant-depth-runs-promoted.md](2026-11-03-zspan-constant-depth-runs-promoted.md) | 4 | Z-spans / promote monotone constant-depth fills with aligned `rep stosl` after 0.1220% median gain, exact 970-frame parity, and full i486 audit |
 | [2026-11-03-r-clipedge-projection-cache-withdrawn.md](2026-11-03-r-clipedge-projection-cache-withdrawn.md) | 4 | renderer performance / withdraw the 80-bit world endpoint cache after inconsistent control-schedule parity across reruns; +0.0529% under no-FXCH is not accepted |
@@ -826,6 +827,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
+- `promoted` [`R_RenderFace` full four-plane clip-chain fast path (2026-11-03) — **+0.007299 FPS (+0.044278%)**, exact pixel parity and complete executable i486 gate](2026-11-03-renderface-fourclip-mask-fastpath-promoted.md)
 - `withdrawn` [`R_ClipEdge` exact world-endpoint projection cache (2026-11-03) — +0.0529% result invalidated by inconsistent parity; removed](2026-11-03-r-clipedge-projection-cache-withdrawn.md)
 - `rejected` [`R_RenderFace` direct no-clip emitter entry (2026-10-31) — **−0.011087 FPS (−0.0679%)**, with a 49-pixel frame-99 delta](2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md)
 - `rejected` [`R_ClipEdge` left-clipped direct compare screen (2026-10-29) — **−0.038261 FPS (−0.23454991%)**, exact checksum parity](2026-10-29-r-clipedge-leftclipped-direct-compare-rejected.md)
