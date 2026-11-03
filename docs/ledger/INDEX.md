@@ -18,7 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
-| [2026-11-02-span16-row-scale-table-unqualified.md](2026-11-02-span16-row-scale-table-unqualified.md) | 3 | texture spans / remove the opt-in exact row-scale table after repeated 970-record stream differences; only one frame mismatch was inspected and showed transient centerprint expiry; no valid timing or ISA claim |
+| [2026-11-02-span16-row-scale-table-unqualified.md](2026-11-02-span16-row-scale-table-unqualified.md) | 4 | texture spans / archive row-scale table after first revision caused visible corruption; EAX liveness fix passed one matched parity pair, but a separate stream mismatch remains unexplained; no timing claim |
 | [2026-11-02-span16-linear-address-delta-rejected.md](2026-11-02-span16-linear-address-delta-rejected.md) | 3 | texture spans / reject row-major Q32.32 address accumulation after 969 of 970 indexed framebuffer checksums differed; i486 ISA audit passed; no timing claim |
 | [2026-11-02-surface-cache-6000-recheck-rejected.md](2026-11-02-surface-cache-6000-recheck-rejected.md) | 4 | surface cache / reject 6000 KB default: +0.0129% DOSBox-X median but 27 per-frame checksum differences against two identical 2400 KB control streams |
 | [2026-11-02-span16-same-row-link-census.md](2026-11-02-span16-same-row-link-census.md) | 3 | renderer performance / only 31,256 of 1,454,547 texture-span links share a row (2.1488%); no reuse candidate, qprof used only for attribution, and cross-run frame streams differ at six frames |

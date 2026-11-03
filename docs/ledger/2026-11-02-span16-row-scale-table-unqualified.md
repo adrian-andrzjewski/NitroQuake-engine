@@ -32,8 +32,38 @@ result, full pixel comparison, or hardware result was obtained.
 
 ## Disposition
 
-The candidate was not qualified for correctness, performance, or strict i486
-compatibility. Its opt-in assembly and selector changes were removed, leaving
-the control implementation active. No speedup or pixel-exactness claim is
-made. A future attempt needs complete matched frame parity and a strict ISA
-audit before uninstrumented timing.
+The `rowtable8` candidate remains unqualified and is removed from the active
+source and selector profiles. The initial revision contained a register
+liveness bug: it used EAX for the lookup index without restoring the fractional
+T step consumed by the final-segment entry handlers. The corrected experiment
+is preserved in the local Git stash for further diagnosis. `control` remains
+the only active `TextureSpanAddressing` option. No performance gain is accepted.
+
+## 2026-11-03 register fix and paired validation
+
+The first candidate build passed the linked i486 instruction audit but had
+visible rendering corruption. At frame 169, **5,784 of 64,000 pixel indices
+differed** (first mismatch index 6, last 48332), and all **964 of 964**
+post-warmup frame checksums differed. The original comparison and diff are
+`out/rowtable8-parity-current-20261103/render-parity-result.json` and
+`out/rowtable8-parity-current-20261103/framebuffer-diffs/demo1-vga-full-run-01.png`.
+
+The defect was corrected by restoring the fractional T step to EAX after the
+table lookup. The repaired candidate passed the strict i486 build gate. A
+fresh, source-matched `demo1-vga-full` pair at 320x200 then passed exact parity:
+all **964 of 964** compared frame checksums matched, and frame 169 had **0 of
+64,000** pixel-index differences with an exact palette match. The paired report
+is `out/rowtable8-parity-repaired-full-20261103/render-parity-result.json`.
+
+One separate repaired-candidate run compared offline against a control report
+from a different source-tree fingerprint and showed 407 checksum differences
+of 964 (frames 28 through 948). Two control runs matched each other exactly;
+the later fresh source-matched candidate pair also matched exactly. This leaves
+the earlier candidate run unexplained and warrants repeated source-matched
+parity before the experiment can be promoted. Details are in
+`out/rowtable8-parity-repaired-compare-20261103.json` and
+`out/rowtable8-control-repeat-compare-20261103.json`.
+
+No valid performance comparison was obtained: the DOSBox-X timings ran while a
+separate Quake2 DOSBox-X instance was active. The results are not physical 486
+measurements. No speedup is claimed.
