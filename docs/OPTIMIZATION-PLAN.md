@@ -35,6 +35,15 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Z-span row recurrence rejected (2026-11-03)
+
+An instrumented census found that 97.67% of linked surface spans continue on
+the previous row, suggesting that `v * d_zistepv` could be carried with one
+x87 subtraction. The candidate changed 38 per-frame checksums in `demo1`
+(first changed frame 99, last 733), despite matching the final checksum and
+frame-50 capture. It was rejected; the exact-image condition is not met. See
+the [row-recurrence ledger](ledger/2026-11-03-zspan-row-recurrence-rejected.md).
+
 ### Alias constant-depth full-occlusion rejection rejected (2026-11-02)
 
 An exact Z scan can skip a long alias span only when its horizontal inverse-
