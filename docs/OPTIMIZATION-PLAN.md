@@ -41,11 +41,27 @@ A 128-slot direct-mapped cache of exact 80-bit projection outputs for original
 world edge endpoints gained **0.008702 FPS (+0.0529%)** in three matched,
 uninstrumented 320x200 DOSBox-X runs. The candidate retained 969 frames and
 checksum `1047377823` in each run. Two paired `demo1-vga-full` runs matched all
-964 compared per-frame checksums and both captured framebuffers exactly. The
-complete strict i486 gate passed with zero above-i486 or unclassified
-instructions. This result is DOSBox-X evidence, not a physical-486 measurement;
-the exact scene, samples, and ISA report are in the [projection-cache ledger]
+964 compared per-frame checksums and both captured framebuffers exactly. Both
+variants explicitly selected `ZSpanStartSchedule=nofxch`, so this establishes
+parity for the cache change with that schedule shared; it does not establish
+pixel parity against the restored default schedule. The complete strict i486
+gate passed with zero above-i486 or unclassified instructions. This result is
+DOSBox-X evidence, not a physical-486 measurement; the exact scene, samples, and
+ISA report are in the [projection-cache ledger]
 (ledger/2026-11-03-r-clipedge-projection-cache-promoted.md).
+
+### Z-span no-FXCH default restored to control (2026-11-03)
+
+The faster no-FXCH start schedule previously became the omitted i486 default.
+On the current source, a strict i486 comparison of default `control` with
+explicit `nofxch` rendered 969 frames in each run and ended with the same
+checksum, but 37 of 964 post-warmup frame checksums differed (frames 99–773).
+The frame-99 captures differed at 25 of 64,000 pixels; the palette matched,
+mean absolute channel error was 0.004193, and maximum channel error was 60.
+After the user reported visible rendering artifacts, the default is restored
+to pixel-exact `control`; the faster schedule is available only through
+explicit `-ZSpanStartSchedule nofxch`. See the [historical Z-span schedule
+ledger](ledger/2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md).
 
 ### Z-span row recurrence rejected (2026-11-03)
 

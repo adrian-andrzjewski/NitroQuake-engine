@@ -38,8 +38,8 @@ foreach ($runner in @('bench-dos.ps1', 'timedemo-dos.ps1', 'smoke-dos.ps1', 'cov
         $forwardText + "`nreturn ,`$buildParams")
     $defaulted = & $harness -CpuTarget 'i486'
     if ($runnerCommand.Parameters.ContainsKey('ZSpanStartSchedule') -and
-        $defaulted['ZSpanStartSchedule'] -ne 'nofxch') {
-        throw "$runner must default the i486 Z-span schedule to nofxch."
+        $defaulted['ZSpanStartSchedule'] -ne 'control') {
+        throw "$runner must default to the pixel-exact control Z-span schedule."
     }
     if ($runnerCommand.Parameters.ContainsKey('ZSpanStartSchedule')) {
         $i386Defaults = & $harness -CpuTarget 'i386'

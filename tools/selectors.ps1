@@ -2594,13 +2594,13 @@ function Set-DefaultI486AssemblySelectors {
         }
     }
 
-    # This measured x87 schedule is independent of the selectable C/assembly
-    # implementation profile. Apply it to omitted i486 builds only; the i386
-    # target and explicit control comparisons retain the original schedule.
+    # The no-FXCH schedule changes some rendered pixels. Keep the original
+    # pixel-exact schedule as the default; opt into nofxch explicitly when
+    # measuring that performance tradeoff.
     if ($BoundParameters.Keys -notcontains 'ZSpanStartSchedule') {
         $variable = Get-Variable -Name 'ZSpanStartSchedule' -Scope 1 -ErrorAction SilentlyContinue
         if ($null -ne $variable) {
-            Set-Variable -Name 'ZSpanStartSchedule' -Value 'nofxch' -Scope 1
+            Set-Variable -Name 'ZSpanStartSchedule' -Value 'control' -Scope 1
         }
     }
 }

@@ -10,7 +10,7 @@ Cache entries are keyed by the exact vertex address and store `u`, `lzi`, and `v
 
 ## Benchmarks
 
-Both variants used DOSBox-X 2026.08.31, the same pinned i486 profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`, `demo1`, the `aggressive` optimization profile, assembly `R_RenderFace` and `R_RenderWorld`, and uninstrumented 320x200 runs. Each run rendered 969 frames, ended with checksum `1047377823`, and recorded identical gameplay event traces.
+Both variants used DOSBox-X 2026.08.31, the same pinned i486 profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`, `demo1`, the `aggressive` optimization profile, assembly `R_RenderFace` and `R_RenderWorld`, explicit `ZSpanStartSchedule=nofxch`, and uninstrumented 320x200 runs. Each run rendered 969 frames, ended with checksum `1047377823`, and recorded identical gameplay event traces. Because both variants shared no-FXCH, the exact parity result isolates the cache change; it does not compare no-FXCH output with the restored default `control` schedule.
 
 | Variant | FPS samples | Mean | Median | Range |
 | --- | --- | ---: | ---: | ---: |
@@ -37,5 +37,5 @@ The complete i486 gate passed: 314,467 linked instructions, exactly one i486 ins
 Run the uninstrumented candidate screen with:
 
 ```powershell
-rtk proxy pwsh -NoProfile -File tools/timedemo-dos.ps1 -CpuTarget i486 -OptimizationProfile aggressive -RenderFaceImplementation asm -RenderWorldImplementation asm -Runs 3 -NoBootstrap -AutoexecCommandsJson '["host_framerate 0.05","con_notifytime 0"]'
+rtk proxy pwsh -NoProfile -File tools/timedemo-dos.ps1 -CpuTarget i486 -OptimizationProfile aggressive -RenderFaceImplementation asm -RenderWorldImplementation asm -ZSpanStartSchedule nofxch -Runs 3 -NoBootstrap -AutoexecCommandsJson '["host_framerate 0.05","con_notifytime 0"]'
 ```
