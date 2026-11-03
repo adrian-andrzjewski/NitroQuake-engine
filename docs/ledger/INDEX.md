@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-03-bsp-clip-plane-order-census-rejected.md](2026-11-03-bsp-clip-plane-order-census-rejected.md) | 4 | renderer performance / reject all BSP plane reorders after `0123` had the lowest modeled test count; zero clip-mask prediction mismatches, DOSBox timedemo parity and strict i486 audit |
 | [2026-11-02-span16-row-scale-table-unqualified.md](2026-11-02-span16-row-scale-table-unqualified.md) | 4 | texture spans / reject row-scale table after repaired 3-run exact parity and strict i486 audit; median 0.4301% slower on pinned 320x200 DOSBox-X profile |
 | [2026-11-02-span16-linear-address-delta-rejected.md](2026-11-02-span16-linear-address-delta-rejected.md) | 3 | texture spans / reject row-major Q32.32 address accumulation after 969 of 970 indexed framebuffer checksums differed; i486 ISA audit passed; no timing claim |
 | [2026-11-02-surface-cache-6000-recheck-rejected.md](2026-11-02-surface-cache-6000-recheck-rejected.md) | 4 | surface cache / reject 6000 KB default: +0.0129% DOSBox-X median but 27 per-frame checksum differences against two identical 2400 KB control streams |
