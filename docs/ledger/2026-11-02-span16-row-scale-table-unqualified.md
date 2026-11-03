@@ -63,11 +63,14 @@ both profiles. The DOSBox-X profile was pinned to
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`). The
 three-run control median was **12.813826 FPS** (median 75.621447 seconds); the
 candidate median was **12.758711 FPS** (median 75.948112 seconds), a **0.4301%
-regression**. Every candidate run took longer than every control run. No other
-DOSBox-X process was running during the screen. These are DOSBox-X results, not
-physical 486 measurements. The measurements include the same per-frame
-checksum overhead on both sides and should be treated as a rejection screen,
-not a checksum-free timing estimate. The per-profile reports and timedemo results are in
+regression**. Every candidate run took longer than every control run. Runs
+were blocked rather than interleaved: all three control runs preceded all
+three candidate runs. Treat the difference as a rejection screen, not paired
+causal timing evidence. No other DOSBox-X process was running during the
+screen. These are DOSBox-X results, not physical 486 measurements. The
+measurements include the same per-frame checksum overhead on both sides and
+are not a checksum-free timing estimate. Per-profile reports and timedemo
+results are in
 `out/rowtable8-source-matched-repeat-20261103/reference/` and
 `out/rowtable8-source-matched-repeat-20261103/candidate/`.
 
