@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-03-span16-same-texel-endpoint-census.md](2026-11-03-span16-same-texel-endpoint-census.md) | 3 | texture spans / conservative endpoint test found 0 qualifying segments out of 2,059,043 full segments; no repeated-texel fast path or FPS claim |
 | [2026-11-03-zspan-constant-depth-runs-promoted.md](2026-11-03-zspan-constant-depth-runs-promoted.md) | 4 | Z-spans / promote monotone constant-depth fills with aligned `rep stosl` after 0.1220% median gain, exact 970-frame parity, and full i486 audit |
 | [2026-11-03-r-clipedge-projection-cache-withdrawn.md](2026-11-03-r-clipedge-projection-cache-withdrawn.md) | 4 | renderer performance / withdraw the 80-bit world endpoint cache after inconsistent control-schedule parity across reruns; +0.0529% under no-FXCH is not accepted |
 | [2026-11-03-zspan-row-recurrence-rejected.md](2026-11-03-zspan-row-recurrence-rejected.md) | 3 | Z-spans / reject vertical-term recurrence after 38 per-frame checksum differences, despite matching final checksum and one captured PCX |
@@ -1064,6 +1065,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### texture-spans
 
+- `measured` [Span16 same-texel endpoint census (2026-11-03) — 0 of 2,059,043 full segments met the conservative endpoint condition; no fast path justified](2026-11-03-span16-same-texel-endpoint-census.md)
 - `abandoned` [Span16 destination-aligned word stores (2026-11-02) — the initial byte-packing path differed on 969 of 970 frame records; corrected source was not revalidated](2026-11-02-span16-destination-aligned-word-stores-abandoned.md)
 - `rejected` [Span16 linear row-major address delta (2026-11-02) — i486 audit passed, but 969 of 970 indexed framebuffer checksums differed; reverted](2026-11-02-span16-linear-address-delta-rejected.md)
 - `measured` [Span16 adjacent same-row link census (2026-11-02) — only 2.1488% of texture spans have an adjacent same-row successor; no reuse candidate justified](2026-11-02-span16-same-row-link-census.md)

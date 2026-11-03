@@ -82,6 +82,16 @@ x87 subtraction. The candidate changed 38 per-frame checksums in `demo1`
 frame-50 capture. It was rejected; the exact-image condition is not met. See
 the [row-recurrence ledger](ledger/2026-11-03-zspan-row-recurrence-rejected.md).
 
+### Span16 same-texel endpoint test measured (2026-11-03)
+
+A profile-only census found **0 of 2,059,043** full 16-pixel segments whose
+starting and clamped endpoint coordinates selected the same texel in both
+axes. This conservative repeated-texel fast-path condition has no hits in the
+measured `demo1` workload, so no branch was added. The single instrumented run
+kept the expected final checksum, but does not establish pixel-by-pixel parity
+or performance. See the
+[same-texel endpoint census ledger](ledger/2026-11-03-span16-same-texel-endpoint-census.md).
+
 ### Alias constant-depth full-occlusion rejection rejected (2026-11-02)
 
 An exact Z scan can skip a long alias span only when its horizontal inverse-
