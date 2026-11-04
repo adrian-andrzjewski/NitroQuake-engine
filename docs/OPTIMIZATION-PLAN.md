@@ -35,6 +35,15 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### World-span depth hierarchy for alias occlusion rejected (2026-11-04)
+
+A coarse hierarchy built from existing world and brush surface spans rejected
+some alias models but failed exact color parity in both tested tile layouts.
+The 8x8 version changed 51 of 970 frame checksums; the refined 32x4 version
+changed 27. All recorded Z checksums and both final framebuffer checksums
+matched. The strict i486 audits passed, but the candidate is removed. See the
+[world-span HZB rejection ledger](ledger/2026-11-04-world-span-hzb-alias-rejected.md).
+
 ### R_RenderFace clip-plane order reorder rejected (2026-11-04)
 
 An isolated `1,0,2,3` view-plane chain candidate differed from its matched
