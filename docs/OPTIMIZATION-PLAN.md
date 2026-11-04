@@ -35,6 +35,17 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Active-edge screen buckets and PVS surface epoch cache rejected (2026-11-04)
+
+A 16-pixel active-edge predecessor index still changed two color frames after
+its search was narrowed to long crossings, and increased pushback-search work
+from 96,243 to 120,219 iterations. Moving leaf surface marks into the PVS pass
+changed four color frames because PVS membership does not include the
+per-frame frustum filter used by the BSP walk; it also increased rendered-face
+calls and BSP time. Both candidates passed the complete strict i486 audit but
+failed exact color parity, so their source changes were removed. See the
+[edge-bucket and PVS cache rejection ledger](ledger/2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md).
+
 ### World-span depth hierarchy for alias occlusion rejected (2026-11-04)
 
 A coarse hierarchy built from existing world and brush surface spans rejected
