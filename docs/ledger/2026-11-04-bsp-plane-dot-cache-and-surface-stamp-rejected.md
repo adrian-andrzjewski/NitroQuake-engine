@@ -51,6 +51,30 @@ frame. Control color runs also varied in that short window, so those records
 are not a deterministic parity signal.
 The negative mean disqualified the cache regardless.
 
+## Direct plane-classification cache
+
+The follow-up stored a two-bit classification and a per-frame tag directly in
+the two padding bytes of each loaded world `mplane_t`. The classification
+reused both the BSP child side and the existing backface-epsilon decision, so
+cache hits skipped the x87 plane dot and its two surface-facing comparisons.
+The cache was enabled only for the loaded world plane array and was disabled at
+tag wrap; it required no extra per-plane allocation and did not change the
+`model_t` layout.
+
+The candidate passed the complete strict i486 audit: 168 source objects and
+403 linked objects, with 314,713 relocated instructions mapped exactly across
+435 contributions, 529 startup rows, and 9,207 provider instructions. There
+were no above-i486, unknown, or exempt instructions.
+
+The three-run control mean was 109.211993 seconds and 8.872651667 FPS. The
+classification-cache candidate averaged 109.282357667 seconds and 8.866939
+FPS, a negative 0.005712667 FPS delta. All three candidate frame-695 PCX
+captures matched control, and the final framebuffer checksum remained
+`1047377823`. Saved color streams, and the final-run Z stream, differed only
+at frames 727-731. Repeated control color streams also varied in those frames,
+so that short interval is not a deterministic parity signal. The negative mean
+rejects the cache regardless.
+
 ## Evidence and disposition
 
 The shared-stamp runs are in `out/dos-timedemo-20261104-194409` (control) and
@@ -61,6 +85,11 @@ The shared-stamp runs are in `out/dos-timedemo-20261104-194409` (control) and
 profile hash was
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`.
 
-Both candidates are rejected for measured slowdown. The DOSBox timing evidence
-does not establish physical-486 performance. No source implementation from
-these experiments is retained.
+The direct classification-cache candidate is in
+`out/dos-timedemo-20261104-210651`; its build and audit root is
+`out/local-bsp-plane-class-cache-candidate-20261104`, using the same control
+and pinned profile.
+
+All three candidates are rejected for measured slowdown. The DOSBox timing
+evidence does not establish physical-486 performance. No source
+implementation from these experiments is retained.
