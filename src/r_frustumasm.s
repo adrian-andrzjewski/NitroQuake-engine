@@ -33,6 +33,20 @@ C(R_TransformFrustum):
 	pushl	$C(screenedge)
 	call	C(R_TransformFrustumCore_asm486)
 	addl	$24,%esp
+	/* Keep a private, stable all-four-plane chain for RenderFace. */
+	pushl	%esi
+	pushl	%edi
+	movl	$C(view_clipplanes),%esi
+	movl	$C(view_clipplanes_fullmask),%edi
+	movl	$24,%ecx
+	cld
+	rep movsl
+	popl	%edi
+	popl	%esi
+	movl	$0,C(view_clipplanes_fullmask)+88
+	movl	$C(view_clipplanes_fullmask)+72,C(view_clipplanes_fullmask)+64
+	movl	$C(view_clipplanes_fullmask)+48,C(view_clipplanes_fullmask)+40
+	movl	$C(view_clipplanes_fullmask)+24,C(view_clipplanes_fullmask)+16
 	ret
 
 .p2align 2

@@ -505,12 +505,12 @@ Lgs_edgeloop:
 	jz		Lgs_trailing
 
 // both leading and trailing
-	// EDI survives TrailingEdge; form the leading surface pointer before the
-	// call so the global surfaces base does not need to be reloaded afterward.
+	// EDI survives TrailingEdge; form the leading surface pointer before
+	// entering the helper so the global surfaces base is not reloaded.
 	shll	$(SURF_T_SHIFT),%edi
 	addl	%eax,%edi
-	call	TrailingEdge
-	jmp	Lgs_leading_body
+	pushl	$Lgs_leading_body
+	jmp	TrailingEdge
 
 // ---------------------------------------------------------------
 // handle a leading edge

@@ -109,7 +109,7 @@ param(
     [string]$RenderFaceProbe = 'control',
     [ValidateSet('control', 'setup')]
     [string]$AliasGlueProbe = 'control',
-    [string]$BspFrameCountImplementation = 'control',
+    [string]$BspFrameCountImplementation = 'local',
     [ValidateSet('c', 'asm')]
     [string]$BspWalkImplementation = 'c',
     [ValidateSet('c', 'asm')]

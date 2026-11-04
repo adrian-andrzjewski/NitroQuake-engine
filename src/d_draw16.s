@@ -242,10 +242,9 @@ LSpan16SameRowStatsDone:
 	fxch	%st(1)			// z*64k | 1/z | t/z | s/z
 
 	fld		%st(0)			// z*64k | z*64k | 1/z | t/z | s/z
-	fmul	%st(4),%st(0)	// s | z*64k | 1/z | t/z | s/z
-	fxch	%st(1)			// z*64k | s | 1/z | t/z | s/z
-	fmul	%st(3),%st(0)	// t | s | 1/z | t/z | s/z
-	fxch	%st(1)			// s | t | 1/z | t/z | s/z
+	fmul	%st(3),%st(0)	// t | z*64k | 1/z | t/z | s/z
+	fxch	%st(1)			// z*64k | t | 1/z | t/z | s/z
+	fmul	%st(4),%st(0)	// s | t | 1/z | t/z | s/z
 	fistpl	s				// 1/z | t | t/z | s/z
 	fistpl	t				// 1/z | t/z | s/z
 
@@ -276,10 +275,9 @@ LCleanup1:
 	fxch	%st(1)			// z*64k | 1/z | t/z | s/z
 
 	fld		%st(0)			// z*64k | z*64k | 1/z | t/z | s/z
-	fmul	%st(4),%st(0)	// s | z*64k | 1/z | t/z | s/z
-	fxch	%st(1)			// z*64k | s | 1/z | t/z | s/z
-	fmul	%st(3),%st(0)	// t | s | 1/z | t/z | s/z
-	fxch	%st(1)			// s | t | 1/z | t/z | s/z
+	fmul	%st(3),%st(0)	// t | z*64k | 1/z | t/z | s/z
+	fxch	%st(1)			// z*64k | t | 1/z | t/z | s/z
+	fmul	%st(4),%st(0)	// s | t | 1/z | t/z | s/z
 	fistpl	s				// 1/z | t | t/z | s/z
 	fistpl	t				// 1/z | t/z | s/z
 	jmp		LFDIVInFlight1
@@ -291,10 +289,9 @@ LSetupNotLast1:
 	fxch	%st(1)			// z*64k | 1/z | t/z | s/z
 
 	fld		%st(0)			// z*64k | z*64k | 1/z | t/z | s/z
-	fmul	%st(4),%st(0)	// s | z*64k | 1/z | t/z | s/z
-	fxch	%st(1)			// z*64k | s | 1/z | t/z | s/z
-	fmul	%st(3),%st(0)	// t | s | 1/z | t/z | s/z
-	fxch	%st(1)			// s | t | 1/z | t/z | s/z
+	fmul	%st(3),%st(0)	// t | z*64k | 1/z | t/z | s/z
+	fxch	%st(1)			// z*64k | t | 1/z | t/z | s/z
+	fmul	%st(4),%st(0)	// s | t | 1/z | t/z | s/z
 	fistpl	s				// 1/z | t | t/z | s/z
 	fistpl	t				// 1/z | t/z | s/z
 
@@ -357,10 +354,10 @@ LNotLastSegment:
 // pick up after the FDIV that was left in flight previously
 
 	fld		%st(0)			// duplicate it
-	fmul	%st(4),%st(0)	// s = s/z * z
-	fistpl	snext
-	fmul	%st(2),%st(0)	// t = t/z * z after the S pop
+	fmul	%st(3),%st(0)	// t = t/z * z
 	fistpl	tnext
+	fmul	%st(3),%st(0)	// s = s/z * z after the T pop
+	fistpl	snext
 	movl	snext,%eax
 	movl	tnext,%edx
 

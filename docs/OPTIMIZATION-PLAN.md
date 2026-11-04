@@ -35,6 +35,122 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### R_RenderFace clip-plane order reorder rejected (2026-11-04)
+
+An isolated `1,0,2,3` view-plane chain candidate differed from its matched
+packed-BSP control at **591 of 970 fixed-step frame checksums**, beginning at
+frame 0. Both runs ended at `1047377823`, but the frame-695 PCX captures also
+differed. No timing A/B was run; the candidate fails exact parity. See the
+[clip-plane order ledger](ledger/2026-11-04-renderface-clipplane-order-rejected.md).
+
+### R_RenderFace prelinked all-mask clip chains rejected (2026-11-04)
+
+A scratch candidate prebuilt linked clip-plane chains for all 15 nonempty masks
+and selected a head pointer in `R_RenderFace_asm486`. Two fixed-step candidate
+replays were identical to each other but differed from the matched control at
+**436 of 970 frames**, starting at frame 2. Both ended at checksum
+`1047377823`, while the captured frame 695 differed. The strict i486 audit
+passed, but the candidate fails exact parity; its two uninstrumented timing
+groups are invalid as performance evidence. See the
+[all-mask chain rejection ledger]
+(ledger/2026-11-04-renderface-prelinked-all-mask-chains-rejected.md).
+
+### R_RenderFace clip-plane argument hoist promoted (2026-11-04)
+
+`R_RenderFace_asm486` now stores the face's constant `R_ClipEdge` plane
+argument once before entering the edge loops. Three matched uninstrumented
+runs improved mean FPS from **16.378047** to **16.388068
+(+0.010021 FPS, +0.0611856%)**. All samples favored the candidate; all 970
+fixed-step checksums and the captured frame 695 PCX matched byte-for-byte. The
+complete strict i486 audit passed. See the
+[clip-argument hoist ledger]
+(ledger/2026-11-04-renderface-cliparg-hoist-promoted.md).
+
+### RenderFace outgoing argument frame promoted (2026-11-04)
+
+`R_RenderFace_asm486` reserves 12 bytes for outgoing `R_ClipEdge` arguments,
+replacing per-call stack pushes and cleanup. Three matched uninstrumented runs
+improved mean FPS from **16.377704** to **16.378047
+(+0.000343 FPS, +0.002094%)**. Fixed-step checksums and the captured frame 695
+PCX were byte-identical; the complete strict i486 audit passed. See the
+[outgoing-argument ledger]
+(ledger/2026-11-04-renderface-outgoing-argument-frame-promoted.md).
+
+### Span16 full-segment endpoint conversion order promoted (2026-11-04)
+
+The full-segment endpoint path stores T before S, removing an x87 exchange
+without changing operands or rounding. Three matched uninstrumented runs
+improved mean FPS from **16.377703333** to **16.377710333
+(+0.000007 FPS, +0.0000427%)**. Exact fixed-step and captured-frame parity and
+the complete strict i486 audit passed. See the
+[endpoint-order ledger]
+(ledger/2026-11-04-span16-segment-endpoint-order-promoted.md).
+
+### Span16 initial-span S/T product order promoted (2026-11-04)
+
+The initial and same-row setup paths calculate T before S. Four uninstrumented
+runs per variant, including the first low-rate pair, improved pooled mean FPS
+from **15.48214725** to **15.4929885
+(+0.01084125 FPS, +0.07002%)**. The recorded experiment reports exact fixed-step
+parity and a passing strict i486 gate. Its separate replay paths and audit
+counts were not recovered while reconciling the retained outputs. See the
+[initial-span product-order ledger]
+(ledger/2026-11-04-span16-initial-span-product-order-promoted.md).
+
+### R_GenerateSpans trailing-to-leading continuation tail-jump promoted (2026-11-04)
+
+The both-sides edge path now pushes `Lgs_leading_body` as `TrailingEdge`'s
+return address and jumps into the helper, replacing `call TrailingEdge` plus a
+separate jump. A matched three-run uninstrumented A/B produced a positive pooled
+mean of **16.365686333 FPS** for the candidate against **16.323727 FPS** for
+control (**+0.041959333 FPS, +0.2570%**). One control run at **16.239810 FPS**
+was a clear hitch; excluding it leaves the candidate only **0.000000833 FPS**
+ahead of the two clean control runs, so the causal effect is uncertain. The
+candidate median is 0.000017 FPS below control. It qualifies under the current
+any-positive pooled-mean rule, with the hitch retained in the recorded pool.
+All six runs rendered 969 frames and ended at checksum `1047377823`. The
+candidate's 970-frame fixed-step checksum stream and captured frame 695 were
+byte-identical to control; the complete strict i486 audit passed. See the
+[trailing-to-leading continuation ledger]
+(ledger/2026-11-04-r-genspans-trailing-to-leading-tail-jump-promoted.md).
+
+### Assembly BSP continuation-state packing promoted (2026-11-04)
+
+The assembly BSP walk now packs each parent continuation's side and resume phase
+into one state word, shrinking the record from 24 to 20 bytes. Three matched,
+uninstrumented 320x200 DOSBox-X runs improved mean FPS from **16.365682333** to
+**16.365693333 (+0.0000672%)**. The gain is smaller than either variant's
+run-to-run spread, but the current acceptance rule admits every positive
+matched mean. All six runs rendered 969 frames with checksum `1047377823` and
+matching event traces. The 970-record fixed-step checksum streams were
+byte-identical, and the complete strict i486 audit passed with zero exemptions.
+See the [packed-continuation ledger]
+(ledger/2026-11-04-bsp-walk-packed-continuation-state-promoted.md).
+
+### R_RenderFace prelinked full-mask chain promoted (2026-11-03)
+
+The assembly frustum transform now refreshes a private, already-linked copy of
+the four clip planes once per frustum update. `R_RenderFace_asm486` reuses that
+chain for mask 15; partial masks and C frustum-transform builds retain their
+existing path. Three uninstrumented 320x200 DOSBox-X runs improved mean FPS
+from **16.491695** to **16.495431667 (+0.0226579%)**. All six runs rendered 969
+frames with checksum `1047377823`; a separate replay matched all 970 recorded
+per-frame checksums and the frame-482 PCX byte-for-byte. The full strict i486
+audit passed. See the [prelinked-chain ledger]
+(ledger/2026-11-03-renderface-prelinked-fullmask-chain-promoted.md).
+
+### Assembly BSP frame-count snapshot promoted (2026-11-03)
+
+The assembly BSP walker now snapshots `r_framecount` once per traversal,
+removing the per-node global reload and the frame-count word from each parent
+continuation record. Three matched uninstrumented 320x200 DOSBox-X runs improved
+mean FPS from **16.349283667** to **16.349305333 (+0.0001325%)**. All six runs
+rendered 969 frames and ended at checksum `1047377823`. A separate fixed-step
+replay using `host_framerate 0.0783` matched all 970 per-frame checksums
+byte-for-byte. The complete strict i486 audit passed with zero above-i486,
+unknown, or exempt instructions. See the [BSP frame-count ledger]
+(ledger/2026-11-03-bsp-framecount-snapshot-promoted.md).
+
 ### Z-span monotone constant-depth runs promoted (2026-11-03)
 
 When the guarded monotone start and end depths share an upper 16-bit word,

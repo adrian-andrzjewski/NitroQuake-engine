@@ -2295,6 +2295,7 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(r_framecount)
 	.extern C(r_pcurrentvertbase)
 	.extern C(view_clipplanes)
+	.extern C(view_clipplanes_fullmask)
 	.extern C(r_leftexit)
 	.extern C(r_leftenter)
 	.extern C(r_rightexit)
@@ -2316,11 +2317,11 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(bench486_clipvertex_seen_world)
 #endif
 
-	.equ RF_PCLIP, 24
-	.equ RF_TEDGE, 16
-	.equ RF_MEDGE, 8
-	.equ RF_VERTEX0, 0
-	.equ RF_VERTEX1, 4
+	.equ RF_PCLIP, 36
+	.equ RF_TEDGE, 28
+	.equ RF_MEDGE, 20
+	.equ RF_VERTEX0, 12
+	.equ RF_VERTEX1, 16
 
 	.text
 	.globl C(R_RenderFace_asm486)
@@ -2329,12 +2330,13 @@ C(R_RenderFace_asm486):
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
-	subl	$28,%esp
+	/* Reserve 12 bytes of outgoing R_ClipEdge arguments in the local frame. */
+	subl	$40,%esp
 
 	/* Keep the model edge base in callee-saved EBP; locals use ESP offsets. */
-	movl	56(%esp),%ebp			/* medge_t *pedges */
-	movl	48(%esp),%ebx			/* msurface_t *fa */
-	movl	60(%esp),%esi			/* model surfedges + firstedge */
+	movl	68(%esp),%ebp			/* medge_t *pedges */
+	movl	60(%esp),%ebx			/* msurface_t *fa */
+	movl	72(%esp),%esi			/* model surfedges + firstedge */
 
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
@@ -2342,7 +2344,7 @@ C(R_RenderFace_asm486):
 	incl	C(bench486_renderface_calls)
 	movl	24(%ebx),%eax
 	addl	%eax,C(bench486_renderface_edge_setups)
-	movl	52(%esp),%eax
+	movl	64(%esp),%eax
 	andl	$15,%eax
 	movl	%eax,%edx
 	shrl	$1,%edx
@@ -2378,9 +2380,12 @@ C(R_RenderFace_asm486):
 
 	/* Build the same 3..0 clip chain as the C reference. */
 	/* The common full mask can link that chain without per-plane tests. */
-	movl	52(%esp),%edx
+	movl	64(%esp),%edx
 	cmpl	$15,%edx
 	jne	.Lrf_clip_masked
+#ifdef ASM486_TRANSFORM_FRUSTUM
+	movl	$C(view_clipplanes_fullmask),%eax
+#else
 	movl	$C(view_clipplanes),%ecx
 	movl	$0,88(%ecx)
 	leal	72(%ecx),%eax
@@ -2390,6 +2395,7 @@ C(R_RenderFace_asm486):
 	leal	24(%ecx),%eax
 	movl	%eax,16(%ecx)
 	movl	%ecx,%eax
+#endif
 	jmp	.Lrf_clip_ready
 .Lrf_clip_masked:
 	xorl	%eax,%eax
@@ -2418,6 +2424,8 @@ C(R_RenderFace_asm486):
 	movl	%ecx,%eax
 .Lrf_clip_ready:
 	movl	%eax,RF_PCLIP(%esp)
+	/* The edge-loop clip-plane argument is constant for this face. */
+	movl	%eax,8(%esp)
 
 	movl	$0,C(r_emitted)
 	movl	$0,C(r_nearzi)
@@ -2569,11 +2577,9 @@ C(R_RenderFace_asm486):
 	leal	(%ebx,%eax,4),%eax
 	leal	(%edx,%edx,2),%edx
 	leal	(%ebx,%edx,4),%edx
-	pushl	RF_PCLIP(%esp)
-	pushl	%edx
-	pushl	%eax
+	movl	%eax,0(%esp)
+	movl	%edx,4(%esp)
 	call	C(R_ClipEdge)
-	addl	$12,%esp
 	movl	RF_MEDGE(%esp),%ecx
 	movl	C(cacheoffset),%eax
 	movl	%eax,4(%ecx)
@@ -2627,11 +2633,9 @@ C(R_RenderFace_asm486):
 	leal	(%ebx,%eax,4),%eax
 	leal	(%edx,%edx,2),%edx
 	leal	(%ebx,%edx,4),%edx
-	pushl	RF_PCLIP(%esp)
-	pushl	%edx
-	pushl	%eax
+	movl	%eax,0(%esp)
+	movl	%edx,4(%esp)
 	call	C(R_ClipEdge)
-	addl	$12,%esp
 	movl	RF_MEDGE(%esp),%ecx
 	movl	C(cacheoffset),%eax
 	movl	%eax,4(%ecx)
@@ -2648,7 +2652,7 @@ C(R_RenderFace_asm486):
 	jnz	.Lrf_submodel_edge_loop
 
 .Lrf_edges_done:
-	movl	48(%esp),%ebx			/* restore msurface_t *fa */
+	movl	60(%esp),%ebx			/* restore msurface_t *fa */
 	cmpl	$0,C(makeleftedge)
 	je	.Lrf_right_clip
 	leal	RF_TEDGE(%esp),%eax
@@ -2656,11 +2660,10 @@ C(R_RenderFace_asm486):
 	movl	$0,C(r_lastvertvalid)
 	movl	RF_PCLIP(%esp),%eax
 	movl	16(%eax),%eax
-	pushl	%eax
-	pushl	$C(r_leftenter)
-	pushl	$C(r_leftexit)
+	movl	%eax,8(%esp)
+	movl	$C(r_leftenter),4(%esp)
+	movl	$C(r_leftexit),0(%esp)
 	call	C(R_ClipEdge)
-	addl	$12,%esp
 
 .Lrf_right_clip:
 	cmpl	$0,C(makerightedge)
@@ -2669,12 +2672,19 @@ C(R_RenderFace_asm486):
 	movl	%eax,C(r_pedge)
 	movl	$0,C(r_lastvertvalid)
 	movl	$1,C(r_nearzionly)
+#ifdef ASM486_TRANSFORM_FRUSTUM
+	cmpl	$C(view_clipplanes_fullmask),RF_PCLIP(%esp)
+	jne	.Lrf_right_clip_original_tail
+	movl	C(view_clipplanes_fullmask)+40,%eax
+	jmp	.Lrf_right_clip_tail_ready
+.Lrf_right_clip_original_tail:
+#endif
 	movl	C(view_clipplanes)+40,%eax
-	pushl	%eax
-	pushl	$C(r_rightenter)
-	pushl	$C(r_rightexit)
+.Lrf_right_clip_tail_ready:
+	movl	%eax,8(%esp)
+	movl	$C(r_rightenter),4(%esp)
+	movl	$C(r_rightexit),0(%esp)
 	call	C(R_ClipEdge)
-	addl	$12,%esp
 
 .Lrf_post_surface:
 	cmpl	$0,C(r_emitted)
@@ -2729,7 +2739,7 @@ C(R_RenderFace_asm486):
 #endif
 
 .Lrf_return:
-	addl	$28,%esp
+	addl	$40,%esp
 	popl	%edi
 	popl	%esi
 	popl	%ebx
@@ -7159,11 +7169,7 @@ C(R_RecursiveWorldNodeClip_asm486):
 #ifdef ASM486_BSP_WALK
 	.p2align 4,,15
 
-#ifdef ASM486_BSP_FRAME_COUNT
-	.equ BSP_WALK_RECORD_BYTES, 28
-#else
-	.equ BSP_WALK_RECORD_BYTES, 24
-#endif
+	.equ BSP_WALK_RECORD_BYTES, 20
 
 // void R_RecursiveWorldNode_asm486(mnode_t *node, int clipflags)
 // regparm(2): EAX=node and EDX=clipflags.  Use explicit records on the
@@ -7184,6 +7190,10 @@ C(R_RecursiveWorldNode_asm486):
 	movl	%eax,%ebx			// current node stays in a callee-saved register
 	movl	%edx,%edi			// current clip flags stay in a callee-saved register
 
+#ifdef ASM486_BSP_FRAME_COUNT
+	movl C(r_framecount),%eax
+	movl %eax,-24(%ebp)
+#endif
 .Lbsp_walk_node_enter:
 
 #ifdef PROFILE486
@@ -7227,11 +7237,6 @@ C(R_RecursiveWorldNode_asm486):
 	movl	%eax,%edi
 .Lbsp_walk_clip_done:
 
-#ifdef ASM486_BSP_FRAME_COUNT
-	movl	C(r_framecount),%eax
-	movl	%eax,-24(%ebp)
-#endif
-
 	cmpl	$0,0(%ebx)
 	jl	.Lbsp_walk_leaf
 
@@ -7258,7 +7263,9 @@ C(R_RecursiveWorldNode_asm486):
 .Lbsp_walk_side_ready:
 
 	// Save the parent continuation, then enter its front child. Record layout:
-	// node, clip flags, double plane dot, side, stage, and optional framecount.
+	// node, clip flags, double plane dot, and traversal state. The state packs
+	// side in bit 0 and the resume phase in bit 1: 2/3 waits for front; 4/5
+	// waits for back.
 	subl	$BSP_WALK_RECORD_BYTES,%esp
 	movl	%ebx,0(%esp)
 	movl	%edi,4(%esp)			// preserve the parent clip flags
@@ -7266,29 +7273,21 @@ C(R_RecursiveWorldNode_asm486):
 	movl	%eax,8(%esp)
 	movl	-28(%ebp),%eax
 	movl	%eax,12(%esp)
-	movl	%esi,16(%esp)			// preserve the side for the back child
-	movl	$1,20(%esp)			// resume after front child
-#ifdef ASM486_BSP_FRAME_COUNT
-	movl	-24(%ebp),%eax
-	movl	%eax,24(%esp)
-#endif
+	leal	2(%esi),%eax
+	movl	%eax,16(%esp)			// side plus front-child resume phase
 	movl	%esi,%eax
 	movl	28(%ebx,%eax,4),%ebx
 	jmp	.Lbsp_walk_node_enter
 
 // Visit this node's marked surfaces in the same order as the C traversal.
 .Lbsp_walk_resume_after_front:
-	movl	$2,20(%esp)			// parent now awaits its back child
+	addl	$2,16(%esp)			// parent now awaits its back child
 	movl	0(%esp),%ebx
 	movl	4(%esp),%edi			// restore parent clip flags
 	movl	8(%esp),%eax
 	movl	%eax,-32(%ebp)
 	movl	12(%esp),%eax
 	movl	%eax,-28(%ebp)
-#ifdef ASM486_BSP_FRAME_COUNT
-	movl	24(%esp),%eax
-	movl	%eax,-24(%ebp)
-#endif
 .Lbsp_walk_surface_start:
 	movzwl	38(%ebx),%eax		// unsigned short numsurfaces
 	movl	%eax,-40(%ebp)
@@ -7389,8 +7388,8 @@ C(R_RecursiveWorldNode_asm486):
 
 .Lbsp_walk_back_child:
 	movl	0(%esp),%ebx			// restore the current node from its continuation
-	movl	16(%esp),%eax			// parent side was saved in its record
-	xorl	$1,%eax			// !side
+	movl	16(%esp),%eax			// packed side and back-child resume phase
+	xorl	$5,%eax			// (side + 4) ^ 5 == !side
 	movl	28(%ebx,%eax,4),%ebx
 	jmp	.Lbsp_walk_node_enter
 
@@ -7427,8 +7426,8 @@ C(R_RecursiveWorldNode_asm486):
 	movl	-52(%ebp),%eax
 	cmpl	%eax,%esp
 	je	.Lbsp_walk_return
-	cmpl	$1,20(%esp)
-	je	.Lbsp_walk_resume_after_front
+	testl	$4,16(%esp)
+	jz	.Lbsp_walk_resume_after_front
 	addl	$BSP_WALK_RECORD_BYTES,%esp
 	jmp	.Lbsp_walk_node_complete
 

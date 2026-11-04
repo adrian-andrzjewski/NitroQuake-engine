@@ -18,6 +18,16 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-04-renderface-cliparg-hoist-promoted.md](2026-11-04-renderface-cliparg-hoist-promoted.md) | 4 | `R_RenderFace` / hoist the constant clip-plane argument out of per-edge loops; +0.0612% mean, exact fixed-step and PCX parity, complete strict i486 audit |
+| [2026-11-04-renderface-outgoing-argument-frame-promoted.md](2026-11-04-renderface-outgoing-argument-frame-promoted.md) | 4 | `R_RenderFace` / reserve an outgoing argument frame for `R_ClipEdge`; +0.0021% mean, exact fixed-step and PCX parity, complete strict i486 audit |
+| [2026-11-04-renderface-prelinked-all-mask-chains-rejected.md](2026-11-04-renderface-prelinked-all-mask-chains-rejected.md) | 4 | `R_RenderFace` / prelinked chains for all 15 nonempty masks; reject after 436/970 fixed-step checksums differ, despite matching final checksum and passing i486 audit |
+| [2026-11-04-renderface-clipplane-order-rejected.md](2026-11-04-renderface-clipplane-order-rejected.md) | 3 | `R_RenderFace` / reject view-plane order 1,0,2,3 after 591/970 fixed-step checksums and the captured frame 695 PCX differed |
+| [2026-11-04-span16-segment-endpoint-order-promoted.md](2026-11-04-span16-segment-endpoint-order-promoted.md) | 4 | Span16 / store full-segment endpoint T before S; +0.0000427% mean, exact replay parity, complete strict i486 audit |
+| [2026-11-04-span16-initial-span-product-order-promoted.md](2026-11-04-span16-initial-span-product-order-promoted.md) | 4 | Span16 / calculate initial-span T before S; +0.07002% pooled mean over four runs per variant, including the low-rate pair; exact parity and strict audit recorded |
+| [2026-11-04-r-genspans-trailing-to-leading-tail-jump-promoted.md](2026-11-04-r-genspans-trailing-to-leading-tail-jump-promoted.md) | 4 | `R_GenerateSpans` / tail-jump through `TrailingEdge` to the leading continuation; +0.2570% pooled mean with one control hitch, exact parity and strict i486 audit |
+| [2026-11-04-bsp-walk-packed-continuation-state-promoted.md](2026-11-04-bsp-walk-packed-continuation-state-promoted.md) | 4 | `R_RecursiveWorldNode_asm486` / pack side and resume phase into a 20-byte continuation record; +0.0000672% mean, exact fixed-step parity, complete strict i486 audit |
+| [2026-11-03-bsp-framecount-snapshot-promoted.md](2026-11-03-bsp-framecount-snapshot-promoted.md) | 4 | `R_RecursiveWorldNode_asm486` / snapshot the frame count once per traversal; +0.0001325% mean, exact fixed-step parity, complete strict i486 audit |
+| [2026-11-03-renderface-prelinked-fullmask-chain-promoted.md](2026-11-03-renderface-prelinked-fullmask-chain-promoted.md) | 4 | `R_RenderFace` / reuse a prelinked four-plane chain for mask 15; +0.0227% uninstrumented mean, exact per-frame and PCX parity, complete strict i486 audit |
 | [2026-11-03-renderface-fourclip-mask-fastpath-promoted.md](2026-11-03-renderface-fourclip-mask-fastpath-promoted.md) | 4 | `R_RenderFace` / directly link the full four-plane clip chain; +0.0443% median on DOSBox-X, exact pixel parity and full i486 audit |
 | [2026-11-03-span16-same-texel-endpoint-census.md](2026-11-03-span16-same-texel-endpoint-census.md) | 3 | texture spans / conservative endpoint test found 0 qualifying segments out of 2,059,043 full segments; no repeated-texel fast path or FPS claim |
 | [2026-11-03-zspan-constant-depth-runs-promoted.md](2026-11-03-zspan-constant-depth-runs-promoted.md) | 4 | Z-spans / promote monotone constant-depth fills with aligned `rep stosl` after 0.1220% median gain, exact 970-frame parity, and full i486 audit |
@@ -737,6 +747,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### edge-scan
 
+- `promoted` [`R_GenerateSpans` trailing-to-leading continuation tail-jump (2026-11-04) — pooled mean **+0.041959333 FPS (+0.2570%)**; one control hitch drives the gain, exact fixed-step parity and complete strict i486 audit](2026-11-04-r-genspans-trailing-to-leading-tail-jump-promoted.md)
 - `rejected` [`R_GenerateSpans` non-bmodel fifteen-continuation trial (2026-10-30) — strict mean **−0.000007667 FPS (−0.00004696%)**, exact 969-frame checksum and event traces, complete i486 audit](2026-10-30-edge-sort-nonbmodel-fifteen-continuation-rejected.md)
 - `rejected` [Sixteen-comparison edge-sort recheck (2026-11-01) - no standalone or combined gain across twenty candidate runs; bracketed control was faster; exact checksum and strict i486 audit](2026-11-01-edge-sort-nonbmodel-sixteen-recheck-rejected.md)
 - `rejected` [`R_GenerateSpans` non-bmodel sixteen-comparison current-source recheck (2026-10-30) — **+0.000002333 FPS (+0.0000143%)**, below both sample spreads; exact final checksum and complete i486 audit](2026-10-30-edge-sort-nonbmodel-sixteen-current-source-recheck-rejected.md)
@@ -827,6 +838,11 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
+- `promoted` [`R_RenderFace` clip-plane argument hoist (2026-11-04) — **+0.010021 FPS (+0.0611856%)**, exact fixed-step and captured-frame parity, complete strict i486 gate](2026-11-04-renderface-cliparg-hoist-promoted.md)
+- `promoted` [`R_RenderFace` outgoing argument frame (2026-11-04) — **+0.000343 FPS (+0.002094%)**, exact fixed-step and captured-frame parity, complete strict i486 gate](2026-11-04-renderface-outgoing-argument-frame-promoted.md)
+- `rejected` [`R_RenderFace` prelinked all-mask clip chains (2026-11-04) — **436/970 fixed-step frame checksums differed**, final checksum matched, captured frame 695 did not; strict i486 audit passed](2026-11-04-renderface-prelinked-all-mask-chains-rejected.md)
+- `rejected` [`R_RenderFace` view-plane order 1,0,2,3 (2026-11-04) — **591/970 fixed-step frame checksums differed**; final checksum matched, captured frame 695 did not](2026-11-04-renderface-clipplane-order-rejected.md)
+- `promoted` [`R_RenderFace` prelinked full-mask chain (2026-11-03) — **+0.003736667 FPS (+0.0226579%)**, exact per-frame checksum and captured-frame parity, complete source-bound i486 audit](2026-11-03-renderface-prelinked-fullmask-chain-promoted.md)
 - `promoted` [`R_RenderFace` full four-plane clip-chain fast path (2026-11-03) — **+0.007299 FPS (+0.044278%)**, exact pixel parity and complete executable i486 gate](2026-11-03-renderface-fourclip-mask-fastpath-promoted.md)
 - `withdrawn` [`R_ClipEdge` exact world-endpoint projection cache (2026-11-03) — +0.0529% result invalidated by inconsistent parity; removed](2026-11-03-r-clipedge-projection-cache-withdrawn.md)
 - `rejected` [`R_RenderFace` direct no-clip emitter entry (2026-10-31) — **−0.011087 FPS (−0.0679%)**, with a 49-pixel frame-99 delta](2026-10-31-zspan-no-fxch-promoted-and-renderface-no-clip-rejected.md)
@@ -1067,6 +1083,8 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### texture-spans
 
+- `promoted` [Span16 initial-span S/T product order (2026-11-04) — **+0.01084125 FPS (+0.07002%)** over four runs per variant, including one slow paired sample; exact parity and strict gate recorded](2026-11-04-span16-initial-span-product-order-promoted.md)
+- `promoted` [Span16 full-segment endpoint conversion order (2026-11-04) — **+0.000007 FPS (+0.0000427%)**, exact fixed-step parity and complete strict i486 gate](2026-11-04-span16-segment-endpoint-order-promoted.md)
 - `measured` [Span16 same-texel endpoint census (2026-11-03) — 0 of 2,059,043 full segments met the conservative endpoint condition; no fast path justified](2026-11-03-span16-same-texel-endpoint-census.md)
 - `abandoned` [Span16 destination-aligned word stores (2026-11-02) — the initial byte-packing path differed on 969 of 970 frame records; corrected source was not revalidated](2026-11-02-span16-destination-aligned-word-stores-abandoned.md)
 - `rejected` [Span16 linear row-major address delta (2026-11-02) — i486 audit passed, but 969 of 970 indexed framebuffer checksums differed; reverted](2026-11-02-span16-linear-address-delta-rejected.md)
@@ -1119,6 +1137,8 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### world-bsp
 
+- `promoted` [`R_RecursiveWorldNode_asm486` packed continuation state (2026-11-04) — **+0.000011 FPS (+0.0000672%)**, exact fixed-step parity and complete strict i486 gate](2026-11-04-bsp-walk-packed-continuation-state-promoted.md)
+- `promoted` [`R_RecursiveWorldNode_asm486` frame-count snapshot (2026-11-03) — **+0.000021667 FPS (+0.0001325%)**, exact fixed-step parity and complete strict i486 gate](2026-11-03-bsp-framecount-snapshot-promoted.md)
 - `promoted` [`R_RecursiveWorldNode` solid-node early cull before visibility lookup: **+0.000065333 FPS (+0.00041088%)**, exact checksum parity and complete i486 ISA gate](2026-10-24-bsp-walk-solid-first-check-promoted.md)
 - `rejected` [`R_ScanEdges` fourteen-span alignment — **−0.000024 FPS (−0.00015383%)**, exact checksum parity](2026-10-22-scan-edges-clear-span14-alignment-rejected.md)
 - `rejected` [Fifteen-span batches with grouped 8/4/2/1 tail for `R_ScanEdges` — **−0.000001 FPS (−0.00000641%)**, exact checksum parity](2026-10-22-scan-edges-clear-span-unroll15-rejected.md)

@@ -140,7 +140,7 @@ param(
     [ValidateSet('c', 'asm')]
     [string]$BspClipImplementation = 'c',
     [ValidateSet('control', 'local')]
-    [string]$BspFrameCountImplementation = 'control',
+    [string]$BspFrameCountImplementation = 'local',
     [ValidateSet('c', 'asm')]
     [string]$BspWalkImplementation = 'c',
     [ValidateSet('c', 'asm')]
