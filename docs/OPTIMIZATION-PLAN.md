@@ -35,6 +35,16 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### BSP plane-dot cache and shared-surface stamp suppression rejected (2026-11-04)
+
+The shared-surface stamp check preserved the instrumented color/Z stream but
+lowered the three-run uninstrumented mean from 8.872651667 to 8.871082 FPS.
+A per-plane cache reused the existing spare plane allocation and passed the
+full i486 audit, but lowered mean FPS to 8.871216667 from 8.872651667. Their
+saved uninstrumented streams varied at frames 727-731, a window that also
+varied in repeated control color streams. Both changes were removed. See the
+[BSP cache and stamp rejection ledger](ledger/2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md).
+
 ### Active-edge screen buckets and PVS surface epoch cache rejected (2026-11-04)
 
 A 16-pixel active-edge predecessor index still changed two color frames after

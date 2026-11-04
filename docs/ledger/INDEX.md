@@ -19,6 +19,7 @@ later insertion above it.
 | File | Entries | Summary / region |
 |---|---:|---|
 | [2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md](2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md) | 4 | renderer acceleration / reject 16-pixel active-edge buckets and PVS surface epochs after color parity failures; bucket search also increased list work, PVS marks ignored per-frame frustum filtering |
+| [2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md](2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md) | 3 | BSP acceleration / reject a shared-plane dot cache and redundant surface-stamp store suppression after negative three-run uninstrumented means |
 | [2026-11-04-renderface-cliparg-hoist-promoted.md](2026-11-04-renderface-cliparg-hoist-promoted.md) | 4 | `R_RenderFace` / hoist the constant clip-plane argument out of per-edge loops; +0.0612% mean, exact fixed-step and PCX parity, complete strict i486 audit |
 | [2026-11-04-renderface-outgoing-argument-frame-promoted.md](2026-11-04-renderface-outgoing-argument-frame-promoted.md) | 4 | `R_RenderFace` / reserve an outgoing argument frame for `R_ClipEdge`; +0.0021% mean, exact fixed-step and PCX parity, complete strict i486 audit |
 | [2026-11-04-renderface-prelinked-all-mask-chains-rejected.md](2026-11-04-renderface-prelinked-all-mask-chains-rejected.md) | 4 | `R_RenderFace` / prelinked chains for all 15 nonempty masks; reject after 436/970 fixed-step checksums differ, despite matching final checksum and passing i486 audit |
