@@ -58,6 +58,15 @@ calls and BSP time. Both candidates passed the complete strict i486 audit but
 failed exact color parity, so their source changes were removed. See the
 [edge-bucket and PVS cache rejection ledger](ledger/2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md).
 
+### Active-edge scanline predecessor finger rejected (2026-11-04)
+
+A scanline-local predecessor finger selected only 467 hints across 95,759
+pushback-search iterations, removing just 484 iterations against the 96,243
+control count. Its uninstrumented checksum run differed from each control color
+stream at 288 of 970 records (frames 32-948), despite retaining the final
+checksum. The complete strict i486 audit passed, but no timing A/B was run.
+See the [predecessor-finger rejection ledger](ledger/2026-11-04-edge-pushback-finger-rejected.md).
+
 ### World-span depth hierarchy for alias occlusion rejected (2026-11-04)
 
 A coarse hierarchy built from existing world and brush surface spans rejected

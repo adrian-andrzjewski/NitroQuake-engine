@@ -19,6 +19,7 @@ later insertion above it.
 | File | Entries | Summary / region |
 |---|---:|---|
 | [2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md](2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md) | 4 | renderer acceleration / reject 16-pixel active-edge buckets and PVS surface epochs after color parity failures; bucket search also increased list work, PVS marks ignored per-frame frustum filtering |
+| [2026-11-04-edge-pushback-finger-rejected.md](2026-11-04-edge-pushback-finger-rejected.md) | 2 | renderer acceleration / reject a scanline-local active-edge predecessor finger after only 467 selections, 484 fewer iterations, and 288/970 color checksum differences |
 | [2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md](2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md) | 4 | BSP acceleration / reject shared-plane dot and direct classification caches plus redundant surface-stamp store suppression after negative three-run uninstrumented means |
 | [2026-11-04-renderface-cliparg-hoist-promoted.md](2026-11-04-renderface-cliparg-hoist-promoted.md) | 4 | `R_RenderFace` / hoist the constant clip-plane argument out of per-edge loops; +0.0612% mean, exact fixed-step and PCX parity, complete strict i486 audit |
 | [2026-11-04-renderface-outgoing-argument-frame-promoted.md](2026-11-04-renderface-outgoing-argument-frame-promoted.md) | 4 | `R_RenderFace` / reserve an outgoing argument frame for `R_ClipEdge`; +0.0021% mean, exact fixed-step and PCX parity, complete strict i486 audit |
