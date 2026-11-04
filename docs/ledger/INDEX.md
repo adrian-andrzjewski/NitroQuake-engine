@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-05-alias-span-tile-depth-hierarchy-rejected.md](2026-11-05-alias-span-tile-depth-hierarchy-rejected.md) | 3 | renderer acceleration / reject a lazy horizontal tile-min Z hierarchy after only 103/39,990 and 140/39,990 span rejections, increased instrumented self time, and a frame-83 color/Z checksum difference |
 | [2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md](2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md) | 4 | renderer acceleration / reject 16-pixel active-edge buckets and PVS surface epochs after color parity failures; bucket search also increased list work, PVS marks ignored per-frame frustum filtering |
 | [2026-11-04-edge-pushback-finger-rejected.md](2026-11-04-edge-pushback-finger-rejected.md) | 2 | renderer acceleration / reject a scanline-local active-edge predecessor finger after only 467 selections, 484 fewer iterations, and 288/970 color checksum differences |
 | [2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md](2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md) | 4 | BSP acceleration / reject shared-plane dot and direct classification caches plus redundant surface-stamp store suppression after negative three-run uninstrumented means |

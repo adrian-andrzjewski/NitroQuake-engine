@@ -76,6 +76,17 @@ changed 27. All recorded Z checksums and both final framebuffer checksums
 matched. The strict i486 audits passed, but the candidate is removed. See the
 [world-span HZB rejection ledger](ledger/2026-11-04-world-span-hzb-alias-rejected.md).
 
+### Lazy tile-min hierarchy for alias-span occlusion rejected (2026-11-05)
+
+A screen-horizontal tile-min cache queried long alias spans against the existing
+Z buffer, rejecting 103 of 39,990 eligible spans at 8-pixel tiles and 140 at
+4-pixel tiles. Both profile candidates differed from the no-cache profile at
+frame 83 in color and Z, despite matching final checksums; exact per-frame
+parity is therefore unproven. The helper also increased instrumented alias-span
+self time. With at most 0.35% of queries rejected and no parity-clean candidate,
+no uninstrumented timing or release ISA gate was run. The code was removed. See
+the [alias-span tile-min hierarchy ledger](ledger/2026-11-05-alias-span-tile-depth-hierarchy-rejected.md).
+
 ### R_RenderFace clip-plane order reorder rejected (2026-11-04)
 
 An isolated `1,0,2,3` view-plane chain candidate differed from its matched
