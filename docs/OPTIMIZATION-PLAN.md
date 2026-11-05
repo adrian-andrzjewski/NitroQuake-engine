@@ -38,15 +38,25 @@ because they are too slow for the target class of hardware.
 ### Brush-model splitter-plane transform cache promoted (2026-11-05)
 
 The assembly brush clipper caches each transformed BSP splitter plane in a
-64-entry direct-mapped table keyed by plane, entity, and frame. It reuses
-27,372 of 41,158 transforms (66.50%) in the pinned profile. Three matched
-uninstrumented DOSBox-X runs improved mean FPS by **0.001051%** over the
-32-entry table; the initial 32-entry cache had improved mean FPS by 0.01258%
-over the cache-off path. Both changes have exact per-frame color and Z checksum
-parity and complete strict i486 audits. The 64-entry table uses 1,792 bytes of
-BSS. See the
-[64-entry cache promotion ledger](ledger/2026-11-05-bmodel-plane-transform-cache64-promoted.md)
-and the [initial 32-entry cache ledger](ledger/2026-11-05-bmodel-plane-transform-cache-promoted.md).
+128-entry direct-mapped table keyed by plane, entity, and frame. It reuses
+27,843 of 41,158 transforms (67.65%) in the pinned profile. Three matched
+uninstrumented DOSBox-X runs improved mean FPS by **0.000812%** over the
+64-entry table, which had improved mean FPS by 0.001051% over 32 entries. The
+initial 32-entry cache improved mean FPS by 0.01258% over the cache-off path.
+All changes have exact per-frame color and Z checksum parity and complete
+strict i486 audits. The 128-entry table uses 3,584 bytes of BSS. See the
+[128-entry cache promotion ledger](ledger/2026-11-05-bmodel-plane-transform-cache128-promoted.md),
+[64-entry cache promotion ledger](ledger/2026-11-05-bmodel-plane-transform-cache64-promoted.md),
+and [initial 32-entry cache ledger](ledger/2026-11-05-bmodel-plane-transform-cache-promoted.md).
+
+### Brush-plane cross-frame transform reuse rejected (2026-11-05)
+
+Retaining transformed planes across frames when an entity's exact transform
+was unchanged raised profile hits by 1,017, but added transform-state lookups
+and comparisons. Matched uninstrumented DOSBox-X runs were 0.02049% slower
+than the per-frame cache. Exact color/Z checksum streams and captured-frame
+parity passed, as did the complete strict i486 audit. The experiment was
+removed; see the [cross-frame cache rejection ledger](ledger/2026-11-05-bmodel-plane-transform-crossframe-rejected.md).
 
 ### Brush-clip previous-edge endpoint-distance cache rejected (2026-11-05)
 
