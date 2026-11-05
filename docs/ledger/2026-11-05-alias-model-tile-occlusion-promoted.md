@@ -164,3 +164,29 @@ control set. The control replay is in
 `out/dos-timedemo-control-replay-20261105-1130`; the candidate release result
 is `out/dos-timedemo-20261105-103741`. This small improvement and 12,000-byte
 working-set reduction are DOSBox-X evidence, not physical 486 timing claims.
+
+### Rectangular 4-by-8 tiles rejected
+
+A 4-pixel-wide by 8-pixel-high tile layout reduced the cache to 2,000 tiles
+and 6,000 bytes. The PROFILE486 replay at
+`out/dos-timedemo-20261105-105057` retained 4,503 queries but rejected 1,584
+models, compared with 1,627 for the committed 4-by-4 layout. Tile checks fell
+from 36,940 to 23,018, while sampled Z values rose from 567,552 to 702,848.
+
+The full 969-frame release replay passed the strict i486 audit and the pinned
+frame-count and final-checksum gates. The earlier visual-parity replay matched
+all per-frame color and Z checksums and the captured frame 482 PCX byte for
+byte. The color checksum stream SHA-256 was
+`3b027a59e35e9290d554866ae078b2913a01a75f2e3a19665ffed8e9a5bc0e7b`, the Z
+checksum stream SHA-256 was
+`1b41d2ab5b0fc99fcca5158c51e4d7b9028cbf4c3ec8dfdf32c6ab96c2db85e8`, and the
+PCX SHA-256 was
+`31595bc38a502f9df6598fd8c744dad2556011af36ff026e3e43a86c1133f213`.
+
+Against the adjacent 4-by-4 release result at
+`out/dos-timedemo-20261105-103741`, the 4-by-8 candidate's three FPS samples
+were 16.737571, 16.737591, and 16.737586, versus 16.750405, 16.750456, and
+16.750440. Its mean was 0.076720% lower. The extra Z sampling and fewer model
+rejections outweighed the reduction in tile checks, so this aspect ratio was
+discarded. These timing results are DOSBox-X measurements, not physical 486
+claims.
