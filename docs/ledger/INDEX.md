@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-05-bmodel-plane-transform-cache-promoted.md](2026-11-05-bmodel-plane-transform-cache-promoted.md) | 3 | brush clipping / retain a 32-entry transformed BSP splitter-plane cache after 64.88% profile hits, exact color/Z profile parity, a complete i486 audit, and +0.01258% in matched three-run mean FPS |
 | [2026-11-05-zspan-row-term-cache-rejected.md](2026-11-05-zspan-row-term-cache-rejected.md) | 3 | Z-spans / reject a 200-row `v*d_zistepv` term cache after a 29.1% hit rate still produced a -0.363% three-run mean; exact checksum streams and complete strict i486 audit passed |
 | [2026-11-05-alias-span-tile-depth-hierarchy-rejected.md](2026-11-05-alias-span-tile-depth-hierarchy-rejected.md) | 3 | renderer acceleration / reject a lazy horizontal tile-min Z hierarchy after only 103/39,990 and 140/39,990 span rejections, increased instrumented self time, and a frame-83 color/Z checksum difference |
 | [2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md](2026-11-04-edge-bucket-and-pvs-surface-cache-rejected.md) | 4 | renderer acceleration / reject 16-pixel active-edge buckets and PVS surface epochs after color parity failures; bucket search also increased list work, PVS marks ignored per-frame frustum filtering |
@@ -1142,6 +1143,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### world-bsp
 
+- `promoted` [Brush-model splitter-plane transform cache (2026-11-05) — **+0.01258%** matched mean, 64.88% profile hit rate, exact profile color/Z stream parity, complete strict i486 gate](2026-11-05-bmodel-plane-transform-cache-promoted.md)
 - `promoted` [`R_RecursiveWorldNode_asm486` packed continuation state (2026-11-04) — **+0.000011 FPS (+0.0000672%)**, exact fixed-step parity and complete strict i486 gate](2026-11-04-bsp-walk-packed-continuation-state-promoted.md)
 - `promoted` [`R_RecursiveWorldNode_asm486` frame-count snapshot (2026-11-03) — **+0.000021667 FPS (+0.0001325%)**, exact fixed-step parity and complete strict i486 gate](2026-11-03-bsp-framecount-snapshot-promoted.md)
 - `promoted` [`R_RecursiveWorldNode` solid-node early cull before visibility lookup: **+0.000065333 FPS (+0.00041088%)**, exact checksum parity and complete i486 ISA gate](2026-10-24-bsp-walk-solid-first-check-promoted.md)

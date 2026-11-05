@@ -10818,6 +10818,8 @@ C(R_DrawSubmodelPolygons_asm486):
 #endif
 
 #ifdef ASM486_BMODEL_POLYGON_CLIP
+	/* Cache transformed BSP splitter planes across this entity's clip calls. */
+#define ASM486_BMODEL_CLIP_PLANE_CACHE 1
 	.extern C(pbverts)
 	.extern C(pbedges)
 	.extern C(numbverts)
@@ -10827,10 +10829,23 @@ C(R_DrawSubmodelPolygons_asm486):
 	.extern C(makeclippededge)
 	.extern C(entity_rotation)
 	.extern C(r_entorigin)
+	.extern C(currententity)
+	.extern C(r_framecount)
+	.extern C(bpoly_plane_cache_plane)
+	.extern C(bpoly_plane_cache_entity)
+	.extern C(bpoly_plane_cache_frame)
+	.extern C(bpoly_plane_cache_values)
 	.extern C(r_visframecount)
 	.extern C(r_currentbkey)
 	.extern C(R_RenderBmodelFace)
 	.extern C(Con_Printf)
+#ifdef PROFILE486
+	.extern C(bench486_profile_frame_active)
+	.extern C(bench486_bpoly_clip_edges)
+	.extern C(bench486_bpoly_adjacent_endpoint_hits)
+	.extern C(bench486_bpoly_plane_cache_hits)
+	.extern C(bench486_bpoly_plane_cache_misses)
+#endif
 
 	.section .rodata
 	.p2align 2
@@ -10860,6 +10875,8 @@ C(R_DrawSubmodelPolygons_asm486):
 	.set BPC_I,           -88
 	.set BPC_PN,          -92
 	.set BPC_CHILD,       -96
+	.set BPC_PREV0,      -100
+	.set BPC_PREV1,      -104
 
 	.macro BPC_DOT3 left, right
 	flds	0(\left)
@@ -10879,18 +10896,64 @@ C(R_RecursiveClipBPoly_asm486):
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
+#ifdef PROFILE486
+	subl	$104,%esp
+#else
 	subl	$96,%esp
+#endif
 
 	movl	8(%ebp),%eax
 	movl	%eax,BPC_EDGE(%ebp)
 	movl	$0,BPC_SIDE0(%ebp)
 	movl	$0,BPC_SIDE1(%ebp)
+#ifdef PROFILE486
+	movl	$0,BPC_PREV0(%ebp)
+	movl	$0,BPC_PREV1(%ebp)
+#endif
 	movl	$0,C(makeclippededge)
 
 	/* Transform the BSP splitter plane into this brush model's coordinates. */
 	movl	12(%ebp),%eax
 	movl	24(%eax),%eax
 	movl	%eax,BPC_SPLIT(%ebp)
+#ifdef ASM486_BMODEL_CLIP_PLANE_CACHE
+	/* Key by splitter plane, entity transform, and frame; hash only selects a slot. */
+	movl	%eax,%edx
+	shrl	$2,%edx
+	andl	$31,%edx
+	cmpl	%eax,C(bpoly_plane_cache_plane)(,%edx,4)
+	jne	.Lbpclip_plane_cache_miss
+	movl	C(currententity),%ecx
+	cmpl	%ecx,C(bpoly_plane_cache_entity)(,%edx,4)
+	jne	.Lbpclip_plane_cache_miss
+	movl	C(r_framecount),%ecx
+	cmpl	%ecx,C(bpoly_plane_cache_frame)(,%edx,4)
+	jne	.Lbpclip_plane_cache_miss
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lbpclip_plane_cache_hit_counted
+	incl	C(bench486_bpoly_plane_cache_hits)
+.Lbpclip_plane_cache_hit_counted:
+#endif
+	shll	$4,%edx
+	leal	C(bpoly_plane_cache_values)(,%edx),%edi
+	movl	0(%edi),%eax
+	movl	%eax,BPC_TDIST(%ebp)
+	movl	4(%edi),%eax
+	movl	%eax,BPC_TNORMAL0(%ebp)
+	movl	8(%edi),%eax
+	movl	%eax,BPC_TNORMAL1(%ebp)
+	movl	12(%edi),%eax
+	movl	%eax,BPC_TNORMAL2(%ebp)
+	jmp	.Lbpclip_plane_cache_ready
+.Lbpclip_plane_cache_miss:
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lbpclip_plane_cache_miss_counted
+	incl	C(bench486_bpoly_plane_cache_misses)
+.Lbpclip_plane_cache_miss_counted:
+#endif
+#endif
 	leal	C(r_entorigin),%esi
 	movl	BPC_SPLIT(%ebp),%edi
 	BPC_DOT3	%esi,%edi
@@ -10908,6 +10971,26 @@ C(R_RecursiveClipBPoly_asm486):
 	addl	$12,%esi
 	BPC_DOT3	%esi,%edi
 	fstps	BPC_TNORMAL2(%ebp)
+#ifdef ASM486_BMODEL_CLIP_PLANE_CACHE
+	/* Publish only complete binary32 transforms; subsequent reads are exact. */
+	movl	BPC_SPLIT(%ebp),%eax
+	movl	%eax,C(bpoly_plane_cache_plane)(,%edx,4)
+	movl	C(currententity),%eax
+	movl	%eax,C(bpoly_plane_cache_entity)(,%edx,4)
+	movl	C(r_framecount),%eax
+	movl	%eax,C(bpoly_plane_cache_frame)(,%edx,4)
+	shll	$4,%edx
+	leal	C(bpoly_plane_cache_values)(,%edx),%edi
+	movl	BPC_TDIST(%ebp),%eax
+	movl	%eax,0(%edi)
+	movl	BPC_TNORMAL0(%ebp),%eax
+	movl	%eax,4(%edi)
+	movl	BPC_TNORMAL1(%ebp),%eax
+	movl	%eax,8(%edi)
+	movl	BPC_TNORMAL2(%ebp),%eax
+	movl	%eax,12(%edi)
+.Lbpclip_plane_cache_ready:
+#endif
 
 .Lbpclip_edge_loop:
 	movl	BPC_EDGE(%ebp),%ebx
@@ -10919,6 +11002,32 @@ C(R_RecursiveClipBPoly_asm486):
 	movl	%eax,BPC_PLAST(%ebp)
 	movl	4(%ebx),%eax
 	movl	%eax,BPC_PVERT(%ebp)
+
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lbpclip_profile_endpoints_done
+	incl	C(bench486_bpoly_clip_edges)
+	movl	BPC_PLAST(%ebp),%eax
+	cmpl	BPC_PREV0(%ebp),%eax
+	je	.Lbpclip_profile_v0_hit
+	cmpl	BPC_PREV1(%ebp),%eax
+	jne	.Lbpclip_profile_v1
+.Lbpclip_profile_v0_hit:
+	incl	C(bench486_bpoly_adjacent_endpoint_hits)
+.Lbpclip_profile_v1:
+	movl	BPC_PVERT(%ebp),%eax
+	cmpl	BPC_PREV0(%ebp),%eax
+	je	.Lbpclip_profile_v1_hit
+	cmpl	BPC_PREV1(%ebp),%eax
+	jne	.Lbpclip_profile_endpoints_done
+.Lbpclip_profile_v1_hit:
+	incl	C(bench486_bpoly_adjacent_endpoint_hits)
+.Lbpclip_profile_endpoints_done:
+	movl	BPC_PLAST(%ebp),%eax
+	movl	%eax,BPC_PREV0(%ebp)
+	movl	BPC_PVERT(%ebp),%eax
+	movl	%eax,BPC_PREV1(%ebp)
+#endif
 
 	/* lastdist = dot(v[0], tplane.normal) - tplane.dist. */
 	movl	BPC_PLAST(%ebp),%esi

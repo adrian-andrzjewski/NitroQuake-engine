@@ -162,6 +162,15 @@ static mvertex_t	*pfrontenter, *pfrontexit;
 static qboolean		makeclippededge;
 #endif
 
+#ifdef ASM486_BMODEL_POLYGON_CLIP
+/* Per-entity, per-frame transformed brush splitter-plane cache. */
+#define BMODEL_CLIP_PLANE_CACHE_ENTRIES 32
+unsigned long bpoly_plane_cache_plane[BMODEL_CLIP_PLANE_CACHE_ENTRIES];
+unsigned long bpoly_plane_cache_entity[BMODEL_CLIP_PLANE_CACHE_ENTRIES];
+unsigned long bpoly_plane_cache_frame[BMODEL_CLIP_PLANE_CACHE_ENTRIES];
+float bpoly_plane_cache_values[BMODEL_CLIP_PLANE_CACHE_ENTRIES][4];
+#endif
+
 #ifdef ASM486_DRAW_SOLID_CLIPPED_SUBMODEL_POLYGONS
 typedef char solid_bmodel_clip_i386_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
 typedef char solid_bmodel_clip_model_layout[

@@ -228,6 +228,10 @@ unsigned long bench486_submodel_distinct_entities;
 unsigned long bench486_submodel_entity_hits;
 unsigned long bench486_submodel_table_overwrites;
 void *bench486_submodel_entity_table[1024];
+unsigned long bench486_bpoly_clip_edges;
+unsigned long bench486_bpoly_adjacent_endpoint_hits;
+unsigned long bench486_bpoly_plane_cache_hits;
+unsigned long bench486_bpoly_plane_cache_misses;
 unsigned long bench486_turbulent_rows;
 unsigned long bench486_turbulent_chunks;
 unsigned long bench486_turbulent_pixels;
@@ -1741,6 +1745,10 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_submodel_distinct_entities = 0;
 	bench486_submodel_entity_hits = 0;
 	bench486_submodel_table_overwrites = 0;
+	bench486_bpoly_clip_edges = 0;
+	bench486_bpoly_adjacent_endpoint_hits = 0;
+	bench486_bpoly_plane_cache_hits = 0;
+	bench486_bpoly_plane_cache_misses = 0;
 	memset (bench486_submodel_entity_table, 0, sizeof (bench486_submodel_entity_table));
 	bench486_turbulent_rows = 0;
 	bench486_turbulent_chunks = 0;
@@ -2263,6 +2271,24 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_surface_cache_requested_bytes,
 			bench486_surface_cache_reclaimed_bytes,
 			bench486_surface_cache_thrash_frames);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-bmodel-plane-cache hits %lu misses %lu hit-percent %lu\n",
+			bench486_bpoly_plane_cache_hits,
+			bench486_bpoly_plane_cache_misses,
+			(bench486_bpoly_plane_cache_hits + bench486_bpoly_plane_cache_misses) ?
+				(bench486_bpoly_plane_cache_hits * 100UL) /
+				(bench486_bpoly_plane_cache_hits +
+				 bench486_bpoly_plane_cache_misses) : 0);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-bmodel-clip edges %lu adjacent-endpoint-hits %lu "
+			"endpoint-hit-percent %lu\n",
+			bench486_bpoly_clip_edges,
+			bench486_bpoly_adjacent_endpoint_hits,
+			bench486_bpoly_clip_edges ?
+				(bench486_bpoly_adjacent_endpoint_hits * 100UL) /
+				(bench486_bpoly_clip_edges * 2UL) : 0);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
 			"profile-submodel calls %lu faces %lu distinct-entities %lu "
