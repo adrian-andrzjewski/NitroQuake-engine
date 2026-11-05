@@ -190,3 +190,26 @@ were 16.737571, 16.737591, and 16.737586, versus 16.750405, 16.750456, and
 rejections outweighed the reduction in tile checks, so this aspect ratio was
 discarded. These timing results are DOSBox-X measurements, not physical 486
 claims.
+
+### Rectangular 8-by-4 tiles rejected
+
+The complementary 8-pixel-wide by 4-pixel-high layout also used 2,000 tiles
+and 6,000 bytes. Its PROFILE486 replay at
+`out/dos-timedemo-20261105-111548` reported 4,503 queries, 1,401 model
+rejections, 18,979 tile checks, and 571,808 Z samples. Against the 4-by-4
+layout, it cut tile checks by 48.62% and increased Z sampling by 0.75%, but
+rejected 226 fewer models.
+
+The strict i486 release gate passed with zero above-i486, unknown, or exempted
+instructions. All three 969-frame runs passed the pinned final framebuffer
+checksum. The visual-parity replay matched the 4-by-4 reference's per-frame
+color and Z checksum streams and frame 482 PCX byte for byte; the SHA-256
+values are recorded above.
+
+The release samples were 16.674172, 16.674159, and 16.674165 FPS (mean
+16.674165), compared with 16.750405, 16.750456, and 16.750440 FPS (mean
+16.750434) for the 4-by-4 result at
+`out/dos-timedemo-20261105-103741`, using the same DOSBox-X profile. This is a
+0.455322% regression. The 6,000-byte cache was not worth the slower result, so
+the 4-by-4 layout remains committed. These are DOSBox-X timings, not physical
+486 measurements.
