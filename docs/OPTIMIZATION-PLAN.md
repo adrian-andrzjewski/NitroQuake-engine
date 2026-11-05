@@ -38,12 +38,15 @@ because they are too slow for the target class of hardware.
 ### Brush-model splitter-plane transform cache promoted (2026-11-05)
 
 The assembly brush clipper caches each transformed BSP splitter plane in a
-32-entry direct-mapped table keyed by plane, entity, and frame. It reuses
-26,704 of 41,158 transforms (64.88%) in the pinned profile. Three matched
-uninstrumented DOSBox-X runs improved mean FPS by **0.01258%**, with exact
-per-frame color and Z checksum parity in the instrumented comparison and a
-complete strict i486 audit. The table uses 896 bytes of BSS. See the
-[brush-model plane-transform cache ledger](ledger/2026-11-05-bmodel-plane-transform-cache-promoted.md).
+64-entry direct-mapped table keyed by plane, entity, and frame. It reuses
+27,372 of 41,158 transforms (66.50%) in the pinned profile. Three matched
+uninstrumented DOSBox-X runs improved mean FPS by **0.001051%** over the
+32-entry table; the initial 32-entry cache had improved mean FPS by 0.01258%
+over the cache-off path. Both changes have exact per-frame color and Z checksum
+parity and complete strict i486 audits. The 64-entry table uses 1,792 bytes of
+BSS. See the
+[64-entry cache promotion ledger](ledger/2026-11-05-bmodel-plane-transform-cache64-promoted.md)
+and the [initial 32-entry cache ledger](ledger/2026-11-05-bmodel-plane-transform-cache-promoted.md).
 
 ### Brush-clip previous-edge endpoint-distance cache rejected (2026-11-05)
 
