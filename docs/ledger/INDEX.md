@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-05-alias-parent-hierarchy-rejected.md](2026-11-05-alias-parent-hierarchy-rejected.md) | 2 | alias visibility / reject a lazy 8-by-8 parent-min hierarchy: direct scans reduced cache checks but added Z reads and were -0.06134% in release timing; child-derived parents had only 151/6,318 hits and increased cache work |
 | [2026-11-05-alias-model-tile-occlusion-promoted.md](2026-11-05-alias-model-tile-occlusion-promoted.md) | 6 | alias visibility / 8-bit epochs cut the 4-by-4 Z cache from 24 KB to 12 KB with exact parity, strict i486 audit, and +0.00194%; validity bitset (-0.07990%), 4-by-8 (-0.07672%), 8-by-4 (-0.45532%), and temporal witness ordering (0.41% fewer tile checks) rejected |
 | [2026-11-05-bmodel-endpoint-distance-forwarding-rejected.md](2026-11-05-bmodel-endpoint-distance-forwarding-rejected.md) | 3 | brush clipping / reject previous-edge endpoint-distance forwarding after exact framebuffer, Z, PCX and strict i486 checks, but a 0.1145% slower three-run mean |
 | [2026-11-05-bmodel-plane-transform-cache-promoted.md](2026-11-05-bmodel-plane-transform-cache-promoted.md) | 3 | brush clipping / retain a 32-entry transformed BSP splitter-plane cache after 64.88% profile hits, exact color/Z profile parity, a complete i486 audit, and +0.01258% in matched three-run mean FPS |
@@ -698,6 +699,7 @@ not exhaustive; the Files table above is the complete inventory.
 - rejected [Whole-model alias 4-by-8 tiles (2026-11-05) - exact color/Z/PCX parity and strict i486, but -0.07672% against adjacent 4-by-4 runs](2026-11-05-alias-model-tile-occlusion-promoted.md)
 - rejected [Whole-model alias 8-by-4 tiles (2026-11-05) - exact color/Z/PCX parity and strict i486, but -0.45532% against the 4-by-4 reference](2026-11-05-alias-model-tile-occlusion-promoted.md)
 - rejected [Alias temporal witness tile ordering (2026-11-05) - exact color/Z/PCX parity; only 0.41% fewer tile checks in the profile, so screened out before release timing](2026-11-05-alias-model-tile-occlusion-promoted.md)
+- rejected [Alias 8-by-8 parent-min hierarchy (2026-11-05) - exact 970-frame color/Z parity; direct scans were -0.06134% in release timing, child-derived parents had only 151 cache hits and increased work](2026-11-05-alias-parent-hierarchy-rejected.md)
 - rejected [Alias tile validity bitset (2026-11-05) - exact parity and strict i486, but -0.07990% across three release runs](2026-11-05-alias-model-tile-occlusion-promoted.md)
 - rejected [Alias span constant-depth full-occlusion rejection (2026-11-02) - exact test condition, frame-50 pixel parity and full Z-hash parity; three DOSBox-X runs were 0.0724% slower](2026-11-02-alias-span-constant-depth-reject-rejected.md)
 - promoted [Alias span triangle-constant setup (2026-11-01) - +0.0149% across three uninstrumented screens, exact final checksums/events, complete i486 audit](2026-11-01-alias-span-triangle-constant-setup-promoted.md)
