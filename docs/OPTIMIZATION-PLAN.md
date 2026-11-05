@@ -95,6 +95,16 @@ changed 27. All recorded Z checksums and both final framebuffer checksums
 matched. The strict i486 audits passed, but the candidate is removed. See the
 [world-span HZB rejection ledger](ledger/2026-11-04-world-span-hzb-alias-rejected.md).
 
+### Alias-triangle tile-min occlusion rejected (2026-11-05)
+
+Per-triangle queries against the existing 4-by-4 alias tile-min cache culled
+39,125 triangles in the instrumented profile, but changed four intermediate
+color checksums and 756 pixels in a captured 320-by-200 frame. All recorded Z
+checksums and the final framebuffer checksum matched. A larger depth margin did
+not repair the color mismatch, so the source experiment was removed without an
+uninstrumented timing run. See the
+[alias-triangle tile-min occlusion ledger](ledger/2026-11-05-alias-triangle-tile-occlusion-rejected.md).
+
 ### Lazy tile-min hierarchy for alias-span occlusion rejected (2026-11-05)
 
 A screen-horizontal tile-min cache queried long alias spans against the existing
