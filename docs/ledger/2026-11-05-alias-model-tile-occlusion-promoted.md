@@ -213,3 +213,24 @@ The release samples were 16.674172, 16.674159, and 16.674165 FPS (mean
 0.455322% regression. The 6,000-byte cache was not worth the slower result, so
 the 4-by-4 layout remains committed. These are DOSBox-X timings, not physical
 486 measurements.
+
+## Temporal witness tile ordering rejected (2026-11-05)
+
+A 64-entry direct-mapped hint table remembered the first tile that disproved
+whole-model occlusion for an entity. On a later query for the same entity, the
+renderer checked that tile first and skipped it in the normal scan if it still
+passed. The hint only changed query order; every other tile remained part of
+the conservative test. The table occupied 384 bytes on the 32-bit DOS build.
+
+The instrumented replay at `out/dos-timedemo-20261105-114319` retained 4,503
+queries and 1,627 model rejections. It performed 36,789 tile checks and
+565,296 Z samples, versus 36,940 tile checks and 567,552 samples for the
+committed 4-by-4 cache. Of 1,031 witness probes, 926 returned early, but the
+total tile-check reduction was only 151 (0.41%).
+
+The full per-frame color and Z checksum streams and captured frame 482 PCX
+matched the 4-by-4 reference byte for byte. This instrumentation-only build
+skipped the strict ISA audit by design. Because the measured work reduction was
+too small to justify the extra per-query hash and state without a release gain,
+the candidate was screened out before release timing; its source changes were
+discarded. No release performance or ISA claim is made for this experiment.
