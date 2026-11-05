@@ -118,6 +118,15 @@ not repair the color mismatch, so the source experiment was removed without an
 uninstrumented timing run. See the
 [alias-triangle tile-min occlusion ledger](ledger/2026-11-05-alias-triangle-tile-occlusion-rejected.md).
 
+### 2-by-2 whole-model alias tile-min refinement rejected (2026-11-05)
+
+Finer tiles rejected 57 more models in the profile, but increased tile checks
+from 36,940 to 118,025 and changed the color checksum at frame 690. The Z
+checksum stream remained exact. Raising the depth margin from 2 to 32 retained
+the frame-690 color difference and lowered model rejections to 1,328. The
+48,000-byte cache was removed without release timing; see the
+[2-by-2 tile rejection ledger](ledger/2026-11-05-alias-model-tile-occlusion-2x2-rejected.md).
+
 ### Lazy tile-min hierarchy for alias-span occlusion rejected (2026-11-05)
 
 A screen-horizontal tile-min cache queried long alias spans against the existing
