@@ -87,6 +87,16 @@ self time. With at most 0.35% of queries rejected and no parity-clean candidate,
 no uninstrumented timing or release ISA gate was run. The code was removed. See
 the [alias-span tile-min hierarchy ledger](ledger/2026-11-05-alias-span-tile-depth-hierarchy-rejected.md).
 
+### D_DrawZSpans per-row depth-term cache rejected (2026-11-05)
+
+A 200-row cache for the rounded `v*d_zistepv` term had a 29.1% hit rate across
+1,413,428 Z spans, but added a row bound and tag lookup to each span. Three
+matched uninstrumented DOSBox-X runs averaged 16.328563333 FPS versus
+16.388064667 FPS for control (-0.363%). All recorded framebuffer and Z
+checksum rows matched in the instrumented parity replay, and the complete strict
+i486 audit passed. The cache and profiling counters were removed. See the
+[Z-span row-term cache rejection ledger](ledger/2026-11-05-zspan-row-term-cache-rejected.md).
+
 ### R_RenderFace clip-plane order reorder rejected (2026-11-04)
 
 An isolated `1,0,2,3` view-plane chain candidate differed from its matched
