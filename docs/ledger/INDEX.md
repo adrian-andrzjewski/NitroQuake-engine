@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-05-bmodel-endpoint-distance-forwarding-rejected.md](2026-11-05-bmodel-endpoint-distance-forwarding-rejected.md) | 3 | brush clipping / reject previous-edge endpoint-distance forwarding after exact framebuffer, Z, PCX and strict i486 checks, but a 0.1145% slower three-run mean |
 | [2026-11-05-bmodel-plane-transform-cache-promoted.md](2026-11-05-bmodel-plane-transform-cache-promoted.md) | 3 | brush clipping / retain a 32-entry transformed BSP splitter-plane cache after 64.88% profile hits, exact color/Z profile parity, a complete i486 audit, and +0.01258% in matched three-run mean FPS |
 | [2026-11-05-zspan-row-term-cache-rejected.md](2026-11-05-zspan-row-term-cache-rejected.md) | 3 | Z-spans / reject a 200-row `v*d_zistepv` term cache after a 29.1% hit rate still produced a -0.363% three-run mean; exact checksum streams and complete strict i486 audit passed |
 | [2026-11-05-alias-span-tile-depth-hierarchy-rejected.md](2026-11-05-alias-span-tile-depth-hierarchy-rejected.md) | 3 | renderer acceleration / reject a lazy horizontal tile-min Z hierarchy after only 103/39,990 and 140/39,990 span rejections, increased instrumented self time, and a frame-83 color/Z checksum difference |

@@ -45,6 +45,15 @@ per-frame color and Z checksum parity in the instrumented comparison and a
 complete strict i486 audit. The table uses 896 bytes of BSS. See the
 [brush-model plane-transform cache ledger](ledger/2026-11-05-bmodel-plane-transform-cache-promoted.md).
 
+### Brush-clip previous-edge endpoint-distance cache rejected (2026-11-05)
+
+The clipper profile found 105,123 adjacent endpoint-pointer matches in 340,532
+checks. Forwarding those vertices' exact stored plane distances preserved all
+970 framebuffer records and all 970 Z-checksum records. The captured frame 482
+PCX also matched, and the complete strict i486 audit passed. The three-run
+uninstrumented mean was 0.1145% slower, so the cache was removed. See the
+[endpoint-distance cache rejection ledger](ledger/2026-11-05-bmodel-endpoint-distance-forwarding-rejected.md).
+
 ### BSP plane-dot caches and shared-surface stamp suppression rejected (2026-11-04)
 
 The shared-surface stamp check preserved the instrumented color/Z stream but
