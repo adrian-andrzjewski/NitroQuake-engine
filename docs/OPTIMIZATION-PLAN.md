@@ -254,7 +254,10 @@ repeatable one-frame checksum difference at index 412 (candidate
 post-warmup checksums and the captured frame exactly, so the earlier divergence
 remains unexplained. Because parity was inconsistent across invocations, the
 projection cache has been removed from the active renderer. Its measured gain
-is not accepted. See the [projection-cache withdrawal ledger]
+is not accepted. A separate 256-slot single-precision projection-value cache
+retest matched the color checksums, Z checksums, and captures exactly, but both
+matched uninstrumented timing sets had the same 16.732139 FPS median, so that
+variant was removed too. See the [projection-cache withdrawal ledger]
 (ledger/2026-11-03-r-clipedge-projection-cache-withdrawn.md).
 
 ### Z-span no-FXCH default restored to control (2026-11-03)
