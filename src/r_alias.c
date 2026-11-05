@@ -44,8 +44,8 @@ extern qboolean r_drawculledpolys;
 float alias_occlusion_projection[5];
 
 static unsigned short alias_occlusion_tile_min[ALIAS_OCCLUSION_TILE_COUNT];
-static unsigned long alias_occlusion_tile_epoch[ALIAS_OCCLUSION_TILE_COUNT];
-static unsigned long alias_occlusion_epoch;
+static unsigned char alias_occlusion_tile_epoch[ALIAS_OCCLUSION_TILE_COUNT];
+static unsigned char alias_occlusion_epoch;
 static int alias_occlusion_frame = -2147483647;
 static short *alias_occlusion_zbuffer;
 static int alias_occlusion_vrect_x;

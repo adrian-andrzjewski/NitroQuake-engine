@@ -113,5 +113,54 @@ not a physical 486 timing claim.
 Reproduce the fixed-step profile replay with:
 
 ```powershell
-pwsh -NoProfile -File tools/timedemo-dos.ps1 -VisualParityOnly -Instrumentation -CpuTarget i486 -Runs 1 -NoBootstrap -NoFpsStats -FrameChecksums -FrameCaptureIndex 482 -QuakeExtraArgs '-zchecksums' -AutoexecCommandsJson '["host_framerate 0.0783","con_notifytime -1"]
+pwsh -NoProfile -File tools/timedemo-dos.ps1 -VisualParityOnly -Instrumentation -CpuTarget i486 -Runs 1 -NoBootstrap -NoFpsStats -FrameChecksums -FrameCaptureIndex 482 -QuakeExtraArgs '-zchecksums' -AutoexecCommandsJson '["host_framerate 0.0783","con_notifytime -1"]'
 ```
+
+## Tile-tag compaction
+
+### Validity bitset rejected
+
+A 500-byte validity bitset replaced the 16,000-byte 32-bit epoch array and was
+cleared once per view change. It preserved the fixed-step color/Z checksum
+streams and frame 482 PCX, and passed the strict i486 gate. However, its three
+release samples averaged 16.736746 FPS, **0.079898% slower** than the matched
+32-bit-epoch mean of 16.750129 FPS. The bitset candidate is not retained; its
+profile and release artifacts are `out/dos-timedemo-20261105-095218` and
+`out/dos-timedemo-20261105-100635`.
+
+### 8-bit epochs promoted
+
+The retained representation keeps the existing per-tile compare and replaces
+each 32-bit epoch with an 8-bit epoch. For 4,000 tiles, the epoch tags shrink
+from 16,000 to 4,000 bytes; with the unchanged 8,000-byte minimum-Z array, the
+whole cache shrinks from 24,000 to 12,000 bytes. On epoch wrap, the code clears
+the 4,000-byte tag array and restarts at epoch 1. The 969-frame fixed-step
+replay crosses this wrap three times.
+
+The PROFILE486 replay at `out/dos-timedemo-20261105-101311` retained the same
+4,503 queries, 1,627 model rejections, 36,940 tile checks, and 567,552 Z
+samples. All color/Z checksum records and the captured frame 482 PCX matched
+control `out/dos-timedemo-20261105-075327` byte for byte.
+
+The strict release build passed the complete i486 gate: 315,186 relocated
+application instructions, 529 startup code rows, and 9,207 DOS provider
+instructions, with zero above-i486, unknown, or exempt instructions. Each
+release run rendered 969 frames and ended at framebuffer checksum
+`1047377823`.
+
+For an adjacent comparison, the 32-bit-epoch control executable was replayed
+from `out/dos-timedemo-20261105-094109`; its SHA-256 matched the original build
+record (`86F98456C6CCD37785455EB1748F093CBCF9C90D5D8EDF8DD691C9FA1F82615A`).
+The control and 8-bit candidate used DOSBox-X 2026.08.31 and the same pinned
+profile SHA-256 shown above. Their three-run means were:
+
+| Variant | FPS samples | Mean FPS |
+| --- | --- | ---: |
+| 32-bit epochs, fresh control replay | 16.750099, 16.750109, 16.750117 | 16.750108333 |
+| 8-bit epochs | 16.750405, 16.750456, 16.750440 | 16.750433667 |
+
+The 8-bit-epoch candidate mean is **0.001942% faster** than this adjacent
+control set. The control replay is in
+`out/dos-timedemo-control-replay-20261105-1130`; the candidate release result
+is `out/dos-timedemo-20261105-103741`. This small improvement and 12,000-byte
+working-set reduction are DOSBox-X evidence, not physical 486 timing claims.
