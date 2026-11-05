@@ -74,6 +74,8 @@ _Mod_Extradata_asm486:
 	popl	%ebx
 	ret
 
+#define ASM486_ALIAS_MODEL_OCCLUSION 1
+
 #ifdef PROFILE486
 #include "r_aliasbounds_profile.inc"
 #include "r_aliastransform_profile.inc"

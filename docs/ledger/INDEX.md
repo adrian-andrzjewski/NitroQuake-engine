@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-05-alias-model-tile-occlusion-promoted.md](2026-11-05-alias-model-tile-occlusion-promoted.md) | 3 | alias visibility / promote conservative 8-by-8 tile-min Z culling after 1,360 model rejections, exact color/Z/PCX parity, complete strict i486 audit, and +1.64366% matched mean |
 | [2026-11-05-bmodel-endpoint-distance-forwarding-rejected.md](2026-11-05-bmodel-endpoint-distance-forwarding-rejected.md) | 3 | brush clipping / reject previous-edge endpoint-distance forwarding after exact framebuffer, Z, PCX and strict i486 checks, but a 0.1145% slower three-run mean |
 | [2026-11-05-bmodel-plane-transform-cache-promoted.md](2026-11-05-bmodel-plane-transform-cache-promoted.md) | 3 | brush clipping / retain a 32-entry transformed BSP splitter-plane cache after 64.88% profile hits, exact color/Z profile parity, a complete i486 audit, and +0.01258% in matched three-run mean FPS |
 | [2026-11-05-zspan-row-term-cache-rejected.md](2026-11-05-zspan-row-term-cache-rejected.md) | 3 | Z-spans / reject a 200-row `v*d_zistepv` term cache after a 29.1% hit rate still produced a -0.363% three-run mean; exact checksum streams and complete strict i486 audit passed |
@@ -693,6 +694,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### alias
 
+- promoted [Whole-model alias tile occlusion (2026-11-05) - reject 1,360 models, exact full color/Z streams and frame-482 PCX, strict i486 gate, +1.64366% matched mean](2026-11-05-alias-model-tile-occlusion-promoted.md)
 - rejected [Alias span constant-depth full-occlusion rejection (2026-11-02) - exact test condition, frame-50 pixel parity and full Z-hash parity; three DOSBox-X runs were 0.0724% slower](2026-11-02-alias-span-constant-depth-reject-rejected.md)
 - promoted [Alias span triangle-constant setup (2026-11-01) - +0.0149% across three uninstrumented screens, exact final checksums/events, complete i486 audit](2026-11-01-alias-span-triangle-constant-setup-promoted.md)
 - promoted [Alias span prepared-entry register argument (2026-11-02) - +0.0078% over prepared-only, exact full fixed-clock checksum stream, golden frame, and strict i486 audit](2026-11-02-alias-span-register-entry-promoted.md)

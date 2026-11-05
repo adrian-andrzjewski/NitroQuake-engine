@@ -839,6 +839,13 @@ L60:
 	addl	$16, %esp	#,
 	testb	$-1, %ah	#, tmp786
 	jne	L61	#,
+#if ASM486_ALIAS_MODEL_OCCLUSION
+	pushl	%eax	# preserve clip flags
+	call	_R_AliasModelOccluded	#
+	testl	%eax, %eax	# occluded
+	popl	%eax	# restore clip flags
+	jne	L61	#,
+#endif
 /* original r_alias.c:325: 	currententity->trivial_accept = !anyclip & !zclipped; */
 	movl	_currententity, %ecx	# currententity, prephitmp_168
 /* original r_alias.c:325: 	currententity->trivial_accept = !anyclip & !zclipped; */
@@ -899,6 +906,13 @@ L48:
 	addl	$16, %esp	#,
 	testb	$-1, %ah	#, clipresult
 	jne	L61	#,
+#if ASM486_ALIAS_MODEL_OCCLUSION
+	pushl	%eax	# preserve clip flags
+	call	_R_AliasModelOccluded	#
+	testl	%eax, %eax	# occluded
+	popl	%eax	# restore clip flags
+	jne	L61	#,
+#endif
 /* original r_alias.c:325: 	currententity->trivial_accept = !anyclip & !zclipped; */
 	movl	_currententity, %ecx	# currententity, prephitmp_168
 /* original r_alias.c:325: 	currententity->trivial_accept = !anyclip & !zclipped; */

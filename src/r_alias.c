@@ -26,6 +26,190 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"	// FIXME: shouldn't be needed (is needed for patch
 						// right now, but that should move)
 
+#define ASM486_ALIAS_MODEL_OCCLUSION 1
+
+#if ASM486_ALIAS_MODEL_OCCLUSION
+#define ALIAS_OCCLUSION_SCREEN_WIDTH	320
+#define ALIAS_OCCLUSION_SCREEN_HEIGHT	200
+#define ALIAS_OCCLUSION_TILE_SHIFT	3
+#define ALIAS_OCCLUSION_TILE_SIZE	(1 << ALIAS_OCCLUSION_TILE_SHIFT)
+#define ALIAS_OCCLUSION_TILES_X		(ALIAS_OCCLUSION_SCREEN_WIDTH / ALIAS_OCCLUSION_TILE_SIZE)
+#define ALIAS_OCCLUSION_TILES_Y		(ALIAS_OCCLUSION_SCREEN_HEIGHT / ALIAS_OCCLUSION_TILE_SIZE)
+#define ALIAS_OCCLUSION_TILE_COUNT	(ALIAS_OCCLUSION_TILES_X * ALIAS_OCCLUSION_TILES_Y)
+
+extern qboolean r_drawpolys;
+extern qboolean r_drawculledpolys;
+
+// Written by the bbox projection helper. Values are min x/y, max x/y, max 1/z.
+float alias_occlusion_projection[5];
+
+static unsigned short alias_occlusion_tile_min[ALIAS_OCCLUSION_TILE_COUNT];
+static unsigned long alias_occlusion_tile_epoch[ALIAS_OCCLUSION_TILE_COUNT];
+static unsigned long alias_occlusion_epoch;
+static int alias_occlusion_frame = -2147483647;
+static short *alias_occlusion_zbuffer;
+static int alias_occlusion_vrect_x;
+static int alias_occlusion_vrect_y;
+static int alias_occlusion_vrect_width;
+static int alias_occlusion_vrect_height;
+
+#ifdef PROFILE486
+extern unsigned long bench486_alias_occlusion_queries;
+extern unsigned long bench486_alias_occlusion_culls;
+extern unsigned long bench486_alias_occlusion_tiles;
+extern unsigned long bench486_alias_occlusion_z_samples;
+#endif
+
+qboolean R_AliasModelOccluded (void)
+{
+	int				x0, y0, x1, y1, tx, ty, tile, row, col, nearest_z;
+	int				x, y;
+	short			*zrow;
+	unsigned short	minimum_z;
+	float			depth, minx, miny, maxx, maxy;
+	int				view_right, view_bottom, tile_x, tile_y;
+
+#ifdef PROFILE486
+	bench486_alias_occlusion_queries++;
+#endif
+
+	// The cache is sized for the exact benchmark mode. Other view layouts use
+	// the reference renderer path without an occlusion query.
+	if (screenwidth != ALIAS_OCCLUSION_SCREEN_WIDTH ||
+			d_zwidth != ALIAS_OCCLUSION_SCREEN_WIDTH ||
+			vid.width != ALIAS_OCCLUSION_SCREEN_WIDTH ||
+			vid.height != ALIAS_OCCLUSION_SCREEN_HEIGHT ||
+			r_refdef.vrect.x < 0 ||
+		r_refdef.vrect.y < 0 || r_refdef.vrect.width <= 0 ||
+		r_refdef.vrect.height <= 0 ||
+		r_refdef.vrect.x >= ALIAS_OCCLUSION_SCREEN_WIDTH ||
+		r_refdef.vrect.y >= ALIAS_OCCLUSION_SCREEN_HEIGHT ||
+		r_refdef.vrect.width >
+				ALIAS_OCCLUSION_SCREEN_WIDTH - r_refdef.vrect.x ||
+		r_refdef.vrect.height >
+				ALIAS_OCCLUSION_SCREEN_HEIGHT - r_refdef.vrect.y || !d_pzbuffer ||
+			r_drawpolys || r_drawculledpolys)
+		return false;
+
+	view_right = r_refdef.vrect.x + r_refdef.vrect.width;
+	view_bottom = r_refdef.vrect.y + r_refdef.vrect.height;
+
+	minx = alias_occlusion_projection[0];
+	miny = alias_occlusion_projection[1];
+	maxx = alias_occlusion_projection[2];
+	maxy = alias_occlusion_projection[3];
+	if (!(minx <= maxx) || !(miny <= maxy) ||
+			maxx < r_refdef.vrect.x || minx >= view_right ||
+			maxy < r_refdef.vrect.y || miny >= view_bottom)
+		return false;
+
+	// Clamp in floating point before conversion so even an unusually large
+	// projected model bound cannot overflow the integer screen coordinates.
+	if (minx < r_refdef.vrect.x + 2.0f)
+		x0 = r_refdef.vrect.x;
+	else
+		x0 = (int)minx - 1;
+	if (miny < r_refdef.vrect.y + 2.0f)
+		y0 = r_refdef.vrect.y;
+	else
+		y0 = (int)miny - 1;
+	if (maxx >= view_right - 1.0f)
+		x1 = view_right - 1;
+	else
+		x1 = (int)maxx + 1;
+	if (maxy >= view_bottom - 1.0f)
+		y1 = view_bottom - 1;
+	else
+		y1 = (int)maxy + 1;
+
+	// Alias Z is the truncated 16-bit 1/z value. Add two units so rounding in
+	// the bound can only make this test more conservative.
+	depth = alias_occlusion_projection[4] * 32768.0f;
+	if (!(depth > 0.0f) || depth > 32764.0f)
+		return false;
+	nearest_z = (int)depth + 2;
+
+	if (alias_occlusion_frame != r_framecount ||
+			alias_occlusion_zbuffer != d_pzbuffer ||
+			alias_occlusion_vrect_x != r_refdef.vrect.x ||
+			alias_occlusion_vrect_y != r_refdef.vrect.y ||
+			alias_occlusion_vrect_width != r_refdef.vrect.width ||
+			alias_occlusion_vrect_height != r_refdef.vrect.height)
+	{
+		alias_occlusion_frame = r_framecount;
+		alias_occlusion_zbuffer = d_pzbuffer;
+		alias_occlusion_vrect_x = r_refdef.vrect.x;
+		alias_occlusion_vrect_y = r_refdef.vrect.y;
+		alias_occlusion_vrect_width = r_refdef.vrect.width;
+		alias_occlusion_vrect_height = r_refdef.vrect.height;
+		alias_occlusion_epoch++;
+		if (!alias_occlusion_epoch)
+		{
+			memset (alias_occlusion_tile_epoch, 0,
+					sizeof(alias_occlusion_tile_epoch));
+			alias_occlusion_epoch = 1;
+		}
+	}
+
+	for (ty = y0 >> ALIAS_OCCLUSION_TILE_SHIFT;
+			ty <= (y1 >> ALIAS_OCCLUSION_TILE_SHIFT); ty++)
+	{
+		for (tx = x0 >> ALIAS_OCCLUSION_TILE_SHIFT;
+				tx <= (x1 >> ALIAS_OCCLUSION_TILE_SHIFT); tx++)
+		{
+			tile = ty * ALIAS_OCCLUSION_TILES_X + tx;
+#ifdef PROFILE486
+			bench486_alias_occlusion_tiles++;
+#endif
+			if (alias_occlusion_tile_epoch[tile] != alias_occlusion_epoch)
+			{
+				minimum_z = 0xffff;
+				tile_x = tx << ALIAS_OCCLUSION_TILE_SHIFT;
+				tile_y = ty << ALIAS_OCCLUSION_TILE_SHIFT;
+				if (tile_x < r_refdef.vrect.x ||
+						tile_y < r_refdef.vrect.y ||
+						tile_x + ALIAS_OCCLUSION_TILE_SIZE > view_right ||
+						tile_y + ALIAS_OCCLUSION_TILE_SIZE > view_bottom)
+					minimum_z = 0;
+				for (row = 0 ; minimum_z && row < ALIAS_OCCLUSION_TILE_SIZE ; row++)
+				{
+					y = tile_y + row;
+					zrow = d_pzbuffer + y * d_zwidth +
+							tile_x;
+					for (col = 0 ; col < ALIAS_OCCLUSION_TILE_SIZE ; col++)
+					{
+#ifdef PROFILE486
+						bench486_alias_occlusion_z_samples++;
+#endif
+						if (zrow[col] < 0)
+						{
+							minimum_z = 0;
+							break;
+						}
+						if ((unsigned short)zrow[col] < minimum_z)
+							minimum_z = (unsigned short)zrow[col];
+					}
+					if (!minimum_z)
+						break;
+				}
+				alias_occlusion_tile_min[tile] = minimum_z;
+				alias_occlusion_tile_epoch[tile] = alias_occlusion_epoch;
+			}
+
+			// Entity depth writes are monotonic after the world/brush pass, so
+			// this cached minimum remains a conservative lower bound this frame.
+			if (alias_occlusion_tile_min[tile] <= nearest_z)
+				return false;
+		}
+	}
+
+#ifdef PROFILE486
+	bench486_alias_occlusion_culls++;
+#endif
+	return true;
+}
+#endif
+
 #if defined(ASM486_ALIAS_PREPARE) || defined(ASM486_ALIAS_SETUP_LIGHTING) || defined(ASM486_ALIAS_SETUP_FRAME) || defined(ASM486_ALIAS_SETUP_SKIN)
 #include <stddef.h>
 #endif
@@ -336,6 +520,11 @@ qboolean R_AliasCheckBBox (void)
 
 	if (allclip)
 		return false;	// trivial reject off one side
+
+#if ASM486_ALIAS_MODEL_OCCLUSION && defined(ASM486_ALIAS_BBOX_PROJECT) && !defined(BENCH486)
+	if (R_AliasModelOccluded ())
+		return false;
+#endif
 
 	currententity->trivial_accept = !anyclip & !zclipped;
 

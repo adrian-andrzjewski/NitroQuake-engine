@@ -217,6 +217,10 @@ double bench486_sound_seconds;
 double bench486_framebuffer_seconds;
 unsigned long bench486_alias_models;
 unsigned long bench486_alias_vertices;
+unsigned long bench486_alias_occlusion_queries;
+unsigned long bench486_alias_occlusion_culls;
+unsigned long bench486_alias_occlusion_tiles;
+unsigned long bench486_alias_occlusion_z_samples;
 unsigned long bench486_surface_count;
 unsigned long bench486_surface_drawn;
 unsigned long bench486_surface_cache_hits;
@@ -1735,6 +1739,10 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_framebuffer_seconds = 0;
 	bench486_alias_models = 0;
 	bench486_alias_vertices = 0;
+	bench486_alias_occlusion_queries = 0;
+	bench486_alias_occlusion_culls = 0;
+	bench486_alias_occlusion_tiles = 0;
+	bench486_alias_occlusion_z_samples = 0;
 	bench486_surface_count = 0;
 	bench486_surface_drawn = 0;
 	bench486_surface_cache_hits = 0;
@@ -2289,6 +2297,13 @@ void Bench486WriteTimedemoCounters (int report_handle, int timedemo_frames,
 			bench486_bpoly_clip_edges ?
 				(bench486_bpoly_adjacent_endpoint_hits * 100UL) /
 				(bench486_bpoly_clip_edges * 2UL) : 0);
+	Bench486ProfileReportText (report_handle, text);
+	sprintf (text,
+			"profile-alias-occlusion queries %lu culls %lu tiles %lu z-samples %lu\n",
+			bench486_alias_occlusion_queries,
+			bench486_alias_occlusion_culls,
+			bench486_alias_occlusion_tiles,
+			bench486_alias_occlusion_z_samples);
 	Bench486ProfileReportText (report_handle, text);
 	sprintf (text,
 			"profile-submodel calls %lu faces %lu distinct-entities %lu "

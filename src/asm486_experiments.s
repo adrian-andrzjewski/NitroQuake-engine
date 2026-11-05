@@ -7456,15 +7456,41 @@ C(R_RecursiveWorldNode_asm486):
 #define bbox_r_fvrectright	92
 #define bbox_r_fvrectbottom	96
 
+#define ASM486_ALIAS_MODEL_OCCLUSION 1
+#if ASM486_ALIAS_MODEL_OCCLUSION
+#define bbox_occ_minx	0
+#define bbox_occ_maxx	4
+#define bbox_occ_miny	8
+#define bbox_occ_maxy	12
+#define bbox_occ_maxzi	16
+	.extern C(alias_occlusion_projection)
+#endif
+
 C(R_AliasCheckBBoxProject_asm486):
 	.globl C(R_AliasCheckBBoxProject_asm486)
 	pushl	%ebp
 	pushl	%edi
 	pushl	%esi
 	pushl	%ebx
+#if ASM486_ALIAS_MODEL_OCCLUSION
+	subl	$20,%esp
+	movl	C(r_refdef)+bbox_r_fvrectright,%eax
+	movl	%eax,bbox_occ_minx(%esp)
+	movl	C(r_refdef)+bbox_r_fvrectx,%eax
+	movl	%eax,bbox_occ_maxx(%esp)
+	movl	C(r_refdef)+bbox_r_fvrectbottom,%eax
+	movl	%eax,bbox_occ_miny(%esp)
+	movl	C(r_refdef)+bbox_r_fvrecty,%eax
+	movl	%eax,bbox_occ_maxy(%esp)
+	movl	$0,bbox_occ_maxzi(%esp)
+	movl	40(%esp),%esi		// viewaux
+	movl	44(%esp),%edi		// viewpts
+	movl	48(%esp),%ecx		// numv
+#else
 	movl	20(%esp),%esi		// viewaux
 	movl	24(%esp),%edi		// viewpts
 	movl	28(%esp),%ecx		// numv
+#endif
 	xorl	%edx,%edx			// anyclip
 	movl	$0x000f,%ebx			// allclip
 	testl	%ecx,%ecx
@@ -7484,6 +7510,20 @@ C(R_AliasCheckBBoxProject_asm486):
 	fmuls	C(aliasxscale)
 	fmul	%st(1),%st
 	fadds	C(aliasxcenter)
+#if ASM486_ALIAS_MODEL_OCCLUSION
+	fcoms	bbox_occ_minx(%esp)
+	fnstsw	%ax
+	testb	$1,%ah
+	jz	.Lalias_bbox_project_occ_minx_done
+	fst	bbox_occ_minx(%esp)
+.Lalias_bbox_project_occ_minx_done:
+	fcoms	bbox_occ_maxx(%esp)
+	fnstsw	%ax
+	testb	$0x45,%ah
+	jnz	.Lalias_bbox_project_occ_maxx_done
+	fst	bbox_occ_maxx(%esp)
+.Lalias_bbox_project_occ_maxx_done:
+#endif
 	fcoms	C(r_refdef)+bbox_r_fvrectx
 	fnstsw	%ax
 	testb	$1,%ah
@@ -7503,6 +7543,20 @@ C(R_AliasCheckBBoxProject_asm486):
 	fmuls	C(aliasyscale)
 	fmul	%st(1),%st
 	fadds	C(aliasycenter)
+#if ASM486_ALIAS_MODEL_OCCLUSION
+	fcoms	bbox_occ_miny(%esp)
+	fnstsw	%ax
+	testb	$1,%ah
+	jz	.Lalias_bbox_project_occ_miny_done
+	fst	bbox_occ_miny(%esp)
+.Lalias_bbox_project_occ_miny_done:
+	fcoms	bbox_occ_maxy(%esp)
+	fnstsw	%ax
+	testb	$0x45,%ah
+	jnz	.Lalias_bbox_project_occ_maxy_done
+	fst	bbox_occ_maxy(%esp)
+.Lalias_bbox_project_occ_maxy_done:
+#endif
 	fcoms	C(r_refdef)+bbox_r_fvrecty
 	fnstsw	%ax
 	testb	$1,%ah
@@ -7516,6 +7570,14 @@ C(R_AliasCheckBBoxProject_asm486):
 	orl	$0x0008,%ebp
 .Lalias_bbox_project_no_bottom:
 	fstp	%st(0)			// discard v1
+#if ASM486_ALIAS_MODEL_OCCLUSION
+	fcoms	bbox_occ_maxzi(%esp)
+	fnstsw	%ax
+	testb	$0x45,%ah
+	jnz	.Lalias_bbox_project_occ_maxzi_done
+	fst	bbox_occ_maxzi(%esp)
+.Lalias_bbox_project_occ_maxzi_done:
+#endif
 	fstp	%st(0)			// discard zi
 
 	orl	%ebp,%edx
@@ -7528,6 +7590,19 @@ C(R_AliasCheckBBoxProject_asm486):
 	jnz	.Lalias_bbox_project_loop
 
 .Lalias_bbox_project_done:
+#if ASM486_ALIAS_MODEL_OCCLUSION
+	flds	bbox_occ_minx(%esp)
+	fstps	C(alias_occlusion_projection)+0
+	flds	bbox_occ_miny(%esp)
+	fstps	C(alias_occlusion_projection)+4
+	flds	bbox_occ_maxx(%esp)
+	fstps	C(alias_occlusion_projection)+8
+	flds	bbox_occ_maxy(%esp)
+	fstps	C(alias_occlusion_projection)+12
+	flds	bbox_occ_maxzi(%esp)
+	fstps	C(alias_occlusion_projection)+16
+	addl	$20,%esp
+#endif
 	shll	$8,%ebx
 	movl	%ebx,%eax
 	orl	%edx,%eax
