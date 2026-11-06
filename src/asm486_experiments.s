@@ -10995,7 +10995,7 @@ C(R_RecursiveClipBPoly_asm486):
 	/* Key by splitter plane, entity transform, and frame; hash only selects a slot. */
 	movl	%eax,%edx
 	shrl	$2,%edx
-	andl	$127,%edx
+	andl	$255,%edx
 	cmpl	%eax,C(bpoly_plane_cache_plane)(,%edx,4)
 	jne	.Lbpclip_plane_cache_miss
 	movl	C(currententity),%ecx
