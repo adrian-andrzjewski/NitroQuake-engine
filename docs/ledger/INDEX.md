@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-bmodel-face-plane-cache-rejected.md](2026-11-06-bmodel-face-plane-cache-rejected.md) | 3 | brush-model facing / reject cached per-plane surface decisions: one framebuffer row differed at frame 254 despite matching Z stream, frame-482 PCX, final checksum, and strict i486 audit |
 | [2026-11-06-bsp-node-surface-order-rejected.md](2026-11-06-bsp-node-surface-order-rejected.md) | 4 | world BSP traversal / front/back surface index matched exact output and strict i486, but was -0.386045% in three uninstrumented runs |
 | [2026-11-06-bmodel-world-tile-occlusion-rejected.md](2026-11-06-bmodel-world-tile-occlusion-rejected.md) | 3 | brush-model occlusion / reject reuse of alias 4-by-4 world-Z tiles: 894/2,310 models culled, but 54 color and 52 Z rows differ from control |
 | [2026-11-06-bmodel-plane-transform-cache256-promoted.md](2026-11-06-bmodel-plane-transform-cache256-promoted.md) | 4 | brush clipping / double the direct-mapped cache to 256 entries; 2,266 fewer profile misses, exact color/Z parity, strict i486 audit, and +0.004928% matched mean FPS |
