@@ -49,6 +49,13 @@ strict i486 audits. The 128-entry table uses 3,584 bytes of BSS. See the
 [64-entry cache promotion ledger](ledger/2026-11-05-bmodel-plane-transform-cache64-promoted.md),
 and [initial 32-entry cache ledger](ledger/2026-11-05-bmodel-plane-transform-cache-promoted.md).
 
+### Brush-model splitter-plane cache expanded to 256 entries (2026-11-06)
+
+Doubling the direct-mapped table reduced profile misses by 2,266 (17.02%) and
+improved the three-run matched release mean by **0.004928%**. Exact color/Z
+output and the complete strict i486 gate passed. The table now uses 7,168 bytes
+of BSS. See the [256-entry cache promotion ledger](ledger/2026-11-06-bmodel-plane-transform-cache256-promoted.md).
+
 ### Brush-plane victim-cache promotion rejected (2026-11-06)
 
 Four-entry and one-entry victim caches recovered 3,301 and 2,060 direct-map
@@ -56,6 +63,14 @@ conflict misses, respectively, with exact color/Z output and complete strict
 i486 audits. Their matched uninstrumented means were 0.02035% and 0.00896%
 slower than the 128-entry direct-mapped cache, so both layouts were removed.
 See the [victim-cache rejection ledger](ledger/2026-11-06-bmodel-plane-victim-cache-rejected.md).
+
+### Brush-plane cache record layout and hash variants rejected (2026-11-06)
+
+Packing each slot into an aligned 32-byte record left profile hit counts
+unchanged and regressed release FPS by 0.000713%. XOR-folding high address
+bits recovered 413 transforms but regressed release FPS by 0.004438%. Both
+preserved exact output and passed the strict i486 gate; both were removed. See
+the [layout and hash rejection ledger](ledger/2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md).
 
 ### Brush-plane cross-frame transform reuse rejected (2026-11-05)
 

@@ -18,6 +18,8 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-bmodel-plane-transform-cache256-promoted.md](2026-11-06-bmodel-plane-transform-cache256-promoted.md) | 4 | brush clipping / double the direct-mapped cache to 256 entries; 2,266 fewer profile misses, exact color/Z parity, strict i486 audit, and +0.004928% matched mean FPS |
+| [2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md](2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md) | 4 | brush clipping / reject aligned 32-byte records (-0.000713%) and XOR-folded indexing (-0.004438%); both exact and strict i486, XOR saved 413 profile misses |
 | [2026-11-06-bmodel-plane-victim-cache-rejected.md](2026-11-06-bmodel-plane-victim-cache-rejected.md) | 4 | brush clipping / reject four-entry and one-entry victim caches after 3,301 and 2,060 recovered transforms still regressed matched release FPS by 0.02035% and 0.00896%; exact color/Z parity and strict i486 audits passed |
 | [2026-11-05-alias-triangle-tile-occlusion-rejected.md](2026-11-05-alias-triangle-tile-occlusion-rejected.md) | 1 | alias visibility / reject per-triangle 4-by-4 tile-min culling after 39,125 profile culls still changed four color frames and 756 pixels in a captured frame; Z parity matched |
 | [2026-11-05-alias-model-tile-occlusion-2x2-rejected.md](2026-11-05-alias-model-tile-occlusion-2x2-rejected.md) | 3 | alias visibility / reject 2-by-2 tiles after 57 extra culls still changed color at frame 690; a 32-unit depth margin repeated the mismatch and reduced culls |
@@ -1159,6 +1161,8 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### world-bsp
 
+- `promoted` [Brush-model splitter-plane transform cache expanded to 256 entries (2026-11-06) — **+0.004928%** matched mean, 2,266 fewer profile misses, exact output and strict i486 gate](2026-11-06-bmodel-plane-transform-cache256-promoted.md)
+- `rejected` [Brush-plane cache record layout and hash variants (2026-11-06) — packed records **−0.000713%**, XOR-folded hash **−0.004438%**; exact output and strict i486 gates passed](2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md)
 - `rejected` [Brush-model splitter-plane victim cache (2026-11-06) — **−0.00896%** one-entry mean and **−0.02035%** four-entry mean; exact output and strict i486 gates passed](2026-11-06-bmodel-plane-victim-cache-rejected.md)
 - `promoted` [Brush-model splitter-plane transform cache (2026-11-05) — **+0.01258%** matched mean, 64.88% profile hit rate, exact profile color/Z stream parity, complete strict i486 gate](2026-11-05-bmodel-plane-transform-cache-promoted.md)
 - `promoted` [`R_RecursiveWorldNode_asm486` packed continuation state (2026-11-04) — **+0.000011 FPS (+0.0000672%)**, exact fixed-step parity and complete strict i486 gate](2026-11-04-bsp-walk-packed-continuation-state-promoted.md)
