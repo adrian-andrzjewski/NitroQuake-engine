@@ -19,6 +19,7 @@ later insertion above it.
 | File | Entries | Summary / region |
 |---|---:|---|
 | [2026-11-06-bmodel-plane-transform-cache1024-rejected.md](2026-11-06-bmodel-plane-transform-cache1024-rejected.md) | 2 | brush clipping / reject 1,024 entries: same 31,160 hits and 9,998 misses as the 512-entry table, exact profile output, but another 14 KB of BSS and no additional transforms |
+| [2026-11-06-bmodel-endpoint-distance-cache-rejected.md](2026-11-06-bmodel-endpoint-distance-cache-rejected.md) | 3 | brush clipping / release color and Z streams differ on four late frames despite profile parity, a strict i486 pass, matching frame 482 and final checksum; candidate removed |
 | [2026-11-06-alias-tile-minimum-early-exit-rejected.md](2026-11-06-alias-tile-minimum-early-exit-rejected.md) | 3 | alias visibility / 3,514 fewer profile Z samples, but one color checksum mismatch at frame 690; Z stream matched and candidate was removed |
 | [2026-11-06-bmodel-plane-transform-cache512-promoted.md](2026-11-06-bmodel-plane-transform-cache512-promoted.md) | 4 | brush clipping / expand the direct-mapped splitter-plane cache to 512 entries; 1,051 fewer profile misses, exact color/Z/PCX, strict i486, and +0.0022838% matched mean FPS |
 | [2026-11-06-alias-tile-anchor-early-out-promoted.md](2026-11-06-alias-tile-anchor-early-out-promoted.md) | 5 | alias visibility / early-return on one low anchor Z sample in a 4-by-4 tile; exact color/Z/PCX, strict i486, 37,470 fewer profile reads, and +0.0245131% matched mean FPS |
@@ -1174,6 +1175,7 @@ not exhaustive; the Files table above is the complete inventory.
 ### world-bsp
 
 - `rejected` [Brush-model splitter-plane cache at 1,024 entries (2026-11-06) — same hit/miss totals as 512 entries, no extra transforms, +14,336 BSS bytes](2026-11-06-bmodel-plane-transform-cache1024-rejected.md)
+- `rejected` [Brush-model clip endpoint-distance cache (2026-11-06) — strict i486 passed, but release color and Z differ at four frames; candidate removed](2026-11-06-bmodel-endpoint-distance-cache-rejected.md)
 - `promoted` [Brush-model splitter-plane cache expanded to 512 entries (2026-11-06) — **+0.0022838%** matched mean, 1,051 fewer profile misses, exact output and strict i486 gate](2026-11-06-bmodel-plane-transform-cache512-promoted.md)
 - `rejected` [BSP-node front/back face-order index (2026-11-06) — exact output and strict i486, but -0.386045% in matched mean FPS](2026-11-06-bsp-node-surface-order-rejected.md)
 - `promoted` [Brush-model splitter-plane transform cache expanded to 256 entries (2026-11-06) — **+0.004928%** matched mean, 2,266 fewer profile misses, exact output and strict i486 gate](2026-11-06-bmodel-plane-transform-cache256-promoted.md)
