@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-clipvertex-plane-cache-capacity-census.md](2026-11-06-clipvertex-plane-cache-capacity-census.md) | 3 | world clipping / PROFILE486-only cache census found 96.17% of repeated vertex/plane evaluations fit 64 direct-mapped slots per plane; no runtime cache or speed claim |
 | [2026-11-06-bmodel-plane-transform-cache1024-rejected.md](2026-11-06-bmodel-plane-transform-cache1024-rejected.md) | 2 | brush clipping / reject 1,024 entries: same 31,160 hits and 9,998 misses as the 512-entry table, exact profile output, but another 14 KB of BSS and no additional transforms |
 | [2026-11-06-bmodel-endpoint-distance-cache-rejected.md](2026-11-06-bmodel-endpoint-distance-cache-rejected.md) | 3 | brush clipping / release color and Z streams differ on four late frames despite profile parity, a strict i486 pass, matching frame 482 and final checksum; candidate removed |
 | [2026-11-06-alias-tile-minimum-early-exit-rejected.md](2026-11-06-alias-tile-minimum-early-exit-rejected.md) | 3 | alias visibility / 3,514 fewer profile Z samples, but one color checksum mismatch at frame 690; Z stream matched and candidate was removed |

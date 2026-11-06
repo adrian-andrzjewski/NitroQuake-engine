@@ -277,6 +277,17 @@ unsigned long bench486_clipvertex_plane_seen[4][2048];
 unsigned long bench486_clipvertex_plane_lru_uses[4];
 unsigned long bench486_clipvertex_plane_lru_hits[4];
 static unsigned long bench486_clipvertex_plane_lru_vertex[4];
+// PROFILE486-only hit-rate model; these tables do not cache render distances.
+#define BENCH486_CLIP_VERTEX_CACHE_LEVELS 6
+#define BENCH486_CLIP_VERTEX_CACHE_TAGS 504
+static const unsigned long bench486_clipvertex_cache_sizes[
+		BENCH486_CLIP_VERTEX_CACHE_LEVELS] = {8, 16, 32, 64, 128, 256};
+static const unsigned long bench486_clipvertex_cache_bases[
+		BENCH486_CLIP_VERTEX_CACHE_LEVELS] = {0, 8, 24, 56, 120, 248};
+unsigned long bench486_clipvertex_plane_cache_hits[
+		BENCH486_CLIP_VERTEX_CACHE_LEVELS][4];
+static unsigned long bench486_clipvertex_plane_cache_tags[4][
+		BENCH486_CLIP_VERTEX_CACHE_TAGS];
 static unsigned long bench486_clipvertex_world_base;
 static unsigned long bench486_clipvertex_world_bytes;
 // R_RenderFace premise counters. The admissible part of renderface is its C
@@ -1689,7 +1700,7 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"\"hits_by_plane\": [%lu, %lu, %lu, %lu]},\n"
 			"  \"clipvertex_plane_lru_cache\": {"
 			"\"uses_by_plane\": [%lu, %lu, %lu, %lu], "
-			"\"hits_by_plane\": [%lu, %lu, %lu, %lu]}\n}\n",
+			"\"hits_by_plane\": [%lu, %lu, %lu, %lu]},\n",
 			bench486_clipvertex_plane_distance_uses[0],
 			bench486_clipvertex_plane_distance_uses[1],
 			bench486_clipvertex_plane_distance_uses[2],
@@ -1710,6 +1721,38 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_clipvertex_plane_lru_hits[1],
 			bench486_clipvertex_plane_lru_hits[2],
 			bench486_clipvertex_plane_lru_hits[3]);
+	Bench486ProfileJsonPrintf (file_handle,
+			"  \"clipvertex_plane_direct_cache_hits_by_slots\": {"
+			"\"8\": [%lu, %lu, %lu, %lu], "
+			"\"16\": [%lu, %lu, %lu, %lu], "
+			"\"32\": [%lu, %lu, %lu, %lu], "
+			"\"64\": [%lu, %lu, %lu, %lu], "
+			"\"128\": [%lu, %lu, %lu, %lu], "
+			"\"256\": [%lu, %lu, %lu, %lu]}\n}\n",
+			bench486_clipvertex_plane_cache_hits[0][0],
+			bench486_clipvertex_plane_cache_hits[0][1],
+			bench486_clipvertex_plane_cache_hits[0][2],
+			bench486_clipvertex_plane_cache_hits[0][3],
+			bench486_clipvertex_plane_cache_hits[1][0],
+			bench486_clipvertex_plane_cache_hits[1][1],
+			bench486_clipvertex_plane_cache_hits[1][2],
+			bench486_clipvertex_plane_cache_hits[1][3],
+			bench486_clipvertex_plane_cache_hits[2][0],
+			bench486_clipvertex_plane_cache_hits[2][1],
+			bench486_clipvertex_plane_cache_hits[2][2],
+			bench486_clipvertex_plane_cache_hits[2][3],
+			bench486_clipvertex_plane_cache_hits[3][0],
+			bench486_clipvertex_plane_cache_hits[3][1],
+			bench486_clipvertex_plane_cache_hits[3][2],
+			bench486_clipvertex_plane_cache_hits[3][3],
+			bench486_clipvertex_plane_cache_hits[4][0],
+			bench486_clipvertex_plane_cache_hits[4][1],
+			bench486_clipvertex_plane_cache_hits[4][2],
+			bench486_clipvertex_plane_cache_hits[4][3],
+			bench486_clipvertex_plane_cache_hits[5][0],
+			bench486_clipvertex_plane_cache_hits[5][1],
+			bench486_clipvertex_plane_cache_hits[5][2],
+			bench486_clipvertex_plane_cache_hits[5][3]);
 	Sys_FileClose (file_handle);
 }
 
@@ -1818,6 +1861,10 @@ void Bench486ResetTimedemoCounters (void)
 			sizeof(bench486_clipvertex_plane_lru_hits));
 	memset (bench486_clipvertex_plane_lru_vertex, 0,
 			sizeof(bench486_clipvertex_plane_lru_vertex));
+	memset (bench486_clipvertex_plane_cache_hits, 0,
+			sizeof(bench486_clipvertex_plane_cache_hits));
+	memset (bench486_clipvertex_plane_cache_tags, 0,
+			sizeof(bench486_clipvertex_plane_cache_tags));
 	bench486_clipvertex_world_base = 0;
 	bench486_clipvertex_world_bytes = 0;
 	for (i=0 ; i<17 ; i++)
@@ -1938,6 +1985,8 @@ void Bench486ProfileClipVertexFrameStart (void)
 			sizeof(bench486_clipvertex_plane_seen));
 	memset (bench486_clipvertex_plane_lru_vertex, 0,
 			sizeof(bench486_clipvertex_plane_lru_vertex));
+	memset (bench486_clipvertex_plane_cache_tags, 0,
+			sizeof(bench486_clipvertex_plane_cache_tags));
 	if (cl.worldmodel && cl.worldmodel->vertexes &&
 		cl.worldmodel->numvertexes > 0)
 	{
@@ -1960,7 +2009,8 @@ void Bench486ProfileClipPlaneEndpoints (mvertex_t *pv0, mvertex_t *pv1,
 	unsigned long plane_address, plane_base, plane_offset, plane_index;
 	unsigned long vertex_address, vertex_offset, vertex_index, bit;
 	unsigned long *seen_word;
-	int i;
+	unsigned long cache_slot;
+	int i, cache_level;
 
 	if (!bench486_profile_frame_active || !bench486_clipvertex_world_base ||
 		!bench486_clipvertex_world_bytes)
@@ -2006,6 +2056,21 @@ void Bench486ProfileClipPlaneEndpoints (mvertex_t *pv0, mvertex_t *pv1,
 		{
 			*seen_word |= bit;
 			bench486_clipvertex_plane_distance_unique[plane_index]++;
+		}
+
+		for (cache_level=0 ;
+				cache_level<BENCH486_CLIP_VERTEX_CACHE_LEVELS;
+				cache_level++)
+		{
+			cache_slot = bench486_clipvertex_cache_bases[cache_level] +
+					(vertex_index &
+					(bench486_clipvertex_cache_sizes[cache_level] - 1));
+			if (bench486_clipvertex_plane_cache_tags[plane_index][cache_slot]
+					== vertex_address)
+				bench486_clipvertex_plane_cache_hits[cache_level][plane_index]++;
+			else
+				bench486_clipvertex_plane_cache_tags[plane_index][cache_slot] =
+						vertex_address;
 		}
 	}
 }
