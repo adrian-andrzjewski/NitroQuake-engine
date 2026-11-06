@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-bmodel-world-tile-occlusion-rejected.md](2026-11-06-bmodel-world-tile-occlusion-rejected.md) | 3 | brush-model occlusion / reject reuse of alias 4-by-4 world-Z tiles: 894/2,310 models culled, but 54 color and 52 Z rows differ from control |
 | [2026-11-06-bmodel-plane-transform-cache256-promoted.md](2026-11-06-bmodel-plane-transform-cache256-promoted.md) | 4 | brush clipping / double the direct-mapped cache to 256 entries; 2,266 fewer profile misses, exact color/Z parity, strict i486 audit, and +0.004928% matched mean FPS |
 | [2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md](2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md) | 4 | brush clipping / reject aligned 32-byte records (-0.000713%) and XOR-folded indexing (-0.004438%); both exact and strict i486, XOR saved 413 profile misses |
 | [2026-11-06-bmodel-plane-victim-cache-rejected.md](2026-11-06-bmodel-plane-victim-cache-rejected.md) | 4 | brush clipping / reject four-entry and one-entry victim caches after 3,301 and 2,060 recovered transforms still regressed matched release FPS by 0.02035% and 0.00896%; exact color/Z parity and strict i486 audits passed |
