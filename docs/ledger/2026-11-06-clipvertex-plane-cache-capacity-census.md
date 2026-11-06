@@ -29,6 +29,26 @@ plane would require 2 KiB and 256 slots per plane 8 KiB. The counters model
 only hit opportunities; they do not measure lookup cost, cache placement, or
 DOSBox and physical-486 timing.
 
+## Pair-hit screening
+
+The cache model also counts calls where both endpoint distances are resident
+before either endpoint updates its slot. The run had 414,942 calls with two
+world vertices. Paired hits by capacity were:
+
+| Slots per plane | Both-hit calls | Share of world/world calls |
+|---:|---:|---:|
+| 8 | 72,187 | 17.40% |
+| 16 | 102,281 | 24.65% |
+| 32 | 123,317 | 29.72% |
+| 64 | 133,569 | 32.19% |
+| 128 | 141,667 | 34.14% |
+| 256 | 145,362 | 35.03% |
+
+At 64 slots, the 517,139 endpoint hits include 267,138 hits in paired calls.
+The other 250,001 hits occurred in calls with exactly one cached endpoint.
+A bypass that only handles two-hit pairs would leave most cache hits unused;
+the runtime prototype must handle each endpoint independently.
+
 ## Output checks
 
 The profile executable rebuilt and completed all 969 `demo1` frames in
