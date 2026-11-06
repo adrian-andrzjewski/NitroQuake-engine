@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-alias-tile-anchor-early-out-promoted.md](2026-11-06-alias-tile-anchor-early-out-promoted.md) | 5 | alias visibility / early-return on one low anchor Z sample in a 4-by-4 tile; exact color/Z/PCX, strict i486, 37,470 fewer profile reads, and +0.0245131% matched mean FPS |
 | [2026-11-06-active-edge-order-skip-rejected.md](2026-11-06-active-edge-order-skip-rejected.md) | 4 | active edge scan / monotone slope tags preserved exact color, Z, and PCX output and passed the full i486 gate, but regressed matched mean FPS by 2.121206% |
 | [2026-11-06-bmodel-face-plane-cache-rejected.md](2026-11-06-bmodel-face-plane-cache-rejected.md) | 3 | brush-model facing / reject cached per-plane surface decisions: one framebuffer row differed at frame 254 despite matching Z stream, frame-482 PCX, final checksum, and strict i486 audit |
 | [2026-11-06-bsp-node-surface-order-rejected.md](2026-11-06-bsp-node-surface-order-rejected.md) | 4 | world BSP traversal / front/back surface index matched exact output and strict i486, but was -0.386045% in three uninstrumented runs |
@@ -709,6 +710,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### alias
 
+- promoted [Whole-model alias tile anchor early-out (2026-11-06) - 37,470 fewer profile Z reads, exact color/Z/PCX, strict i486, +0.0245131% matched mean FPS](2026-11-06-alias-tile-anchor-early-out-promoted.md)
 - promoted [Whole-model alias 4-by-4 tiles with 8-bit epochs (2026-11-05) - reject 1,627 models, 12 KB cache, exact color/Z/PCX, strict i486, +0.00194% vs 32-bit tags](2026-11-05-alias-model-tile-occlusion-promoted.md)
 - rejected [Whole-model alias 4-by-8 tiles (2026-11-05) - exact color/Z/PCX parity and strict i486, but -0.07672% against adjacent 4-by-4 runs](2026-11-05-alias-model-tile-occlusion-promoted.md)
 - rejected [Whole-model alias 8-by-4 tiles (2026-11-05) - exact color/Z/PCX parity and strict i486, but -0.45532% against the 4-by-4 reference](2026-11-05-alias-model-tile-occlusion-promoted.md)

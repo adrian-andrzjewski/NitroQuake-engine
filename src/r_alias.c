@@ -43,7 +43,9 @@ extern qboolean r_drawculledpolys;
 // Written by the bbox projection helper. Values are min x/y, max x/y, max 1/z.
 float alias_occlusion_projection[5];
 
-static unsigned short alias_occlusion_tile_min[ALIAS_OCCLUSION_TILE_COUNT];
+// Negative values encode a partial anchor sample as -(sample + 1). Valid Z
+// values are nonnegative signed shorts, leaving the sign bit available.
+static short alias_occlusion_tile_min[ALIAS_OCCLUSION_TILE_COUNT];
 static unsigned char alias_occlusion_tile_epoch[ALIAS_OCCLUSION_TILE_COUNT];
 static unsigned char alias_occlusion_epoch;
 static int alias_occlusion_frame = -2147483647;
@@ -64,7 +66,9 @@ qboolean R_AliasModelOccluded (void)
 {
 	int				x0, y0, x1, y1, tx, ty, tile, row, col, nearest_z;
 	int				x, y;
+	int				sampled_z;
 	short			*zrow;
+	short			cached_minimum_z;
 	unsigned short	minimum_z;
 	float			depth, minx, miny, maxx, maxy;
 	int				view_right, view_bottom, tile_x, tile_y;
@@ -171,12 +175,34 @@ qboolean R_AliasModelOccluded (void)
 						tile_x + ALIAS_OCCLUSION_TILE_SIZE > view_right ||
 						tile_y + ALIAS_OCCLUSION_TILE_SIZE > view_bottom)
 					minimum_z = 0;
+				else
+				{
+					zrow = d_pzbuffer + tile_y * d_zwidth + tile_x;
+#ifdef PROFILE486
+					bench486_alias_occlusion_z_samples++;
+#endif
+					sampled_z = zrow[0];
+					if (sampled_z < 0)
+						minimum_z = 0;
+					else if (sampled_z <= nearest_z)
+					{
+						// One low pixel proves that this tile cannot occlude
+						// this model. Retain it for later queries.
+						alias_occlusion_tile_min[tile] =
+								(short)(-sampled_z - 1);
+						alias_occlusion_tile_epoch[tile] =
+								alias_occlusion_epoch;
+						return false;
+					}
+					else
+						minimum_z = (unsigned short)sampled_z;
+				}
 				for (row = 0 ; minimum_z && row < ALIAS_OCCLUSION_TILE_SIZE ; row++)
 				{
 					y = tile_y + row;
 					zrow = d_pzbuffer + y * d_zwidth +
 							tile_x;
-					for (col = 0 ; col < ALIAS_OCCLUSION_TILE_SIZE ; col++)
+					for (col = row ? 0 : 1 ; col < ALIAS_OCCLUSION_TILE_SIZE ; col++)
 					{
 #ifdef PROFILE486
 						bench486_alias_occlusion_z_samples++;
@@ -195,9 +221,42 @@ qboolean R_AliasModelOccluded (void)
 				alias_occlusion_tile_min[tile] = minimum_z;
 				alias_occlusion_tile_epoch[tile] = alias_occlusion_epoch;
 			}
+			else if (alias_occlusion_tile_min[tile] < 0)
+			{
+				cached_minimum_z = alias_occlusion_tile_min[tile];
+				minimum_z = (unsigned short)(-(int)cached_minimum_z - 1);
+				if (minimum_z <= nearest_z)
+					return false;
 
-			// Entity depth writes are monotonic after the world/brush pass, so
-			// this cached minimum remains a conservative lower bound this frame.
+				// This query is nearer than the cached anchor. Sample the
+				// rest of the tile and promote the bound for later queries.
+				tile_x = tx << ALIAS_OCCLUSION_TILE_SHIFT;
+				tile_y = ty << ALIAS_OCCLUSION_TILE_SHIFT;
+				for (row = 0 ; row < ALIAS_OCCLUSION_TILE_SIZE ; row++)
+				{
+					y = tile_y + row;
+					zrow = d_pzbuffer + y * d_zwidth + tile_x;
+					for (col = row ? 0 : 1 ; col < ALIAS_OCCLUSION_TILE_SIZE ; col++)
+					{
+#ifdef PROFILE486
+						bench486_alias_occlusion_z_samples++;
+#endif
+						if (zrow[col] < 0)
+						{
+							minimum_z = 0;
+							break;
+						}
+						if ((unsigned short)zrow[col] < minimum_z)
+							minimum_z = (unsigned short)zrow[col];
+					}
+					if (!minimum_z)
+						break;
+				}
+				alias_occlusion_tile_min[tile] = (short)minimum_z;
+			}
+
+			// Cached minima remain lower bounds because later entity depth
+			// writes only increase Z.
 			if (alias_occlusion_tile_min[tile] <= nearest_z)
 				return false;
 		}
