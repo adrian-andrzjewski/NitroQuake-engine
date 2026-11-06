@@ -164,7 +164,7 @@ static qboolean		makeclippededge;
 
 #ifdef ASM486_BMODEL_POLYGON_CLIP
 /* Per-entity, per-frame transformed brush splitter-plane cache. */
-#define BMODEL_CLIP_PLANE_CACHE_ENTRIES 256
+#define BMODEL_CLIP_PLANE_CACHE_ENTRIES 512
 unsigned long bpoly_plane_cache_plane[BMODEL_CLIP_PLANE_CACHE_ENTRIES];
 unsigned long bpoly_plane_cache_entity[BMODEL_CLIP_PLANE_CACHE_ENTRIES];
 unsigned long bpoly_plane_cache_frame[BMODEL_CLIP_PLANE_CACHE_ENTRIES];
