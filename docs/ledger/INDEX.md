@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-world-clipvertex-side-sign-cache-rejected.md](2026-11-06-world-clipvertex-side-sign-cache-rejected.md) | 4 | world clipping / exact sign-cache parity and strict i486 pass, but matched uninstrumented mean FPS regressed 3.7546% |
 | [2026-11-06-clipvertex-plane-cache-capacity-census.md](2026-11-06-clipvertex-plane-cache-capacity-census.md) | 4 | world clipping / 64-slot tags hit 59.18% of endpoints but both-hit only 32.19% of world/world calls, pointing to independent endpoint handling |
 | [2026-11-06-world-clipvertex-plane-cache-rejected.md](2026-11-06-world-clipvertex-plane-cache-rejected.md) | 4 | world clipping / distance and sign-only per-plane caches passed strict i486 but shared six recurring color mismatches; Z matched outside late-run variance, no timing A/B |
 | [2026-11-06-bmodel-plane-transform-cache1024-rejected.md](2026-11-06-bmodel-plane-transform-cache1024-rejected.md) | 2 | brush clipping / reject 1,024 entries: same 31,160 hits and 9,998 misses as the 512-entry table, exact profile output, but another 14 KB of BSS and no additional transforms |
