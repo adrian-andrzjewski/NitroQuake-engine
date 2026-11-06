@@ -19,6 +19,7 @@ later insertion above it.
 | File | Entries | Summary / region |
 |---|---:|---|
 | [2026-11-06-clipvertex-plane-cache-capacity-census.md](2026-11-06-clipvertex-plane-cache-capacity-census.md) | 4 | world clipping / 64-slot tags hit 59.18% of endpoints but both-hit only 32.19% of world/world calls, pointing to independent endpoint handling |
+| [2026-11-06-world-clipvertex-plane-cache-rejected.md](2026-11-06-world-clipvertex-plane-cache-rejected.md) | 3 | world clipping / 64-entry per-plane endpoint cache passed strict i486 but had six recurring framebuffer checksum mismatches; no timing A/B, removed |
 | [2026-11-06-bmodel-plane-transform-cache1024-rejected.md](2026-11-06-bmodel-plane-transform-cache1024-rejected.md) | 2 | brush clipping / reject 1,024 entries: same 31,160 hits and 9,998 misses as the 512-entry table, exact profile output, but another 14 KB of BSS and no additional transforms |
 | [2026-11-06-bmodel-endpoint-distance-cache-rejected.md](2026-11-06-bmodel-endpoint-distance-cache-rejected.md) | 3 | brush clipping / release color and Z streams differ on four late frames despite profile parity, a strict i486 pass, matching frame 482 and final checksum; candidate removed |
 | [2026-11-06-alias-tile-minimum-early-exit-rejected.md](2026-11-06-alias-tile-minimum-early-exit-rejected.md) | 3 | alias visibility / 3,514 fewer profile Z samples, but one color checksum mismatch at frame 690; Z stream matched and candidate was removed |
