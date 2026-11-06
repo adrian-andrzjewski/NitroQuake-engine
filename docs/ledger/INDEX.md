@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-active-edge-order-skip-rejected.md](2026-11-06-active-edge-order-skip-rejected.md) | 4 | active edge scan / monotone slope tags preserved exact color, Z, and PCX output and passed the full i486 gate, but regressed matched mean FPS by 2.121206% |
 | [2026-11-06-bmodel-face-plane-cache-rejected.md](2026-11-06-bmodel-face-plane-cache-rejected.md) | 3 | brush-model facing / reject cached per-plane surface decisions: one framebuffer row differed at frame 254 despite matching Z stream, frame-482 PCX, final checksum, and strict i486 audit |
 | [2026-11-06-bsp-node-surface-order-rejected.md](2026-11-06-bsp-node-surface-order-rejected.md) | 4 | world BSP traversal / front/back surface index matched exact output and strict i486, but was -0.386045% in three uninstrumented runs |
 | [2026-11-06-bmodel-world-tile-occlusion-rejected.md](2026-11-06-bmodel-world-tile-occlusion-rejected.md) | 3 | brush-model occlusion / reject reuse of alias 4-by-4 world-Z tiles: 894/2,310 models culled, but 54 color and 52 Z rows differ from control |
@@ -775,6 +776,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### edge-scan
 
+- `rejected` [Active-edge monotone-order tags (2026-11-06) — exact color/Z/PCX and strict i486 gate, but **−2.121206%** matched mean FPS](2026-11-06-active-edge-order-skip-rejected.md)
 - `promoted` [`R_GenerateSpans` trailing-to-leading continuation tail-jump (2026-11-04) — pooled mean **+0.041959333 FPS (+0.2570%)**; one control hitch drives the gain, exact fixed-step parity and complete strict i486 audit](2026-11-04-r-genspans-trailing-to-leading-tail-jump-promoted.md)
 - `rejected` [`R_GenerateSpans` non-bmodel fifteen-continuation trial (2026-10-30) — strict mean **−0.000007667 FPS (−0.00004696%)**, exact 969-frame checksum and event traces, complete i486 audit](2026-10-30-edge-sort-nonbmodel-fifteen-continuation-rejected.md)
 - `rejected` [Sixteen-comparison edge-sort recheck (2026-11-01) - no standalone or combined gain across twenty candidate runs; bracketed control was faster; exact checksum and strict i486 audit](2026-11-01-edge-sort-nonbmodel-sixteen-recheck-rejected.md)
