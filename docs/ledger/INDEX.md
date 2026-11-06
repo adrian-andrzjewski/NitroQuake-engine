@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-bsp-node-surface-order-rejected.md](2026-11-06-bsp-node-surface-order-rejected.md) | 4 | world BSP traversal / front/back surface index matched exact output and strict i486, but was -0.386045% in three uninstrumented runs |
 | [2026-11-06-bmodel-world-tile-occlusion-rejected.md](2026-11-06-bmodel-world-tile-occlusion-rejected.md) | 3 | brush-model occlusion / reject reuse of alias 4-by-4 world-Z tiles: 894/2,310 models culled, but 54 color and 52 Z rows differ from control |
 | [2026-11-06-bmodel-plane-transform-cache256-promoted.md](2026-11-06-bmodel-plane-transform-cache256-promoted.md) | 4 | brush clipping / double the direct-mapped cache to 256 entries; 2,266 fewer profile misses, exact color/Z parity, strict i486 audit, and +0.004928% matched mean FPS |
 | [2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md](2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md) | 4 | brush clipping / reject aligned 32-byte records (-0.000713%) and XOR-folded indexing (-0.004438%); both exact and strict i486, XOR saved 413 profile misses |
@@ -1162,6 +1163,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### world-bsp
 
+- `rejected` [BSP-node front/back face-order index (2026-11-06) — exact output and strict i486, but -0.386045% in matched mean FPS](2026-11-06-bsp-node-surface-order-rejected.md)
 - `promoted` [Brush-model splitter-plane transform cache expanded to 256 entries (2026-11-06) — **+0.004928%** matched mean, 2,266 fewer profile misses, exact output and strict i486 gate](2026-11-06-bmodel-plane-transform-cache256-promoted.md)
 - `rejected` [Brush-plane cache record layout and hash variants (2026-11-06) — packed records **−0.000713%**, XOR-folded hash **−0.004438%**; exact output and strict i486 gates passed](2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md)
 - `rejected` [Brush-model splitter-plane victim cache (2026-11-06) — **−0.00896%** one-entry mean and **−0.02035%** four-entry mean; exact output and strict i486 gates passed](2026-11-06-bmodel-plane-victim-cache-rejected.md)
