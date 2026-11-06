@@ -19,6 +19,7 @@ later insertion above it.
 | File | Entries | Summary / region |
 |---|---:|---|
 | [2026-11-06-bmodel-plane-transform-cache1024-rejected.md](2026-11-06-bmodel-plane-transform-cache1024-rejected.md) | 2 | brush clipping / reject 1,024 entries: same 31,160 hits and 9,998 misses as the 512-entry table, exact profile output, but another 14 KB of BSS and no additional transforms |
+| [2026-11-06-alias-tile-minimum-early-exit-rejected.md](2026-11-06-alias-tile-minimum-early-exit-rejected.md) | 3 | alias visibility / 3,514 fewer profile Z samples, but one color checksum mismatch at frame 690; Z stream matched and candidate was removed |
 | [2026-11-06-bmodel-plane-transform-cache512-promoted.md](2026-11-06-bmodel-plane-transform-cache512-promoted.md) | 4 | brush clipping / expand the direct-mapped splitter-plane cache to 512 entries; 1,051 fewer profile misses, exact color/Z/PCX, strict i486, and +0.0022838% matched mean FPS |
 | [2026-11-06-alias-tile-anchor-early-out-promoted.md](2026-11-06-alias-tile-anchor-early-out-promoted.md) | 5 | alias visibility / early-return on one low anchor Z sample in a 4-by-4 tile; exact color/Z/PCX, strict i486, 37,470 fewer profile reads, and +0.0245131% matched mean FPS |
 | [2026-11-06-active-edge-order-skip-rejected.md](2026-11-06-active-edge-order-skip-rejected.md) | 4 | active edge scan / monotone slope tags preserved exact color, Z, and PCX output and passed the full i486 gate, but regressed matched mean FPS by 2.121206% |
@@ -712,6 +713,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### alias
 
+- rejected [Alias tile-minimum early exit (2026-11-06) - 3,514 fewer profile Z samples, but frame-690 color mismatch; exact Z stream](2026-11-06-alias-tile-minimum-early-exit-rejected.md)
 - promoted [Whole-model alias tile anchor early-out (2026-11-06) - 37,470 fewer profile Z reads, exact color/Z/PCX, strict i486, +0.0245131% matched mean FPS](2026-11-06-alias-tile-anchor-early-out-promoted.md)
 - promoted [Whole-model alias 4-by-4 tiles with 8-bit epochs (2026-11-05) - reject 1,627 models, 12 KB cache, exact color/Z/PCX, strict i486, +0.00194% vs 32-bit tags](2026-11-05-alias-model-tile-occlusion-promoted.md)
 - rejected [Whole-model alias 4-by-8 tiles (2026-11-05) - exact color/Z/PCX parity and strict i486, but -0.07672% against adjacent 4-by-4 runs](2026-11-05-alias-model-tile-occlusion-promoted.md)
