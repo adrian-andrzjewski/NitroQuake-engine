@@ -97,8 +97,11 @@ produced six recurring per-frame framebuffer checksum mismatches against two
 control runs. The late frames 727-731 varied across repeated control and
 candidate runs, and Z checksum differences were limited to that window. The
 matching frame-482 PCX and final framebuffer checksum do not satisfy the
-all-frame parity requirement. Checksum-enabled timings are diagnostic only;
-no uninstrumented timing A/B was run. The source was removed; see the
+all-frame parity requirement. A sign-only follow-up skipped distance pairs only
+on exact same-side hits; it reproduced the same six stable color mismatches
+while matching both control Z streams outside the variable window. Both cache
+variants were removed. Checksum-enabled timings are diagnostic only; no
+uninstrumented timing A/B was run. See the
 [world clipvertex cache rejection ledger](ledger/2026-11-06-world-clipvertex-plane-cache-rejected.md).
 
 ### BSP plane-dot caches and shared-surface stamp suppression rejected (2026-11-04)
