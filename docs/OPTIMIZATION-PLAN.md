@@ -49,6 +49,14 @@ strict i486 audits. The 128-entry table uses 3,584 bytes of BSS. See the
 [64-entry cache promotion ledger](ledger/2026-11-05-bmodel-plane-transform-cache64-promoted.md),
 and [initial 32-entry cache ledger](ledger/2026-11-05-bmodel-plane-transform-cache-promoted.md).
 
+### Brush-plane victim-cache promotion rejected (2026-11-06)
+
+Four-entry and one-entry victim caches recovered 3,301 and 2,060 direct-map
+conflict misses, respectively, with exact color/Z output and complete strict
+i486 audits. Their matched uninstrumented means were 0.02035% and 0.00896%
+slower than the 128-entry direct-mapped cache, so both layouts were removed.
+See the [victim-cache rejection ledger](ledger/2026-11-06-bmodel-plane-victim-cache-rejected.md).
+
 ### Brush-plane cross-frame transform reuse rejected (2026-11-05)
 
 Retaining transformed planes across frames when an entity's exact transform

@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-06-bmodel-plane-victim-cache-rejected.md](2026-11-06-bmodel-plane-victim-cache-rejected.md) | 4 | brush clipping / reject four-entry and one-entry victim caches after 3,301 and 2,060 recovered transforms still regressed matched release FPS by 0.02035% and 0.00896%; exact color/Z parity and strict i486 audits passed |
 | [2026-11-05-alias-triangle-tile-occlusion-rejected.md](2026-11-05-alias-triangle-tile-occlusion-rejected.md) | 1 | alias visibility / reject per-triangle 4-by-4 tile-min culling after 39,125 profile culls still changed four color frames and 756 pixels in a captured frame; Z parity matched |
 | [2026-11-05-alias-model-tile-occlusion-2x2-rejected.md](2026-11-05-alias-model-tile-occlusion-2x2-rejected.md) | 3 | alias visibility / reject 2-by-2 tiles after 57 extra culls still changed color at frame 690; a 32-unit depth margin repeated the mismatch and reduced culls |
 | [2026-11-05-bmodel-plane-transform-crossframe-rejected.md](2026-11-05-bmodel-plane-transform-crossframe-rejected.md) | 4 | brush clipping / reject cross-frame transformed-plane reuse after 1,017 fewer profile misses but a -0.02049% matched release mean; exact parity and strict i486 audit passed |
@@ -1158,6 +1159,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### world-bsp
 
+- `rejected` [Brush-model splitter-plane victim cache (2026-11-06) — **−0.00896%** one-entry mean and **−0.02035%** four-entry mean; exact output and strict i486 gates passed](2026-11-06-bmodel-plane-victim-cache-rejected.md)
 - `promoted` [Brush-model splitter-plane transform cache (2026-11-05) — **+0.01258%** matched mean, 64.88% profile hit rate, exact profile color/Z stream parity, complete strict i486 gate](2026-11-05-bmodel-plane-transform-cache-promoted.md)
 - `promoted` [`R_RecursiveWorldNode_asm486` packed continuation state (2026-11-04) — **+0.000011 FPS (+0.0000672%)**, exact fixed-step parity and complete strict i486 gate](2026-11-04-bsp-walk-packed-continuation-state-promoted.md)
 - `promoted` [`R_RecursiveWorldNode_asm486` frame-count snapshot (2026-11-03) — **+0.000021667 FPS (+0.0001325%)**, exact fixed-step parity and complete strict i486 gate](2026-11-03-bsp-framecount-snapshot-promoted.md)
