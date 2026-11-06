@@ -1022,6 +1022,10 @@ else {
 if ($FrameCaptureIndex -ge 0 -and -not $FrameChecksums) {
     throw '-FrameCaptureIndex requires -FrameChecksums.'
 }
+$zChecksumsRequested = $QuakeExtraArgs -match '(?i)(?:^|\s)-zchecksums(?:\s|$)'
+if ($zChecksumsRequested -and -not $FrameChecksums) {
+    throw '-zchecksums requires -FrameChecksums.'
+}
 if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName) -and $VisualParityOnly) {
     throw '-LocalOutputDirectoryName cannot be combined with -VisualParityOnly.'
 }
@@ -1133,6 +1137,10 @@ for ($run = 1; $run -le $Runs; $run++) {
     if (Test-Path -LiteralPath $frameChecksumDosPath) {
         Remove-Item -LiteralPath $frameChecksumDosPath -Force
     }
+    $frameZChecksumDosPath = Join-Path $quakeRoot 'FRAMEZCH.TXT'
+    if (Test-Path -LiteralPath $frameZChecksumDosPath) {
+        Remove-Item -LiteralPath $frameZChecksumDosPath -Force
+    }
     $frameCaptureDosPath = Join-Path $stagedData 'FRAME.PCX'
     if (Test-Path -LiteralPath $frameCaptureDosPath) {
         Remove-Item -LiteralPath $frameCaptureDosPath -Force
@@ -1234,6 +1242,28 @@ for ($run = 1; $run -le $Runs; $run++) {
         $runDiagnostics['frameChecksumOverflow'] = $checksumOverflow
         $runDiagnostics['frameCapturePath'] = $runCapturePath
         $runDiagnostics['frameCaptureIndex'] = if ($FrameCaptureIndex -ge 0) { $FrameCaptureIndex } else { $null }
+        if ($zChecksumsRequested) {
+            if (-not (Test-Path -LiteralPath $frameZChecksumDosPath -PathType Leaf)) {
+                throw "Timedemo did not produce per-frame Z checksums at '$frameZChecksumDosPath'."
+            }
+            $zChecksumText = Get-Content -LiteralPath $frameZChecksumDosPath -Raw
+            $zChecksumSummary = [regex]::Match($zChecksumText,
+                '(?m)^frames\s+(?<frames>\d+)\s*$')
+            if (-not $zChecksumSummary.Success) {
+                throw "Per-frame Z checksum output has no completion summary: '$frameZChecksumDosPath'."
+            }
+            $zChecksumFrames = [int]$zChecksumSummary.Groups['frames'].Value
+            $zChecksumRows = [regex]::Matches($zChecksumText,
+                '(?m)^\d+\s+\d+\s*$').Count
+            if ($zChecksumFrames -ne [int]$checksumSummary.Groups['frames'].Value -or
+                    $zChecksumRows -ne $zChecksumFrames) {
+                throw "Per-frame Z checksum output contains $zChecksumRows rows for $zChecksumFrames frames; expected $($checksumSummary.Groups['frames'].Value)."
+            }
+            $runZChecksumPath = Join-Path $runDiagnosticsRoot 'framezchecksums.txt'
+            Copy-Item -LiteralPath $frameZChecksumDosPath -Destination $runZChecksumPath -Force
+            $runDiagnostics['frameZChecksumPath'] = $runZChecksumPath
+            $runDiagnostics['frameZChecksumFrames'] = $zChecksumFrames
+        }
     }
 
     $match = [regex]::Match($report,
@@ -1459,6 +1489,7 @@ $result = [ordered]@{
     quakeExtraArgs = $QuakeExtraArgs
     autoexecCommands = @($AutoexecCommands)
     frameChecksums = [bool]$FrameChecksums
+    zBufferChecksums = [bool]$zChecksumsRequested
     frameCaptureIndex = if ($FrameCaptureIndex -ge 0) { $FrameCaptureIndex } else { $null }
     dpmiHostProbe = $dpmiHostProbe
     optimizationProfile = $OptimizationProfile
