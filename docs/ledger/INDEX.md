@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-07-alias-occlusion-cache-invalidation-rejected.md](2026-11-07-alias-occlusion-cache-invalidation-rejected.md) | 4 | alias visibility / rechecking tile minima after alias Z writes retained the total cull count but changed 462 color and 141 Z checksum rows; rejected before release timing |
 | [2026-11-07-alias-tile-depth-pack-rejected.md](2026-11-07-alias-tile-depth-pack-rejected.md) | 4 | alias visibility / 8 KB packed tile-depth entries passed exact color/Z and strict i486, but the matched mean was 0.929071% slower than the 12 KB cache |
 | [2026-11-07-alias-tile-group-min-hierarchy-rejected.md](2026-11-07-alias-tile-group-min-hierarchy-rejected.md) | 6 | alias visibility / 4-by-4 tile-group summaries cut profile tile checks by 12.04%, but the tested version was 0.19657% slower and had an unsafe epoch invalidation path; removed |
 | [2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md](2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md) | 4 | brush clipping / mixing entity bits into the 512-slot hash retained exactly 31,160 hits and 9,998 misses; rejected before release timing |

@@ -239,6 +239,15 @@ framebuffer and Z output and passed the strict i486 audit, but its matched
 three-run mean was 0.929071% slower than the unpacked cache. Keep the 12 KB
 layout; see the [packed-cache rejection ledger](ledger/2026-11-07-alias-tile-depth-pack-rejected.md).
 
+### Alias tile invalidation after model draws rejected (2026-11-07)
+
+Invalidating touched tile minima after an alias model could write Z produced
+462 differing framebuffer checksum rows and 141 differing Z rows, despite an
+unchanged final framebuffer checksum and the same total model-cull count. The
+profile also added 2,493 Z samples without increasing culls. The cache remains
+conservative and unrefreshed after alias writes; see the [invalidation rejection
+ledger](ledger/2026-11-07-alias-occlusion-cache-invalidation-rejected.md).
+
 ### D_DrawZSpans per-row depth-term cache rejected (2026-11-05)
 
 A 200-row cache for the rounded `v*d_zistepv` term had a 29.1% hit rate across
