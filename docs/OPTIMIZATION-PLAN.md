@@ -35,6 +35,17 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### R_RenderFace partial clip-chain cache promoted (2026-11-07)
+
+`R_RenderFace_asm486` reuses the live clip-plane chain for consecutive partial
+`clipflags` masks. The profile recorded 77,583 cache hits and 19,884 builds
+across 97,467 partial-mask calls (79.6% hits). Every color and Z checksum row
+and frame 482 PCX matched the clean control, and the complete strict i486 gate
+passed. Three uninstrumented DOSBox-X runs improved mean FPS by **0.0144664%**
+over the strict-audited control. The cache adds two 32-bit globals and does not
+duplicate clip-plane data. See the [clip-chain cache promotion ledger]
+(ledger/2026-11-07-renderface-clipchain-cache-promoted.md).
+
 ### Brush-model splitter-plane transform cache promoted (2026-11-05)
 
 The assembly brush clipper caches each transformed BSP splitter plane in a

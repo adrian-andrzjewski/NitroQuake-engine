@@ -2296,6 +2296,8 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(r_pcurrentvertbase)
 	.extern C(view_clipplanes)
 	.extern C(view_clipplanes_fullmask)
+	.extern C(r_renderface_clipflags_cache)
+	.extern C(r_renderface_clipchain_cache)
 	.extern C(r_leftexit)
 	.extern C(r_leftenter)
 	.extern C(r_rightexit)
@@ -2310,6 +2312,8 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(bench486_renderface_early_surfs)
 	.extern C(bench486_renderface_early_edges)
 	.extern C(bench486_renderface_faces)
+	.extern C(bench486_renderface_clipchain_builds)
+	.extern C(bench486_renderface_clipchain_cache_hits)
 	.extern C(bench486_renderface_general_edges)
 	.extern C(bench486_emitcachededge_calls)
 	.extern C(bench486_clipvertex_world_endpoint_uses)
@@ -2395,9 +2399,23 @@ C(R_RenderFace_asm486):
 	leal	24(%ecx),%eax
 	movl	%eax,16(%ecx)
 	movl	%ecx,%eax
+	/* This full-mask path rewrote the base planes. */
+	movl	$-1,C(r_renderface_clipflags_cache)
 #endif
 	jmp	.Lrf_clip_ready
 .Lrf_clip_masked:
+	/* Reuse the live chain when adjacent BSP faces share this mask. */
+	cmpl	C(r_renderface_clipflags_cache),%edx
+	jne	.Lrf_clip_build_masked
+	movl	C(r_renderface_clipchain_cache),%eax
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lrf_clip_hit_counted
+	incl	C(bench486_renderface_clipchain_cache_hits)
+.Lrf_clip_hit_counted:
+#endif
+	jmp	.Lrf_clip_ready_cached
+.Lrf_clip_build_masked:
 	xorl	%eax,%eax
 	testl	$8,%edx
 	je	.Lrf_clip2
@@ -2423,6 +2441,24 @@ C(R_RenderFace_asm486):
 	movl	%eax,16(%ecx)
 	movl	%ecx,%eax
 .Lrf_clip_ready:
+#ifdef PROFILE486
+	/* Count only partial-mask misses; the full-mask chain is prelinked. */
+	cmpl	$15,%edx
+	je	.Lrf_clip_profile_done
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lrf_clip_profile_done
+	incl	C(bench486_renderface_clipchain_builds)
+.Lrf_clip_profile_done:
+#endif
+	cmpl	$15,%edx
+	je	.Lrf_clip_cache_done
+	movl	%edx,C(r_renderface_clipflags_cache)
+	movl	%eax,C(r_renderface_clipchain_cache)
+.Lrf_clip_cache_done:
+	jmp	.Lrf_clip_ready_done
+.Lrf_clip_ready_cached:
+	/* Do not dirty the same cache entry again on a hit. */
+.Lrf_clip_ready_done:
 	movl	%eax,RF_PCLIP(%esp)
 	/* The edge-loop clip-plane argument is constant for this face. */
 	movl	%eax,8(%esp)
@@ -2771,6 +2807,7 @@ C(R_RenderFace_asm486):
 	.extern C(r_emitted)
 	.extern C(r_lastvertvalid)
 	.extern C(view_clipplanes)
+	.extern C(r_renderface_clipflags_cache)
 	.extern C(r_leftexit)
 	.extern C(r_leftenter)
 	.extern C(r_rightexit)
@@ -2813,6 +2850,7 @@ C(R_RenderBmodelFace_asm486):
 	movl	%eax,C(r_pedge)
 
 	/* Build the same 3..0 clip chain as the C reference. */
+	movl	$-1,C(r_renderface_clipflags_cache)
 	xorl	%eax,%eax
 	movl	C(r_clipflags),%edx
 	testl	$8,%edx
@@ -2942,6 +2980,7 @@ C(R_RenderBmodelFace_asm486):
 #ifdef ASM486_RENDER_POLY
 	.extern C(currententity)
 	.extern C(view_clipplanes)
+	.extern C(r_renderface_clipflags_cache)
 	.extern C(r_pcurrentvertbase)
 	.extern C(r_pedge)
 	.extern C(r_nearzi)
@@ -3026,6 +3065,7 @@ C(R_RenderPoly_asm486):
 	pushl	%edi
 
 	// Build the linked clip-plane chain in the same descending plane order as C.
+	movl	$-1,C(r_renderface_clipflags_cache)
 	movl	$0,RPX_PCLIP(%ebp)
 	movl	12(%ebp),%eax
 	movl	%eax,RPX_CLIP_FLAGS(%ebp)

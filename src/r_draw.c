@@ -59,6 +59,17 @@ clipplane_t	view_clipplanes[4];
 clipplane_t	view_clipplanes_fullmask[4];
 clipplane_t	world_clipplanes[16];
 
+// R_RenderFace surfaces are grouped by the BSP node's inherited clip mask.
+// Retain the last linked chain so adjacent faces with the same mask can reuse
+// its links instead of rebuilding them for every face.
+int r_renderface_clipflags_cache __attribute__((used)) = -1;
+clipplane_t *r_renderface_clipchain_cache __attribute__((used));
+
+static void R_InvalidateRenderFaceClipChain (void)
+{
+	r_renderface_clipflags_cache = -1;
+}
+
 medge_t			*r_pedge;
 
 qboolean		r_leftclipped, r_rightclipped;
@@ -630,6 +641,7 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 #endif
 
 // set up clip planes (same 3..0 / 0x08..0x01 order as the original loop)
+	R_InvalidateRenderFaceClipChain ();
 	pclip = NULL;
 	if (clipflags & 8)
 	{
@@ -1488,6 +1500,7 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 	r_pedge = &tedge;
 
 // set up clip planes
+	R_InvalidateRenderFaceClipChain ();
 	pclip = NULL;
 
 	for (i=3, mask = 0x08 ; i>=0 ; i--, mask >>= 1)
@@ -1666,6 +1679,7 @@ void R_RenderPoly (msurface_t *fa, int clipflags)
 	s_axis = t_axis = 0;	// keep compiler happy
 
 // set up clip planes
+	R_InvalidateRenderFaceClipChain ();
 	pclip = NULL;
 
 	for (i=3, mask = 0x08 ; i>=0 ; i--, mask >>= 1)
