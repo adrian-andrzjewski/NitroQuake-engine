@@ -72,6 +72,16 @@ bytes. The strict i486 profile build passed, but the larger table eliminated no
 additional work, so it was removed without a release timing A/B. See the
 [1,024-entry rejection ledger](ledger/2026-11-07-bmodel-plane-transform-cache1024-rejected.md).
 
+### Brush-plane entity-mixed hash rejected (2026-11-07)
+
+Mixing `currententity >> 4` into the 512-slot plane-pointer hash produced the
+same 31,160 hits and 9,998 misses across 41,158 profile requests as the
+promoted pointer-only hash. The extra entity load and integer hash therefore
+avoided no transforms; the candidate was removed before release timing. Its
+instrumented run ended at the expected final framebuffer checksum, but did not
+collect per-frame color or Z checksums. See the [entity-mixed hash rejection
+ledger](ledger/2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md).
+
 ### Brush-plane victim-cache promotion rejected (2026-11-06)
 
 Four-entry and one-entry victim caches recovered 3,301 and 2,060 direct-map

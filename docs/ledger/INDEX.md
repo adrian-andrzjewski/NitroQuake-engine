@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md](2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md) | 4 | brush clipping / mixing entity bits into the 512-slot hash retained exactly 31,160 hits and 9,998 misses; rejected before release timing |
 | [2026-11-07-bmodel-plane-transform-cache1024-rejected.md](2026-11-07-bmodel-plane-transform-cache1024-rejected.md) | 4 | brush clipping / 1,024-entry table doubled BSS but retained the 512-entry cache's exact 31,160-hit/9,998-miss result; rejected before release timing |
 | [2026-11-07-world-clipvertex-inline-sign-cache-rejected.md](2026-11-07-world-clipvertex-inline-sign-cache-rejected.md) | 5 | world clipping / inline 16-byte vertex sign cache passed exact parity and strict i486 but regressed matched mean FPS by 0.30731% |
 | [2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md](2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md) | 4 | world clipping / one-hit sign cache preserved exact color/Z and strict i486 compatibility but regressed matched mean FPS by 0.4612% |
@@ -1180,6 +1181,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### world-bsp
 
+- `rejected` [Brush-model splitter-plane entity-mixed hash (2026-11-07) — exactly the same 31,160 hits and 9,998 misses as the pointer-only hash; no additional transforms avoided](2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md)
 - `rejected` [Brush-model splitter-plane cache at 1,024 entries (2026-11-06) — same hit/miss totals as 512 entries, no extra transforms, +14,336 BSS bytes](2026-11-06-bmodel-plane-transform-cache1024-rejected.md)
 - `rejected` [Brush-model clip endpoint-distance cache (2026-11-06) — strict i486 passed, but release color and Z differ at four frames; candidate removed](2026-11-06-bmodel-endpoint-distance-cache-rejected.md)
 - `promoted` [Brush-model splitter-plane cache expanded to 512 entries (2026-11-06) — **+0.0022838%** matched mean, 1,051 fewer profile misses, exact output and strict i486 gate](2026-11-06-bmodel-plane-transform-cache512-promoted.md)
