@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-07-bmodel-plane-transform-cache1024-rejected.md](2026-11-07-bmodel-plane-transform-cache1024-rejected.md) | 4 | brush clipping / 1,024-entry table doubled BSS but retained the 512-entry cache's exact 31,160-hit/9,998-miss result; rejected before release timing |
 | [2026-11-07-world-clipvertex-inline-sign-cache-rejected.md](2026-11-07-world-clipvertex-inline-sign-cache-rejected.md) | 5 | world clipping / inline 16-byte vertex sign cache passed exact parity and strict i486 but regressed matched mean FPS by 0.30731% |
 | [2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md](2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md) | 4 | world clipping / one-hit sign cache preserved exact color/Z and strict i486 compatibility but regressed matched mean FPS by 0.4612% |
 | [2026-11-06-world-clipvertex-side-sign-cache-rejected.md](2026-11-06-world-clipvertex-side-sign-cache-rejected.md) | 4 | world clipping / exact sign-cache parity and strict i486 pass, but matched uninstrumented mean FPS regressed 3.7546% |

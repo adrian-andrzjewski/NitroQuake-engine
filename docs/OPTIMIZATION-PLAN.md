@@ -56,6 +56,22 @@ improved the three-run matched release mean by **0.004928%**. Exact color/Z
 output and the complete strict i486 gate passed. The table now uses 7,168 bytes
 of BSS. See the [256-entry cache promotion ledger](ledger/2026-11-06-bmodel-plane-transform-cache256-promoted.md).
 
+### Brush-model splitter-plane cache expanded to 512 entries (2026-11-06)
+
+The 512-entry table recovered 1,051 additional transforms, raising its hit rate
+from 73.15% to 75.71%. It passed exact color/Z parity and the complete strict
+i486 audit, and improved the matched uninstrumented mean by **0.0022838%** over
+256 entries. Its four arrays use 14,336 bytes of BSS. See the [512-entry cache
+promotion ledger](ledger/2026-11-06-bmodel-plane-transform-cache512-promoted.md).
+
+### Brush-model splitter-plane cache expansion to 1,024 rejected (2026-11-07)
+
+The 1,024-entry profile cache had the same 31,160 hits and 9,998 misses as the
+512-entry cache over 41,158 requests, while doubling storage to 28,672 BSS
+bytes. The strict i486 profile build passed, but the larger table eliminated no
+additional work, so it was removed without a release timing A/B. See the
+[1,024-entry rejection ledger](ledger/2026-11-07-bmodel-plane-transform-cache1024-rejected.md).
+
 ### Brush-plane victim-cache promotion rejected (2026-11-06)
 
 Four-entry and one-entry victim caches recovered 3,301 and 2,060 direct-map
