@@ -114,6 +114,16 @@ versus **16.897614 FPS** for control (-0.4612%). The lookup and branch cost
 exceeded the saved work; the candidate was removed. See the [one-hit sign-cache
 rejection ledger](ledger/2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md).
 
+### World clip-vertex inline sign cache rejected (2026-11-07)
+
+An inline sign word in each 16-byte world vertex preserved all framebuffer
+and Z checksum rows, matched the frame-482 PCX, and passed the complete strict
+i486 audit. Three uninstrumented runs averaged **16.845686 FPS** versus
+**16.897614 FPS** for control (-0.30731%); a fresh control and candidate
+recheck held the same rates. The larger vertex records and endpoint cache
+checks outweighed the avoided dot products, so the candidate was removed. See
+the [inline sign-cache rejection ledger](ledger/2026-11-07-world-clipvertex-inline-sign-cache-rejected.md).
+
 ### BSP plane-dot caches and shared-surface stamp suppression rejected (2026-11-04)
 
 The shared-surface stamp check preserved the instrumented color/Z stream but
