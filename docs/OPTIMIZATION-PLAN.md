@@ -35,6 +35,16 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Surface span records compacted to 12 bytes promoted (2026-11-07)
+
+The span record now stores `u` and `v` as 16-bit unsigned coordinates, reducing
+each `espan_t` from 16 to 12 bytes. The 3,000-entry scratch pool is 12,000 bytes
+smaller. Exact color and Z streams, frame 154 PCX parity, and the complete
+strict i486 gate passed. Three uninstrumented DOSBox-X runs averaged
+**16.816090 FPS**, up **0.3436%** from the matched current-head control.
+See the [12-byte span-record ledger]
+(ledger/2026-11-07-span-record-layout-12-byte-promoted.md).
+
 ### R_RenderFace partial clip-chain cache promoted (2026-11-07)
 
 `R_RenderFace_asm486` reuses the live clip-plane chain for consecutive partial

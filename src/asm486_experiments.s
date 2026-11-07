@@ -2016,11 +2016,11 @@ C(R_CleanupSpan_asm486):
 	jle	.Lbackspan_cleanup_reset
 	movl	C(span_p),%esi
 	movl	st_last_u(%ebx),%edx
-	movl	%edx,espan_t_u(%esi)
+	movw	%dx,espan_t_u(%esi)
 	subl	%edx,%eax
 	movl	%eax,espan_t_count(%esi)
 	movl	C(current_iv),%eax
-	movl	%eax,espan_t_v(%esi)
+	movw	%ax,espan_t_v(%esi)
 	movl	st_spans(%ebx),%eax
 	movl	%eax,espan_t_pnext(%esi)
 	movl	%esi,st_spans(%ebx)
@@ -2065,12 +2065,12 @@ C(R_TrailingEdge_asm486):
 	jle	.Lbackspan_trailing_update_below
 	movl	C(span_p),%eax
 	movl	st_last_u(%edi),%edx
-	movl	%edx,espan_t_u(%eax)
+	movw	%dx,espan_t_u(%eax)
 	movl	%esi,%ecx
 	subl	%edx,%ecx
 	movl	%ecx,espan_t_count(%eax)
 	movl	C(current_iv),%ecx
-	movl	%ecx,espan_t_v(%eax)
+	movw	%cx,espan_t_v(%eax)
 	movl	st_spans(%edi),%ecx
 	movl	%ecx,espan_t_pnext(%eax)
 	movl	%eax,st_spans(%edi)
@@ -2134,11 +2134,11 @@ C(R_LeadingEdgeBackwards_asm486):
 	jle	.Lbackspan_leading_set_last
 	movl	C(span_p),%edx
 	movl	st_last_u(%esi),%ecx
-	movl	%ecx,espan_t_u(%edx)
+	movw	%cx,espan_t_u(%edx)
 	subl	%ecx,%eax
 	movl	%eax,espan_t_count(%edx)
 	movl	C(current_iv),%eax
-	movl	%eax,espan_t_v(%edx)
+	movw	%ax,espan_t_v(%edx)
 	movl	st_spans(%esi),%eax
 	movl	%eax,espan_t_pnext(%edx)
 	movl	%edx,st_spans(%esi)
@@ -5696,9 +5696,10 @@ C(Turbulent8):
 	movl	%ebx,TURB_SPAN(%ebp)
 
 .Lturb_row:
-	movl	espan_t_v(%ebx),%eax
+	movzwl	espan_t_v(%ebx),%eax
 	movl	C(viewspantable)(,%eax,4),%edx
-	addl	espan_t_u(%ebx),%edx
+	movzwl	espan_t_u(%ebx),%ecx
+	addl	%ecx,%edx
 	movl	%edx,C(r_turb_pdest)
 	movl	espan_t_count(%ebx),%eax
 	movl	%eax,TURB_COUNT(%ebp)
@@ -5709,27 +5710,27 @@ C(Turbulent8):
 
 	// GCC's -ffast-math x87 output adds the two products before the origin.
 	// Preserve that emitted order and excess precision through the final casts.
-	fildl	espan_t_v(%ebx)
+	filds	espan_t_v(%ebx)
 	fmuls	C(d_sdivzstepv)
-	fildl	espan_t_u(%ebx)
+	filds	espan_t_u(%ebx)
 	fmuls	C(d_sdivzstepu)
 	faddp	%st,%st(1)
 	flds	C(d_sdivzorigin)
 	faddp	%st,%st(1)
 	fstpt	TURB_SDIVZ(%ebp)
 
-	fildl	espan_t_v(%ebx)
+	filds	espan_t_v(%ebx)
 	fmuls	C(d_tdivzstepv)
-	fildl	espan_t_u(%ebx)
+	filds	espan_t_u(%ebx)
 	fmuls	C(d_tdivzstepu)
 	faddp	%st,%st(1)
 	flds	C(d_tdivzorigin)
 	faddp	%st,%st(1)
 	fstpt	TURB_TDIVZ(%ebp)
 
-	fildl	espan_t_v(%ebx)
+	filds	espan_t_v(%ebx)
 	fmuls	C(d_zistepv)
-	fildl	espan_t_u(%ebx)
+	filds	espan_t_u(%ebx)
 	fmuls	C(d_zistepu)
 	faddp	%st,%st(1)
 	flds	C(d_ziorigin)
@@ -6144,11 +6145,11 @@ C(D_DrawSkyScans8):
 
 .Lsky_scan_span:
 	movl	-16(%ebp),%ebx
-	movl	(%ebx),%eax
+	movzwl	espan_t_u(%ebx),%eax
 	movl	%eax,-28(%ebp)		// u
-	movl	4(%ebx),%eax
+	movzwl	espan_t_v(%ebx),%eax
 	movl	%eax,-32(%ebp)		// v
-	movl	8(%ebx),%eax
+	movl	espan_t_count(%ebx),%eax
 	movl	%eax,-20(%ebp)		// remaining count
 
 	// pdest = d_viewbuffer + screenwidth*v + u
@@ -6279,7 +6280,7 @@ C(D_DrawSkyScans8):
 	jg	.Lsky_scan_chunk
 
 	movl	-16(%ebp),%eax
-	movl	12(%eax),%eax		// pnext
+	movl	espan_t_pnext(%eax),%eax	// pnext
 	movl	%eax,-16(%ebp)
 	testl	%eax,%eax
 	jnz	.Lsky_scan_span
@@ -9094,9 +9095,9 @@ C(D_DrawSolidSurface):
 	movl	espan_t_pnext(%eax),%edx
 	movl	%edx,-16(%ebp)
 	movl	espan_t_count(%eax),%ecx
-	movl	espan_t_v(%eax),%eax
+	movzwl	espan_t_v(%eax),%eax
 	movl	C(viewspantable)(,%eax,4),%edi
-	movl	espan_t_u(%esi),%eax
+	movzwl	espan_t_u(%esi),%eax
 	addl	%eax,%edi
 	cmpl	$16,%ecx
 	jge	.Lsolid_surface_large_span

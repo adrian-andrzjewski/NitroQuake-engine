@@ -1000,8 +1000,8 @@ void R_ScanEdges (void)
 #endif
 
 #ifdef ASM486_SCAN_EDGES
-typedef char r_scan_edges_espan_size_must_be_16[
-	(sizeof(espan_t) == 16) ? 1 : -1];
+typedef char r_scan_edges_espan_size_must_be_12[
+	(sizeof(espan_t) == 12) ? 1 : -1];
 typedef char r_scan_edges_edge_size_must_be_32[
 	(sizeof(edge_t) == 32) ? 1 : -1];
 typedef char r_scan_edges_surf_size_must_be_64[
@@ -1063,11 +1063,11 @@ typedef char r_edge_list_nextremove_offset_must_be_20[
 #endif
 
 #ifdef ASM486_BACKWARD_SPANS
-typedef char r_backward_span_espan_size_must_be_16[
-	(sizeof(espan_t) == 16) ? 1 : -1];
+typedef char r_backward_span_espan_size_must_be_12[
+	(sizeof(espan_t) == 12) ? 1 : -1];
 typedef char r_backward_span_espan_offsets_must_match[
-	(offsetof(espan_t, u) == 0 && offsetof(espan_t, v) == 4 &&
-	 offsetof(espan_t, count) == 8 && offsetof(espan_t, pnext) == 12) ? 1 : -1];
+	(offsetof(espan_t, u) == 0 && offsetof(espan_t, v) == 2 &&
+	 offsetof(espan_t, count) == 4 && offsetof(espan_t, pnext) == 8) ? 1 : -1];
 typedef char r_backward_span_edge_layout_must_match[
 	(sizeof(edge_t) == 32 && offsetof(edge_t, u) == 0 &&
 	 offsetof(edge_t, surfs) == 16 && sizeof(((edge_t *)0)->surfs[0]) == 2) ? 1 : -1];

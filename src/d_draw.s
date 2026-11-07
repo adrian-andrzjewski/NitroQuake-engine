@@ -164,8 +164,8 @@ LSpanLoop:
 // initial s and t values
 //
 // FIXME: pipeline FILD?
-	fildl	espan_t_v(%ebx)
-	fildl	espan_t_u(%ebx)
+	filds	espan_t_v(%ebx)
+	filds	espan_t_u(%ebx)
 
 	fld		%st(1)			// dv | du | dv
 	fmuls	C(d_sdivzstepv)	// dv*d_sdivzstepv | du | dv
@@ -224,13 +224,13 @@ LSpanLoop:
 // Row addresses come from viewspantable (filled in D_SetupFrame) instead of
 // d_scantable plus d_viewbuffer.  C D_DrawSpans8 still multiplies screenwidth.
 //
-	movl	espan_t_v(%ebx),%eax
+	movzwl	espan_t_v(%ebx),%eax
 	pushl	espan_t_pnext(%ebx)	// preserve the next span before %ebx is reused
 
 	movl	C(tadjust),%edx
 	movl	C(sadjust),%esi
 	movl	C(viewspantable)(,%eax,4),%edi	// row base
-	movl	espan_t_u(%ebx),%ecx
+	movzwl	espan_t_u(%ebx),%ecx
 	addl	%ecx,%edi				// pdest = &pdestspan[scans->u];
 	movl	espan_t_count(%ebx),%ecx
 
@@ -979,9 +979,9 @@ C(D_DrawZSpans):
 
 LFSpanLoop:
 // set up the initial 1/z value
-	fildl	espan_t_v(%ebp)
-	movl	espan_t_v(%ebp),%ecx
-	fildl	espan_t_u(%ebp)
+	filds	espan_t_v(%ebp)
+	movzwl	espan_t_v(%ebp),%ecx
+	filds	espan_t_u(%ebp)
 	fmuls	C(d_zistepu)
 #ifdef ASM486_ZSPAN_NO_FXCH
 	// Add the origin term before the final exchange; this removes the second
@@ -990,7 +990,7 @@ LFSpanLoop:
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
-	movl	espan_t_u(%ebp),%edx
+	movzwl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
 #else
 	fxch	%st(1)
@@ -998,7 +998,7 @@ LFSpanLoop:
 	fmuls	C(d_zistepv)
 	fxch	%st(1)
 	fadds	C(d_ziorigin)
-	movl	espan_t_u(%ebp),%edx
+	movzwl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
 #endif
 
@@ -1277,9 +1277,9 @@ LFNegSpan:
 
 LFNegSpanLoop:
 // set up the initial 1/z value
-	fildl	espan_t_v(%ebp)
-	movl	espan_t_v(%ebp),%ecx
-	fildl	espan_t_u(%ebp)
+	filds	espan_t_v(%ebp)
+	movzwl	espan_t_v(%ebp),%ecx
+	filds	espan_t_u(%ebp)
 	fmuls	C(d_zistepu)
 #ifdef ASM486_ZSPAN_NO_FXCH
 	// Keep the negative-gradient setup in the same one-exchange schedule.
@@ -1287,7 +1287,7 @@ LFNegSpanLoop:
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
-	movl	espan_t_u(%ebp),%edx
+	movzwl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
 #else
 	fxch	%st(1)
@@ -1295,7 +1295,7 @@ LFNegSpanLoop:
 	fmuls	C(d_zistepv)
 	fxch	%st(1)
 	fadds	C(d_ziorigin)
-	movl	espan_t_u(%ebp),%edx
+	movzwl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
 #endif
 
@@ -1536,16 +1536,16 @@ LFNegSpanDone:
 // the span.  Keep the initial-Z and clamp arithmetic above, but avoid the
 // per-pixel add/subtract and packed-pair setup in the normal gradient loops.
 LZeroStepSpanLoop:
-	fildl	espan_t_v(%ebp)
-	fildl	espan_t_u(%ebp)
-	movl	espan_t_v(%ebp),%ecx
+	filds	espan_t_v(%ebp)
+	filds	espan_t_u(%ebp)
+	movzwl	espan_t_v(%ebp),%ecx
 	fmuls	C(d_zistepu)
 	fxch	%st(1)
 	movl	C(zspantable)(,%ecx,4),%edi
 	fmuls	C(d_zistepv)
 	fxch	%st(1)
 	fadds	C(d_ziorigin)
-	movl	espan_t_u(%ebp),%edx
+	movzwl	espan_t_u(%ebp),%edx
 	faddp	%st(0),%st(1)
 
 	fcoms	float_point5

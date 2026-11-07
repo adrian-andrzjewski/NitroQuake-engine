@@ -396,11 +396,11 @@ LSkipBmodelDec:
 	movl	st_last_u(%esi),%edx
 	movl	%eax,st_last_u(%ecx)	// surf->next->last_u = iu;
 	subl	%edx,%eax
-	movl	%edx,espan_t_u(%ebp)		// span->u = surf->last_u;
+	movw	%dx,espan_t_u(%ebp)		// span->u = surf->last_u;
 
 	movl	%eax,espan_t_count(%ebp)	// span->count = iu - span->u;
 	movl	C(current_iv),%eax
-	movl	%eax,espan_t_v(%ebp)		// span->v = current_iv;
+	movw	%ax,espan_t_v(%ebp)		// span->v = current_iv;
 	movl	st_spans(%esi),%eax
 	movl	%eax,espan_t_pnext(%ebp)	// span->pnext = surf->spans;
 	movl	%ebp,st_spans(%esi)			// surf->spans = span;
@@ -965,11 +965,11 @@ Lnewtop:
 
 	movl	st_last_u(%esi),%edx
 	subl	%edx,%eax
-	movl	%edx,espan_t_u(%ebp)		// span->u = surf->last_u;
+	movw	%dx,espan_t_u(%ebp)		// span->u = surf->last_u;
 
 	movl	%eax,espan_t_count(%ebp)	// span->count = iu - span->u;
 	movl	C(current_iv),%eax
-	movl	%eax,espan_t_v(%ebp)		// span->v = current_iv;
+	movw	%ax,espan_t_v(%ebp)		// span->v = current_iv;
 	movl	st_spans(%esi),%eax
 	movl	%eax,espan_t_pnext(%ebp)	// span->pnext = surf->spans;
 	movl	%ebp,st_spans(%esi)			// surf->spans = span;
@@ -1030,10 +1030,10 @@ LPatch3:
 	subl	%edx,%eax
 	jle		Lgs_resetspanstate
 
-	movl	%edx,espan_t_u(%ebp)
+	movw	%dx,espan_t_u(%ebp)
 	movl	%eax,espan_t_count(%ebp)
 	movl	C(current_iv),%eax
-	movl	%eax,espan_t_v(%ebp)
+	movw	%ax,espan_t_v(%ebp)
 	movl	st_spans(%esi),%eax
 	movl	%eax,espan_t_pnext(%ebp)
 	movl	%ebp,st_spans(%esi)

@@ -146,18 +146,18 @@ LSpanLoop:
 // initial s and t values
 //
 // FIXME: pipeline FILD?
-	fildl	espan_t_v(%ebx)
-	fildl	espan_t_u(%ebx)
+	filds	espan_t_v(%ebx)
+	filds	espan_t_u(%ebx)
 	// Keep the independent integer loads behind both x87 loads so they can
 	// occupy the FPU's conversion window before the dependent arithmetic.
-	movl	espan_t_v(%ebx),%eax
+	movzwl	espan_t_v(%ebx),%eax
 #ifdef PROFILE486
 	cmpl	$0,C(bench486_profile_frame_active)
 	jz		LSpan16SameRowStatsDone
 	movl	espan_t_pnext(%ebx),%edx
 	testl	%edx,%edx
 	jz		LSpan16SameRowStatsDone
-	cmpl	espan_t_v(%edx),%eax
+	cmpw	espan_t_v(%edx),%ax
 	jne		LSpan16SameRowStatsDone
 	incl	C(bench486_texture_span_same_row_links)
 LSpan16SameRowStatsDone:
@@ -167,7 +167,7 @@ LSpan16SameRowStatsDone:
 	pushl	espan_t_pnext(%ebx)
 	movl	C(sadjust),%esi
 	movl	C(viewspantable)(,%eax,4),%edi
-	movl	espan_t_u(%ebx),%ecx
+	movzwl	espan_t_u(%ebx),%ecx
 	addl	%ecx,%edi
 	movl	espan_t_count(%ebx),%ecx
 

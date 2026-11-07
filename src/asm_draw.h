@@ -37,10 +37,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // espan_t structure
 // !!! if this is changed, it must be changed in r_shared.h too !!!
 #define espan_t_u    	0
-#define espan_t_v	    4
-#define espan_t_count   8
-#define espan_t_pnext	12
-#define espan_t_size    16
+#define espan_t_v	    2
+#define espan_t_count   4
+#define espan_t_pnext	8
+#define espan_t_size    12
 
 // refdef_t/r_refdef layout, pinned by r_edge.c for R_ScanEdges assembly.
 #define rd_vrect_x                  0

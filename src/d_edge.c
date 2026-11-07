@@ -511,11 +511,11 @@ typedef char d_solidsurface_spans_offset[
 typedef char d_solidsurface_espan_u_offset[
 		(__builtin_offsetof (espan_t, u) == 0) ? 1 : -1];
 typedef char d_solidsurface_espan_v_offset[
-		(__builtin_offsetof (espan_t, v) == 4) ? 1 : -1];
+		(__builtin_offsetof (espan_t, v) == 2) ? 1 : -1];
 typedef char d_solidsurface_espan_count_offset[
-		(__builtin_offsetof (espan_t, count) == 8) ? 1 : -1];
+		(__builtin_offsetof (espan_t, count) == 4) ? 1 : -1];
 typedef char d_solidsurface_espan_next_offset[
-		(__builtin_offsetof (espan_t, pnext) == 12) ? 1 : -1];
+		(__builtin_offsetof (espan_t, pnext) == 8) ? 1 : -1];
 typedef char d_solidsurface_pixel_size[
 		(sizeof(pixel_t) == 1) ? 1 : -1];
 #if defined(BENCH486)
