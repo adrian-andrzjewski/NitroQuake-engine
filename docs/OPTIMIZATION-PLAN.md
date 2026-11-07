@@ -221,6 +221,16 @@ self time. With at most 0.35% of queries rejected and no parity-clean candidate,
 no uninstrumented timing or release ISA gate was run. The code was removed. See
 the [alias-span tile-min hierarchy ledger](ledger/2026-11-05-alias-span-tile-depth-hierarchy-rejected.md).
 
+### Alias tile-group minimum hierarchy rejected (2026-11-07)
+
+A 16-by-16-pixel summary above the existing 4-by-4 alias tile minima cut
+profile tile checks by 12.04%, but its three-run uninstrumented mean was
+0.19657% slower than control. Final review also found its cached group minimum
+was not invalidated when the epoch advanced; the tested checksum match does not
+prove that incomplete groups could not be skipped in other frames. The
+candidate was removed without promoting the untested invalidation fix. See the
+[tile-group hierarchy rejection ledger](ledger/2026-11-07-alias-tile-group-min-hierarchy-rejected.md).
+
 ### D_DrawZSpans per-row depth-term cache rejected (2026-11-05)
 
 A 200-row cache for the rounded `v*d_zistepv` term had a 29.1% hit rate across

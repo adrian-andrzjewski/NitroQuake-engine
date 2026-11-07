@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-07-alias-tile-group-min-hierarchy-rejected.md](2026-11-07-alias-tile-group-min-hierarchy-rejected.md) | 6 | alias visibility / 4-by-4 tile-group summaries cut profile tile checks by 12.04%, but the tested version was 0.19657% slower and had an unsafe epoch invalidation path; removed |
 | [2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md](2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md) | 4 | brush clipping / mixing entity bits into the 512-slot hash retained exactly 31,160 hits and 9,998 misses; rejected before release timing |
 | [2026-11-07-bmodel-plane-transform-cache1024-rejected.md](2026-11-07-bmodel-plane-transform-cache1024-rejected.md) | 4 | brush clipping / 1,024-entry table doubled BSS but retained the 512-entry cache's exact 31,160-hit/9,998-miss result; rejected before release timing |
 | [2026-11-07-world-clipvertex-inline-sign-cache-rejected.md](2026-11-07-world-clipvertex-inline-sign-cache-rejected.md) | 5 | world clipping / inline 16-byte vertex sign cache passed exact parity and strict i486 but regressed matched mean FPS by 0.30731% |
@@ -721,6 +722,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### alias
 
+- rejected [Alias 4-by-4 tile-group minimum hierarchy (2026-11-07) - 12.04% fewer profile tile checks, exact tested stream, but -0.19657% release mean and unsafe epoch invalidation; removed](2026-11-07-alias-tile-group-min-hierarchy-rejected.md)
 - rejected [Alias tile-minimum early exit (2026-11-06) - 3,514 fewer profile Z samples, but frame-690 color mismatch; exact Z stream](2026-11-06-alias-tile-minimum-early-exit-rejected.md)
 - promoted [Whole-model alias tile anchor early-out (2026-11-06) - 37,470 fewer profile Z reads, exact color/Z/PCX, strict i486, +0.0245131% matched mean FPS](2026-11-06-alias-tile-anchor-early-out-promoted.md)
 - promoted [Whole-model alias 4-by-4 tiles with 8-bit epochs (2026-11-05) - reject 1,627 models, 12 KB cache, exact color/Z/PCX, strict i486, +0.00194% vs 32-bit tags](2026-11-05-alias-model-tile-occlusion-promoted.md)
