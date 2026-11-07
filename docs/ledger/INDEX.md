@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md](2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md) | 4 | world clipping / one-hit sign cache preserved exact color/Z and strict i486 compatibility but regressed matched mean FPS by 0.4612% |
 | [2026-11-06-world-clipvertex-side-sign-cache-rejected.md](2026-11-06-world-clipvertex-side-sign-cache-rejected.md) | 4 | world clipping / exact sign-cache parity and strict i486 pass, but matched uninstrumented mean FPS regressed 3.7546% |
 | [2026-11-06-clipvertex-plane-cache-capacity-census.md](2026-11-06-clipvertex-plane-cache-capacity-census.md) | 4 | world clipping / 64-slot tags hit 59.18% of endpoints but both-hit only 32.19% of world/world calls, pointing to independent endpoint handling |
 | [2026-11-06-world-clipvertex-plane-cache-rejected.md](2026-11-06-world-clipvertex-plane-cache-rejected.md) | 4 | world clipping / distance and sign-only per-plane caches passed strict i486 but shared six recurring color mismatches; Z matched outside late-run variance, no timing A/B |

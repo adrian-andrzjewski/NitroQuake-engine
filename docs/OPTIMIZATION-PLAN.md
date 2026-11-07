@@ -104,6 +104,16 @@ variants were removed. Checksum-enabled timings are diagnostic only; no
 uninstrumented timing A/B was run. See the
 [world clipvertex cache rejection ledger](ledger/2026-11-06-world-clipvertex-plane-cache-rejected.md).
 
+### World clip-vertex one-hit sign cache rejected (2026-11-07)
+
+A direct-address per-frame sign table plus a one-hit endpoint shortcut modeled
+1,561,871 avoided world endpoint dot calculations. It preserved every tested
+framebuffer and Z checksum, matched the frame-482 PCX, and passed the complete
+strict i486 audit. Three matched uninstrumented runs averaged **16.819689 FPS**
+versus **16.897614 FPS** for control (-0.4612%). The lookup and branch cost
+exceeded the saved work; the candidate was removed. See the [one-hit sign-cache
+rejection ledger](ledger/2026-11-07-world-clipvertex-one-hit-sign-cache-rejected.md).
+
 ### BSP plane-dot caches and shared-surface stamp suppression rejected (2026-11-04)
 
 The shared-surface stamp check preserved the instrumented color/Z stream but
