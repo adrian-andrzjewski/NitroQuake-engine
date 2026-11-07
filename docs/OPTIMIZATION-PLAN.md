@@ -231,6 +231,14 @@ prove that incomplete groups could not be skipped in other frames. The
 candidate was removed without promoting the untested invalidation fix. See the
 [tile-group hierarchy rejection ledger](ledger/2026-11-07-alias-tile-group-min-hierarchy-rejected.md).
 
+### Alias tile-depth cache packing rejected (2026-11-07)
+
+Packing a conservative 7-bit depth bucket, epoch, and partial-anchor marker into
+one 16-bit tile entry reduced the cache from 12 KB to 8 KB. It retained exact
+framebuffer and Z output and passed the strict i486 audit, but its matched
+three-run mean was 0.929071% slower than the unpacked cache. Keep the 12 KB
+layout; see the [packed-cache rejection ledger](ledger/2026-11-07-alias-tile-depth-pack-rejected.md).
+
 ### D_DrawZSpans per-row depth-term cache rejected (2026-11-05)
 
 A 200-row cache for the rounded `v*d_zistepv` term had a 29.1% hit rate across
