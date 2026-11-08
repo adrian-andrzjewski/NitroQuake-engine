@@ -8,8 +8,8 @@ remain available as evidence and are not the current source of policy.
 
 | Need | Start here |
 |---|---|
-| Build, run, and inspect the DOS renderer; use probes and timedemos | [`../BUILD-DOS.md`](../BUILD-DOS.md) |
-| Run deterministic rendering checks and review image differences | [`../RENDERING-VALIDATION.md`](../RENDERING-VALIDATION.md) |
+| Build and inspect the native DOS renderer | [`../BUILD-DOS.md`](../BUILD-DOS.md) |
+| Run deterministic rendering checks and review image differences | Benchmark suite: `docs/RENDERING-VALIDATION.md` |
 | Verify selector ownership, object code, linked binaries, and allowed ISA | [`ISA-VERIFICATION.md`](ISA-VERIFICATION.md) |
 | Read the current i486 status, accepted and reverted work, baseline, and open work | [`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md) |
 | Read optimization policy, performance acceptance, and current decisions | [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) |
@@ -31,9 +31,9 @@ the current workflow guides above for present-day instructions and defaults.
 
 | Record | Scope |
 |---|---|
-| [`../BENCHMARK-COMPARISON.md`](../BENCHMARK-COMPARISON.md) | Comparison with the supplied DOS executables |
-| [`../VIDEO-DOS-VALIDATION.md`](../VIDEO-DOS-VALIDATION.md) | Dated DOS VESA validation from 2026-09-26 |
-| [`../DPMI-HDPMI32.md`](../DPMI-HDPMI32.md) | CWSDPMI and HDPMI32 host experiment |
+| Benchmark suite: `docs/BENCHMARK-COMPARISON.md` | Comparison with the supplied DOS executables |
+| Benchmark suite: `docs/VIDEO-DOS-VALIDATION.md` | Dated DOS VESA validation from 2026-09-26 |
+| Benchmark suite: `docs/DPMI-HDPMI32.md` | CWSDPMI and HDPMI32 host experiment |
 | [`../RESTART-HANDOFF-20261007.md`](../RESTART-HANDOFF-20261007.md) | Restart checkpoint from 2026-10-07 |
 
 The root [`../readme.txt`](../readme.txt) and [`../gnu.txt`](../gnu.txt) are

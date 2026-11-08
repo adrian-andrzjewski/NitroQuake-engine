@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [switch]$Force,
-    [string]$ToolRoot
+    [string]$ToolRoot,
+    [string]$ManifestPath
 )
 
 Set-StrictMode -Version Latest
@@ -16,8 +17,29 @@ if ([string]::IsNullOrWhiteSpace($ToolRoot)) {
 }
 
 $ToolRoot = [IO.Path]::GetFullPath($ToolRoot)
-$manifestPath = Join-Path $PSScriptRoot 'dos-toolchain.json'
-$manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace($ManifestPath)) {
+    $ManifestPath = Join-Path $PSScriptRoot 'dos-toolchain.json'
+}
+$manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+
+function Assert-ArtifactPath {
+    param([Parameter(Mandatory)][string]$Path, [switch]$Mutation)
+    $full = [IO.Path]::GetFullPath($Path)
+    $prefix = $ToolRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    if (-not $full.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Artifact path escapes the tool installation root: $full"
+    }
+    if ($Mutation) {
+        $current = $full
+        while ($current -ne $ToolRoot) {
+            if ((Test-Path -LiteralPath $current) -and
+                ((Get-Item -LiteralPath $current -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                throw "Refusing to mutate a redirected artifact path: $current"
+            }
+            $current = [IO.Path]::GetDirectoryName($current)
+        }
+    }
+}
 
 function ConvertTo-NativeRelativePath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -55,7 +77,7 @@ function Get-VerifiedArchive {
         $expected = [string]$Definition.sha256
     }
     if ([string]::IsNullOrWhiteSpace($expected)) {
-        throw "No pinned sha256 for '$($Definition.url)'. Pin it in tools\dos-toolchain.json before installing this tool."
+        throw "No pinned sha256 for '$($Definition.url)'. Pin it in '$ManifestPath' before installing this tool."
     }
 
     $downloadRoot = Join-Path $ToolRoot 'downloads'
@@ -63,6 +85,7 @@ function Get-VerifiedArchive {
 
     $archiveName = [IO.Path]::GetFileName(([Uri]$Definition.url).AbsolutePath)
     $archivePath = Join-Path $downloadRoot $archiveName
+    Assert-ArtifactPath -Path $archivePath
 
     if ($Force -and (Test-Path -LiteralPath $archivePath)) {
         Remove-Item -LiteralPath $archivePath -Force
@@ -87,6 +110,7 @@ function Install-ZipArtifact {
     )
 
     $installRoot = Join-Path $ToolRoot $Definition.installDirectory
+    Assert-ArtifactPath -Path $installRoot
     $expectedPath = Join-Path $installRoot (ConvertTo-NativeRelativePath $Definition.marker)
 
     if ((Test-Path -LiteralPath $expectedPath) -and (-not $Force)) {
@@ -97,10 +121,12 @@ function Install-ZipArtifact {
         if (-not $Force) {
             throw "Incomplete installation exists at '$installRoot'. Re-run with -Force to replace it."
         }
+        Assert-ArtifactPath -Path $installRoot -Mutation
         Remove-Item -LiteralPath $installRoot -Recurse -Force
     }
 
     $extractRoot = Join-Path $ToolRoot ('.extract-' + $Definition.installDirectory)
+    Assert-ArtifactPath -Path $extractRoot -Mutation
     if (Test-Path -LiteralPath $extractRoot) {
         Remove-Item -LiteralPath $extractRoot -Recurse -Force
     }
@@ -121,7 +147,10 @@ function Install-ZipArtifact {
         throw "Archive '$ArchivePath' does not contain '$($Definition.archiveRoot)'."
     }
 
+    Assert-ArtifactPath -Path $archiveRoot -Mutation
+    Assert-ArtifactPath -Path $installRoot -Mutation
     Move-Item -LiteralPath $archiveRoot -Destination $installRoot
+    Assert-ArtifactPath -Path $extractRoot -Mutation
     Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
     return $installRoot
 }
@@ -129,21 +158,21 @@ function Install-ZipArtifact {
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 New-Item -ItemType Directory -Path $ToolRoot -Force | Out-Null
 
-$djgppArchive = Get-VerifiedArchive -Definition $manifest.djgpp
-$dosboxArchive = Get-VerifiedArchive -Definition $manifest.dosboxX
-$djgppRoot = Install-ZipArtifact -Definition $manifest.djgpp -ArchivePath $djgppArchive
-$dosboxRoot = Install-ZipArtifact -Definition $manifest.dosboxX -ArchivePath $dosboxArchive
-
-$compilerPath = Join-Path $djgppRoot (ConvertTo-NativeRelativePath $manifest.djgpp.compiler)
-$objdumpPath = Join-Path $djgppRoot (ConvertTo-NativeRelativePath $manifest.djgpp.objdump)
-$dosboxPath = Join-Path $dosboxRoot (ConvertTo-NativeRelativePath $manifest.dosboxX.executable)
-
-foreach ($requiredPath in @($compilerPath, $objdumpPath, $dosboxPath)) {
-    if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
-        throw "Bootstrap completed but required tool is missing: '$requiredPath'."
+foreach ($artifact in $manifest.PSObject.Properties) {
+    $definition = $artifact.Value
+    $archive = Get-VerifiedArchive -Definition $definition
+    $installed = Install-ZipArtifact -Definition $definition -ArchivePath $archive
+    $required = @([string]$definition.marker)
+    foreach ($field in @('compiler', 'objdump', 'executable')) {
+        if ($definition.PSObject.Properties.Name -contains $field) { $required += [string]$definition.$field }
     }
+    foreach ($relative in @($required | Select-Object -Unique)) {
+        $requiredPath = Join-Path $installed (ConvertTo-NativeRelativePath $relative)
+        Assert-ArtifactPath -Path $requiredPath
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "Bootstrap completed but required tool is missing: '$requiredPath'."
+        }
+    }
+    Write-Host "$($artifact.Name): $installed"
 }
-
-Write-Host "DJGPP root: $djgppRoot"
-Write-Host "DOSBox-X:   $dosboxPath"
 Write-Host 'Toolchain bootstrap complete.'

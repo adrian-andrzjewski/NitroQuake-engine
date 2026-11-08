@@ -9,14 +9,5 @@
     "compiler": "bin/i586-pc-msdosdjgpp-gcc.exe",
     "objdump": "bin/i586-pc-msdosdjgpp-objdump.exe",
     "target": "i586-pc-msdosdjgpp"
-  },
-  "dosboxX": {
-    "version": "2026.08.31",
-    "url": "https://github.com/joncampbell123/dosbox-x/releases/download/dosbox-x-v2026.08.31/dosbox-x-mingw64-2026.08.31-portable.zip",
-    "sha256": "9CAF17ED01C13E4DEF147066B9B84102FD6593BE23F8031AE295E2B870CFACB1",
-    "archiveRoot": "mingw-build/mingw",
-    "installDirectory": "dosbox-x-2026.08.31",
-    "marker": "dosbox-x.exe",
-    "executable": "dosbox-x.exe"
   }
 }

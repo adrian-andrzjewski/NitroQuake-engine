@@ -168,44 +168,6 @@ def main() -> int:
         if contract not in build_script:
             fail("the normal release build is missing linked ISA contract %r" % contract)
 
-    # The selected hardware contract is an 80486DX with its 387-compatible x87.
-    # Keep the emulator profile and its timedemo hash pin aligned so the runtime
-    # fixture cannot silently fall back to a 486SX/no-FPU configuration.
-    dosbox_profile_path = os.path.join(REPO_ROOT, "tools", "dosbox-x-486-high.conf")
-    try:
-        with open(dosbox_profile_path, "rb") as handle:
-            dosbox_profile_bytes = handle.read()
-        dosbox_profile_text = dosbox_profile_bytes.decode("ascii").replace("\r\n", "\n")
-        in_cpu_section = False
-        cpu_options: dict[str, str] = {}
-        for line in dosbox_profile_text.splitlines():
-            stripped = line.strip()
-            if stripped.startswith("[") and stripped.endswith("]"):
-                in_cpu_section = stripped.lower() == "[cpu]"
-            elif in_cpu_section and stripped and not stripped.startswith("#") and "=" in stripped:
-                key, value = stripped.split("=", 1)
-                cpu_options[key.strip().lower()] = value.strip().lower()
-        if cpu_options.get("cputype") != "486":
-            fail("the DOSBox-X compatibility profile must set cputype=486")
-        if cpu_options.get("fpu") != "387":
-            fail("the DOSBox-X compatibility profile must set fpu=387 for the 486DX x87 contract")
-
-        profile_hash = hashlib.sha256(dosbox_profile_text.encode("ascii")).hexdigest().upper()
-        with open(os.path.join(REPO_ROOT, "tools", "timedemo-dos.ps1"), "r", encoding="utf-8") as handle:
-            timedemo_script = handle.read()
-        hash_match = re.search(
-            r"ExpectedProfileSha256\s*=\s*'([0-9A-Fa-f]{64})'", timedemo_script
-        )
-        if hash_match is None:
-            fail("the timedemo DOSBox profile hash pin is missing or malformed")
-        elif hash_match.group(1).upper() != profile_hash:
-            fail(
-                "the DOSBox-X 486 profile hash is %s, but timedemo-dos.ps1 pins %s"
-                % (profile_hash, hash_match.group(1).upper())
-            )
-    except (OSError, UnicodeDecodeError) as error:
-        fail("could not verify the DOSBox-X 486DX/x87 profile: %s" % error)
-
     with open(os.path.join(REPO_ROOT, "tools", "verify-executable-isa.ps1"), "r", encoding="utf-8") as handle:
         verification_script = handle.read()
     for contract in ("isa-audit-linked.ps1", "final-executable-isa-ranges.py", "startup-linked-proof.py",
@@ -1719,42 +1681,6 @@ def main() -> int:
             if "render-scenarios-runparticleeffect.json" not in profile.get("description", ""):
                 fail("a focused D_DrawParticle profile does not name its exact event scenario")
 
-    particle_scenario_path = os.path.join(REPO_ROOT, "tools", "render-scenarios-runparticleeffect.json")
-    if not os.path.isfile(particle_scenario_path):
-        fail("the exact R_RunParticleEffect event scenario manifest is missing")
-    else:
-        try:
-            with open(particle_scenario_path, "r", encoding="utf-8") as handle:
-                particle_scenario_manifest = json.load(handle)
-            particle_scenarios = particle_scenario_manifest.get("scenarios", [])
-            if len(particle_scenarios) != 1:
-                fail("the R_RunParticleEffect event scenario manifest must contain exactly one scenario")
-            else:
-                scene = particle_scenarios[0]
-                exact_tolerance = {"channel": 0, "maxChangedPixelFraction": 0, "maxMeanAbsoluteError": 0}
-                if scene.get("id") != "demo2-wizspike-event":
-                    fail("the D_DrawParticle parity scenario is not the known demo2 particle event")
-                if "R_RunParticleEffect" not in scene.get("description", ""):
-                    fail("the D_DrawParticle parity scenario does not route its event through R_RunParticleEffect")
-                if scene.get("requiredBenchEvents") != ["runParticleEffect"]:
-                    fail("the D_DrawParticle parity scenario does not require the R_RunParticleEffect event")
-                if scene.get("expectedBenchEventFrames") != {"runParticleEffect": [10]}:
-                    fail("the D_DrawParticle parity scenario does not pin its particle event to frame 10")
-                if scene.get("expectedFrames") != 10 or scene.get("captureFrame") != 10:
-                    fail("the D_DrawParticle parity scenario no longer captures the exact 10-frame event")
-                if scene.get("tolerance") != exact_tolerance:
-                    fail("the D_DrawParticle event scenario is no longer an exact pixel comparison")
-        except (OSError, json.JSONDecodeError) as error:
-            fail("could not read the D_DrawParticle event scenario manifest: %s" % error)
-
-    parity_source_path = os.path.join(REPO_ROOT, "tools", "render-parity-dos.ps1")
-    try:
-        with open(parity_source_path, "r", encoding="utf-8") as handle:
-            parity_source = handle.read()
-        if "[string]$ScenarioFile" not in parity_source or "'-ScenarioFile', $pairScenarioFile" not in parity_source:
-            fail("the paired render harness does not accept and forward the exact event scenario file")
-    except OSError as error:
-        fail("could not read the paired render harness source: %s" % error)
 
     particle_explosion2_c = dump_flags("-ParticleExplosion2Implementation", "c")
     particle_explosion2_asm = dump_flags("-ParticleExplosion2Implementation", "asm")

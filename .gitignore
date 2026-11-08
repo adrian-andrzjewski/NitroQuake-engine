@@ -16,11 +16,6 @@
 # Local compiler/emulator cache if a user points the bootstrapper here.
 /tools/.cache/
 
-# Supplied benchmark baselines, hash-pinned in BENCHMARK-COMPARISON.md.
-/tools/NitroQuake.exe
-/tools/QUAKE.EXE
-/tools/486quake.exe
-
 # Legacy/compiler intermediates.
 *.obj
 *.o

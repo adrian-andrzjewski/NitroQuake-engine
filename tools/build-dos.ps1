@@ -420,6 +420,9 @@ function Assert-RendererOutputPathNoReparse {
         throw "Build output '$pathFull' is outside the repository out directory '$rootFull'."
     }
 
+    # A fresh standalone clone has no ignored out directory yet. There can be
+    # no redirected child when that root is absent; normal creation follows.
+    if (-not (Test-Path -LiteralPath $rootFull)) { return }
     $rootItem = Get-Item -LiteralPath $rootFull -Force -ErrorAction Stop
     if ($rootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) {
         throw "Build output root '$rootFull' is a reparse point; refusing redirected output."
@@ -699,6 +702,7 @@ $objectRoot = $resolvedObjectRoot
 if (-not $DumpFlags) {
     Assert-RendererOutputPathNoReparse -RepoOutRoot $repoOutRoot -Path $outputRoot
     Assert-RendererOutputPathNoReparse -RepoOutRoot $repoOutRoot -Path $objectRoot
+    New-Item -ItemType Directory -Path $repoOutRoot -Force | Out-Null
     if (-not [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName)) {
         foreach ($entry in (Get-ChildItem -LiteralPath $repoOutRoot -Force -ErrorAction Stop)) {
             if ($entry.Name -ceq (Split-Path -Leaf $outputRoot)) {
