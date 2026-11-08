@@ -6462,21 +6462,32 @@ C(D_WarpPixels_asm486):
 	ret
 
 // D_WarpScreen(void)
-// The original function's C wrapper only supplied two automatic lookup
-// arrays. Allocate those arrays here as well, then keep ratio setup, table
-// generation, time-phase selection, destination calculation, and pixel copy
-// in the assembly path.
+// Geometry tables depend only on viewport, source buffer/stride and x87 CW.
+// Retain them between calls; phase selection and pixel copying remain per-frame.
+// Single-threaded renderer: no table pointers escape this routine.
 	.equ	WARP_ROW_COUNT, 1030		// MAXHEIGHT + AMP2*2
 	.equ	WARP_COL_COUNT, 1286		// MAXWIDTH + AMP2*2
 	.equ	WARP_ROW_BYTES, WARP_ROW_COUNT * 4
 	.equ	WARP_COL_BYTES, WARP_COL_COUNT * 4
-	.equ	WARP_LOCAL, WARP_ROW_BYTES + WARP_COL_BYTES
-	.equ	WARP_FRAME_BYTES, WARP_LOCAL + 16
+	.equ	WARP_LOCAL, 0
+	.equ	WARP_FRAME_BYTES, 16
 	.equ	WARP_OLD_CW, WARP_LOCAL
 	.equ	WARP_TRUNC_CW, WARP_LOCAL + 2
 	.equ	WARP_PHASE, WARP_LOCAL + 4
 	.equ	WARP_HRATIO, WARP_LOCAL + 8
 	.equ	WARP_WRATIO, WARP_LOCAL + 12
+
+	.section .bss
+	.p2align 4
+.Lwarp_cache_rows:
+	.space WARP_ROW_BYTES
+.Lwarp_cache_columns:
+	.space WARP_COL_BYTES
+.Lwarp_cache_key:
+	.space 36
+.Lwarp_cache_valid:
+	.space 4
+	.text
 
 	.p2align 4,,15
 C(D_WarpScreen):
@@ -6486,22 +6497,76 @@ C(D_WarpScreen):
 	pushl	%esi
 	pushl	%edi
 	subl	$WARP_FRAME_BYTES,%esp
-	movl	%esp,%ebp			// stable base for local arrays and scalars
-	leal	WARP_ROW_BYTES(%ebp),%esi	// column array
+	movl	$.Lwarp_cache_rows,%ebp
+	movl	$.Lwarp_cache_columns,%esi
+	fnstcw	WARP_OLD_CW(%esp)
+	cmpl	$0,.Lwarp_cache_valid
+	je	.Lwarp_rebuild_tables
+
+	movl	C(r_refdef),%eax
+	cmpl	%eax,.Lwarp_cache_key+0
+	jne	.Lwarp_rebuild_tables
+	movl	C(r_refdef)+4,%eax
+	cmpl	%eax,.Lwarp_cache_key+4
+	jne	.Lwarp_rebuild_tables
+	movl	C(r_refdef)+8,%eax
+	cmpl	%eax,.Lwarp_cache_key+8
+	jne	.Lwarp_rebuild_tables
+	movl	C(r_refdef)+12,%eax
+	cmpl	%eax,.Lwarp_cache_key+12
+	jne	.Lwarp_rebuild_tables
+	movl	C(scr_vrect)+8,%eax
+	cmpl	%eax,.Lwarp_cache_key+16
+	jne	.Lwarp_rebuild_tables
+	movl	C(scr_vrect)+12,%eax
+	cmpl	%eax,.Lwarp_cache_key+20
+	jne	.Lwarp_rebuild_tables
+	movl	C(screenwidth),%eax
+	cmpl	%eax,.Lwarp_cache_key+24
+	jne	.Lwarp_rebuild_tables
+	movl	C(d_viewbuffer),%eax
+	cmpl	%eax,.Lwarp_cache_key+28
+	jne	.Lwarp_rebuild_tables
+	movzwl	WARP_OLD_CW(%esp),%eax
+	cmpl	%eax,.Lwarp_cache_key+32
+	jne	.Lwarp_rebuild_tables
+	jmp	.Lwarp_tables_ready
+
+.Lwarp_rebuild_tables:
+	movl	C(r_refdef),%eax
+	movl	%eax,.Lwarp_cache_key+0
+	movl	C(r_refdef)+4,%eax
+	movl	%eax,.Lwarp_cache_key+4
+	movl	C(r_refdef)+8,%eax
+	movl	%eax,.Lwarp_cache_key+8
+	movl	C(r_refdef)+12,%eax
+	movl	%eax,.Lwarp_cache_key+12
+	movl	C(scr_vrect)+8,%eax
+	movl	%eax,.Lwarp_cache_key+16
+	movl	C(scr_vrect)+12,%eax
+	movl	%eax,.Lwarp_cache_key+20
+	movl	C(screenwidth),%eax
+	movl	%eax,.Lwarp_cache_key+24
+	movl	C(d_viewbuffer),%eax
+	movl	%eax,.Lwarp_cache_key+28
+	movzwl	WARP_OLD_CW(%esp),%eax
+	movl	%eax,.Lwarp_cache_key+32
 
 	// C stored each ratio as a float before entering the lookup loops.
 	fildl	C(r_refdef)+8		// view width
 	fildl	C(scr_vrect)+8		// screen rectangle width
 	fdivrp	%st,%st(1)
-	fstps	WARP_WRATIO(%ebp)
+	fstps	WARP_WRATIO(%esp)
 	fildl	C(r_refdef)+12		// view height
 	fildl	C(scr_vrect)+12		// screen rectangle height
 	fdivp	%st,%st(1)
-	fstps	WARP_HRATIO(%ebp)
+	fstps	WARP_HRATIO(%esp)
 
 	// Build rowptr and column with the same 32-bit arguments as the C setup.
-	pushl	WARP_WRATIO(%ebp)
-	pushl	WARP_HRATIO(%ebp)
+	movl	WARP_WRATIO(%esp),%eax
+	movl	WARP_HRATIO(%esp),%edx
+	pushl	%eax
+	pushl	%edx
 	pushl	C(r_refdef)			// x origin
 	movl	C(r_refdef)+8,%eax
 	addl	$6,%eax
@@ -6527,18 +6592,21 @@ C(D_WarpScreen):
 	pushl	%ebp				// rowptr array
 	call	C(D_WarpBuildTables_asm486)
 	addl	$52,%esp
+	movl	$1,.Lwarp_cache_valid
+
+.Lwarp_tables_ready:
 
 	// turb = intsintable + ((int)(cl.time * SPEED) & (CYCLE - 1)).
-	fnstcw	WARP_OLD_CW(%ebp)
-	movw	WARP_OLD_CW(%ebp),%dx
+	fnstcw	WARP_OLD_CW(%esp)
+	movw	WARP_OLD_CW(%esp),%dx
 	orw	$0x0c00,%dx
-	movw	%dx,WARP_TRUNC_CW(%ebp)
+	movw	%dx,WARP_TRUNC_CW(%esp)
 	flds	Lwarp_speed
 	fmull	C(cl)+0x23c
-	fldcw	WARP_TRUNC_CW(%ebp)
-	fistpl	WARP_PHASE(%ebp)
-	fldcw	WARP_OLD_CW(%ebp)
-	movl	WARP_PHASE(%ebp),%ebx
+	fldcw	WARP_TRUNC_CW(%esp)
+	fistpl	WARP_PHASE(%esp)
+	fldcw	WARP_OLD_CW(%esp)
+	movl	WARP_PHASE(%esp),%ebx
 	andl	$127,%ebx
 	leal	C(intsintable)(,%ebx,4),%ebx
 
@@ -6561,7 +6629,6 @@ C(D_WarpScreen):
 	call	C(D_WarpPixels_asm486)
 	addl	$28,%esp
 
-	movl	%ebp,%esp
 	addl	$WARP_FRAME_BYTES,%esp
 	popl	%edi
 	popl	%esi

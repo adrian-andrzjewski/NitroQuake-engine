@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-08-warp-geometry-table-cache-promoted.md](2026-11-08-warp-geometry-table-cache-promoted.md) | 4 | underwater warp / invariant geometry tables with complete input and x87 key; 1,512 native cases, exact three-demo parity, +0.022348% pooled diagnostic FPS |
 | [2026-11-08-commit-validation-and-test-debt.md](2026-11-08-commit-validation-and-test-debt.md) | 3 | commit review / fresh normal and BENCH i486 builds pass; focused identity and retained parity checks pass; 11 of 19 host gates pass, with remaining failures reproduced at the untouched baseline |
 | [2026-11-08-engine-wide-profile-and-ai-cache.md](2026-11-08-engine-wide-profile-and-ai-cache.md) | 5 | engine-wide measured budgets / promoted immutable AI leaf-query cache: exact state/color/Z, x87/reset and normal-release gates; +0.387% pooled local-gameplay diagnostic FPS; current normal v0.999+26 comparison and charts |
 | [2026-11-07-alias-triangle-vertex-prefilter-rejected.md](2026-11-07-alias-triangle-vertex-prefilter-rejected.md) | 4 | alias triangle visibility / vertex Z prefilter avoided 70.4% of full queries and passed 2,304 native cases, complete replay parity and strict i486, but three matched pairs regressed mean FPS by 0.1622784%; rejected |
