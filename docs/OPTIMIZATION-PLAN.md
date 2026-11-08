@@ -35,6 +35,17 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Alias line-scan biased bounds checks promoted (2026-11-07)
+
+`D_PolysetSetUpForLineScan_asm486` uses two unsigned biased bounds checks
+and reuses their values for the small-step table index. The three-run matched
+uninstrumented mean improved by **0.0468282%** at 320x200. All 16,416 native
+setup cases passed, and two control/two candidate replays matched every color
+and depth record plus the captured image. The benchmark-only replay clock
+makes presentation timing deterministic and is excluded from speed measurements
+and normal game code. Complete strict i486 gates passed for benchmark and game.
+See the [biased bounds promotion ledger](ledger/2026-11-07-alias-line-scan-biased-bounds-promoted.md).
+
 ### Surface span records compacted to 12 bytes promoted (2026-11-07)
 
 The span record now stores `u` and `v` as 16-bit unsigned coordinates, reducing

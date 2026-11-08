@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-07-alias-line-scan-biased-bounds-promoted.md](2026-11-07-alias-line-scan-biased-bounds-promoted.md) | 5 | alias line setup / two unsigned biased bounds checks reuse the table index; +0.0468282% matched FPS, 16,416 native cases, four exact full-clock color/Z/image replays, complete i486 gate |
 | [2026-11-07-span-record-layout-12-byte-promoted.md](2026-11-07-span-record-layout-12-byte-promoted.md) | 4 | surface span pool / reduce `espan_t` from 16 to 12 bytes; exact color/Z and PCX parity, strict i486 pass, and +0.3436% matched mean FPS |
 | [2026-11-07-renderface-clipchain-cache-promoted.md](2026-11-07-renderface-clipchain-cache-promoted.md) | 5 | R_RenderFace / reuse the last partial clip-plane chain on 79.6% of eligible calls; exact color/Z parity, strict i486 pass, and +0.0144664% matched mean FPS |
 | [2026-11-07-alias-occlusion-cache-invalidation-rejected.md](2026-11-07-alias-occlusion-cache-invalidation-rejected.md) | 4 | alias visibility / rechecking tile minima after alias Z writes retained the total cull count but changed 462 color and 141 Z checksum rows; rejected before release timing |

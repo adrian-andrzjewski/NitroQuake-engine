@@ -571,20 +571,18 @@ C(D_PolysetSetUpForLineScan_asm486):
 	subl	12(%ebp),%ecx
 	movl	$-1,C(errorterm)
 
-	cmpl	$32,%eax
-	jg	.LPolysetLineScanLarge
-	cmpl	$-31,%eax
-	jl	.LPolysetLineScanLarge
-	cmpl	$32,%ecx
-	jg	.LPolysetLineScanLarge
-	cmpl	$-31,%ecx
-	jl	.LPolysetLineScanLarge
+	// Bias each signed delta into [0,63]. Unsigned JA also rejects
+	// wrapped extremes. Keep the biased values for the table index.
+	leal	31(%eax),%edx
+	cmpl	$63,%edx
+	ja	.LPolysetLineScanLarge
+	leal	31(%ecx),%eax
+	cmpl	$63,%eax
+	ja	.LPolysetLineScanRestoreTm
 
 // The original fast path covers every pair in [-31,32], including the
 // table's historical values for non-positive tn. Keep those exact entries.
-	leal	31(%eax),%edx
 	shll	$6,%edx
-	leal	31(%ecx),%eax
 	addl	%eax,%edx
 	movl	C(adivtab)(,%edx,8),%eax
 	movl	%eax,C(ubasestep)
@@ -594,6 +592,10 @@ C(D_PolysetSetUpForLineScan_asm486):
 	leave
 	ret
 
+.LPolysetLineScanRestoreTm:
+	// Horizontal delta passed its bounds check; recover it before the
+	// unchanged long-edge path sees an out-of-range vertical delta.
+	leal	-31(%edx),%eax
 .LPolysetLineScanLarge:
 	testl	%ecx,%ecx
 	jle	.LPolysetLineScanC
