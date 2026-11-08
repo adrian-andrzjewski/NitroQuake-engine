@@ -1023,6 +1023,10 @@ if ($FrameCaptureIndex -ge 0 -and -not $FrameChecksums) {
     throw '-FrameCaptureIndex requires -FrameChecksums.'
 }
 $zChecksumsRequested = $QuakeExtraArgs -match '(?i)(?:^|\s)-zchecksums(?:\s|$)'
+$parityClockRequested = $QuakeExtraArgs -match '(?i)(?:^|\s)-parityclock(?:\s|$)'
+if ($parityClockRequested -and (-not $FrameChecksums -or $FpsStats)) {
+    throw '-parityclock requires -FrameChecksums and cannot collect performance FPS statistics.'
+}
 if ($zChecksumsRequested -and -not $FrameChecksums) {
     throw '-zchecksums requires -FrameChecksums.'
 }
@@ -1460,11 +1464,12 @@ if (Test-Path -LiteralPath $dpmiHostProbePath -PathType Leaf) {
 }
 
 $result = [ordered]@{
-    visualParityOnly = [bool]$VisualParityOnly
+    visualParityOnly = ([bool]$VisualParityOnly -or $parityClockRequested)
+    deterministicPresentationClock = [bool]$parityClockRequested
     isaAuditStatus = $selectorVerification.isaAuditStatus
     demo = $DemoName
     runs = $Runs
-    medianFps = $medianFps
+    medianFps = if ($parityClockRequested) { $null } else { $medianFps }
     fpsSummary = $fpsSummary
     dosboxVersion = $toolManifest.dosboxX.version
     profile = $profilePath
@@ -1669,7 +1674,11 @@ if ($null -ne $dpmiHostProbe -and $dpmiHostProbe.Length -gt 0) {
     Write-Host "DPMI probe:"
     Write-Host $dpmiHostProbe
 }
-Write-Host ("Median FPS: {0:N1}" -f $medianFps)
+if ($parityClockRequested) {
+    Write-Host 'Fixed-clock correctness replay; FPS is not a performance measurement.'
+} else {
+    Write-Host ("Median FPS: {0:N1}" -f $medianFps)
+}
 if ($null -ne $fpsSummary) {
     Write-Host ("FPS stats (median across {0} run(s)): avg {1:0.000000} min {2:0.000000} max {3:0.000000} median {4:0.000000} low1 {5:0.000000} low0.1 {6:0.000000} high1 {7:0.000000} stddev {8:0.000000} drops {9} spikes {10}" -f
         $fpsSummary.runs, $fpsSummary.averageFps, $fpsSummary.minimumFps,

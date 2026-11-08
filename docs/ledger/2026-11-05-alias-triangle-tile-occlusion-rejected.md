@@ -58,3 +58,26 @@ color output differs. The exact cause of the color-only discrepancy was not
 established, so this tile-min predicate is not considered safe. The ignored
 `out` directories above are retained as benchmark and image-diff evidence; no
 generated output is committed.
+
+## Notification-strip recheck (2026-11-07)
+
+The retained frame-72 images were compared again after the benchmark-only
+deterministic presentation clock became available. All **756 changed pixels
+are confined to x=10..231, y=1..7**. The control shows the notification
+`You got the Grenade Launcher`; the candidate does not. Every pixel outside
+that notification strip is identical in the captured images. The palette and
+the previously recorded complete Z streams match.
+
+This establishes that the inspected frame-72 discrepancy is presentation-time
+notification expiry, rather than a changed visible triangle in that image.
+It does not establish correctness for the other failed frames or all possible
+inputs. The old simulation-only `host_framerate` replay did not control the
+`realtime` value used by notifications. The evidence and comparison bounding
+box are retained in `out/triangle-occlusion-ui-recheck.json`; the converted
+inspection images are `out/triangle-ui-control.png` and
+`out/triangle-ui-candidate.png`.
+
+The triangle predicate remains absent from the accepted renderer. Its previous
+rendering rejection can be reopened for a fresh full-clock, all-frame color/Z
+and image comparison, strict i486 audit, and matched uninstrumented timing.
+This follow-up is a reason to requalify the experiment, not a promotion.

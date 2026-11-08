@@ -24,6 +24,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 const char nitroquake_version[] = NITROQUAKE_VERSION_STRING;
 
+#ifdef BENCH486
+/* Correctness replays need deterministic presentation time as well as physics
+ * time: notification expiry and HUD animation read realtime directly. */
+static qboolean bench486_parity_clock;
+#endif
+
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 extern int bench486_screen_center_trace_active;
 extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int character);
@@ -507,6 +513,12 @@ Returns false if the time is too short to run a frame
 */
 qboolean Host_FilterTime (float time)
 {
+#ifdef BENCH486
+	/* An exactly representable 1/16-second tick from the first host frame.
+	 * This mode is never a speed measurement and is absent from game builds. */
+	if (bench486_parity_clock)
+		time = 0.0625f;
+#endif
 	realtime += time;
 
 	if (!cls.timedemo && realtime - oldrealtime < 1.0/72.0)
@@ -991,6 +1003,13 @@ void Host_Init (quakeparms_t *parms)
 
 	com_argc = parms->argc;
 	com_argv = parms->argv;
+
+#ifdef BENCH486
+	bench486_parity_clock = COM_CheckParm ("-parityclock") != 0;
+	if (bench486_parity_clock &&
+			(!COM_CheckParm ("-framechecksums") || !COM_CheckParm ("-timedemoexit")))
+		Sys_Error ("-parityclock requires -framechecksums and -timedemoexit");
+#endif
 
 	Memory_Init (parms->membase, parms->memsize);
 	Cbuf_Init ();

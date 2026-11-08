@@ -60,6 +60,23 @@ This checkout builds the retained NitroQuake MS-DOS/software-renderer source
 directly from Windows 10.  The compiler is a Windows-hosted DJGPP cross
 toolchain; DOSBox-X is used only to run the resulting DOS executable.
 
+## Deterministic full-frame correctness replays
+
+For exact color and depth comparisons, pass `-FrameChecksums` and
+`-QuakeExtraArgs '-zchecksums -parityclock'` to `tools/timedemo-dos.ps1`.
+The benchmark-only `-parityclock` option advances both simulation and
+presentation time by an exact 1/16 second per host frame, starting with the
+first frame. This makes notification expiry and HUD animation reproducible;
+setting `host_framerate` alone does not control the presentation clock.
+
+Keep ordinary uninstrumented timing runs separate, with neither option enabled.
+Fixed-clock reports have `visualParityOnly: true`,
+`deterministicPresentationClock: true`, and `medianFps: null`. Their printed
+per-run FPS is synthetic and is never performance evidence. The binary requires
+`-framechecksums` and `-timedemoexit` for this mode, and the runner rejects
+performance FPS statistics with it. The clock mode is absent from normal game
+builds.
+
 ## Current i486 renderer selector defaults
 
 For `-CpuTarget i486`, omitted renderer implementation selectors use
