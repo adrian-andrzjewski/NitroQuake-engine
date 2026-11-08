@@ -605,6 +605,11 @@ typedef struct
  * counted as overflow instead of allocating from the DOS heap. */
 static float bench486_timedemo_frame_seconds[
 		BENCH486_TIMEDEMO_MAX_FRAMES];
+/* One extra buffered store per frame, using the existing end timer read.
+ * Keep real elapsed positions (including inter-frame gaps) for host graphs. */
+static float bench486_timedemo_frame_elapsed[
+		BENCH486_TIMEDEMO_MAX_FRAMES];
+static double bench486_timedemo_time_origin;
 static unsigned long bench486_timedemo_measured_frames;
 static unsigned long bench486_timedemo_stored_frames;
 static unsigned long bench486_timedemo_overflow_frames;
@@ -658,7 +663,7 @@ static qboolean bench486_timedemo_stats_active;
 static qboolean bench486_timedemo_frame_started;
 static double bench486_timedemo_frame_start;
 
-static void Bench486TimedemoRecordFrame (double seconds)
+static void Bench486TimedemoRecordFrame (double seconds, double elapsed)
 {
 	bench486_timedemo_measured_frames++;
 	if (seconds <= 0)
@@ -671,8 +676,9 @@ static void Bench486TimedemoRecordFrame (double seconds)
 		bench486_timedemo_overflow_frames++;
 		return;
 	}
-	bench486_timedemo_frame_seconds[bench486_timedemo_stored_frames++] =
-			(float)seconds;
+	bench486_timedemo_frame_elapsed[bench486_timedemo_stored_frames] =
+			(float)elapsed;
+	bench486_timedemo_frame_seconds[bench486_timedemo_stored_frames++] = (float)seconds;
 }
 
 void Bench486ResetTimedemoStats (void)
@@ -686,12 +692,16 @@ void Bench486ResetTimedemoStats (void)
 	bench486_timedemo_stats_active = false;
 	bench486_timedemo_frame_started = false;
 	bench486_timedemo_frame_start = 0;
+	bench486_timedemo_time_origin = 0;
 }
 
 void Bench486BeginTimedemoStats (void)
 {
 	if (bench486_timedemo_stats_enabled)
+	{
+		bench486_timedemo_time_origin = bench486_timedemo_frame_start;
 		bench486_timedemo_stats_active = true;
+	}
 }
 
 void Bench486TimedemoFrameStart (void)
@@ -714,7 +724,8 @@ void Bench486TimedemoFrameEnd (void)
 		return;
 	now = Sys_FloatTime ();
 	bench486_timedemo_timer_reads++;
-	Bench486TimedemoRecordFrame (now - bench486_timedemo_frame_start);
+	Bench486TimedemoRecordFrame (now - bench486_timedemo_frame_start,
+			now - bench486_timedemo_time_origin);
 }
 
 void Bench486ResetTimedemoFrameChecksums (int enabled)
@@ -1045,6 +1056,9 @@ static void Bench486WriteTimedemoStatsJson (int timedemo_frames,
 			"  \"benchmark\": {\"frames\": %d, \"duration_seconds\": %.6f, \"average_fps\": %.6f},\n",
 			timedemo_frames, timedemo_seconds, stats->average_fps);
 	Bench486TimedemoStatsJsonPrintf (file_handle,
+			"  \"frame_timing\": {\"schema\": 1, \"csv\": \"FRAMTIME.CSV\", \"clock\": \"Sys_FloatTime\", \"width\": %d, \"height\": %d},\n",
+			vid.width, vid.height);
+	Bench486TimedemoStatsJsonPrintf (file_handle,
 			"  \"fps\": {\"measured_frames\": %lu, \"stored_frames\": %lu, \"overflow_frames\": %lu, \"invalid_frames\": %lu, \"timer_reads\": %lu, \"minimum_fps\": %.6f, \"maximum_fps\": %.6f, \"median_fps\": %.6f, \"low_1_percent_fps\": %.6f, \"low_0_1_percent_fps\": %.6f, \"high_1_percent_fps\": %.6f, \"mean_frame_fps\": %.6f, \"standard_deviation_fps\": %.6f, \"variance_fps\": %.6f},\n",
 			stats->measured_frames, stats->stored_frames,
 			stats->overflow_frames, stats->invalid_frames,
@@ -1070,8 +1084,27 @@ void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
 		double timedemo_seconds)
 {
 	char text[1024];
+	int frame_file;
+	unsigned long frame;
 	bench486_timedemo_fps_stats_t stats;
 
+	/* Export before ComputeStats converts and sorts the duration buffer in place.
+	 * All formatting and disk I/O happen after the timed interval, never per frame.
+	 * DOS 8.3 name; the host validates completeness against timedemo.jsn. */
+	frame_file = Sys_FileOpenWrite ("FRAMTIME.CSV");
+	if (frame_file != -1)
+	{
+		strcpy (text, "sample_index,elapsed_seconds,frame_seconds\n");
+		Sys_FileWrite (frame_file, text, Q_strlen(text));
+		for (frame=0 ; frame<bench486_timedemo_stored_frames ; frame++)
+		{
+			sprintf (text, "%lu,%.9f,%.9f\n", frame,
+					(double)bench486_timedemo_frame_elapsed[frame],
+					(double)bench486_timedemo_frame_seconds[frame]);
+			Sys_FileWrite (frame_file, text, Q_strlen(text));
+		}
+		Sys_FileClose (frame_file);
+	}
 	Bench486TimedemoComputeStats (timedemo_frames, timedemo_seconds, &stats);
 	sprintf (text,
 			"fps-summary frames %d measured %lu stored %lu overflow %lu "

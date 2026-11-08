@@ -69,6 +69,11 @@ physical 486 acceptance.
 Native BENCH486 correctness fixtures and optional PROFILE486 instrumentation
 remain with the game because they compile against private engine interfaces.
 Build them with `tools/build-dos.ps1 -Benchmark` and optionally `-Instrumentation`.
+With a BENCH486 executable, `-fpsstats -timedemoexit` also exports ordered
+`FRAMTIME.CSV` samples after playback. The native summary records the capture
+schema and actual video dimensions. The external suite's frame-timeline runner
+owns orchestration, host statistics and graph generation; normal game builds
+contain no timing buffers or export code.
 The suite owns their orchestration, parsing, scenarios and reporting. Instrumented
 profiles rank hotspots; matched uninstrumented runs establish timing evidence.
 
