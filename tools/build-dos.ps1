@@ -940,6 +940,7 @@ try {
     . (Join-Path $PSScriptRoot 'build-number.ps1')
     $buildIdentity = New-NitroQuakeBuildIdentity -RepoRoot $repoRoot -HeaderPath $buildNumberHeader
     Write-Host $buildIdentity.version
+    Write-Host $buildIdentity.build
 
     $objects = @()
 
@@ -1299,7 +1300,10 @@ try {
         cSourceExtraFlags = $cSourceExtraFlags
         linkFlags = $linkFingerprintFlags
     }
-    $buildFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $fingerprintConfig
+    # Bind freshness to the inventory actually embedded at build start. A report
+    # added during compilation must leave this binary stale for the next runner.
+    $buildFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $fingerprintConfig `
+        -OptimizationInventorySha256 $buildIdentity.inventory.inventorySha256
     Set-BuildFingerprint -Executable $executable -Fingerprint $buildFingerprint
 
     $version = ((& $compiler --version | Select-Object -First 1).ToString()).Trim()
@@ -1311,6 +1315,8 @@ try {
     $manifest = [ordered]@{
         buildNumber = $buildIdentity.number
         productVersion = $buildIdentity.version
+        productBuild = $buildIdentity.build
+        optimizationAttempts = $buildIdentity.inventory
         buildNumberHeaderSha256 = (Get-FileHash -LiteralPath $buildNumberHeader -Algorithm SHA256).Hash
         compiler = $version
         target = $toolManifest.djgpp.target

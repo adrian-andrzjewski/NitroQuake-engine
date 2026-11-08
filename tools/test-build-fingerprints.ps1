@@ -7,6 +7,16 @@ $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('nq-fingerprints-' + [guid]
 $source = Join-Path $fixtureRoot 'src'
 New-Item -ItemType Directory -Path (Join-Path $source 'frozen') -Force | Out-Null
 try {
+    # Build identity now requires a real, complete history even in fixtures.
+    $toolFolder = Join-Path $fixtureRoot 'tools'
+    New-Item -ItemType Directory -Path $toolFolder -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'docs/ledger') -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $toolFolder 'optimization-history-legacy.json'),
+        '{"schemaVersion":1,"records":{},"supersededDocuments":{}}')
+    & git -C $fixtureRoot init -q
+    if ($LASTEXITCODE -ne 0) { throw 'Fixture Git initialization failed.' }
+    & git -C $fixtureRoot -c user.name=Fixture -c user.email=fixture@example.invalid commit -q --allow-empty -m 'Initialize fixture history'
+    if ($LASTEXITCODE -ne 0) { throw 'Fixture Git history creation failed.' }
     $routine = Join-Path $source 'routine.s'
     $include = Join-Path $source 'frozen/routine.inc'
     [IO.File]::WriteAllText($routine, '#include "frozen/routine.inc"')

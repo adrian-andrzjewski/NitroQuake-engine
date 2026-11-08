@@ -1,0 +1,1698 @@
+{
+  "schemaVersion": 1,
+  "gitOnlyAttempts": [
+    {
+      "id": "2026-10-25-mip0-fully-flat-blocks",
+      "commit": "2165d9182415bea5580c894b60869945b499ef38",
+      "outcome": "accepted",
+      "description": "Retained mip-0 fully-flat block specialization. This source-only commit adds the helper; the later flat-dword-packing report describes a separate optimization to that helper. No standalone FPS claim."
+    }
+  ],
+  "description": "Legacy ledger classification and distinct variants; counts are derived, never stored. Empty lists are non-attempt evidence or duplicate write-ups. New outcome-named reports are automatic.",
+  "supersededDocuments": {
+    "2026-11-03-r-clipedge-projection-cache-promoted.md": "2026-11-03-r-clipedge-projection-cache-withdrawn.md"
+  },
+  "records": {
+    "2026-09-26-reproducibility-baseline.md": [
+      {
+        "id": "2026-09-26-reproducibility-baseline#guarded-surface-cache-predicate",
+        "outcome": "rejected",
+        "heading": "Current reproducibility note (2026-09-26)"
+      }
+    ],
+    "2026-09-28-span-micro-experiments.md": [
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-0",
+        "outcome": "rejected",
+        "heading": "Monster gib trail zero-XY experiment (2026-09-29)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-1",
+        "outcome": "rejected",
+        "heading": "Alias-span address-update experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-2",
+        "outcome": "rejected",
+        "heading": "World-BSP frame-count cache experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-3",
+        "outcome": "rejected",
+        "heading": "Texture-span address-update experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-4",
+        "outcome": "rejected",
+        "heading": "Texture-span row-cross experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-5",
+        "outcome": "rejected",
+        "heading": "Texture-span load-order experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-6",
+        "outcome": "rejected",
+        "heading": "Alias-model prepare source-cursor experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#trial-7",
+        "outcome": "rejected",
+        "heading": "Texture-span tail-store experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#mip0-unroll8",
+        "outcome": "rejected",
+        "heading": "Monster gib trail zero-XY experiment (2026-09-29)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#mip0-unroll16",
+        "outcome": "rejected",
+        "heading": "Monster gib trail zero-XY experiment (2026-09-29)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#remove-lightright-store",
+        "outcome": "rejected",
+        "heading": "Texture-span tail-store experiment (2026-09-28)"
+      },
+      {
+        "id": "2026-09-28-span-micro-experiments#zero-punch-angle",
+        "outcome": "rejected",
+        "heading": "Texture-span tail-store experiment (2026-09-28)"
+      }
+    ],
+    "2026-09-29-alias-and-surface-block-experiments.md": [
+      {
+        "id": "2026-09-29-alias-and-surface-block-experiments#aff8-alignment",
+        "outcome": "rejected",
+        "heading": "Aff8 16-byte code-alignment experiment (2026-09-29) — rejected and reverted"
+      },
+      {
+        "id": "2026-09-29-alias-and-surface-block-experiments#texture-stosw",
+        "outcome": "rejected",
+        "heading": "Current texture-span follow-up (2026-09-29)"
+      },
+      {
+        "id": "2026-09-29-alias-and-surface-block-experiments#mip0-unroll4",
+        "outcome": "accepted",
+        "heading": "Current parity-gated closure (2026-09-28)"
+      },
+      {
+        "id": "2026-09-29-alias-and-surface-block-experiments#mip1-unroll8",
+        "outcome": "accepted",
+        "heading": "Current parity-gated closure (2026-09-28)"
+      },
+      {
+        "id": "2026-09-29-alias-and-surface-block-experiments#mip0-horizontal-flat",
+        "outcome": "accepted",
+        "heading": "Horizontal-flat mip-0 surface blocks (2026-09-29)"
+      }
+    ],
+    "2026-09-29-harness-and-cost-model.md": [
+      {
+        "id": "2026-09-29-harness-and-cost-model#constant-mip-table",
+        "outcome": "accepted",
+        "heading": "`d_mip_t16` as a constant table (2026-09-29) — landed; the promotion half was not attempted"
+      },
+      {
+        "id": "2026-09-29-harness-and-cost-model#precomputed-izistep",
+        "outcome": "rejected",
+        "heading": "Precomputed `izistep` for the Z-span prologue (2026-09-29) — rejected, and the estimate was wrong in the wrong direction"
+      },
+      {
+        "id": "2026-09-29-harness-and-cost-model#hot-code-clustering",
+        "outcome": "rejected",
+        "heading": "Hot-code clustering (2026-09-29) — rejected, and object granularity is the blocker"
+      },
+      {
+        "id": "2026-09-29-harness-and-cost-model#aff8-agi-interlock",
+        "outcome": "rejected",
+        "heading": "Aff8 AGI interlock investigation (2026-09-29) — null result, selector removed"
+      }
+    ],
+    "2026-09-29-offline-precomputation-pass.md": [],
+    "2026-09-30-harness-fidelity-and-sourcing.md": [
+      {
+        "id": "2026-09-30-harness-fidelity-and-sourcing#cache-2400",
+        "outcome": "accepted",
+        "heading": "The 1800 KB surface-cache wall does not exist (2026-09-29) — root-caused, and the latent win is promoted"
+      }
+    ],
+    "2026-10-01-attribution-corrections.md": [
+      {
+        "id": "2026-10-01-attribution-corrections#mip1-horizontal-flat",
+        "outcome": "accepted",
+        "heading": "mip-1 horizontal-flat surface blocks (2026-10-01) — **PROMOTED, 0.0513%**"
+      }
+    ],
+    "2026-10-02-edge-scan-and-texture-spans.md": [],
+    "2026-10-02-surf8-bundle-and-promotion.md": [
+      {
+        "id": "2026-10-02-surf8-bundle-and-promotion#three-win-bundle",
+        "outcome": "accepted",
+        "heading": "`surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)"
+      },
+      {
+        "id": "2026-10-02-surf8-bundle-and-promotion#mip2-horizontal-flat",
+        "outcome": "rejected",
+        "heading": "`surf8` flat axis: three measured wins bundled and **PROMOTED, 0.0620%** (2026-10-02)"
+      },
+      {
+        "id": "2026-10-02-surf8-bundle-and-promotion#standalone-mip1-index-hoist",
+        "outcome": "rejected",
+        "heading": "mip-1 flat-row index hoist (2026-10-02) — **0.0353% alone; promoted at 0.0620% as part of a bundle**"
+      }
+    ],
+    "2026-10-03-alias-glue-closure.md": [],
+    "2026-10-03-clamp-fusion-and-the-1.0-rate.md": [
+      {
+        "id": "2026-10-03-clamp-fusion-and-the-1.0-rate#clamp-fusion",
+        "outcome": "rejected",
+        "heading": "The clamp fusion is measured at **0.0000%**, and the probe that explains it says **1.0 cycle per instruction measures added work, not removed work** (2026-10-03)"
+      }
+    ],
+    "2026-10-03-isa-audit-and-i386-codepath.md": [],
+    "2026-10-03-region-pricing-sweep.md": [],
+    "2026-10-04-renderer-assembler-port.md": [
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-1",
+        "outcome": "accepted",
+        "heading": "`D_FillRect` is now an i486 assembly entry point"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-2",
+        "outcome": "accepted",
+        "heading": "`D_DrawZPoint` is now an i486 assembly entry point"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-3",
+        "outcome": "accepted",
+        "heading": "The active sky span pixel loop has a selectable i486 assembly path"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-4",
+        "outcome": "accepted",
+        "heading": "The sky scan span loop now has an i486 assembly path"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-5",
+        "outcome": "accepted",
+        "heading": "`D_DrawSkyScans8` is now a complete i486 assembly entry point"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-6",
+        "outcome": "accepted",
+        "heading": "`D_WarpScreen` is now a selectable i486 assembly entry point"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-7",
+        "outcome": "accepted",
+        "heading": "`D_DrawSolidSurface` now has a selectable i486 assembly path"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-8",
+        "outcome": "accepted",
+        "heading": "The `Turbulent8` scan setup and interpolation now have a selectable i486 assembly entry point"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-9",
+        "outcome": "accepted",
+        "heading": "`R_BuildLightMap` now has a selectable i486 assembly dispatcher"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-10",
+        "outcome": "accepted",
+        "heading": "`R_AddDynamicLights` orchestration and projection now have selectable i486 assembly"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-11",
+        "outcome": "accepted",
+        "heading": "`R_DlightContributes` now has a selectable i486 assembly entry"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-12",
+        "outcome": "accepted",
+        "heading": "The `D_CacheSurface` miss handoff now has i486 assembly paths"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-13",
+        "outcome": "accepted",
+        "heading": "`R_DrawSurface` now has a selectable i486 assembly entry point"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-14",
+        "outcome": "accepted",
+        "heading": "`D_CacheSurface` now has a full selectable i486 assembly entry"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-15",
+        "outcome": "accepted",
+        "heading": "`R_TextureAnimation` now has a full selectable i486 assembly entry"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-16",
+        "outcome": "accepted",
+        "heading": "`D_MipLevelForScale` now exports its public i486 assembly entry directly"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-17",
+        "outcome": "accepted",
+        "heading": "`R_SetSurfaceZGradients` now has a selectable i486 assembly entry"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-18",
+        "outcome": "accepted",
+        "heading": "`D_CalcGradients` and texture-axis caching now have an i486 assembly path"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-19",
+        "outcome": "accepted",
+        "heading": "`D_DrawSurfaces` now has a selectable i486 assembly dispatcher"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-20",
+        "outcome": "accepted",
+        "heading": "The clipped alias vertex-preparation loop now has an i486 assembly selector"
+      },
+      {
+        "id": "2026-10-04-renderer-assembler-port#stage-21",
+        "outcome": "accepted",
+        "heading": "Alias polygon clipping now has i486 assembly paths"
+      }
+    ],
+    "2026-10-04-toolchain-refactor.md": [],
+    "2026-10-06-alias-transform-order-parity.md": [
+      {
+        "id": "2026-10-06-alias-transform-order-parity#alias-transform-vector",
+        "outcome": "accepted",
+        "heading": "`R_AliasTransformVector` (2026-10-06)"
+      },
+      {
+        "id": "2026-10-06-alias-transform-order-parity#concat-transforms",
+        "outcome": "accepted",
+        "heading": "`R_ConcatTransforms` (2026-10-06)"
+      }
+    ],
+    "2026-10-06-renderer-selector-benchmarks.md": [
+      {
+        "id": "2026-10-06-renderer-selector-benchmarks#inline-plane-dot",
+        "outcome": "accepted",
+        "heading": "Selector-set frame performance and BSP call removal (2026-10-06)",
+        "quote": "plane-dot body"
+      },
+      {
+        "id": "2026-10-06-renderer-selector-benchmarks#tail-walk",
+        "outcome": "rejected",
+        "heading": "Selector-set frame performance and BSP call removal (2026-10-06)",
+        "quote": "An interim tail-walk version"
+      },
+      {
+        "id": "2026-10-06-renderer-selector-benchmarks#explicit-stack",
+        "outcome": "accepted",
+        "heading": "Selector-set frame performance and BSP call removal (2026-10-06)",
+        "quote": "The explicit-stack"
+      }
+    ],
+    "2026-10-06-surface-cache-parity-fix.md": [],
+    "2026-10-07-all-selectable-combined-parity.md": [],
+    "2026-10-07-combined-direct-acceptance.md": [],
+    "2026-10-07-combined-renderer-parity-after-restart.md": [],
+    "2026-10-07-light-control-port.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-07-sprite-orientation-and-render-math-port.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-08-accepted-renderer-checkpoint.md": [],
+    "2026-10-08-automatic-executable-isa-gate.md": [],
+    "2026-10-08-cwsdpmi-486-provider.md": [],
+    "2026-10-08-runtime-source-audit.md": [],
+    "2026-10-08-turbulent-profile-timer.md": [],
+    "2026-10-09-bench486-live-progress.md": [],
+    "2026-10-09-drawspans-dispatch-parity.md": [],
+    "2026-10-09-selectable-77-assembly-profile-acceptance.md": [],
+    "2026-10-09-selectable-83-vesa-checkpoint.md": [],
+    "2026-10-09-selectable-84-alias-control-checkpoint.md": [],
+    "2026-10-09-selectable-assembly-profile-acceptance.md": [],
+    "2026-10-10-d-drawparticle-assembly-port.md": [],
+    "2026-10-10-d-drawzspans-assembly-parity.md": [],
+    "2026-10-10-efrag-store-parity-fixture.md": [],
+    "2026-10-10-particle-update-parity-fixture.md": [],
+    "2026-10-10-render-poly-assembly-parity.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-10-screen-center-string-assembly-parity.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-12-render-dispatch-particle-stack-alignment.md": [],
+    "2026-10-12-screen-console-setup-assembly-parity.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-12-screen-overlay-live-routing.md": [],
+    "2026-10-13-alias-projection-turbulent-span-parity.md": [],
+    "2026-10-20-cache-hit-key-store-deferral.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-20-cache-key-fusion.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-20-renderface-cacheoffset-reuse.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-20-renderface-owner-compare-fusion.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-20-texture-span-dword-recheck.md": [
+      {
+        "outcome": "rejected"
+      }
+    ],
+    "2026-10-20-texture-span-loadfirst-recheck.md": [
+      {
+        "outcome": "rejected"
+      }
+    ],
+    "2026-10-20-zspan-middle-unroll16.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-21-alias-raster-depth-store-reorder.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-21-renderface-positive-edge-branch-layout.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-21-texture-span-early-store-rejected.md": [],
+    "2026-10-23-turbulent-span-octa-release-default.md": [],
+    "2026-10-23-turbulent-span-octa-loop.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-23-turbulent-span-paired-loop.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-23-turbulent-span-quad-loop.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-24-span16-tail-x87-pop-schedule.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-25-span16-next-pointer-promotion.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-25-surf8-mip0-flat-dword-packing.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-25-surf8-mip0-flat-row-counter.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-25-surf8-mip0-horizontal-flat-dword-packing.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-25-surf8-mip1-horizontal-flat-single-pass.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-25-texture-span-next-pointer-stack-promotion.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "2026-10-25-zspan-exact-zero-u-gradient-rejected.md": [
+      {
+        "id": "2026-10-25-zspan-exact-zero-u-gradient-rejected#zero-u-loop",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-10-25-zspan-exact-zero-u-gradient-rejected#preserved-entry-order",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-10-26-edge-step-fourth-u-store-after-compare-strict-tied.md": [
+      {
+        "outcome": "rejected"
+      }
+    ],
+    "2026-10-28-vga-linear-copy-tail-fix.md": [],
+    "2026-10-29-alias-span-z-store-after-colormap-invalid.md": [
+      {
+        "outcome": "rejected"
+      }
+    ],
+    "2026-10-29-cross-object-isa-batching.md": [],
+    "2026-10-29-span16-carry-table-preload-schedules-rejected.md": [
+      {
+        "id": "2026-10-29-span16-carry-table-preload-schedules-rejected#schedule-a",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-10-29-span16-carry-table-preload-schedules-rejected#schedule-b",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-10-30-vga-cache-set-model-correction.md": [],
+    "2026-10-30-zspan-x87-overlap-model-correction.md": [],
+    "2026-10-31-span16-perspective-arithmetic-trials-rejected.md": [
+      {
+        "id": "2026-10-31-span16-perspective-arithmetic-trials-rejected#reciprocal-reuse",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-10-31-span16-perspective-arithmetic-trials-rejected#fdiv-stack-top",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-10-31-span16-perspective-arithmetic-trials-rejected#direct-stack-slot-updates",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-02-span16-destination-aligned-word-stores-abandoned.md": [
+      {
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-02-span16-row-scale-table-unqualified.md": [
+      {
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-02-span16-same-row-link-census.md": [],
+    "2026-11-03-r-clipedge-projection-cache-withdrawn.md": [
+      {
+        "id": "2026-11-03-r-clipedge-projection-cache",
+        "outcome": "rejected",
+        "heading": "Change"
+      },
+      {
+        "id": "2026-11-05-r-clipedge-projection-value-cache",
+        "outcome": "rejected",
+        "heading": "2026-11-05 follow-up: 32-bit projection-value cache rejected"
+      }
+    ],
+    "2026-11-03-span16-same-texel-endpoint-census.md": [],
+    "2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected.md": [
+      {
+        "id": "2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected#surface-stamp",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected#plane-dot",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-11-04-bsp-plane-dot-cache-and-surface-stamp-rejected#plane-classification",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-04-world-span-hzb-alias-rejected.md": [
+      {
+        "id": "2026-11-04-world-span-hzb-alias-rejected#8x8-layout",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-11-04-world-span-hzb-alias-rejected#32x4-layout",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-05-alias-span-tile-depth-hierarchy-rejected.md": [
+      {
+        "id": "2026-11-05-alias-span-tile-depth-hierarchy-rejected#eight-pixel-tiles",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-11-05-alias-span-tile-depth-hierarchy-rejected#four-pixel-tiles",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-06-bmodel-plane-cache-layout-and-hash-rejected.md": [
+      {
+        "id": "2026-11-06-bmodel-plane-cache-layout-and-hash-rejected#packed-32-byte-records",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-11-06-bmodel-plane-cache-layout-and-hash-rejected#xor-folded-hash",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-06-bmodel-plane-victim-cache-rejected.md": [
+      {
+        "id": "2026-11-06-bmodel-plane-victim-cache-rejected#four-entry-victim",
+        "outcome": "rejected"
+      },
+      {
+        "id": "2026-11-06-bmodel-plane-victim-cache-rejected#one-entry-victim",
+        "outcome": "rejected"
+      }
+    ],
+    "2026-11-06-clipvertex-plane-cache-capacity-census.md": [],
+    "2026-11-07-alias-triangle-cache-miss-diagnosis.md": [],
+    "2026-11-07-three-executable-benchmark.md": [],
+    "2026-11-08-commit-validation-and-test-debt.md": [],
+    "2026-11-08-engine-wide-profile-and-ai-cache.md": [
+      {
+        "outcome": "accepted"
+      }
+    ],
+    "ASM486-HANDOFF.md": [
+      {
+        "id": "ASM486-HANDOFF#texture-span-setup-d-draw16-s",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Texture-span setup (`d_draw16.s`) | Narrow address-arithmetic change | About 0.10% faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#turbulent-stores",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Turbulent stores | Existing ASM 20.6--28.8% faster than C; `stosb` tied it in isolation | `stosb` 0.086207% faster than existing ASM | `stosb` default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-projection-r-aliasprojectfinalvert",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias projection (`R_AliasProjectFinalVert`) | 7.316--7.317% faster | 0.017696% faster | ASM default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#texture-animation-r-textureanimationframe",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Texture animation (`R_TextureAnimationFrame`) | 1.052--31.999% faster | 0.009406% faster | ASM default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#lightmap-normalization-r-buildlightmap",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Lightmap normalization (`R_BuildLightMap`) | 9.447--9.969% faster | 0.0275% faster | ASM default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-bbox-projection-r-aliascheckbbox",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias bbox projection (`R_AliasCheckBBox`) | 16.667--20.120% faster | 0.0264% faster | ASM default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#clipped-alias-transform-r-aliastransformfinalvert",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Clipped alias transform (`R_AliasTransformFinalVert`) | 20.000--25.218% faster | 0.150883% faster | ASM default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#memory-helpers-q-memset-q-memcpy",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Memory helpers (`Q_memset`/`Q_memcpy`) | About 4.6--64.4% faster by case | ~0.019% faster end-to-end on current 486 timedemo; checksum pass | **ASM default**; C reference |"
+      },
+      {
+        "id": "ASM486-HANDOFF#texture-axis-predicate-d-gettextureaxes",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Texture-axis predicate (`D_GetTextureAxes`) | 0.000% to -0.002% | Not promoted | C default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#surface-cache-predicate-d-cachesurface",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Surface-cache predicate (`D_CacheSurface`) | 3.846--5.000% faster | 0.030% slower | C default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#mip-selector-d-miplevelforscale",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Mip selector (`D_MipLevelForScale`) | Mixed: -8.697% to +7.143%; public ASM symbol | Single exact-checksum run; no timing comparison | C default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bsp-plane-dot-r-recursiveworldnode",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| BSP plane dot (`R_RecursiveWorldNode`) | Mixed: -13.334% to +21.052% | 0.0367% slower | C default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bsp-clipping-r-recursiveworldnode",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| BSP clipping (`R_RecursiveWorldNode`) | Mixed: -4.651% to +55.931% | 0.2749% slower | C default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#span16-dword-stores-d-draw16-s",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Span16 dword stores (`d_draw16.s`) | Checksum pass | Median 68.958760 s vs 68.958817 s (noise) | `byte` default; `dword` opt-in |"
+      },
+      {
+        "id": "ASM486-HANDOFF#span16-dword-stores-recheck-current-source-486-profile",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Span16 dword stores recheck (current source, 486 profile) | Three no-FPS-stat runs: 62.568941 / 62.568978 / 62.568999 s; checksum pass | Matching byte runs: 62.569014 / 62.568957 / 62.568953 s; medians differ by ~1 microsecond | `byte` remains default |"
+      },
+      {
+        "id": "ASM486-HANDOFF#aff8-z-store-scheduling-probe-d-polysa-s",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Aff8 Z-store scheduling probe (`d_polysa.s`) | Moved Z store ahead of skin load in all eight pixels | 62.568983 / 62.569006 / 62.569015 s; ~27 microseconds slower than matched byte baseline; checksum pass | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#span16-loop-stosb-d-draw16-s",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Span16 loop+stosb (`d_draw16.s`) | Checksum pass | 70.980641 s / 13.651610 FPS, ~2.8% slower | `byte` default; `loop` opt-in |"
+      },
+      {
+        "id": "ASM486-HANDOFF#surface-block-movw-block8-h",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Surface block `movw` (`block8.h`) | Checksum pass | Noise vs byte stores | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#surface-wrap-cache-guard-alias-view-matrix",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Surface wrap + cache guard + alias view matrix | Inlined, no new helper | 68.946370 s / 14.054401 FPS, 12.4 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#aggressive-o3-vs-o2",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Aggressive `-O3` vs `-O2` | Checksum pass; `+quit` smoke pass | 68.421397 s / 14.162237 FPS | **Default**; `-O2` is `-OptimizationProfile baseline` |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bmodel-span-rotation-cache-d-edge-c-r-rotatebmodelcached",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Bmodel span rotation cache (`d_edge.c` / `R_RotateBmodelCached`) | Id per-polygon `sin`/`cos` FIXME | 68.379696 s / 14.170874 FPS, 41.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#fused-first-style-lightmap-r-buildlightmap",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Fused first-style lightmap (`R_BuildLightMap`) | Ambient+style0 in one write pass | 68.309838 s / 14.185365 FPS, 69.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#fused-one-style-normalize-r-buildlightmap",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Fused one-style normalize (`R_BuildLightMap`) | Invert/clamp in the first write when there are no extra styles or dlights | 68.265779 s / 14.194521 FPS, 44.1 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#one-style-lightmap-inverse-base-hoist-r-buildlightmap",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| One-style lightmap inverse-base hoist (`R_BuildLightMap`) | Hoist `255*256 - ambient` out of the common no-dlight texel loop | 62.052978 s / 15.615689 FPS median vs 62.057653 s / 15.614513 FPS baseline; 0.0075% faster, checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#dynamic-light-s-axis-accumulator-r-adddynamiclights-r-dlightcontributes",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Dynamic-light S-axis accumulator (`R_AddDynamicLights`, `R_DlightContributes`) | Replace repeated `local[0] - s*16` calculation with an integer scanline accumulator; preserve sample order | 62.018356 s / 15.624406 FPS median; 34.6 ms faster than the prior default, checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#z-gradient-cache-key-r-setsurfacezgradients",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Z-gradient cache key (`R_SetSurfaceZGradients`) | Use the stable drawing entity pointer instead of three `modelorg` float comparisons | 61.989240 s / 15.631745 FPS median across five runs; checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bsp-visibility-predicate-order-r-recursiveworldnode",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| BSP visibility predicate order (`R_RecursiveWorldNode`) | Check `visframe` before the surface backface flag in both node surface loops | 61.976925 s / 15.634851 FPS median across five runs; 12.3 ms faster, checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#zero-step-z-span-stores-d-drawzspans",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Zero-step Z-span stores (`D_DrawZSpans`) | When fixed-point `izistep` is zero, reuse the initial-Z result with `rep stosw` instead of per-pixel gradient updates | 61.559877 s / 15.740772 FPS median across five runs; checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bsp-node-visibility-predicate-order-r-recursiveworldnode",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| BSP node visibility predicate order (`R_RecursiveWorldNode`) | Reject stale node `visframe` before checking `CONTENTS_SOLID` | 61.556783 s / 15.741564 FPS median across five runs; 3.1 ms faster, checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#integer-subdivided-alias-cull-determinant-d-polysetdraw",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Integer subdivided alias cull determinant (`D_PolysetDraw`) | Replace the six-load x87 determinant with the matching 32-bit integer expression used by the non-subdivided path | 61.496717 s / 15.756939 FPS median across three runs; 60.1 ms faster, checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#integer-determinant-base-restore-d-polysetdraw",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Integer determinant base restore (`D_PolysetDraw`) | Restore `%edi` from stable `r_affinetridesc.pfinalverts` instead of stack push/pop around the scratch determinant | 61.487373 s / 15.759333 FPS median across five runs; 9.3 ms faster, checksum pass | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#z-span-first-pair-packing-d-drawzspans",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Z-span first-pair packing (`D_DrawZSpans`) | Pack the first aligned depth pair with 486 `shldl`/`rorl` in both gradient signs; fixed-point stepping and later pair schedule unchanged | 60.901914 / 60.901634 / 60.901646 s; median 60.901646 s / 15.910900 FPS; framebuffer checksum `4154140932` on every run | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#fused-extra-style-normalize-r-buildlightmap",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Fused extra-style normalize (`R_BuildLightMap`) | Same one-pass invert/clamp for 2--4 styles when there are no dlights | 68.265121 s / 14.194657 FPS, 0.66 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#integer-dlight-inner-loop-r-adddynamiclights",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Integer dlight inner loop (`R_AddDynamicLights`) | Integer distance + row pointer; `R_AddDynamicLights_C` kept | 68.209972 s / 14.206133 FPS, 55.1 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#face-z-gradient-cache-r-setsurfacezgradients",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Face Z-gradient cache (`R_SetSurfaceZGradients`) | Reuse one plane's `d_zistep` while `modelorg` is stable; original math on miss | 68.198777 s / 14.208466 FPS, 11.2 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#pot-column-wrap-r-drawsurface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| POT column wrap (`R_DrawSurface`) | AND wrap on power-of-two mip widths; compare/branch remains the non-POT path | 68.197221 s / 14.208790 FPS, 1.6 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-anglevectors-cache-r-aliassetuptransform",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias `AngleVectors` cache (`R_AliasSetUpTransform`) | 16-slot per-frame basis reuse; `AngleVectors` miss path | 68.212837 s / 14.205537 FPS, 15.6 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#direct-mip0-drawer-r-drawsurface",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Direct mip0 drawer (`R_DrawSurface`) | Direct `R_DrawSurfaceBlock8_mip0` in the POT column loop | 68.198298 s / 14.208566 FPS, 1.1 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#z-span-row-table-d-drawzspans",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Z-span row table (`D_DrawZSpans`) | Use existing `zspantable` instead of IMUL `d_zrowbytes`; C multiply kept | 68.049361 s / 14.239663 FPS, 147.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#texture-span-row-table-d-drawspans16",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Texture-span row table (`D_DrawSpans16`) | `viewspantable` dest rows instead of `d_scantable` plus `d_viewbuffer`; C multiply kept | 67.999624 s / 14.250078 FPS, 49.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#extra-viewspantable-dest-sites",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Extra `viewspantable` dest sites | Same table in polyset, sprites, and particles | 67.990997 s / 14.251887 FPS, 8.6 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#sprite-particle-z-row-table",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Sprite/particle Z row table | `zspantable` instead of IMUL `d_zrowbytes` in `d_spr8.s` / `d_parta.s` | 67.986326 s / 14.252866 FPS, 4.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#remainder-t-zero-cachewidth-skip-d-drawspans16",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Remainder t-zero cachewidth skip (`D_DrawSpans16`) | Skip remainder IMUL when integer t-step is 0 | 68.007120 s / 14.248508 FPS, 20.8 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#texture-source-row-table-cachespantable",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Texture-source row table (`cachespantable`) | Per-surface `cacheblock+t*cachewidth` table for span starts | 68.333304 s / 14.180494 FPS, 347 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#2x-surface-cache-surfcache-size-at-320x200",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| 2x surface cache (`SURFCACHE_SIZE_AT_320X200`) | 1200 KB instead of 600 KB | 67.415956 s / 14.373452 FPS, 570.4 ms faster | Ladder; 3x kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#3x-surface-cache-surfcache-size-at-320x200",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| 3x surface cache (`SURFCACHE_SIZE_AT_320X200`) | 1800 KB instead of 600 KB | 67.249168 s / 14.409100 FPS, 166.8 ms faster than 2x | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#turbulent-dest-rows-turbulent8",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Turbulent dest rows (`Turbulent8`) | `viewspantable[v] + u` instead of `screenwidth * v` | 67.247873 s / 14.409378 FPS, 1.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#static-surface-cache-hit-path-d-cachesurface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Static surface-cache hit path (`D_CacheSurface`) | Skip `R_TextureAnimation` and `r_drawsurf` stores on static hits | 67.229543 s / 14.413306 FPS, 18.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#finalverts-clip-hoist-d-polysetdrawfinalverts",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| FinalVerts clip hoist (`D_PolysetDrawFinalVerts`) | Hoist `vrectright`/`vrectbottom` out of the vertex loop | 67.218606 s / 14.415652 FPS, 10.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#unused-extra-style-skip-d-cachesurface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Unused extra-style skip (`D_CacheSurface`) | Skip lightadj[1-3] compares when `styles[1]==255` | 67.200437 s / 14.419549 FPS, 18.2 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-raster-dest-z-tables-d-rasterizealiaspolysmooth",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias raster dest/Z tables (`D_RasterizeAliasPolySmooth`) | `viewspantable`/`zspantable` instead of `ystart` IMUL | 67.185736 s / 14.422704 FPS, 14.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#face-edge-setup-r-renderface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Face edge setup (`R_RenderFace`) | Hoist `surfedges + firstedge`; unroll 4 clip-plane links | 67.097222 s / 14.441731 FPS, 88.5 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bmodel-clip-unroll-r-renderbmodelface",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Bmodel clip unroll (`R_RenderBmodelFace`) | Same 4 clip-plane links as world faces | 67.097295 s / 14.441715 FPS, 0.07 ms, overlapping ranges | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bmodel-surfedges-hoist-r-drawsolidclippedsubmodelpolygons",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Bmodel surfedges hoist (`R_DrawSolidClippedSubmodelPolygons`) | `pmodel->surfedges + firstedge` like world faces | 67.096341 s / 14.441920 FPS, 0.88 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#surface-draw-8-bit-setup-r-drawsurface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Surface draw 8-bit setup (`R_DrawSurface`) | Skip `r_pixbytes` 16-bit path; reuse `r_stepback` for `r_sourcemax` | 67.093880 s / 14.442450 FPS, 2.46 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#mipscale-step-tables-d-calcgradients",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Mipscale step tables (`D_CalcGradients`) | Precompute `xscaleinv`/`yscaleinv`/`0x10000` × mip once per frame | 67.091882 s / 14.442880 FPS, 2.0 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#unused-surfscale-fdiv-d-cachesurface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Unused surfscale FDIV (`D_CacheSurface`) | Skip `1.0/(1<<mip)` and unread `cache->mipscale` store | 67.085585 s / 14.444235 FPS, 6.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#skip-live-blocksize-r-drawsurface",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Skip live `blocksize` (`R_DrawSurface`) | Stop storing 16-bit block globals; dest used local step only | checksum `2281919689` | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#r-drawsurface-surfmip-hoist",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| `R_DrawSurface` surfmip hoist | Local `mip` for rebuild setup shifts | 67.085593 s / 14.444234 FPS, noise | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#mip-scaled-modelorg-d-calcgradients",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Mip-scaled modelorg (`D_CalcGradients`) | Precompute `transformed_modelorg × mip` on world/bmodel switch | 67.096034 s / 14.441986 FPS, 4.2 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#drawsurfaces-restore-set-call-skip",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| DrawSurfaces Restore/Set CALL skip | Skip no-op `D_RestoreWorldDrawingState` / same-entity `D_SetBmodelDrawingState` | 67.093276 s / 14.442580 FPS, 1.4 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#direct-d-drawspans16",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Direct `D_DrawSpans16` | Compare `d_drawspans` and call 16-pixel drawer directly | 67.101141 s / 14.440887 FPS, 9.3 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#world-r-drawpolys-hoist",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| World `r_drawpolys` hoist | Duplicate surface loops so span path skips poly dispatch | hitch min 1.89 FPS | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-skintable-start-addr",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias `skintable` start addr | Always `D_PolysetUpdateTables`; row lookup instead of `t*skinwidth` | 67.270496 s / 14.404533 FPS, 178.6 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#face-vert-base-hoist-r-renderface",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Face vert-base hoist (`R_RenderFace`) | Local `r_pcurrentvertbase` for `R_ClipEdge` | 67.123877 s / 14.435996 FPS, 32.0 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#fused-smax-pot-wrap-r-drawsurface",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Fused smax POT wrap (`R_DrawSurface`) | One POT test for soffset wrap and column loop | hitch min 1.91 FPS | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#face-model-hoist-r-renderface",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Face model hoist (`R_RenderFace`) | Local `currententity->model` for edges/surfedges | 67.093926 s / 14.442440 FPS, 0.05 ms, run-1 outlier | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#animatelight-length-1-skip-r-animatelight",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| AnimateLight length-1 skip (`R_AnimateLight`) | Skip `i % len` when `len==1` | 67.095987 s / 14.441996 FPS, 2.1 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#gradient-step-cache-d-calcgradients",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Gradient step cache (`D_CalcGradients`) | Reuse s/t step-origin while texinfo/mip/modelorg match | 67.220030 s / 14.415346 FPS, 34.3 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#unclipped-alias-movzbl-expand-r-aliasa-s",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Unclipped alias `movzbl` expand (`r_aliasa.s`) | Full-dword vertex expand like the clipped helper | 67.200278 s / 14.419583 FPS, 0.16 ms, overlapping ranges | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#inlined-fused-frustum-r-recursiveworldnode",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Inlined fused frustum (`R_RecursiveWorldNode`) | Multiply `minmaxs` into the plane; no `rejectpt` stores | 67.200552 s / 14.419524 FPS, hitch min 1.87 FPS | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#finalverts-colormap-hoist-d-polysetdrawfinalverts",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| FinalVerts colormap hoist (`D_PolysetDrawFinalVerts`) | Stack-cache `acolormap` next to clip edges | 67.200621 s / 14.419510 FPS, 0.18 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#turbulent-last-segment-divisor-switch",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Turbulent last-segment divisor switch | Constant `/1`..`/15` so GCC emits IMUL magic | 67.275508 s / 14.403459 FPS, 27.6 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-pot-skinwidth-shift-d-polysetcalcgradients",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias POT skinwidth shift (`D_PolysetCalcGradients`) | `shll %cl` when skinwidth is POT, IMUL fallback | 67.260820 s / 14.406604 FPS, 11.7 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#preparepoints-clip-hoist-r-aliaspreparepoints",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| PreparePoints clip hoist (`R_AliasPreparePoints`) | Locals for `aliasvrect` clip edges | 67.234277 s / 14.412292 FPS, 15.7 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#1900-kb-surface-cache",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| 1900 KB surface cache | between 1800 and 2100 | checksum `2955717646` | Reverted — **superseded 2026-09-29, the checksum was a confounded build; 1900 KB is correct and faster** |"
+      },
+      {
+        "id": "ASM486-HANDOFF#2000-kb-surface-cache",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| 2000 KB surface cache | between 1800 and 2100 | checksum `2955717646` | Reverted — **superseded 2026-09-29, as above** |"
+      },
+      {
+        "id": "ASM486-HANDOFF#2100-kb-surface-cache",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| 2100 KB surface cache | between 1800 and 2400 | checksum `2955717646`; run 1 hitch min 1.72 FPS | Reverted — **superseded 2026-09-29, as above** |"
+      },
+      {
+        "id": "ASM486-HANDOFF#4x-surface-cache-surfcache-size-at-320x200",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| 4x surface cache (`SURFCACHE_SIZE_AT_320X200`) | 2400 KB | checksum `2955717646` | Reverted — **superseded 2026-09-29; 2400 KB is now the default, 0.0635% faster at checksum `1047377823`** |"
+      },
+      {
+        "id": "ASM486-HANDOFF#aggressive-funroll-loops-build-dos-ps1",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Aggressive `-funroll-loops` (`build-dos.ps1`) | Faster but wrong FB | 66.801015 s / 14.505767 FPS; checksum `2623602099` | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#marklights-plane-cull-r-marklights",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| MarkLights plane cull (`R_MarkLights`) | Same reject as `R_AddDynamicLights` | 66.776824 s / 14.511022 FPS, 185.8 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#marklights-s-t-extent-cull-r-marklights",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| MarkLights S/T extent cull (`R_MarkLights`) | AABB expand by `fmin` after plane reject | 64.253958 s / 15.080783 FPS, 2522.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#marklights-idist-cull-r-marklights",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| MarkLights idist cull (`R_MarkLights`) | Clamp-to-rect idist replaces AABB expand | 64.128594 s / 15.110264 FPS, 125.4 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#marklights-2x2-sample-cull-r-marklights",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| MarkLights 2x2 sample cull (`R_MarkLights`) | Exact 2x2 discrete idist vs continuous clamp | 64.241100 s / 15.083802 FPS, 112.5 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#dlight-sample-window-r-adddynamiclights",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Dlight sample window (`R_AddDynamicLights`) | Clamp s/t loops to idist-feasible indices | run 2 checksum `696680082` | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#sticky-dlight-cache-flag-d-cachesurface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Sticky dlight cache flag (`D_CacheSurface`) | `cache->dlight` only if a sample was lit | 64.113828 s / 15.113744 FPS, 14.8 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-adivtab-32-64-d-polysetsetupforlinescan",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias adivtab 32→64 (`D_PolysetSetUpForLineScan`) | Wider table hit, same FloorDivMod values | 64.104105 s / 15.116037 FPS, 9.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#phantom-mark-dlight-probe-d-cachesurface",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Phantom-mark dlight probe (`D_CacheSurface`) | `R_DlightContributes` skip on marked clean cache | 64.092171 s / 15.118851 FPS, 11.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#alias-clip-hoist-skip-z-reflag-r-aliasclip",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Alias clip hoist + skip Z reflag (`R_AliasClip`) | Hoist vrect; Z writes final flags | 64.134559 s / 15.108859 FPS, 42.4 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#polyset-span-advancetable-hoist-d-polysetdrawspans8",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Polyset span advancetable hoist (`D_PolysetDrawSpans8`) | Once-per-call `advancetable`/`tstep` | 64.003272 s / 15.139851 FPS, 88.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#polyset-sstep-hoist-d-polysetdrawspans8",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Polyset sstep hoist (`D_PolysetDrawSpans8`) | BSS `sstep` for `a_sstepxfrac` in pixel loop | 64.012388 s / 15.137695 FPS, 9.1 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#polyset-bresenham-const-hoist-d-polysetdrawspans8",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Polyset Bresenham const hoist (`D_PolysetDrawSpans8`) | Local copies of erroradjust*/ubasestep/countextra | 64.039951 s / 15.131180 FPS, 36.7 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#left-edge-s-t-step-cse-d-rasterizealiaspolysmooth",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Left-edge s/t step CSE (`D_RasterizeAliasPolySmooth`) | Reuse base products for extra steps | 63.984395 s / 15.144318 FPS, 18.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#left-edge-ptexextrastep-via-a-ststepxwhole",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Left-edge ptexextrastep via `a_ststepxwhole` | Carry-adjust + branch instead of skinwidth IMUL | 64.060863 s / 15.126241 FPS, 76.5 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#z-span-list-cursor-in-ebp-d-drawzspans",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Z-span list cursor in `%ebp` (`D_DrawZSpans`) | Drop per-span push/pop of span pointer | 63.895076 s / 15.165488 FPS, 89.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#z-span-odd-pixel-tag-in-ebp-bit0-d-drawzspans",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Z-span odd-pixel tag in `%ebp` bit0 (`D_DrawZSpans`) | Drop count push/pop via pointer tag | 63.959669 s / 15.150173 FPS, 64.6 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-skinwidth-stack-hoist-d-polysetscanleftedge",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge skinwidth stack hoist (`D_PolysetScanLeftEdge`) | Push skinwidth once; `addl (%esp)` on tfrac carry | 63.905049 s / 15.163121 FPS, 10.0 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-package-cursor-in-esi-d-polysetscanleftedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge package cursor in `%esi` (`D_PolysetScanLeftEdge`) | Keep `d_pedgespanpackage` live; publish once on exit | 63.783005 s / 15.192135 FPS, 112.1 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#drawspans8-stack-live-aspancount-errorterm-d-polysetdrawspans8",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| DrawSpans8 stack-live aspancount/errorterm (`D_PolysetDrawSpans8`) | Stack copies for outer right-edge loop | 63.819708 s / 15.183397 FPS, 36.7 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-pdest-pz-cursors-d-polysetscanleftedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge pdest/pz cursors (`D_PolysetScanLeftEdge`) | `%edi`/`%ebp` live; light/zi on stack | 63.741911 s / 15.201929 FPS, 41.1 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-aspancount-stack-d-polysetscanleftedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge aspancount stack (`D_PolysetScanLeftEdge`) | Spill `d_aspancount` beside light/zi; write back once | 63.726061 s / 15.205710 FPS, 15.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#sky-viewspantable-dest-d-drawskyscans8",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Sky `viewspantable` dest (`D_DrawSkyScans8`) | Same table as texture spans | Noise vs aspancount default (~0.01 ms) | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#span16-s-t-integer-cse-d-draw16-s",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Span16 s/t integer CSE (`d_draw16.s`) | Keep clamped s/t in regs across sfrac/tfrac shifts | 63.784645 s / 15.191744 FPS, ~43 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#span16-early-pnext-preload-d-draw16-s",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Span16 early `pnext` preload (`d_draw16.s`) | Store next span in `pspantemp` during FDIV setup | Noise / slight loss vs aspancount default | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-erroradjust-stack-d-polysetscanleftedge",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge erroradjust stack (`D_PolysetScanLeftEdge`) | Spill `erroradjustup`/`down` beside aspancount | Hitch min 1.93 FPS; ~13 ms slower median | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-errorterm-stack-d-polysetscanleftedge",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge errorterm stack (`D_PolysetScanLeftEdge`) | Spill `errorterm` beside aspancount | ~13 ms slower than aspancount-only | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#turbulent-sstep-tstep-pbase-stack-hoist-d-drawturbulent8span-asm486",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Turbulent sstep/tstep/pbase stack hoist (`D_DrawTurbulent8Span_asm486`) | Snapshot three span-invariant globals once | 63.743347 s / 15.201586 FPS, ~17 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#edge-scan-surfaces-cse-r-generatespans-lgs-leading",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Edge-scan surfaces CSE (`R_GenerateSpans` / `Lgs_leading`) | Drop dead `movl C(surfaces),%eax` before leading add | 63.652849 s / 15.223200 FPS, 73.2 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#edge-scan-both-edges-leading-precompute-r-generatespans",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Edge-scan both-edges leading precompute (`R_GenerateSpans`) | Finish leading surf* before `TrailingEdge`; drop post-call reload | 63.654537 s / 15.222796 FPS, ~1.7 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#edge-scan-dead-st-key-reload-lnewtop-fpop2",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Edge-scan dead `st_key` reload (`Lnewtop_fpop2`) | Remove load overwritten by `Lnewtop` | 63.652266 s / 15.223339 FPS, 0.58 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#trailingedge-st-next-cse-trailingedge",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| TrailingEdge `st_next` CSE (`TrailingEdge`) | Reuse `%ecx` instead of reloading `st_next` | ~63.652240 s, ~0.03 ms (noise) | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#drawspans8-aspancount-register-cse-d-polysetdrawspans8",
+        "outcome": "rejected",
+        "heading": "Completed experiments and decisions",
+        "quote": "| DrawSpans8 aspancount register CSE (`D_PolysetDrawSpans8`) | Keep original aspancount in `%ebp` for += | ~63.652379 s, ~0.11 ms slower | Reverted |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-pretouch-removal-d-polysetscanleftedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge pretouch removal (`D_PolysetScanLeftEdge`) | Drop discarded `movb` cache pretouch | 63.623244 s / 15.230283 FPS, 29.0 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-pretouch-removal-r-emitedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge pretouch removal (`R_EmitEdge`) | Drop discarded next-edge `movl (%edx),%eax` on both sides | 63.614724 s / 15.232323 FPS, 8.5 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#trailingedge-unlink-via-live-ecx-trailingedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| TrailingEdge unlink via live `%ecx` (`TrailingEdge`) | Use preloaded `st_next` directly on emit/LNoEmit2; no reload or `movl %ecx,%edx` | 63.583628 s / 15.239772 FPS, 31.1 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-single-r-pedge-load-r-emitedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge single `r_pedge` load (`R_EmitEdge`) | Drop preload into `%esi`; load once after horizontal early-out for `et_owner` | 63.573196 s / 15.242273 FPS, 10.4 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#trailingedge-skip-r-bmodelactive-rmw-trailingedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| TrailingEdge skip `r_bmodelactive` RMW (`TrailingEdge`) | Skip load/sub/store when `insubmodel==0` | 63.523798 s / 15.254125 FPS, 49.4 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#bmodel-incl-decl-r-bmodelactive-trailingedge-lbmodel-leading",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Bmodel `incl`/`decl` `r_bmodelactive` (`TrailingEdge` / `Lbmodel_leading`) | Memory inc/dec instead of load/add/store; world skip kept | 63.500960 s / 15.259612 FPS, 22.8 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-drop-unused-clipped-r-pedge-load-r-emitedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge drop unused clipped `r_pedge` load (`R_EmitEdge`) | Fully-clipped path wrote only `cacheoffset`; `%ecx` load was dead | 63.488089 s / 15.262705 FPS, 12.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#trailingedge-memory-decl-spanstate-trailingedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| TrailingEdge memory `decl` spanstate (`TrailingEdge`) | `--surf->spanstate` via `decl mem`; drop inverted-path store | 63.355125 s / 15.294737 FPS, 133.0 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#leading-spanstate-movl-1-lgs-leading-lbmodel-leading",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Leading spanstate `movl $1` (`Lgs_leading` / `Lbmodel_leading`) | Known-zero fall-through stores 1; skip `incl`/%edx | 63.281476 s / 15.312538 FPS, 73.6 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-defer-edge-p-past-horizontal-early-out-r-emitedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge defer `edge_p` past horizontal early-out (`R_EmitEdge`) | Load `edge_p`+`leal` next only when emitting; CF preserved | 63.267301 s / 15.315969 FPS, 14.2 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#recursivetriangle-live-new-0-new-1-d-polysetrecursivetriangle",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| RecursiveTriangle live new[0]/new[1] (`D_PolysetRecursiveTriangle`) | Reuse Z-setup `%ecx`/`%ebp`; `movzbl` colormap; drop stack reloads | 63.265453 s / 15.316416 FPS, 1.8 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#aff8-pixel-movzbl-colormap-index-d-polysetdrawspans8",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Aff8 pixel `movzbl` colormap index (`D_PolysetDrawSpans8`) | Replace `xorl`+`movb` with `movzbl` in LDraw8–1 / one-long | 63.179599 s / 15.337229 FPS, 85.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#finalverts-movzbl-skin-texel-d-polysetdrawfinalverts",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| FinalVerts `movzbl` skin texel (`D_PolysetDrawFinalVerts`) | Drop `movb`+`andl $0x00FF`; zero-extend into colormap add | 63.178180 s / 15.337574 FPS, 1.4 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#drawsubdiv-defer-d-pcolormap-past-cull-d-drawsubdiv",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| DrawSubdiv defer `d_pcolormap` past cull (`D_DrawSubdiv`) | Set colormap only when triangle will draw; match C order | 63.145837 s / 15.345430 FPS, 32.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#aff8-one-long-defer-ptex-past-z-lexactlyonelong",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Aff8 one-long defer `ptex` past Z (`LExactlyOneLong`) | Skip skin load on occluded one-pixel Aff8 spans | 63.143310 s / 15.346044 FPS, 2.5 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#recursivetriangle-defer-lp2-0-d-polysetrecursivetriangle",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| RecursiveTriangle defer `lp2[0]` (`D_PolysetRecursiveTriangle`) | Load `lp2[0]` only on equal-`y` nodraw test; flags preserved | 63.141084 s / 15.346585 FPS, 2.2 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#recursivetriangle-defer-split-path-prefetches-d-polysetrecursivetriangle",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| RecursiveTriangle defer split-path prefetches (`D_PolysetRecursiveTriangle`) | Load next-edge `lp3[0]`/`lp1[0]` only after `|dy|` fails to split | 63.139434 s / 15.346986 FPS, 1.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#recursivetriangle-defer-dy-y-loads-past-dx-d-polysetrecursivetriangle",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| RecursiveTriangle defer `|dy|` y-loads past `|dx|` (`D_PolysetRecursiveTriangle`) | Skip same-edge y loads on `|dx|` early-out; fix `LSplit3` rotate | 63.121804 s / 15.351272 FPS, 17.6 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#stepactiveu-defer-et-prev-et-next-past-aftertail-r-stepactiveu",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| StepActiveU defer `et_prev`/`et_next` past aftertail (`R_StepActiveU`) | Match C: early-out before unlink loads on every scanline finish | 63.112658 s / 15.353497 FPS, 9.1 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#insertnewedges-defer-et-next-past-et-u-probes-1-3-r-insertnewedges",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| InsertNewEdges defer `et_next` past `et_u` (probes 1–3) (`R_InsertNewEdges`) | Skip next-edge load on taken early-out; keep probe-4 `jg` fallthrough | 63.105267 s / 15.355295 FPS, 7.4 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#stepactiveu-defer-et-prev-past-first-et-u-lpushbackloop",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| StepActiveU defer `et_prev` past first `et_u` (`LPushBackLoop`) | Skip prev load on taken pushback early-out; probe 2 unchanged | 63.103178 s / 15.355803 FPS, 2.1 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-defer-r-framecount-past-cacheoffset-eo-lpop5anddone",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge defer `r_framecount` past cacheoffset EO (`LPop5AndDone`) | Match C: load framecount only when tagging fully-clipped cache | 63.102686 s / 15.355923 FPS, 0.5 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#stepactiveu-defer-step-loop-et-next-past-order-eo-r-stepactiveu",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| StepActiveU defer step-loop `et_next` past order EO (`R_StepActiveU`) | Probes 1–3; load continuation only after aftertail; drop dup unlink load | 63.091427 s / 15.358664 FPS, 11.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#removeedges-both-stores-then-advance-r-removeedges",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| RemoveEdges both-stores-then-advance (`R_RemoveEdges`) | Match C unlink; drop `%ebx` push/pop and odd-tail `Lre_done` store | 63.087263 s / 15.359677 FPS, 4.2 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#finalverts-aff8-style-light-8-colormap-index-d-polysetdrawfinalverts",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| FinalVerts Aff8-style light<<8 colormap index (`D_PolysetDrawFinalVerts`) | `movb` high byte of `v[4]` into `%dh`; drop dword/`andl`/`addl` | 63.084374 s / 15.360381 FPS, 2.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#leading-memory-cmpl-first-st-key-lgs-leading-lbmodel-leading",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Leading memory `cmpl` first `st_key` (`Lgs_leading` / `Lbmodel_leading`) | Drop `surf2->key` preload; dead on newtop / 1/z-check | 63.012013 s / 15.378020 FPS, 72.4 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#recursivetriangle-keep-live-new-0-new-1-into-ldraw-d-polysetrecursivetriangle",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| RecursiveTriangle keep live new[0]/new[1] into LDraw (`D_PolysetRecursiveTriangle`) | Equal-y uses `%eax` for `lp2[0]`; skip stack reloads at draw entry | 63.006559 s / 15.379351 FPS, 5.5 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#leading-sort-loop-memory-cmpl-st-key-lsortloopnb-lsortloop",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Leading sort-loop memory `cmpl` `st_key` (`Lsortloopnb` / `Lsortloop`) | Drop per-probe key preload; same pattern as first-key keep | 62.953783 s / 15.392244 FPS, 52.8 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#aff8-multi-skip-dead-last-group-stepper-lp8",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Aff8 multi skip dead last-group stepper (`Lp8`) | `decw`/`jz` before s/t/z/ptex advance on final group | 62.830543 s / 15.422436 FPS, 123.2 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#insertnewedges-memory-cmpl-et-u-r-insertnewedges",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| InsertNewEdges memory `cmpl et_u` (`R_InsertNewEdges`) | Drop `%ebx` key preload per probe; keep probe-4 `jg` fallthrough | 62.787258 s / 15.433068 FPS, 43.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#stepactiveu-lpushbackloop-memory-cmpl-et-u-r-stepactiveu",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| StepActiveU `LPushBackLoop` memory `cmpl et_u` (`R_StepActiveU`) | Drop `%ebx` key preload on pushback walk probes | 62.783533 s / 15.433983 FPS, 3.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#trailingedge-memory-cmpl-st-last-u-trailingedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| TrailingEdge memory `cmpl st_last_u` (`TrailingEdge`) | Load `last_u` into `%edx` only on emit; dead on `LNoEmit2` | 62.782647 s / 15.434201 FPS, 0.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#scanleftedge-skip-dead-last-row-bresenham-d-polysetscanleftedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| ScanLeftEdge skip dead last-row Bresenham (`D_PolysetScanLeftEdge`) | `decl`/`jz` before step after last package; shared epilogue | 62.753905 s / 15.441270 FPS, 28.7 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#stepactiveu-memory-addl-et-u-step-r-stepactiveu",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| StepActiveU memory `addl et_u_step` (`R_StepActiveU`) | Drop `%ebx` u_step preload on all four step probes | 62.649598 s / 15.466979 FPS, 104.3 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#leading-lnewtop-memory-cmpl-st-last-u-r-generatespans",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| Leading `Lnewtop` memory `cmpl st_last_u` (`R_GenerateSpans`) | Load `last_u` into `%edx` only on emit; same as TrailingEdge | 62.623729 s / 15.473368 FPS, 25.9 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-defer-r-ceilv1-past-horizontal-eo-r-emitedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge defer `r_ceilv1` past horizontal EO (`R_EmitEdge`) | Memory `cmpl`; load `%ecx` only when emitting; CF kept for side | 62.621766 s / 15.473853 FPS, 2.0 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#recursivetriangle-memory-addl-s-t-zi-midpoints-d-polysetrecursivetriangle",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| RecursiveTriangle memory `addl` s/t/zi midpoints (`D_PolysetRecursiveTriangle`) | Drop lp2 preloads for new[2]/[3]/[5]; keep lp1 x/y live for nodraw | 62.605144 s / 15.477961 FPS, 16.6 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-memory-cmpl-u-clamp-r-emitedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge memory `cmpl` u-clamp (`R_EmitEdge`) | Load vrect clamp bounds into `%edx` only when clamping | 62.588326 s / 15.482121 FPS, 16.8 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#emitedge-memory-subl-surfaces-r-emitedge",
+        "outcome": "accepted",
+        "heading": "Completed experiments and decisions",
+        "quote": "| EmitEdge memory `subl surfaces` (`R_EmitEdge`) | Drop `surfaces` preload into `%esi`; set sort side from `%edx`/immediate | 62.580291 s / 15.484108 FPS, 8.0 ms faster | Kept |"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-204034",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "`Lgs_lastspan` memory `cmpl st_last_u`"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-201944",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Aff8 DrawSpans8 skip last-span right-edge Bresenham"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-195244",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Particle NxN drop `%esi` push; use dead `%eax` for `d_zrowbytes`"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-185246",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Leading inverted `Lxl_done` memory `incl` spanstate"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-181715",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "EmitEdge defer `r_ceilv1` fistl past `r_nearzionly` (`out\\dos-timedemo-20260915-181715`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-172816",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Sprite `D_SpriteDrawSpans` v/u CSE across Z and dest setup"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-170311",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Particle defer rect-edge loads past clip early-outs (`D_DrawParticle`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-161932",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "RecursiveTriangle keep `lp2[1]` live via `leal` for nodraw compare"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-154519",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "InsertNewEdges defer `et_next` on all four probes with `jle`+`jmp`"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-152701",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "InsertNewEdges unify `LAddedge2` into `LAddedge` (`out\\dos-timedemo-20260915-152701`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-152226",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Sprite `Spr8Entry2_8` drop dead texel preload (`out\\dos-timedemo-20260915-152226`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-151700",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Aff8 hoist `pz`/`zi` before one-long vs multi (`out\\dos-timedemo-20260915-151700`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-135449",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Particle defer `pt_color` past Z (`out\\dos-timedemo-20260915-135449`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-123249",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Leading defer `surfaces[1].next` past inverted early-out"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-120218",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "TrailingEdge hoist `st_next` into `%ecx` for `LNoEmit`"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-112708",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "EmitEdge `r_pedge`/`et_owner` into FDIV shadow (`out\\dos-timedemo-20260915-112708`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-113155",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "PolysetCalcGradients s/t step CSE (`out\\dos-timedemo-20260915-113155`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-110203",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Leading spanstate-before-insubmodel reorder (`out\\dos-timedemo-20260915-110203`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#20260915-103436",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "Span16 FILD-overlapped v/u loads (`out\\dos-timedemo-20260915-103436`)"
+      },
+      {
+        "id": "ASM486-HANDOFF#hdpmi32",
+        "outcome": "rejected",
+        "heading": "Failed or inconclusive work",
+        "quote": "HDPMI32 as an alternate DPMI server"
+      }
+    ],
+    "INDEX.md": [],
+    "microbenchmark-results.md": [
+      {
+        "id": "microbenchmark-results#runtime-memory-helpers-initial",
+        "outcome": "rejected",
+        "heading": "Runtime memory-helper result"
+      },
+      {
+        "id": "microbenchmark-results#seeded-negative-gradient-unroll",
+        "outcome": "rejected",
+        "heading": "Rejected negative-gradient Z-span unroll"
+      },
+      {
+        "id": "microbenchmark-results#unrolled-frustum-port",
+        "outcome": "accepted",
+        "heading": "2026-10-16 unrolled assembly follow-up"
+      }
+    ],
+    "timedemo-baseline-history.md": [
+      {
+        "id": "timedemo-baseline-history#lightmap-styles",
+        "outcome": "accepted",
+        "heading": "Lightmap style accumulation"
+      },
+      {
+        "id": "timedemo-baseline-history#fused-lightmap",
+        "outcome": "accepted",
+        "heading": "Lightmap style accumulation"
+      },
+      {
+        "id": "timedemo-baseline-history#alias-matrix-special",
+        "outcome": "accepted",
+        "heading": "Lightmap style accumulation"
+      },
+      {
+        "id": "timedemo-baseline-history#dynamic-light-sample",
+        "outcome": "accepted",
+        "heading": "Lightmap style accumulation"
+      },
+      {
+        "id": "timedemo-baseline-history#vga-full-copy",
+        "outcome": "rejected",
+        "heading": "VGA full-frame copy experiment"
+      },
+      {
+        "id": "timedemo-baseline-history#cache-2048",
+        "outcome": "rejected",
+        "heading": "Surface-cache capacity and churn"
+      },
+      {
+        "id": "timedemo-baseline-history#cache-1024",
+        "outcome": "rejected",
+        "heading": "Surface-cache capacity and churn"
+      },
+      {
+        "id": "timedemo-baseline-history#header-reorder-c",
+        "outcome": "rejected",
+        "heading": "Surface-cache header locality experiment"
+      },
+      {
+        "id": "timedemo-baseline-history#header-reorder-asm",
+        "outcome": "rejected",
+        "heading": "Surface-cache header locality experiment"
+      },
+      {
+        "id": "timedemo-baseline-history#lazy-viewspantable",
+        "outcome": "accepted",
+        "heading": "Lazy viewspantable rebuild"
+      }
+    ]
+  },
+  "additionalSources": [
+    "ASM486-HANDOFF.md"
+  ]
+}
