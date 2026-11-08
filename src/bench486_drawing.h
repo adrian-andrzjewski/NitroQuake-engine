@@ -13,7 +13,8 @@ typedef struct {unsigned count,errors;bench486_drawing_event_t events[32];} benc
 typedef struct {
     viddef_t video;rectdesc_t descriptor;byte *characters;qpic_t *disc,*tile;
     cachepic_t cache[128];int cache_count,pixel_bytes;unsigned result;
-    byte framebuffer[10496],console[10496],direct[2560],version[4096];
+    /* Include row 176 while retaining the original immutable tail boundary. */
+    byte framebuffer[10496],console[10496],direct[2560],version[7096];
     int picture_width,picture_height;unsigned short palette[256];
 } bench486_drawing_state_t;
 typedef struct {
@@ -72,7 +73,7 @@ static void Bench486DrawingSave(bench486_drawing_state_t *s)
     s->result=bench486_drawing_pointer_result;Q_memcpy(s->cache,menu_cachepics,sizeof(s->cache));
     Q_memcpy(s->framebuffer,bench486_drawing_video.data,sizeof(s->framebuffer));
     Q_memcpy(s->console,bench486_drawing_console.data,sizeof(s->console));Q_memcpy(s->direct,bench486_drawing_direct.data,sizeof(s->direct));
-    Q_memcpy(s->version,bench486_drawing_conback.data+59000,sizeof(s->version));
+    Q_memcpy(s->version,bench486_drawing_conback.data+56000,sizeof(s->version));
     s->picture_width=bench486_drawing_pic.width;s->picture_height=bench486_drawing_pic.height;
     Q_memcpy(s->palette,d_8to16table,sizeof(s->palette));
 }
@@ -83,7 +84,7 @@ static void Bench486DrawingRestore(const bench486_drawing_state_t *s)
     bench486_drawing_pointer_result=s->result;Q_memcpy(menu_cachepics,(void *)s->cache,sizeof(s->cache));
     Q_memcpy(bench486_drawing_video.data,(void *)s->framebuffer,sizeof(s->framebuffer));
     Q_memcpy(bench486_drawing_console.data,(void *)s->console,sizeof(s->console));Q_memcpy(bench486_drawing_direct.data,(void *)s->direct,sizeof(s->direct));
-    Q_memcpy(bench486_drawing_conback.data+59000,(void *)s->version,sizeof(s->version));
+    Q_memcpy(bench486_drawing_conback.data+56000,(void *)s->version,sizeof(s->version));
     bench486_drawing_pic.width=s->picture_width;bench486_drawing_pic.height=s->picture_height;
     Q_memcpy(d_8to16table,(void *)s->palette,sizeof(s->palette));
 }
@@ -124,7 +125,7 @@ static void Bench486DrawingInputs(unsigned pair,unsigned pattern,unsigned sequen
     if(!sequence){
         for(i=0;i<10496;i++){bench486_drawing_video.data[i]=(byte)(i*37U+pattern);bench486_drawing_console.data[i]=(byte)(i*19U-pattern);}
         for(i=0;i<2560;i++)bench486_drawing_direct.data[i]=(byte)(i*53U+pattern);
-        for(i=59000;i<63096;i++)bench486_drawing_conback.data[i]=(byte)(i*13U+pattern);
+        for(i=56000;i<63096;i++)bench486_drawing_conback.data[i]=(byte)(i*13U+pattern);
     }
     if(!sequence || menu_numcachepics>=126){
         Q_memset(menu_cachepics,0,sizeof(menu_cachepics));menu_numcachepics=0;
@@ -181,7 +182,7 @@ static unsigned Bench486DrawingImmutable(void)
     unsigned i,hash=2166136261U;
     for(i=0;i<16384;i++)hash=(hash^bench486_drawing_chars.data[i])*16777619U;
     for(i=0;i<768;i++)hash=(hash^bench486_drawing_pic.data[i])*16777619U;
-    for(i=0;i<64000;i++)if(i<59000 || i>=63096)hash=(hash^bench486_drawing_conback.data[i])*16777619U;
+    for(i=0;i<64000;i++)if(i<56000 || i>=63096)hash=(hash^bench486_drawing_conback.data[i])*16777619U;
     for(i=0;i<64;i++)hash=(hash^bench486_drawing_tile.data[i])*16777619U;
     for(i=0;i<576;i++)hash=(hash^bench486_drawing_disc.data[i])*16777619U;
     return hash;

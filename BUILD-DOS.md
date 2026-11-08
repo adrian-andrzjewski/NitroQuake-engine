@@ -2,27 +2,64 @@
 
 ## Automatic product version and build numbers
 
-Every real `tools/build-dos.ps1` invocation reserves the next build number and
-embeds `NitroQuake v0.999+<number>`. The console background, startup banner,
-`version` command, status output, server greeting, and DOS exit screen use the
-same string. No source version edits are needed between builds.
+The console background, startup banner, `version`, status, server greeting, and
+DOS exit screen display `NitroQuake v0.999` and `Build <number>` on separate
+lines. `tools/build-dos.ps1` derives the number from the total accepted plus
+rejected optimization attempts. Rebuilding, failed builds, unrelated commits,
+independent clones, and worktrees with the same recorded attempts keep the same
+number. This identifies optimization progress, not individual binary builds.
 
-The counter is `nitroquake-build-number` in Git's common directory, shared by
-all worktrees of that checkout. An exclusive OS file lock serializes reservations,
-and atomic replacement protects the counter. Failed builds can leave gaps;
-numbers are never rolled back. Independent clones maintain independent counters.
-Source archives without Git keep the counter under `out/` instead; preserve
-that directory to preserve their numbering history.
+`tools/optimization-history.py` inventories `docs/ledger/` and the early
+`ASM486-HANDOFF.md` decisions. Git supplies reachable historical documents,
+including deleted reports. Only HEAD ancestry participates; unrelated branches
+do not contribute. Working-tree reports participate so an optimization can be
+built before its report is committed. The reviewed legacy classifications in
+`tools/optimization-history-legacy.json` resolve aggregate reports and duplicate
+write-ups; they contain source references and decisions, never a numeric offset.
+One retained early mip-0 specialization has no standalone report; its exact Git
+revision is classified in the same map and counted only when reachable from HEAD.
+The later dword-packing optimization to its helper is a separate attempt.
 
-Each build writes its own `nitroquake-build.h` beside its executable, and its
-manifest records `buildNumber`, `productVersion`, and the header hash. Variants
-using distinct output directories have separate headers. `-DumpFlags` and runners using
-`-SkipBuild` do not reserve numbers. Legacy compiles that bypass this builder
-are explicitly build zero. The numeric legacy Quake constant and wire/save
-format versions are independent of the product version.
+An attempt is a separately documented implemented candidate or independent
+variant with an acceptance or rejection decision. Accepted C-to-assembly ports
+count even when accepted on correctness alone. Distinct later investigations
+and combined candidates count separately; repeated samples and verification of
+the same investigation do not. Withdrawn candidates retain one attempt. Pure
+profiling, tests, bug repairs, documentation, and unbuilt proposals do not count.
+Early summary-table rows take precedence over their repeated narrative lists.
 
-Run `pwsh -NoProfile -File tools/test-build-number.ps1` to check reservation
-concurrency, invalid-state handling, and source-archive fallback.
+New `*-promoted.md`, `*-promotion.md`, `*-assembly-port.md`, and
+`*-release-default.md` reports automatically contribute one accepted attempt;
+`*-rejected.md` reports contribute one rejected attempt. For multi-candidate
+reports, duplicates, or outcomes that filenames cannot express, put stable IDs
+in the report (one comment per candidate):
+
+```markdown
+<!-- optimization-attempt: 2026-11-09-example-variant-a accepted -->
+<!-- optimization-attempt: 2026-11-09-example-variant-b rejected -->
+```
+
+Repeated IDs count once and conflicting outcomes fail the build. Mark pure
+evidence/meta reports with `<!-- optimization-attempts: none -->`. Unknown
+report types fail explicitly instead of silently changing the total. No build
+counter or source version needs updating. Accepted and rejected are historical
+decisions, not promises about present performance or physical 486 hardware.
+
+Every build writes `nitroquake-build.h` and `optimization-inventory.json` beside
+its executable. The manifest records the count, accepted/rejected breakdown,
+inventory digest, Git revision, and header hash. Runner freshness includes the
+inventory digest, so a newly recorded attempt invalidates an existing build.
+The builder records the inventory it embedded at build start; a report added
+during compilation leaves that executable stale for the next runner.
+Full Git history and Python 3.9+ are required; shallow clones and source archives
+fail explicitly rather than inventing a number. The former local reservation
+counter is unused and left intact. Legacy compiles bypassing the supported
+builder remain explicitly build zero. Protocol/save versions remain independent.
+
+Run `pwsh -NoProfile -File tools/test-build-number.ps1` for deterministic history,
+duplicate/variant, deletion, rename, clone, and generated-header checks.
+Inspect the full inventory with `python tools/optimization-history.py --output
+out/optimization-inventory.json`.
 
 ## Text-mode startup summary
 

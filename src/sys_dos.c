@@ -680,6 +680,8 @@ void Sys_Quit (void)
 // write the version number directly to the end screen
 	for (i=0 ; nitroquake_version[i] ; i++)
 		screen[(78 - strlen(nitroquake_version) + i)*2] = nitroquake_version[i];
+	for (i=0 ; nitroquake_build[i] ; i++)
+		screen[(80 + 78 - strlen(nitroquake_build) + i)*2] = nitroquake_build[i];
 
 	Host_Shutdown();
 
@@ -987,7 +989,7 @@ int main (int c, char **v)
 	extern void (*dos_error_func)(char *, ...);
 	static	char	cwd[1024];
 
-	printf ("%s\n", nitroquake_version);
+	printf ("%s\n%s\n", nitroquake_version, nitroquake_build);
 	
 // make sure there's an FPU
 	signal(SIGNOFP, Sys_NoFPUExceptionHandler);

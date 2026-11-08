@@ -555,16 +555,16 @@ void Draw_ConsoleBackground (int lines)
 	unsigned short	*pusdest;
 	int				f, fstep;
 	qpic_t			*conback;
-	char			ver[100];
 
 	conback = Draw_CachePic ("gfx/conback.lmp");
 
 // hack the version number directly into the pic
-	strcpy (ver, nitroquake_version);
-	dest = conback->data + 320 - (strlen(ver)*8 + 11) + 320*186;
-
-	for (x=0 ; x<strlen(ver) ; x++)
-		Draw_CharToConback (ver[x], dest+(x<<3));
+	dest = conback->data + 320 - (strlen(nitroquake_version)*8 + 11) + 320*176;
+	for (x=0 ; x<strlen(nitroquake_version) ; x++)
+		Draw_CharToConback (nitroquake_version[x], dest+(x<<3));
+	dest = conback->data + 320 - (strlen(nitroquake_build)*8 + 11) + 320*186;
+	for (x=0 ; x<strlen(nitroquake_build) ; x++)
+		Draw_CharToConback (nitroquake_build[x], dest+(x<<3));
 	
 // draw the pic
 	if (r_pixbytes == 1)
@@ -1367,16 +1367,16 @@ void Draw_ConsoleBackground_Drawing_C (int lines)
 	unsigned short	*pusdest;
 	int				f, fstep;
 	qpic_t			*conback;
-	char			ver[100];
 
 	conback = Draw_CachePic_Drawing_C ("gfx/conback.lmp");
 
 // hack the version number directly into the pic
-	strcpy (ver, nitroquake_version);
-	dest = conback->data + 320 - (strlen(ver)*8 + 11) + 320*186;
-
-	for (x=0 ; x<strlen(ver) ; x++)
-		Draw_CharToConback_Drawing_C (ver[x], dest+(x<<3));
+	dest = conback->data + 320 - (strlen(nitroquake_version)*8 + 11) + 320*176;
+	for (x=0 ; x<strlen(nitroquake_version) ; x++)
+		Draw_CharToConback_Drawing_C (nitroquake_version[x], dest+(x<<3));
+	dest = conback->data + 320 - (strlen(nitroquake_build)*8 + 11) + 320*186;
+	for (x=0 ; x<strlen(nitroquake_build) ; x++)
+		Draw_CharToConback_Drawing_C (nitroquake_build[x], dest+(x<<3));
 
 // draw the pic
 	if (r_pixbytes == 1)

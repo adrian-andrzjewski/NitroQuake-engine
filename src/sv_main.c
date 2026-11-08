@@ -192,7 +192,8 @@ void SV_SendServerinfo (client_t *client)
 	char			message[2048];
 
 	MSG_WriteByte (&client->message, svc_print);
-	sprintf (message, "%c\n%s SERVER (%i CRC)", 2, nitroquake_version, pr_crc);
+	sprintf (message, "%c\n%s\n%s SERVER (%i CRC)", 2,
+		nitroquake_version, nitroquake_build, pr_crc);
 	MSG_WriteString (&client->message,message);
 
 	MSG_WriteByte (&client->message, svc_serverinfo);

@@ -1687,12 +1687,13 @@ _Draw_ConsoleBackground:
 	leal	72(%esp), %ebx	 /* , tmp385 */
 	pushl	%ebx	 /* tmp385 */
 	call	_sprintf	 /*  */
-	leal	59837(%edi), %ebp	 /* right margin before text width */
+	leal	56637(%edi), %ebp	 /* right margin before text width */
 	shll	$3, %eax	 /* sprintf returned the version length */
 	subl	%eax, %ebp
  /* workspace\quake\out\drawing-worktree-20261008\src\draw.c:554: 	for (x=0 ; x<strlen(ver) ; x++) */
 	addl	$32, %esp	 /* , */
  /* workspace\quake\out\drawing-worktree-20261008\src\draw.c:554: 	for (x=0 ; x<strlen(ver) ; x++) */
+	movl	$0, 8(%esp)	 /* first identity line */
 	xorl	%esi, %esi	 /* x */
 	movl	%edi, 12(%esp)	 /* conback, %sfp */
  /* workspace\quake\out\drawing-worktree-20261008\src\draw.c:554: 	for (x=0 ; x<strlen(ver) ; x++) */
@@ -1816,6 +1817,24 @@ L291:
 	cmpl	%eax, %esi	 /* tmp399, x */
 	jb	L293	 /* , */
 L345:
+	/* Reuse the glyph loop for the separately aligned build line. */
+	cmpl	$0, 8(%esp)
+	jne	.LConsoleIdentityDone
+	movl	$1, 8(%esp)
+	movl	12(%esp), %edi
+	subl	$4, %esp
+	pushl	$_nitroquake_build
+	pushl	$LC9
+	pushl	%ebx
+	call	_sprintf
+	addl	$16, %esp
+	leal	59837(%edi), %ebp
+	shll	$3, %eax
+	subl	%eax, %ebp
+	xorl	%esi, %esi
+	jmp	L293
+.LConsoleIdentityDone:
+
  /* workspace\quake\out\drawing-worktree-20261008\src\draw.c:560: 		dest = vid.conbuffer; */
 	movl	12(%esp), %ecx	 /* %sfp, conback */
 	movl	_vid+40, %ebp	 /* vid.conbuffer, pusdest */
