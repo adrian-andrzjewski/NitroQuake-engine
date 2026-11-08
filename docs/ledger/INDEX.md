@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-08-engine-wide-profile-and-ai-cache.md](2026-11-08-engine-wide-profile-and-ai-cache.md) | 5 | engine-wide measured budgets / promoted immutable AI leaf-query cache: exact state/color/Z, x87/reset and normal-release gates; +0.387% pooled local-gameplay diagnostic FPS; current normal v0.999+26 comparison and charts |
 | [2026-11-07-alias-triangle-vertex-prefilter-rejected.md](2026-11-07-alias-triangle-vertex-prefilter-rejected.md) | 4 | alias triangle visibility / vertex Z prefilter avoided 70.4% of full queries and passed 2,304 native cases, complete replay parity and strict i486, but three matched pairs regressed mean FPS by 0.1622784%; rejected |
 | [2026-11-07-alias-triangle-cache-fill-rejected.md](2026-11-07-alias-triangle-cache-fill-rejected.md) | 4 | alias triangle visibility / assembly cache completion and batch guards passed 2,048 native cases, both complete color/Z/image replays and strict i486; 14,498 culls, but three matched pairs regressed mean FPS by 0.4382345%; rejected |
 | [2026-11-07-alias-triangle-cache-miss-diagnosis.md](2026-11-07-alias-triangle-cache-miss-diagnosis.md) | 4 | alias triangle visibility / unpromoted read-only i486 prototype: 1,024 native cases and two exact complete color/Z/image replays; 60,300 of 61,984 queries stop at stale tiles, motivating conservative tile completion; no timing claim |

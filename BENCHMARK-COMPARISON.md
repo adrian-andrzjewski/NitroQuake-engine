@@ -1,5 +1,20 @@
 # Quake DOS benchmark comparison
 
+Latest measurement: the [2026-11-08 engine analysis and final executable comparison](docs/ledger/2026-11-08-engine-wide-profile-and-ai-cache.md)
+ran each delivered game three times at 320x200. Median reported results were
+**13.4 FPS** for `Quake.exe`, **14.2 FPS** for `486quake.exe`, and **16.9 FPS**
+for `NitroQuake v0.999+26`. From median elapsed times, NitroQuake was approximately
+**26.1% faster than Quake** and **18.8% faster than 486quake**. The linked record
+contains all samples, precision limits, artifact paths, and chart details.
+These are DOSBox-X delivered-default comparisons: surface-cache capacities and
+video backends differ, and physical 486 performance and stock pixel/Z parity
+are unmeasured. The separately validated AI leaf-query cache gained 0.387%
+across matched local-gameplay diagnostic tests; it is not added to the recorded
+client-demo result above. See the [comparison chart](out/exe-comparison-20261108-final/comparison-chart.png)
+and [complete measured analysis](out/engine-performance-analysis-20261108/report.html).
+
+The remainder of this page preserves the older measurements and their context.
+
 Measured on 2026-09-29 to compare the current NitroQuake build with the supplied
 optimized and original DOS executables. This document is intended as the source
 record for a later README benchmark section.

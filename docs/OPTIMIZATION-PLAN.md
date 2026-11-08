@@ -35,6 +35,22 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Engine-wide analysis and AI leaf-query cache promoted (2026-11-08)
+
+Three recorded scenes, two stationary local worlds, active PCM audio and a
+bounded incoming-fire encounter now have measured budgets and profiler
+calibration. Surface/Z/cache work remains dominant at 51–54% of the recorded
+frame; local-server work reaches 17.22% in the denser stationary world.
+A private 64-entry immutable leaf-query cache removes repeated checkclient BSP
+traversals without changing PVS decisions or AI cadence. Eighteen matched off-mode
+diagnostic samples give +0.387% pooled FPS across the three local workloads.
+Full measured state/color/Z parity, live map resets, x87 fixtures, normal-release
+image checks and complete source-bound i486 gates pass. The actual primary
+normal build is `NitroQuake v0.999+26`; normal-release gameplay gain and physical
+486 performance remain unmeasured. See the [engine-wide analysis and cache ledger]
+(ledger/2026-11-08-engine-wide-profile-and-ai-cache.md), under "Evidence, reproduction and limits",
+for the ranked report, nine-run stock comparison, archived build and limitations.
+
 ### Alias line-scan biased bounds checks promoted (2026-11-07)
 
 `D_PolysetSetUpForLineScan_asm486` uses two unsigned biased bounds checks

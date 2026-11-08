@@ -683,6 +683,88 @@ void PF_checkpos (void)
 
 byte	checkpvs[MAX_MAP_LEAFS/8];
 
+/* Cache only the immutable world-BSP leaf query, never PVS or target state.
+ * The 64 direct-mapped entries use 1536 bytes on the DOS target. */
+#ifdef __DJGPP__
+typedef struct
+{
+    edict_t *entity;
+    unsigned int view[3];
+    mleaf_t *leaf;
+    unsigned short control;
+} checkclient_leaf_cache_t;
+static checkclient_leaf_cache_t checkclient_leaf_cache[64];
+static model_t *checkclient_leaf_world;
+#ifdef BENCH486
+static int checkclient_leaf_verify;
+#endif
+#endif
+#ifdef BENCH486
+unsigned long checkclient_leaf_hits,checkclient_leaf_misses,checkclient_leaf_verified;
+#endif
+
+void PF_ClearCheckClientLeafCache (void)
+{
+#ifdef __DJGPP__
+    memset(checkclient_leaf_cache,0,sizeof(checkclient_leaf_cache));
+    checkclient_leaf_world=NULL;
+#ifdef BENCH486
+    checkclient_leaf_verify=COM_CheckParm("-verifyleafcache")!=0;
+#endif
+#endif
+#ifdef BENCH486
+    checkclient_leaf_hits=checkclient_leaf_misses=checkclient_leaf_verified=0;
+#endif
+}
+
+static mleaf_t *PF_CheckClientLeaf (edict_t *self, vec3_t view)
+{
+#ifdef __DJGPP__
+    unsigned int bits[3];
+    unsigned short control;
+    checkclient_leaf_cache_t *entry;
+    mleaf_t *leaf;
+    memcpy(bits,view,sizeof(bits));
+    /* Nonfinite inputs retain the original traversal and exception behavior. */
+    if ((bits[0]&0x7f800000U)==0x7f800000U ||
+        (bits[1]&0x7f800000U)==0x7f800000U ||
+        (bits[2]&0x7f800000U)==0x7f800000U)
+        return Mod_PointInLeaf(view,sv.worldmodel);
+    if (checkclient_leaf_world!=sv.worldmodel)
+    {
+        memset(checkclient_leaf_cache,0,sizeof(checkclient_leaf_cache));
+        checkclient_leaf_world=sv.worldmodel;
+    }
+    __asm__ __volatile__("fnstcw %0" : "=m"(control));
+    entry=&checkclient_leaf_cache[((unsigned long)self>>4)&63];
+    if (entry->leaf && entry->entity==self && entry->control==control &&
+        entry->view[0]==bits[0] && entry->view[1]==bits[1] && entry->view[2]==bits[2])
+    {
+#ifdef BENCH486
+        checkclient_leaf_hits++;
+        if (checkclient_leaf_verify)
+        {
+            leaf=Mod_PointInLeaf(view,sv.worldmodel);
+            if (leaf!=entry->leaf) Sys_Error("checkclient leaf cache mismatch");
+            checkclient_leaf_verified++;
+        }
+#endif
+        return entry->leaf;
+    }
+    leaf=Mod_PointInLeaf(view,sv.worldmodel);
+    entry->entity=self;entry->control=control;
+    entry->view[0]=bits[0];entry->view[1]=bits[1];entry->view[2]=bits[2];
+    entry->leaf=leaf;
+#ifdef BENCH486
+    checkclient_leaf_misses++;
+#endif
+    return leaf;
+#else
+    return Mod_PointInLeaf(view,sv.worldmodel);
+#endif
+}
+
+
 int PF_newcheckclient (int check)
 {
 	int		i;
@@ -775,7 +857,7 @@ void PF_checkclient (void)
 // if current entity can't possibly see the check entity, return 0
 	self = PROG_TO_EDICT(pr_global_struct->self);
 	VectorAdd (self->v.origin, self->v.view_ofs, view);
-	leaf = Mod_PointInLeaf (view, sv.worldmodel);
+	leaf = PF_CheckClientLeaf (self, view);
 	l = (leaf - sv.worldmodel->leafs) - 1;
 	if ( (l<0) || !(checkpvs[l>>3] & (1<<(l&7)) ) )
 	{

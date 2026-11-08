@@ -489,6 +489,7 @@ not reinitialize anything.
 */
 void Host_ClearMemory (void)
 {
+	PF_ClearCheckClientLeafCache ();
 	Con_DPrintf ("Clearing memory\n");
 	D_FlushCaches ();
 	Mod_ClearAll ();

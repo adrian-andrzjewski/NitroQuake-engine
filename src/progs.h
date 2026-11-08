@@ -64,6 +64,10 @@ extern	int				pr_edict_size;	// in bytes
 //============================================================================
 
 void PR_Init (void);
+void PF_ClearCheckClientLeafCache (void);
+#ifdef BENCH486
+extern unsigned long checkclient_leaf_hits,checkclient_leaf_misses,checkclient_leaf_verified;
+#endif
 
 void PR_ExecuteProgram (func_t fnum);
 void PR_LoadProgs (void);
