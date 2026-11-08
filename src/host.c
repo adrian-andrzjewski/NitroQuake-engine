@@ -29,6 +29,7 @@ const char nitroquake_build[] = NITROQUAKE_BUILD_STRING;
 /* Correctness replays need deterministic presentation time as well as physics
  * time: notification expiry and HUD animation read realtime directly. */
 static qboolean bench486_parity_clock;
+static qboolean bench486_gameplay_clock;
 #endif
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
@@ -522,6 +523,16 @@ qboolean Host_FilterTime (float time)
 		time = 0.0625f;
 #endif
 	realtime += time;
+	#ifdef BENCH486
+	/* Reproducible live-server workload from the first frame. Preserve real
+	 * elapsed time; only simulation delta and startup throttle change. */
+	if (bench486_gameplay_clock)
+	{
+		oldrealtime = realtime;
+		host_frametime = 0.0625f;
+		return true;
+	}
+	#endif
 
 	if (!cls.timedemo && realtime - oldrealtime < 1.0/72.0)
 		return false;		// framerate is too high
@@ -578,12 +589,18 @@ void _Host_ServerFrame (void)
 	pr_global_struct->frametime = host_frametime;
 
 // read client messages
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SERVER_CLIENTS);
 	SV_RunClients ();
+	BENCH486_PROFILE_LEAVE ();
 	
 // move things around and think
 // always pause in single player if in console or menus
 	if (!sv.paused && (svs.maxclients > 1 || key_dest == key_game) )
+	{
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SERVER_PHYSICS);
 		SV_Physics ();
+		BENCH486_PROFILE_LEAVE ();
+	}
 }
 
 void Host_ServerFrame (void)
@@ -613,7 +630,9 @@ void Host_ServerFrame (void)
 	host_frametime = save_host_frametime;
 
 // send all messages to the clients
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SERVER_MESSAGES);
 	SV_SendClientMessages ();
+	BENCH486_PROFILE_LEAVE ();
 }
 
 #else
@@ -630,15 +649,23 @@ void Host_ServerFrame (void)
 	SV_CheckForNewClients ();
 
 // read client messages
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SERVER_CLIENTS);
 	SV_RunClients ();
+	BENCH486_PROFILE_LEAVE ();
 	
 // move things around and think
 // always pause in single player if in console or menus
 	if (!sv.paused && (svs.maxclients > 1 || key_dest == key_game) )
+	{
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SERVER_PHYSICS);
 		SV_Physics ();
+		BENCH486_PROFILE_LEAVE ();
+	}
 
 // send all messages to the clients
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SERVER_MESSAGES);
 	SV_SendClientMessages ();
+	BENCH486_PROFILE_LEAVE ();
 }
 
 #endif
@@ -723,6 +750,7 @@ void _Host_Frame (float time)
 	#endif
 
 #ifdef BENCH486
+	Bench486GameplayFrameStart ();
 	Bench486TimedemoFrameStart ();
 #endif
 
@@ -776,7 +804,11 @@ void _Host_Frame (float time)
 	Host_GetConsoleCommands ();
 	
 	if (sv.active)
+	{
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_SERVER);
 		Host_ServerFrame ();
+		BENCH486_PROFILE_LEAVE ();
+	}
 
 //-------------------
 //
@@ -794,7 +826,9 @@ void _Host_Frame (float time)
 // fetch results from server
 	if (cls.state == ca_connected)
 	{
+		BENCH486_PROFILE_ENTER (BENCH486_PROFILE_CLIENT_READ);
 		CL_ReadFromServer ();
+		BENCH486_PROFILE_LEAVE ();
 	}
 	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 	if (bench486_trace_this_host_frame)
@@ -867,7 +901,7 @@ void _Host_Frame (float time)
 
 #ifdef PROFILE486
 	BENCH486_PROFILE_LEAVE ();
-	if (bench486_profile_frame_active)
+	if (bench486_profile_frame_active || bench486_profile_coarse_active)
 	{
 		bench486_frame_seconds += Sys_FloatTime () - bench486_frame_start;
 		bench486_profile_frames++;
@@ -876,6 +910,7 @@ void _Host_Frame (float time)
 
 #ifdef BENCH486
 	Bench486TimedemoFrameEnd ();
+	Bench486GameplayFrameEnd ();
 #endif
 	
 	host_framecount++;
@@ -1008,6 +1043,7 @@ void Host_Init (quakeparms_t *parms)
 
 #ifdef BENCH486
 	bench486_parity_clock = COM_CheckParm ("-parityclock") != 0;
+	bench486_gameplay_clock = COM_CheckParm ("-gamebench") != 0;
 	if (bench486_parity_clock &&
 			(!COM_CheckParm ("-framechecksums") || !COM_CheckParm ("-timedemoexit")))
 		Sys_Error ("-parityclock requires -framechecksums and -timedemoexit");

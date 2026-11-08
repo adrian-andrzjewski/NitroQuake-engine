@@ -1062,6 +1062,7 @@ trace_t SV_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, e
 {
 	moveclip_t	clip;
 	int			i;
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_COLLISION);
 
 #ifdef PROFILE486
 	if (bench486_profile_frame_active)
@@ -1100,6 +1101,7 @@ trace_t SV_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, e
 // clip to entities
 	SV_ClipToLinks ( sv_areanodes, &clip );
 
+	BENCH486_PROFILE_LEAVE ();
 	return clip.trace;
 }
 

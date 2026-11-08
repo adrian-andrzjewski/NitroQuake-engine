@@ -369,6 +369,7 @@ void PR_ExecuteProgram (func_t fnum)
 	edict_t	*ed;
 	int		exitdepth;
 	eval_t	*ptr;
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_QUAKEC);
 
 	if (!fnum || fnum >= progs->numfunctions)
 	{
@@ -643,7 +644,10 @@ while (1)
 	
 		s = PR_LeaveFunction ();
 		if (pr_depth == exitdepth)
+		{
+			BENCH486_PROFILE_LEAVE ();
 			return;		// all done
+		}
 		break;
 		
 	case OP_STATE:

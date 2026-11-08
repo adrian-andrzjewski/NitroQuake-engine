@@ -74,6 +74,13 @@ With a BENCH486 executable, `-fpsstats -timedemoexit` also exports ordered
 schema and actual video dimensions. The external suite's frame-timeline runner
 owns orchestration, host statistics and graph generation; normal game builds
 contain no timing buffers or export code.
+BENCH486 also provides `benchprofile N` for a bounded, fully signed-on local
+server capture. `-gamebench` fixes simulation delta from the first host frame
+while preserving the real DOS timer. PROFILE486 `-profilecoarse` and
+`-profileparts` disable dense premise counters and select broad or component
+scopes; default instrumentation retains the detailed counter inventory.
+The external suite documents collection and interpretation in
+`benchmarks/docs/ENGINE-PROFILING.md`.
 The suite owns their orchestration, parsing, scenarios and reporting. Instrumented
 profiles rank hotspots; matched uninstrumented runs establish timing evidence.
 

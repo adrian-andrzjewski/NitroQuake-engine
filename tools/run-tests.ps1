@@ -105,7 +105,7 @@ $nb = if ($NoBootstrap) { @('-NoBootstrap') } else { @() }
 foreach ($test in @('doc-structure-check.ps1', 'test-build-number.ps1', 'test-build-fingerprints.ps1', 'test-renderer-profile-completeness.ps1')) {
     Invoke-Gate -Name $test -Kind 'host' -Command @($pwshExe.Source, '-NoProfile', '-File', "tools/$test") | Out-Null
 }
-foreach ($test in @('test-build-dos.py', 'test-bootstrap-dos.py', 'test-frame-timing-export.py', 'test-optimization-history.py', 'test-isa-audit.py', 'test-sysinfo-dos.py', 'test-video-dos.py')) {
+foreach ($test in @('test-build-dos.py', 'test-bootstrap-dos.py', 'test-frame-timing-export.py', 'test-profile-coarse.py', 'test-optimization-history.py', 'test-isa-audit.py', 'test-sysinfo-dos.py', 'test-video-dos.py')) {
     Invoke-Gate -Name $test -Kind 'host' -Command @('python', "tools/$test") | Out-Null
 }
 if (-not $HostOnly) {

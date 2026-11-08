@@ -114,10 +114,18 @@ BENCH486_PROFILE_ALIAS_CALCGRADIENTS,
 	BENCH486_PROFILE_SOUND_SPATIAL,
 	BENCH486_PROFILE_SOUND_MIX,
 	BENCH486_PROFILE_CD_AUDIO,
+	BENCH486_PROFILE_SERVER,
+	BENCH486_PROFILE_SERVER_CLIENTS,
+	BENCH486_PROFILE_SERVER_PHYSICS,
+	BENCH486_PROFILE_SERVER_MESSAGES,
+	BENCH486_PROFILE_CLIENT_READ,
+	BENCH486_PROFILE_QUAKEC,
+	BENCH486_PROFILE_COLLISION,
 	BENCH486_PROFILE_NODE_COUNT
 } bench486_profile_node_id_t;
 
 extern int bench486_profile_frame_active;
+extern int bench486_profile_coarse_active;
 extern unsigned long bench486_profile_frames;
 extern double bench486_frame_seconds;
 extern double bench486_render_seconds;
@@ -285,6 +293,8 @@ void Bench486ResetTimedemoStats (void);
 void Bench486BeginTimedemoStats (void);
 void Bench486TimedemoFrameStart (void);
 void Bench486TimedemoFrameEnd (void);
+void Bench486GameplayFrameStart (void);
+void Bench486GameplayFrameEnd (void);
 void Bench486ResetTimedemoFrameChecksums (int enabled);
 void Bench486TimedemoFrameChecksumRecord (void);
 void Bench486RecordBlobExplosionEvent (void);

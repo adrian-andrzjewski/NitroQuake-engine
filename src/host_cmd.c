@@ -185,6 +185,10 @@ static unsigned bench486_surface_draw_saved_lights[18*18];
 
 #ifdef PROFILE486
 int bench486_profile_frame_active;
+int bench486_profile_coarse_active;
+static int bench486_profile_coarse_mode;
+static int bench486_profile_filter[128];
+static int bench486_profile_filter_depth;
 unsigned long bench486_profile_frames;
 double bench486_frame_seconds;
 double bench486_render_seconds;
@@ -496,7 +500,14 @@ static char *bench486_profile_node_names[BENCH486_PROFILE_NODE_COUNT] =
 	"audio",
 	"sound-spatial",
 	"sound-mix",
-	"cd-audio"
+	"cd-audio",
+	"server",
+	"server-clients",
+	"server-physics",
+	"server-messages",
+	"client-read",
+	"quakec",
+	"collision"
 };
 #endif
 
@@ -1186,6 +1197,11 @@ static unsigned long Bench486ProfileChildReads (int node)
 
 static void Bench486ProfileReset (void)
 {
+	bench486_profile_coarse_active = false;
+	bench486_profile_coarse_mode = COM_CheckParm ("-profilecoarse") != 0;
+	if (COM_CheckParm ("-profileparts"))
+		bench486_profile_coarse_mode = 2;
+	bench486_profile_filter_depth = 0;
 	Bench486ProfileCalibrateTimer ();
 	Zone_ResetProfileCounters ();
 	Q_memset (bench486_profile_stats, 0, sizeof(bench486_profile_stats));
@@ -1207,13 +1223,43 @@ void Bench486ProfileEnter (int node)
 	int parent;
 	bench486_profile_edge_t *edge;
 
-	if (!bench486_profile_frame_active)
+	if (!bench486_profile_frame_active && !bench486_profile_coarse_active)
 		return;
 
 	if (node < 0 || node >= BENCH486_PROFILE_NODE_COUNT)
 	{
 		bench486_profile_bad_leaves++;
 		return;
+	}
+	/* Coarse captures disable all dense renderer premise counters. Keep a
+	 * logical entry stack so audio calls inside unselected renderer scopes
+	 * still get attributed, without timing every triangle or surface. */
+	if (bench486_profile_coarse_mode)
+	{
+		int selected = node == BENCH486_PROFILE_FRAME ||
+			node == BENCH486_PROFILE_INPUT || node == BENCH486_PROFILE_GAME ||
+			node == BENCH486_PROFILE_SCREEN || node == BENCH486_PROFILE_RENDERER ||
+			node == BENCH486_PROFILE_PRESENT || node == BENCH486_PROFILE_AUDIO ||
+			node == BENCH486_PROFILE_SOUND_SPATIAL || node == BENCH486_PROFILE_SOUND_MIX ||
+			node == BENCH486_PROFILE_CD_AUDIO ||
+			(node >= BENCH486_PROFILE_SERVER && node <= BENCH486_PROFILE_CLIENT_READ);
+		/* Component capture keeps dense premise counters off as well. Exclude
+		 * the per-triangle/per-face scopes that otherwise dominate clock cost. */
+		if (bench486_profile_coarse_mode == 2 &&
+				(node == BENCH486_PROFILE_SETUP || node == BENCH486_PROFILE_VISIBILITY ||
+				node == BENCH486_PROFILE_EDGE_DRAWING || node == BENCH486_PROFILE_WORLD_BSP ||
+				node == BENCH486_PROFILE_EDGE_SCAN || node == BENCH486_PROFILE_SURFACES ||
+				node == BENCH486_PROFILE_SURFACE_CACHE ||
+				(node >= BENCH486_PROFILE_TEXTURE_SPANS && node <= BENCH486_PROFILE_ALIAS_TRANSFORM) ||
+				node == BENCH486_PROFILE_ALIAS_RASTER || node == BENCH486_PROFILE_VIEWMODEL ||
+				node == BENCH486_PROFILE_PARTICLES || node == BENCH486_PROFILE_WARP ||
+				node == BENCH486_PROFILE_QUAKEC || node == BENCH486_PROFILE_COLLISION))
+			selected = 1;
+		if (bench486_profile_filter_depth >= 128)
+			Sys_Error ("Coarse profile entry stack overflow");
+		bench486_profile_filter[bench486_profile_filter_depth++] = selected;
+		if (!selected)
+			return;
 	}
 
 	if (bench486_profile_suppressed_depth)
@@ -1257,13 +1303,23 @@ void Bench486ProfileLeave (void)
 	double elapsed;
 	double self;
 
-	if (!bench486_profile_frame_active)
+	if (!bench486_profile_frame_active && !bench486_profile_coarse_active)
 		return;
 
 	if (bench486_profile_pending_leaves)
 	{
 		bench486_profile_pending_leaves--;
 		return;
+	}
+	if (bench486_profile_coarse_mode)
+	{
+		if (!bench486_profile_filter_depth)
+		{
+			bench486_profile_bad_leaves++;
+			return;
+		}
+		if (!bench486_profile_filter[--bench486_profile_filter_depth])
+			return;
 	}
 
 	if (bench486_profile_suppressed_depth)
@@ -1326,6 +1382,7 @@ void Bench486ProfileDiscardOpenScopes (void)
 	}
 	bench486_profile_suppressed_depth = 0;
 	bench486_profile_pending_leaves = 0;
+	bench486_profile_filter_depth = 0;
 }
 
 static void Bench486ProfileReportText (int report_handle, char *text)
@@ -1506,6 +1563,10 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"  \"schema\": 1,\n"
 			"  \"benchmark\": {\"demo_frames\": %d, \"demo_seconds\": %.6f, \"demo_fps\": %.6f},\n",
 			timedemo_frames, timedemo_seconds, fps);
+	Bench486ProfileJsonPrintf (file_handle,
+			"  \"capture_mode\": \"%s\",\n",
+			bench486_profile_coarse_mode == 2 ? "components-no-premise-counters" :
+			bench486_profile_coarse_mode ? "coarse-no-premise-counters" : "detailed");
 	Bench486ProfileJsonPrintf (file_handle,
 			"  \"profiler\": {\"timer\": \"Sys_FloatTime\", \"timer_reads\": %lu, \"stack_overflows\": %lu, \"bad_leaves\": %lu, \"max_depth\": %lu, \"discarded_scopes\": %lu},\n",
 			bench486_profile_timer_reads, bench486_profile_stack_overflows,
@@ -2052,9 +2113,12 @@ void Bench486BeginTimedemoProfile (void)
 {
 	memset (bench486_clipvertex_seen_world, 0,
 			sizeof(bench486_clipvertex_seen_world));
-	bench486_profile_frame_active = true;
+	bench486_profile_frame_active = !bench486_profile_coarse_mode;
+	bench486_profile_coarse_active = bench486_profile_coarse_mode;
 	Bench486ProfileEnter (BENCH486_PROFILE_FRAME);
-	bench486_profile_pending_leaves = 1;
+	/* Activation occurs inside client-read inside game; neither enclosing
+	 * scope entered while profiling was active. Skip both unmatched leaves. */
+	bench486_profile_pending_leaves = 2;
 }
 
 void Bench486ProfileClipVertexFrameStart (void)
@@ -14952,6 +15016,10 @@ void Host_Stopdemo_f (void)
 Host_InitCommands
 ==================
 */
+#ifdef BENCH486
+#include "bench486_gameplay_profile.inc"
+#endif
+
 void Host_InitCommands (void)
 {
 	Cmd_AddCommand ("status", Host_Status_f);
@@ -15000,6 +15068,7 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("mcache", Mod_Print);
 #ifdef BENCH486
 	Cmd_AddCommand ("bench486", Bench486_f);
+	Cmd_AddCommand ("benchprofile", Bench486Gameplay_f);
 	Cmd_AddCommand ("bench486_renderpolys", Bench486RenderPolys_f);
 #endif
 }
