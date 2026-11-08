@@ -393,9 +393,8 @@ while (1)
 	s++;	// next statement
 
 	st = &pr_statements[s];
-	a = (eval_t *)&pr_globals[st->a];
-	b = (eval_t *)&pr_globals[st->b];
-	c = (eval_t *)&pr_globals[st->c];
+	/* Resolve operands inside their opcode case. Branch displacements and
+	 * unused fields are not global-variable operands. */
 	
 	if (!--runaway)
 		PR_RunError ("runaway loop error");
@@ -409,124 +408,215 @@ while (1)
 	switch (st->op)
 	{
 	case OP_ADD_F:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float + b->_float;
 		break;
 	case OP_ADD_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->vector[0] = a->vector[0] + b->vector[0];
 		c->vector[1] = a->vector[1] + b->vector[1];
 		c->vector[2] = a->vector[2] + b->vector[2];
 		break;
 		
 	case OP_SUB_F:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float - b->_float;
 		break;
 	case OP_SUB_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->vector[0] = a->vector[0] - b->vector[0];
 		c->vector[1] = a->vector[1] - b->vector[1];
 		c->vector[2] = a->vector[2] - b->vector[2];
 		break;
 
 	case OP_MUL_F:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float * b->_float;
 		break;
 	case OP_MUL_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->vector[0]*b->vector[0]
 				+ a->vector[1]*b->vector[1]
 				+ a->vector[2]*b->vector[2];
 		break;
 	case OP_MUL_FV:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->vector[0] = a->_float * b->vector[0];
 		c->vector[1] = a->_float * b->vector[1];
 		c->vector[2] = a->_float * b->vector[2];
 		break;
 	case OP_MUL_VF:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->vector[0] = b->_float * a->vector[0];
 		c->vector[1] = b->_float * a->vector[1];
 		c->vector[2] = b->_float * a->vector[2];
 		break;
 
 	case OP_DIV_F:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float / b->_float;
 		break;
 	
 	case OP_BITAND:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = (int)a->_float & (int)b->_float;
 		break;
 	
 	case OP_BITOR:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = (int)a->_float | (int)b->_float;
 		break;
 	
 		
 	case OP_GE:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float >= b->_float;
 		break;
 	case OP_LE:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float <= b->_float;
 		break;
 	case OP_GT:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float > b->_float;
 		break;
 	case OP_LT:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float < b->_float;
 		break;
 	case OP_AND:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float && b->_float;
 		break;
 	case OP_OR:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float || b->_float;
 		break;
 		
 	case OP_NOT_F:
+		a = (eval_t *)&pr_globals[st->a];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = !a->_float;
 		break;
 	case OP_NOT_V:
+		a = (eval_t *)&pr_globals[st->a];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = !a->vector[0] && !a->vector[1] && !a->vector[2];
 		break;
 	case OP_NOT_S:
+		a = (eval_t *)&pr_globals[st->a];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = !a->string || !pr_strings[a->string];
 		break;
 	case OP_NOT_FNC:
+		a = (eval_t *)&pr_globals[st->a];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = !a->function;
 		break;
 	case OP_NOT_ENT:
+		a = (eval_t *)&pr_globals[st->a];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = (PROG_TO_EDICT(a->edict) == sv.edicts);
 		break;
 
 	case OP_EQ_F:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float == b->_float;
 		break;
 	case OP_EQ_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = (a->vector[0] == b->vector[0]) &&
 					(a->vector[1] == b->vector[1]) &&
 					(a->vector[2] == b->vector[2]);
 		break;
 	case OP_EQ_S:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = !strcmp(pr_strings+a->string,pr_strings+b->string);
 		break;
 	case OP_EQ_E:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_int == b->_int;
 		break;
 	case OP_EQ_FNC:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->function == b->function;
 		break;
 
 
 	case OP_NE_F:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_float != b->_float;
 		break;
 	case OP_NE_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = (a->vector[0] != b->vector[0]) ||
 					(a->vector[1] != b->vector[1]) ||
 					(a->vector[2] != b->vector[2]);
 		break;
 	case OP_NE_S:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = strcmp(pr_strings+a->string,pr_strings+b->string);
 		break;
 	case OP_NE_E:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->_int != b->_int;
 		break;
 	case OP_NE_FNC:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		c->_float = a->function != b->function;
 		break;
 
@@ -536,9 +626,13 @@ while (1)
 	case OP_STORE_FLD:		// integers
 	case OP_STORE_S:
 	case OP_STORE_FNC:		// pointers
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
 		b->_int = a->_int;
 		break;
 	case OP_STORE_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
 		b->vector[0] = a->vector[0];
 		b->vector[1] = a->vector[1];
 		b->vector[2] = a->vector[2];
@@ -549,10 +643,14 @@ while (1)
 	case OP_STOREP_FLD:		// integers
 	case OP_STOREP_S:
 	case OP_STOREP_FNC:		// pointers
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
 		ptr = (eval_t *)((byte *)sv.edicts + b->_int);
 		ptr->_int = a->_int;
 		break;
 	case OP_STOREP_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
 		ptr = (eval_t *)((byte *)sv.edicts + b->_int);
 		ptr->vector[0] = a->vector[0];
 		ptr->vector[1] = a->vector[1];
@@ -560,6 +658,9 @@ while (1)
 		break;
 		
 	case OP_ADDRESS:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		ed = PROG_TO_EDICT(a->edict);
 #ifdef PARANOID
 		NUM_FOR_EDICT(ed);		// make sure it's in range
@@ -574,6 +675,9 @@ while (1)
 	case OP_LOAD_ENT:
 	case OP_LOAD_S:
 	case OP_LOAD_FNC:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		ed = PROG_TO_EDICT(a->edict);
 #ifdef PARANOID
 		NUM_FOR_EDICT(ed);		// make sure it's in range
@@ -583,6 +687,9 @@ while (1)
 		break;
 
 	case OP_LOAD_V:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
+		c = (eval_t *)&pr_globals[st->c];
 		ed = PROG_TO_EDICT(a->edict);
 #ifdef PARANOID
 		NUM_FOR_EDICT(ed);		// make sure it's in range
@@ -596,11 +703,13 @@ while (1)
 //==================
 
 	case OP_IFNOT:
+		a = (eval_t *)&pr_globals[st->a];
 		if (!a->_int)
 			s += st->b - 1;	// offset the s++
 		break;
 		
 	case OP_IF:
+		a = (eval_t *)&pr_globals[st->a];
 		if (a->_int)
 			s += st->b - 1;	// offset the s++
 		break;
@@ -618,6 +727,7 @@ while (1)
 	case OP_CALL6:
 	case OP_CALL7:
 	case OP_CALL8:
+		a = (eval_t *)&pr_globals[st->a];
 		pr_argc = st->op - OP_CALL0;
 		if (!a->function)
 			PR_RunError ("NULL function");
@@ -651,6 +761,8 @@ while (1)
 		break;
 		
 	case OP_STATE:
+		a = (eval_t *)&pr_globals[st->a];
+		b = (eval_t *)&pr_globals[st->b];
 		ed = PROG_TO_EDICT(pr_global_struct->self);
 #ifdef FPS_20
 		ed->v.nextthink = pr_global_struct->time + 0.05;
