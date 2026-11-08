@@ -63,6 +63,10 @@
     "-DTARGET_I386"
   ],
   "cSourceExtraFlags": {
+    "host.c": [
+      "-include",
+      "<outputRoot>\\nitroquake-build.h"
+    ],
     "r_main.c": [
       "-fno-jump-tables"
     ],

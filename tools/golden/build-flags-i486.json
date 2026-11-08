@@ -186,6 +186,10 @@
     "-DASM486_ALIAS_PROJECT"
   ],
   "cSourceExtraFlags": {
+    "host.c": [
+      "-include",
+      "<outputRoot>\\nitroquake-build.h"
+    ],
     "r_main.c": [
       "-fno-jump-tables"
     ],

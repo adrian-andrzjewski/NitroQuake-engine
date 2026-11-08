@@ -1,5 +1,29 @@
 # Building the NitroQuake MS-DOS software renderer on Windows
 
+## Automatic product version and build numbers
+
+Every real `tools/build-dos.ps1` invocation reserves the next build number and
+embeds `NitroQuake v0.999+<number>`. The console background, startup banner,
+`version` command, status output, server greeting, and DOS exit screen use the
+same string. No source version edits are needed between builds.
+
+The counter is `nitroquake-build-number` in Git's common directory, shared by
+all worktrees of that checkout. An exclusive OS file lock serializes reservations,
+and atomic replacement protects the counter. Failed builds can leave gaps;
+numbers are never rolled back. Independent clones maintain independent counters.
+Source archives without Git keep the counter under `out/` instead; preserve
+that directory to preserve their numbering history.
+
+Each build writes its own `nitroquake-build.h` beside its executable, and its
+manifest records `buildNumber`, `productVersion`, and the header hash. Variants
+using distinct output directories have separate headers. `-DumpFlags` and runners using
+`-SkipBuild` do not reserve numbers. Legacy compiles that bypass this builder
+are explicitly build zero. The numeric legacy Quake constant and wire/save
+format versions are independent of the product version.
+
+Run `pwsh -NoProfile -File tools/test-build-number.ps1` to check reservation
+concurrency, invalid-state handling, and source-archive fallback.
+
 ## Text-mode startup summary
 
 Immediately before the first graphics mode, DOS Quake prints a compact ASCII

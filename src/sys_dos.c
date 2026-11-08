@@ -661,7 +661,6 @@ void Sys_Quit (void)
 {
 	byte	screen[80*25*2];
 	byte	*d;
-	char			ver[6];
 	int			i;
 
 	if (COM_CheckParm ("-forcquit"))
@@ -679,9 +678,8 @@ void Sys_Quit (void)
 		memcpy (screen, d, sizeof(screen));
 
 // write the version number directly to the end screen
-	sprintf (ver, " v%4.2f", VERSION);
-	for (i=0 ; i<6 ; i++)
-		screen[0*80*2 + 72*2 + i*2] = ver[i];
+	for (i=0 ; nitroquake_version[i] ; i++)
+		screen[(78 - strlen(nitroquake_version) + i)*2] = nitroquake_version[i];
 
 	Host_Shutdown();
 
@@ -989,7 +987,7 @@ int main (int c, char **v)
 	extern void (*dos_error_func)(char *, ...);
 	static	char	cwd[1024];
 
-	printf ("Quake v%4.2f\n", VERSION);
+	printf ("%s\n", nitroquake_version);
 	
 // make sure there's an FPU
 	signal(SIGNOFP, Sys_NoFPUExceptionHandler);

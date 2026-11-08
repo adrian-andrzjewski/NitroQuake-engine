@@ -560,8 +560,8 @@ void Draw_ConsoleBackground (int lines)
 	conback = Draw_CachePic ("gfx/conback.lmp");
 
 // hack the version number directly into the pic
-	dest = conback->data + 320 - 43 + 320*186;
-	sprintf (ver, "%4.2f", VERSION);
+	strcpy (ver, nitroquake_version);
+	dest = conback->data + 320 - (strlen(ver)*8 + 11) + 320*186;
 
 	for (x=0 ; x<strlen(ver) ; x++)
 		Draw_CharToConback (ver[x], dest+(x<<3));
@@ -1372,8 +1372,8 @@ void Draw_ConsoleBackground_Drawing_C (int lines)
 	conback = Draw_CachePic_Drawing_C ("gfx/conback.lmp");
 
 // hack the version number directly into the pic
-	dest = conback->data + 320 - 43 + 320*186;
-	sprintf (ver, "%4.2f", VERSION);
+	strcpy (ver, nitroquake_version);
+	dest = conback->data + 320 - (strlen(ver)*8 + 11) + 320*186;
 
 	for (x=0 ; x<strlen(ver) ; x++)
 		Draw_CharToConback_Drawing_C (ver[x], dest+(x<<3));

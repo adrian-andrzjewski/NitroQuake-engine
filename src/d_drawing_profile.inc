@@ -1665,7 +1665,7 @@ L254:
 LC7:
 	.ascii "gfx/conback.lmp\0"
 LC9:
-	.ascii "%4.2f\0"
+	.ascii "%s\0"
 	.p2align 3
 .text
 	.globl	_Draw_ConsoleBackground
@@ -1680,14 +1680,16 @@ _Draw_ConsoleBackground:
 	pushl	$LC7	 /*  */
 	call	_Draw_CachePic	 /*  */
 	movl	%eax, %edi	 /* tmp398, conback */
- /* workspace\quake\out\drawing-worktree-20261008\src\draw.c:552: 	sprintf (ver, "%4.2f", VERSION); */
-	pushl	$1072787619	 /*  */
-	pushl	$-687194767	 /*  */
+ /* Copy the shared identity, preserving the outgoing stack layout. */
+	pushl	$0
+	pushl	$_nitroquake_version
 	pushl	$LC9	 /*  */
 	leal	72(%esp), %ebx	 /* , tmp385 */
 	pushl	%ebx	 /* tmp385 */
 	call	_sprintf	 /*  */
-	leal	59805(%edi), %ebp	 /* , ivtmp.315 */
+	leal	59837(%edi), %ebp	 /* right margin before text width */
+	shll	$3, %eax	 /* sprintf returned the version length */
+	subl	%eax, %ebp
  /* workspace\quake\out\drawing-worktree-20261008\src\draw.c:554: 	for (x=0 ; x<strlen(ver) ; x++) */
 	addl	$32, %esp	 /* , */
  /* workspace\quake\out\drawing-worktree-20261008\src\draw.c:554: 	for (x=0 ; x<strlen(ver) ; x++) */

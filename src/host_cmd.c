@@ -13118,7 +13118,7 @@ void Host_Status_f (void)
 		print = SV_ClientPrintf;
 
 	print ("host:    %s\n", Cvar_VariableString ("hostname"));
-	print ("version: %4.2f\n", VERSION);
+	print ("%s\n", nitroquake_version);
 	if (tcpipAvailable)
 		print ("tcp/ip:  %s\n", my_tcpip_address);
 	if (ipxAvailable)
@@ -13991,7 +13991,7 @@ void Host_Name_f (void)
 	
 void Host_Version_f (void)
 {
-	Con_Printf ("Version %4.2f\n", VERSION);
+	Con_Printf ("%s\n", nitroquake_version);
 	Con_Printf ("Exe: "__TIME__" "__DATE__"\n");
 }
 

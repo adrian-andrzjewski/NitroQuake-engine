@@ -212,6 +212,7 @@ $nb = if ($NoBootstrap) { @('-NoBootstrap') } else { @() }
 Invoke-Gate -Name 'doc-structure-check (citations, links, ledger index)' -Kind 'host' `
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/doc-structure-check.ps1') | Out-Null
 Invoke-Gate -Name 'test-build-dos (flag/suffix golden pins)' -Kind 'host' -Command @('python', 'tools/test-build-dos.py') | Out-Null
+Invoke-Gate -Name 'test-build-number (automatic product identity)' -Kind 'host' -Command @('pwsh', '-NoProfile', '-File', 'tools/test-build-number.ps1') | Out-Null
 Invoke-Gate -Name 'test-runner-selectors (requested versus built)' -Kind 'host' -Command @('pwsh', '-NoProfile', '-File', 'tools/test-runner-selectors.ps1') | Out-Null
 Invoke-Gate -Name 'test-render-progress (live timedemo output)' -Kind 'host' `
     -Command @($pwshExe.Source, '-NoProfile', '-File', 'tools/test-render-progress.ps1') | Out-Null

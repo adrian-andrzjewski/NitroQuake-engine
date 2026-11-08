@@ -886,7 +886,9 @@ try {
     # These two translation units contain cold legacy error paths where that
     # transformation occurs. Preserve the original 386-compatible memory access
     # behavior in those files without disabling the optimization project-wide.
+    $buildNumberHeader = Join-Path $outputRoot 'nitroquake-build.h'
     $cSourceExtraFlags = [ordered]@{
+        'host.c'    = @('-include', $buildNumberHeader)
         'r_main.c'   = @('-fno-jump-tables')
         'mathlib.c'  = @('-fno-jump-tables')
         # Keep support-command control flow directly decodable. Embedded switch
@@ -934,6 +936,10 @@ try {
     # -DumpFlags returns before any of it writes. See the note by the -Clean block.
     New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $objectRoot -Force | Out-Null
+
+    . (Join-Path $PSScriptRoot 'build-number.ps1')
+    $buildIdentity = New-NitroQuakeBuildIdentity -RepoRoot $repoRoot -HeaderPath $buildNumberHeader
+    Write-Host $buildIdentity.version
 
     $objects = @()
 
@@ -1303,6 +1309,9 @@ try {
         $commit = ((& $git.Source -C $repoRoot rev-parse HEAD 2>$null).ToString()).Trim()
     }
     $manifest = [ordered]@{
+        buildNumber = $buildIdentity.number
+        productVersion = $buildIdentity.version
+        buildNumberHeaderSha256 = (Get-FileHash -LiteralPath $buildNumberHeader -Algorithm SHA256).Hash
         compiler = $version
         target = $toolManifest.djgpp.target
         cpuTarget = $CpuTarget

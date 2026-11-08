@@ -83,7 +83,12 @@ def dump_flags(*extra: str) -> dict:
     FileNotFoundError from inside subprocess.
     """
     try:
-        return portable(_dump_flags(*extra))
+        flags = portable(_dump_flags(*extra))
+        header = flags["outputRoot"] + "\\nitroquake-build.h"
+        if flags["cSourceExtraFlags"].get("host.c") != ["-include", header]:
+            fail("host.c must include its output-local generated build header")
+        flags["cSourceExtraFlags"]["host.c"] = ["-include", "<outputRoot>\\nitroquake-build.h"]
+        return flags
     except BuildFlagsError as error:
         fail(str(error))
         return {}
@@ -337,6 +342,7 @@ def main() -> int:
             fail("%s C flags disable the required 387-compatible x87" % target_name)
 
     expected_source_flags = {
+        "host.c": ["-include", "<outputRoot>\\nitroquake-build.h"],
         "r_main.c": ["-fno-jump-tables"],
         "mathlib.c": ["-fno-jump-tables"],
         "host_cmd.c": ["-fno-jump-tables"],

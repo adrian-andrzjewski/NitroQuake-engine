@@ -88,6 +88,8 @@ def portable(flags: dict) -> dict:
             return value.replace(repo, "<repo>")
         if isinstance(value, list):
             return [rewrite(item) for item in value]
+        if isinstance(value, dict):
+            return {key: rewrite(item) for key, item in value.items()}
         return value
 
     return {key: rewrite(value) for key, value in flags.items()}

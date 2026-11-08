@@ -303,7 +303,7 @@ function Get-CompatibilityPolicyFingerprint {
     # Every decoder, source-boundary policy, primary runtime input, and external
     # DOS provider participates in cache identity. A prior audit cannot cover a
     # changed proof implementation or a changed source/listing bundle.
-    $policyPaths = @('tools/build-dos.ps1', 'tools/common.ps1', 'tools/selectors.ps1',
+    $policyPaths = @('tools/build-dos.ps1', 'tools/build-number.ps1', 'tools/common.ps1', 'tools/selectors.ps1',
             'tools/isa-audit.ps1', 'tools/isa-audit-linked.ps1', 'tools/dos-toolchain.json',
             'tools/isa-disassemble.py', 'tools/coff-code-data.py', 'tools/project-source-proofs.py',
             'tools/runtime-source-proofs.py', 'tools/djgpp-assembler-tool.py',
