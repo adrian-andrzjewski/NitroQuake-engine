@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-09-moveclip-overwrite-initialization-promoted.md](2026-11-09-moveclip-overwrite-initialization-promoted.md) | 4 | collision initialization / remove overwritten 124-byte clear; 18,432 native cases, full four-group state/count matches and +0.072735% pooled diagnostic FPS |
 | [2026-11-08-qc-opcode-operands-promoted.md](2026-11-08-qc-opcode-operands-promoted.md) | 4 | QuakeC operand work / exact 11,076 native cases; preserved profiling, matched local state and statement counts; +0.143550% pooled diagnostic FPS |
 | [2026-11-08-warp-geometry-table-cache-promoted.md](2026-11-08-warp-geometry-table-cache-promoted.md) | 4 | underwater warp / invariant geometry tables with complete input and x87 key; 1,512 native cases, exact three-demo parity, +0.022348% pooled diagnostic FPS |
 | [2026-11-08-commit-validation-and-test-debt.md](2026-11-08-commit-validation-and-test-debt.md) | 3 | commit review / fresh normal and BENCH i486 builds pass; focused identity and retained parity checks pass; 11 of 19 host gates pass, with remaining failures reproduced at the untouched baseline |

@@ -1069,7 +1069,7 @@ trace_t SV_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, e
 		bench486_move_calls++;
 #endif
 
-	memset ( &clip, 0, sizeof ( moveclip_t ) );
+	/* Every clip field is assigned below before SV_ClipToLinks reads it. */
 
 // clip to world
 	clip.trace = SV_ClipMoveToEntity ( sv.edicts, start, mins, maxs, end );
