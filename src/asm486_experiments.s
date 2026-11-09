@@ -3679,6 +3679,8 @@ C(R_StoreEfrags_asm486):
 	.extern C(D_CacheSurfaceProfileDrawBegin_asm486)
 	.extern C(D_CacheSurfaceProfileDrawEnd_asm486)
 	.extern C(D_CacheSurfaceProfileFinish_asm486)
+	.extern C(bench486_surface_cache_dlight_probes)
+	.extern C(bench486_surface_cache_dlight_contributing_probes)
 #endif
 #endif
 #ifdef ASM486_TEXTURE_ANIMATION
@@ -4984,11 +4986,21 @@ C(D_CacheSurface):
 	movl	cs_surface_dlightframe(%esi),%edx
 	cmpl	C(r_framecount),%edx
 	jne	.Lcache_surface_hit
+	#ifdef PROFILE486
+	incl	C(bench486_surface_cache_dlight_probes)
+	#endif
 	pushl	%esi
 	call	C(R_DlightContributes)
 	addl	$4,%esp
+	#ifdef PROFILE486
+	testl	%eax,%eax
+	je	.Lcache_surface_hit
+	incl	C(bench486_surface_cache_dlight_contributing_probes)
+	jmp	.Lcache_surface_keys_only
+	#else
 	testl	%eax,%eax
 	jne	.Lcache_surface_keys_only
+	#endif
 .Lcache_surface_hit:
 #ifdef PROFILE486
 	leal	-64(%ebp),%eax

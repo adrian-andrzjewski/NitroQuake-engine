@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-09-surface-cache-dlight-probe-census.md](2026-11-09-surface-cache-dlight-probe-census.md) | 5 | surface cache / repaired profile-only assembly probe coverage; 330 checks across 512 frames, with 314 contributing; counts only, no timing or FPS claim |
 | [2026-11-09-cliplinks-final-child-frame-promoted.md](2026-11-09-cliplinks-final-child-frame-promoted.md) | 4 | collision area tree / final-child frame reuse; exact 6,912 native cases and +0.050689% pooled e1m2 diagnostic FPS screen; final integration required |
 | [2026-11-09-moveclip-overwrite-initialization-promoted.md](2026-11-09-moveclip-overwrite-initialization-promoted.md) | 4 | collision initialization / remove overwritten 124-byte clear; 18,432 native cases, full four-group state/count matches and +0.072735% pooled diagnostic FPS |
 | [2026-11-08-qc-opcode-operands-promoted.md](2026-11-08-qc-opcode-operands-promoted.md) | 4 | QuakeC operand work / exact 11,076 native cases; preserved profiling, matched local state and statement counts; +0.143550% pooled diagnostic FPS |
