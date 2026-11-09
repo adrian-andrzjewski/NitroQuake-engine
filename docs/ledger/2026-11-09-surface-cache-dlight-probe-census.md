@@ -1,5 +1,7 @@
 # Assembly surface-cache dynamic-light probe census
 
+<!-- optimization-attempts: none -->
+
 ## Scope
 
 The 2026-11-08 engine report showed zero dynamic-light probe counts because its
