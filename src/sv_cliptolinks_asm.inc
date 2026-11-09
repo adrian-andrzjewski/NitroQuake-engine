@@ -17,8 +17,9 @@ C(SV_ClipToLinks):
 	pushl	%edi
 	subl	$96,%esp
 	movl	8(%ebp),%eax
-	movl	%eax,-16(%ebp)		/* current area node */
 	movl	12(%ebp),%ebx		/* moveclip_t */
+.Lacl_cliplinks_node_entry:
+	movl	%eax,-16(%ebp)		/* current area node */
 	movl	%ebx,-20(%ebp)
 	fnstcw	-90(%ebp)		/* C float-to-int flags conversion truncates */
 
@@ -271,10 +272,11 @@ C(SV_ClipToLinks):
 .Lacl_cliplinks_child1:
 	movl	-16(%ebp),%eax
 	movl	ACL_NODE_CHILDREN+4(%eax),%eax
-	pushl	%ebx
-	pushl	%eax
-	call	C(SV_ClipToLinks)
-	addl	$8,%esp
+	/* The final child has no continuation: reuse this invocation frame. */
+	#if defined(BENCH486) && defined(ASM486_CLIP_TO_LINKS)
+	incl C(bench486_cliptolinks_asm_calls)
+	#endif
+	jmp	.Lacl_cliplinks_node_entry
 
 .Lacl_cliplinks_return:
 	addl	$96,%esp
