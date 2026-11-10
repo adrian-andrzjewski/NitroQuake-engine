@@ -6424,8 +6424,10 @@ C(D_WarpPixels_asm486):
 	leal	(%esi,%eax,4),%esi	// column + turb[v]
 	movl	48(%esp),%ebx		// pixel rows always index turb[u]
 	movl	0(%esp),%edx		// four-pixel groups
+	shrl	$1,%edx			// process pairs of groups; CF is an odd tail
+	jnc	.Lwarp_pixels_group8
 
-.Lwarp_pixels_group:
+// Keep an odd four-pixel tail first so stores remain left-to-right.
 	movl	(%ebx),%ecx
 	movl	(%ebp,%ecx,4),%eax
 	movl	(%esi),%ecx
@@ -6453,9 +6455,65 @@ C(D_WarpPixels_asm486):
 	addl	$16,%ebx
 	addl	$16,%esi
 	addl	$4,%edi
-	decl	%edx
-	jnz	.Lwarp_pixels_group
+	testl	%edx,%edx
+	jz	.Lwarp_pixels_row_done
 
+.Lwarp_pixels_group8:
+	movl	(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,(%edi)
+
+	movl	4(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	4(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,1(%edi)
+
+	movl	8(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	8(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,2(%edi)
+
+	movl	12(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	12(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,3(%edi)
+
+	movl	16(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	16(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,4(%edi)
+
+	movl	20(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	20(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,5(%edi)
+
+	movl	24(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	24(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,6(%edi)
+
+	movl	28(%ebx),%ecx
+	movl	(%ebp,%ecx,4),%eax
+	movl	28(%esi),%ecx
+	movb	(%eax,%ecx),%cl
+	movb	%cl,7(%edi)
+
+	addl	$32,%ebx
+	addl	$32,%esi
+	addl	$8,%edi
+	decl	%edx
+	jnz	.Lwarp_pixels_group8
+
+.Lwarp_pixels_row_done:
 	movl	0(%esp),%eax
 	shll	$2,%eax
 	subl	%eax,%edi			// rewind the padded span width

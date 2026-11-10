@@ -35,6 +35,17 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Underwater warp pixel loop unrolled to eight pixels promoted (2026-11-10)
+
+`D_WarpPixels_asm486` copies eight pixels per loop iteration and handles an odd
+four-pixel tail first, preserving store order and pixel mapping. A detailed
+`demo2` profile attributed 3.13% of measured time to 210 warp calls. Three
+alternating uninstrumented DOSBox-X pairs improved mean FPS from **17.185951**
+to **17.241270** (+0.321885%). The 985-frame color/Z streams and captured PCX
+matched exactly, and the complete strict i486 gate passed. This is an emulator
+result for `demo2`, not a physical-486 or overall gameplay claim. See the
+[underwater warp pixel-loop ledger](ledger/2026-11-10-underwater-warp-pixel-unroll8-promoted.md).
+
 ### Engine-wide analysis and AI leaf-query cache promoted (2026-11-08)
 
 Three recorded scenes, two stationary local worlds, active PCM audio and a
