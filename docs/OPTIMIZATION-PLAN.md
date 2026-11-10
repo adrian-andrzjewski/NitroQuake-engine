@@ -46,6 +46,18 @@ matched exactly, and the complete strict i486 gate passed. This is an emulator
 result for `demo2`, not a physical-486 or overall gameplay claim. See the
 [underwater warp pixel-loop ledger](ledger/2026-11-10-underwater-warp-pixel-unroll8-promoted.md).
 
+### R_ClipEdge endpoint dot-product schedule promoted (2026-11-11)
+
+The assembly clipper now evaluates each endpoint's dot product left-to-right
+before starting the other endpoint. This removes five x87 `FXCH` instructions
+per clip-plane test while preserving the original addition order and single-
+precision stores. Three alternating uninstrumented `demo1` pairs improved mean
+FPS from **16.823771** to **16.888323 (+0.383695%)**. All 970 color and Z
+checksum records and the frame 482 PCX matched, and the complete strict i486
+gate passed. The profile recorded 1,479,208 plane tests. This is a DOSBox-X
+result, not a physical-486 performance claim. See the [R_ClipEdge schedule
+ledger](ledger/2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md).
+
 ### Engine-wide analysis and AI leaf-query cache promoted (2026-11-08)
 
 Three recorded scenes, two stationary local worlds, active PCM audio and a

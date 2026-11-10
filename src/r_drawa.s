@@ -114,33 +114,28 @@ Lcliploop:
 
 //			d0 = DotProduct (pv0->position, clip->normal) - clip->dist;
 //			d1 = DotProduct (pv1->position, clip->normal) - clip->dist;
+	/* Keep each dot product left-associative, but finish one endpoint before
+	 * starting the other.  Direct ST(1) adds avoid the interleaving FXCHs. */
 	flds	mv_position+0(%esi)
 	fmuls	cp_normal+0(%ebx)
 	flds	mv_position+4(%esi)
 	fmuls	cp_normal+4(%ebx)
+	faddp	%st(0),%st(1)
 	flds	mv_position+8(%esi)
 	fmuls	cp_normal+8(%ebx)
-	fxch	%st(1)
-	faddp	%st(0),%st(2)		// d0mul2 | d0add0
+	faddp	%st(0),%st(1)
+	fsubs	cp_dist(%ebx)
+	fstps	Ld0
 
 	flds	mv_position+0(%edx)
 	fmuls	cp_normal+0(%ebx)
 	flds	mv_position+4(%edx)
 	fmuls	cp_normal+4(%ebx)
+	faddp	%st(0),%st(1)
 	flds	mv_position+8(%edx)
 	fmuls	cp_normal+8(%ebx)
-	fxch	%st(1)
-	faddp	%st(0),%st(2)		// d1mul2 | d1add0 | d0mul2 | d0add0
-	fxch	%st(3)				// d0add0 | d1add0 | d0mul2 | d1mul2
-
-	faddp	%st(0),%st(2)		// d1add0 | dot0 | d1mul2 
-	faddp	%st(0),%st(2)		// dot0 | dot1
-
-	fsubs	cp_dist(%ebx)		// d0 | dot1
-	fxch	%st(1)				// dot1 | d0
-	fsubs	cp_dist(%ebx)		// d1 | d0
-	fxch	%st(1)
-	fstps	Ld0
+	faddp	%st(0),%st(1)
+	fsubs	cp_dist(%ebx)
 	fstps	Ld1
 
 //			if (d0 >= 0)

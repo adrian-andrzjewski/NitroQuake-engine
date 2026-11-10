@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md](2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md) | 6 | R_ClipEdge / remove five x87 FXCH operations per plane test with exact color/Z/PCX parity, strict i486 pass, and +0.383695% matched demo1 mean FPS |
 | [2026-11-10-underwater-warp-pixel-unroll8-promoted.md](2026-11-10-underwater-warp-pixel-unroll8-promoted.md) | 5 | underwater warp / copy eight pixels per loop in the assembly pixel routine; exact color/Z/PCX parity, strict i486 pass, and +0.321885% matched demo2 mean FPS |
 | [2026-11-09-surface-cache-dlight-probe-census.md](2026-11-09-surface-cache-dlight-probe-census.md) | 5 | surface cache / repaired profile-only assembly probe coverage; 330 checks across 512 frames, with 314 contributing; counts only, no timing or FPS claim |
 | [2026-11-09-cliplinks-final-child-frame-promoted.md](2026-11-09-cliplinks-final-child-frame-promoted.md) | 4 | collision area tree / final-child frame reuse; exact 6,912 native cases and +0.050689% pooled e1m2 diagnostic FPS screen; final integration required |
@@ -904,6 +905,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
+- `promoted` [`R_ClipEdge` endpoint dot-product schedule (2026-11-11) — **+0.064552 FPS (+0.383695%)**, exact 970 color/Z records and frame 482 PCX, complete strict i486 gate](2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md)
 - `promoted` [`R_RenderFace` clip-plane argument hoist (2026-11-04) — **+0.010021 FPS (+0.0611856%)**, exact fixed-step and captured-frame parity, complete strict i486 gate](2026-11-04-renderface-cliparg-hoist-promoted.md)
 - `promoted` [`R_RenderFace` outgoing argument frame (2026-11-04) — **+0.000343 FPS (+0.002094%)**, exact fixed-step and captured-frame parity, complete strict i486 gate](2026-11-04-renderface-outgoing-argument-frame-promoted.md)
 - `rejected` [`R_RenderFace` prelinked all-mask clip chains (2026-11-04) — **436/970 fixed-step frame checksums differed**, final checksum matched, captured frame 695 did not; strict i486 audit passed](2026-11-04-renderface-prelinked-all-mask-chains-rejected.md)
