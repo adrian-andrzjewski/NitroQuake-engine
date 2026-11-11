@@ -35,6 +35,19 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Mip-0 horizontal-flat surface rows unrolled four at a time promoted (2026-11-11)
+
+The assembly mip-0 horizontal-flat block now emits four row bodies per loop
+iteration, reducing its stack-counter loop from 16 iterations to four while
+preserving the output row and update order. Three matched uninstrumented
+`demo1` runs averaged **16.909654667 FPS**, versus **16.909250667 FPS** for
+control (**+0.0023887%**); the trailing control matched the initial control
+cluster. All 970 color and Z records and the frame-169 PCX matched exactly, and
+the complete strict i486 gate passed. The candidate passed the `demo1` and
+`demo3` golden checks. This is a DOSBox-X result for the pinned `demo1`
+workload, not a physical-486 performance claim. See the [mip-0 horizontal-flat
+unroll ledger](ledger/2026-11-11-surf8-mip0-horizontal-flat-unroll4-promoted.md).
+
 ### R_RenderFace signed-surfedge memory compare promoted (2026-11-11)
 
 The clipped world-edge and submodel paths now compare the signed surfedge in

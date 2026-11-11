@@ -468,64 +468,64 @@ LSkip_mip0:
 	ret
 
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
-.macro SURF8_MIP0_HORIZONTAL_FLAT_ROW
+.macro SURF8_MIP0_HORIZONTAL_FLAT_ROW suffix
 	movb	%dh,%bh
 	movb	%dh,%ch
 	movb	15(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat0:
+.LLBPatchflat\suffix\()_0:
 	movb	14(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat1:
+.LLBPatchflat\suffix\()_1:
 	rorl	$16,%eax
 	movb	13(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat2:
+.LLBPatchflat\suffix\()_2:
 	movb	12(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat3:
+.LLBPatchflat\suffix\()_3:
 	movl	%eax,12(%edi)
 	movb	11(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat4:
+.LLBPatchflat\suffix\()_4:
 	movb	10(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat5:
+.LLBPatchflat\suffix\()_5:
 	rorl	$16,%eax
 	movb	9(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat6:
+.LLBPatchflat\suffix\()_6:
 	movb	8(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat7:
+.LLBPatchflat\suffix\()_7:
 	movl	%eax,8(%edi)
 	movb	7(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat8:
+.LLBPatchflat\suffix\()_8:
 	movb	6(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat9:
+.LLBPatchflat\suffix\()_9:
 	rorl	$16,%eax
 	movb	5(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat10:
+.LLBPatchflat\suffix\()_10:
 	movb	4(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat11:
+.LLBPatchflat\suffix\()_11:
 	movl	%eax,4(%edi)
 	movb	3(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat12:
+.LLBPatchflat\suffix\()_12:
 	movb	2(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat13:
+.LLBPatchflat\suffix\()_13:
 	rorl	$16,%eax
 	movb	1(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflat14:
+.LLBPatchflat\suffix\()_14:
 	movb	(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflat15:
+.LLBPatchflat\suffix\()_15:
 	movl	%eax,(%edi)
 .endm
 
@@ -590,9 +590,21 @@ LSkip_mip0:
 
 	.p2align 4,,15
 LSurf8Mip0HorizontalFlat:
-	pushl	$16
+	pushl	$4
 LSurf8Mip0HorizontalFlatRow:
-	SURF8_MIP0_HORIZONTAL_FLAT_ROW
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW A
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW B
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW C
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW D
 	addl	%ebp,%edx
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
@@ -1638,22 +1650,70 @@ SURF8_PATCH_ROW p
 	.long	LBPatch30-4
 	.long	LBPatch31-4
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
-	.long	.LLBPatchflat0-4
-	.long	.LLBPatchflat1-4
-	.long	.LLBPatchflat2-4
-	.long	.LLBPatchflat3-4
-	.long	.LLBPatchflat4-4
-	.long	.LLBPatchflat5-4
-	.long	.LLBPatchflat6-4
-	.long	.LLBPatchflat7-4
-	.long	.LLBPatchflat8-4
-	.long	.LLBPatchflat9-4
-	.long	.LLBPatchflat10-4
-	.long	.LLBPatchflat11-4
-	.long	.LLBPatchflat12-4
-	.long	.LLBPatchflat13-4
-	.long	.LLBPatchflat14-4
-	.long	.LLBPatchflat15-4
+	.long	.LLBPatchflatA_0-4
+	.long	.LLBPatchflatA_1-4
+	.long	.LLBPatchflatA_2-4
+	.long	.LLBPatchflatA_3-4
+	.long	.LLBPatchflatA_4-4
+	.long	.LLBPatchflatA_5-4
+	.long	.LLBPatchflatA_6-4
+	.long	.LLBPatchflatA_7-4
+	.long	.LLBPatchflatA_8-4
+	.long	.LLBPatchflatA_9-4
+	.long	.LLBPatchflatA_10-4
+	.long	.LLBPatchflatA_11-4
+	.long	.LLBPatchflatA_12-4
+	.long	.LLBPatchflatA_13-4
+	.long	.LLBPatchflatA_14-4
+	.long	.LLBPatchflatA_15-4
+	.long	.LLBPatchflatB_0-4
+	.long	.LLBPatchflatB_1-4
+	.long	.LLBPatchflatB_2-4
+	.long	.LLBPatchflatB_3-4
+	.long	.LLBPatchflatB_4-4
+	.long	.LLBPatchflatB_5-4
+	.long	.LLBPatchflatB_6-4
+	.long	.LLBPatchflatB_7-4
+	.long	.LLBPatchflatB_8-4
+	.long	.LLBPatchflatB_9-4
+	.long	.LLBPatchflatB_10-4
+	.long	.LLBPatchflatB_11-4
+	.long	.LLBPatchflatB_12-4
+	.long	.LLBPatchflatB_13-4
+	.long	.LLBPatchflatB_14-4
+	.long	.LLBPatchflatB_15-4
+	.long	.LLBPatchflatC_0-4
+	.long	.LLBPatchflatC_1-4
+	.long	.LLBPatchflatC_2-4
+	.long	.LLBPatchflatC_3-4
+	.long	.LLBPatchflatC_4-4
+	.long	.LLBPatchflatC_5-4
+	.long	.LLBPatchflatC_6-4
+	.long	.LLBPatchflatC_7-4
+	.long	.LLBPatchflatC_8-4
+	.long	.LLBPatchflatC_9-4
+	.long	.LLBPatchflatC_10-4
+	.long	.LLBPatchflatC_11-4
+	.long	.LLBPatchflatC_12-4
+	.long	.LLBPatchflatC_13-4
+	.long	.LLBPatchflatC_14-4
+	.long	.LLBPatchflatC_15-4
+	.long	.LLBPatchflatD_0-4
+	.long	.LLBPatchflatD_1-4
+	.long	.LLBPatchflatD_2-4
+	.long	.LLBPatchflatD_3-4
+	.long	.LLBPatchflatD_4-4
+	.long	.LLBPatchflatD_5-4
+	.long	.LLBPatchflatD_6-4
+	.long	.LLBPatchflatD_7-4
+	.long	.LLBPatchflatD_8-4
+	.long	.LLBPatchflatD_9-4
+	.long	.LLBPatchflatD_10-4
+	.long	.LLBPatchflatD_11-4
+	.long	.LLBPatchflatD_12-4
+	.long	.LLBPatchflatD_13-4
+	.long	.LLBPatchflatD_14-4
+	.long	.LLBPatchflatD_15-4
 	.long	.LLBPatchflatf0-4
 	.long	.LLBPatchflatf1-4
 	.long	.LLBPatchflatf2-4
@@ -1833,7 +1893,7 @@ C(R_Surf8Patch):
 	movl	$32,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
-	addl	$32,%ecx
+	addl	$80,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	// Eight rows of eight colormap sites each.
