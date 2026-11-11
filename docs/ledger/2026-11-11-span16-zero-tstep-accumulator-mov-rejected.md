@@ -64,3 +64,6 @@ These are DOSBox-X measurements, not physical-486 results.
 - Control and candidate parity replays: `benchmarks/out/dos-timedemo-20261111-082542/`, `benchmarks/out/dos-timedemo-20261111-084040/`
 - Control timing JSONs: `benchmarks/out/span16-zero-tstep-mov-control-01-20261111.json` through `-05-`
 - Candidate timing JSONs: `benchmarks/out/span16-zero-tstep-mov-candidate-01-20261111.json` through `-05-`
+
+This was the initial disposition. It is superseded by
+[`2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md`](2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md): the current acceptance rule promotes any positive pooled mean from at least three matched uninstrumented runs, even when the result is smaller than observed spread. The samples and parity evidence above are unchanged.

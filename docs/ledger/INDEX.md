@@ -18,7 +18,8 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
-| [2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md](2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md) | 1 | `D_DrawSpans16` / replacing the zero-T-step accumulator add with a move preserved exact output and strict i486 legality but measured only +0.000033% across five pairs; rejected as noise |
+| [2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md](2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md) | 6 | `D_DrawSpans16` / reclassify the positive +0.000033% five-pair mean under the current thresholdless acceptance rule; exact color/Z/PCX parity and fresh complete i486 gate |
+| [2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md](2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md) | 1 | `D_DrawSpans16` / original noise-based rejection, superseded after applying the current positive-pooled-mean rule |
 | [2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md](2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md) | 7 | `R_StepActiveU` / reuse dead `%eax` for edge links, remove the normal-path `%ebx` save and restore, exact fixed-clock color/Z/PCX parity, complete strict i486 gate, and +0.015157% three-run mean |
 | [2026-11-11-r-clipedge-combined-sign-live-eax-reload-promoted.md](2026-11-11-r-clipedge-combined-sign-live-eax-reload-promoted.md) | 6 | `R_ClipEdge` / combine sign bits on the no-crossing path while reloading live `%eax` at `Lp2`; exact color/Z/PCX parity, strict i486 pass, and +0.048263% three-run mean |
 | [2026-11-11-r-clipedge-combined-sign-live-eax-rejected.md](2026-11-11-r-clipedge-combined-sign-live-eax-rejected.md) | 1 | `R_ClipEdge` / combined sign check clobbered live `%eax` used by `Lp2`; first-frame color and Z parity failed, flawed variant reverted |
@@ -1165,7 +1166,8 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### texture-spans
 
-- `rejected` [`D_DrawSpans16` zero-T-step accumulator move (2026-11-11) — five-pair mean **+0.0000056 FPS (+0.000033%)**, only three pairs positive; exact color/Z/PCX parity and complete strict i486 gate](2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md)
+- `promoted` [`D_DrawSpans16` zero-T-step accumulator move (2026-11-11) — five-pair mean **+0.0000056 FPS (+0.000033%)**; exact color/Z/PCX parity and complete strict i486 gate, accepted under the current thresholdless rule](2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md)
+- `superseded` [Initial noise-based rejection of the zero-T-step accumulator move; the recorded mean and samples are unchanged](2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md)
 - `promoted` [Span16 initial-span S/T product order (2026-11-04) — **+0.01084125 FPS (+0.07002%)** over four runs per variant, including one slow paired sample; exact parity and strict gate recorded](2026-11-04-span16-initial-span-product-order-promoted.md)
 - `promoted` [Span16 full-segment endpoint conversion order (2026-11-04) — **+0.000007 FPS (+0.0000427%)**, exact fixed-step parity and complete strict i486 gate](2026-11-04-span16-segment-endpoint-order-promoted.md)
 - `measured` [Span16 same-texel endpoint census (2026-11-03) — 0 of 2,059,043 full segments met the conservative endpoint condition; no fast path justified](2026-11-03-span16-same-texel-endpoint-census.md)

@@ -35,6 +35,20 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Span16 zero-T-step accumulator move promoted under the current acceptance rule (2026-11-11)
+
+When the integer T-step is zero, `D_DrawSpans16` now seeds `%eax` from the
+S-step with `movl` instead of adding it to the known-zero accumulator. The
+existing five-pair uninstrumented `demo1` comparison averaged **16.903143200**
+FPS for the candidate and **16.903137600** for control (**+0.000033%**). The
+gain is smaller than run-to-run spread, but the current acceptance rule
+explicitly promotes any positive pooled mean from at least three matched runs.
+All 970 color and Z records and frame 727 PCX matched, and both Build 865
+executables passed the complete strict i486 gate. A fresh Build 866 candidate
+rebuild also passed the complete gate; its `d_draw16.obj` is byte-identical to
+the measured candidate object. This remains a small DOSBox-X result, not a
+physical-486 claim. See the [reclassification ledger](ledger/2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md).
+
 ### Underwater warp pixel loop unrolled to eight pixels promoted (2026-11-10)
 
 `D_WarpPixels_asm486` copies eight pixels per loop iteration and handles an odd

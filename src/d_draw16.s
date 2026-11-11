@@ -520,7 +520,7 @@ LProfileZeroNoSFracZero:
 LProfileZeroStatsDone:
 #endif
 
-	addl	%edx,%eax			// add in sstep
+	movl	%edx,%eax			// add in sstep
 						// (tstep >> 16) * cachewidth + (sstep >> 16);
 	movl	%eax,advancetable+4	// advance base in t
 	addl	C(cachewidth),%eax	// ((tstep >> 16) + 1) * cachewidth +
