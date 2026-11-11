@@ -529,62 +529,62 @@ LSkip_mip0:
 	movl	%eax,(%edi)
 .endm
 
-.macro SURF8_MIP0_FULLY_FLAT_ROW
+.macro SURF8_MIP0_FULLY_FLAT_ROW suffix
 	movb	15(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf0:
+.LLBPatchflatf\suffix\()_0:
 	movb	14(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf1:
+.LLBPatchflatf\suffix\()_1:
 	rorl	$16,%eax
 	movb	13(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf2:
+.LLBPatchflatf\suffix\()_2:
 	movb	12(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf3:
+.LLBPatchflatf\suffix\()_3:
 	movl	%eax,12(%edi)
 	movb	11(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf4:
+.LLBPatchflatf\suffix\()_4:
 	movb	10(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf5:
+.LLBPatchflatf\suffix\()_5:
 	rorl	$16,%eax
 	movb	9(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf6:
+.LLBPatchflatf\suffix\()_6:
 	movb	8(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf7:
+.LLBPatchflatf\suffix\()_7:
 	movl	%eax,8(%edi)
 	movb	7(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf8:
+.LLBPatchflatf\suffix\()_8:
 	movb	6(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf9:
+.LLBPatchflatf\suffix\()_9:
 	rorl	$16,%eax
 	movb	5(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf10:
+.LLBPatchflatf\suffix\()_10:
 	movb	4(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf11:
+.LLBPatchflatf\suffix\()_11:
 	movl	%eax,4(%edi)
 	movb	3(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf12:
+.LLBPatchflatf\suffix\()_12:
 	movb	2(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf13:
+.LLBPatchflatf\suffix\()_13:
 	rorl	$16,%eax
 	movb	1(%esi),%bl
 	movb	0x12345678(%ebx),%ah
-.LLBPatchflatf14:
+.LLBPatchflatf\suffix\()_14:
 	movb	(%esi),%cl
 	movb	0x12345678(%ecx),%al
-.LLBPatchflatf15:
+.LLBPatchflatf\suffix\()_15:
 	movl	%eax,(%edi)
 .endm
 
@@ -633,9 +633,31 @@ LSurf8Mip0HorizontalFlatRow:
 LSurf8Mip0FullyFlat:
 	movb	%dh,%bh
 	movb	%dh,%ch
-	movb	$16,%dl			// low byte is free after the light index is copied
+	// Eight distinct row bodies preserve independent patch sites; repeat twice.
+	movb	$2,%dl			// low byte is free after the light index is copied
 LSurf8Mip0FullyFlatRow:
-	SURF8_MIP0_FULLY_FLAT_ROW
+	SURF8_MIP0_FULLY_FLAT_ROW a
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW b
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW c
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW d
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW e
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW f
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW g
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW h
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
 	decb	%dl
@@ -1730,22 +1752,32 @@ SURF8_PATCH_ROW p
 	.long	.LLBPatchflatD_13-4
 	.long	.LLBPatchflatD_14-4
 	.long	.LLBPatchflatD_15-4
-	.long	.LLBPatchflatf0-4
-	.long	.LLBPatchflatf1-4
-	.long	.LLBPatchflatf2-4
-	.long	.LLBPatchflatf3-4
-	.long	.LLBPatchflatf4-4
-	.long	.LLBPatchflatf5-4
-	.long	.LLBPatchflatf6-4
-	.long	.LLBPatchflatf7-4
-	.long	.LLBPatchflatf8-4
-	.long	.LLBPatchflatf9-4
-	.long	.LLBPatchflatf10-4
-	.long	.LLBPatchflatf11-4
-	.long	.LLBPatchflatf12-4
-	.long	.LLBPatchflatf13-4
-	.long	.LLBPatchflatf14-4
-	.long	.LLBPatchflatf15-4
+	.macro SURF8_MIP0_FULLY_FLAT_PATCH_ROW suffix
+	.long	.LLBPatchflatf\suffix\()_0-4
+	.long	.LLBPatchflatf\suffix\()_1-4
+	.long	.LLBPatchflatf\suffix\()_2-4
+	.long	.LLBPatchflatf\suffix\()_3-4
+	.long	.LLBPatchflatf\suffix\()_4-4
+	.long	.LLBPatchflatf\suffix\()_5-4
+	.long	.LLBPatchflatf\suffix\()_6-4
+	.long	.LLBPatchflatf\suffix\()_7-4
+	.long	.LLBPatchflatf\suffix\()_8-4
+	.long	.LLBPatchflatf\suffix\()_9-4
+	.long	.LLBPatchflatf\suffix\()_10-4
+	.long	.LLBPatchflatf\suffix\()_11-4
+	.long	.LLBPatchflatf\suffix\()_12-4
+	.long	.LLBPatchflatf\suffix\()_13-4
+	.long	.LLBPatchflatf\suffix\()_14-4
+	.long	.LLBPatchflatf\suffix\()_15-4
+	.endm
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW a
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW b
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW c
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW d
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW e
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW f
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW g
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW h
 	.long	.LLBPatchflatE_0-4
 	.long	.LLBPatchflatE_1-4
 	.long	.LLBPatchflatE_2-4
@@ -1973,7 +2005,8 @@ C(R_Surf8Patch):
 	movl	$32,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
-	addl	$144,%ecx
+	// 128 partially-flat sites plus eight fully-flat rows of 16 sites.
+	addl	$256,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	// Eight rows of eight colormap sites each.

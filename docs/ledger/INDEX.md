@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-surf8-mip0-fullyflat-unroll8-promoted.md](2026-11-11-surf8-mip0-fullyflat-unroll8-promoted.md) | 5 | `surf8.s` / unroll the fully-flat mip-0 row loop eight rows at a time; exact color/Z/PCX parity, strict i486 pass, and positive four-sample means on demo1 and demo3 |
 | [2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md](2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md) | 5 | `surf8.s` / mip-0 horizontal-flat blocks process eight rows per counter iteration; exact color/Z/PCX parity, strict i486 pass, and +0.0003315% demo1 plus +0.0003391% demo3 means |
 | [2026-11-11-surf8-mip0-horizontal-flat-unroll4-promoted.md](2026-11-11-surf8-mip0-horizontal-flat-unroll4-promoted.md) | 5 | `surf8.s` / mip-0 horizontal-flat blocks process four rows per counter iteration; exact color/Z/PCX parity, strict i486 pass, and +0.0023887% matched demo1 mean |
 | [2026-11-11-renderface-signed-surfedge-memory-compare-promoted.md](2026-11-11-renderface-signed-surfedge-memory-compare-promoted.md) | 1 | `R_RenderFace` / compare the signed surfedge in memory; exact demo1 and entity color/Z/PCX parity, strict i486 pass, and +0.0377846% matched mean |

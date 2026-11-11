@@ -49,6 +49,21 @@ small DOSBox-X result, not a physical-486 performance claim. See the
 [mip-0 horizontal-flat unroll8 ledger]
 (ledger/2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md).
 
+### Mip-0 fully-flat surface rows unrolled eight at a time promoted (2026-11-11)
+
+The mip-0 fully-flat path now emits eight independently patchable row bodies
+per loop pass and repeats the group twice, instead of looping once per row.
+Four uninstrumented samples per variant averaged **16.9379115** control versus
+**16.93905025 FPS** candidate on demo1 (+0.0067231%), and **15.860501** versus
+**15.888257 FPS** on demo3 (+0.1750008%). The demo3 control set includes one
+69.072-second sample; its other three samples were 68.609 seconds, and the
+candidate beat each paired control. Canonical color streams and frame-169 PCX
+captures matched exactly; Z streams matched the promoted parent in the
+Z-enabled replay; both golden checks and the complete strict i486 audit passed.
+This remains a pinned DOSBox-X result, not a physical-486 performance claim.
+See the [mip-0 fully-flat unroll8 ledger]
+(ledger/2026-11-11-surf8-mip0-fullyflat-unroll8-promoted.md).
+
 ### Mip-0 horizontal-flat surface rows unrolled four at a time promoted (2026-11-11)
 
 The assembly mip-0 horizontal-flat block now emits four row bodies per loop
