@@ -58,6 +58,17 @@ gate passed. The profile recorded 1,479,208 plane tests. This is a DOSBox-X
 result, not a physical-486 performance claim. See the [R_ClipEdge schedule
 ledger](ledger/2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md).
 
+### World-BSP C walk selected as the i486 default (2026-11-11)
+
+The explicit C walk is now the i486 default after three alternating
+uninstrumented `demo1` pairs averaged **16.892436 FPS**, versus **16.888340 FPS**
+for the assembly walk (**+0.024255%**). Every C sample exceeded every assembly
+sample. A parity-clock comparison matched all 970 color and Z records and the
+captured frame 482 PCX, and both selector builds passed the complete strict
+i486 gate. The hand-written assembly walk remains selectable; this DOSBox-X
+result does not establish physical-486 performance. See the [world-BSP selector
+ledger](ledger/2026-11-11-bsp-walk-c-default-promoted.md).
+
 ### Engine-wide analysis and AI leaf-query cache promoted (2026-11-08)
 
 Three recorded scenes, two stationary local worlds, active PCM audio and a

@@ -83,3 +83,13 @@ active C closure still includes `R_DrawSubmodelPolygons`, `R_EdgeDrawing`,
 edge scanning, and other renderer setup and draw dependencies. Keep the C
 references and exact framebuffer checksum gate while adding each assembly
 entry.
+
+## 2026-11-11 i486 default re-evaluation
+
+The assembly walk remains selectable, but the i486 default now uses the C
+reference. Three alternating current-source `demo1` pairs measured the C walk
+0.024255% faster, and parity-clock runs matched every color and Z checksum plus
+the captured frame. Both builds passed the complete strict i486 gate. The
+timings are DOSBox-X measurements; they do not establish a physical-486 result.
+See the [selector promotion ledger](2026-11-11-bsp-walk-c-default-promoted.md)
+for the full samples and artifact paths.

@@ -54,7 +54,7 @@ RELEASE_I486_SUFFIX = (
     'lat-surf1hflatidxhoist-aliasclipasm-aliasclipzasm-aliasmatrixasm-aliaslightingasm-aliasframeasm-'
     'aliaskinasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dligh'
     'torchestrationasm-dlightpushasm-dlightcontribasm-marklightsasm-lightmapbuildasm-bspdotasm-bspcli'
-    'pasm-bspwalkasm-particleupdateasm-particleexplosionasm-parseparticleeffectasm-runparticleeffecta'
+    'pasm-bspframecache-particleupdateasm-particleexplosionasm-parseparticleeffectasm-runparticleeffecta'
     'sm-entityparticlesasm-particleexplosion2asm-blobexplosionasm-lavasplashasm-teleportsplashasm-roc'
     'kettrailasm-spritebeamasm-spriteclipasm-spriteframeasm-spritegradientasm-spritescanleftasm-sprit'
     'escanrightasm-spritedrawasm-spritesetupasm-spriteorientationasm-rendermathasm-animatedlightasm-p'
@@ -228,9 +228,11 @@ def main() -> int:
         if "-DASM486_TURBULENT_FOURTEEN_LOOP" not in default_dump.get("asmFlags", []):
             fail("the i486 default must compile the fourteen-pixel turbulent span loop")
         bsp_walk_define = "-DASM486_BSP_WALK"
-        if any(bsp_walk_define not in default_dump.get(language, [])
+        if any(bsp_walk_define in default_dump.get(language, [])
                for language in ("cFlags", "asmFlags")):
-            fail("the default i486 BSP-walk selector must compile its assembly implementation")
+            fail("the default i486 BSP-walk selector must use the measured C implementation")
+        if "bspwalkasm" in default_dump.get("profileSuffix", ""):
+            fail("the default i486 BSP-walk selector must stay on the measured C profile")
 
     # 2. Keep the release suffix stable and use its descriptive root unless the
     #    executable or linker-map path would exceed the legacy Windows limit.
@@ -406,8 +408,8 @@ def main() -> int:
     except BuildFlagsError:
         pass
 
-    # 4. The two targets are separated by architecture and the accepted i486
-    #    assembly selectors. The i386 path retains its parameter-block defaults.
+    # 4. The two targets are separated by architecture and the measured i486
+    #    selectors. The i386 path retains its parameter-block defaults.
     if i486 and i386:
         if i486.get("outputRoot") == i386.get("outputRoot"):
             fail("both targets resolve to %r" % i486.get("outputRoot"))
@@ -481,8 +483,8 @@ def main() -> int:
                 fail("the i486 release %s omit promoted R_BlobExplosion assembly" % flags_name)
             if "-DASM486_BLOB_EXPLOSION" in i386.get(flags_name, []):
                 fail("the separate i386 %s enable i486-promoted R_BlobExplosion assembly" % flags_name)
-            if "-DASM486_BSP_WALK" not in i486.get(flags_name, []):
-                fail("the i486 release %s omit promoted R_RecursiveWorldNode assembly" % flags_name)
+            if "-DASM486_BSP_WALK" in i486.get(flags_name, []):
+                fail("the i486 release %s must keep the measured C BSP-walk default" % flags_name)
             if "-DASM486_BSP_WALK" in i386.get(flags_name, []):
                 fail("the separate i386 %s enable i486-promoted R_RecursiveWorldNode assembly" % flags_name)
 
@@ -676,11 +678,13 @@ def main() -> int:
     bsp_walk_c = dump_flags("-BspWalkImplementation", "c")
     bsp_walk_asm = dump_flags("-BspWalkImplementation", "asm")
     if bsp_walk_c and bsp_walk_asm:
-        c_reference_suffix = RELEASE_I486_SUFFIX.replace("-bspwalkasm", "", 1)
-        if bsp_walk_c.get("profileSuffix") != c_reference_suffix:
-            fail("the BSP-walk C selector does not isolate the C reference profile")
-        if bsp_walk_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the BSP-walk assembly selector does not match the i486 release profile")
+        asm_suffix = RELEASE_I486_SUFFIX.replace(
+            "-particleupdateasm", "-bspwalkasm-particleupdateasm", 1
+        )
+        if bsp_walk_c.get("profileSuffix") != RELEASE_I486_SUFFIX:
+            fail("the BSP-walk C selector does not match the i486 release profile")
+        if bsp_walk_asm.get("profileSuffix") != asm_suffix:
+            fail("the BSP-walk assembly selector does not add its profile token")
         for flags_name in ("cFlags", "asmFlags"):
             if "-DASM486_BSP_WALK" in bsp_walk_c.get(flags_name, []):
                 fail("the BSP-walk C selector enables ASM486_BSP_WALK in %s" % flags_name)

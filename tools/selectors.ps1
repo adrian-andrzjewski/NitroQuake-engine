@@ -2532,12 +2532,13 @@ function Get-SelectorEntry {
 function Set-DefaultI486AssemblySelectors {
     <#
     .SYNOPSIS
-        Apply the checked-in accepted i486 assembly profile to omitted parameters.
+        Apply the checked-in accepted i486 renderer profile to omitted parameters.
 
     .DESCRIPTION
         The parameter blocks keep their C values so the separate i386 target
         retains its reference defaults. For i486, this profile supplies the
-        release defaults while explicit C values remain available for parity.
+        measured release defaults while explicit implementations remain
+        available for parity and selector comparisons.
     #>
     [CmdletBinding()]
     param(
@@ -2567,9 +2568,16 @@ function Set-DefaultI486AssemblySelectors {
         $hasValue = $null -ne $entry -and (
             $entry.Suffix.ContainsKey($value) -or
             $entry.C.ContainsKey($value) -or
-            $entry.Asm.ContainsKey($value)
+            $entry.Asm.ContainsKey($value) -or
+            (
+                $property.Name -ceq 'BspWalkImplementation' -and
+                $value -ceq 'c'
+            )
         )
         $acceptedDefault = $value -ceq 'asm' -or (
+            $property.Name -ceq 'BspWalkImplementation' -and
+            $value -ceq 'c'
+        ) -or (
             $property.Name -ceq 'TurbulentImplementation' -and
             $value -ceq 'fourteen-stosb'
         ) -or (
@@ -2577,7 +2585,7 @@ function Set-DefaultI486AssemblySelectors {
             $value -ceq 'legacy'
         )
         if ($null -eq $entry -or -not $hasValue -or -not $acceptedDefault) {
-            throw "The default i486 profile has an invalid assembly selector '$($property.Name)=$($property.Value)'."
+            throw "The default i486 profile has an invalid renderer selector '$($property.Name)=$($property.Value)'."
         }
         $selectedNames[$property.Name] = $true
 

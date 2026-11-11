@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-bsp-walk-c-default-promoted.md](2026-11-11-bsp-walk-c-default-promoted.md) | 6 | BSP traversal / select the exact C walk as the i486 default after +0.024255% across three alternating demo1 pairs, exact color/Z/PCX parity, and complete strict i486 gates |
 | [2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md](2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md) | 6 | R_ClipEdge / remove five x87 FXCH operations per plane test with exact color/Z/PCX parity, strict i486 pass, and +0.383695% matched demo1 mean FPS |
 | [2026-11-10-underwater-warp-pixel-unroll8-promoted.md](2026-11-10-underwater-warp-pixel-unroll8-promoted.md) | 5 | underwater warp / copy eight pixels per loop in the assembly pixel routine; exact color/Z/PCX parity, strict i486 pass, and +0.321885% matched demo2 mean FPS |
 | [2026-11-09-surface-cache-dlight-probe-census.md](2026-11-09-surface-cache-dlight-probe-census.md) | 5 | surface cache / repaired profile-only assembly probe coverage; 330 checks across 512 frames, with 314 contributing; counts only, no timing or FPS claim |
@@ -1205,6 +1206,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### world-bsp
 
+- `promoted` [World-BSP C walk retained as the i486 default (2026-11-11) — **+0.004096 FPS (+0.024255%)**, exact 970 color/Z records and frame 482 PCX, complete strict i486 gates](2026-11-11-bsp-walk-c-default-promoted.md)
 - `rejected` [Brush-model splitter-plane entity-mixed hash (2026-11-07) — exactly the same 31,160 hits and 9,998 misses as the pointer-only hash; no additional transforms avoided](2026-11-07-bmodel-plane-entity-mixed-hash-rejected.md)
 - `rejected` [Brush-model splitter-plane cache at 1,024 entries (2026-11-06) — same hit/miss totals as 512 entries, no extra transforms, +14,336 BSS bytes](2026-11-06-bmodel-plane-transform-cache1024-rejected.md)
 - `rejected` [Brush-model clip endpoint-distance cache (2026-11-06) — strict i486 passed, but release color and Z differ at four frames; candidate removed](2026-11-06-bmodel-endpoint-distance-cache-rejected.md)
