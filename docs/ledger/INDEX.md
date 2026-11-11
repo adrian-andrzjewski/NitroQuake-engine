@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md](2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md) | 1 | `TrailingEdge` / make the frequent no-span return the fall-through path; exact color/Z/PCX parity and strict i486 pass, but matched mean was 0.0000434% lower |
 | [2026-11-11-bsp-walk-c-default-promoted.md](2026-11-11-bsp-walk-c-default-promoted.md) | 6 | BSP traversal / select the exact C walk as the i486 default after +0.024255% across three alternating demo1 pairs, exact color/Z/PCX parity, and complete strict i486 gates |
 | [2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md](2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md) | 6 | R_ClipEdge / remove five x87 FXCH operations per plane test with exact color/Z/PCX parity, strict i486 pass, and +0.383695% matched demo1 mean FPS |
 | [2026-11-10-underwater-warp-pixel-unroll8-promoted.md](2026-11-10-underwater-warp-pixel-unroll8-promoted.md) | 5 | underwater warp / copy eight pixels per loop in the assembly pixel routine; exact color/Z/PCX parity, strict i486 pass, and +0.321885% matched demo2 mean FPS |
@@ -814,6 +815,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### edge-scan
 
+- `rejected` [`TrailingEdge` spanstate branch polarity (2026-11-11) — exact color/Z/PCX parity and strict i486 gate, but the matched mean was **−0.000007333 FPS (−0.0000434%)**, below the sample spread](2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md)
 - `rejected` [Active-edge monotone-order tags (2026-11-06) — exact color/Z/PCX and strict i486 gate, but **−2.121206%** matched mean FPS](2026-11-06-active-edge-order-skip-rejected.md)
 - `promoted` [`R_GenerateSpans` trailing-to-leading continuation tail-jump (2026-11-04) — pooled mean **+0.041959333 FPS (+0.2570%)**; one control hitch drives the gain, exact fixed-step parity and complete strict i486 audit](2026-11-04-r-genspans-trailing-to-leading-tail-jump-promoted.md)
 - `rejected` [`R_GenerateSpans` non-bmodel fifteen-continuation trial (2026-10-30) — strict mean **−0.000007667 FPS (−0.00004696%)**, exact 969-frame checksum and event traces, complete i486 audit](2026-10-30-edge-sort-nonbmodel-fifteen-continuation-rejected.md)
