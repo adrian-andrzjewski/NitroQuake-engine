@@ -141,8 +141,7 @@ Lcliploop:
 //			if (d0 >= 0)
 //			{
 	movl	Ld0,%eax
-	movl	Ld1,%ecx
-	orl		%eax,%ecx
+	orl		Ld1,%eax
 	js		Lp2
 
 // both points are unclipped
@@ -509,6 +508,7 @@ Ldone:
 // at least one point is clipped
 
 Lp2:
+	movl	Ld0,%eax
 	testl	%eax,%eax
 	jns		Lp1
 

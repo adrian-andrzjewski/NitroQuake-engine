@@ -19,6 +19,8 @@ later insertion above it.
 | File | Entries | Summary / region |
 |---|---:|---|
 | [2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md](2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md) | 7 | `R_StepActiveU` / reuse dead `%eax` for edge links, remove the normal-path `%ebx` save and restore, exact fixed-clock color/Z/PCX parity, complete strict i486 gate, and +0.015157% three-run mean |
+| [2026-11-11-r-clipedge-combined-sign-live-eax-reload-promoted.md](2026-11-11-r-clipedge-combined-sign-live-eax-reload-promoted.md) | 6 | `R_ClipEdge` / combine sign bits on the no-crossing path while reloading live `%eax` at `Lp2`; exact color/Z/PCX parity, strict i486 pass, and +0.048263% three-run mean |
+| [2026-11-11-r-clipedge-combined-sign-live-eax-rejected.md](2026-11-11-r-clipedge-combined-sign-live-eax-rejected.md) | 1 | `R_ClipEdge` / combined sign check clobbered live `%eax` used by `Lp2`; first-frame color and Z parity failed, flawed variant reverted |
 | [2026-11-11-alias-scan-ubasestep-specialization-rejected.md](2026-11-11-alias-scan-ubasestep-specialization-rejected.md) | 1 | alias scan / 83.71% of 102,654 left-edge steps used 0 or ±1; exact parity and strict i486 passed, but the best matched mean regressed 0.005825% |
 | [2026-11-11-alias-gradient-y-reciprocal-fchs-rejected.md](2026-11-11-alias-gradient-y-reciprocal-fchs-rejected.md) | 1 | alias gradient / replace the multiply by -1 with FCHS; exact color/Z/PCX parity and strict i486 pass, but matched mean was 0.0000296% lower |
 | [2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md](2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md) | 1 | `TrailingEdge` / make the frequent no-span return the fall-through path; exact color/Z/PCX parity and strict i486 pass, but matched mean was 0.0000434% lower |
@@ -914,6 +916,8 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
+- `promoted` [`R_ClipEdge` combined distance sign check with `%eax` reload (2026-11-11) — **+0.008154 FPS (+0.048263%)**, exact 970 color/Z rows and frame 727 PCX, complete strict i486 gate](2026-11-11-r-clipedge-combined-sign-live-eax-reload-promoted.md)
+- `rejected` [`R_ClipEdge` combined distance sign check (2026-11-11) — live `%eax` clobber changed clipping; frame-0 color and Z checksums diverged and the source change was reverted](2026-11-11-r-clipedge-combined-sign-live-eax-rejected.md)
 - `promoted` [`R_ClipEdge` endpoint dot-product schedule (2026-11-11) — **+0.064552 FPS (+0.383695%)**, exact 970 color/Z records and frame 482 PCX, complete strict i486 gate](2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md)
 - `promoted` [`R_RenderFace` clip-plane argument hoist (2026-11-04) — **+0.010021 FPS (+0.0611856%)**, exact fixed-step and captured-frame parity, complete strict i486 gate](2026-11-04-renderface-cliparg-hoist-promoted.md)
 - `promoted` [`R_RenderFace` outgoing argument frame (2026-11-04) — **+0.000343 FPS (+0.002094%)**, exact fixed-step and captured-frame parity, complete strict i486 gate](2026-11-04-renderface-outgoing-argument-frame-promoted.md)
