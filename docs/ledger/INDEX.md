@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-alias-gradient-y-reciprocal-fchs-rejected.md](2026-11-11-alias-gradient-y-reciprocal-fchs-rejected.md) | 1 | alias gradient / replace the multiply by -1 with FCHS; exact color/Z/PCX parity and strict i486 pass, but matched mean was 0.0000296% lower |
 | [2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md](2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md) | 1 | `TrailingEdge` / make the frequent no-span return the fall-through path; exact color/Z/PCX parity and strict i486 pass, but matched mean was 0.0000434% lower |
 | [2026-11-11-bsp-walk-c-default-promoted.md](2026-11-11-bsp-walk-c-default-promoted.md) | 6 | BSP traversal / select the exact C walk as the i486 default after +0.024255% across three alternating demo1 pairs, exact color/Z/PCX parity, and complete strict i486 gates |
 | [2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md](2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md) | 6 | R_ClipEdge / remove five x87 FXCH operations per plane test with exact color/Z/PCX parity, strict i486 pass, and +0.383695% matched demo1 mean FPS |
@@ -745,6 +746,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### alias
 
+- rejected [Alias-gradient Y reciprocal sign flip (2026-11-11) - replace multiply-by-`-1.0` with x87 `FCHS`; exact color/Z/PCX parity and strict i486 pass, but mean was -0.0000296%](2026-11-11-alias-gradient-y-reciprocal-fchs-rejected.md)
 - rejected [Alias 4-by-4 tile-group minimum hierarchy (2026-11-07) - 12.04% fewer profile tile checks, exact tested stream, but -0.19657% release mean and unsafe epoch invalidation; removed](2026-11-07-alias-tile-group-min-hierarchy-rejected.md)
 - rejected [Alias tile-minimum early exit (2026-11-06) - 3,514 fewer profile Z samples, but frame-690 color mismatch; exact Z stream](2026-11-06-alias-tile-minimum-early-exit-rejected.md)
 - promoted [Whole-model alias tile anchor early-out (2026-11-06) - 37,470 fewer profile Z reads, exact color/Z/PCX, strict i486, +0.0245131% matched mean FPS](2026-11-06-alias-tile-anchor-early-out-promoted.md)
