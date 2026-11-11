@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md](2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md) | 7 | `R_StepActiveU` / reuse dead `%eax` for edge links, remove the normal-path `%ebx` save and restore, exact fixed-clock color/Z/PCX parity, complete strict i486 gate, and +0.015157% three-run mean |
 | [2026-11-11-alias-scan-ubasestep-specialization-rejected.md](2026-11-11-alias-scan-ubasestep-specialization-rejected.md) | 1 | alias scan / 83.71% of 102,654 left-edge steps used 0 or ±1; exact parity and strict i486 passed, but the best matched mean regressed 0.005825% |
 | [2026-11-11-alias-gradient-y-reciprocal-fchs-rejected.md](2026-11-11-alias-gradient-y-reciprocal-fchs-rejected.md) | 1 | alias gradient / replace the multiply by -1 with FCHS; exact color/Z/PCX parity and strict i486 pass, but matched mean was 0.0000296% lower |
 | [2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md](2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md) | 1 | `TrailingEdge` / make the frequent no-span return the fall-through path; exact color/Z/PCX parity and strict i486 pass, but matched mean was 0.0000434% lower |
@@ -819,6 +820,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### edge-scan
 
+- `promoted` [`R_StepActiveU` EBX scratch removal (2026-11-11) — **+0.002560 FPS (+0.015157%)**, exact fixed-clock 970 color/Z records and frame 727 PCX, complete strict i486 gate](2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md)
 - `rejected` [`TrailingEdge` spanstate branch polarity (2026-11-11) — exact color/Z/PCX parity and strict i486 gate, but the matched mean was **−0.000007333 FPS (−0.0000434%)**, below the sample spread](2026-11-11-edge-trailing-spanstate-branch-polarity-rejected.md)
 - `rejected` [Active-edge monotone-order tags (2026-11-06) — exact color/Z/PCX and strict i486 gate, but **−2.121206%** matched mean FPS](2026-11-06-active-edge-order-skip-rejected.md)
 - `promoted` [`R_GenerateSpans` trailing-to-leading continuation tail-jump (2026-11-04) — pooled mean **+0.041959333 FPS (+0.2570%)**; one control hitch drives the gain, exact fixed-step parity and complete strict i486 audit](2026-11-04-r-genspans-trailing-to-leading-tail-jump-promoted.md)

@@ -206,7 +206,9 @@ C(R_StepActiveU):
 	pushl	%edi
 	movl	pedgelist(%esp),%edx
 	pushl	%esi				// preserve register variables
+	#ifdef EDGE_SCAN_PROBE_STEP
 	pushl	%ebx
+	#endif
 
 	movl	et_prev(%edx),%esi
 
@@ -302,11 +304,11 @@ LPushBackLoop:
 
 // put the edge back into the edge list
 LPushBackFound:
-	movl	et_next(%edi),%ebx
+	movl	et_next(%edi),%eax
 	movl	%edi,et_prev(%edx)
-	movl	%ebx,et_next(%edx)
+	movl	%eax,et_next(%edx)
 	movl	%edx,et_next(%edi)
-	movl	%edx,et_prev(%ebx)
+	movl	%edx,et_prev(%eax)
 
 	movl	%esi,%edx
 	movl	et_prev(%esi),%esi
@@ -315,7 +317,9 @@ LPushBackFound:
 	jnz		LNewEdge
 
 LUDone:
+	#ifdef EDGE_SCAN_PROBE_STEP
 	popl	%ebx				// restore register variables
+	#endif
 	popl	%esi
 	popl	%edi
 
