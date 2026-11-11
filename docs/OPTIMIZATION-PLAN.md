@@ -35,6 +35,20 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Mip-0 horizontal-flat surface rows unrolled eight at a time promoted (2026-11-11)
+
+The existing assembly mip-0 horizontal-flat path now emits eight row bodies
+per loop iteration, reducing the 16-row block loop from four counter
+iterations to two. Three matched uninstrumented pairs in each of demo1 and
+demo3 averaged **16.937909000 FPS** versus **16.937853000 FPS**
+(+0.0003315%) and **15.887132333 FPS** versus **15.887078333 FPS**
+(+0.0003391%), respectively. Every candidate sample exceeded every control
+sample in its scene. All color and Z records and the captured PCX images
+matched exactly, and the complete strict i486 audit passed. This remains a
+small DOSBox-X result, not a physical-486 performance claim. See the
+[mip-0 horizontal-flat unroll8 ledger]
+(ledger/2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md).
+
 ### Mip-0 horizontal-flat surface rows unrolled four at a time promoted (2026-11-11)
 
 The assembly mip-0 horizontal-flat block now emits four row bodies per loop

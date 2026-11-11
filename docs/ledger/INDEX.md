@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md](2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md) | 5 | `surf8.s` / mip-0 horizontal-flat blocks process eight rows per counter iteration; exact color/Z/PCX parity, strict i486 pass, and +0.0003315% demo1 plus +0.0003391% demo3 means |
 | [2026-11-11-surf8-mip0-horizontal-flat-unroll4-promoted.md](2026-11-11-surf8-mip0-horizontal-flat-unroll4-promoted.md) | 5 | `surf8.s` / mip-0 horizontal-flat blocks process four rows per counter iteration; exact color/Z/PCX parity, strict i486 pass, and +0.0023887% matched demo1 mean |
 | [2026-11-11-renderface-signed-surfedge-memory-compare-promoted.md](2026-11-11-renderface-signed-surfedge-memory-compare-promoted.md) | 1 | `R_RenderFace` / compare the signed surfedge in memory; exact demo1 and entity color/Z/PCX parity, strict i486 pass, and +0.0377846% matched mean |
 | [2026-11-11-renderface-signed-surfedge-register-reuse-rejected.md](2026-11-11-renderface-signed-surfedge-register-reuse-rejected.md) | 1 | `R_RenderFace` / reuse the signed surfedge register on clipping paths; exact color/Z/PCX parity and complete i486 gate, but -0.0323705% matched mean FPS |
@@ -1151,6 +1152,8 @@ not exhaustive; the Files table above is the complete inventory.
 - `measured` [Pre-surface-block-loop control and PROFILE486 baseline (2026-09-28)](2026-09-29-alias-and-surface-block-experiments.md)
 
 ### surface-blocks
+
+- `promoted` [`surf8` mip-0 horizontal-flat eight-row block unroll: +0.000056 FPS (+0.0003315%) on demo1 and +0.000054 FPS (+0.0003391%) on demo3, exact color/Z parity and complete i486 gate](2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md)
 
 - `promoted` [`surf8` mip-0 row lightdelta stack spill (2026-10-29) — strict mean **+0.000021 FPS (+0.0001288%)**, exact checksum parity and complete executable i486 gate](2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md)
 
