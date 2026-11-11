@@ -35,6 +35,18 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### R_RenderFace signed-surfedge memory compare promoted (2026-11-11)
+
+The clipped world-edge and submodel paths now compare the signed surfedge in
+memory instead of reloading it to `%eax` before a register test. Three matched
+uninstrumented `demo1` runs improved mean FPS from **16.931061** to
+**16.937458333 (+0.0377846%)**. Exact color/Z/PCX parity passed for both the
+demo1 VESA scene and the alternate-world entity scene; the latter also matched
+its event trace and committed golden image exactly. The complete strict i486
+gate passed. This is a DOSBox-X result, not a physical-486 performance claim.
+See the [signed-surfedge memory-compare ledger]
+(ledger/2026-11-11-renderface-signed-surfedge-memory-compare-promoted.md).
+
 ### Span16 zero-T-step accumulator move promoted under the current acceptance rule (2026-11-11)
 
 When the integer T-step is zero, `D_DrawSpans16` now seeds `%eax` from the

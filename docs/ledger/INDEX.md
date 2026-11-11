@@ -18,6 +18,8 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-11-renderface-signed-surfedge-memory-compare-promoted.md](2026-11-11-renderface-signed-surfedge-memory-compare-promoted.md) | 1 | `R_RenderFace` / compare the signed surfedge in memory; exact demo1 and entity color/Z/PCX parity, strict i486 pass, and +0.0377846% matched mean |
+| [2026-11-11-renderface-signed-surfedge-register-reuse-rejected.md](2026-11-11-renderface-signed-surfedge-register-reuse-rejected.md) | 1 | `R_RenderFace` / reuse the signed surfedge register on clipping paths; exact color/Z/PCX parity and complete i486 gate, but -0.0323705% matched mean FPS |
 | [2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md](2026-11-11-span16-zero-tstep-accumulator-mov-reclassified-promoted.md) | 6 | `D_DrawSpans16` / reclassify the positive +0.000033% five-pair mean under the current thresholdless acceptance rule; exact color/Z/PCX parity and fresh complete i486 gate |
 | [2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md](2026-11-11-span16-zero-tstep-accumulator-mov-rejected.md) | 1 | `D_DrawSpans16` / original noise-based rejection, superseded after applying the current positive-pooled-mean rule |
 | [2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md](2026-11-11-edge-stepactiveu-ebx-scratch-promoted.md) | 7 | `R_StepActiveU` / reuse dead `%eax` for edge links, remove the normal-path `%ebx` save and restore, exact fixed-clock color/Z/PCX parity, complete strict i486 gate, and +0.015157% three-run mean |

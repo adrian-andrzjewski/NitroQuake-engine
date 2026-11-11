@@ -2566,9 +2566,8 @@ C(R_RenderFace_asm486):
 	movl	$0,C(r_leftclipped)
 	movl	$0,C(r_rightclipped)
 
-	/* Reload the signed surfedge only on the clipping path. */
-	movl	-4(%esi),%eax
-	testl	%eax,%eax
+	/* Compare the signed surfedge in memory; EAX is reloaded with the vertex. */
+	cmpl	$0,-4(%esi)
 	jle	.Lrf_reverse_vertices
 	movzwl	0(%ecx),%eax
 	movzwl	2(%ecx),%edx
@@ -2653,9 +2652,8 @@ C(R_RenderFace_asm486):
 	movl	$0,C(r_leftclipped)
 	movl	$0,C(r_rightclipped)
 
-	/* Reload the signed surfedge only on the clipping path. */
-	movl	-4(%esi),%eax
-	testl	%eax,%eax
+	/* Compare the signed surfedge in memory; EAX is reloaded with the vertex. */
+	cmpl	$0,-4(%esi)
 	jle	.Lrf_submodel_reverse_vertices
 	movzwl	0(%ecx),%eax
 	movzwl	2(%ecx),%edx
