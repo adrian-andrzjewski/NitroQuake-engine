@@ -2294,6 +2294,7 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(cacheoffset)
 	.extern C(r_framecount)
 	.extern C(r_pcurrentvertbase)
+	.extern C(R_ClipEdgeRegs)
 	.extern C(view_clipplanes)
 	.extern C(view_clipplanes_fullmask)
 	.extern C(r_renderface_clipflags_cache)
@@ -2609,9 +2610,8 @@ C(R_RenderFace_asm486):
 	leal	(%ebx,%eax,4),%eax
 	leal	(%edx,%edx,2),%edx
 	leal	(%ebx,%edx,4),%edx
-	movl	%eax,0(%esp)
-	movl	%edx,4(%esp)
-	call	C(R_ClipEdge)
+	movl	RF_PCLIP(%esp),%ecx
+	call	C(R_ClipEdgeRegs)
 	movl	RF_MEDGE(%esp),%ecx
 	movl	C(cacheoffset),%eax
 	movl	%eax,4(%ecx)
@@ -2661,9 +2661,8 @@ C(R_RenderFace_asm486):
 	leal	(%ebx,%eax,4),%eax
 	leal	(%edx,%edx,2),%edx
 	leal	(%ebx,%edx,4),%edx
-	movl	%eax,0(%esp)
-	movl	%edx,4(%esp)
-	call	C(R_ClipEdge)
+	movl	RF_PCLIP(%esp),%ecx
+	call	C(R_ClipEdgeRegs)
 	movl	RF_MEDGE(%esp),%ecx
 	movl	C(cacheoffset),%eax
 	movl	%eax,4(%ecx)

@@ -84,6 +84,28 @@ C(R_ClipEdge):
 	movl	clip(%esp),%ebx
 	movl	pv0(%esp),%esi
 	movl	pv1(%esp),%edx
+	jmp		.Lclip_arguments_ready
+
+/*
+ * Private register-argument entry for the hot R_RenderFace edge loops:
+ * EAX=pv0, EDX=pv1, ECX=clip.  Keep the public cdecl entry above for C callers.
+ */
+.globl C(R_ClipEdgeRegs)
+C(R_ClipEdgeRegs):
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	je	.Lclip_regs_profile_call_done
+	incl	C(bench486_clipedge_calls)
+.Lclip_regs_profile_call_done:
+#endif
+	pushl	%esi				// preserve register variables
+	pushl	%edi
+	pushl	%ebx
+	movl	%esp,Lstack			// for clearing the stack later
+	movl	%eax,%esi
+	movl	%ecx,%ebx
+
+.Lclip_arguments_ready:
 
 //	if (clip)
 //	{
