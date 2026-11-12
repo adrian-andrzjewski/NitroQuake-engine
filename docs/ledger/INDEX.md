@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-12-surf8-mip0-fullyflat-unroll16-promoted.md](2026-11-12-surf8-mip0-fullyflat-unroll16-promoted.md) | 5 | `surf8.s` / fully unroll the 16-row mip-0 fully-flat loop; exact color/Z/PCX parity, strict release and qbench i486 passes, and +0.00114636% matched demo1 mean |
 | [2026-11-11-surf8-mip0-fullyflat-sourcetstep-hoist-rejected.md](2026-11-11-surf8-mip0-fullyflat-sourcetstep-hoist-rejected.md) | 1 | `surf8.s` / hoist the mip-0 fully-flat source row stride into `%ebp`; exact VGA color/Z/PCX parity and strict i486 pass, but −0.0002517% matched demo1 mean FPS |
 | [2026-11-11-surf8-mip0-fullyflat-unroll8-promoted.md](2026-11-11-surf8-mip0-fullyflat-unroll8-promoted.md) | 5 | `surf8.s` / unroll the fully-flat mip-0 row loop eight rows at a time; exact color/Z/PCX parity, strict i486 pass, and positive four-sample means on demo1 and demo3 |
 | [2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md](2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md) | 5 | `surf8.s` / mip-0 horizontal-flat blocks process eight rows per counter iteration; exact color/Z/PCX parity, strict i486 pass, and +0.0003315% demo1 plus +0.0003391% demo3 means |
@@ -1155,6 +1156,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### surface-blocks
 
+- `promoted` [`surf8` mip-0 fully-flat sixteen-row unroll: +0.000194333 FPS (+0.00114636%) on demo1, exact color/Z/PCX parity and complete strict release and qbench i486 gates](2026-11-12-surf8-mip0-fullyflat-unroll16-promoted.md)
 - `promoted` [`surf8` mip-0 horizontal-flat eight-row block unroll: +0.000056 FPS (+0.0003315%) on demo1 and +0.000054 FPS (+0.0003391%) on demo3, exact color/Z parity and complete i486 gate](2026-11-11-surf8-mip0-horizontal-flat-unroll8-promoted.md)
 
 - `promoted` [`surf8` mip-0 row lightdelta stack spill (2026-10-29) — strict mean **+0.000021 FPS (+0.0001288%)**, exact checksum parity and complete executable i486 gate](2026-10-29-surf8-mip0-lightdelta-stack-spill-promoted.md)

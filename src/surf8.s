@@ -633,9 +633,7 @@ LSurf8Mip0HorizontalFlatRow:
 LSurf8Mip0FullyFlat:
 	movb	%dh,%bh
 	movb	%dh,%ch
-	// Eight distinct row bodies preserve independent patch sites; repeat twice.
-	movb	$2,%dl			// low byte is free after the light index is copied
-LSurf8Mip0FullyFlatRow:
+	// Sixteen distinct row bodies preserve independent patch sites.
 	SURF8_MIP0_FULLY_FLAT_ROW a
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
@@ -660,8 +658,30 @@ LSurf8Mip0FullyFlatRow:
 	SURF8_MIP0_FULLY_FLAT_ROW h
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
-	decb	%dl
-	jnz	LSurf8Mip0FullyFlatRow
+	SURF8_MIP0_FULLY_FLAT_ROW i
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW j
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW k
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW l
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW m
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW n
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW o
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_FULLY_FLAT_ROW p
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
 	jmp	LSurfaceBlockMip0Done
 #endif
 
@@ -1778,6 +1798,14 @@ SURF8_PATCH_ROW p
 	SURF8_MIP0_FULLY_FLAT_PATCH_ROW f
 	SURF8_MIP0_FULLY_FLAT_PATCH_ROW g
 	SURF8_MIP0_FULLY_FLAT_PATCH_ROW h
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW i
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW j
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW k
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW l
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW m
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW n
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW o
+	SURF8_MIP0_FULLY_FLAT_PATCH_ROW p
 	.long	.LLBPatchflatE_0-4
 	.long	.LLBPatchflatE_1-4
 	.long	.LLBPatchflatE_2-4
@@ -2005,8 +2033,8 @@ C(R_Surf8Patch):
 	movl	$32,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
-	// 128 partially-flat sites plus eight fully-flat rows of 16 sites.
-	addl	$256,%ecx
+	// 128 horizontal-flat sites plus sixteen fully-flat rows of 16 sites.
+	addl	$384,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	// Eight rows of eight colormap sites each.

@@ -35,6 +35,19 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Mip-0 fully-flat surface rows unrolled sixteen at a time promoted (2026-11-12)
+
+The fully-flat mip-0 path now emits all 16 rows in sequence, removing the
+two-pass group counter and branch while preserving texture and destination row
+advancement. Three uninstrumented `demo1` runs averaged **16.952366333 FPS**
+versus **16.952172 FPS** for the promoted unroll8 control (**+0.00114636%**);
+every candidate sample exceeded every control sample. All 964 color and Z
+records after warm-up and the frame-169 320x200 PCX matched exactly. The
+complete strict qbench and release i486 gates passed. This remains a small
+pinned DOSBox-X result, not a physical-486 performance claim. See the
+[mip-0 fully-flat unroll16 ledger]
+(ledger/2026-11-12-surf8-mip0-fullyflat-unroll16-promoted.md).
+
 ### Mip-0 horizontal-flat surface rows unrolled eight at a time promoted (2026-11-11)
 
 The existing assembly mip-0 horizontal-flat path now emits eight row bodies
