@@ -35,6 +35,18 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### R_RenderFace vertex-order register swap promoted (2026-11-12)
+
+The clipped world and submodel edge loops now avoid an unconditional jump on
+the positive-surfedge path by loading natural endpoint order and swapping the
+registers only for reversed surfedges. Three alternating uninstrumented
+`demo1` pairs averaged **16.912184 FPS** versus **16.911067667 FPS** for
+control (**+0.0066012%**); every candidate sample was faster. All 970 color and
+Z records and the frame-169 PCX matched exactly. The complete strict qbench and
+release i486 gates passed. This is a pinned DOSBox-X result, not a physical-486
+performance claim. See the [vertex-order register-swap ledger]
+(ledger/2026-11-12-renderface-vertex-order-xchg-promoted.md).
+
 ### Mip-0 fully-flat surface rows unrolled sixteen at a time promoted (2026-11-12)
 
 The fully-flat mip-0 path now emits all 16 rows in sequence, removing the

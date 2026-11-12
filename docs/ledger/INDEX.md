@@ -18,6 +18,7 @@ later insertion above it.
 
 | File | Entries | Summary / region |
 |---|---:|---|
+| [2026-11-12-renderface-vertex-order-xchg-promoted.md](2026-11-12-renderface-vertex-order-xchg-promoted.md) | 4 | `R_RenderFace` / remove the positive-surfedge path's unconditional jump with endpoint register swapping; exact color/Z/PCX parity, strict qbench and release i486 passes, and +0.0066012% matched demo1 mean |
 | [2026-11-12-surf8-mip0-fullyflat-unroll16-promoted.md](2026-11-12-surf8-mip0-fullyflat-unroll16-promoted.md) | 5 | `surf8.s` / fully unroll the 16-row mip-0 fully-flat loop; exact color/Z/PCX parity, strict release and qbench i486 passes, and +0.00114636% matched demo1 mean |
 | [2026-11-11-surf8-mip0-fullyflat-sourcetstep-hoist-rejected.md](2026-11-11-surf8-mip0-fullyflat-sourcetstep-hoist-rejected.md) | 1 | `surf8.s` / hoist the mip-0 fully-flat source row stride into `%ebp`; exact VGA color/Z/PCX parity and strict i486 pass, but −0.0002517% matched demo1 mean FPS |
 | [2026-11-11-surf8-mip0-fullyflat-unroll8-promoted.md](2026-11-11-surf8-mip0-fullyflat-unroll8-promoted.md) | 5 | `surf8.s` / unroll the fully-flat mip-0 row loop eight rows at a time; exact color/Z/PCX parity, strict i486 pass, and positive four-sample means on demo1 and demo3 |
@@ -925,6 +926,7 @@ not exhaustive; the Files table above is the complete inventory.
 
 ### renderface
 
+- `promoted` [`R_RenderFace` vertex-order register swap (2026-11-12) — **+0.001116333 FPS (+0.0066012%)**, exact 970 color/Z records and frame 169 PCX, complete strict qbench and release i486 gates](2026-11-12-renderface-vertex-order-xchg-promoted.md)
 - `promoted` [`R_ClipEdge` combined distance sign check with `%eax` reload (2026-11-11) — **+0.008154 FPS (+0.048263%)**, exact 970 color/Z rows and frame 727 PCX, complete strict i486 gate](2026-11-11-r-clipedge-combined-sign-live-eax-reload-promoted.md)
 - `rejected` [`R_ClipEdge` combined distance sign check (2026-11-11) — live `%eax` clobber changed clipping; frame-0 color and Z checksums diverged and the source change was reverted](2026-11-11-r-clipedge-combined-sign-live-eax-rejected.md)
 - `promoted` [`R_ClipEdge` endpoint dot-product schedule (2026-11-11) — **+0.064552 FPS (+0.383695%)**, exact 970 color/Z records and frame 482 PCX, complete strict i486 gate](2026-11-11-r-clipedge-dot-product-stack-reschedule-promoted.md)

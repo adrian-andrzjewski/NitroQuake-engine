@@ -2567,14 +2567,11 @@ C(R_RenderFace_asm486):
 	movl	$0,C(r_rightclipped)
 
 	/* Compare the signed surfedge in memory; EAX is reloaded with the vertex. */
-	cmpl	$0,-4(%esi)
-	jle	.Lrf_reverse_vertices
 	movzwl	0(%ecx),%eax
 	movzwl	2(%ecx),%edx
-	jmp	.Lrf_vertices_ready
-.Lrf_reverse_vertices:
-	movzwl	2(%ecx),%eax
-	movzwl	0(%ecx),%edx
+	cmpl	$0,-4(%esi)
+	jg	.Lrf_vertices_ready
+	xchgl	%eax,%edx
 .Lrf_vertices_ready:
 	/* Count distinct world-model endpoints once per profiled frame. */
 #ifdef PROFILE486
@@ -2653,14 +2650,11 @@ C(R_RenderFace_asm486):
 	movl	$0,C(r_rightclipped)
 
 	/* Compare the signed surfedge in memory; EAX is reloaded with the vertex. */
-	cmpl	$0,-4(%esi)
-	jle	.Lrf_submodel_reverse_vertices
 	movzwl	0(%ecx),%eax
 	movzwl	2(%ecx),%edx
-	jmp	.Lrf_submodel_vertices_ready
-.Lrf_submodel_reverse_vertices:
-	movzwl	2(%ecx),%eax
-	movzwl	0(%ecx),%edx
+	cmpl	$0,-4(%esi)
+	jg	.Lrf_submodel_vertices_ready
+	xchgl	%eax,%edx
 .Lrf_submodel_vertices_ready:
 	/* EAX/EDX are the ordered vertex indices; form byte addresses. */
 	leal	(%eax,%eax,2),%eax
