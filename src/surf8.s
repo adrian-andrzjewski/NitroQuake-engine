@@ -590,8 +590,6 @@ LSkip_mip0:
 
 	.p2align 4,,15
 LSurf8Mip0HorizontalFlat:
-	pushl	$2
-LSurf8Mip0HorizontalFlatRow:
 	SURF8_MIP0_HORIZONTAL_FLAT_ROW A
 	addl	%ebp,%edx
 	addl	C(sourcetstep),%esi
@@ -624,9 +622,38 @@ LSurf8Mip0HorizontalFlatRow:
 	addl	%ebp,%edx
 	addl	C(sourcetstep),%esi
 	addl	C(surfrowbytes),%edi
-	decl	(%esp)
-	jnz	LSurf8Mip0HorizontalFlatRow
-	addl	$4,%esp
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW I
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW J
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW K
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW L
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW M
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW N
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW O
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
+	SURF8_MIP0_HORIZONTAL_FLAT_ROW P
+	addl	%ebp,%edx
+	addl	C(sourcetstep),%esi
+	addl	C(surfrowbytes),%edi
 	jmp	LSurfaceBlockMip0Done
 
 	.p2align 4,,15
@@ -1870,6 +1897,32 @@ SURF8_PATCH_ROW p
 	.long	.LLBPatchflatH_13-4
 	.long	.LLBPatchflatH_14-4
 	.long	.LLBPatchflatH_15-4
+	.macro SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW suffix
+	.long	.LLBPatchflat\suffix\()_0-4
+	.long	.LLBPatchflat\suffix\()_1-4
+	.long	.LLBPatchflat\suffix\()_2-4
+	.long	.LLBPatchflat\suffix\()_3-4
+	.long	.LLBPatchflat\suffix\()_4-4
+	.long	.LLBPatchflat\suffix\()_5-4
+	.long	.LLBPatchflat\suffix\()_6-4
+	.long	.LLBPatchflat\suffix\()_7-4
+	.long	.LLBPatchflat\suffix\()_8-4
+	.long	.LLBPatchflat\suffix\()_9-4
+	.long	.LLBPatchflat\suffix\()_10-4
+	.long	.LLBPatchflat\suffix\()_11-4
+	.long	.LLBPatchflat\suffix\()_12-4
+	.long	.LLBPatchflat\suffix\()_13-4
+	.long	.LLBPatchflat\suffix\()_14-4
+	.long	.LLBPatchflat\suffix\()_15-4
+	.endm
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW I
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW J
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW K
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW L
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW M
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW N
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW O
+	SURF8_MIP0_HORIZONTAL_FLAT_PATCH_ROW P
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	.long	.LLBPatchm1fa_0-4
@@ -2033,8 +2086,8 @@ C(R_Surf8Patch):
 	movl	$32,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
-	// 128 horizontal-flat sites plus sixteen fully-flat rows of 16 sites.
-	addl	$384,%ecx
+	// Sixteen horizontal-flat rows plus sixteen fully-flat rows, 16 sites each.
+	addl	$512,%ecx
 #endif
 #ifdef ASM486_SURF8_MIP1_HORIZONTAL_FLAT
 	// Eight rows of eight colormap sites each.
