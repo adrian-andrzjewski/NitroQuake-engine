@@ -904,7 +904,7 @@ Lblockloop8_mip1_rows8:
 	SURF8_MIP1_ROW f
 	SURF8_MIP1_ROW g
 	SURF8_MIP1_ROW h
-	jc		Lblockloop8_mip1_rows8
+// Eight rows above are the full mip-1 block; the 0x7/0xF counter ends without carry.
 #else
 Lblockloop8_mip1:
 	movl	%ebp,C(lightdelta)
@@ -1256,7 +1256,7 @@ Lv_loop_mip2:
 	movl	%ebx,C(lightdeltastep)
 	subl	%ebx,%ebx	// high word must be 0 in loop for addressing
 
-Lblockloop8_mip2:
+.macro SURF8_MIP2_ROW suffix
 	// Start the independent texel reads before saving and scaling the light
 	// delta, so they can be ready by the first two colormap lookups.
 	movb	2(%esi),%cl
@@ -1272,11 +1272,11 @@ Lblockloop8_mip2:
 	addl	%ebp,%edx
 
 	movb	0x12345678(%ebx),%ah
-LBPatch18:
+.LLBPatchm2\suffix\()_18:
 	movb	1(%esi),%bl
 
 	movb	0x12345678(%ecx),%al
-LBPatch19:
+.LLBPatchm2\suffix\()_19:
 	movb	(%esi),%cl
 
 	movb	%dh,%bh
@@ -1286,11 +1286,11 @@ LBPatch19:
 	movb	%dh,%ch
 
 	movb	0x12345678(%ebx),%ah
-LBPatch20:
+.LLBPatchm2\suffix\()_20:
 	movl	C(lightright),%edx
 
 	movb	0x12345678(%ecx),%al
-LBPatch21:
+.LLBPatchm2\suffix\()_21:
 	movl	C(lightdelta),%ebp
 
 	movl	%eax,(%edi)
@@ -1299,8 +1299,15 @@ LBPatch21:
 	addl	C(lightrightstep),%edx
 	addl	C(lightdeltastep),%ebp
 	movl	%edx,C(lightright)
+.endm
 
-	jc		Lblockloop8_mip2
+// The 0x3 high-nibble seed and 0xF step produce exactly four carry iterations.
+// Emit the same row updates in sequence and remove the per-row carry branch.
+Lblockrows4_mip2:
+	SURF8_MIP2_ROW A
+	SURF8_MIP2_ROW B
+	SURF8_MIP2_ROW C
+	SURF8_MIP2_ROW D
 
 //			if (pbasesource >= r_sourcemax)
 //				pbasesource -= stepback;
@@ -1653,10 +1660,22 @@ SURF8_PATCH_ROW p
 #endif
 	.long	LBPatch16-4
 	.long	LBPatch17-4
-	.long	LBPatch18-4
-	.long	LBPatch19-4
-	.long	LBPatch20-4
-	.long	LBPatch21-4
+	.long	.LLBPatchm2A_18-4
+	.long	.LLBPatchm2A_19-4
+	.long	.LLBPatchm2A_20-4
+	.long	.LLBPatchm2A_21-4
+	.long	.LLBPatchm2B_18-4
+	.long	.LLBPatchm2B_19-4
+	.long	.LLBPatchm2B_20-4
+	.long	.LLBPatchm2B_21-4
+	.long	.LLBPatchm2C_18-4
+	.long	.LLBPatchm2C_19-4
+	.long	.LLBPatchm2C_20-4
+	.long	.LLBPatchm2C_21-4
+	.long	.LLBPatchm2D_18-4
+	.long	.LLBPatchm2D_19-4
+	.long	.LLBPatchm2D_20-4
+	.long	.LLBPatchm2D_21-4
 #ifdef ASM486_SURF8_MIP1_ROWS8
 	.long .LLBPatchm1a_0-4
 	.long .LLBPatchm1a_1-4
@@ -2085,6 +2104,8 @@ C(R_Surf8Patch):
 #else
 	movl	$32,%ecx
 #endif
+	// Four unrolled mip-2 rows replace the original four shared patch sites.
+	addl	$12,%ecx
 #ifdef ASM486_SURF8_MIP0_HORIZONTAL_FLAT
 	// Sixteen horizontal-flat rows plus sixteen fully-flat rows, 16 sites each.
 	addl	$512,%ecx

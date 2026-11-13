@@ -65,6 +65,10 @@ param(
     [string]$TextureSpanTailStores = 'control',
     [ValidateSet('control', 'norowcross')]
     [string]$TextureSpanRowPath = 'control',
+    [ValidateSet('control', 'zerot')]
+    [string]$TextureSpanTZeroPath = 'control',
+    [ValidateSet('control', 'zerot')]
+    [string]$TextureSpanTailTZeroPath = 'control',
     [ValidateSet('control', 'nofxch')]
     [string]$ZSpanStartSchedule = 'control',
     [ValidateSet('control', 'loadfirst')]
@@ -392,8 +396,13 @@ if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
 if ($TextureSpanStores -eq 'stosw' -and
 		($TextureSpanLoadOrder -ne 'control' -or
 		$TextureSpanAddressing -ne 'control' -or
-		$TextureSpanRowPath -ne 'control')) {
-	throw 'The stosw texture-span store path requires control load order, addressing, and row path.'
+		$TextureSpanRowPath -ne 'control' -or
+		$TextureSpanTZeroPath -ne 'control' -or
+		$TextureSpanTailTZeroPath -ne 'control')) {
+	throw 'The stosw texture-span store path requires control load order, addressing, row path, and T-zero paths.'
+}
+if ($TextureSpanTailTZeroPath -eq 'zerot' -and $TextureSpanTailStores -ne 'control') {
+	throw 'The exact-zero-T tail path requires -TextureSpanTailStores control.'
 }
 
 if ($AliasControlImplementation -in @('asm', 'asm-fixture')) {

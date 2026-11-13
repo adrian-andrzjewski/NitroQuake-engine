@@ -395,15 +395,21 @@ while (1)
 	st = &pr_statements[s];
 	/* Resolve operands inside their opcode case. Branch displacements and
 	 * unused fields are not global-variable operands. */
+	/* Keep trace, error and saved callsites current only where they are read. */
 	
 	if (!--runaway)
+	{
+		pr_xstatement = s;
 		PR_RunError ("runaway loop error");
+	}
 		
 	pr_xfunction->profile++;
-	pr_xstatement = s;
-	
+
 	if (pr_trace)
+	{
+		pr_xstatement = s;
 		PR_PrintStatement (st);
+	}
 		
 	switch (st->op)
 	{
@@ -666,7 +672,10 @@ while (1)
 		NUM_FOR_EDICT(ed);		// make sure it's in range
 #endif
 		if (ed == (edict_t *)sv.edicts && sv.state == ss_active)
+		{
+			pr_xstatement = s;
 			PR_RunError ("assignment to world entity");
+		}
 		c->_int = (byte *)((int *)&ed->v + b->_int) - (byte *)sv.edicts;
 		break;
 		
@@ -727,6 +736,7 @@ while (1)
 	case OP_CALL6:
 	case OP_CALL7:
 	case OP_CALL8:
+		pr_xstatement = s;
 		a = (eval_t *)&pr_globals[st->a];
 		pr_argc = st->op - OP_CALL0;
 		if (!a->function)
@@ -752,6 +762,7 @@ while (1)
 		pr_globals[OFS_RETURN+1] = pr_globals[st->a+1];
 		pr_globals[OFS_RETURN+2] = pr_globals[st->a+2];
 	
+		pr_xstatement = s;
 		s = PR_LeaveFunction ();
 		if (pr_depth == exitdepth)
 		{
@@ -777,6 +788,7 @@ while (1)
 		break;
 		
 	default:
+		pr_xstatement = s;
 		PR_RunError ("Bad opcode %i", st->op);
 	}
 }

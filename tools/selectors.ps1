@@ -409,6 +409,24 @@ $script:SelectorTable = @(
     }
 
     @{
+        Param      = 'TextureSpanTZeroPath'
+        Manifest   = 'textureSpanTZeroPath'
+        Suffix     = @{ 'zerot' = 'spanzerot' }
+        C          = @{}
+        Asm        = @{ 'zerot' = @('ASM486_SPAN16_EXACT_ZERO_T') }
+        SelectsAsm = $false
+    }
+
+    @{
+        Param      = 'TextureSpanTailTZeroPath'
+        Manifest   = 'textureSpanTailTZeroPath'
+        Suffix     = @{ 'zerot' = 'spantailzerot' }
+        C          = @{}
+        Asm        = @{ 'zerot' = @('ASM486_SPAN16_TAIL_EXACT_ZERO_T') }
+        SelectsAsm = $false
+    }
+
+    @{
         Param      = 'ZSpanStartSchedule'
         Manifest   = 'zSpanStartSchedule'
         Suffix     = @{ 'nofxch' = 'zspannofxch' }
@@ -2063,6 +2081,8 @@ $script:SuffixOrder = @(
     'TextureSpanStores'
     'TextureSpanTailStores'
     'TextureSpanRowPath'
+    'TextureSpanTZeroPath'
+    'TextureSpanTailTZeroPath'
     'ZSpanStartSchedule'
     'TextureSpanLoadOrder'
     'TextureSpanAddressing'
@@ -2497,6 +2517,8 @@ $script:AsmDefineOrder = @(
     'TurbulentScanImplementation'
     'TextureSpanStores'
     'TextureSpanRowPath'
+    'TextureSpanTZeroPath'
+    'TextureSpanTailTZeroPath'
     'ZSpanStartSchedule'
     'TextureSpanTailStores'
     'TextureSpanLoadOrder'
@@ -2583,6 +2605,12 @@ function Set-DefaultI486AssemblySelectors {
         ) -or (
             $property.Name -ceq 'EdgeListMaintenanceImplementation' -and
             $value -ceq 'legacy'
+        ) -or (
+            $property.Name -ceq 'TextureSpanTZeroPath' -and
+            $value -ceq 'zerot'
+        ) -or (
+            $property.Name -ceq 'TextureSpanTailTZeroPath' -and
+            $value -ceq 'zerot'
         )
         if ($null -eq $entry -or -not $hasValue -or -not $acceptedDefault) {
             throw "The default i486 profile has an invalid renderer selector '$($property.Name)=$($property.Value)'."

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "i486-asm-selectable-current",
-  "description": "Default i486 release profile selecting measured implementations, including accepted assembly paths for status-bar composition, inventory and primitives, SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle. The world-BSP C traversal is selected because matched 320x200 timedemos measured it faster than the assembly walk; the assembly selector remains available. Retain legacy handwritten edge-list assembly because it benchmarks faster than the replacement i486 selector. Use the C-reference profile for parity comparisons.",
+  "description": "Default i486 release profile selecting measured implementations, including exact-zero-T texture-span full-segment and tail specializations. It also selects accepted assembly paths for status-bar composition, inventory and primitives, SCR_UpdateScreen, SCR_DrawNet and SCR_DrawTurtle. The world-BSP C traversal is selected because matched 320x200 timedemos measured it faster than the assembly walk; the assembly selector remains available. Retain legacy handwritten edge-list assembly because it benchmarks faster than the replacement i486 selector. Use the C-reference profile for parity comparisons.",
   "selectors": {
     "MemoryImplementation": "asm",
     "FillRectImplementation": "asm",
@@ -13,6 +13,8 @@
     "SurfaceCacheImplementation": "asm",
     "MipLevelImplementation": "asm",
     "TurbulentImplementation": "fourteen-stosb",
+    "TextureSpanTZeroPath": "zerot",
+    "TextureSpanTailTZeroPath": "zerot",
     "TurbulentScanImplementation": "asm",
     "SurfaceDrawImplementation": "asm",
     "SurfaceZGradientImplementation": "asm",

@@ -50,7 +50,7 @@ GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     '-memasm-fillrectasm-zpointasm-skyasm-warpasm-solidasm-axisasm-surfaceasm-surfacedrawasm-surfacez'
-    'asm-surfacegradasm-surfacesasm-mipasm-turbfourteensb-turbscan-surf0rows16-surf0hflat-surf1rows8-surf1hf'
+    'asm-surfacegradasm-surfacesasm-mipasm-turbfourteensb-turbscan-spanzerot-spantailzerot-surf0rows16-surf0hflat-surf1rows8-surf1hf'
     'lat-surf1hflatidxhoist-aliasclipasm-aliasclipzasm-aliasmatrixasm-aliaslightingasm-aliasframeasm-'
     'aliaskinasm-aliasgradientasm-aliaslinescanasm-lightmapstylesasm-fusedlightmapasm-dlightasm-dligh'
     'torchestrationasm-dlightpushasm-dlightcontribasm-marklightsasm-lightmapbuildasm-bspdotasm-bspcli'

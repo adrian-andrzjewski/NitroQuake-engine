@@ -47,6 +47,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern C(bench486_texture_final_exact)
 	.extern C(bench486_texture_full_row_eligible)
 	.extern C(bench486_texture_full_row_fast)
+	.extern C(bench486_texture_tail_tstep_zero_segments)
+	.extern C(bench486_texture_tail_tstep_zero_samples)
 	.extern C(bench486_span_segments)
 	.extern C(bench486_span_unit_stride_segments)
 	.extern C(bench486_span_unit_stride_pixels)
@@ -571,6 +573,16 @@ LProfileNonZeroStatsDone:
 
 LSetUpCommon:
 	movl	sfracf,%ebx
+#ifdef ASM486_SPAN16_EXACT_ZERO_T
+	// Test the unshifted T delta.  The low fixed-point fraction becomes
+	// tstep after the left shift, so testing that value would also accept
+	// nonzero integral texture-row steps.
+	testl	%ecx,%ecx
+	jz		LSpan16ExactZeroTSetup
+#ifndef ASM486_SPAN16_NO_ROW_CROSS
+	movl	$0,jumptemp
+#endif
+#endif
 	shll	$12,%ecx			// left-justify tstep fractional part
 	shll	$12,%ebp			// left-justify sstep fractional part
 	movl	%eax,advancetable	// advance extra in t
@@ -582,14 +594,25 @@ LSetUpCommon:
 	addl	%ebp,%ebx			// advance sfrac fractional part by sstep frac
 	adcl	advancetable+4(,%ecx,4),%esi	// point to next source texel
 
-#ifdef ASM486_SPAN16_NO_ROW_CROSS
+#if defined(ASM486_SPAN16_NO_ROW_CROSS) || defined(ASM486_SPAN16_EXACT_ZERO_T)
 	jmp		LSpan16ControlStoresA
 #endif
 
-#ifdef ASM486_SPAN16_NO_ROW_CROSS
+#ifdef ASM486_SPAN16_EXACT_ZERO_T
+LSpan16ExactZeroTSetup:
+	// T is constant across this 16-pixel segment.  Preserve the S accumulator
+	// and its address carry, then enter the shared S-only store schedule.
+	shll	$12,%ebp
+	movl	%eax,advancetable
+	addl	%ebp,%ebx
+	adcl	advancetable+4,%esi
+	jmp		LSpan16NoRowCrossStores
+#endif
+
+#if defined(ASM486_SPAN16_NO_ROW_CROSS) || defined(ASM486_SPAN16_EXACT_ZERO_T)
 // Same store schedules as the control path, but the texture address only
-// advances from the S accumulator.  The row test above proves that no T
-// carry can affect any of these sixteen samples.
+// advances from the S accumulator.  The row test above or exact zero-T test
+// proves that no T carry can affect any of these sixteen samples.
 LSpan16NoRowCrossStores:
 #ifdef ASM486_SPAN16_LOOP_STOSB
 	incl	%edi
@@ -980,7 +1003,7 @@ LSetupNotLast2:
 							// this is what we've gone to all this trouble to
 							//  overlap
 LFDIVInFlight2:
-#ifdef ASM486_SPAN16_NO_ROW_CROSS
+#if defined(ASM486_SPAN16_NO_ROW_CROSS) || defined(ASM486_SPAN16_EXACT_ZERO_T)
 	cmpl	$1,jumptemp
 	jne		LSpan16ControlStoresB
 LSpan16NoRowCrossStoresB:
@@ -1310,6 +1333,19 @@ LSetEntryvec:
 // set up advancetable
 //
 	movl	entryvec_table_16(,%ecx,4),%ebx
+#ifdef PROFILE486
+	cmpl	$0,C(bench486_profile_frame_active)
+	jz		LProfileTailTStepDone
+	testl	%edx,%edx
+	jnz		LProfileTailTStepDone
+	incl	C(bench486_texture_tail_tstep_zero_segments)
+	addl	%ecx,C(bench486_texture_tail_tstep_zero_samples)
+LProfileTailTStepDone:
+#endif
+#ifdef ASM486_SPAN16_TAIL_EXACT_ZERO_T
+	testl	%edx,%edx
+	jz		LSpan16TailZeroTSetup
+#endif
 	movl	%edx,%eax
 	movl	%ebx,jumptemp		// entry point into code for RET later
 	movl	%ebp,%ecx
@@ -1340,6 +1376,97 @@ LSetEntryvec:
 	jmp		LSpan16TailWordStores
 #else
 	jmp		*jumptemp			// jump to the number-of-pixels handler
+#endif
+
+#ifdef ASM486_SPAN16_TAIL_EXACT_ZERO_T
+// The fixed-point T step is zero, so only S can change the source address.
+// The first pixel was stored before LSetEntryvec; %esi is advanced once here
+// to the second texel, then the length-specific suffix stores the tail.
+LSpan16TailZeroTSetup:
+	movl	%ecx,%edx			// number of remaining samples
+	movl	%ebp,%ecx
+	sarl	$16,%ecx			// integer S step
+	shll	$16,%ebp			// fractional S step
+	movl	sfracf,%ebx
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al			// sample two
+	leal	-15(%edi,%edx),%edi	// align last sample with offset 15
+	jmp		*LSpan16TailZeroTEntryTable(,%edx,4)
+
+LSpan16TailZeroTStore1:
+	movb	%al,1(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore2:
+	movb	%al,2(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore3:
+	movb	%al,3(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore4:
+	movb	%al,4(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore5:
+	movb	%al,5(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore6:
+	movb	%al,6(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore7:
+	movb	%al,7(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore8:
+	movb	%al,8(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore9:
+	movb	%al,9(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore10:
+	movb	%al,10(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore11:
+	movb	%al,11(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore12:
+	movb	%al,12(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore13:
+	movb	%al,13(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore14:
+	movb	%al,14(%edi)
+	addl	%ebp,%ebx
+	adcl	%ecx,%esi
+	movb	(%esi),%al
+LSpan16TailZeroTStore15:
+	movb	%al,15(%edi)
+	jmp		LEndSpan
 #endif
 
 //----------------------------------------
@@ -1699,5 +1826,19 @@ LEndSpan:
 	popl	%edi
 	popl	%ebp				// restore the caller's stack frame
 	ret
+
+#ifdef ASM486_SPAN16_TAIL_EXACT_ZERO_T
+	.data
+	.p2align 2
+LSpan16TailZeroTEntryTable:
+	.long	0, LSpan16TailZeroTStore15, LSpan16TailZeroTStore14
+	.long	LSpan16TailZeroTStore13, LSpan16TailZeroTStore12
+	.long	LSpan16TailZeroTStore11, LSpan16TailZeroTStore10
+	.long	LSpan16TailZeroTStore9, LSpan16TailZeroTStore8
+	.long	LSpan16TailZeroTStore7, LSpan16TailZeroTStore6
+	.long	LSpan16TailZeroTStore5, LSpan16TailZeroTStore4
+	.long	LSpan16TailZeroTStore3, LSpan16TailZeroTStore2
+	.long	LSpan16TailZeroTStore1
+#endif
 
 #endif	// id386

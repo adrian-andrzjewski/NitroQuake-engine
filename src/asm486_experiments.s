@@ -2295,6 +2295,7 @@ C(R_EmitCachedEdge_asm486):
 	.extern C(r_framecount)
 	.extern C(r_pcurrentvertbase)
 	.extern C(R_ClipEdgeRegs)
+	.extern C(R_ClipEdgeStack)
 	.extern C(view_clipplanes)
 	.extern C(view_clipplanes_fullmask)
 	.extern C(r_renderface_clipflags_cache)
@@ -2489,6 +2490,9 @@ C(R_RenderFace_asm486):
 	movl	C(r_pcurrentvertbase),%ebx
 	testl	%edi,%edi
 	jle	.Lrf_edges_done
+	/* One R_ClipEdgeRegs stack base serves every edge in this face. */
+	leal	-16(%esp),%eax
+	movl	%eax,C(R_ClipEdgeStack)
 
 	/* Select the cache-free submodel path once before processing any edge. */
 	cmpl	$0,C(insubmodel)

@@ -1072,7 +1072,9 @@ trace_t SV_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, e
 	/* Every clip field is assigned below before SV_ClipToLinks reads it. */
 
 // clip to world
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_COLLISION_WORLD);
 	clip.trace = SV_ClipMoveToEntity ( sv.edicts, start, mins, maxs, end );
+	BENCH486_PROFILE_LEAVE ();
 
 	clip.start = start;
 	clip.end = end;
@@ -1096,10 +1098,14 @@ trace_t SV_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, e
 	}
 	
 // create the bounding box of the entire move
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_COLLISION_BOUNDS);
 	SV_MoveBounds ( start, clip.mins2, clip.maxs2, end, clip.boxmins, clip.boxmaxs );
+	BENCH486_PROFILE_LEAVE ();
 
 // clip to entities
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_COLLISION_LINKS);
 	SV_ClipToLinks ( sv_areanodes, &clip );
+	BENCH486_PROFILE_LEAVE ();
 
 	BENCH486_PROFILE_LEAVE ();
 	return clip.trace;

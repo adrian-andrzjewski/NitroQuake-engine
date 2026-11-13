@@ -35,6 +35,104 @@ Per the user's direction on 2026-10-29, optimize and qualify the renderer at
 320x200 only. Higher resolutions are outside the active 486 performance scope
 because they are too slow for the target class of hardware.
 
+### Exact-zero-T texture-span segment path promoted (2026-11-13)
+
+`D_DrawSpans16` now bypasses the per-pixel T update and carry/address selection
+for full 16-pixel segments with an exactly zero unshifted T delta. The S
+accumulator and all color writes remain active, and the Z path is unchanged.
+Three matched sound-off local-game runs per map retained exact simulation and
+framebuffer checksums. The pooled DOSBox-X result improved **2.800318%** across
+e1m1/e1m2; all 970 color and Z frames in three fixed-clock demo1 replays matched
+the control byte-for-byte. The i486 release profile enables the specialization
+by default while retaining an explicit control selector. The strict qbench and
+release ISA gates passed. These measurements do not establish physical-486
+performance. See the
+[exact-zero-T ledger](ledger/2026-11-13-span16-exact-zero-tstep-promoted.md).
+
+### Exact-zero-T texture-span tail specialization promoted (2026-11-13)
+
+The final short segment of a texture span now has a zero-T fast path. When its
+computed T step is exactly zero, the tail skips repeated T accumulator and
+texture-address updates and advances the S accumulator only. Three matched
+uninstrumented qbench runs per map measured **+0.5349% pooled FPS** across
+e1m1/e1m2, with matching simulation and framebuffer checksums. Three fixed-clock
+demo1 replays matched every per-frame color and Z checksum. The i486 release
+profile selects this path by default, with an explicit control selector. Strict
+i486 qbench and release gates passed. This remains DOSBox-X evidence, not a
+physical-486 performance claim. See the
+[tail specialization ledger](ledger/2026-11-13-span16-tail-exact-zero-tstep-promoted.md).
+
+### QuakeC per-statement store elision promoted (2026-11-13)
+
+`PR_ExecuteProgram` updates `pr_xstatement` only where tracing, errors, or
+function-call bookkeeping consume it, removing one global store from each
+ordinary VM instruction. Three alternating uninstrumented local-game pairs per
+map kept exact simulation and framebuffer checksums. Pooled FPS improved
+**0.05781%** on e1m1 and **0.06570%** on e1m2 (**+0.06190%** across both maps).
+The qbench and release builds passed the strict i486 gates. This is a small
+DOSBox-X result, not a physical-486 performance claim. QuakeC remains a
+secondary cost center behind rendering. See the
+[QuakeC ledger](ledger/2026-11-13-quakec-statement-store-elision-promoted.md).
+
+### 8-bit sound mixer four-sample loop promoted (2026-11-13)
+
+`SND_PaintChannelFrom8` handles four samples per loop iteration and retains a
+two-sample remainder path. The DJGPP fixture passed 4,096 paint-buffer parity
+cases. Three alternating sound-on local-game pairs per map produced exact
+simulation/framebuffer checksums and a pooled **+0.029209%** FPS change over
+e1m1/e1m2. The complete release and qbench i486 gates passed; DOSBox-X timing
+does not establish physical-486 performance. See the [sound-mixer ledger]
+(ledger/2026-11-13-snd-mixa-four-sample-unroll-promoted.md).
+
+### Mip-1 fixed-block terminal branch removed (2026-11-13)
+
+The eight-row mip-1 surface body no longer executes its trailing carry branch:
+the fixed 0x7/0xF counter ends without carry after the eighth row. Three
+alternating uninstrumented demo1 pairs averaged **16.929665667 FPS** versus
+**16.928558 FPS** for control (**+0.0065432%**); every candidate sample was
+faster. All 970 color and Z records and the frame-169 PCX matched byte-for-byte.
+The release and qbench builds passed their complete strict i486 gates, with
+165,058 and 317,486 linked instructions respectively. This is pinned DOSBox-X
+evidence, not a physical-486 performance claim. See the
+[mip-1 terminal-branch ledger](ledger/2026-11-13-surf8-mip1-terminal-branch-promoted.md).
+
+### Static physics no-think dispatch skip promoted (2026-11-13)
+
+`SV_Physics` skips `SV_Physics_None` only when a `MOVETYPE_NONE` entity's
+`nextthink` bits are exactly positive zero. Three alternating uninstrumented
+local-game pairs per map retained exact final simulation and framebuffer
+checksums; candidate FPS improved **0.024081%** on e1m1 and **0.032644%** on
+e1m2 (**+0.028518% pooled**). This small DOSBox-X result is measured at
+320x200 and does not establish physical-486 performance. The release and qbench
+builds passed their complete strict i486 gates. See the
+[static physics ledger](ledger/2026-11-13-static-physics-zero-think-promoted.md).
+
+### Black alias-triangle culling rejected (2026-11-12)
+
+The renderer clears the background with palette index 0 (pure black). An
+isolated candidate classified only front-facing alias triangles with identical
+integer S/T samples and one light row, then used a depth-preserving black-output
+path. Three alternating uninstrumented `demo1` pairs averaged **16.927602 FPS**
+versus **16.928556667 FPS** for control (**-0.0056394%**); all candidate runs
+were slower. Per-frame color and Z checksums also varied across repeated runs
+of the control, so exact full-demo parity could not be established. The culling
+path is rejected and remains isolated. See the [black-triangle ledger](ledger/2026-11-12-black-triangle-cull-rejected.md).
+DOSBox-X results do not
+establish physical-486 performance.
+
+### Mip-2 surface rows unrolled four at a time promoted (2026-11-12)
+
+`R_DrawSurfaceBlock8_mip2` now emits its fixed four scanlines in sequence and
+removes the carry branch from the four-row loop. A current-source `demo1`
+profile recorded 66,049 mip-2 block draws. Three alternating uninstrumented
+pairs averaged **16.928558 FPS** versus **16.926996 FPS** for control
+(**+0.0092279%**); every candidate sample beat its matched control. All 970
+color and Z records, frame-169 PCX, and final framebuffer checksum matched.
+The complete strict qbench and release i486 gates passed. This is pinned
+DOSBox-X evidence, not a physical-486 performance claim. See the
+[mip-2 four-row unroll ledger]
+(ledger/2026-11-12-surf8-mip2-row-unroll4-promoted.md).
+
 ### R_RenderFace vertex-order register swap promoted (2026-11-12)
 
 The clipped world and submodel edge loops now avoid an unconditional jump on
@@ -46,6 +144,53 @@ Z records and the frame-169 PCX matched exactly. The complete strict qbench and
 release i486 gates passed. This is a pinned DOSBox-X result, not a physical-486
 performance claim. See the [vertex-order register-swap ledger]
 (ledger/2026-11-12-renderface-vertex-order-xchg-promoted.md).
+
+### `R_ClipEdgeRegs` stack-base store hoisted across each face (2026-11-12)
+
+`R_RenderFace_asm486` now sets the private clipper's stack base once before
+each face's edge loop. The public C entry still saves its own base, while the
+private register-argument path avoids a global store on every clipped edge.
+Three alternating uninstrumented `demo1` pairs averaged **16.926976667 FPS**
+versus **16.924150333 FPS** for control (**+0.0167000%**); every candidate
+sample was faster. All 969 color and Z records, frame 169 PCX, and final
+framebuffer checksum matched. The qbench and release builds passed the complete
+strict i486 gate. This is a pinned DOSBox-X result, not a physical-486
+performance claim. See the [clipper stack-base ledger]
+(ledger/2026-11-12-r-clipedge-stackbase-hoist-promoted.md).
+
+### `R_ClipEdgeRegs` EBX save elimination rejected (2026-11-12)
+
+Replacing the private per-edge EBX save with a reserved stack slot and a caller
+reload preserved exact output and passed the complete strict release and qbench
+i486 gates. Three alternating uninstrumented `demo1` pairs averaged
+**16.922248333 FPS** versus **16.928574333 FPS** for control (**-0.0373688%**);
+every candidate sample was slower. The candidate is rejected. See the
+[EBX-save elimination ledger]
+(ledger/2026-11-12-r-clipedge-ebx-save-rejected.md). This DOSBox-X result is
+not a physical-486 performance claim.
+
+### Mip-0 right-flat surface rows rejected (2026-11-12)
+
+An isolated candidate dispatched mip-0 blocks with a zero `lightrightstep` to a
+second 16-row body that skipped the per-row zero add and redundant store. It
+preserved exact color, Z, and frame-169 PCX output and passed the strict release
+and qbench i486 gates. Three alternating uninstrumented `demo1` pairs averaged
+**16.927422333 FPS** versus **16.928554667 FPS** for control (**-0.0066889%**);
+every candidate sample was slower. The candidate is rejected. See the
+[mip-0 right-flat ledger](ledger/2026-11-12-surf8-mip0-rightflat-rejected.md).
+This is pinned DOSBox-X evidence, not a physical-486 performance claim.
+
+### Mip-1 right-flat surface rows rejected (2026-11-12)
+
+The eight-row MIP1 body has an opt-in zero-right-step specialization that skips
+the per-row zero add and same-value store while retaining the carry-setting
+light-delta add. It preserved all 970 color and Z records and the frame-169 PCX,
+and passed the strict release and qbench i486 gates. Three alternating
+uninstrumented `demo1` pairs averaged **16.926348 FPS** versus **16.928552333
+FPS** for control (**-0.0130214%**); all candidate samples were slower. The
+candidate is rejected. See the [mip-1 right-flat ledger]
+(ledger/2026-11-12-surf8-mip1-rightflat-rejected.md). This is pinned DOSBox-X
+evidence, not a physical-486 performance claim.
 
 ### Mip-0 fully-flat surface rows unrolled sixteen at a time promoted (2026-11-12)
 

@@ -87,7 +87,7 @@ LRightSet:
 	movb	-1(%esi,%ecx,1),%bl
 
 	testl	$1,%ecx
-	jz		LMix8Loop
+	jz		LMix8Dispatch
 
 	movl	(%eax,%ebx,4),%edi
 	movl	(%edx,%ebx,4),%ebp
@@ -102,7 +102,13 @@ LRightSet:
 
 //	for (i=0 ; i<count ; i++)
 //	{
-LMix8Loop:
+// Run any two-sample remainder once, then process four samples per loop.
+// Counts are even here because the odd sample was handled above.
+LMix8Dispatch:
+	testl	$2,%ecx
+	jz		LMix8FourLoop
+
+LMix8TwoTail:
 
 //		data = sfx[i];
 //		paintbuffer[i].left += lscale[data];
@@ -125,7 +131,47 @@ LMix8Loop:
 
 //	}
 	subl	$2,%ecx
-	jnz		LMix8Loop
+	jz		LDone
+
+LMix8FourLoop:
+
+	// First two samples in this four-sample block.
+	movl	(%eax,%ebx,4),%edi
+	movl	(%edx,%ebx,4),%ebp
+	addl	C(paintbuffer)+psp_left-psp_size(,%ecx,psp_size),%edi
+	addl	C(paintbuffer)+psp_right-psp_size(,%ecx,psp_size),%ebp
+	movb	-2(%esi,%ecx,1),%bl
+	movl	%edi,C(paintbuffer)+psp_left-psp_size(,%ecx,psp_size)
+	movl	%ebp,C(paintbuffer)+psp_right-psp_size(,%ecx,psp_size)
+
+	movl	(%eax,%ebx,4),%edi
+	movl	(%edx,%ebx,4),%ebp
+	movb	-3(%esi,%ecx,1),%bl
+	addl	C(paintbuffer)+psp_left-psp_size*2(,%ecx,psp_size),%edi
+	addl	C(paintbuffer)+psp_right-psp_size*2(,%ecx,psp_size),%ebp
+	movl	%edi,C(paintbuffer)+psp_left-psp_size*2(,%ecx,psp_size)
+	movl	%ebp,C(paintbuffer)+psp_right-psp_size*2(,%ecx,psp_size)
+	subl	$2,%ecx
+
+	// Second two samples; ECX now addresses the lower half of the block.
+	movl	(%eax,%ebx,4),%edi
+	movl	(%edx,%ebx,4),%ebp
+	addl	C(paintbuffer)+psp_left-psp_size(,%ecx,psp_size),%edi
+	addl	C(paintbuffer)+psp_right-psp_size(,%ecx,psp_size),%ebp
+	movb	-2(%esi,%ecx,1),%bl
+	movl	%edi,C(paintbuffer)+psp_left-psp_size(,%ecx,psp_size)
+	movl	%ebp,C(paintbuffer)+psp_right-psp_size(,%ecx,psp_size)
+
+	movl	(%eax,%ebx,4),%edi
+	movl	(%edx,%ebx,4),%ebp
+	movb	-3(%esi,%ecx,1),%bl
+	addl	C(paintbuffer)+psp_left-psp_size*2(,%ecx,psp_size),%edi
+	addl	C(paintbuffer)+psp_right-psp_size*2(,%ecx,psp_size),%ebp
+	movl	%edi,C(paintbuffer)+psp_left-psp_size*2(,%ecx,psp_size)
+	movl	%ebp,C(paintbuffer)+psp_right-psp_size*2(,%ecx,psp_size)
+
+	subl	$2,%ecx
+	jnz		LMix8FourLoop
 
 LDone:
 	popl	%ebp

@@ -316,6 +316,8 @@ unsigned long bench486_texture_full_exact;
 unsigned long bench486_texture_final_exact;
 unsigned long bench486_texture_full_row_eligible;
 unsigned long bench486_texture_full_row_fast;
+unsigned long bench486_texture_tail_tstep_zero_segments;
+unsigned long bench486_texture_tail_tstep_zero_samples;
 // Unit-stride span premise. bench486_span_segments is every sixteen-wide
 // segment the span drawer sets up; the other two are the subset whose t step
 // has no whole texel, whose s step is exactly one texel and whose s step has
@@ -507,7 +509,18 @@ static char *bench486_profile_node_names[BENCH486_PROFILE_NODE_COUNT] =
 	"server-messages",
 	"client-read",
 	"quakec",
-	"collision"
+	"collision",
+	"physics-startframe",
+	"physics-client",
+	"physics-pusher",
+	"physics-none",
+	"physics-follow",
+	"physics-noclip",
+	"physics-step",
+	"physics-toss",
+	"collision-world",
+	"collision-bounds",
+	"collision-links"
 };
 #endif
 
@@ -1738,7 +1751,8 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			"    \"texture_widths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_final_lengths\": [%lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu, %lu],\n"
 			"    \"texture_full\": {\"tzero\": %lu, \"tdelta_zero\": %lu, \"tfrac_zero\": %lu, \"sfrac_zero\": %lu, \"sone\": %lu, \"exact\": %lu, \"final_exact\": %lu, \"row_eligible\": %lu, \"row_fast\": %lu},\n"
-			"    \"span_strides\": {\"segments\": %lu, \"unit_stride_segments\": %lu, \"unit_stride_pixels\": %lu}\n"
+			"    \"span_strides\": {\"segments\": %lu, \"unit_stride_segments\": %lu, \"unit_stride_pixels\": %lu},\n"
+			"    \"texture_tail\": {\"zero_tstep_segments\": %lu, \"zero_tstep_samples\": %lu}\n"
 			"  },\n",
 			bench486_profile_frames, bench486_bsp_nodes,
 			bench486_bsp_solid_culls, bench486_bsp_visibility_culls,
@@ -1791,7 +1805,9 @@ static void Bench486WriteProfileJson (int timedemo_frames,
 			bench486_texture_final_exact, bench486_texture_full_row_eligible,
 			bench486_texture_full_row_fast, bench486_span_segments,
 			bench486_span_unit_stride_segments,
-			bench486_span_unit_stride_pixels);
+			bench486_span_unit_stride_pixels,
+			bench486_texture_tail_tstep_zero_segments,
+			bench486_texture_tail_tstep_zero_samples);
 	Bench486ProfileJsonPrintf (file_handle,
 			"  \"clipvertex_plane_distance_reuse\": {"
 			"\"uses_by_plane\": [%lu, %lu, %lu, %lu], "
@@ -2030,6 +2046,8 @@ void Bench486ResetTimedemoCounters (void)
 	bench486_texture_final_exact = 0;
 	bench486_texture_full_row_eligible = 0;
 	bench486_texture_full_row_fast = 0;
+	bench486_texture_tail_tstep_zero_segments = 0;
+	bench486_texture_tail_tstep_zero_samples = 0;
 	bench486_span_segments = 0;
 	bench486_zspan_pixels = 0;
 	bench486_zspan_spans = 0;

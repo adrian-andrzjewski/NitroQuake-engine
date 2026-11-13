@@ -37,7 +37,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 Ld0:			.single		0.0
 Ld1:			.single		0.0
-Lstack:			.long		0
+.globl C(R_ClipEdgeStack)
+C(R_ClipEdgeStack):	.long		0
 Lfp_near_clip:	.single		NEAR_CLIP
 Lceilv0:		.long		0
 Lv:				.long		0
@@ -76,7 +77,7 @@ C(R_ClipEdge):
 	pushl	%esi				// preserve register variables
 	pushl	%edi
 	pushl	%ebx
-	movl	%esp,Lstack			// for clearing the stack later
+	movl	%esp,C(R_ClipEdgeStack)	// for clearing the stack later
 
 //	float		d0, d1, f;
 //	mvertex_t	clipvert;
@@ -101,7 +102,6 @@ C(R_ClipEdgeRegs):
 	pushl	%esi				// preserve register variables
 	pushl	%edi
 	pushl	%ebx
-	movl	%esp,Lstack			// for clearing the stack later
 	movl	%eax,%esi
 	movl	%ecx,%ebx
 
@@ -520,7 +520,7 @@ LSetRemove:
 	movl	%eax,et_nextremove(%edi)
 
 Ldone:
-	movl	Lstack,%esp			// clear temporary variables from stack
+	movl	C(R_ClipEdgeStack),%esp	// clear temporary variables from stack
 
 	popl	%ebx				// restore register variables
 	popl	%edi

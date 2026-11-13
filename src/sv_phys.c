@@ -1513,7 +1513,9 @@ void SV_Physics (void)
 	pr_global_struct->self = EDICT_TO_PROG(sv.edicts);
 	pr_global_struct->other = EDICT_TO_PROG(sv.edicts);
 	pr_global_struct->time = sv.time;
+	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_STARTFRAME);
 	PR_ExecuteProgram (pr_global_struct->StartFrame);
+	BENCH486_PROFILE_LEAVE ();
 
 //SV_CheckAllEnts ();
 
@@ -1532,19 +1534,59 @@ void SV_Physics (void)
 		}
 
 		if (i > 0 && i <= svs.maxclients)
+		{
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_CLIENT);
 			SV_Physics_Client (ent, i);
+			BENCH486_PROFILE_LEAVE ();
+		}
 		else if (ent->v.movetype == MOVETYPE_PUSH)
+		{
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_PUSHER);
 			SV_Physics_Pusher (ent);
+			BENCH486_PROFILE_LEAVE ();
+		}
 		else if (ent->v.movetype == MOVETYPE_NONE)
+		{
+			/*
+			 * Most static entities never think.  Skip the no-op path when
+			 * nextthink is exactly +0.0: this is a conservative subset of
+			 * SV_RunThink's immediate-return cases, and an integer test avoids
+			 * its x87 status-word transfer on every such entity.
+			 */
+			union
+			{
+				float value;
+				unsigned int bits;
+			} nextthink;
+
+			nextthink.value = ent->v.nextthink;
+			if (nextthink.bits == 0)
+				continue;
+
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_NONE);
 			SV_Physics_None (ent);
+			BENCH486_PROFILE_LEAVE ();
+		}
 #ifdef QUAKE2
 		else if (ent->v.movetype == MOVETYPE_FOLLOW)
+		{
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_FOLLOW);
 			SV_Physics_Follow (ent);
+			BENCH486_PROFILE_LEAVE ();
+		}
 #endif
 		else if (ent->v.movetype == MOVETYPE_NOCLIP)
+		{
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_NOCLIP);
 			SV_Physics_Noclip (ent);
+			BENCH486_PROFILE_LEAVE ();
+		}
 		else if (ent->v.movetype == MOVETYPE_STEP)
+		{
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_STEP);
 			SV_Physics_Step (ent);
+			BENCH486_PROFILE_LEAVE ();
+		}
 		else if (ent->v.movetype == MOVETYPE_TOSS 
 		|| ent->v.movetype == MOVETYPE_BOUNCE
 #ifdef QUAKE2
@@ -1552,7 +1594,11 @@ void SV_Physics (void)
 #endif
 		|| ent->v.movetype == MOVETYPE_FLY
 		|| ent->v.movetype == MOVETYPE_FLYMISSILE)
+		{
+			BENCH486_PROFILE_ENTER (BENCH486_PROFILE_PHYSICS_TOSS);
 			SV_Physics_Toss (ent);
+			BENCH486_PROFILE_LEAVE ();
+		}
 		else
 			Sys_Error ("SV_Physics: bad movetype %i", (int)ent->v.movetype);			
 	}

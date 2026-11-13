@@ -121,6 +121,17 @@ BENCH486_PROFILE_ALIAS_CALCGRADIENTS,
 	BENCH486_PROFILE_CLIENT_READ,
 	BENCH486_PROFILE_QUAKEC,
 	BENCH486_PROFILE_COLLISION,
+	BENCH486_PROFILE_PHYSICS_STARTFRAME,
+	BENCH486_PROFILE_PHYSICS_CLIENT,
+	BENCH486_PROFILE_PHYSICS_PUSHER,
+	BENCH486_PROFILE_PHYSICS_NONE,
+	BENCH486_PROFILE_PHYSICS_FOLLOW,
+	BENCH486_PROFILE_PHYSICS_NOCLIP,
+	BENCH486_PROFILE_PHYSICS_STEP,
+	BENCH486_PROFILE_PHYSICS_TOSS,
+	BENCH486_PROFILE_COLLISION_WORLD,
+	BENCH486_PROFILE_COLLISION_BOUNDS,
+	BENCH486_PROFILE_COLLISION_LINKS,
 	BENCH486_PROFILE_NODE_COUNT
 } bench486_profile_node_id_t;
 
@@ -172,6 +183,8 @@ extern unsigned long bench486_texture_full_exact;
 extern unsigned long bench486_texture_final_exact;
 extern unsigned long bench486_texture_full_row_eligible;
 extern unsigned long bench486_texture_full_row_fast;
+extern unsigned long bench486_texture_tail_tstep_zero_segments;
+extern unsigned long bench486_texture_tail_tstep_zero_samples;
 extern unsigned long bench486_span_segments;
 extern unsigned long bench486_zspan_pixels;
 extern unsigned long bench486_zspan_spans;
