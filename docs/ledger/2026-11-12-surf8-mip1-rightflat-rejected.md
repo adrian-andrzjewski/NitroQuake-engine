@@ -11,7 +11,7 @@ add and same-value store. It retained the light-delta add that controls the
 carry loop. The opt-in selector and code stayed in the isolated
 `D:\NitroQuake-surf8-mip1-rightflat-20261112` worktree.
 
-## Exact output parity
+### Exact output parity
 
 Control and candidate used `demo1`, the same data and renderer settings, and
 DOSBox-X 2026.08.31 with the pinned 320x200 i486 profile
@@ -26,7 +26,7 @@ frame-169 PCX:
 | Z checksum stream | 4D995848BEF742F2E2B8362A978F21AB3F4A4885ACB95794DAC512964135FD37 |
 | Frame-169 PCX | 28E8D79CE925D4ACA40EF1EC56B21292A624CF814C809A8E8E826A0D89CE1C01 |
 
-## Strict i486 gates
+### Strict i486 gates
 
 The control and candidate release builds passed the complete strict gate with
 165,085 and 165,423 relocated instructions, respectively. The qbench builds
@@ -35,7 +35,7 @@ above-i486, unknown, or exempt instructions and passed the 529-row startup and
 9,207-instruction DPMI-provider proofs. The candidate's 64 patch sites account
 for 338 additional linked instructions in both profiles.
 
-## Matched timing
+### Matched timing
 
 Three alternating uninstrumented `demo1` pairs used one run per invocation.
 Frame checksums, Z checksums, FPS instrumentation, and profiling were disabled
@@ -52,7 +52,7 @@ candidate, a -0.0130214% change. All three candidate samples were slower,
 so this candidate is rejected. This is pinned DOSBox-X evidence, not a
 physical-486 performance claim.
 
-## Artifacts and disposition
+### Artifacts and disposition
 
 - Candidate worktree: `D:\NitroQuake-surf8-mip1-rightflat-20261112\`
 - Release builds: `out/local-surf8-m1-rflat-rel-{control,candidate}-20261112/`

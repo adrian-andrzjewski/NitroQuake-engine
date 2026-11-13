@@ -683,7 +683,7 @@ later insertion above it.
 | [2026-10-06-renderer-selector-benchmarks.md](2026-10-06-renderer-selector-benchmarks.md) | 1 | renderer port / performance |
 | [2026-10-06-particle-update-assembly-port.md](2026-10-06-particle-update-assembly-port.md) | 4 | renderer port / particles |
 | [2026-10-06-alias-transform-order-parity.md](2026-10-06-alias-transform-order-parity.md) | 3 | alias |
-| [2026-10-05-world-bsp-assembly-port.md](2026-10-05-world-bsp-assembly-port.md) | 3 | renderer port / world-bsp |
+| [2026-10-05-world-bsp-assembly-port.md](2026-10-05-world-bsp-assembly-port.md) | 4 | renderer port / world-bsp |
 | [2026-10-05-submodel-polygons-assembly-port.md](2026-10-05-submodel-polygons-assembly-port.md) | 2 | renderer port / world-bsp |
 | [2026-10-05-scan-edges-assembly-port.md](2026-10-05-scan-edges-assembly-port.md) | 3 | renderer port / world-bsp |
 | [2026-10-05-renderface-assembly-port.md](2026-10-05-renderface-assembly-port.md) | 3 | renderer port / renderface |

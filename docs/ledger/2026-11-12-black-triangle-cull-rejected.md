@@ -15,7 +15,7 @@ S/T texel and one light row and whose final mapped texel was black.
 The candidate is not in the active renderer because it did not improve the
 measured workload.
 
-## Output checks
+### Output checks
 
 Control and candidate used the same 320x200 DOSBox-X 2026.08.31 profile
 (`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`), local
@@ -30,14 +30,14 @@ there as well. The `demo1` run was therefore not repeatable over that segment in
 this checksum configuration; these observations do not isolate a candidate
 visual difference.
 
-## Strict i486 gates
+### Strict i486 gates
 
 The control and candidate release builds passed with 165,071 and 165,238 linked
 instructions. The qbench builds passed with 317,499 and 317,664 linked
 instructions. All reported zero above-i486, unknown, or exempt instructions and
 passed the 529-row startup and 9,207-instruction DPMI-provider proofs.
 
-## Matched timing
+### Matched timing
 
 Three alternating uninstrumented `demo1` pairs used the pinned DOSBox-X profile.
 Per-frame checksums, Z checksums, FPS instrumentation, and profiling were off
@@ -53,7 +53,7 @@ The means were 16.928556667 FPS for control and 16.927602 FPS for the candidate,
 a -0.0056394% change. All candidate samples were slower, so the culling path is
 rejected. This is DOSBox-X evidence, not a physical-486 performance claim.
 
-## Artifacts and disposition
+### Artifacts and disposition
 
 - Candidate worktree: `D:\NitroQuake-black-triangle-20261112\`
 - Build reports: candidate worktree `out\profile-64dd9f2156152453` (control) and

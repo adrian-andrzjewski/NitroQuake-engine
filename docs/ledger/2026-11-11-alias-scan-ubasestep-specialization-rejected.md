@@ -20,7 +20,7 @@ retained the framebuffer checksum `1047377823`; its source-tree fingerprint
 was `E665F690F719F5DDAA8DF93A2D50BBFE1988C80FCEAB207CF7E2E20265DFA7D4`.
 The counters and report additions were removed before release candidate builds.
 
-## Candidates and strict i486 audit
+### Candidates and strict i486 audit
 
 Both candidates specialized the two `ubasestep * r_{s,t}stepx` products while
 leaving every resulting base-step sum exact. The full specialization used
@@ -44,7 +44,7 @@ run rendered 969 frames with checksum `1047377823`.
 | Z checksums | `4D995848BEF742F2E2B8362A978F21AB3F4A4885ACB95794DAC512964135FD37` |
 | Frame 482 PCX | `437F3EA0349D226EE4BFD3A4C29CE7085C48FB873807B711AA599030AE413F87` |
 
-## Matched timing
+### Matched timing
 
 Three uninstrumented runs per variant used the pinned DOSBox-X 2026.08.31
 i486 profile (`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`),
@@ -60,7 +60,7 @@ Both candidates are slower than control. The `ubasestep` specialization is
 rejected and the original two multiply paths remain. DOSBox-X timing does not
 establish performance on a physical 486.
 
-## Artifacts
+### Artifacts
 
 - Census: `benchmarks/out/engine-profile-alias-ubase-hist-20261111.json`
 - Control build and timing: `out/local-alias-gradient-fchs-control-20261111/`, `benchmarks/out/dos-timedemo-20261111-025502/timedemo-result.json`

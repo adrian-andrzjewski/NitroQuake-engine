@@ -9,7 +9,7 @@ reciprocal by the exact constant `-1.0`. The candidate replaced that memory
 operand multiply with x87 `FCHS`, which flips only the sign bit and avoids the
 constant load.
 
-## Exact rendering and i486 compatibility
+### Exact rendering and i486 compatibility
 
 The baseline source-tree fingerprint was
 `F2514508A8C904402D5FD76760D33CD6AD105472724067B93E474F4D274D09F9`; the
@@ -37,7 +37,7 @@ linked contributions. The object instruction count for `d_polysa.obj` fell from
 1,411 to 1,399; this static reduction did not produce a positive timedemo
 result.
 
-## Matched timing
+### Matched timing
 
 Three uninstrumented samples per variant used the same enforced 969-frame
 checksum gate:
@@ -51,7 +51,7 @@ The candidate mean was **0.000005 FPS lower (-0.0000296%)**. The sign-flip
 rewrite is rejected; the multiply remains active. DOSBox-X results do not
 establish physical-486 performance.
 
-## Artifacts
+### Artifacts
 
 - Control build: `out/local-alias-gradient-fchs-control-20261111/`
 - Candidate build: `out/local-alias-gradient-fchs-candidate-20261111/`

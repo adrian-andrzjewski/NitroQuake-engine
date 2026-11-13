@@ -12,7 +12,7 @@ consume the unused slot. Both `R_RenderFace_asm486` callers then reloaded
 unchanged. Relative to the active source snapshot, the candidate delta was
 limited to `src/r_drawa.s` and `src/asm486_experiments.s`.
 
-## Exact rendering and i486 compatibility
+### Exact rendering and i486 compatibility
 
 Control and candidate used the same `demo1` workload, data, selectors, and
 pinned DOSBox-X 2026.08.31 486 profile
@@ -34,7 +34,7 @@ instructions, and passed the 529-row startup and 9,207-instruction DPMI
 provider proofs. The fresh control qbench also passed the gate with 317,499
 relocated instructions.
 
-## Matched timing
+### Matched timing
 
 Three alternating uninstrumented `demo1` pairs used one run per invocation.
 Frame checksums, Z checksums, FPS instrumentation, and profiling were disabled
@@ -51,7 +51,7 @@ candidate, a **-0.0373688%** change. Every candidate sample was slower. The
 candidate is rejected under the positive-mean acceptance rule. This is pinned
 DOSBox-X evidence, not a physical-486 performance claim.
 
-## Artifacts and disposition
+### Artifacts and disposition
 
 - Control qbench: `out/local-clipedge-ebx-control-qbench-20261112/`
 - Candidate release and qbench:

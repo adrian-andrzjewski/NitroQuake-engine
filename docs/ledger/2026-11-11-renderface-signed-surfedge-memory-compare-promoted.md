@@ -10,7 +10,7 @@ vertex order. The promoted path compares the signed value in place with
 `cmpl $0,-4(%esi)`. This removes the register load and test without adding a
 move to the per-edge loop.
 
-## Exact rendering and i486 compatibility
+### Exact rendering and i486 compatibility
 
 Control and candidate used Build 867, the current selectable i486 assembly
 profile, and the pinned DOSBox-X 2026.08.31 486 profile
@@ -45,7 +45,7 @@ instructions, 529 startup rows, and 9,207 DPMI-provider instructions; zero
 instructions were above i486, unknown, or exempt. Source proofs covered 403
 objects and 435 linked contributions.
 
-## Matched timing
+### Matched timing
 
 Three uninstrumented `demo1` runs per variant used the same profile, scene
 commands, 969-frame count, and final-checksum gate:
@@ -60,7 +60,7 @@ spread was zero, candidate spread was 0.000002 FPS, and the trailing control
 drift was -0.000001 FPS. All candidate samples exceeded all control samples.
 This is DOSBox-X evidence for the pinned workload, not a physical-486 claim.
 
-## Artifacts
+### Artifacts
 
 - Candidate build: `D:\NitroQuake-renderface-direct-memory-cmp-20261111\out\profile-f2fae35dccd9a099\`
 - Parity and timing evidence: `workspace\benchmarks\out\renderface-direct-memory-cmp-20261111\`

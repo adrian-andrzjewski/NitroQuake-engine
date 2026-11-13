@@ -28,7 +28,7 @@ tested. Do not use this flawed candidate executable as a renderer build; the
 register-preserving version is documented in
 `2026-11-11-r-clipedge-combined-sign-live-eax-reload-promoted.md`.
 
-## Artifacts
+### Artifacts
 
 - Candidate build: `out/local-r-clipedge-or-sign-candidate-20261111c/`
 - Failed candidate replay: `benchmarks/out/dos-timedemo-20261111-071345/`

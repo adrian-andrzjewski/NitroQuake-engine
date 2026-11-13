@@ -15,7 +15,7 @@ That adds one register move to every edge iteration to remove a memory reload
 from clipping paths. The experiment changed only `src/asm486_experiments.s`;
 the candidate source was restored after measurement.
 
-## Exact rendering and i486 compatibility
+### Exact rendering and i486 compatibility
 
 Control and candidate used Build 867, the selectable i486 assembly profile,
 `demo1`, and the pinned DOSBox-X 2026.08.31 486 profile
@@ -38,7 +38,7 @@ the captured 320x200 frame-169 PCX matched byte-for-byte:
 | Z checksums | `1B41D2AB5B0FC99FCCA5158C51E4D7B9028CBF4C3EC8DFDF32C6AB96C2DB85E8` |
 | Frame 169 PCX | `D63788DE7D75959CC45A0ACFEA50DE772A03145D9788D23AB7431FD068594F96` |
 
-## Matched timing
+### Matched timing
 
 Three uninstrumented runs per variant used the same deterministic commands,
 DOSBox-X profile, frame count, and final-checksum gate:
@@ -53,7 +53,7 @@ was zero, candidate spread was 0.000004 FPS, and the trailing control returned
 to 16.931061 FPS with zero drift. The register-reuse change is rejected. These
 DOSBox-X timings do not establish physical-486 performance.
 
-## Artifacts and disposition
+### Artifacts and disposition
 
 - Control build: `D:\NitroQuake-render-audit-20261111\out\profile-00a02b679118056f\`
 - Candidate build: `D:\NitroQuake-renderface-signed-reuse-20261111\out\profile-9d388e64f1e9a6e0\`

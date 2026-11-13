@@ -10,7 +10,7 @@ return when the value remains nonzero. In the measured `demo1` profile,
 candidate inverted the conditional and placed `ret` on the fall-through path,
 so the common no-emit case could return without taking a branch.
 
-## Correctness and compatibility
+### Correctness and compatibility
 
 Control and candidate used the pinned DOSBox-X 2026.08.31 i486 profile
 (`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`) and the
@@ -31,7 +31,7 @@ The control and rebuilt candidate both passed the complete strict i486 gate:
 instructions, with zero above-i486, unknown, or exempt instructions. Source
 proofs covered 403 native/annotated objects and 435 linked contributions.
 
-## Matched timing
+### Matched timing
 
 The uninstrumented release runs used the same pinned DOSBox-X profile and
 enforced the 969-frame and final-checksum gates.
@@ -45,7 +45,7 @@ The candidate mean was **0.000007333 FPS lower (-0.0000434%)**. This is below
 the sample spread, so the result supports no measurable gain and is not a
 performance claim. DOSBox-X results do not establish physical-486 performance.
 
-## Artifacts and disposition
+### Artifacts and disposition
 
 - Control release: `out/local-local-edge-trailing-branch-polarity-control-20261111/`
 - Candidate release: `out/local-local-edge-trailing-branch-polarity-candidate-rebuilt-20261111/`
