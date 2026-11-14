@@ -356,6 +356,7 @@ void CL_ParseServerInfo (void)
 			(cls.demoplayback || cls.timedemo))
 		Bench486ScreenCenterTraceGlyph (36, 0, 0, 0);
 	#endif
+	R_InvalidateWarpStackCache ();
 	R_NewMap ();
 	#if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 	if (bench486_screen_center_trace_active &&

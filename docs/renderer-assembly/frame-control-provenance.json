@@ -184,13 +184,13 @@
       "variant": "release",
       "calleeRegisters": [],
       "stackReservations": [
-        "64012",
+        "12",
         "12",
         "12",
         "8",
         "8"
       ],
-      "purpose": "Preserve setup/visibility/world/entity/viewmodel/particle/warp order and the frame-local warpbuffer lifetime."
+      "purpose": "Preserve setup/visibility/world/entity/viewmodel/particle/warp order with renderer-owned warp storage and guarded fallback dispatch."
     },
     {
       "originalFunction": "R_RenderView",
@@ -376,7 +376,7 @@
         "%ebx"
       ],
       "stackReservations": [
-        "64036",
+        "36",
         "12",
         "12",
         "12",
@@ -388,7 +388,7 @@
         "8",
         "8"
       ],
-      "purpose": "Preserve setup/visibility/world/entity/viewmodel/particle/warp order and the frame-local warpbuffer lifetime."
+      "purpose": "Preserve setup/visibility/world/entity/viewmodel/particle/warp order with renderer-owned warp storage and guarded fallback dispatch."
     },
     {
       "originalFunction": "R_RenderView",

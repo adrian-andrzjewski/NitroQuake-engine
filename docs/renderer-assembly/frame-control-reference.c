@@ -52,6 +52,7 @@ qboolean	r_surfsonstack;
 int			r_clipflags;
 
 byte		*r_warpbuffer;
+static byte	*r_warpbuffer_storage;
 
 byte		*r_stack_start;
 
@@ -143,6 +144,8 @@ extern cvar_t	scr_fov;
 
 void CreatePassages (void);
 void SetVisibilityByPassages (void);
+void R_InitWarpBuffer (void);
+void R_RenderViewDispatch (void (*render_view) (void));
 
 /*
 ==================
@@ -186,8 +189,9 @@ void R_Init (void)
 {
 	int		dummy;
 	
-// get stack position so we can guess if we are going to overflow
+	// get stack position so we can guess if we are going to overflow
 	r_stack_start = (byte *)&dummy;
+	R_InitWarpBuffer ();
 	
 	R_InitTurb ();
 	
@@ -1042,14 +1046,11 @@ r_refdef must be set before the first call
 */
 void R_RenderView_ (void)
 {
-	byte	warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 #ifdef PROFILE486
 	double	bench486_visibility_start;
 	unsigned long profile_particle_start;
 #endif
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_RENDERER);
-
-	r_warpbuffer = warpbuffer;
 
 	if (r_timegraph.value || r_speeds.value || r_dspeeds.value)
 		r_time1 = Sys_FloatTime ();
@@ -1197,7 +1198,7 @@ void R_RenderView (void)
 	if ( (long)(&r_warpbuffer) & 3 )
 		Sys_Error ("Globals are missaligned");
 
-	R_RenderView_ ();
+	R_RenderViewDispatch (R_RenderView_);
 }
 
 /*

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_main.c
 
 #include <stddef.h>
+#include <stdlib.h>
 
 #include "quakedef.h"
 #include "r_local.h"
@@ -52,6 +53,59 @@ qboolean	r_surfsonstack;
 int			r_clipflags;
 
 byte		*r_warpbuffer;
+static byte	*r_warpbuffer_storage;
+static model_t	*r_warp_depth_world;
+static unsigned long r_warp_depth_value;
+static int		r_warp_depth_numnodes;
+static int		r_warp_depth_numleafs;
+static qboolean	r_warp_depth_cached;
+static qboolean	r_warp_depth_valid;
+static qboolean	r_warp_stack_status_reported;
+#ifdef BENCH486
+static qboolean r_bench_warp_force_short_stack;
+static unsigned long r_bench_warp_actual_stack_available;
+static int r_bench_warp_report_handle = -1;
+static void R_BenchWarpLog (const char *text, qboolean close_report);
+static void R_BenchWarpAllocated_f (void);
+static void R_BenchWarpFallback_f (void);
+static void R_BenchWarpShort_f (void);
+#endif
+
+/* Stack bounds use generated i486 frames from both supported renderer paths.
+ * R_EdgeDrawing reserves 128108 bytes in release and C-reference builds.
+ * The C-reference R_RenderWorld frame is 40012 bytes. Recursive clipped-
+ * bmodel steps are 124 bytes in the C reference (108-byte frame plus its
+ * 12-byte cdecl arguments and return address) and 128 bytes in release
+ * assembly (112-byte frame plus the same call area). These bound the
+ * 64-byte world-node and 92-byte light-point steps. R_RenderPoly's deepest stack path
+ * is 4648 bytes, including the caller arguments, its 4624-byte frame, and the
+ * TransformVector call arguments. The fallback itself is 64012 bytes, and the
+ * normal render call chain adds three return addresses. These are measured
+ * frame costs, not a configurable reserve. */
+#define R_WARP_BUFFER_BYTES		(WARP_WIDTH * WARP_HEIGHT)
+#define R_WARP_FALLBACK_FRAME_BYTES	64012UL /* push ebx + sub esp,64008 */
+#define R_WARP_C_WORLD_FRAME_BYTES	40012UL
+#if defined(ASM486_BMODEL_POLYGON_CLIP)
+#ifdef PROFILE486
+#define R_WARP_TREE_STEP_BYTES		136UL
+#else
+#define R_WARP_TREE_STEP_BYTES		128UL
+#endif
+#else
+#define R_WARP_TREE_STEP_BYTES		124UL
+#endif
+#define R_WARP_RENDER_POLY_PATH_BYTES	4648UL
+#ifdef PROFILE486
+#define R_WARP_RENDER_VIEW_FRAME_BYTES	36UL
+#define R_WARP_EDGE_FRAME_BYTES		128136UL
+#else
+#define R_WARP_RENDER_VIEW_FRAME_BYTES	12UL
+#define R_WARP_EDGE_FRAME_BYTES		128108UL
+#endif
+#define R_WARP_CALL_BYTES		4UL
+
+extern unsigned __djgpp_stack_limit;
+extern unsigned __djgpp_stack_top;
 
 byte		*r_stack_start;
 
@@ -143,6 +197,9 @@ extern cvar_t	scr_fov;
 
 void CreatePassages (void);
 void SetVisibilityByPassages (void);
+void R_InitWarpBuffer (void);
+void R_InvalidateWarpStackCache (void);
+void R_RenderViewDispatch (void (*render_view) (void));
 
 /*
 ==================
@@ -224,6 +281,7 @@ void R_Init (void)
 	
 // get stack position so we can guess if we are going to overflow
 	r_stack_start = (byte *)&dummy;
+	R_InitWarpBuffer ();
 	
 	R_InitTurb ();
 	
@@ -1078,14 +1136,11 @@ r_refdef must be set before the first call
 */
 void R_RenderView_ (void)
 {
-	byte	warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 #ifdef PROFILE486
 	double	bench486_visibility_start;
 	unsigned long profile_particle_start;
 #endif
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_RENDERER);
-
-	r_warpbuffer = warpbuffer;
 
 	if (r_timegraph.value || r_speeds.value || r_dspeeds.value)
 		r_time1 = Sys_FloatTime ();
@@ -1233,7 +1288,7 @@ void R_RenderView (void)
 	if ( (long)(&r_warpbuffer) & 3 )
 		Sys_Error ("Globals are missaligned");
 
-	R_RenderView_ ();
+	R_RenderViewDispatch (R_RenderView_);
 }
 
 /*
@@ -1296,6 +1351,343 @@ void R_InitTurb (void)
 #ifdef ASM486_FRAME_CONTROL
 #undef R_InitTurb
 #endif
+
+/*
+================
+R_InitWarpBuffer
+
+Keep the common warp image in renderer-owned storage.  A failed allocation is
+handled at R_RenderViewDispatch, where the actual DJGPP stack bounds are
+checked before a separate stack-backed render is entered.
+================
+*/
+void R_InitWarpBuffer (void)
+{
+#ifdef BENCH486
+	static qboolean warp_commands_registered;
+
+	if (!warp_commands_registered)
+	{
+		Cmd_AddCommand ("benchwarp_allocated", R_BenchWarpAllocated_f);
+		Cmd_AddCommand ("benchwarp_fallback", R_BenchWarpFallback_f);
+		Cmd_AddCommand ("benchwarp_short", R_BenchWarpShort_f);
+		warp_commands_registered = true;
+	}
+#endif
+
+	if (r_warpbuffer_storage)
+	{
+		r_warpbuffer = r_warpbuffer_storage;
+		return;
+	}
+
+	r_warpbuffer_storage = (byte *)malloc (R_WARP_BUFFER_BYTES);
+	r_warpbuffer = r_warpbuffer_storage;
+}
+
+void R_InvalidateWarpStackCache (void)
+{
+	r_warp_depth_cached = false;
+	r_warp_depth_valid = false;
+	r_warp_depth_world = NULL;
+	r_warp_stack_status_reported = false;
+}
+
+#ifdef BENCH486
+static void R_BenchWarpLog (const char *text, qboolean close_report)
+{
+	if (r_bench_warp_report_handle == -1)
+	{
+		r_bench_warp_report_handle = Sys_FileOpenWrite ("warp-stack.txt");
+		if (r_bench_warp_report_handle == -1)
+			Sys_Error ("benchwarp: could not create warp-stack.txt");
+	}
+
+	Sys_FileWrite (r_bench_warp_report_handle, (void *)text,
+			Q_strlen ((char *)text));
+	if (close_report)
+	{
+		Sys_FileClose (r_bench_warp_report_handle);
+		r_bench_warp_report_handle = -1;
+	}
+}
+
+static void R_BenchWarpAllocated_f (void)
+{
+	if (!r_warpbuffer_storage)
+		Sys_Error ("benchwarp: renderer warp buffer allocation failed");
+	R_BenchWarpLog ("storage=available\n", true);
+	Con_Printf ("benchwarp allocated buffer: %s\n",
+			r_warpbuffer_storage ? "available" : "allocation failed");
+}
+
+static void R_BenchWarpReleaseStorage (qboolean force_short_stack)
+{
+	if (r_warpbuffer_storage)
+	{
+		free (r_warpbuffer_storage);
+		r_warpbuffer_storage = NULL;
+	}
+	r_warpbuffer = NULL;
+	r_bench_warp_force_short_stack = force_short_stack;
+	R_BenchWarpLog (force_short_stack ? "mode=shortstack\n" :
+			"mode=fallback\n", false);
+	Con_Printf ("benchwarp: allocation failure path enabled%s\n",
+			force_short_stack ? "; stack capacity forced insufficient" : "");
+}
+
+static void R_BenchWarpFallback_f (void)
+{
+	R_BenchWarpReleaseStorage (false);
+}
+
+static void R_BenchWarpShort_f (void)
+{
+	R_BenchWarpReleaseStorage (true);
+}
+#endif
+
+static qboolean R_WarpWorldTreeDepth (unsigned long *depth_out)
+{
+	model_t		*world;
+	mnode_t		*node, *previous;
+	unsigned long depth, maxdepth, visits, maxvisits;
+
+	world = cl.worldmodel;
+	if (!world || !world->nodes || !depth_out || world->numnodes <= 0 ||
+			world->numleafs < 0)
+		return false;
+
+	if (r_warp_depth_cached && r_warp_depth_world == world &&
+			r_warp_depth_numnodes == world->numnodes &&
+			r_warp_depth_numleafs == world->numleafs)
+	{
+		if (!r_warp_depth_valid)
+			return false;
+		*depth_out = r_warp_depth_value;
+		return true;
+	}
+
+	r_warp_depth_cached = true;
+	r_warp_depth_valid = false;
+	r_warp_depth_world = world;
+	r_warp_depth_numnodes = world->numnodes;
+	r_warp_depth_numleafs = world->numleafs;
+	maxvisits = (unsigned long)world->numnodes;
+	if (!maxvisits)
+		return false;
+
+	/* Walk internal nodes without recursion or scratch storage. BSP leaf zero
+	 * can be shared by many branches, so its parent link is not a tree edge and
+	 * must not be followed. Count one terminal leaf below the deepest node. */
+	node = world->nodes;
+	previous = node->parent;
+	depth = maxdepth = visits = 0;
+	while (node)
+	{
+		if (previous == node->parent)
+		{
+			if (++visits > maxvisits)
+				return false;
+			if (node->contents < 0)
+				return false;
+			depth++;
+			if (depth + 1 > maxdepth)
+				maxdepth = depth + 1;
+			if (node->children[0]->contents >= 0)
+			{
+				previous = node;
+				node = node->children[0];
+				continue;
+			}
+			if (node->children[1]->contents >= 0)
+			{
+				previous = node->children[0];
+				continue;
+			}
+		}
+		else if (previous == node->children[0] &&
+				node->children[1]->contents >= 0)
+		{
+			previous = node;
+			node = node->children[1];
+			continue;
+		}
+
+		previous = node;
+		node = node->parent;
+		if (!depth)
+			return false;
+		depth--;
+	}
+
+	if (!maxdepth)
+		return false;
+	r_warp_depth_value = maxdepth;
+	r_warp_depth_valid = true;
+	*depth_out = maxdepth;
+	return true;
+}
+
+static qboolean R_WarpStackRequirement (unsigned long *required_out)
+{
+	unsigned long world_depth, fixed_bytes;
+
+	if (!R_WarpWorldTreeDepth (&world_depth))
+		return false;
+
+	/* The dispatch tail-jumps to the fallback, so its frame has already been
+	 * removed when the large local buffer is entered. The C-reference world
+	 * frame is larger than the fixed bmodel-clip and edge-scan paths. Charge the
+	 * generated C or assembly recursive clip step at every world-tree level;
+	 * that also covers the 64-byte C world-node and 92-byte light-point steps.
+	 * The 4648-byte terminal path covers R_RenderPoly plus its TransformVector
+	 * call, which is the largest nonrecursive draw path in either profile. */
+	fixed_bytes = R_WARP_FALLBACK_FRAME_BYTES +
+			(3UL * R_WARP_CALL_BYTES) + R_WARP_RENDER_VIEW_FRAME_BYTES +
+			R_WARP_EDGE_FRAME_BYTES + R_WARP_C_WORLD_FRAME_BYTES +
+			R_WARP_RENDER_POLY_PATH_BYTES;
+	if (world_depth > (0xffffffffUL - fixed_bytes) /
+			R_WARP_TREE_STEP_BYTES)
+		return false;
+	*required_out = fixed_bytes + world_depth * R_WARP_TREE_STEP_BYTES;
+	return true;
+}
+
+static qboolean R_WarpStackHasRoom (unsigned long required,
+		unsigned long *available_out, qboolean *bounds_valid_out)
+{
+	unsigned long stack_pointer;
+
+	/* Read the current ESP directly: a local marker can sit above the actual
+	 * stack pointer and would overstate the remaining capacity. */
+	__asm__ __volatile__ ("movl %%esp, %0" : "=r" (stack_pointer) : : "memory");
+	*available_out = 0;
+	*bounds_valid_out = false;
+	if (stack_pointer < __djgpp_stack_limit ||
+			stack_pointer > __djgpp_stack_top)
+		return false;
+
+	*bounds_valid_out = true;
+	*available_out = stack_pointer - __djgpp_stack_limit;
+#ifdef BENCH486
+	r_bench_warp_actual_stack_available = *available_out;
+	if (r_bench_warp_force_short_stack)
+	{
+		*available_out = 0;
+		return false;
+	}
+#endif
+	return *available_out >= required;
+}
+
+static void R_RenderViewStackFallback (void (*render_view) (void))
+{
+	byte	warpbuffer[R_WARP_BUFFER_BYTES];
+	byte	*old_warpbuffer;
+
+	old_warpbuffer = r_warpbuffer;
+	r_warpbuffer = warpbuffer;
+	render_view ();
+	r_warpbuffer = old_warpbuffer;
+}
+
+static void R_RenderViewWithoutWarp (void (*render_view) (void))
+{
+	float old_waterwarp;
+
+	old_waterwarp = r_waterwarp.value;
+	r_waterwarp.value = 0;
+	render_view ();
+	r_waterwarp.value = old_waterwarp;
+}
+
+void R_RenderViewDispatch (void (*render_view) (void))
+{
+	unsigned long required, available;
+	qboolean bounds_valid;
+
+	if (!render_view)
+		Sys_Error ("R_RenderView: missing renderer entry");
+
+	if (r_warpbuffer_storage)
+	{
+		r_warpbuffer = r_warpbuffer_storage;
+		render_view ();
+		return;
+	}
+
+	if (!r_waterwarp.value)
+	{
+		render_view ();
+		return;
+	}
+
+	if (R_WarpStackRequirement (&required))
+	{
+		if (R_WarpStackHasRoom (required, &available, &bounds_valid))
+		{
+			if (!r_warp_stack_status_reported)
+			{
+				Con_Printf ("R_RenderView: stack warp fallback requires %lu, "
+						"has %lu, headroom %lu bytes\n", required, available,
+						available - required);
+		#ifdef BENCH486
+				char report[160];
+
+				sprintf (report, "stack=usable required=%lu available=%lu "
+						"headroom=%lu actual_available=%lu\n", required,
+						available, available - required,
+						r_bench_warp_actual_stack_available);
+				R_BenchWarpLog (report, true);
+		#endif
+				r_warp_stack_status_reported = true;
+			}
+			R_RenderViewStackFallback (render_view);
+			return;
+		}
+
+		if (!r_warp_stack_status_reported && bounds_valid)
+		{
+			Con_Printf ("R_RenderView: warp skipped; stack fallback "
+					"requires %lu, has %lu, short %lu bytes\n", required,
+					available, required - available);
+			#ifdef BENCH486
+			{
+				char report[160];
+
+				sprintf (report, "stack=insufficient required=%lu available=%lu "
+						"short=%lu actual_available=%lu forced=%u\n", required,
+						available, required - available,
+						r_bench_warp_actual_stack_available,
+						r_bench_warp_force_short_stack ? 1U : 0U);
+				R_BenchWarpLog (report, true);
+			}
+			#endif
+		}
+		else if (!r_warp_stack_status_reported)
+		{
+			Con_Printf ("R_RenderView: warp skipped; DJGPP stack bounds "
+				"are unavailable\n");
+			#ifdef BENCH486
+			R_BenchWarpLog ("stack=bounds-unavailable\n", true);
+			#endif
+		}
+		r_warp_stack_status_reported = true;
+	}
+	else if (!r_warp_stack_status_reported)
+	{
+		Con_Printf ("R_RenderView: warp skipped; BSP depth or stack "
+				"requirement is unavailable\n");
+		#ifdef BENCH486
+		if (cl.worldmodel)
+			R_BenchWarpLog ("stack=requirement-unavailable\n", true);
+		#endif
+		r_warp_stack_status_reported = true;
+	}
+	R_RenderViewWithoutWarp (render_view);
+}
+
 #ifdef FRAME_CONTROL_RESTORE_EDGE_SELECTOR
 #define ASM486_EDGE_DRAWING
 #endif

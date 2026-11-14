@@ -218,6 +218,7 @@ _R_Init:
 /* src/r_main.c:190: 	r_stack_start = (byte *)&dummy; */
 	leal	28(%esp), %eax	#, tmp97
 	movl	%eax, _r_stack_start	# tmp97, r_stack_start
+	call	_R_InitWarpBuffer	#
 /* src/r_main.c:1214: 		sintable[i] = AMP + sin(i*3.14159*2/CYCLE)*AMP; */
 	movl	$524288, _sintable	#, sintable[0]
 /* src/r_main.c:1215: 		intsintable[i] = AMP2 + sin(i*3.14159*2/CYCLE)*AMP2;	// AMP2, not 20 */
@@ -2589,20 +2590,17 @@ L205:
 
 .text
 .p2align 3
-/* R_RenderView_: Preserve setup/visibility/world/entity/viewmodel/particle/warp order and the frame-local warpbuffer lifetime.
+/* R_RenderView_: Preserve setup/visibility/world/entity/viewmodel/particle/warp order without a frame-local warpbuffer.
  * Callee registers used: %ebx.
- * Stack reservations (bytes; includes call argument areas): 64036, 12, 12, 12, 12, 12, 12, 12, 12, 8, 8.
+ * Stack reservations (bytes; includes call argument areas): 36, 12, 12, 12, 12, 12, 12, 12, 12, 8, 8.
  * Each return restores its entry ESP and all saved callee registers. */
 	.globl	_R_RenderView_
 _R_RenderView_:
 	pushl	%ebx	#
-	subl	$64036, %esp	#,
+	subl	$36, %esp	#,
 /* src/r_main.c:1050: 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_RENDERER); */
 	pushl	$6	#
 	call	_Bench486ProfileEnter	#
-/* src/r_main.c:1052: 	r_warpbuffer = warpbuffer; */
-	leal	32(%esp), %eax	#, tmp135
-	movl	%eax, _r_warpbuffer	# tmp135, r_warpbuffer
 /* src/r_main.c:1054: 	if (r_timegraph.value || r_speeds.value || r_dspeeds.value) */
 	addl	$16, %esp	#,
 	fldz
@@ -2826,7 +2824,7 @@ L233:
 /* src/r_main.c:1179: 	BENCH486_PROFILE_LEAVE (); */
 	call	_Bench486ProfileLeave	#
 /* src/r_main.c:1180: } */
-	addl	$64024, %esp	#,
+	addl	$24, %esp	#,
 	popl	%ebx	#
 	ret
 	.p2align 4
@@ -3010,7 +3008,10 @@ L258:
 /* src/r_main.c:1201: } */
 	addl	$28, %esp	#,
 /* src/r_main.c:1200: 	R_RenderView_ (); */
-	jmp	_R_RenderView_	#
+	pushl	$_R_RenderView_	#
+	call	_R_RenderViewDispatch	#
+	addl	$4, %esp	#,
+	ret
 	.p2align 4
 	.p2align 3
 L263:
@@ -3033,7 +3034,10 @@ L264:
 /* src/r_main.c:1201: } */
 	addl	$28, %esp	#,
 /* src/r_main.c:1200: 	R_RenderView_ (); */
-	jmp	_R_RenderView_	#
+	pushl	$_R_RenderView_	#
+	call	_R_RenderViewDispatch	#
+	addl	$4, %esp	#,
+	ret
 	.p2align 3
 
 .text
