@@ -39,9 +39,9 @@ implementation. The regular i486 runner remains strict by default.
 
 For the accepted drawing conversion, build with the selectors in
 `tools/renderer-profiles/i486-asm-drawing.json`. Profiles are JSON selector
-tables; apply every selector to `build-dos.ps1`, or pass the profile to
-`render-validation-dos.ps1`/`render-parity-dos.ps1`. Execution runners verify the
-requested selectors against the build manifest before starting DOSBox-X.
+tables; apply every selector to `build-dos-experimental.ps1`, or pass the profile
+to `render-validation-dos.ps1`/`render-parity-dos.ps1`. Execution runners verify
+the requested selectors against the build manifest before starting DOSBox-X.
 
 `-save-temps=obj` retains each C compilation's actual instruction listing.
 Maintained assembly is preprocessed once and assembled directly; the build

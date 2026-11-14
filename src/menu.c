@@ -3418,7 +3418,7 @@ void M_SEARCH_DRAW_C_ENTRY (void)
 }
 #endif
 
-#if defined(BENCH486) && !defined(ASM486_SCREEN_OVERLAYS)
+#if !defined(ASM486_SCREEN_OVERLAYS)
 void M_Search_Draw (void)
 {
 	M_Search_Draw_C ();

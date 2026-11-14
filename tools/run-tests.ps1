@@ -110,8 +110,9 @@ foreach ($test in @('test-build-dos.py', 'test-bootstrap-dos.py', 'test-frame-ti
 }
 if (-not $HostOnly) {
 # ---- 4: build, carrying the blocking ISA gate. ----------------------------
-Invoke-Gate -Name "build-dos ($CpuTarget; includes the blocking ISA gate)" -Kind 'build' `
-    -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/build-dos.ps1', '-CpuTarget', $CpuTarget) + $nb) | Out-Null
+$configuration = if ($CpuTarget -eq 'i486') { 'i486-release' } else { 'c-reference' }
+Invoke-Gate -Name "build-dos ($configuration / $CpuTarget; includes the blocking ISA gate)" -Kind 'build' `
+    -Command (@($pwshExe.Source, '-NoProfile', '-File', 'tools/build-dos.ps1', '-Configuration', $configuration, '-CpuTarget', $CpuTarget) + $nb) | Out-Null
 
 # Exercise the actual disassembler gate, including deliberately forbidden code.
 # Runs after bootstrap/build so the pinned assembler and objdump are available.

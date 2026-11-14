@@ -144,7 +144,7 @@ entryvec_table_16:	.long	0, Entry2_16, Entry3_16, Entry4_16
 //-------------------------------------------------------
 // local variables for d_parta.s
 //-------------------------------------------------------
-.globl	DP_Count, DP_u, DP_v, DP_32768, DP_CW, DP_Pix, DP_EntryTable
+.globl	DP_Count, DP_u, DP_v, DP_32768, DP_CW, DP_Pix
 DP_Count:		.long	0
 DP_u:			.long	0
 DP_v:			.long	0
@@ -153,12 +153,17 @@ DP_CW:			.long	0
 DP_Pix:			.long	0
 
 
+#if defined(ASM486_PARTICLE_DRAW) || defined(BENCH486) || \
+		!defined(ASM486_PARTICLE_DRAW_C)
+// d_parta.s is omitted when C particle drawing is selected.
+.globl	DP_EntryTable
 	.extern DP_1x1
 	.extern DP_2x2
 	.extern DP_3x3
 	.extern DP_4x4
 
 DP_EntryTable:	.long	DP_1x1, DP_2x2, DP_3x3, DP_4x4
+#endif
 
 //
 // advancetable is 8 bytes, but points to the middle of that range so negative

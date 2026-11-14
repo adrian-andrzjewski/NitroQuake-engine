@@ -7,7 +7,7 @@ commands, generated artifacts and automatic product/build identity.
 
 ```powershell
 pwsh -NoProfile -File tools/bootstrap-dos.ps1
-pwsh -NoProfile -File tools/build-dos.ps1 -CpuTarget i486
+pwsh -NoProfile -File tools/build-dos.ps1 -Configuration i486-release
 ```
 
 The default bootstrap installs DJGPP only. Python is used as standard-library

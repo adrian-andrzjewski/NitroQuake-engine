@@ -337,9 +337,12 @@ def iter_instructions(text: str):
 
 
 def build_flags(cpu_target: str) -> dict:
-    """Resolved configuration for a target, as build-dos.ps1 reports it."""
+    """Resolved supported configuration for a target, as build-dos.ps1 reports it."""
     try:
-        return dump_flags("-CpuTarget", cpu_target)
+        arguments = ["-CpuTarget", cpu_target]
+        if cpu_target == "i386":
+            arguments = ["-Configuration", "c-reference", *arguments]
+        return dump_flags(*arguments)
     except BuildFlagsError as error:
         raise SystemExit(str(error)) from error
 

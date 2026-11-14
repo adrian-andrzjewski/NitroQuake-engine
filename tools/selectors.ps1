@@ -5,7 +5,7 @@
 .DESCRIPTION
     Each entry declares, for one selector parameter:
 
-      Param       the parameter name on build-dos.ps1
+Param       the parameter name on build-dos-experimental.ps1
       Manifest    the key it is echoed under in the build manifest
       Suffix      value -> profile-suffix token. A value with no entry emits no
                   token, which is how a selector that is 'on' by default stays out
@@ -212,7 +212,7 @@ $script:SelectorTable = @(
         # Only a non-default size is named, so the default leaves the suffix alone.
         Suffix     = @{ '64' = 'cache64'; '128' = 'cache128' }
         # No C entry beyond the empty map: -DD_TEXAXIS_CACHE_SIZE is positional in
-        # build-dos.ps1's base flag list, and emitting it from here as well would
+        # build-dos-experimental.ps1's base flag list, and emitting it from here as well would
         # define it twice.
         C          = @{}
         Asm        = @{}
@@ -2554,13 +2554,12 @@ function Get-SelectorEntry {
 function Set-DefaultI486AssemblySelectors {
     <#
     .SYNOPSIS
-        Apply the checked-in accepted i486 renderer profile to omitted parameters.
+        Apply the checked-in i486 renderer profile to omitted backend parameters.
 
     .DESCRIPTION
-        The parameter blocks keep their C values so the separate i386 target
-        retains its reference defaults. For i486, this profile supplies the
-        measured release defaults while explicit implementations remain
-        available for parity and selector comparisons.
+        The selector-driven backend keeps per-routine values for benchmark
+        comparisons. The shipping builder passes one checked-in configuration
+        through this backend; benchmark callers can pass explicit values.
     #>
     [CmdletBinding()]
     param(

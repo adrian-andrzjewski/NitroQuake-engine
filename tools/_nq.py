@@ -1,7 +1,7 @@
 """Shared helpers for the Python tools in tools/.
 
-The only thing genuinely duplicated across them is how to ask build-dos.ps1 what a
-configuration resolves to. Three tools need that answer and each had its own copy
+The only thing genuinely duplicated across them is how to ask the supported
+builder what a configuration resolves to. Three tools need that answer and each had its own copy
 of the subprocess call, each with its own error handling: test-build-dos.py
 recorded a failure and returned {}, guard-i486-release.py raised SystemExit, and
 isa-audit-source.py raised SystemExit with different wording. None of them checked
@@ -23,6 +23,7 @@ import subprocess
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(TOOLS_DIR)
 BUILD_SCRIPT = os.path.join(TOOLS_DIR, "build-dos.ps1")
+EXPERIMENTAL_BUILD_SCRIPT = os.path.join(TOOLS_DIR, "build-dos-experimental.ps1")
 
 
 class BuildFlagsError(RuntimeError):
@@ -46,8 +47,8 @@ def _pwsh() -> str:
     return found
 
 
-def dump_flags(*extra: str) -> dict:
-    """Run build-dos.ps1 -DumpFlags and return the resolved configuration.
+def dump_flags(*extra: str, builder: str = BUILD_SCRIPT) -> dict:
+    """Run a builder's -DumpFlags path and return the resolved configuration.
 
     Raises BuildFlagsError rather than returning a sentinel, because every caller
     wants to stop on failure and one of them wanted an empty dict that it then
@@ -55,21 +56,21 @@ def dump_flags(*extra: str) -> dict:
     the reason.
     """
     completed = subprocess.run(
-        [_pwsh(), "-NoProfile", "-File", BUILD_SCRIPT, "-DumpFlags", *extra],
+        [_pwsh(), "-NoProfile", "-File", builder, "-DumpFlags", *extra],
         capture_output=True,
         text=True,
     )
     if completed.returncode != 0:
         raise BuildFlagsError(
-            "build-dos.ps1 -DumpFlags %s failed with exit code %d:\n%s"
-            % (" ".join(extra), completed.returncode, completed.stderr.strip())
+            "%s -DumpFlags %s failed with exit code %d:\n%s"
+            % (os.path.basename(builder), " ".join(extra), completed.returncode, completed.stderr.strip())
         )
     try:
         return json.loads(completed.stdout)
     except json.JSONDecodeError as error:
         raise BuildFlagsError(
-            "build-dos.ps1 -DumpFlags %s did not emit JSON: %s\n%s"
-            % (" ".join(extra), error, completed.stdout[:400])
+            "%s -DumpFlags %s did not emit JSON: %s\n%s"
+            % (os.path.basename(builder), " ".join(extra), error, completed.stdout[:400])
         ) from error
 
 

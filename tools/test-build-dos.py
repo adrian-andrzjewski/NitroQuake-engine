@@ -19,8 +19,8 @@ It also pins the things the 486 path must *not* acquire:
 * the two targets must resolve to different output roots, because `-Clean`
   removes the directory it is handed.
 
-It does not need a bootstrapped toolchain: `build-dos.ps1 -DumpFlags` skips the
-compiler and objdump lookup and prints this script's own arithmetic.
+It does not need a bootstrapped toolchain: `build-dos-experimental.ps1 -DumpFlags`
+skips the compiler and objdump lookup and prints the backend's own arithmetic.
 
 Usage
 -----
@@ -40,13 +40,19 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from _nq import BuildFlagsError, dump_flags as _dump_flags, portable  # noqa: E402
+from _nq import (  # noqa: E402
+    BuildFlagsError,
+    BUILD_SCRIPT,
+    EXPERIMENTAL_BUILD_SCRIPT,
+    dump_flags as _base_dump_flags,
+    portable,
+)
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GOLDEN_DIR = os.path.join(REPO_ROOT, "tools", "golden")
 
 # The current i486 release profile suffix. Duplicated here on purpose:
-# build-dos.ps1 computes it from the selector defaults, and this literal is the
+# build-dos-experimental.ps1 computes it from the selector profile, and this literal is the
 # independent check that the computation still produces it.
 RELEASE_I486_SUFFIX = (
     '-memasm-fillrectasm-zpointasm-skyasm-warpasm-solidasm-axisasm-surfaceasm-surfacedrawasm-surfacez'
@@ -70,11 +76,16 @@ RELEASE_I486_SUFFIX = (
 failures: list[str] = []
 
 
+def _dump_flags(*extra: str) -> dict:
+    """Read the selector-driven backend for option-matrix contract checks."""
+    return _base_dump_flags(*extra, builder=EXPERIMENTAL_BUILD_SCRIPT)
+
+
 def fail(message: str) -> None:
     failures.append(message)
 
 
-def dump_flags(*extra: str) -> dict:
+def dump_flags(*extra: str, builder: str = EXPERIMENTAL_BUILD_SCRIPT) -> dict:
     """Resolved configuration with repo paths made checkout-portable.
 
     A failure is recorded rather than raised, because this tool reports every way
@@ -83,7 +94,7 @@ def dump_flags(*extra: str) -> dict:
     FileNotFoundError from inside subprocess.
     """
     try:
-        flags = portable(_dump_flags(*extra))
+        flags = portable(_base_dump_flags(*extra, builder=builder))
         header = flags["outputRoot"] + "\\nitroquake-build.h"
         if flags["cSourceExtraFlags"].get("host.c") != ["-include", header]:
             fail("host.c must include its output-local generated build header")
@@ -158,7 +169,7 @@ def main() -> int:
     elif host_tool_test.stdout.strip():
         print(host_tool_test.stdout.strip())
 
-    with open(os.path.join(REPO_ROOT, "tools", "build-dos.ps1"), "r", encoding="utf-8") as handle:
+    with open(EXPERIMENTAL_BUILD_SCRIPT, "r", encoding="utf-8") as handle:
         build_script = handle.read()
     for contract in (
         '"-Wl,-Map=$linkMap"',
@@ -166,7 +177,17 @@ def main() -> int:
         "linkedInstructionsVerified",
     ):
         if contract not in build_script:
-            fail("the normal release build is missing linked ISA contract %r" % contract)
+            fail("the build backend is missing linked ISA contract %r" % contract)
+
+    with open(os.path.join(REPO_ROOT, "tools", "build-dos.ps1"), "r", encoding="utf-8") as handle:
+        supported_builder = handle.read()
+    public_parameters = supported_builder.split("Set-StrictMode", 1)[0]
+    if not re.search(r"\[ValidateSet\('i486-release', 'c-reference'\)\]", public_parameters):
+        fail("the supported builder must expose the i486-release and c-reference configurations")
+    if re.search(r"\$\w*(?:Implementation|Probe)\b", public_parameters):
+        fail("the supported builder exposes a per-routine selector or probe")
+    if "build-dos-experimental.ps1" not in supported_builder:
+        fail("the supported builder does not dispatch its fixed configurations to the internal backend")
 
     with open(os.path.join(REPO_ROOT, "tools", "verify-executable-isa.ps1"), "r", encoding="utf-8") as handle:
         verification_script = handle.read()
@@ -281,6 +302,31 @@ def main() -> int:
     i386 = dump_flags("-CpuTarget", "i386")
     compare("i486", i486, load_golden("i486"))
     compare("i386", i386, load_golden("i386"))
+
+    public_release = dump_flags("-Configuration", "i486-release", builder=BUILD_SCRIPT)
+    compare("public i486-release configuration", public_release, i486)
+
+    c_reference_path = os.path.join(REPO_ROOT, "tools", "renderer-profiles", "i486-c-reference.json")
+    with open(c_reference_path, "r", encoding="utf-8") as handle:
+        c_reference_profile = json.load(handle)
+    c_reference_arguments = [
+        argument
+        for name, value in c_reference_profile["selectors"].items()
+        for argument in ("-" + name, str(value))
+    ]
+    c_reference_backend = dump_flags(*c_reference_arguments)
+    public_c_reference = dump_flags("-Configuration", "c-reference", builder=BUILD_SCRIPT)
+    compare("public c-reference configuration", public_c_reference, c_reference_backend)
+    c_reference_i386_backend = dump_flags(*c_reference_arguments, "-CpuTarget", "i386")
+    public_c_reference_i386 = dump_flags(
+        "-Configuration", "c-reference", "-CpuTarget", "i386", builder=BUILD_SCRIPT
+    )
+    compare("public c-reference i386 configuration", public_c_reference_i386, c_reference_i386_backend)
+    try:
+        _base_dump_flags("-CpuTarget", "i386")
+        fail("the i486-release configuration accepted the i386 target")
+    except BuildFlagsError:
+        pass
 
     # Do not rely on the goldens alone for the CPU/FPU identity: explicitly
     # assert the hardware choice and GCC's x87 code-generation mode.

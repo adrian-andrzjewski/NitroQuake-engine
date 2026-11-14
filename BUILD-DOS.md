@@ -11,8 +11,8 @@ Run from this repository's root on Windows:
 
 ```powershell
 pwsh -NoProfile -File tools/bootstrap-dos.ps1
-pwsh -NoProfile -File tools/build-dos.ps1 -CpuTarget i486
-pwsh -NoProfile -File tools/build-dos.ps1 -CpuTarget i486 -DumpFlags
+pwsh -NoProfile -File tools/build-dos.ps1 -Configuration i486-release
+pwsh -NoProfile -File tools/build-dos.ps1 -Configuration c-reference -DumpFlags
 ```
 
 The default bootstrap installs only DJGPP, with archive hashes pinned in
@@ -21,18 +21,23 @@ The default bootstrap installs only DJGPP, with archive hashes pinned in
 is `%LOCALAPPDATA%/486quake/tools`.
 
 The builder prints the executable path and writes a build manifest, generated
-identity, source inventory and ISA proofs beside it in `out/`. Use
-`-LocalOutputDirectoryName <unique-name>` for an isolated i486 build; it refuses
-an existing directory. Long selector suffixes use hashed output names. Inspect
-`-DumpFlags` rather than guessing an output path.
+identity, source inventory and ISA proofs beside it in `out/`. It supports two
+named configurations: `i486-release` (the default) and `c-reference`. The
+C-reference configuration can also be built for i386 with
+`-Configuration c-reference -CpuTarget i386`. Use
+`-LocalOutputDirectoryName <unique-name>` for an isolated build; it refuses an
+existing directory. Inspect `-DumpFlags` rather than guessing an output path.
 
 ### Compiler invocation
 
 The supported builder owns flags, dependency selection, linking and blocking
 source-bound ISA audits. Its `-DumpFlags` JSON is the integration API consumed
-by external runners. `tools/selectors.ps1` and `tools/renderer-profiles/` describe
-native code generation. Explicit selectors remain supported; benchmark-profile
-JSON files in that directory are compiler configuration, not runtime tooling.
+by external runners. `i486-asm-selectable-current.json` and
+`i486-c-reference.json` define the two supported configurations. Other selector
+profiles support benchmark comparisons. Per-routine selectors, experimental
+assembly variants and dead-scratch probes are available through the benchmark
+suite; the internal `tools/build-dos-experimental.ps1` backend is not a shipping
+build interface.
 
 ### DOS video startup
 
@@ -68,7 +73,8 @@ physical 486 acceptance.
 
 Native BENCH486 correctness fixtures and optional PROFILE486 instrumentation
 remain with the game because they compile against private engine interfaces.
-Build them with `tools/build-dos.ps1 -Benchmark` and optionally `-Instrumentation`.
+Build them with `tools/build-dos-experimental.ps1 -Benchmark` and optionally
+`-Instrumentation`; ordinary release builds do not expose benchmark controls.
 With a BENCH486 executable, `-fpsstats -timedemoexit` also exports ordered
 `FRAMTIME.CSV` samples after playback. The native summary records the capture
 schema and actual video dimensions. The external suite's frame-timeline runner

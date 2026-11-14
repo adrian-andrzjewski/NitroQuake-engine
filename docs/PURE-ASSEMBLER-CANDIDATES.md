@@ -1077,7 +1077,9 @@ obsolete as a candidate** — it is a strictly worse variant of a change that wa
 subsequently promoted, so there is nothing left to bundle it with.
 `SurfaceBlockMip0Rows=unroll16` cleared the gate at 0.0620% inside the `surf8`
 bundle with `SurfaceBlockMip1IndexHoist=hoist` and a fully-flat mip-1 body. The
-measurements below stand. `tools\build-dos.ps1:36` is the authority.
+measurements below stand. `tools\renderer-profiles\i486-asm-selectable-current.json`
+is the release configuration; selector experiments use
+`tools\build-dos-experimental.ps1`.
 
 The measured binaries were 791,040-byte control SHA-256
 `C5EEA1917851E674BC3DC5716B4EA7DBDB231DAD8EFF7CD095FF879BB2E4A098` and

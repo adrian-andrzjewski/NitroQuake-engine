@@ -191,7 +191,7 @@ disassembly live beside `quake.exe` as `isa-audit-linked.json`,
 Reproduce the build gate with:
 
 ```powershell
-rtk pwsh -NoProfile -File tools/build-dos.ps1 -NoBootstrap
+rtk pwsh -NoProfile -File tools/build-dos.ps1 -Configuration i486-release -NoBootstrap
 ```
 
 This closes the linked instruction-set and static runtime-code audit for the
@@ -1384,7 +1384,7 @@ the same map.
    (15.484108 FPS median, checksum `4154140932`,
    `out\dos-timedemo-20260915-211623`) before further edits.
    ~~`timedemo-dos.ps1` does **not** rebuild an existing `qbench.exe`; run
-   `build-dos.ps1 -Benchmark` first after source changes, then
+   `build-dos-experimental.ps1 -Benchmark` first after source changes, then
    `-SkipBuild` for the timedemo.~~
    **(2026-10-02: stale, struck through. The runner now fingerprints all 163
    sources plus the resolved selectors and rebuilds on a mismatch, or throws
@@ -1729,7 +1729,7 @@ checksum `2378409472`, and the rebuilt normal binary passed the DOS smoke test.
 Use a local, legally obtained `id1` directory containing `pak0.pak`:
 
 ```powershell
-.\tools\build-dos.ps1 -Clean -Benchmark -NoBootstrap
+.\tools\build-dos-experimental.ps1 -Clean -Benchmark -NoBootstrap
 .\tools\bench-dos.ps1 -SkipBuild -AliasTransformFinalOnly
 .\tools\smoke-dos.ps1 -SkipBuild `
   -TimeoutSeconds 90
@@ -1750,11 +1750,11 @@ For the direct C/ASM transform A/B, build each selected benchmark executable
 and run the focused command with the matching selector:
 
 ```powershell
-.\tools\build-dos.ps1 -Clean -Benchmark `
+.\tools\build-dos-experimental.ps1 -Clean -Benchmark `
   -AliasTransformFinalImplementation c -NoBootstrap
 .\tools\bench-dos.ps1 -SkipBuild -AliasTransformFinalOnly `
   -AliasTransformFinalImplementation c
-.\tools\build-dos.ps1 -Clean -Benchmark `
+.\tools\build-dos-experimental.ps1 -Clean -Benchmark `
   -AliasTransformFinalImplementation asm -NoBootstrap
 .\tools\bench-dos.ps1 -SkipBuild -AliasTransformFinalOnly `
   -AliasTransformFinalImplementation asm
