@@ -52,6 +52,13 @@ the guarded fallback, an insufficient fallback capacity, and waterwarp
 disabled. The `benchwarp_short` scenario forces the test capacity to zero only
 after confirming the real DJGPP bounds; it does not change those bounds.
 
+After adding the normal-path preflight, all four scenarios were rerun with the
+`i486-asm-selectable-current` renderer selector profile and `con_notifytime -1`
+on DOSBox-X 2026.08.31/CWSDPMI. Allocated storage, guarded fallback,
+forced-insufficient fallback, and waterwarp-disabled output each matched the
+committed 320x200 reference exactly: 985 frames, checksum `1843917972`, and
+zero changed pixels out of 64,000.
+
 The 2026-11-14 DOSBox-X 2026.08.31/CWSDPMI parity run used a measured
 `world_depth` of 72. The earlier runtime reports recorded 523,720 available
 bytes for C reference and 523,772 for release assembly. Applying the current
