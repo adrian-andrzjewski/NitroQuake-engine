@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // cl_parse.c  -- parse a message received from the server
 
 #include "quakedef.h"
+#include "tests/bench486/bench486_profile.h"
 #include "client/asm_playertranslation.h"
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)

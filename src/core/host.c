@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // host.c -- coordinates spawning and killing of local servers
 
 #include "quakedef.h"
+#include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
 
 const char nitroquake_version[] = NITROQUAKE_VERSION_STRING;

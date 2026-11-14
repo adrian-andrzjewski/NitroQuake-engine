@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // screen.c -- master for refresh, status bar, console, chat, notify, etc
 
 #include "quakedef.h"
+#include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
 #include "client/asm_screenfov.h"
 #include "client/asm_screennotify.h"

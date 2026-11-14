@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // view.c -- player eye positioning
 
 #include "quakedef.h"
+#include "tests/bench486/bench486_profile.h"
 #if defined(ASM486_PALETTE) || defined(BENCH486)
 #include <stddef.h>
 #include "renderer/asm_palette.h"

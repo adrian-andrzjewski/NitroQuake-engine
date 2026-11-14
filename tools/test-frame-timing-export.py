@@ -33,7 +33,7 @@ class NativeTimingTests(unittest.TestCase):
         end=source.index('} bench486_timedemo_fps_stats_t;')+len('} bench486_timedemo_fps_stats_t;')
         start=source.rfind('typedef struct',0,end)
         stats_type=source[start:end]
-        limit=re.search(r'#define BENCH486_TIMEDEMO_MAX_FRAMES (\d+)',(ROOT/'src/quakedef.h').read_text())[1]
+        limit=re.search(r'#define BENCH486_TIMEDEMO_MAX_FRAMES (\d+)',(ROOT/'src/tests/bench486/bench486_profile.h').read_text())[1]
         harness=r'''
 #include <assert.h>
 #include <stdio.h>

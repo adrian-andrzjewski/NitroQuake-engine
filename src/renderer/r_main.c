@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 
 #include "quakedef.h"
+#include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
 
 //define	PASSAGES

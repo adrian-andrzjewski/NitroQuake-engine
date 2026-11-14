@@ -72,7 +72,10 @@ for source in sources:
 fixtures = SOURCE / "tests" / "bench486"
 if not fixtures.is_dir():
     raise SystemExit("BENCH486 fixture subtree is missing")
-fixture_files = [p for p in fixtures.iterdir() if p.is_file()]
+fixture_files = [
+    p for p in fixtures.iterdir()
+    if p.is_file() and p.name != "bench486_profile.h"
+]
 if len(fixture_files) != 105:
     raise SystemExit(f"expected 105 moved BENCH486 fixtures, found {len(fixture_files)}")
 if any(not (p.name.startswith("bench486_") or p.name.endswith("_bench_hooks.inc")) for p in fixture_files):
@@ -86,6 +89,9 @@ interfaces = {
     "zone.h": {"q_types.h"},
     "client.h": {"common.h", "cvar.h", "mathlib.h", "protocol.h", "q_shared.h", "render.h", "sound.h", "vid.h"},
     "server.h": {"client.h", "common.h", "cvar.h", "mathlib.h", "progs.h", "q_shared.h"},
+    "net.h": {"common.h", "cvar.h"},
+    "net_loop.h": {"net.h"},
+    "wad.h": {"q_types.h"},
 }
 for name, dependencies in interfaces.items():
     text = (SOURCE / name).read_text(encoding="utf-8")

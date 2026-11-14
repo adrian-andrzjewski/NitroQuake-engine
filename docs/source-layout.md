@@ -14,6 +14,14 @@ New translation units should include the smallest subsystem interfaces they use.
 The renderer's existing shared state remains in place while individual callers
 move off the compatibility header.
 
+`tools/test-header-dependencies.py` compares production C includes of
+`quakedef.h` against `docs/legacy-quakedef-includes.txt`. A translation unit may
+leave that inventory only after it switches to its owning interfaces; new
+production files must not add umbrella dependencies silently. Profiling and
+BENCH486 declarations live in `src/tests/bench486/bench486_profile.h`, and C
+consumers include that interface directly instead of inheriting it from the
+umbrella.
+
 Native BENCH486 fixtures live under `src/tests/bench486/`. The fixtures are still
 included by the BENCH build and do not become standalone objects. Release and
 profile include schedules remain separate.

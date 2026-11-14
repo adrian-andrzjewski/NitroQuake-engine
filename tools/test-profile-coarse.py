@@ -14,7 +14,7 @@ helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
 @unittest.skipUnless(helper.COMPILER,'Host GCC is required')
 class CoarseProfileTests(unittest.TestCase):
     def test_selected_child_survives_unselected_parent_and_balances(self):
-        header=(ROOT/'src/quakedef.h').read_text()
+        header=(ROOT/'src/tests/bench486/bench486_profile.h').read_text()
         start=header.index('typedef enum',header.index('#ifdef PROFILE486'))
         end=header.index('} bench486_profile_node_id_t;',start)+len('} bench486_profile_node_id_t;')
         source=(ROOT/'src/core/host_cmd.c').read_text()
