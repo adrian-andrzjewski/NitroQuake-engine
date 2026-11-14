@@ -54,8 +54,6 @@ int			r_clipflags;
 byte		*r_warpbuffer;
 static byte	*r_warpbuffer_storage;
 
-byte		*r_stack_start;
-
 qboolean	r_fov_greater_than_90;
 
 //
@@ -187,10 +185,6 @@ R_Init
 */
 void R_Init (void)
 {
-	int		dummy;
-	
-	// get stack position so we can guess if we are going to overflow
-	r_stack_start = (byte *)&dummy;
 	R_InitWarpBuffer ();
 	
 	R_InitTurb ();
@@ -1182,13 +1176,6 @@ void R_RenderView_ (void)
 
 void R_RenderView (void)
 {
-	int		dummy;
-	int		delta;
-	
-	delta = (byte *)&dummy - r_stack_start;
-	if (delta < -10000 || delta > 10000)
-		Sys_Error ("R_RenderView: called without enough stack");
-
 	if ( Hunk_LowMark() & 3 )
 		Sys_Error ("Hunk is missaligned");
 

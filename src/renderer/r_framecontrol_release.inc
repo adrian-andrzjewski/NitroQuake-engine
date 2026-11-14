@@ -215,9 +215,6 @@ L1:
 	.globl	_R_Init
 _R_Init:
 	subl	$44, %esp	#,
-/* src/renderer/r_main.c:190: 	r_stack_start = (byte *)&dummy; */
-	leal	28(%esp), %eax	#, tmp97
-	movl	%eax, _r_stack_start	# tmp97, r_stack_start
 	call	_R_InitWarpBuffer	#
 /* src/renderer/r_main.c:1214: 		sintable[i] = AMP + sin(i*3.14159*2/CYCLE)*AMP; */
 	movl	$524288, _sintable	#, sintable[0]
@@ -2826,21 +2823,13 @@ L246:
 
 .text
 .p2align 3
-/* R_RenderView: Check renderer stack/global alignment and world availability before the complete frame.
+/* R_RenderView: Check hunk and global alignment before dispatching the bounded renderer.
  * Callee registers used: none.
  * Stack reservations (bytes; includes call argument areas): 28, 12, 12.
  * Each return restores its entry ESP and all saved callee registers. */
 	.globl	_R_RenderView
 _R_RenderView:
 	subl	$28, %esp	#,
-/* src/renderer/r_main.c:1187: 	delta = (byte *)&dummy - r_stack_start; */
-	leal	12(%esp), %eax	#, tmp88
-	subl	_r_stack_start, %eax	# r_stack_start, delta
-/* src/renderer/r_main.c:1188: 	if (delta < -10000 || delta > 10000) */
-	addl	$10000, %eax	#, tmp90
-/* src/renderer/r_main.c:1188: 	if (delta < -10000 || delta > 10000) */
-	cmpl	$20000, %eax	#, tmp90
-	ja	L256	#,
 /* src/renderer/r_main.c:1191: 	if ( Hunk_LowMark() & 3 ) */
 	call	_Hunk_LowMark	#
 /* src/renderer/r_main.c:1191: 	if ( Hunk_LowMark() & 3 ) */
@@ -2854,19 +2843,6 @@ L251:
 	call	_R_RenderViewDispatch	#
 	addl	$4, %esp	#,
 	ret
-	.p2align 4
-	.p2align 3
-L256:
-/* src/renderer/r_main.c:1189: 		Sys_Error ("R_RenderView: called without enough stack"); */
-	subl	$12, %esp	#,
-	pushl	$LC29	#
-	call	_Sys_Error	#
-	addl	$16, %esp	#,
-/* src/renderer/r_main.c:1191: 	if ( Hunk_LowMark() & 3 ) */
-	call	_Hunk_LowMark	#
-/* src/renderer/r_main.c:1191: 	if ( Hunk_LowMark() & 3 ) */
-	testb	$3, %al	#, tmp92
-	je	L251	#,
 L257:
 /* src/renderer/r_main.c:1192: 		Sys_Error ("Hunk is missaligned"); */
 	subl	$12, %esp	#,
@@ -3029,10 +3005,6 @@ LC27:
 LC28:
 	.ascii "Short roughly %d edges\12\0"
 	.p2align 3
-.p2align 3
-LC29:
-	.ascii "R_RenderView: called without enough stack\0"
-.p2align 3
 LC30:
 	.ascii "Hunk is missaligned\0"
 	.p2align 3

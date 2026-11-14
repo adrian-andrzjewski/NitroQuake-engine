@@ -1013,6 +1013,31 @@ try {
         $objects += $object
     }
 
+    # The renderer stack constants used by R_RenderViewDispatch are tied to
+    # the selected generated C/assembly frames. Check every release, reference,
+    # benchmark and instrumented build before linking the executable.
+    $rendererStackBudgetScript = Join-Path $PSScriptRoot 'renderer-stack-budget.py'
+    $rendererStackFlags = @($cFlags) + @($asmFlags)
+    $rendererStackBudgetArguments = @('--object-root', $objectRoot)
+    foreach ($selection in @(
+            @{ Flag = '-DASM486_FRAME_CONTROL'; Argument = '--asm-frame-control' },
+            @{ Flag = '-DASM486_EDGE_DRAWING'; Argument = '--asm-edge' },
+            @{ Flag = '-DASM486_RENDER_WORLD'; Argument = '--asm-world' },
+            @{ Flag = '-DASM486_RENDER_POLY'; Argument = '--asm-poly' },
+            @{ Flag = '-DASM486_BMODEL_POLYGON_CLIP'; Argument = '--asm-clip' })) {
+        if ($rendererStackFlags -contains $selection.Flag) {
+            $rendererStackBudgetArguments += $selection.Argument
+        }
+    }
+    if ($Instrumentation) {
+        $rendererStackBudgetArguments += '--instrumented'
+    }
+    Write-Host 'Checking generated renderer stack frames'
+    & python $rendererStackBudgetScript @rendererStackBudgetArguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Generated renderer stack budget check failed with exit code $LASTEXITCODE."
+    }
+
     Write-Host "Linking $executableName"
     $linkFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s') + $objects + @('-lm', "-Wl,-Map=$linkMap", '-o', $executable)
     & $compiler @linkFlags

@@ -202,7 +202,7 @@
         "12",
         "12"
       ],
-      "purpose": "Check renderer stack/global alignment and world availability before the complete frame."
+      "purpose": "Check hunk and global alignment before renderer dispatch; dispatcher checks actual DJGPP stack bounds."
     },
     {
       "originalFunction": "R_InitTurb",
@@ -400,7 +400,7 @@
         "12",
         "12"
       ],
-      "purpose": "Check renderer stack/global alignment and world availability before the complete frame."
+      "purpose": "Check hunk and global alignment before renderer dispatch; dispatcher checks actual DJGPP stack bounds."
     },
     {
       "originalFunction": "R_InitTurb",
