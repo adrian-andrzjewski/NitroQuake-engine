@@ -19,15 +19,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // comndef.h  -- general definitions
 
-#if !defined BYTE_DEFINED
-typedef unsigned char 		byte;
-#define BYTE_DEFINED 1
-#endif
+#ifndef COMMON_H
+#define COMMON_H
 
-#undef true
-#undef false
+#include <stdio.h>
 
-typedef enum {false, true}	qboolean;
+#include "q_shared.h"
 
 //============================================================================
 
@@ -138,6 +135,7 @@ void R_BuildLightMapStyles_C (unsigned *dest, byte *lightmap,
 		int size, int maps, unsigned scale, int *lightadj);
 void R_BuildLightMapFusedNoDlights_asm486 (unsigned *dest, byte *lightmap,
 		int size, int maps, unsigned scale, int *lightadj);
+
 void R_BuildLightMapFusedNoDlights_C (unsigned *dest, byte *lightmap,
 		int size, int maps, unsigned scale, int *lightadj);
 #ifdef BENCH486
@@ -205,3 +203,5 @@ void COM_LoadCacheFile (char *path, struct cache_user_s *cu);
 extern	struct cvar_s	registered;
 
 extern qboolean		standard_quake, rogue, hipnotic;
+
+#endif /* COMMON_H */

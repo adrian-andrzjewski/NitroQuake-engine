@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //
 // console
+#ifndef CONSOLE_H
+#define CONSOLE_H
+
+#include "common.h"
 //
 extern int con_totallines;
 extern int con_backscroll;
@@ -43,4 +47,6 @@ void Con_ClearNotify (void);
 void Con_ToggleConsole_f (void);
 
 void Con_NotifyBox (char *text);	// during startup for sound / cd warnings
+
+#endif /* CONSOLE_H */
 

@@ -20,6 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // cmd.h -- Command buffer and command execution
 
+#ifndef CMD_H
+#define CMD_H
+
+#include "common.h"
+
 //===========================================================================
 
 /*
@@ -118,4 +123,6 @@ void	Cmd_ForwardToServer (void);
 void	Cmd_Print (char *text);
 // used by command functions to send output to either the graphics console or
 // passed as a print message to the client
+
+#endif /* CMD_H */
 

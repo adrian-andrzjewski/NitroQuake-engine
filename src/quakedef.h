@@ -340,46 +340,15 @@ void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
 #define	ROLL	2
 
 
-#define	MAX_QPATH		64			// max length of a quake game pathname
-#define	MAX_OSPATH		128			// max length of a filesystem pathname
-
 #define	ON_EPSILON		0.1			// point on plane side epsilon
-
-#define	MAX_MSGLEN		8000		// max length of a reliable message
-#define	MAX_DATAGRAM	1024		// max length of unreliable message
 
 //
 // per-level limits
 //
-#define	MAX_EDICTS		600			// FIXME: ouch! ouch! ouch!
-#define	MAX_LIGHTSTYLES	64
-#define	MAX_MODELS		256			// these are sent over the net as bytes
-#define	MAX_SOUNDS		256			// so they cannot be blindly increased
-
-#define	SAVEGAME_COMMENT_LENGTH	39
-
-#define	MAX_STYLESTRING	64
 
 //
 // stats are integers communicated to the client by the server
 //
-#define	MAX_CL_STATS		32
-#define	STAT_HEALTH			0
-#define	STAT_FRAGS			1
-#define	STAT_WEAPON			2
-#define	STAT_AMMO			3
-#define	STAT_ARMOR			4
-#define	STAT_WEAPONFRAME	5
-#define	STAT_SHELLS			6
-#define	STAT_NAILS			7
-#define	STAT_ROCKETS		8
-#define	STAT_CELLS			9
-#define	STAT_ACTIVEWEAPON	10
-#define	STAT_TOTALSECRETS	11
-#define	STAT_TOTALMONSTERS	12
-#define	STAT_SECRETS		13		// bumped on client side by svc_foundsecret
-#define	STAT_MONSTERS		14		// bumped by svc_killedmonster
-
 // stock defines
 
 #define	IT_SHOTGUN				1
@@ -447,33 +416,17 @@ void Bench486WriteTimedemoStats (int report_handle, int timedemo_frames,
 
 //===========================================
 
-#define	MAX_SCOREBOARD		16
-#define	MAX_SCOREBOARDNAME	32
-
-#define	SOUND_CHANNELS		8
-
 // This makes anyone on id's net privileged
 // Use for multiplayer testing only - VERY dangerous!!!
 // #define IDGODS
 
 #include "common.h"
+#include "q_shared.h"
 #include "bspfile.h"
 #include "vid.h"
 #include "sys.h"
 #include "zone.h"
 #include "mathlib.h"
-
-typedef struct
-{
-	vec3_t	origin;
-	vec3_t	angles;
-	int		modelindex;
-	int		frame;
-	int		colormap;
-	int		skin;
-	int		effects;
-} entity_state_t;
-
 
 #include "wad.h"
 #include "draw.h"

@@ -19,6 +19,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // client.h
 
+#ifndef CLIENT_H
+#define CLIENT_H
+
+#include <stdio.h>
+
+#include "common.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "protocol.h"
+#include "q_shared.h"
+#include "render.h"
+#include "sound.h"
+#include "vid.h"
+
+#define MAX_SCOREBOARD 16
+#define MAX_SCOREBOARDNAME 32
+
+struct qsocket_s;
+
 typedef struct
 {
 	vec3_t	viewangles;
@@ -373,3 +392,5 @@ void V_SetContentsColor (int contents);
 //
 void CL_InitTEnts (void);
 void CL_SignonReply (void);
+
+#endif /* CLIENT_H */

@@ -19,6 +19,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // protocol.h -- communications protocols
 
+#ifndef PROTOCOL_H
+#define PROTOCOL_H
+
+#include "mathlib.h"
+#include "q_shared.h"
+
+typedef struct
+{
+	vec3_t	origin;
+	vec3_t	angles;
+	int		modelindex;
+	int		frame;
+	int		colormap;
+	int		skin;
+	int		effects;
+} entity_state_t;
+
 #define	PROTOCOL_VERSION	15
 
 // if the high bit of the servercmd is set, the low bits are fast update flags:
@@ -65,6 +82,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // defaults for clientinfo messages
 #define	DEFAULT_VIEWHEIGHT	22
+
 
 
 // game types sent by serverinfo
@@ -165,3 +183,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define TE_IMPLOSION		14
 #define TE_RAILTRAIL		15
 #endif
+
+#endif /* PROTOCOL_H */

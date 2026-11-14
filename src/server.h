@@ -19,6 +19,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // server.h
 
+#ifndef SERVER_H
+#define SERVER_H
+
+#include <setjmp.h>
+
+#include "client.h"
+#include "common.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "progs.h"
+#include "q_shared.h"
+
 typedef struct
 {
 	int			maxclients;
@@ -255,3 +267,5 @@ void SV_SpawnServer (char *server, char *startspot);
 #else
 void SV_SpawnServer (char *server);
 #endif
+
+#endif /* SERVER_H */
