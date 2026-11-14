@@ -43,7 +43,7 @@ To remove one hot call per visible internal BSP node, the selectable assembly
 walk now expands the same x87 plane-dot body as
 `R_RecursiveWorldNodePlaneDot_asm486`; that selector helper remains available
 for isolated comparison. Axis-plane fast cases and arbitrary-plane arithmetic
-keep their prior operation order. Compile-time checks in `src/r_bsp.c` pin the
+keep their prior operation order. Compile-time checks in `src/renderer/r_bsp.c` pin the
 plane `dist` and `type` offsets and structure size used by the assembly. The
 updated `i486-asm-world-group` build passed its object ISA gate with zero
 enforced instructions above i486. The source-level scan also passed for all 82

@@ -1,7 +1,7 @@
 # Negative-depth subtract-pair STOSL parity screen (2026-10-26)
 
 Status: rejected at the parity screen; the original `MOVL` plus `LEAL` store
-is restored in `src/d_draw.s`.
+is restored in `src/renderer/d_draw.s`.
 
 The experiment replaced the store in `ZSPAN_SUB_NEGATIVE_PAIR` with `STOSL`
 for the i486 path while retaining the `TARGET_I386` sequence. The comparison

@@ -1,6 +1,6 @@
 # Span16 deferred `tfracf` reload scheduling (2026-10-21)
 
-Status: promoted in `src/d_draw16.s` under the positive pooled-mean rule.
+Status: promoted in `src/renderer/d_draw16.s` under the positive pooled-mean rule.
 
 In both zero and nonzero T-step setup arms, the `tfracf` reload now follows the
 `advancetable+4` store and the independent cachewidth addition. The address

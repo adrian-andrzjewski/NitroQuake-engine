@@ -2,10 +2,10 @@
 
 ## Time conversion, formatting, and ABI
 
-`R_PrintTimes` in `src/r_misc.c` narrows the timer result to `float`, computes
+`R_PrintTimes` in `src/renderer/r_misc.c` narrows the timer result to `float`, computes
 elapsed milliseconds and narrows that result to `float`, then prints the same
 format string and five values through `Con_Printf`. It resets `c_surf` only
-after printing. `src/r_printtimesasm.s` preserves those narrowing points,
+after printing. `src/renderer/r_printtimesasm.s` preserves those narrowing points,
 vararg order, reset order, x87 control word and stack depth. It exports
 `R_PrintTimes_asm486`; the C oracle remains `R_PrintTimes_C` in BENCH486 builds.
 
@@ -16,7 +16,7 @@ checkpoint is `i486-asm-selectable-87.json`.
 
 ## Deterministic console fixture and i486 results
 
-`Bench486PrintTimesCases` in `src/bench486_printtimes.h`, invoked by
+`Bench486PrintTimesCases` in `src/tests/bench486/bench486_printtimes.h`, invoked by
 `-benchprinttimes`, redirects output to a guarded 80 by 8 console ring. Seven
 cases cover zero, float narrowing, positive and negative elapsed time,
 negative-zero formatting, signed integer extremes and repeated ring wrap. The

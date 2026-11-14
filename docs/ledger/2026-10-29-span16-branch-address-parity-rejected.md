@@ -48,7 +48,7 @@ the renderer ISA audit was skipped.
 ## Removal of the rejected path
 
 After the horizontal-line report, both branch-address variants were deleted
-from `src/d_draw16.s`. The DOS build, benchmark, smoke, and timedemo scripts now
+from `src/renderer/d_draw16.s`. The DOS build, benchmark, smoke, and timedemo scripts now
 accept only `TextureSpanAddressing=control`; `build-dos.ps1` rejects `branch`
 at parameter validation.
 

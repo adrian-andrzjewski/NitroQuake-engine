@@ -1,7 +1,7 @@
 # Span16 high-byte load before T-carry capture rejected (2026-10-26)
 
 Status: rejected at the parity screen; the six source-byte loads are restored
-to their promoted positions in `src/d_draw16.s`.
+to their promoted positions in `src/renderer/d_draw16.s`.
 
 The experiment moved six later high-byte texel loads in the default Span16
 word-store path to immediately after `addl tstep,%edx` and before

@@ -1,6 +1,6 @@
 # Negative-depth add-pair Z-span store with STOSL (2026-10-26)
 
-Status: promoted in src/d_draw.s after exact framebuffer parity, a positive
+Status: promoted in src/renderer/d_draw.s after exact framebuffer parity, a positive
 strict mean, and the complete i486 ISA gate.
 
 The negative-depth branch of the general add-pair Z-span loop packs the second

@@ -2,9 +2,9 @@
 
 ## C reference and assembly behavior
 
-`R_RunParticleEffect` in `src/r_part.c` emits particles from the free list,
+`R_RunParticleEffect` in `src/renderer/r_part.c` emits particles from the free list,
 prepends each one to the active list, and returns as soon as the free list is
-empty. `src/r_runparticleeffectasm.s:R_RunParticleEffect_asm486` preserves that
+empty. `src/renderer/r_runparticleeffectasm.s:R_RunParticleEffect_asm486` preserves that
 order and the original C routine remains available as the selectable oracle.
 
 For counts other than 1024, the routine emits slow-gravity impact particles,
@@ -26,7 +26,7 @@ authority for the emitted instruction stream.
 
 `RunParticleEffectImplementation` keeps C as the default and selects the
 assembly entry only when requested. The BENCH486 C oracle and the assembly
-entry are tested by `src/bench486_runparticleeffect.h` across 12 cases,
+entry are tested by `src/tests/bench486/bench486_runparticleeffect.h` across 12 cases,
 including empty and exhausted pools, ordinary counts, count 1024, untouched
 fields, full list state, scripted random values, seeded libc RNG continuation,
 register/stack preservation, and canaries. The fixture passed in the i486

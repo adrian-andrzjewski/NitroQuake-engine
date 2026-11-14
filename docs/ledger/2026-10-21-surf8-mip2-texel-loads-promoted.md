@@ -1,6 +1,6 @@
 # Mip-2 surface texel-load schedule promoted (2026-10-21)
 
-Status: promoted in `src/surf8.s` under the positive-mean rule.
+Status: promoted in `src/renderer/surf8.s` under the positive-mean rule.
 
 The general mip-2 surface-block loop now loads source texels at offsets 2 and 3
 before saving and scaling the light delta. This starts the independent texture

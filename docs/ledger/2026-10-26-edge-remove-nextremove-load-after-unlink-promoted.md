@@ -1,6 +1,6 @@
 # Legacy `R_RemoveEdges` nextremove load after unlink promoted (2026-10-26)
 
-Status: promoted in `src/r_edgea.s` under the positive pooled-mean rule.
+Status: promoted in `src/renderer/r_edgea.s` under the positive pooled-mean rule.
 
 In the legacy two-edge removal loop, each `et_nextremove` pointer is now loaded
 after the two neighbor-link stores. The unlink stores touch `et_prev` and

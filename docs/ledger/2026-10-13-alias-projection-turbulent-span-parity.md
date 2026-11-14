@@ -9,8 +9,8 @@ ongoing.
 
 | Reference behavior | Assembly implementation | Direct fixture |
 |---|---|---|
-| `src/r_alias.c::R_AliasProjectFinalVert` | `src/r_aliasa.s::R_AliasProjectFinalVert_asm486` | `-AliasProjectOnly` |
-| `src/d_scan.c::D_DrawTurbulent8Span` C reference and setup/interpolation | `src/d_scana.s::D_DrawTurbulent8Span_asm486` | `-TurbulentScanOnly` |
+| `src/renderer/r_alias.c::R_AliasProjectFinalVert` | `src/renderer/r_aliasa.s::R_AliasProjectFinalVert_asm486` | `-AliasProjectOnly` |
+| `src/renderer/d_scan.c::D_DrawTurbulent8Span` C reference and setup/interpolation | `src/renderer/d_scana.s::D_DrawTurbulent8Span_asm486` | `-TurbulentScanOnly` |
 | C turbulent span pixel loop | Selected i486 assembly span loop | `-TurbulentOnly` |
 
 The alias routine retains Quake's x87 projection arithmetic and truncating

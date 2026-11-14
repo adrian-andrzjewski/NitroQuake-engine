@@ -2,7 +2,7 @@
 
 ## Candidate
 
-In both `LFSpanLoop` and `LFNegSpanLoop` in `src/d_draw.s`, the lookup
+In both `LFSpanLoop` and `LFNegSpanLoop` in `src/renderer/d_draw.s`, the lookup
 `zspantable[espan_t_v]` moved from after the second coordinate `FILD` and its
 first multiply/swap to immediately before the second `FILD`. This tested
 whether the 486 integer pipeline could perform the independent row lookup while

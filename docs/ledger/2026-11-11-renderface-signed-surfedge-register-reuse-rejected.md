@@ -12,7 +12,7 @@ temporary edge pointer and refreshed the current cache offset on a miss so
 `EDX` remained live on every path into clipping.
 
 That adds one register move to every edge iteration to remove a memory reload
-from clipping paths. The experiment changed only `src/asm486_experiments.s`;
+from clipping paths. The experiment changed only `src/renderer/asm486_experiments.s`;
 the candidate source was restored after measurement.
 
 ### Exact rendering and i486 compatibility

@@ -2,12 +2,12 @@
 
 ## Standard explosion particle pool semantics and ABI
 
-`R_ParticleExplosion` in `src/r_part.c` emits up to 1024 particles, popping
+`R_ParticleExplosion` in `src/renderer/r_part.c` emits up to 1024 particles, popping
 each node from `free_particles` and prepending it to `active_particles`. It
 sets the five-second lifetime, `ramp1[0]` palette byte, random ramp, and
 alternating `pt_explode2`/`pt_explode` type. Each emitted particle consumes
 seven random values in order: one ramp value, then origin and velocity values
-for x, y, and z. The assembly in `src/r_particleexplosionasm.s` preserves the
+for x, y, and z. The assembly in `src/renderer/r_particleexplosionasm.s` preserves the
 early-exhaustion boundary and uses signed `IDIV` for the C `% 32` and `% 512`
 expressions. `r_part.c` compile-time assertions pin the particle fields, client
 time offset, and particle type values. BENCH486 builds retain the C oracle as
@@ -19,7 +19,7 @@ in all i486 build manifests.
 
 ## Full-state fixture and i486 validation
 
-`Bench486ParticleExplosionCases` in `src/bench486_particleexplosion.h` compares
+`Bench486ParticleExplosionCases` in `src/tests/bench486/bench486_particleexplosion.h` compares
 the guarded particle pool, links, emitted particle fields, ABI flags, random
 call count, and next RNG value between C and assembly. It covers empty,
 single-particle signed-remainder, alternating types, short, almost-full, full,

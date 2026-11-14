@@ -2,7 +2,7 @@
 
 ## Change
 
-`R_ClipEdge` in `src/r_drawa.s` now finishes the first endpoint's clip-plane
+`R_ClipEdge` in `src/renderer/r_drawa.s` now finishes the first endpoint's clip-plane
 dot product before starting the second. Each endpoint still uses the original
 left-associative `(x * nx + y * ny) + z * nz` calculation, subtracts the same
 single-precision `clip->dist`, and stores the result to the same float slot.
@@ -12,7 +12,7 @@ emission decisions.
 
 The control and candidate both use source revision `23672ac13a39a955eb7dc389143ff07ef195eb22`,
 Build 857, and the `i486-asm-selectable-current` profile. Their only source
-difference after line-ending normalization is `src/r_drawa.s`. The timedemo
+difference after line-ending normalization is `src/renderer/r_drawa.s`. The timedemo
 records identify source fingerprints `97C0D0C3B01A33A1FFA6805AAEE297B4739D6F287362842B7DE733E640578B01`
 for control and `DABBC9910B72705EA12D7D2708B39457FF7F6B02AB34EDE480EDA7FE3E434856`
 for candidate.

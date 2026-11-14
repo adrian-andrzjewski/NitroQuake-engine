@@ -7,7 +7,7 @@ path is unchanged.
 The candidate checked that a full 16-pixel segment's clamped T endpoints were
 monotonic and remained in one texture row. Eligible segments then skipped the
 per-pixel T-axis address update and advanced the source address from S only.
-This path was already present in `src/d_draw16.s`; this run evaluated it without
+This path was already present in `src/renderer/d_draw16.s`; this run evaluated it without
 changing the source tree.
 
 The comparison used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, and the pinned 32 MB

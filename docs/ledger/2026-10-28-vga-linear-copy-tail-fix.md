@@ -16,7 +16,7 @@ The seven-scene paired run remained pixel-exact, including the assembly
 
 ## Correction and fixture
 
-`src/d_copy.s` now copies the remaining `width & 3` bytes after each dword
+`src/renderer/d_copy.s` now copies the remaining `width & 3` bytes after each dword
 transfer. The VGA fixture uses rectangle widths 11, 14, and 9 to exercise all
 three tail sizes. It compares both presentation wrappers against an
 independently constructed expected display buffer, including unchanged row

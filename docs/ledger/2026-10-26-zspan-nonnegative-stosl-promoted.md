@@ -1,6 +1,6 @@
 # STOSL for nonnegative Z-span pair store (2026-10-26)
 
-Status: promoted in src/d_draw.s after exact framebuffer parity, a positive
+Status: promoted in src/renderer/d_draw.s after exact framebuffer parity, a positive
 strict mean, and the complete i486 ISA gate.
 
 The i486 nonnegative paired Z-span path previously advanced EDI with LEA before

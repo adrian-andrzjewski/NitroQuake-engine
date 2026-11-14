@@ -1,0 +1,1970 @@
+{
+  "schema": 1,
+  "sourceRoot": "src",
+  "groups": [
+    "assets",
+    "audio",
+    "client",
+    "collision",
+    "core",
+    "memory",
+    "network",
+    "platform/dos",
+    "renderer",
+    "server",
+    "video",
+    "tests/bench486"
+  ],
+  "migrations": [
+    {
+      "from": "src/adivtab.h",
+      "to": "src/renderer/adivtab.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/aliascontrol_bench_hooks.inc",
+      "to": "src/tests/bench486/aliascontrol_bench_hooks.inc",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/anorm_dots.h",
+      "to": "src/renderer/anorm_dots.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/anorms.h",
+      "to": "src/renderer/anorms.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm486_experiments.s",
+      "to": "src/renderer/asm486_experiments.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_aliascontrol.h",
+      "to": "src/renderer/asm_aliascontrol.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_cachealloc.h",
+      "to": "src/memory/asm_cachealloc.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_cachecheck.h",
+      "to": "src/memory/asm_cachecheck.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_cachefree.h",
+      "to": "src/memory/asm_cachefree.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_cachefreehigh.h",
+      "to": "src/memory/asm_cachefreehigh.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_cachefreelow.h",
+      "to": "src/memory/asm_cachefreelow.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_cachetryalloc.h",
+      "to": "src/memory/asm_cachetryalloc.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_chase.h",
+      "to": "src/client/asm_chase.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_cliplinks.h",
+      "to": "src/collision/asm_cliplinks.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_clipmovetoentity.h",
+      "to": "src/collision/asm_clipmovetoentity.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_consolecheckresize.h",
+      "to": "src/client/asm_consolecheckresize.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_consoleinput.h",
+      "to": "src/client/asm_consoleinput.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_consoleoutput.h",
+      "to": "src/client/asm_consoleoutput.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_draw.h",
+      "to": "src/renderer/asm_draw.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_drawing.h",
+      "to": "src/renderer/asm_drawing.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_drawingdriver.h",
+      "to": "src/renderer/asm_drawingdriver.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_findtouchedleafs.h",
+      "to": "src/collision/asm_findtouchedleafs.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_framecontrol.h",
+      "to": "src/renderer/asm_framecontrol.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_frustum.h",
+      "to": "src/renderer/asm_frustum.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_hullcheck.h",
+      "to": "src/collision/asm_hullcheck.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_hullforentity.h",
+      "to": "src/collision/asm_hullforentity.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_hunkmarkfree.h",
+      "to": "src/memory/asm_hunkmarkfree.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_hunknamedalloc.h",
+      "to": "src/memory/asm_hunknamedalloc.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_hunkprint.h",
+      "to": "src/memory/asm_hunkprint.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_hunktempalloc.h",
+      "to": "src/memory/asm_hunktempalloc.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_light.h",
+      "to": "src/renderer/asm_light.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_lightcontrol.h",
+      "to": "src/renderer/asm_lightcontrol.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_mathclosure.h",
+      "to": "src/renderer/asm_mathclosure.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_menutext.h",
+      "to": "src/client/asm_menutext.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_modelload.h",
+      "to": "src/assets/asm_modelload.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_palette.h",
+      "to": "src/renderer/asm_palette.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_particlelist.h",
+      "to": "src/renderer/asm_particlelist.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_playertranslation.h",
+      "to": "src/client/asm_playertranslation.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_publicbindings.h",
+      "to": "src/renderer/asm_publicbindings.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_renderdispatch.h",
+      "to": "src/renderer/asm_renderdispatch.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_sbar.h",
+      "to": "src/client/asm_sbar.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screencenter.h",
+      "to": "src/client/asm_screencenter.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screenconsolesetup.h",
+      "to": "src/client/asm_screenconsolesetup.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screendrawram.h",
+      "to": "src/client/asm_screendrawram.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screenerase.h",
+      "to": "src/client/asm_screenerase.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screenfov.h",
+      "to": "src/client/asm_screenfov.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screennet.h",
+      "to": "src/client/asm_screennet.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screennotify.h",
+      "to": "src/client/asm_screennotify.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screenoverlays.h",
+      "to": "src/client/asm_screenoverlays.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screenrefdef.h",
+      "to": "src/client/asm_screenrefdef.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screenturtle.h",
+      "to": "src/client/asm_screenturtle.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_screenupdate.h",
+      "to": "src/client/asm_screenupdate.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_sky.h",
+      "to": "src/renderer/asm_sky.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_sprite.h",
+      "to": "src/renderer/asm_sprite.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_timegraph.h",
+      "to": "src/renderer/asm_timegraph.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_transformplane.h",
+      "to": "src/renderer/asm_transformplane.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vdamage.h",
+      "to": "src/client/asm_vdamage.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vesacopy.h",
+      "to": "src/video/asm_vesacopy.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vesadefaultmode.h",
+      "to": "src/video/asm_vesadefaultmode.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vesalifecycle.h",
+      "to": "src/video/asm_vesalifecycle.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vesapalette.h",
+      "to": "src/video/asm_vesapalette.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vesaswap.h",
+      "to": "src/video/asm_vesaswap.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vesawait.h",
+      "to": "src/video/asm_vesawait.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vgaswap.h",
+      "to": "src/video/asm_vgaswap.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_viddirectrect.h",
+      "to": "src/video/asm_viddirectrect.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vidmenu.h",
+      "to": "src/video/asm_vidmenu.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vidmode.h",
+      "to": "src/video/asm_vidmode.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_vidupdate.h",
+      "to": "src/video/asm_vidupdate.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_viewcontrol.h",
+      "to": "src/client/asm_viewcontrol.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_visibility.h",
+      "to": "src/renderer/asm_visibility.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_worldcontrol.h",
+      "to": "src/renderer/asm_worldcontrol.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_zoneheap.h",
+      "to": "src/memory/asm_zoneheap.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/asm_zsubmodel.h",
+      "to": "src/renderer/asm_zsubmodel.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/bench486_aliascontrol.h",
+      "to": "src/tests/bench486/bench486_aliascontrol.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_aliasmodelload.h",
+      "to": "src/tests/bench486/bench486_aliasmodelload.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_aliasstats.h",
+      "to": "src/tests/bench486/bench486_aliasstats.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_blobexplosion.h",
+      "to": "src/tests/bench486/bench486_blobexplosion.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_cachealloc.h",
+      "to": "src/tests/bench486/bench486_cachealloc.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_cachecheck.h",
+      "to": "src/tests/bench486/bench486_cachecheck.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_cachefree.h",
+      "to": "src/tests/bench486/bench486_cachefree.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_cachefreehigh.h",
+      "to": "src/tests/bench486/bench486_cachefreehigh.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_cachefreelow.h",
+      "to": "src/tests/bench486/bench486_cachefreelow.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_cachemove.h",
+      "to": "src/tests/bench486/bench486_cachemove.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_cachetryalloc.h",
+      "to": "src/tests/bench486/bench486_cachetryalloc.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_chase.h",
+      "to": "src/tests/bench486/bench486_chase.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_conprint.h",
+      "to": "src/tests/bench486/bench486_conprint.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_conprintf.h",
+      "to": "src/tests/bench486/bench486_conprintf.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_conresize.h",
+      "to": "src/tests/bench486/bench486_conresize.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_console_input.h",
+      "to": "src/tests/bench486/bench486_console_input.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_drawing.h",
+      "to": "src/tests/bench486/bench486_drawing.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_drawingdriver.h",
+      "to": "src/tests/bench486/bench486_drawingdriver.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_efragstore.h",
+      "to": "src/tests/bench486/bench486_efragstore.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_entityparticles.h",
+      "to": "src/tests/bench486/bench486_entityparticles.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_findtouchedleafs.h",
+      "to": "src/tests/bench486/bench486_findtouchedleafs.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_forwardspans.h",
+      "to": "src/tests/bench486/bench486_forwardspans.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_framecontrol.h",
+      "to": "src/tests/bench486/bench486_framecontrol.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_frustum.h",
+      "to": "src/tests/bench486/bench486_frustum.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_gameplay_profile.inc",
+      "to": "src/tests/bench486/bench486_gameplay_profile.inc",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_hullcheck.h",
+      "to": "src/tests/bench486/bench486_hullcheck.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_hullforentity.h",
+      "to": "src/tests/bench486/bench486_hullforentity.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_hunkmarkfree.h",
+      "to": "src/tests/bench486/bench486_hunkmarkfree.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_hunknamedalloc.h",
+      "to": "src/tests/bench486/bench486_hunknamedalloc.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_hunktempalloc.h",
+      "to": "src/tests/bench486/bench486_hunktempalloc.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_lavasplash.h",
+      "to": "src/tests/bench486/bench486_lavasplash.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_lightcontrol.h",
+      "to": "src/tests/bench486/bench486_lightcontrol.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_linegraph.h",
+      "to": "src/tests/bench486/bench486_linegraph.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_mathclosure.h",
+      "to": "src/tests/bench486/bench486_mathclosure.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menudraw.h",
+      "to": "src/tests/bench486/bench486_menudraw.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menugameoptions.h",
+      "to": "src/tests/bench486/bench486_menugameoptions.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menukeys.h",
+      "to": "src/tests/bench486/bench486_menukeys.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menulanconfigdraw.h",
+      "to": "src/tests/bench486/bench486_menulanconfigdraw.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menumodem.h",
+      "to": "src/tests/bench486/bench486_menumodem.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menunet.h",
+      "to": "src/tests/bench486/bench486_menunet.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menuoptions.h",
+      "to": "src/tests/bench486/bench486_menuoptions.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menupagedraw.h",
+      "to": "src/tests/bench486/bench486_menupagedraw.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menuquit.h",
+      "to": "src/tests/bench486/bench486_menuquit.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menusaveload.h",
+      "to": "src/tests/bench486/bench486_menusaveload.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menusearchdraw.h",
+      "to": "src/tests/bench486/bench486_menusearchdraw.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menuserialconfig.h",
+      "to": "src/tests/bench486/bench486_menuserialconfig.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menuserverlist.h",
+      "to": "src/tests/bench486/bench486_menuserverlist.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menusetup.h",
+      "to": "src/tests/bench486/bench486_menusetup.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menustateentries.h",
+      "to": "src/tests/bench486/bench486_menustateentries.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_menutext.h",
+      "to": "src/tests/bench486/bench486_menutext.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_palette.h",
+      "to": "src/tests/bench486/bench486_palette.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_parseparticleeffect.h",
+      "to": "src/tests/bench486/bench486_parseparticleeffect.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_particledraw.h",
+      "to": "src/tests/bench486/bench486_particledraw.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_particledraw_layout.h",
+      "to": "src/tests/bench486/bench486_particledraw_layout.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_particleexplosion.h",
+      "to": "src/tests/bench486/bench486_particleexplosion.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_particleexplosion2.h",
+      "to": "src/tests/bench486/bench486_particleexplosion2.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_particlelist.h",
+      "to": "src/tests/bench486/bench486_particlelist.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_particleupdate.h",
+      "to": "src/tests/bench486/bench486_particleupdate.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_playertranslation.h",
+      "to": "src/tests/bench486/bench486_playertranslation.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_printtimes.h",
+      "to": "src/tests/bench486/bench486_printtimes.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_publicbindings.h",
+      "to": "src/tests/bench486/bench486_publicbindings.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_renderdispatch.h",
+      "to": "src/tests/bench486/bench486_renderdispatch.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_renderpoly.h",
+      "to": "src/tests/bench486/bench486_renderpoly.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_rockettrail.h",
+      "to": "src/tests/bench486/bench486_rockettrail.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_runparticleeffect.h",
+      "to": "src/tests/bench486/bench486_runparticleeffect.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_sbardraw.h",
+      "to": "src/tests/bench486/bench486_sbardraw.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_sbarfrags.h",
+      "to": "src/tests/bench486/bench486_sbarfrags.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_sbarinventory.h",
+      "to": "src/tests/bench486/bench486_sbarinventory.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_sbarprimitives.h",
+      "to": "src/tests/bench486/bench486_sbarprimitives.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screencenter.h",
+      "to": "src/tests/bench486/bench486_screencenter.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screenconsolesetup.h",
+      "to": "src/tests/bench486/bench486_screenconsolesetup.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screendrawram.h",
+      "to": "src/tests/bench486/bench486_screendrawram.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screenerase.h",
+      "to": "src/tests/bench486/bench486_screenerase.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screennet.h",
+      "to": "src/tests/bench486/bench486_screennet.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screennotify.h",
+      "to": "src/tests/bench486/bench486_screennotify.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screenoverlays.h",
+      "to": "src/tests/bench486/bench486_screenoverlays.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screenrefdef.h",
+      "to": "src/tests/bench486/bench486_screenrefdef.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screenturtle.h",
+      "to": "src/tests/bench486/bench486_screenturtle.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_screenupdate.h",
+      "to": "src/tests/bench486/bench486_screenupdate.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_sky.h",
+      "to": "src/tests/bench486/bench486_sky.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_sprite_orientation.h",
+      "to": "src/tests/bench486/bench486_sprite_orientation.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_teleportsplash.h",
+      "to": "src/tests/bench486/bench486_teleportsplash.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_timegraph.h",
+      "to": "src/tests/bench486/bench486_timegraph.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_transformplane.h",
+      "to": "src/tests/bench486/bench486_transformplane.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vdamage.h",
+      "to": "src/tests/bench486/bench486_vdamage.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vesacopy.h",
+      "to": "src/tests/bench486/bench486_vesacopy.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vesadefaultmode.h",
+      "to": "src/tests/bench486/bench486_vesadefaultmode.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vesalifecycle.h",
+      "to": "src/tests/bench486/bench486_vesalifecycle.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vesapalette.h",
+      "to": "src/tests/bench486/bench486_vesapalette.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vesaswap.h",
+      "to": "src/tests/bench486/bench486_vesaswap.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vesawait.h",
+      "to": "src/tests/bench486/bench486_vesawait.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vgaswap.h",
+      "to": "src/tests/bench486/bench486_vgaswap.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_viddirectrect.h",
+      "to": "src/tests/bench486/bench486_viddirectrect.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vidmenudraw.h",
+      "to": "src/tests/bench486/bench486_vidmenudraw.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vidmode.h",
+      "to": "src/tests/bench486/bench486_vidmode.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vidupdate.h",
+      "to": "src/tests/bench486/bench486_vidupdate.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_viewcontrol.h",
+      "to": "src/tests/bench486/bench486_viewcontrol.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_vinit.h",
+      "to": "src/tests/bench486/bench486_vinit.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_visibility.h",
+      "to": "src/tests/bench486/bench486_visibility.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_worldcontrol.h",
+      "to": "src/tests/bench486/bench486_worldcontrol.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_zoneheap.h",
+      "to": "src/tests/bench486/bench486_zoneheap.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_zspans.h",
+      "to": "src/tests/bench486/bench486_zspans.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/bench486_zsubmodel.h",
+      "to": "src/tests/bench486/bench486_zsubmodel.h",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/block16.h",
+      "to": "src/renderer/block16.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/block8.h",
+      "to": "src/renderer/block8.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/cd_audio.c",
+      "to": "src/audio/cd_audio.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/chase.c",
+      "to": "src/client/chase.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/cl_demo.c",
+      "to": "src/client/cl_demo.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/cl_input.c",
+      "to": "src/client/cl_input.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/cl_main.c",
+      "to": "src/client/cl_main.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/cl_parse.c",
+      "to": "src/client/cl_parse.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/cl_tent.c",
+      "to": "src/client/cl_tent.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/cmd.c",
+      "to": "src/core/cmd.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/common.c",
+      "to": "src/core/common.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/con_inputasm.s",
+      "to": "src/client/con_inputasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/console.c",
+      "to": "src/client/console.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/crc.c",
+      "to": "src/core/crc.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/cvar.c",
+      "to": "src/core/cvar.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_copy.s",
+      "to": "src/renderer/d_copy.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_draw.s",
+      "to": "src/renderer/d_draw.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_draw16.s",
+      "to": "src/renderer/d_draw16.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_drawing_profile.inc",
+      "to": "src/renderer/d_drawing_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_drawing_release.inc",
+      "to": "src/renderer/d_drawing_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_drawingasm.s",
+      "to": "src/renderer/d_drawingasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_driverasm.s",
+      "to": "src/renderer/d_driverasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_edge.c",
+      "to": "src/renderer/d_edge.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_fill.c",
+      "to": "src/renderer/d_fill.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_ifacea.h",
+      "to": "src/renderer/d_ifacea.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_init.c",
+      "to": "src/renderer/d_init.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_local.h",
+      "to": "src/renderer/d_local.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_modech.c",
+      "to": "src/renderer/d_modech.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_part.c",
+      "to": "src/renderer/d_part.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_parta.s",
+      "to": "src/renderer/d_parta.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_polysa.s",
+      "to": "src/renderer/d_polysa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_polyse.c",
+      "to": "src/renderer/d_polyse.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_scan.c",
+      "to": "src/renderer/d_scan.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_scana.s",
+      "to": "src/renderer/d_scana.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_sky.c",
+      "to": "src/renderer/d_sky.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_spr8.s",
+      "to": "src/renderer/d_spr8.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_sprite.c",
+      "to": "src/renderer/d_sprite.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_surf.c",
+      "to": "src/renderer/d_surf.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_vars.c",
+      "to": "src/renderer/d_vars.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_varsa.s",
+      "to": "src/renderer/d_varsa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/d_zpoint.c",
+      "to": "src/renderer/d_zpoint.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/dos_v2.c",
+      "to": "src/platform/dos/dos_v2.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/dosasm.s",
+      "to": "src/platform/dos/dosasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/dosisms.h",
+      "to": "src/platform/dos/dosisms.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/draw.c",
+      "to": "src/client/draw.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/host.c",
+      "to": "src/core/host.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/host_cmd.c",
+      "to": "src/core/host_cmd.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/in_dos.c",
+      "to": "src/platform/dos/in_dos.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/keys.c",
+      "to": "src/client/keys.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/math.s",
+      "to": "src/core/math.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/mathlib.c",
+      "to": "src/core/mathlib.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/menu.c",
+      "to": "src/client/menu.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/menu_translationasm.s",
+      "to": "src/client/menu_translationasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/model.c",
+      "to": "src/assets/model.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/mpdosock.h",
+      "to": "src/network/mpdosock.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/mplib.c",
+      "to": "src/network/mplib.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/mplpc.c",
+      "to": "src/network/mplpc.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_bw.c",
+      "to": "src/network/net_bw.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_comx.c",
+      "to": "src/network/net_comx.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_dgrm.c",
+      "to": "src/network/net_dgrm.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_dos.c",
+      "to": "src/network/net_dos.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_ipx.c",
+      "to": "src/network/net_ipx.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_loop.c",
+      "to": "src/network/net_loop.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_main.c",
+      "to": "src/network/net_main.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_mp.c",
+      "to": "src/network/net_mp.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_ser.c",
+      "to": "src/network/net_ser.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/net_vcr.c",
+      "to": "src/network/net_vcr.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/nonintel.c",
+      "to": "src/platform/dos/nonintel.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/pr_cmds.c",
+      "to": "src/server/pr_cmds.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/pr_edict.c",
+      "to": "src/server/pr_edict.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/pr_exec.c",
+      "to": "src/server/pr_exec.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aclip.c",
+      "to": "src/renderer/r_aclip.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aclipa.s",
+      "to": "src/renderer/r_aclipa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_alias.c",
+      "to": "src/renderer/r_alias.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliasa.s",
+      "to": "src/renderer/r_aliasa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliasbounds_profile.inc",
+      "to": "src/renderer/r_aliasbounds_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliasbounds_release.inc",
+      "to": "src/renderer/r_aliasbounds_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliasconstants_profile.inc",
+      "to": "src/renderer/r_aliasconstants_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliasconstants_release.inc",
+      "to": "src/renderer/r_aliasconstants_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliascontrol_profile.inc",
+      "to": "src/renderer/r_aliascontrol_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliascontrol_release.inc",
+      "to": "src/renderer/r_aliascontrol_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliascontrolasm.s",
+      "to": "src/renderer/r_aliascontrolasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliasstatsasm.s",
+      "to": "src/renderer/r_aliasstatsasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliastransform_profile.inc",
+      "to": "src/renderer/r_aliastransform_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_aliastransform_release.inc",
+      "to": "src/renderer/r_aliastransform_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_blobexplosionasm.s",
+      "to": "src/renderer/r_blobexplosionasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_bsp.c",
+      "to": "src/renderer/r_bsp.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_checkvariables_asm.inc",
+      "to": "src/renderer/r_checkvariables_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_draw.c",
+      "to": "src/renderer/r_draw.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_drawa.s",
+      "to": "src/renderer/r_drawa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_edge.c",
+      "to": "src/renderer/r_edge.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_edgea.s",
+      "to": "src/renderer/r_edgea.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_efrag.c",
+      "to": "src/renderer/r_efrag.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_entityparticlesasm.s",
+      "to": "src/renderer/r_entityparticlesasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_framecontrol_profile.inc",
+      "to": "src/renderer/r_framecontrol_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_framecontrol_release.inc",
+      "to": "src/renderer/r_framecontrol_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_framecontrolasm.s",
+      "to": "src/renderer/r_framecontrolasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_frustumasm.s",
+      "to": "src/renderer/r_frustumasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_lavasplashasm.s",
+      "to": "src/renderer/r_lavasplashasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_light.c",
+      "to": "src/renderer/r_light.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_lightasm.s",
+      "to": "src/renderer/r_lightasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_lightcontrolasm.s",
+      "to": "src/renderer/r_lightcontrolasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_linegraphasm.s",
+      "to": "src/renderer/r_linegraphasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_local.h",
+      "to": "src/renderer/r_local.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_main.c",
+      "to": "src/renderer/r_main.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_mathasm.s",
+      "to": "src/renderer/r_mathasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_mathclosureasm.s",
+      "to": "src/renderer/r_mathclosureasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_misc.c",
+      "to": "src/renderer/r_misc.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_modelloadasm.inc",
+      "to": "src/renderer/r_modelloadasm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_parseparticleeffectasm.s",
+      "to": "src/renderer/r_parseparticleeffectasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_part.c",
+      "to": "src/renderer/r_part.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_particleexplosion2asm.s",
+      "to": "src/renderer/r_particleexplosion2asm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_particleexplosionasm.s",
+      "to": "src/renderer/r_particleexplosionasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_particlelist.s",
+      "to": "src/renderer/r_particlelist.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_printtimesasm.s",
+      "to": "src/renderer/r_printtimesasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_publicbindingsasm.s",
+      "to": "src/renderer/r_publicbindingsasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_renderdispatchasm.s",
+      "to": "src/renderer/r_renderdispatchasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_rockettrailasm.s",
+      "to": "src/renderer/r_rockettrailasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_runparticleeffectasm.s",
+      "to": "src/renderer/r_runparticleeffectasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_setupframe_asm.inc",
+      "to": "src/renderer/r_setupframe_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_shared.h",
+      "to": "src/renderer/r_shared.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_sky.c",
+      "to": "src/renderer/r_sky.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_skyasm.s",
+      "to": "src/renderer/r_skyasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_sprite.c",
+      "to": "src/renderer/r_sprite.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_spriteasm.s",
+      "to": "src/renderer/r_spriteasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_surf.c",
+      "to": "src/renderer/r_surf.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_teleportsplashasm.s",
+      "to": "src/renderer/r_teleportsplashasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_timegraph_state.h",
+      "to": "src/renderer/r_timegraph_state.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_timegraphasm.s",
+      "to": "src/renderer/r_timegraphasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_transformplaneasm.s",
+      "to": "src/renderer/r_transformplaneasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_vars.c",
+      "to": "src/renderer/r_vars.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_varsa.s",
+      "to": "src/renderer/r_varsa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_visibilityasm.s",
+      "to": "src/renderer/r_visibilityasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_worldcontrolasm.s",
+      "to": "src/renderer/r_worldcontrolasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_worldedges_profile.inc",
+      "to": "src/renderer/r_worldedges_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_worldedges_release.inc",
+      "to": "src/renderer/r_worldedges_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_worldefrags_profile.inc",
+      "to": "src/renderer/r_worldefrags_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_worldefrags_release.inc",
+      "to": "src/renderer/r_worldefrags_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_worldrotation_profile.inc",
+      "to": "src/renderer/r_worldrotation_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_worldrotation_release.inc",
+      "to": "src/renderer/r_worldrotation_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/r_zsubmodelasm.s",
+      "to": "src/renderer/r_zsubmodelasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/sbar.c",
+      "to": "src/client/sbar.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/sbar_draw_asm.inc",
+      "to": "src/client/sbar_draw_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sbar_frags_asm.inc",
+      "to": "src/client/sbar_frags_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sbar_inventory_asm.inc",
+      "to": "src/client/sbar_inventory_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sbar_sortfrags_asm.inc",
+      "to": "src/client/sbar_sortfrags_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sbarasm.s",
+      "to": "src/client/sbarasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen.c",
+      "to": "src/client/screen.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_centerasm.s",
+      "to": "src/client/screen_centerasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_consolesetupasm.s",
+      "to": "src/client/screen_consolesetupasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_drawramasm.s",
+      "to": "src/client/screen_drawramasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_eraseasm.s",
+      "to": "src/client/screen_eraseasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_fovasm.s",
+      "to": "src/client/screen_fovasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_netasm.s",
+      "to": "src/client/screen_netasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_notifyasm.s",
+      "to": "src/client/screen_notifyasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_overlaysasm.s",
+      "to": "src/client/screen_overlaysasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_refdefasm.s",
+      "to": "src/client/screen_refdefasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_turtleasm.s",
+      "to": "src/client/screen_turtleasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/screen_updateasm.s",
+      "to": "src/client/screen_updateasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/snd_dma.c",
+      "to": "src/audio/snd_dma.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/snd_dos.c",
+      "to": "src/audio/snd_dos.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/snd_gus.c",
+      "to": "src/audio/snd_gus.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/snd_mem.c",
+      "to": "src/audio/snd_mem.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/snd_mix.c",
+      "to": "src/audio/snd_mix.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/snd_mixa.s",
+      "to": "src/audio/snd_mixa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/surf16.s",
+      "to": "src/renderer/surf16.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/surf8.s",
+      "to": "src/renderer/surf8.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_clipmovetoentity_asm.inc",
+      "to": "src/collision/sv_clipmovetoentity_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_cliptolinks_asm.inc",
+      "to": "src/collision/sv_cliptolinks_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_findtouchedleafs_asm.inc",
+      "to": "src/collision/sv_findtouchedleafs_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_hullcheck_asm.inc",
+      "to": "src/collision/sv_hullcheck_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_hullforentity_asm.inc",
+      "to": "src/collision/sv_hullforentity_asm.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_main.c",
+      "to": "src/server/sv_main.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_move.c",
+      "to": "src/server/sv_move.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_phys.c",
+      "to": "src/server/sv_phys.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/sv_user.c",
+      "to": "src/server/sv_user.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/sys_dos.c",
+      "to": "src/platform/dos/sys_dos.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/sys_dosa.s",
+      "to": "src/platform/dos/sys_dosa.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/v_chase_reference.inc",
+      "to": "src/client/v_chase_reference.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/v_chaseasm.s",
+      "to": "src/client/v_chaseasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/v_damageparse.s",
+      "to": "src/client/v_damageparse.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/v_paletteasm.s",
+      "to": "src/client/v_paletteasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/v_viewcontrol_profile.inc",
+      "to": "src/client/v_viewcontrol_profile.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/v_viewcontrol_release.inc",
+      "to": "src/client/v_viewcontrol_release.inc",
+      "kind": "production"
+    },
+    {
+      "from": "src/v_viewcontrolasm.s",
+      "to": "src/client/v_viewcontrolasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vgamodes.h",
+      "to": "src/video/vgamodes.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_dos.c",
+      "to": "src/video/vid_dos.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_dos.h",
+      "to": "src/video/vid_dos.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_ext.c",
+      "to": "src/video/vid_ext.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_updateasm.s",
+      "to": "src/video/vid_updateasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vesa.h",
+      "to": "src/video/vid_vesa.h",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vesacopyasm.s",
+      "to": "src/video/vid_vesacopyasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vesadefaultmodeasm.s",
+      "to": "src/video/vid_vesadefaultmodeasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vesalifecycleasm.s",
+      "to": "src/video/vid_vesalifecycleasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vesapaletteasm.s",
+      "to": "src/video/vid_vesapaletteasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vesaswapasm.s",
+      "to": "src/video/vid_vesaswapasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vesawaitasm.s",
+      "to": "src/video/vid_vesawaitasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vga.c",
+      "to": "src/video/vid_vga.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/vid_vgaswapasm.s",
+      "to": "src/video/vid_vgaswapasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/view.c",
+      "to": "src/client/view.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/vregset.c",
+      "to": "src/video/vregset.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/wad.c",
+      "to": "src/assets/wad.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/world.c",
+      "to": "src/collision/world.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/worlda.s",
+      "to": "src/collision/worlda.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/worldcontrol_bench_hooks.inc",
+      "to": "src/tests/bench486/worldcontrol_bench_hooks.inc",
+      "kind": "bench-fixture"
+    },
+    {
+      "from": "src/zone.c",
+      "to": "src/memory/zone.c",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_cacheasm.s",
+      "to": "src/memory/zone_cacheasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_cachefreehighasm.s",
+      "to": "src/memory/zone_cachefreehighasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_cachefreelowasm.s",
+      "to": "src/memory/zone_cachefreelowasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_cachetryallocasm.s",
+      "to": "src/memory/zone_cachetryallocasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_heapasm.s",
+      "to": "src/memory/zone_heapasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_hunkmarkfreeasm.s",
+      "to": "src/memory/zone_hunkmarkfreeasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_hunknamedallocasm.s",
+      "to": "src/memory/zone_hunknamedallocasm.s",
+      "kind": "production"
+    },
+    {
+      "from": "src/zone_hunktempallocasm.s",
+      "to": "src/memory/zone_hunktempallocasm.s",
+      "kind": "production"
+    }
+  ]
+}

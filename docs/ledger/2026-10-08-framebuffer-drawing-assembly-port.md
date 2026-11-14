@@ -2,7 +2,7 @@
 
 ## Drawing algorithms and direct fixtures
 
-`src/d_drawingasm.s` owns all eighteen original `draw.c` routines, including
+`src/renderer/d_drawingasm.s` owns all eighteen original `draw.c` routines, including
 picture/cache initialization, glyphs and strings, transparent/translated pictures,
 console backgrounds, rectangle copies, tiles, fills, fades and disc rectangles.
 Separate maintained normal and profiling includes preserve the reference's

@@ -10,9 +10,9 @@ when `r_drawpolys` or `r_drawculledpolys` is enabled. The standard span driver
 leaves `r_drawpolys` false, so ordinary scene captures do not exercise it.
 
 The assembly entry is `R_ZDrawSubmodelPolys_asm486` in
-`src/r_zsubmodelasm.s`. It follows the original floating-point operation order
+`src/renderer/r_zsubmodelasm.s`. It follows the original floating-point operation order
 and x87 status-word tests, uses the established 32-bit cdecl convention, and
-preserves EBX, ESI, and EDI. `src/asm_zsubmodel.h` pins the structure offsets
+preserves EBX, ESI, and EDI. `src/renderer/asm_zsubmodel.h` pins the structure offsets
 and sizes used by the assembly with compile-time layout checks. The i486
 defaults in `build-dos.ps1`, `bench-dos.ps1`, and `timedemo-dos.ps1` now select
 assembly for both `ZSubmodelPolygonsImplementation` and

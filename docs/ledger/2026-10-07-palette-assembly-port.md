@@ -1,6 +1,6 @@
 # Palette generation and update
 
-`src/v_paletteasm.s` owns the public `BuildGammaTable`, `V_CheckGamma`,
+`src/client/v_paletteasm.s` owns the public `BuildGammaTable`, `V_CheckGamma`,
 `V_SetContentsColor`, `V_CalcPowerupCshift` and `V_UpdatePalette` entries when
 `PaletteImplementation=asm`. The reference C implementations remain available
 in BENCH486 builds. The selector remains C by default while the complete
@@ -14,7 +14,7 @@ remaining `pow` runtime dependency is included in the linked ISA audit.
 
 ## Direct equivalence and ABI checks
 
-`src/bench486_palette.h` exercises 480 gamma/contents/power-up cases and 9,728
+`src/tests/bench486/bench486_palette.h` exercises 480 gamma/contents/power-up cases and 9,728
 update frames, including 8,192 uninterrupted stateful frames and twelve x87
 control words. It compares the complete gamma table, color-shift state, output
 palette and callback count. Register/stack probes and input/output canaries

@@ -4,7 +4,7 @@
 
 | Reference behavior | Assembly implementation | C reference boundary |
 | --- | --- | --- |
-| `src/screen.c:SCR_UpdateScreen` full frame-update orchestration | `src/screen_updateasm.s:SCR_UpdateScreen_asm486`, selected by `ScreenUpdateImplementation=asm` | The C implementation remains the default; BENCH486 retains `SCR_UpdateScreen_Screen_C` as the direct oracle |
+| `src/client/screen.c:SCR_UpdateScreen` full frame-update orchestration | `src/client/screen_updateasm.s:SCR_UpdateScreen_asm486`, selected by `ScreenUpdateImplementation=asm` | The C implementation remains the default; BENCH486 retains `SCR_UpdateScreen_Screen_C` as the direct oracle |
 
 The assembly preserves the source order for loading timeout checks, refdef
 recalculation, back-buffer access, page clears, console setup, center-string
@@ -12,7 +12,7 @@ erase, buffer locking, `V_RenderView`, overlays, palette update and final
 `VID_Update` rectangle selection. Drawing algorithms reached through those
 calls retain their own selectors and ownership.
 
-`src/asm_screenupdate.h` pins the `vrect_t`, `viddef_t`, `cvar_t` and
+`src/client/asm_screenupdate.h` pins the `vrect_t`, `viddef_t`, `cvar_t` and
 `client_static_t` offsets with compile-time `offsetof` checks. The routine uses
 cdecl, preserves EBX, establishes an EBP frame and declares its stack locals in
 the assembly comments. Its x87 comparison keeps the original float branch
@@ -21,7 +21,7 @@ behavior, including unordered values. The module declares `.arch i486`,
 
 ## Direct C/assembly fixture
 
-`src/bench486_screenupdate.h` runs fifteen paired control-flow cases. It checks
+`src/tests/bench486/bench486_screenupdate.h` runs fifteen paired control-flow cases. It checks
 early-return and loading states, refdef changes, exact call order, page-clear
 behavior, the three update-rectangle branches, float edge cases, ABI state and
 x87 state. Fixture calls stop at recorded C-call boundaries, so the test

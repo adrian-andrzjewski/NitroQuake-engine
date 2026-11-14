@@ -7,7 +7,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_CalcRoll",
       "originalFunctionSha256": "6B08E124FC561B5B995C8E16A28DFEBF5B96F965A9ECAC8BE3E9D4C3BC02C46C",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_CalcRoll_View_C",
       "purpose": "Project velocity onto the right vector, scale the original speed limit and return signed roll."
     },
@@ -15,7 +15,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_CalcBob",
       "originalFunctionSha256": "6F6B376C9CCD163F890BCEE2E4E4CB1254AE1EEBF272EDF96C396F6E23351318",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_CalcBob_View_C",
       "purpose": "Retain the original time-cycle reduction, horizontal speed, sine modulation and asymmetric bob clamp."
     },
@@ -23,7 +23,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_StartPitchDrift",
       "originalFunctionSha256": "A45B7EC3679215FC178C0BE1874AAD6E92FF2CE64A0285D43C3EC9A326E36DD6",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_StartPitchDrift_View_C",
       "purpose": "Honor same-frame drift cancellation and initialize the original pitch acceleration state."
     },
@@ -31,7 +31,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_StopPitchDrift",
       "originalFunctionSha256": "8494009D8539555D171F5D36F5ABF6BEBDE5A29EE6D9BCEB5411F98074CD1952",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_StopPitchDrift_View_C",
       "purpose": "Record cancellation time and clear pitch motion."
     },
@@ -39,7 +39,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_DriftPitch",
       "originalFunctionSha256": "2D25C12049DCE71B35700CCC981DF5EFBD75B4E8F29390ECB64FB8F941DF1F56",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_DriftPitch_View_C",
       "purpose": "Preserve noclip/demo/ground gates, movement threshold, acceleration and overshoot clamp."
     },
@@ -47,7 +47,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "angledelta",
       "originalFunctionSha256": "D57523E2EB8BC8B9B6656484CFFB894DD7CDAB15E0AF70642547F4EF911FC8A9",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "angledelta_View_C",
       "purpose": "Quantize through anglemod and preserve the original signed angle interval."
     },
@@ -55,7 +55,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "CalcGunAngle",
       "originalFunctionSha256": "45E695F6386773865BAFACBDDEFE2D2DE0F4C85531D1F060F932A582C3A855A1",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "CalcGunAngle_View_C",
       "purpose": "Maintain the two persistent gun-angle latches and subtract the original idle sway."
     },
@@ -63,7 +63,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_BoundOffsets",
       "originalFunctionSha256": "2C9EAEC791003145C9B8632ED33CE8492216C68F98693F4EA64EE542DD8DF1A6",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_BoundOffsets_View_C",
       "purpose": "Clamp camera origin to the original asymmetric entity clipping bounds."
     },
@@ -71,7 +71,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_AddIdle",
       "originalFunctionSha256": "5F3F3019E8DC876ABA5BA9E8ADA24104CB529E9F783D000E5CE819CAA66F5008",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_AddIdle_View_C",
       "purpose": "Apply each original idle frequency/amplitude in roll, pitch, yaw order."
     },
@@ -79,7 +79,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_CalcViewRoll",
       "originalFunctionSha256": "15AB83296619CC2AFA9A63D9B734A6ABC15474A9AF8D1ABD76E95CC3D28D59C9",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_CalcViewRoll_View_C",
       "purpose": "Preserve movement roll, damage kick decay and the dead-player roll override."
     },
@@ -87,7 +87,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_CalcIntermissionRefdef",
       "originalFunctionSha256": "39043076021F8E8A2F8B33AA6AC0678056ED28E14CF37F2BC7FD0B9CCE57DF09",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_CalcIntermissionRefdef_View_C",
       "purpose": "Copy entity pose, hide the gun and temporarily enable idle sway."
     },
@@ -95,7 +95,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_CalcRefdef",
       "originalFunctionSha256": "D6436A5F6870CC792C995A0EDBA4EA55CA08A2EEC7B99A22BFDADB98F7376040",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_CalcRefdef_View_C",
       "purpose": "Preserve drift, bob, node-line bias, camera limits, gun pose, stair smoothing and chase order."
     },
@@ -103,7 +103,7 @@
       "originalFile": "view-control-reference/view.c",
       "originalFunction": "V_RenderView",
       "originalFunctionSha256": "33369FF1217EA6592E2619A847009C04058D15CFB0CFD275DFCDF7DD507CBF6F",
-      "assemblyFile": "../../src/v_viewcontrolasm.s",
+      "assemblyFile": "../../src/client/v_viewcontrolasm.s",
       "oracle": "V_RenderView_View_C",
       "purpose": "Preserve forced-console/multiplayer/pause/intermission gates, light dispatch, stereo views and crosshair."
     }

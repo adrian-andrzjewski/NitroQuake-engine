@@ -1,7 +1,7 @@
 # Span16 `advancetable` store after T-fraction add rejected (2026-10-21)
 
 Status: rejected on the negative parity-screen mean; the store remains before
-the T-fraction addition in `src/d_draw16.s`.
+the T-fraction addition in `src/renderer/d_draw16.s`.
 
 The experiment moved `movl %eax,advancetable` from immediately before
 `addl %ecx,%edx` to immediately after it. The store value and the T-fraction

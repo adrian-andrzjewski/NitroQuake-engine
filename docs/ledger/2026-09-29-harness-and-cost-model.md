@@ -566,7 +566,7 @@ timedemo A/B on any 486 interlock claim.
 The unattributed `alias-raster` self time is split into `alias-edge-setup`,
 `alias-span-package`, and `alias-step-math`, wrapping the cursor-init blocks,
 the single-row span-package emits, and the two duplicated base/extra step
-blocks in `src\d_polyse.c`. From
+blocks in `src\renderer\d_polyse.c`. From
 `out\dos-timedemo-20260929-100501\timedemo-result.json` (frame total
 84.627456 s, attribution only), in total cycles per call:
 

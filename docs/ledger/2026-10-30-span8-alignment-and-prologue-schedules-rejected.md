@@ -21,7 +21,7 @@ combined schedule used `-Runs 3`, and each isolated schedule used `-Runs 1`.
 
 ## Repeated 8-pixel body alignment
 
-Adding `.p2align 4,,15` before `LNotLastSegment` in `src/d_draw.s` changed code
+Adding `.p2align 4,,15` before `LNotLastSegment` in `src/renderer/d_draw.s` changed code
 placement only. The uninstrumented three-run control at
 `out/dos-timedemo-20261030-210749/timedemo-result.json` measured
 16.328454 / 16.328482 / 16.328483 FPS (mean 16.328473). The aligned candidate

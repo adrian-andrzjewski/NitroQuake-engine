@@ -1,7 +1,7 @@
 # Span16 `sfracf` load after T-step shift screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted
-`sfracf` load before the T-step shift remains active in `src/d_draw16.s`.
+`sfracf` load before the T-step shift remains active in `src/renderer/d_draw16.s`.
 
 The experiment moved `movl sfracf,%ebx` after the T-step fractional shift in
 `LSetUpCommon`, while retaining the promoted S-step shift position after the

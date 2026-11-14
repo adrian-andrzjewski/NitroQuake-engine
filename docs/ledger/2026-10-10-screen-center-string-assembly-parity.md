@@ -2,8 +2,8 @@
 
 ## SCR_DrawCenterString reference and assembly boundary
 
-`src/screen.c:SCR_DrawCenterString_Screen_C` is the retained BENCH486 oracle.
-`src/screen_centerasm.s:SCR_DrawCenterString_asm486` is the 32-bit assembly
+`src/client/screen.c:SCR_DrawCenterString_Screen_C` is the retained BENCH486 oracle.
+`src/client/screen_centerasm.s:SCR_DrawCenterString_asm486` is the 32-bit assembly
 implementation, and `SCR_DrawCenterString` dispatches to it when
 `ScreenCenterStringImplementation=asm`. Normal builds retain the C routine when
 the selector is `c`. The new assembly module is limited to this centered-message
@@ -11,7 +11,7 @@ routine; the renderer remains broadly C-owned and the default remains C.
 
 The focused profiles are `tools/renderer-profiles/i486-screencenter-c.json` and
 `tools/renderer-profiles/i486-screencenter-asm.json`. The fixture is
-`src/bench486_screencenter.h` and can be run with:
+`src/tests/bench486/bench486_screencenter.h` and can be run with:
 
 ```powershell
 rtk pwsh -NoProfile -File .\tools\bench-dos.ps1 `

@@ -3,10 +3,10 @@
 ## Behavior and selector
 
 `CacheTryAllocImplementation=asm` selects the i486 implementation in
-`src/zone_cachetryallocasm.s`; the C implementation remains available as
+`src/memory/zone_cachetryallocasm.s`; the C implementation remains available as
 `Cache_TryAlloc_C` in BENCH builds and through the C-reference profile. The
 assembly preserves the allocator's address-ordered search, split and
-sentinel behavior. `src/asm_cachetryalloc.h` pins the private cache-header
+sentinel behavior. `src/memory/asm_cachetryalloc.h` pins the private cache-header
 layout against `zone.c` at compile time. `Cache_Alloc`, its LRU eviction loop
 and `Cache_Move` are covered by separate
 [`Cache_Alloc`](2026-10-17-cache-alloc-assembly-port.md) and
@@ -48,4 +48,4 @@ outside these slices.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_TryAlloc_C` | `src/zone_cachetryallocasm.s:Cache_TryAlloc` | Five allocation layouts with exact C/ASM result and list-state comparison | Strict i486 gates pass; DOSBox-X fixture passes |
+| `src/memory/zone.c:Cache_TryAlloc_C` | `src/memory/zone_cachetryallocasm.s:Cache_TryAlloc` | Five allocation layouts with exact C/ASM result and list-state comparison | Strict i486 gates pass; DOSBox-X fixture passes |

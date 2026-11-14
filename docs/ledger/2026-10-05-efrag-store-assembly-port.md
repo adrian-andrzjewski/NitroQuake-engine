@@ -29,7 +29,7 @@ default release paths remain unchanged.
 
 ## Remaining world-renderer closure
 
-The legacy `src/r_drawa.s` path already provides handwritten `R_ClipEdge` and
+The legacy `src/renderer/r_drawa.s` path already provides handwritten `R_ClipEdge` and
 edge projection/emission code under `id386`; `R_EmitCachedEdge` also has a
 selectable assembly entry. `R_RenderPoly` belongs to the optional polygon-driver
 branch, while normal DOS span rendering leaves `r_drawpolys=0` and

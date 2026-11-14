@@ -2,7 +2,7 @@
 
 ## Profile rationale
 
-`R_ClipEdge` in `src/r_drawa.s` recomputes both endpoint-to-plane distances for
+`R_ClipEdge` in `src/renderer/r_drawa.s` recomputes both endpoint-to-plane distances for
 each edge. Consecutive surfedges in a face share an endpoint, suggesting that
 the first active frustum-plane distance for the previous edge's end vertex
 could be reused as the next edge's start distance. The initial profile counted

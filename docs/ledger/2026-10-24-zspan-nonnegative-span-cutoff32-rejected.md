@@ -1,7 +1,7 @@
 # D_DrawZSpans nonnegative span cutoff at 32 pixels
 
 Status: rejected on the slower three-run mean; the 24-pixel cutoff remains in
-`src/d_draw.s`.
+`src/renderer/d_draw.s`.
 
 The paired `demo1` timedemos used DOSBox-X 2026.08.31 and the pinned 32 MB i486
 profile with SHA-256

@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `HunkNamedAllocImplementation=asm` selects `Hunk_AllocName` and
-`Hunk_HighAllocName` from `src/zone_hunknamedallocasm.s` in the current i486
+`Hunk_HighAllocName` from `src/memory/zone_hunknamedallocasm.s` in the current i486
 release profile. BENCH builds retain `Hunk_AllocName_C` and
 `Hunk_HighAllocName_C` as parity references; the C-reference profile selects
 those entries. The i386 profile keeps the C implementations.
@@ -68,4 +68,4 @@ hunk and zone support includes `Hunk_HighMark`, `Hunk_Check`, `Hunk_Print`,
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Hunk_AllocName_C`, `src/zone.c:Hunk_HighAllocName_C` | `src/zone_hunknamedallocasm.s:Hunk_AllocName`, `src/zone_hunknamedallocasm.s:Hunk_HighAllocName` | Twelve exact cases across both allocators; complete arena, cache sentinel, marks, temp state, result offsets, and profiling state compared | DOSBox-X fixture passes; latest trace-enabled assembly object audit and strict i486 release gate pass |
+| `src/memory/zone.c:Hunk_AllocName_C`, `src/memory/zone.c:Hunk_HighAllocName_C` | `src/memory/zone_hunknamedallocasm.s:Hunk_AllocName`, `src/memory/zone_hunknamedallocasm.s:Hunk_HighAllocName` | Twelve exact cases across both allocators; complete arena, cache sentinel, marks, temp state, result offsets, and profiling state compared | DOSBox-X fixture passes; latest trace-enabled assembly object audit and strict i486 release gate pass |

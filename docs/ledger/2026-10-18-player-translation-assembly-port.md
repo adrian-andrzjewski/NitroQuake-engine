@@ -2,7 +2,7 @@
 
 ## Scope and selector
 
-`PlayerTranslationImplementation=asm` selects `src/menu_translationasm.s` in
+`PlayerTranslationImplementation=asm` selects `src/client/menu_translationasm.s` in
 the default i486 profile. The assembly owns identity-table generation, the
 shirt/pants palette-range replacement, and the 64-row scoreboard translation
 loop shared by `M_BuildTranslationTable` and `CL_NewTranslation`. The latter

@@ -2,7 +2,7 @@
 
 ## Original C behavior and ownership boundary
 
-`src/console.c:Con_DrawInput` returns without touching input state or pixels
+`src/client/console.c:Con_DrawInput` returns without touching input state or pixels
 when the console is neither the active key destination nor forced visible. When
 visible, it writes the cursor character as
 `10 + ((int)(realtime * con_cursorspeed) & 1)`, blanks the rest of the visible
@@ -18,7 +18,7 @@ part of this conversion.
 
 ## Assembly mapping and x87 behavior
 
-`src/con_inputasm.s:Con_DrawInput_asm486` is the direct replacement, and
+`src/client/con_inputasm.s:Con_DrawInput_asm486` is the direct replacement, and
 `ConsoleImplementation=asm` selects it for public `Con_DrawInput`. The original
 C body remains available as `Con_DrawInput_Console_C` in BENCH486 builds. The
 assembly uses the 32-bit DJGPP cdecl convention, preserves EBX/ESI/EDI/EBP and
@@ -33,7 +33,7 @@ restores the caller's control word. It does not use `FISTTP`; the source pins
 
 ## Direct C/assembly fixture
 
-`src/bench486_console_input.h:Bench486ConsoleInputCases` compares the C oracle,
+`src/tests/bench486/bench486_console_input.h:Bench486ConsoleInputCases` compares the C oracle,
 direct assembly entry, and selected public entry through the ABI checker. Its
 21 directed cases are evaluated under all four x87 rounding modes. They cover
 hidden and forced-visible input, both cursor parities, truncation boundaries,
@@ -64,7 +64,7 @@ It does not establish full-scene visual parity or complete renderer conversion.
 
 | Reference behavior | Assembly implementation | Correctness fixture | Compatibility check |
 | --- | --- | --- | --- |
-| `src/console.c:Con_DrawInput` | `src/con_inputasm.s:Con_DrawInput_asm486` | `src/bench486_console_input.h:Bench486ConsoleInputCases`; 21 directed cases x four x87 modes, exact C/ASM/public state and framebuffer parity in DOSBox-X | Strict linked-object, final-executable, startup and provider i486 audits passed; zero violations or exemptions |
+| `src/client/console.c:Con_DrawInput` | `src/client/con_inputasm.s:Con_DrawInput_asm486` | `src/tests/bench486/bench486_console_input.h:Bench486ConsoleInputCases`; 21 directed cases x four x87 modes, exact C/ASM/public state and framebuffer parity in DOSBox-X | Strict linked-object, final-executable, startup and provider i486 audits passed; zero violations or exemptions |
 
 This candidate covers one console input overlay routine. It does not close
 console text/background/notify drawing, status-bar or menu overlays, screen

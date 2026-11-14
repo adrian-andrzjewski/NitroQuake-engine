@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // d_edge.c
 
 #include "quakedef.h"
-#include "d_local.h"
+#include "renderer/d_local.h"
 
 #if defined(ASM486_SURFACE_GRADIENTS) || defined(ASM486_SURFACE_DISPATCH)
 int			d_gradient_miplevel;

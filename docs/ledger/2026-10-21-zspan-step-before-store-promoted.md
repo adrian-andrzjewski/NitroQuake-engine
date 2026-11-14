@@ -1,6 +1,6 @@
 # Z-span second-step scheduling promoted (2026-10-21)
 
-Status: promoted in `src/d_draw.s` under the positive pooled-mean performance
+Status: promoted in `src/renderer/d_draw.s` under the positive pooled-mean performance
 rule. In the 16-pixel middle-loop macros, the second Z-accumulator step now
 runs immediately before the packed framebuffer store, after `ZPACK16`. This
 overlaps independent integer arithmetic with the memory write. The change

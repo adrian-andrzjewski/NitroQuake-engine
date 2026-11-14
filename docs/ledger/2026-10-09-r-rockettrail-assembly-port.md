@@ -2,8 +2,8 @@
 
 ## Port and traceability
 
-The reference is `R_RocketTrail` in `src/r_part.c`; the opt-in implementation
-is `src/r_rockettrailasm.s`, selected by `RocketTrailImplementation=asm` and
+The reference is `R_RocketTrail` in `src/renderer/r_part.c`; the opt-in implementation
+is `src/renderer/r_rockettrailasm.s`, selected by `RocketTrailImplementation=asm` and
 included in the focused `i486-asm-rocket-trail.json` and combined
 `i486-asm-selectable-91.json` profiles. The assembly follows the original
 particle-list updates, trail-type dispatch, float-step behavior, RNG use,
@@ -12,7 +12,7 @@ implementation remains available as the BENCH486 oracle.
 
 ## Reference fixture
 
-`src/bench486_rockettrail.h` defines 16 deterministic C-versus-assembly cases.
+`src/tests/bench486/bench486_rockettrail.h` defines 16 deterministic C-versus-assembly cases.
 They cover zero/exact/short steps, rocket/smoke/blood/slight-blood/tracer/
 tracer2/Voor/default trails, encoded and negative types, tracer and free-list
 exhaustion, and libc RNG continuation. The fixture checks particle memory and

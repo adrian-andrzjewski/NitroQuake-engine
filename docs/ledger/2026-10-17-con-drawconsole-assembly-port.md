@@ -2,13 +2,13 @@
 
 ## Behavior and selector
 
-`src/console.c:Con_DrawConsole` returns without drawing when `lines <= 0`.
+`src/client/console.c:Con_DrawConsole` returns without drawing when `lines <= 0`.
 Otherwise it draws the console background, sets `con_vislines`, derives the
 text row count and starting Y coordinate, applies `con_backscroll` to each
 scrollback row, and draws each glyph through `Draw_Character`. It calls
 `Con_DrawInput` only when requested.
 
-`src/con_inputasm.s:Con_DrawConsole_asm486` now implements that orchestration
+`src/client/con_inputasm.s:Con_DrawConsole_asm486` now implements that orchestration
 with 32-bit DJGPP cdecl, preserving EBX/ESI/EDI/EBP. The row shift is arithmetic
 to match the i486 C build; scrollback indexing uses signed division after
 clamping the row to zero. Existing background, glyph, and input drawing routines
@@ -19,7 +19,7 @@ release. `ConsoleImplementation=c` keeps both C entry points selected.
 
 ## Direct C/assembly parity
 
-`src/bench486_console_input.h:Bench486ConsoleDrawCases` runs the retained C
+`src/tests/bench486/bench486_console_input.h:Bench486ConsoleDrawCases` runs the retained C
 oracle and direct assembly entry against the live DOS video and scrollback
 state for one-line, partial-row, one-row, multi-row, and full-console heights.
 It compares the full indexed framebuffer, visible-line state, unchanged video
@@ -53,7 +53,7 @@ video/cache support remain C-owned.
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/console.c:Con_DrawConsole` | `src/con_inputasm.s:Con_DrawConsole_asm486` | Five exact framebuffer/state cases through DOSBox-X; input callee separately passes 21 cases x four x87 modes | Strict linked-object, final-executable, startup, and provider gates pass with zero exemptions |
+| `src/client/console.c:Con_DrawConsole` | `src/client/con_inputasm.s:Con_DrawConsole_asm486` | Five exact framebuffer/state cases through DOSBox-X; input callee separately passes 21 cases x four x87 modes | Strict linked-object, final-executable, startup, and provider gates pass with zero exemptions |
 
 This is console composition support, not a 3D rendering routine. It does not
 cover `Con_DrawNotify`, logging, menu composition, complete screen stress, or a

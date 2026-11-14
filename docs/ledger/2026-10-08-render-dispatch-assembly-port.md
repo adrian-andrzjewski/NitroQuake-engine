@@ -2,7 +2,7 @@
 
 ## Calling behavior and direct tests
 
-`src/r_renderdispatchasm.s` replaces twelve original public/control adapters:
+`src/renderer/r_renderdispatchasm.s` replaces twelve original public/control adapters:
 four sprite entries, alias view-matrix setup, public/helper light marking,
 dynamic-light dispatch, world/brush gradients, face dispatch and particles.
 Typed outgoing arguments, private canonical matrix storage, x87 time conversion,

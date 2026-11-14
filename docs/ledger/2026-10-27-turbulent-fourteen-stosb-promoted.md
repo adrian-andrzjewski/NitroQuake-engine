@@ -2,7 +2,7 @@
 
 The current i486 assembly profile now selects `fourteen-stosb`. It combines the
 cached texture base in EBX from the fourteen-pixel loop with the existing
-`STOSB` pixel store in `src/d_scana.s`. The control uses the same fourteen-pixel
+`STOSB` pixel store in `src/renderer/d_scana.s`. The control uses the same fourteen-pixel
 loop with the explicit destination increment and byte store.
 
 The candidate was compared with the control in seven alternating uninstrumented

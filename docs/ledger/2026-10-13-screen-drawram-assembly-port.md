@@ -4,7 +4,7 @@
 
 | Reference behavior | Assembly implementation | Oracle and fixture |
 | --- | --- | --- |
-| `src/screen.c:SCR_DrawRam` | `src/screen_drawramasm.s:SCR_DrawRam_asm486`, selected by `ScreenDrawRamImplementation=asm` | `SCR_DrawRam_Screen_C` retained as the BENCH486-only C oracle in `src/bench486_screendrawram.h` |
+| `src/client/screen.c:SCR_DrawRam` | `src/client/screen_drawramasm.s:SCR_DrawRam_asm486`, selected by `ScreenDrawRamImplementation=asm` | `SCR_DrawRam_Screen_C` retained as the BENCH486-only C oracle in `src/tests/bench486/bench486_screendrawram.h` |
 | Skip when `scr_showram.value` is zero or `r_cache_thrash` is false; otherwise call `Draw_Pic(scr_vrect.x + 32, scr_vrect.y, scr_ram)` | Read binary32 bits, clear the sign bit to identify either signed zero, branch on the cache flag, then pass the original coordinates and icon to `Draw_Pic` | Independent expected indexed/16-bit framebuffer model in `Bench486ScreenDrawRamPrepare` |
 
 The assembly uses integer instructions for the zero test and does not touch the

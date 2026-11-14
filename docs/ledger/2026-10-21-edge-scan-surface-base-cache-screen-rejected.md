@@ -1,7 +1,7 @@
 # Edge-scan surface-base register cache rejected (2026-10-21)
 
 Status: rejected on the negative strict pooled mean. The original row limit
-and surface-base loads remain active in `src/asm486_experiments.s`.
+and surface-base loads remain active in `src/renderer/asm486_experiments.s`.
 
 The candidate kept the stable `surfaces` base in callee-saved `%edi` across the
 scanline loop, used a stack local for the final row, and reused `%edi` for the

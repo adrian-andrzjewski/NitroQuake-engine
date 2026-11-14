@@ -1,7 +1,7 @@
 # Span16 spaced x87/integer load schedule rejected (2026-10-29)
 
 Status: rejected after a strict three-run comparison; the paired `FILD`
-schedule remains in `src/d_draw16.s`.
+schedule remains in `src/renderer/d_draw16.s`.
 
 ## Candidate and parity screen
 

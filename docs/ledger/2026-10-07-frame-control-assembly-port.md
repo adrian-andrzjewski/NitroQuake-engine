@@ -3,7 +3,7 @@
 ## Accepted frame-control equivalence (2026-10-07)
 
 `FrameControlImplementation=asm` selects the fourteen `r_main.c` entries owned
-by `src/r_framecontrolasm.s`, with separate maintained release and PROFILE486
+by `src/renderer/r_framecontrolasm.s`, with separate maintained release and PROFILE486
 instruction bodies. The C definitions remain independent BENCH486 oracles;
 ordinary selected release builds retain their shared data declarations without
 executing C frame-control forwarding entries. At the original 2026-10-07
@@ -110,7 +110,7 @@ and the two `out/paired-framecontrol-event-*-20261012.json` comparison reports.
 ## 2026-10-17 Hunk_LowMark assembly follow-up
 
 `FrameControlImplementation=asm` now owns `_Hunk_LowMark` in
-`src/r_framecontrolasm.s`. When `ASM486_FRAME_CONTROL` is selected, the
+`src/renderer/r_framecontrolasm.s`. When `ASM486_FRAME_CONTROL` is selected, the
 production `zone.c` definition is omitted. BENCH builds retain the C oracle as
 `Hunk_LowMark_C`; C-reference builds retain the original `Hunk_LowMark`.
 

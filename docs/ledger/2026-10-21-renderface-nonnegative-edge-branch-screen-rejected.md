@@ -1,7 +1,7 @@
 # RenderFace nonnegative-edge branch screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted
-positive-edge branch layout remains active in `src/asm486_experiments.s`.
+positive-edge branch layout remains active in `src/renderer/asm486_experiments.s`.
 
 The experiment changed both regular and submodel surfedge loops from a
 strict-positive branch to a nonnegative branch. A zero surfedge therefore

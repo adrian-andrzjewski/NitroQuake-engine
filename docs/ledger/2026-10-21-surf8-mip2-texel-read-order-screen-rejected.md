@@ -1,7 +1,7 @@
 # Mip-2 texel-read order screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted order
-that loads texel 2 before texel 3 remains active in `src/surf8.s`.
+that loads texel 2 before texel 3 remains active in `src/renderer/surf8.s`.
 
 This screen swapped the two independent source-byte loads at the start of the
 general mip-2 surface-block loop, keeping both ahead of the light-delta save

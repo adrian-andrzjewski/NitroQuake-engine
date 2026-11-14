@@ -4,7 +4,7 @@
 
 `AliasPrepareImplementation=control|local|asm` selects the C reference loop,
 the local C-loop variant, or `R_AliasPreparePointsVertices_asm486` in
-`src/asm486_experiments.s`. Assembly is now the i486 default. `control` and
+`src/renderer/asm486_experiments.s`. Assembly is now the i486 default. `control` and
 `local` receive distinct profile suffixes, so neither can overwrite the
 release build.
 

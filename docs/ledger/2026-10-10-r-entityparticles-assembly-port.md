@@ -2,14 +2,14 @@
 
 ## Reference behavior and assembly mapping
 
-`src/r_part.c:R_EntityParticles` lazily initializes 162 three-axis angular
+`src/renderer/r_part.c:R_EntityParticles` lazily initializes 162 three-axis angular
 velocities with 486 calls to `rand()`, then walks the 162 vertex normals. For
 each normal it computes two angles, their sine/cosine values, and the forward
 vector. It stops immediately if the free particle list is empty; otherwise it
 moves one node to the active-list head, assigns `die = (float)cl.time + 0.01`,
 color `0x6f`, type `pt_explode`, and the three source-ordered origin sums.
 
-`src/r_entityparticlesasm.s:R_EntityParticles_asm486` implements that loop and
+`src/renderer/r_entityparticlesasm.s:R_EntityParticles_asm486` implements that loop and
 is selected by `EntityParticlesImplementation=asm`; C remains the default and
 the differential oracle. The assembly keeps the reference x87 sine/cosine and
 intermediate ordering through the final single-precision origin stores. It
@@ -19,7 +19,7 @@ claim support for FPU-less 486SX systems.
 
 ## Direct C/assembly fixture
 
-`src/bench486_entityparticles.h` builds guarded particle/entity fixtures and
+`src/tests/bench486/bench486_entityparticles.h` builds guarded particle/entity fixtures and
 compares all observable state after the C and assembly calls: complete particle
 storage and padding, free/active list pointers and order, velocity-table bytes,
 random-call count and continuation, entity/input preservation, stack/register
@@ -66,7 +66,7 @@ provider with zero ISA exemptions.
 
 | Reference behavior | Assembly implementation | Correctness evidence | Compatibility evidence |
 | --- | --- | --- | --- |
-| `src/r_part.c:R_EntityParticles` | `src/r_entityparticlesasm.s:R_EntityParticles_asm486` | `src/bench486_entityparticles.h`; paired `demo2-entityparticles-event` | Source-bound C/assembly qbench strict i486 reports above |
+| `src/renderer/r_part.c:R_EntityParticles` | `src/renderer/r_entityparticlesasm.s:R_EntityParticles_asm486` | `src/tests/bench486/bench486_entityparticles.h`; paired `demo2-entityparticles-event` | Source-bound C/assembly qbench strict i486 reports above |
 
 From `quake/`, reproduce the direct state/RNG fixture and paired rendering run
 with:

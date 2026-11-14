@@ -7,14 +7,14 @@ The chase-camera path and general entity/world traces use the same
 selects the `SV_ClipMoveToEntity` trace path independently of
 `ChaseImplementation`; the current i486 profile selects assembly, while the
 C-reference profile selects the original C routine. The implementation is in
-`src/sv_hullcheck_asm.inc`, included with either selector in
-`src/asm486_experiments.s`. In the fully selected release profile the C body is
+`src/collision/sv_hullcheck_asm.inc`, included with either selector in
+`src/renderer/asm486_experiments.s`. In the fully selected release profile the C body is
 omitted; BENCH builds retain it as the parity oracle.
 
 The new body preserves the compiler-scheduled i486/387 instruction and
 recursive argument order. It calls the existing assembly
-`SV_HullPointContents` implementation from `src/worlda.s`. Layout assertions
-in `src/asm_hullcheck.h` pin the hull, clipnode, plane, and trace fields used by
+`SV_HullPointContents` implementation from `src/collision/worlda.s`. Layout assertions
+in `src/collision/asm_hullcheck.h` pin the hull, clipnode, plane, and trace fields used by
 the body. In `PROFILE486` builds, each assembly recursion also updates the same
 hull-check counter as the C routine.
 

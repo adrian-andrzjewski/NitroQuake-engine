@@ -31,7 +31,7 @@ hashed object/output path fallback recorded in the efrag-store ledger.
 ## Remaining B-model renderer closure
 
 `R_ClipEdge` and its edge projection/emission work are handwritten in legacy
-`src/r_drawa.s` under `id386`; `R_EmitCachedEdge` now also has a selectable
+`src/renderer/r_drawa.s` under `id386`; `R_EmitCachedEdge` now also has a selectable
 assembly entry. The brush-model polygon clipping path, entity-fragment
 traversal, active edge drawing, and remaining draw routines still need
 conversion. `R_RenderPoly` belongs to the optional polygon-driver branch;

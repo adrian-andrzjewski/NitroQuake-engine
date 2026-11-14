@@ -2,7 +2,7 @@
 
 Status: reverted after a negative three-run parity screen. The promoted
 accumulator-before-store schedule and original store-address order remain active
-in `src/d_draw.s`.
+in `src/renderer/d_draw.s`.
 
 The experiment advanced `%edi` by four bytes immediately before each packed
 word store and addressed the same destination with `-4(%edi)`. It covered the

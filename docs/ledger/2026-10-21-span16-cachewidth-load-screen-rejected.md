@@ -1,7 +1,7 @@
 # D_DrawSpans16 cachewidth-load screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The original
-nonzero-T-step setup order remains active in `src/d_draw16.s`.
+nonzero-T-step setup order remains active in `src/renderer/d_draw16.s`.
 
 The experiment moved the independent `cachewidth` load ahead of the S-step
 shift in `LNonZeroSetup`, aiming to overlap the memory load with the shift.

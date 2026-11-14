@@ -1,6 +1,6 @@
 # Mip-0 fully-flat rows use packed dword stores (2026-10-25)
 
-Status: promoted assembly optimization in `src/surf8.s`.
+Status: promoted assembly optimization in `src/renderer/surf8.s`.
 
 `SURF8_MIP0_FULLY_FLAT_ROW` now forms four adjacent shaded texels in `%eax`
 and stores each group with one `movl`. The existing `AL`/`AH` colormap lookup

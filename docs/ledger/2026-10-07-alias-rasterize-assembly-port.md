@@ -3,7 +3,7 @@
 ## `D_RasterizeAliasPolySmooth` setup and span orchestration
 
 `AliasRasterizeImplementation=c|asm` selects the retained C routine or
-`D_RasterizeAliasPolySmooth_asm486` in `src/d_polysa.s`. Assembly is the i486
+`D_RasterizeAliasPolySmooth_asm486` in `src/renderer/d_polysa.s`. Assembly is the i486
 default; selecting C adds the `aliasrasterizec` profile token so it cannot
 overwrite the retained release directory.
 

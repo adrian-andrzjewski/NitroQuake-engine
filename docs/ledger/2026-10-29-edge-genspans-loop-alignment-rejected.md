@@ -2,7 +2,7 @@
 
 Status: rejected after a negative three-run parity screen; the alignment directive was removed.
 
-The candidate added `.p2align 4,,15` immediately before `Lgs_edgeloop` in `src/r_edgea.s`, on the hypothesis that a 16-byte-aligned entry would reduce instruction-fetch stalls on the i486. The profile census counts 3,500,514 edge entries over `demo1`.
+The candidate added `.p2align 4,,15` immediately before `Lgs_edgeloop` in `src/renderer/r_edgea.s`, on the hypothesis that a 16-byte-aligned entry would reduce instruction-fetch stalls on the i486. The profile census counts 3,500,514 edge entries over `demo1`.
 
 ## Matched timedemo
 

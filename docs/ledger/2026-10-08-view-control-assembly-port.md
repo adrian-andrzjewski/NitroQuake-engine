@@ -2,7 +2,7 @@
 
 ## View algorithms and direct fixtures
 
-`src/v_viewcontrolasm.s` owns thirteen view, camera, gun, roll, bob, pitch-drift
+`src/client/v_viewcontrolasm.s` owns thirteen view, camera, gun, roll, bob, pitch-drift
 and stereo control entries. Its separate release and profiling includes retain
 the unchanged C reference's x87 instruction and store order. This is maintained,
 inspectable assembly pinned once from the reference; normal builds do not

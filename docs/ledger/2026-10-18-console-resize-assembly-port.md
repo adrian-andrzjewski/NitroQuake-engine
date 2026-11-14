@@ -2,12 +2,12 @@
 
 ## Behavior and selector
 
-`src/console.c:Con_CheckResize` recalculates the character width from
+`src/client/console.c:Con_CheckResize` recalculates the character width from
 `vid.width`, reformats the retained console ring-buffer rows when the width
 changes, fills unused cells with spaces, resets notification times, and clears
 backscroll. Before video initialization it falls back to a 38-character width.
 
-`src/screen_consolesetupasm.s:Con_CheckResize` now implements this behavior in
+`src/client/screen_consolesetupasm.s:Con_CheckResize` now implements this behavior in
 i486 assembly under the existing `ScreenConsoleSetupImplementation=asm`
 selector. It snapshots the full 16 KiB text buffer on its stack before clearing
 and reflowing rows, preserving the newest lines and characters just like the C
@@ -16,7 +16,7 @@ reference. The selected release omits the C body; BENCH keeps it as
 
 ## Direct C/assembly parity
 
-`src/bench486_conresize.h:Bench486ConsoleResizeCases` compares the C oracle and
+`src/tests/bench486/bench486_conresize.h:Bench486ConsoleResizeCases` compares the C oracle and
 assembly routine for seven states: unchanged width, wider and narrower
 scrollback, wrapped current-line position, one-character width, pre-video
 fallback, and initial buffer setup. The fixture compares the entire text buffer
@@ -49,7 +49,7 @@ complexity.
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/console.c:Con_CheckResize` | `src/screen_consolesetupasm.s:Con_CheckResize` | Seven exact scrollback, state, guard, notification-time and ABI cases | Focused strict BENCH i486 build, executable and provider gates pass with zero exemptions |
+| `src/client/console.c:Con_CheckResize` | `src/client/screen_consolesetupasm.s:Con_CheckResize` | Seven exact scrollback, state, guard, notification-time and ABI cases | Focused strict BENCH i486 build, executable and provider gates pass with zero exemptions |
 
 This slice ports console resize and ring-buffer memory reflow. Console output,
 logging, menus, higher-level status-bar composition, and other video/cache and

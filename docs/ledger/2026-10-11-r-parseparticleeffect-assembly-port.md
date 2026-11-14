@@ -2,8 +2,8 @@
 
 ## Reference and assembly mapping
 
-`src/r_part.c:R_ParseParticleEffect` is the C reference. The selectable
-replacement is `src/r_parseparticleeffectasm.s:R_ParseParticleEffect`, enabled
+`src/renderer/r_part.c:R_ParseParticleEffect` is the C reference. The selectable
+replacement is `src/renderer/r_parseparticleeffectasm.s:R_ParseParticleEffect`, enabled
 by `ParseParticleEffectImplementation=asm`. The normal build default remains
 C; the cumulative opt-in assembly profile now includes this selector.
 
@@ -17,7 +17,7 @@ word unchanged, and returns with an empty x87 stack.
 
 ## Direct C/assembly fixture
 
-`src/bench486_parseparticleeffect.h` compares C and assembly state across 11
+`src/tests/bench486/bench486_parseparticleeffect.h` compares C and assembly state across 11
 complete packet cases and all 11 packet truncation lengths, with four x87
 rounding modes: 88 exact pairs. It checks the message cursor and error state,
 signed coordinates/directions, count-sentinel behavior, deterministic random
@@ -83,8 +83,8 @@ timedemo runner default is `asm`.
 
 | Original behavior | Assembly replacement | Correctness evidence |
 |---|---|---|
-| `R_ParseParticleEffect` in `src/r_part.c` | `R_ParseParticleEffect` in `src/r_parseparticleeffectasm.s` | `src/bench486_parseparticleeffect.h`, invoked by `-benchparseparticleeffect` |
-| `svc_particle` dispatch and parser event in `src/cl_parse.c` | The selectable parser call remains the common dispatch point | `tools/render-scenarios-parseparticleeffect.json`; exact event frame, checksums and framebuffer comparison |
+| `R_ParseParticleEffect` in `src/renderer/r_part.c` | `R_ParseParticleEffect` in `src/renderer/r_parseparticleeffectasm.s` | `src/tests/bench486/bench486_parseparticleeffect.h`, invoked by `-benchparseparticleeffect` |
+| `svc_particle` dispatch and parser event in `src/client/cl_parse.c` | The selectable parser call remains the common dispatch point | `tools/render-scenarios-parseparticleeffect.json`; exact event frame, checksums and framebuffer comparison |
 
 `tools/test-rendering.py` guards the C reference, cumulative selector, fixture,
 and focused runner contract. `tools/test-build-dos.py` checks the parser

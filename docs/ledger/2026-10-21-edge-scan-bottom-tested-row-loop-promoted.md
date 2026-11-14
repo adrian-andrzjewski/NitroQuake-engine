@@ -1,6 +1,6 @@
 # Edge-scan bottom-tested row loop promoted (2026-10-21)
 
-Status: promoted in `src/asm486_experiments.s` under the any-positive pooled
+Status: promoted in `src/renderer/asm486_experiments.s` under the any-positive pooled
 mean rule.
 
 The scanline loop keeps its initial guard for empty main-row ranges, then tests

@@ -1,6 +1,6 @@
 # 16-bit texture-span next-pointer carry (2026-10-25)
 
-Status: promoted assembly optimization in `src/d_draw16.s`.
+Status: promoted assembly optimization in `src/renderer/d_draw16.s`.
 
 `D_DrawSpans16` now pushes `espan_t_pnext(%ebx)` before `%ebx` is reused, then
 pops the next span at `LEndSpan`. This replaces saving the current span pointer

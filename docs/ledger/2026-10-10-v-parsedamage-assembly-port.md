@@ -2,15 +2,15 @@
 
 ## Damage packet behavior and assembly mapping
 
-`src/view.c:V_ParseDamage_C` remains the reference implementation. It reads the
+`src/client/view.c:V_ParseDamage_C` remains the reference implementation. It reads the
 armor and blood bytes plus three damage coordinates, computes and caps the
 damage amount, updates the damage color shift and face animation time, then
 normalizes the source direction and derives the view kick from the current
 view-entity basis. The C implementation remains selectable and is the default.
 
-`src/v_damageparse.s:V_ParseDamage_asm486` implements the same sequence. The
+`src/client/v_damageparse.s:V_ParseDamage_asm486` implements the same sequence. The
 `DamageParseImplementation` selector chooses it through the public
-`V_ParseDamage` wrapper. `src/asm_vdamage.h` pins the accessed structure sizes
+`V_ParseDamage` wrapper. `src/client/asm_vdamage.h` pins the accessed structure sizes
 and offsets with C compile-time checks, including the double-sized client
 clock, damage `cshift_t` fields, entity origin and angles, and cvar value.
 
@@ -25,7 +25,7 @@ the stored kick values.
 
 ## Direct damage parsing and ABI fixture
 
-`src/bench486_vdamage.h` compares the original C function and assembly with
+`src/tests/bench486/bench486_vdamage.h` compares the original C function and assembly with
 guarded client, entity, parser, and message state. It checks state bytes,
 message cursor/error behavior, guards, register preservation, and x87 control
 word and stack state. Nine directed inputs, 64 armor/blood combinations, and
@@ -71,7 +71,7 @@ the same source-tree fingerprint as the paired capture.
 
 | Reference behavior | Assembly implementation | Correctness evidence | Compatibility evidence |
 | --- | --- | --- | --- |
-| `src/view.c:V_ParseDamage_C` | `src/v_damageparse.s:V_ParseDamage_asm486` | `src/bench486_vdamage.h`; paired `demo2-svcDamage-event` | Strict C and ASM i486 profile builds, including linked executable, startup, and CWSDPMI proofs |
+| `src/client/view.c:V_ParseDamage_C` | `src/client/v_damageparse.s:V_ParseDamage_asm486` | `src/tests/bench486/bench486_vdamage.h`; paired `demo2-svcDamage-event` | Strict C and ASM i486 profile builds, including linked executable, startup, and CWSDPMI proofs |
 
 From `quake/`, reproduce the direct state fixture and paired rendering run
 with:

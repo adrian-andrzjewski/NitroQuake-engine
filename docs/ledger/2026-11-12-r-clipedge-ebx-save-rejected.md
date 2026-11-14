@@ -10,7 +10,7 @@ for every clipped edge. The candidate replaced that private entry's `pushl
 consume the unused slot. Both `R_RenderFace_asm486` callers then reloaded
 `r_pcurrentvertbase` after each call. The public cdecl `R_ClipEdge` entry was
 unchanged. Relative to the active source snapshot, the candidate delta was
-limited to `src/r_drawa.s` and `src/asm486_experiments.s`.
+limited to `src/renderer/r_drawa.s` and `src/renderer/asm486_experiments.s`.
 
 ### Exact rendering and i486 compatibility
 

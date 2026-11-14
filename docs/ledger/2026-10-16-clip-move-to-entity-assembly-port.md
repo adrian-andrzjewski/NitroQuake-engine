@@ -6,8 +6,8 @@
 `SV_ClipMoveToEntity`. The current i486 profile selects assembly; the complete
 C-reference profile selects the original C function. BENCH builds keep both
 implementations so the public assembly path can be compared directly with the
-C oracle. The assembly entry is in `src/sv_clipmovetoentity_asm.inc`, included
-from `src/asm486_experiments.s`.
+C oracle. The assembly entry is in `src/collision/sv_clipmovetoentity_asm.inc`, included
+from `src/renderer/asm486_experiments.s`.
 
 This wrapper performs the 3D entity/world trace setup: it initializes the
 returned trace, obtains the entity hull through the selected
@@ -22,7 +22,7 @@ The earlier hull-selection and recursive-check ports are recorded in the
 
 The i386 ABI returns `trace_t` through a hidden result pointer. The assembly
 entry preserves that contract and the 52-byte structure layout pinned by
-`src/asm_clipmovetoentity.h`. It builds the result in a local trace before
+`src/collision/asm_clipmovetoentity.h`. It builds the result in a local trace before
 copying it to the caller buffer, preserving behavior when the output aliases
 an input. Float arguments for the recursive checker retain their exact `0.0`
 and `1.0` bit patterns.

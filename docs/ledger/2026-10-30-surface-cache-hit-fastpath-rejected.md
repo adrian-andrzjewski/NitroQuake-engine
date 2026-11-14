@@ -31,7 +31,7 @@ event summaries matched, but the full frame stream did not. The cause of those
 transient differences was not established, so the positive timing result is
 insufficient to promote the change.
 
-The candidate was removed. `src/asm486_experiments.s` is restored to its
+The candidate was removed. `src/renderer/asm486_experiments.s` is restored to its
 pre-candidate SHA-256
 `ECC82E9E6D5C6C020901246DDD57384C72E657492A7CD6B8D5597F5E47192181`.
 

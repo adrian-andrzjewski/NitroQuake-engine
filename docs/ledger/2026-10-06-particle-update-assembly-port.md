@@ -79,8 +79,8 @@ diagnosis.
 `ParticleUpdateImplementation=c|asm` now selects both particle initialization
 and particle simulation. The original C `R_ClearParticles` loop remains the
 reference and is exported as `R_ClearParticles_C` only in benchmark builds. The
-assembly replacement is isolated in `src/r_particlelist.s`, with its
-`particle_t` field constants in `src/asm_particlelist.h` and the existing C
+assembly replacement is isolated in `src/renderer/r_particlelist.s`, with its
+`particle_t` field constants in `src/renderer/asm_particlelist.h` and the existing C
 layout assertions guarding the 16-byte `next` offset and 40-byte structure.
 
 The i486 routine publishes `free_particles`, clears `active_particles`, links

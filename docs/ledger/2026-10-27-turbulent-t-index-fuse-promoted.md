@@ -23,4 +23,4 @@ The full strict i486 gate passed: 403 exact object proofs, 314,271 linked
 instructions, 529 startup instructions, and 9,207 provider instructions, with
 zero above-i486, unknown, or exempt instructions. The build reduced the linked
 instruction count by 29 versus control. The change is active in
-`src/d_scana.s`; audit and timedemo artifacts remain under `out/`.
+`src/renderer/d_scana.s`; audit and timedemo artifacts remain under `out/`.

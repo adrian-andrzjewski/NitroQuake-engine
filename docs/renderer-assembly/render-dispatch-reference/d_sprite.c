@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // sprites
 
 #include "quakedef.h"
-#include "d_local.h"
+#include "renderer/d_local.h"
 #ifdef BENCH486
 extern void (*bench486_sprite_project_hook) (const spritedesc_t *desc);
 #endif

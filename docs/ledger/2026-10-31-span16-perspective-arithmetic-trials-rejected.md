@@ -1,6 +1,6 @@
 # Span16 perspective arithmetic trials rejected (2026-10-31)
 
-Status: no candidate is retained. `src/d_draw16.s` is restored to the
+Status: no candidate is retained. `src/renderer/d_draw16.s` is restored to the
 original implementation (SHA-256
 `5626ABAF985B74F8EC2C1632164942A8C3CAA9B719DEA0FBF675C0B60F7A463A`).
 

@@ -3,12 +3,12 @@
 ## C reference and assembly boundary
 
 The selectable C oracle for the particle list update and draw loop is
-`R_DrawParticles_C` in `src/r_part.c`. The renderer entry `R_DrawParticles`
+`R_DrawParticles_C` in `src/renderer/r_part.c`. The renderer entry `R_DrawParticles`
 wraps that behavior with the particle start/end hooks and, in PROFILE486
 builds, particle and gib-trail counters plus elapsed-time accounting. When
 render dispatch and particle update assembly are selected, the wrapper lives
-in `src/r_renderdispatchasm.s`; the loop implementation is
-`R_DrawParticles_asm486` in `src/asm486_experiments.s`, which calls the
+in `src/renderer/r_renderdispatchasm.s`; the loop implementation is
+`R_DrawParticles_asm486` in `src/renderer/asm486_experiments.s`, which calls the
 existing `D_DrawParticle` backend.
 
 This slice corrects the wrapper's outgoing call alignment. It does not change
@@ -73,8 +73,8 @@ accepted by this evidence.
 
 | Original reference | Assembly replacement or adapter | Evidence |
 |---|---|---|
-| `src/r_part.c::R_DrawParticles_C` | `src/asm486_experiments.s::R_DrawParticles_asm486` | Exact deterministic scene pair and strict executable audit |
-| `src/r_part.c::R_DrawParticles` call wrapper | `src/r_renderdispatchasm.s::R_DrawParticles` | Four-selector profile integration and exact scene pair |
+| `src/renderer/r_part.c::R_DrawParticles_C` | `src/renderer/asm486_experiments.s::R_DrawParticles_asm486` | Exact deterministic scene pair and strict executable audit |
+| `src/renderer/r_part.c::R_DrawParticles` call wrapper | `src/renderer/r_renderdispatchasm.s::R_DrawParticles` | Four-selector profile integration and exact scene pair |
 
 From the Quake repository root, run with a fresh output path:
 

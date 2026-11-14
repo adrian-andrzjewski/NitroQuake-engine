@@ -3,12 +3,12 @@
 ## Behavior and selector
 
 `ZoneHeapImplementation=asm` selects `Z_ClearZone`, `Z_Free`, `Z_TagMalloc`,
-and `Z_Malloc` from `src/zone_heapasm.s` in the i486 release profile. BENCH
+and `Z_Malloc` from `src/memory/zone_heapasm.s` in the i486 release profile. BENCH
 retains the C bodies as `Z_ClearZone_C`, `Z_Free_C`, `Z_TagMalloc_C`, and
 `Z_Malloc_C` for direct comparison; the C-reference profile selects those C
 implementations. The i386 profile continues to use C.
 
-`src/asm_zoneheap.h` pins the 32-bit block and zone layout against the C
+`src/memory/asm_zoneheap.h` pins the 32-bit block and zone layout against the C
 structures. The assembly initializes the zone sentinel and free block, keeps
 the C allocator's eight-byte size alignment and 24-byte header, splits only
 when the remainder is greater than 64 bytes, advances the rover consistently,
@@ -118,13 +118,13 @@ BENCH parity. `Cache_Compact` is an empty stub.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Z_ClearZone_C`, `src/zone.c:Z_Free_C`, `src/zone.c:Z_TagMalloc_C`, `src/zone.c:Z_Malloc_C` | `src/zone_heapasm.s:Z_ClearZone`, `src/zone_heapasm.s:Z_Free`, `src/zone_heapasm.s:Z_TagMalloc`, `src/zone_heapasm.s:Z_Malloc` | Fifteen exact zone setup, allocation, failure, split, scan, coalescing, rover, zero-fill, and reuse cases; complete arena, result offsets, counters, and zero-fill expectations compared | DOSBox-X parity passes; strict BENCH and non-BENCH i486 release gates pass |
-| `src/zone.c:Cache_Init_C`, `src/zone.c:Memory_Init_C` | `src/zone_heapasm.s:Cache_Init`, `src/zone_heapasm.s:Memory_Init` | Sentinel/LRU initialization and flush-command registration; default zone size and `-zone 32` startup with complete arena and hunk/cache state comparison | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass with zero above-target or unknown instructions |
-| `src/zone.c:Z_Print_C` | `src/zone_heapasm.s:Z_Print` | Six cases compare event sequence, zone/block pointers, sizes and tags, including bad boundary, bad backlink and adjacent-free reports | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Z_Print` to `zone_heapasm.obj` and omits `Z_Print_C` |
-| `src/zone.c:Cache_Print_C` | `src/zone_heapasm.s:Cache_Print` | Empty, one-node, and two-node cache lists compare event counts, cache pointers, sizes, and names passed to the trace adapter | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Cache_Print` to `zone_heapasm.obj` and omits `Cache_Print_C` |
-| `src/zone.c:Hunk_Print_C` | `src/zone_heapasm.s:Hunk_Print` | Eight cases compare empty, low/high allocations, same-name grouping, low/high boundaries, `all=1`, and bad-sentinel traces, including event order, pointers, sizes, names, and errors | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Hunk_Print` to `zone_heapasm.obj` and omits `Hunk_Print_C` |
-| `src/zone.c:Cache_Report_C` | `src/zone_heapasm.s:Cache_Report` | Eight cases compare exact available-byte and MiB values, including fractional, large, and signed-limit inputs | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Cache_Report` to `zone_heapasm.obj` and omits `Cache_Report_C` |
-| `src/zone.c:Hunk_Alloc_C` | `src/zone_hunknamedallocasm.s:Hunk_Alloc` | Six payload sizes compare full arena, marks, result offsets and the exact `unknown` header name | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Hunk_Alloc` to `zone_hunknamedallocasm.obj` and omits `Hunk_Alloc_C` |
+| `src/memory/zone.c:Z_ClearZone_C`, `src/memory/zone.c:Z_Free_C`, `src/memory/zone.c:Z_TagMalloc_C`, `src/memory/zone.c:Z_Malloc_C` | `src/memory/zone_heapasm.s:Z_ClearZone`, `src/memory/zone_heapasm.s:Z_Free`, `src/memory/zone_heapasm.s:Z_TagMalloc`, `src/memory/zone_heapasm.s:Z_Malloc` | Fifteen exact zone setup, allocation, failure, split, scan, coalescing, rover, zero-fill, and reuse cases; complete arena, result offsets, counters, and zero-fill expectations compared | DOSBox-X parity passes; strict BENCH and non-BENCH i486 release gates pass |
+| `src/memory/zone.c:Cache_Init_C`, `src/memory/zone.c:Memory_Init_C` | `src/memory/zone_heapasm.s:Cache_Init`, `src/memory/zone_heapasm.s:Memory_Init` | Sentinel/LRU initialization and flush-command registration; default zone size and `-zone 32` startup with complete arena and hunk/cache state comparison | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass with zero above-target or unknown instructions |
+| `src/memory/zone.c:Z_Print_C` | `src/memory/zone_heapasm.s:Z_Print` | Six cases compare event sequence, zone/block pointers, sizes and tags, including bad boundary, bad backlink and adjacent-free reports | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Z_Print` to `zone_heapasm.obj` and omits `Z_Print_C` |
+| `src/memory/zone.c:Cache_Print_C` | `src/memory/zone_heapasm.s:Cache_Print` | Empty, one-node, and two-node cache lists compare event counts, cache pointers, sizes, and names passed to the trace adapter | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Cache_Print` to `zone_heapasm.obj` and omits `Cache_Print_C` |
+| `src/memory/zone.c:Hunk_Print_C` | `src/memory/zone_heapasm.s:Hunk_Print` | Eight cases compare empty, low/high allocations, same-name grouping, low/high boundaries, `all=1`, and bad-sentinel traces, including event order, pointers, sizes, names, and errors | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Hunk_Print` to `zone_heapasm.obj` and omits `Hunk_Print_C` |
+| `src/memory/zone.c:Cache_Report_C` | `src/memory/zone_heapasm.s:Cache_Report` | Eight cases compare exact available-byte and MiB values, including fractional, large, and signed-limit inputs | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Cache_Report` to `zone_heapasm.obj` and omits `Cache_Report_C` |
+| `src/memory/zone.c:Hunk_Alloc_C` | `src/memory/zone_hunknamedallocasm.s:Hunk_Alloc` | Six payload sizes compare full arena, marks, result offsets and the exact `unknown` header name | DOSBox-X fixture PASS (`0x0`); strict BENCH and non-BENCH i486 gates pass; release map resolves `Hunk_Alloc` to `zone_hunknamedallocasm.obj` and omits `Hunk_Alloc_C` |
 
 ### Cache and memory initialization follow-up (2026-10-17)
 

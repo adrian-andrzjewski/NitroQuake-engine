@@ -1,7 +1,7 @@
 # Mip-2 row-state reload schedule rejected (2026-10-21)
 
 Status: reverted after a negative strict three-run mean. The earlier mip-2
-texel-load schedule remains promoted in `src/surf8.s`.
+texel-load schedule remains promoted in `src/renderer/surf8.s`.
 
 This candidate moved the `lightright` and `lightdelta` row-state reloads ahead
 of the final two colormap reads in the general mip-2 surface-block loop. The

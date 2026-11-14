@@ -2,11 +2,11 @@
 
 ## Particle pool semantics and ABI
 
-`R_ParticleExplosion2` in `src/r_part.c` takes up to 512 nodes from
+`R_ParticleExplosion2` in `src/renderer/r_part.c` takes up to 512 nodes from
 `free_particles`, prepends each to `active_particles`, sets the lifetime,
 color and `pt_blob` type, and makes six ordered `rand()` calls per emitted
 particle for its three origin and velocity components. The assembly leaf in
-`src/r_particleexplosion2asm.s` preserves the list updates, early exhaustion,
+`src/renderer/r_particleexplosion2asm.s` preserves the list updates, early exhaustion,
 512-particle limit, signed color remainder, field stores and RNG order. Its
 particle and `cl.time` offsets are checked with compile-time layout assertions.
 The BENCH486 assembly build retains `R_ParticleExplosion2_C` as the oracle.
@@ -20,7 +20,7 @@ The BENCH486 assembly build retains `R_ParticleExplosion2_C` as the oracle.
 ## Full-state fixture and i486 results
 
 `Bench486ParticleExplosion2Cases` in
-`src/bench486_particleexplosion2.h`, invoked by
+`src/tests/bench486/bench486_particleexplosion2.h`, invoked by
 `-benchparticleexplosion2`, compares the complete guarded particle pool,
 active/free list heads, emitted particle fields and next RNG value between C
 and assembly. Six cases cover empty, single, short, almost-full, full and one

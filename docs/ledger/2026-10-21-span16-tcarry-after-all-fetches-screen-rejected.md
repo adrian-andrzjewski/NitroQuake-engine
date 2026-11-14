@@ -1,7 +1,7 @@
 # Span16 T-carry deferral to high-byte fetches rejected (2026-10-21)
 
 The promoted low-byte-only T-carry schedule remains active in
-`src/d_draw16.s`. This parity-only extension moved each high-byte fetch ahead of
+`src/renderer/d_draw16.s`. This parity-only extension moved each high-byte fetch ahead of
 the `sbbl %ecx,%ecx` T-carry extraction. At sites where the S-fraction add was
 ahead of the high-byte load, that add remained after the load and after SBB.
 

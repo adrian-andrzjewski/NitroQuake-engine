@@ -2,8 +2,8 @@
 
 ## Traceability and scope
 
-The Quake C reference is `src/d_part.c:D_DrawParticle`; the existing 32-bit
-runtime rasterizer is `src/d_parta.s:D_DrawParticle`. The assembly path
+The Quake C reference is `src/renderer/d_part.c:D_DrawParticle`; the existing 32-bit
+runtime rasterizer is `src/renderer/d_parta.s:D_DrawParticle`. The assembly path
 predates this tranche. This work exposed the retained C body as a selectable
 oracle and made the C and assembly implementations directly comparable; it did
 not newly translate the rasterizer into assembly. `ParticleDrawImplementation`
@@ -17,8 +17,8 @@ Traceability is:
 
 | Reference or implementation | Role | Verification |
 | --- | --- | --- |
-| `src/d_part.c:D_DrawParticle_C` | Original C rasterizer retained as the oracle | `src/bench486_particledraw.h` direct comparisons |
-| `src/d_parta.s:D_DrawParticle` | Existing hand-written 32-bit assembly runtime path | Strict i486 executable audit and paired scene |
+| `src/renderer/d_part.c:D_DrawParticle_C` | Original C rasterizer retained as the oracle | `src/tests/bench486/bench486_particledraw.h` direct comparisons |
+| `src/renderer/d_parta.s:D_DrawParticle` | Existing hand-written 32-bit assembly runtime path | Strict i486 executable audit and paired scene |
 | `tools/renderer-profiles/i486-particledraw-c.json` / `i486-particledraw-asm.json` | Select the C oracle and assembly path over the same renderer profile | `tools/render-parity-dos.ps1` |
 
 ## x87 conversion and clipping parity

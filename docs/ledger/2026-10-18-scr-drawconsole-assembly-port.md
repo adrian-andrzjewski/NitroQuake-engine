@@ -2,13 +2,13 @@
 
 ## Behavior and selector
 
-`src/screen.c:SCR_DrawConsole` draws the visible console when
+`src/client/screen.c:SCR_DrawConsole` draws the visible console when
 `scr_con_current` is nonzero. It sets `scr_copyeverything`, converts the
 floating line height to an integer, calls `Con_DrawConsole` with input enabled,
 and resets `clearconsole`. With no console height, it calls `Con_DrawNotify`
 only for game and message key destinations.
 
-`src/screen_overlaysasm.s:SCR_DrawConsole` now owns this per-frame dispatch when
+`src/client/screen_overlaysasm.s:SCR_DrawConsole` now owns this per-frame dispatch when
 `ScreenOverlaysImplementation=asm`. Its x87 conversion temporarily selects
 round-toward-zero to match the C float-to-int conversion, then restores the
 caller's control word. The selected release omits the C body; BENCH retains it
@@ -50,7 +50,7 @@ profile-specific proxy: 66 direct callees are unresolved and
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/screen.c:SCR_DrawConsole` | `src/screen_overlaysasm.s:SCR_DrawConsole` | Nine call, argument, state, and ABI cases across four x87 rounding modes | Focused strict BENCH i486 object, executable, startup, and provider audits pass with zero exemptions |
+| `src/client/screen.c:SCR_DrawConsole` | `src/client/screen_overlaysasm.s:SCR_DrawConsole` | Nine call, argument, state, and ABI cases across four x87 rounding modes | Focused strict BENCH i486 object, executable, startup, and provider audits pass with zero exemptions |
 
 This ports the screen's per-frame console/notify selection. The called console
 draw routines have their own assembly paths and parity fixtures. Menu and

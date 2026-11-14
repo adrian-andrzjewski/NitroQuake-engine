@@ -4,7 +4,7 @@
 
 The opt-in `TextureSpanAddressing=rowtable8` path cached exact products of the
 surface-cache width and signed integer T steps from -8 through 8. Values
-outside that range retained `IMUL`. The candidate changed `src/d_draw16.s` and
+outside that range retained `IMUL`. The candidate changed `src/renderer/d_draw16.s` and
 the build and timedemo selector scripts. The default selector remained
 `control` throughout.
 

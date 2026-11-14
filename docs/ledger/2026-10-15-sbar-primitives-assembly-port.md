@@ -4,13 +4,13 @@
 
 | Reference behavior | Assembly implementation | C parity oracle |
 | --- | --- | --- |
-| `Sbar_DrawPic`, `Sbar_DrawTransPic`, `Sbar_DrawCharacter`, `Sbar_DrawString` in `src/sbar.c` | `src/sbarasm.s`, selected by `SbarPrimitiveImplementation=asm` | The C entry points are retained only in BENCH builds as `*_C` oracle functions |
-| `Sbar_itoa` and `Sbar_DrawNum` in `src/sbar.c` | 486 integer formatter and digit-frame dispatcher in `src/sbarasm.s` | BENCH-only C formatter and number drawer |
+| `Sbar_DrawPic`, `Sbar_DrawTransPic`, `Sbar_DrawCharacter`, `Sbar_DrawString` in `src/client/sbar.c` | `src/client/sbarasm.s`, selected by `SbarPrimitiveImplementation=asm` | The C entry points are retained only in BENCH builds as `*_C` oracle functions |
+| `Sbar_itoa` and `Sbar_DrawNum` in `src/client/sbar.c` | 486 integer formatter and digit-frame dispatcher in `src/client/sbarasm.s` | BENCH-only C formatter and number drawer |
 
 The default i486 profile selects the assembly path; the i486 C-reference
 profile selects C. The assembly uses only i386-and-earlier integer
 instructions, including reciprocal-multiply division for decimal conversion.
-`src/asm_sbar.h` pins the `client_state_t.gametype`, `vid.width`, `vid.height`,
+`src/client/asm_sbar.h` pins the `client_state_t.gametype`, `vid.width`, `vid.height`,
 digit-table layout, deathmatch constant and 32-bit pointer size at compile time.
 
 The HUD centering expression uses the unsigned `vid.width` field. The first

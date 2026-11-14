@@ -648,10 +648,10 @@ if ([string]::IsNullOrWhiteSpace($LocalOutputDirectoryName) -and
 # which is also what let this whole script's flag arithmetic be pinned against a
 # golden with no compiler installed.
 
-$allCSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.c' -File | Sort-Object Name)
+$allCSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.c' -File -Recurse | Sort-Object Name, FullName)
 $includedCSources = @('net_comx.c')
 $cSources = @($allCSources | Where-Object { $_.Name -notin $includedCSources })
-$allAsmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File | Sort-Object Name)
+$allAsmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File -Recurse | Sort-Object Name, FullName)
 
 # Which .s files are live, from the selector table's SelectsAsm column rather than
 # from a hand-copied list of the implementation selectors. A -Benchmark
@@ -1373,6 +1373,14 @@ try {
     $manifest['textureAxisCacheEntries'] = $TextureAxisCacheEntries
     $manifest['cSources'] = @($cSources.Name)
     $manifest['assemblySources'] = @($asmSources.Name)
+    $manifest['sourcePaths'] = [ordered]@{
+        c = @($cSources | ForEach-Object {
+            [IO.Path]::GetRelativePath($sourceRoot, $_.FullName) -replace '\\', '/'
+        })
+        assembly = @($asmSources | ForEach-Object {
+            [IO.Path]::GetRelativePath($sourceRoot, $_.FullName) -replace '\\', '/'
+        })
+    }
     $manifest['sourceCommit'] = $commit
     $manifest['executable'] = $executable
     $manifest['objectRoot'] = $objectRoot

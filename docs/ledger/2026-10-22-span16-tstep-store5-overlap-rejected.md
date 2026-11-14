@@ -1,6 +1,6 @@
 # Span16 store 5 T-step overlap rejected (2026-10-22)
 
-Status: rejected in `src/d_draw16.s`; the promoted first-store overlap remains
+Status: rejected in `src/renderer/d_draw16.s`; the promoted first-store overlap remains
 active.
 
 The next-pixel T-step addition was moved ahead of A-half word store 5 only.

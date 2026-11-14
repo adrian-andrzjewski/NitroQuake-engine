@@ -54,5 +54,5 @@ performance claim. DOSBox-X results do not establish physical-486 performance.
 - Control timing: `benchmarks/out/edge-trailing-branch-polarity-control-timing-20261111.json`
 - Candidate timing: `benchmarks/out/edge-trailing-branch-polarity-candidate-timing-20261111.json`
 
-The branch-polarity change was removed. `src/r_edgea.s` is back to the control
+The branch-polarity change was removed. `src/renderer/r_edgea.s` is back to the control
 implementation; retain the ignored output artifacts for review.

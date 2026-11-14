@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `HunkTempAllocImplementation=asm` selects `Hunk_TempAlloc` from
-`src/zone_hunktempallocasm.s` in the current i486 profile. BENCH builds retain
+`src/memory/zone_hunktempallocasm.s` in the current i486 profile. BENCH builds retain
 `Hunk_TempAlloc_C` for parity; the C-reference profile selects the C entry.
 
 The assembly wrapper rounds the requested size to a 16-byte boundary, releases
@@ -64,4 +64,4 @@ measure FPS.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Hunk_TempAlloc_C` | `src/zone_hunktempallocasm.s:Hunk_TempAlloc` | Ten exact cases across alignment edges, active-mark cleanup, returned offsets, complete arena, cache sentinel, and temporary state | DOSBox-X fixture passes; strict i486 BENCH and release gates pass |
+| `src/memory/zone.c:Hunk_TempAlloc_C` | `src/memory/zone_hunktempallocasm.s:Hunk_TempAlloc` | Ten exact cases across alignment edges, active-mark cleanup, returned offsets, complete arena, cache sentinel, and temporary state | DOSBox-X fixture passes; strict i486 BENCH and release gates pass |

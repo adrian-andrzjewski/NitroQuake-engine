@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_efrag.c
 
 #include "quakedef.h"
-#include "r_local.h"
+#include "renderer/r_local.h"
 
 #ifdef ASM486_EFRAG_STORE
 #include <stddef.h>

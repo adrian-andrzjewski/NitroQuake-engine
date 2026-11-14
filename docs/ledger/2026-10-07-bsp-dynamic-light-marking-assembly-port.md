@@ -3,9 +3,9 @@
 ## `R_MarkLights` tree walk
 
 `MarkLightsImplementation=c|asm` selects the retained C reference or the
-i486 recursive implementation in `src/r_lightasm.s`. The public wrapper keeps
+i486 recursive implementation in `src/renderer/r_lightasm.s`. The public wrapper keeps
 the existing `R_MarkLights(light, bit, node)` interface and supplies the
-world-model surface array to `R_MarkLightsTree_asm486`. `src/asm_light.h`
+world-model surface array to `R_MarkLightsTree_asm486`. `src/renderer/asm_light.h`
 defines the 32-bit field offsets used by the assembly, with C layout assertions
 for the structures it reads.
 
@@ -88,7 +88,7 @@ frame 247 capture is in
 `out/render-parity-20261007-080857/render-parity-result.json`; the other two
 captures are in the paired report above. `Host_FilterTime` advances `realtime`
 from elapsed time, and `Con_DrawNotify` expires messages using that value and
-`con_notifytime` (`src/host.c`, `src/console.c`). The C and assembly timedemo
+`con_notifytime` (`src/core/host.c`, `src/client/console.c`). The C and assembly timedemo
 runs take slightly different amounts of real time, so a message can disappear
 on a different frame. The observed full-frame mismatch is therefore a timed
 console overlay difference; the captured world, HUD, palette, and lightmarked

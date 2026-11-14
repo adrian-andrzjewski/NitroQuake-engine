@@ -2,7 +2,7 @@
 
 Status: rejected after a negative three-run strict timedemo; the original load order was restored.
 
-The candidate moved `movl C(surfaces),%eax` between the two `movzwl et_surfs` loads at `Lgs_edgeloop` in `src/r_edgea.s`. The intent was to overlap the independent global-base load with the first edge-index load on the 486.
+The candidate moved `movl C(surfaces),%eax` between the two `movzwl et_surfs` loads at `Lgs_edgeloop` in `src/renderer/r_edgea.s`. The intent was to overlap the independent global-base load with the first edge-index load on the 486.
 
 ## Matched 320x200 timedemo
 

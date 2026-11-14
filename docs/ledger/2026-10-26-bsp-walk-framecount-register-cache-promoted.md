@@ -1,6 +1,6 @@
 # BSP walk frame-count register cache promoted (2026-10-26)
 
-Status: promoted in `src/asm486_experiments.s` under the user's any-positive
+Status: promoted in `src/renderer/asm486_experiments.s` under the user's any-positive
 pooled-mean rule.
 
 The internal-node surface loop now loads the current frame count into `%ebx`

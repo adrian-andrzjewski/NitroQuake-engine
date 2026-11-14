@@ -1,6 +1,6 @@
 # Alias light-sign test uses a direct memory operand (2026-10-25)
 
-Status: promoted in `src/r_aliasa.s` after exact parity, a positive strict mean,
+Status: promoted in `src/renderer/r_aliasa.s` after exact parity, a positive strict mean,
 and the complete i486 ISA gate.
 
 The alias transform loop previously loaded the sign byte of `lightcos` from

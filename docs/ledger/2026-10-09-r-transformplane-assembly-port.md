@@ -2,16 +2,16 @@
 
 ## Semantics and focused fixture
 
-`R_TransformPlane` in `src/r_misc.c` now has a selectable-symbol boundary for
+`R_TransformPlane` in `src/renderer/r_misc.c` now has a selectable-symbol boundary for
 `ASM486_TRANSFORM_PLANE`. The standalone entry is
-`src/r_transformplaneasm.s`; it retains the original dot-product order,
+`src/renderer/r_transformplaneasm.s`; it retains the original dot-product order,
 materializes the source's local `float d`, stores `p->dist - d`, then calls the
 existing 32-bit `TransformVector` x87 routine. The precision-sensitive case is
 intended to verify the selected compiler's actual C-oracle behavior for that
 local. The original C body remains as `R_TransformPlane_C` in BENCH486 assembly
 builds.
 
-`src/bench486_transformplane.h` supplies seven finite signed/zero/mixed-value
+`src/tests/bench486/bench486_transformplane.h` supplies seven finite signed/zero/mixed-value
 cases, including a cancellation input sensitive to intermediate precision;
 direct C/assembly calls through the ABI probe; guarded input/output storage;
 two independent exact-value checks; and full output/state comparison.

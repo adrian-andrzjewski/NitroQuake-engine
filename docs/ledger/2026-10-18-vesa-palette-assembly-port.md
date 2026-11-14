@@ -2,7 +2,7 @@
 
 ## Scope and selector
 
-`VesaPaletteImplementation=asm` selects `src/vid_vesapaletteasm.s` in the
+`VesaPaletteImplementation=asm` selects `src/video/vid_vesapaletteasm.s` in the
 default i486 release profile. The assembly converts all 256 RGB palette entries
 to the VESA four-byte layout: blue, green, red, and a zero filler byte, with
 each color channel reduced from eight bits to six by shifting right two bits.

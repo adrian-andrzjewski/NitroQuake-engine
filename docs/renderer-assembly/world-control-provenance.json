@@ -75,7 +75,7 @@
     {
       "originalFunction": "R_EntityRotate",
       "variant": "release",
-      "assemblyFile": "src/r_worldrotation_release.inc",
+      "assemblyFile": "src/renderer/r_worldrotation_release.inc",
       "purpose": "Copy the original vector before applying the three stored matrix rows, including aliased input/output.",
       "calleeRegisters": [],
       "stackReservations": []
@@ -83,7 +83,7 @@
     {
       "originalFunction": "R_RotateBmodel",
       "variant": "release",
-      "assemblyFile": "src/r_worldrotation_release.inc",
+      "assemblyFile": "src/renderer/r_worldrotation_release.inc",
       "purpose": "Compose original yaw/pitch/roll matrices, rotate model/camera vectors and update the frustum in original x87 order.",
       "calleeRegisters": [
         "%ebx",
@@ -96,7 +96,7 @@
     {
       "originalFunction": "R_RotateBmodelCached",
       "variant": "release",
-      "assemblyFile": "src/r_worldrotation_release.inc",
+      "assemblyFile": "src/renderer/r_worldrotation_release.inc",
       "purpose": "Preserve the eight-slot pointer/frame rotation cache, including same-frame hits and slot collisions.",
       "calleeRegisters": [
         "%ebx"
@@ -108,7 +108,7 @@
     {
       "originalFunction": "R_RemoveEfrags",
       "variant": "release",
-      "assemblyFile": "src/r_worldefrags_release.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_release.inc",
       "purpose": "Unlink each entity fragment from its leaf and prepend it to the original free-fragment chain.",
       "calleeRegisters": [
         "%ebx"
@@ -118,7 +118,7 @@
     {
       "originalFunction": "R_SplitEntityOnNode",
       "variant": "release",
-      "assemblyFile": "src/r_worldefrags_release.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_release.inc",
       "purpose": "Traverse contacted BSP sides, preserve the first top node, and link available fragments into entity and leaf lists.",
       "calleeRegisters": [
         "%ebx"
@@ -132,7 +132,7 @@
     {
       "originalFunction": "R_SplitEntityOnNode2",
       "variant": "release",
-      "assemblyFile": "src/r_worldefrags_release.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_release.inc",
       "purpose": "Find the visible first splitter/non-solid leaf using the original visibility and plane-side rules.",
       "calleeRegisters": [
         "%ebx"
@@ -144,7 +144,7 @@
     {
       "originalFunction": "R_AddEfrags",
       "variant": "release",
-      "assemblyFile": "src/r_worldefrags_release.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_release.inc",
       "purpose": "Preserve missing-model/world early returns, translated model bounds and original fragment/top-node publication.",
       "calleeRegisters": [
         "%ebx"
@@ -157,7 +157,7 @@
     {
       "originalFunction": "R_DrawCulledPolys",
       "variant": "release",
-      "assemblyFile": "src/r_worldedges_release.inc",
+      "assemblyFile": "src/renderer/r_worldedges_release.inc",
       "purpose": "Visit span-bearing non-background surfaces in the original forward/backward order with clip flags 15.",
       "calleeRegisters": [
         "%ebx",
@@ -171,7 +171,7 @@
     {
       "originalFunction": "R_BeginEdgeFrame",
       "variant": "release",
-      "assemblyFile": "src/r_worldedges_release.inc",
+      "assemblyFile": "src/renderer/r_worldedges_release.inc",
       "purpose": "Reset edge/surface cursors, background/key/span direction and only the active scanline lists.",
       "calleeRegisters": [
         "%ebx",
@@ -183,7 +183,7 @@
     {
       "originalFunction": "R_EntityRotate",
       "variant": "profile",
-      "assemblyFile": "src/r_worldrotation_profile.inc",
+      "assemblyFile": "src/renderer/r_worldrotation_profile.inc",
       "purpose": "Copy the original vector before applying the three stored matrix rows, including aliased input/output.",
       "calleeRegisters": [],
       "stackReservations": []
@@ -191,7 +191,7 @@
     {
       "originalFunction": "R_RotateBmodel",
       "variant": "profile",
-      "assemblyFile": "src/r_worldrotation_profile.inc",
+      "assemblyFile": "src/renderer/r_worldrotation_profile.inc",
       "purpose": "Compose original yaw/pitch/roll matrices, rotate model/camera vectors and update the frustum in original x87 order.",
       "calleeRegisters": [
         "%ebx",
@@ -204,7 +204,7 @@
     {
       "originalFunction": "R_RotateBmodelCached",
       "variant": "profile",
-      "assemblyFile": "src/r_worldrotation_profile.inc",
+      "assemblyFile": "src/renderer/r_worldrotation_profile.inc",
       "purpose": "Preserve the eight-slot pointer/frame rotation cache, including same-frame hits and slot collisions.",
       "calleeRegisters": [
         "%ebx"
@@ -216,7 +216,7 @@
     {
       "originalFunction": "R_RemoveEfrags",
       "variant": "profile",
-      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_profile.inc",
       "purpose": "Unlink each entity fragment from its leaf and prepend it to the original free-fragment chain.",
       "calleeRegisters": [
         "%ebx"
@@ -226,7 +226,7 @@
     {
       "originalFunction": "R_SplitEntityOnNode",
       "variant": "profile",
-      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_profile.inc",
       "purpose": "Traverse contacted BSP sides, preserve the first top node, and link available fragments into entity and leaf lists.",
       "calleeRegisters": [
         "%ebx"
@@ -240,7 +240,7 @@
     {
       "originalFunction": "R_SplitEntityOnNode2",
       "variant": "profile",
-      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_profile.inc",
       "purpose": "Find the visible first splitter/non-solid leaf using the original visibility and plane-side rules.",
       "calleeRegisters": [
         "%ebx"
@@ -252,7 +252,7 @@
     {
       "originalFunction": "R_AddEfrags",
       "variant": "profile",
-      "assemblyFile": "src/r_worldefrags_profile.inc",
+      "assemblyFile": "src/renderer/r_worldefrags_profile.inc",
       "purpose": "Preserve missing-model/world early returns, translated model bounds and original fragment/top-node publication.",
       "calleeRegisters": [
         "%ebx"
@@ -265,7 +265,7 @@
     {
       "originalFunction": "R_DrawCulledPolys",
       "variant": "profile",
-      "assemblyFile": "src/r_worldedges_profile.inc",
+      "assemblyFile": "src/renderer/r_worldedges_profile.inc",
       "purpose": "Visit span-bearing non-background surfaces in the original forward/backward order with clip flags 15.",
       "calleeRegisters": [
         "%ebx",
@@ -279,7 +279,7 @@
     {
       "originalFunction": "R_BeginEdgeFrame",
       "variant": "profile",
-      "assemblyFile": "src/r_worldedges_profile.inc",
+      "assemblyFile": "src/renderer/r_worldedges_profile.inc",
       "purpose": "Reset edge/surface cursors, background/key/span direction and only the active scanline lists.",
       "calleeRegisters": [
         "%ebx",

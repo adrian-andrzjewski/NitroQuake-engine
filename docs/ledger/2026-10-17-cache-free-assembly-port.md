@@ -3,11 +3,11 @@
 ## Behavior and selector
 
 `CacheFreeImplementation=asm` selects `Cache_Free` in
-`src/zone_cachetryallocasm.s`; the C implementation remains available as
+`src/memory/zone_cachetryallocasm.s`; the C implementation remains available as
 `Cache_Free_C` in BENCH builds and through the C-reference profile. The entry
 checks the user handle, unlinks the block from the address-ordered list,
 clears the user handle, validates and unlinks the LRU links, and preserves
-the C error strings and PROFILE486 free counter. `src/asm_cachefree.h` pins
+the C error strings and PROFILE486 free counter. `src/memory/asm_cachefree.h` pins
 the cache-header size and field offsets against `zone.c` at compile time.
 
 `Cache_Alloc` and `Cache_Move` now have separate assembly entries and parity
@@ -83,4 +83,4 @@ for this slice is recorded at
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_Free_C`, `src/zone.c:Cache_Flush_C` | `src/zone_cachetryallocasm.s:Cache_Free`, `src/zone_cachetryallocasm.s:Cache_Flush` | Three individual removals plus empty and three-block flush; full state/counter comparison | Strict i486 gates pass; DOSBox-X fixture passes |
+| `src/memory/zone.c:Cache_Free_C`, `src/memory/zone.c:Cache_Flush_C` | `src/memory/zone_cachetryallocasm.s:Cache_Free`, `src/memory/zone_cachetryallocasm.s:Cache_Flush` | Three individual removals plus empty and three-block flush; full state/counter comparison | Strict i486 gates pass; DOSBox-X fixture passes |

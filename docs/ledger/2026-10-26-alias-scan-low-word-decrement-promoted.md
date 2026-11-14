@@ -1,6 +1,6 @@
 # Alias scan low-word counter decrement promoted (2026-10-26)
 
-Status: promoted in `src/d_polysa.s` under the user's positive pooled-mean rule.
+Status: promoted in `src/renderer/d_polysa.s` under the user's positive pooled-mean rule.
 
 After packaging a row in `LScanLoop`, `%ecx` stores the scan fraction in its
 high word and the remaining row count in its low word. Replacing the 32-bit

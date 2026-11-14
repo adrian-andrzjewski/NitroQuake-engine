@@ -4,7 +4,7 @@ Status: reverted after exact per-frame parity failed and the timedemo mean was l
 
 ## Candidate
 
-The i486 nonnegative path in `src/d_draw.s` was changed from a 32-pixel
+The i486 nonnegative path in `src/renderer/d_draw.s` was changed from a 32-pixel
 back-edge group to a 64-pixel group. The candidate executed 32
 `ZSPAN_ADD_PAIR_NONNEGATIVE` macros per loop iteration and added a 32-pixel
 remainder before the existing 16/8/4/2-pixel tails. This aimed to halve the

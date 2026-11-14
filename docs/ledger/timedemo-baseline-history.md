@@ -147,7 +147,7 @@ result is printed in the Quake console as frames, seconds, and FPS.
 
 After the profiling pass identified texture spans as the largest self-time
 consumer, the 16-pixel drawer received two narrow 486-targeted changes in
-`src\d_draw16.s`: the initial row address uses a memory-source multiply,
+`src\renderer\d_draw16.s`: the initial row address uses a memory-source multiply,
 and the common zero-row-step setup adds `cachewidth` directly from memory.
 Both preserve the original fixed-point arithmetic and leave the inner sampling
 loop unchanged.

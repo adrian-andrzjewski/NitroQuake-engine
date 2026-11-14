@@ -4,7 +4,7 @@ Status: removed from the active renderer. The original speed result used the exp
 
 ## Change
 
-The withdrawn change added a 128-slot direct-mapped cache of `LTransformAndProject` results for the two original endpoints of the current world edge when both `R_RenderFace` and `R_RenderWorld` used assembly. It was cleared once per world traversal and active only around `R_RecursiveWorldNode`. The cache code has been removed from `src/r_drawa.s` and `src/asm486_experiments.s`; those files now match the no-cache parent `a364e0a`.
+The withdrawn change added a 128-slot direct-mapped cache of `LTransformAndProject` results for the two original endpoints of the current world edge when both `R_RenderFace` and `R_RenderWorld` used assembly. It was cleared once per world traversal and active only around `R_RecursiveWorldNode`. The cache code has been removed from `src/renderer/r_drawa.s` and `src/renderer/asm486_experiments.s`; those files now match the no-cache parent `a364e0a`.
 
 Cache entries are keyed by the exact vertex address and store `u`, `lzi`, and `v` as 80-bit x87 values. A hit reloads those values in the same x87 stack order as the original routine returns. This removes repeated projection work without changing the projection arithmetic. The code uses 486-compatible integer and x87 instructions.
 

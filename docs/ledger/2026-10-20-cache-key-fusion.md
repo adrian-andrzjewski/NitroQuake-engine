@@ -5,7 +5,7 @@ Status: promoted assembly-only micro-optimization in the working source.
 The `D_DrawSurface` assembly path now fuses per-style cache-key preparation
 with the comparison. On the common path it reads `styles[1]` once; all five
 `r_drawsurf` key fields are still written on every cache-miss path. The change
-is in `src/asm486_experiments.s` near the surface-key setup around line 4544.
+is in `src/renderer/asm486_experiments.s` near the surface-key setup around line 4544.
 
 ## Matched strict timedemo
 

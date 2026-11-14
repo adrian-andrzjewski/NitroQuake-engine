@@ -2,8 +2,8 @@
 
 ## Scope and mapping
 
-This slice ports the screen turtle warning routine from `src/screen.c` to
-`src/screen_turtleasm.s`. The C routine remains selectable as the reference.
+This slice ports the screen turtle warning routine from `src/client/screen.c` to
+`src/client/screen_turtleasm.s`. The C routine remains selectable as the reference.
 The assembly entry is wired through the screen overlay path and can be
 selected independently with `ScreenTurtleImplementation`.
 
@@ -15,7 +15,7 @@ including unordered floating point cases.
 
 | Original routine | Assembly replacement | Correctness evidence |
 | --- | --- | --- |
-| `SCR_DrawTurtle` | `SCR_DrawTurtle_asm486` in `src/screen_turtleasm.s` | `bench486_screenturtle.h`; focused C/assembly DOSBox-X parity |
+| `SCR_DrawTurtle` | `SCR_DrawTurtle_asm486` in `src/client/screen_turtleasm.s` | `bench486_screenturtle.h`; focused C/assembly DOSBox-X parity |
 
 ## Validation
 

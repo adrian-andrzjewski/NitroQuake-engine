@@ -2,7 +2,7 @@
 
 ## Change
 
-`TURBULENT8_PIXEL` in `src/d_scana.s` now derives the `%ecx` table index and
+`TURBULENT8_PIXEL` in `src/renderer/d_scana.s` now derives the `%ecx` table index and
 starts that sine-table load before deriving the independent `%esi` index. The
 reordering leaves both indices, table reads, arithmetic, stores, and the
 instruction count unchanged. It places several integer operations between the

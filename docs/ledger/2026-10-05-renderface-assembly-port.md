@@ -11,7 +11,7 @@ entry owns clip-chain setup, surfedge and vertex traversal, edge-cache reuse,
 clipping flags, surface allocation and initialization, and the render-face
 counters. Benchmark builds retain `R_RenderFace_C` as the C reference. The
 assembly path continues to use the legacy `R_ClipEdge` routine in
-`src/r_drawa.s` and dispatches surface gradients through the existing gradient
+`src/renderer/r_drawa.s` and dispatches surface gradients through the existing gradient
 selector. The adjacent
 `R_RenderBmodelFace` entry has since received its own selector; see
 [`2026-10-05-bmodel-face-assembly-port.md`](2026-10-05-bmodel-face-assembly-port.md)
@@ -64,7 +64,7 @@ against the 173-instruction baseline, with no unclassified instructions.
 ## Remaining active renderer closure
 
 `R_ClipEdge` and its edge projection/emission work are handwritten in the
-legacy `src/r_drawa.s` path under `id386`; they are not remaining C callees.
+legacy `src/renderer/r_drawa.s` path under `id386`; they are not remaining C callees.
 `R_RenderWorld`, `R_RenderFace`, `R_RenderBmodelFace`, `R_StoreEfrags`, and
 `R_EmitCachedEdge` each have selectable assembly entries, with C retained as
 the release default. `R_RenderPoly` belongs to the optional polygon-driver

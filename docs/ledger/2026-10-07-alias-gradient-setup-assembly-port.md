@@ -3,7 +3,7 @@
 ## `D_PolysetCalcGradients` x87 gradient setup
 
 `AliasGradientImplementation=c|asm` selects between the retained C reference and
-the existing `D_PolysetCalcGradients_asm486` routine in `src/d_polysa.s`. The
+the existing `D_PolysetCalcGradients_asm486` routine in `src/renderer/d_polysa.s`. The
 i486 default remains assembly, matching the pre-selector path. The C helper
 keeps the reference formula available for direct testing and paired renders.
 

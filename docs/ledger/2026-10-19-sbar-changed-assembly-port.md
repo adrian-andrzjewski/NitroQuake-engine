@@ -3,7 +3,7 @@
 ## Selection and behavior
 
 The existing `SbarPrimitiveImplementation=asm` selector now owns
-`Sbar_Changed` in `src/sbarasm.s`. It stores zero to `sb_updates`, matching the
+`Sbar_Changed` in `src/client/sbarasm.s`. It stores zero to `sb_updates`, matching the
 C routine's request to refresh the status bar next frame. The C-reference
 profile still selects the original C function. BENCH retains the C oracle as
 `Sbar_Changed_C` while the public `Sbar_Changed` symbol resolves to assembly.

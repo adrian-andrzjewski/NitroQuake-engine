@@ -2,7 +2,7 @@
 
 ## Change
 
-In `src/r_aliasa.s`, the common nonnegative-light case in
+In `src/renderer/r_aliasa.s`, the common nonnegative-light case in
 `R_AliasTransformAndProjectFinalVerts` now discards the dot-product value and
 falls directly into the projection path. The shaded-light calculation and
 clamp move to an out-of-line cold path. The arithmetic and x87 operation order

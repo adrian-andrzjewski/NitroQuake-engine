@@ -1,7 +1,7 @@
 # Reject sixteen-byte alignment of the Span16 segment loop (2026-10-23)
 
 The candidate added `.p2align 4,,15` immediately before `LNotLastSegment` in
-`src/d_draw16.s`. This aligns the repeated 16-pixel segment entry. The candidate
+`src/renderer/d_draw16.s`. This aligns the repeated 16-pixel segment entry. The candidate
 retained exact output and passed the complete strict i486 gates, but was slower
 than a fresh control. The directive has been removed.
 

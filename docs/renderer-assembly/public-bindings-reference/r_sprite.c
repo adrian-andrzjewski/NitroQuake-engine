@@ -20,9 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_sprite.c
 
 #include "quakedef.h"
-#include "r_local.h"
+#include "renderer/r_local.h"
 #include <stddef.h>
-#include "asm_sprite.h"
+#include "renderer/asm_sprite.h"
 
 typedef char sprite_orientation_assembly_layout_assert[
 	(offsetof(entity_t, angles) == so_entity_angles &&

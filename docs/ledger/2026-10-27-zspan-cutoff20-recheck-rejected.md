@@ -1,7 +1,7 @@
 # Recheck D_DrawZSpans positive-gradient cutoff 20 (2026-10-27)
 
 Status: rejected after the full strict three-run comparison. The 19-pixel
-cutoff is restored in `src/d_draw.s`.
+cutoff is restored in `src/renderer/d_draw.s`.
 
 The candidate raised `LZDraw`'s minimum length for the endpoint-proven,
 nonnegative fast path from 19 to 20 pixels. This recheck used the current

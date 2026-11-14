@@ -3,9 +3,9 @@
 ## `R_PushDlights` slot loop
 
 `DynamicLightPushImplementation=c|asm` selects the retained C reference or the
-i486 implementation in `src/r_lightasm.s`. The public C wrapper supplies the
+i486 implementation in `src/renderer/r_lightasm.s`. The public C wrapper supplies the
 current client time, frame count, fixed 32-light array, and world BSP root.
-Structure offsets read by assembly are defined in `src/asm_light.h` and
+Structure offsets read by assembly are defined in `src/renderer/asm_light.h` and
 checked against the C layouts at compile time.
 
 The loop increments `r_dlightframecount`, visits all 32 slots in order, skips

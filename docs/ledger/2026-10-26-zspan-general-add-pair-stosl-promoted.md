@@ -1,6 +1,6 @@
 # General Z-span positive pair store with STOSL (2026-10-26)
 
-Status: promoted in src/d_draw.s after exact framebuffer parity, a positive
+Status: promoted in src/renderer/d_draw.s after exact framebuffer parity, a positive
 strict mean, and the complete i486 ISA gate.
 
 The general positive-sample Z-span pair macro, ZSPAN_ADD_PAIR, handles the

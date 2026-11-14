@@ -22,7 +22,7 @@ instructions.
 
 ## Decision
 
-Rejected on the lower strict mean. Restored `src/d_draw16.s` to the control
+Rejected on the lower strict mean. Restored `src/renderer/d_draw16.s` to the control
 implementation; no commit was made.
 
 Parity screen: `out/dos-timedemo-20261026-182824/timedemo-result.json`.

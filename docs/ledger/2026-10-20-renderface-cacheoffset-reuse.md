@@ -8,7 +8,7 @@ the clip path now reuses the still-live offset to set `cacheoffset`. Expired
 fully-clipped entries and owner mismatches retain the original recalculation
 path. Cache hits take the same instructions as before; the bounds-miss path
 removes the duplicate load and subtraction. This is an assembly-only change in
-`src/asm486_experiments.s`.
+`src/renderer/asm486_experiments.s`.
 
 Both variants used DOSBox-X 2026.08.31, the pinned 32 MB 486 profile
 `out/dosbox-x-486-high-32m-baseline.conf` (SHA-256

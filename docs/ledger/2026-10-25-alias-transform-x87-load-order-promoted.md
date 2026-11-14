@@ -1,6 +1,6 @@
 # Alias transform load order removes an FXCH (2026-10-25)
 
-Status: promoted in `src/r_aliasa.s` after exact frame parity, a positive strict
+Status: promoted in `src/renderer/r_aliasa.s` after exact frame parity, a positive strict
 mean, and the complete i486 ISA gate.
 
 The per-vertex transform previously multiplied component 0, then component 1,

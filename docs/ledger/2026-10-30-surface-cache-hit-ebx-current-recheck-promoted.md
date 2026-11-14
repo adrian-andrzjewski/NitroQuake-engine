@@ -6,7 +6,7 @@ complete linked i486 ISA gate.
 
 ## Candidate
 
-In `D_CacheSurface` (`src/asm486_experiments.s`), keep the surface-cache pointer
+In `D_CacheSurface` (`src/renderer/asm486_experiments.s`), keep the surface-cache pointer
 in callee-saved `%ebx` while checking hit keys. This removes the unconditional
 stack spill and the hit-path reload. On a miss, spill the pointer to the
 existing local and restore the mip level from the original argument before

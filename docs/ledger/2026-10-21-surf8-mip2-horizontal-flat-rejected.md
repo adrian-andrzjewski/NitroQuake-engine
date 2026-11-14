@@ -1,7 +1,7 @@
 # Mip-2 horizontal-flat surface block rejected (2026-10-21)
 
 Status: rejected on the negative three-run pooled mean. The assembly fast path
-was removed from `src/surf8.s`.
+was removed from `src/renderer/surf8.s`.
 
 This re-opened the mip-2 horizontal-flat surface block after an earlier attempt
 had failed its framebuffer checksum. The new implementation checked equal

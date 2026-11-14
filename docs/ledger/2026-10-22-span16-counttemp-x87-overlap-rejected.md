@@ -4,7 +4,7 @@ The assembly-only candidate moved `subl $16,%ecx` and `movl %ecx,counttemp`
 from after the first source texel load to between the first endpoint `fmul` and
 `fxch` in `LNotLastSegment`. The candidate retained exact output, but its
 three-run mean was lower than control. The original count-update placement has
-been restored in `src/d_draw16.s`.
+been restored in `src/renderer/d_draw16.s`.
 
 Both variants used the same uninstrumented DOSBox-X `demo1` timedemo, CWSDPMI,
 and pinned 32 MB i486 profile

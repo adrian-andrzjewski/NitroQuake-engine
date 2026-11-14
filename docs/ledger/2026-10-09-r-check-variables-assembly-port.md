@@ -2,10 +2,10 @@
 
 ## Per-frame fullbright cache check
 
-`R_CheckVariables` in `src/r_misc.c` compares the current `r_fullbright` value
+`R_CheckVariables` in `src/renderer/r_misc.c` compares the current `r_fullbright` value
 with its saved value and flushes surface caches when it changes. The assembly
-implementation is `src/r_checkvariables_asm.inc`, included by
-`src/v_viewcontrolasm.s` under `ASM486_VIEW_CONTROL`; it preserves the C
+implementation is `src/renderer/r_checkvariables_asm.inc`, included by
+`src/client/v_viewcontrolasm.s` under `ASM486_VIEW_CONTROL`; it preserves the C
 reference's x87 comparison and cache-flush behavior. The C implementation is
 retained as the BENCH486 oracle.
 

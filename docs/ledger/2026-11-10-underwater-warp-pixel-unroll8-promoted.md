@@ -10,7 +10,7 @@ mapping. The experiment targets the underwater warp path; the 2026-11-10
 calls. That instrumented profile ranked the path but is not timing evidence.
 
 The control is nested repository revision `2a2448a`. After normalizing line
-endings, the candidate differs only in `src/asm486_experiments.s`; the promoted
+endings, the candidate differs only in `src/renderer/asm486_experiments.s`; the promoted
 file has the same assembly lines. The run artifacts report source fingerprints
 `5B25DC782817314DEBB975F7EC01C3682BEDCFCB202113FD792C896453E47512` for the
 control and `ABE5CC7D45185369C2CEAE3AB4D4C814AB3FEC527586AB774760C73ED1FF33CD`

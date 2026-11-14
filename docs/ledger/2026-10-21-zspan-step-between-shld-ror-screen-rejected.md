@@ -1,7 +1,7 @@
 # Z-span second step between SHLD and ROR rejected (2026-10-21)
 
 Status: rejected on the negative strict pooled mean. The previously promoted
-second-step-before-store schedule remains active in `src/d_draw.s`.
+second-step-before-store schedule remains active in `src/renderer/d_draw.s`.
 
 The experiment moved the second Z-accumulator add/subtract between `SHLD` and
 `ROR` in all four packed-pair macros. It retained the high-word preparation

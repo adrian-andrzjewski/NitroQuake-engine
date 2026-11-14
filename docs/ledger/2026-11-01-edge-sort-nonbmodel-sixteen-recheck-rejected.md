@@ -1,6 +1,6 @@
 # Recheck the non-bmodel sixteen-comparison edge-sort loop
 
-Status: rejected after ten standalone candidate runs and ten additional combined runs. The 14-comparison loop remains in `src/r_edgea.s`.
+Status: rejected after ten standalone candidate runs and ten additional combined runs. The 14-comparison loop remains in `src/renderer/r_edgea.s`.
 
 The standalone test revisited the two-comparison extension on the current 320x200 i486 renderer. Both candidate screens used DOSBox-X 2026.08.31, the pinned `cputype=486` profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`, CWSDPMI, `demo1`, the same data root, and five uninstrumented runs. All ten candidate runs rendered 969 frames and ended with framebuffer checksum `1047377823`.
 

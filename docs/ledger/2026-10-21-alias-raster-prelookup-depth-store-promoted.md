@@ -53,7 +53,7 @@ generated A/B config SHA-256
 ## Current-source recheck (2026-10-26)
 
 The candidate was compared again after the committed edge-surface setup change.
-The control restored the original Z-store schedule in `src/d_polysa.s`; the
+The control restored the original Z-store schedule in `src/renderer/d_polysa.s`; the
 candidate recheck differed only by moving the store after the texel load and
 before light/colormap work. Both used the pinned profile above, aggressive
 selectors, and 969-frame `demo1` runs with checksum `1047377823`.

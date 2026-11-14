@@ -1,7 +1,7 @@
 # Edge-scan newedges-load hoist screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The original row
-setup order remains active in `src/asm486_experiments.s`.
+setup order remains active in `src/renderer/asm486_experiments.s`.
 
 The experiment hoisted the current row's `newedges` pointer load ahead of the
 x87 coordinate conversion, then used `%edx` for the independent surface

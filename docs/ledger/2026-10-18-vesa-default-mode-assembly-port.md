@@ -3,7 +3,7 @@
 ## Scope and selector
 
 `VesaDefaultModeImplementation=asm` selects
-`src/vid_vesadefaultmodeasm.s` in the default i486 release profile. The assembly
+`src/video/vid_vesadefaultmodeasm.s` in the default i486 release profile. The assembly
 owns the linked mode-list scan: it ignores modes that do not use the VESA mode
 initializer or are not 320x200, prefers the first linear candidate, and keeps
 the first banked candidate as fallback. `VID_ExtraDefaultMode` remains a thin C

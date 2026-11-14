@@ -9,7 +9,7 @@ computed `edge_p - r_edges` offset in `%eax`. An owner mismatch branches to the
 shared offset-ready clipping path, so it also reuses that offset instead of
 recomputing it. The cache-hit check saves one instruction; the owner-mismatch
 path avoids the duplicate offset calculation. This assembly-only change builds
-on the promoted cache-offset reuse in `src/asm486_experiments.s`.
+on the promoted cache-offset reuse in `src/renderer/asm486_experiments.s`.
 
 The strict candidate was compared with the immediately preceding promoted
 source state, using DOSBox-X 2026.08.31, the pinned 32 MB 486 profile

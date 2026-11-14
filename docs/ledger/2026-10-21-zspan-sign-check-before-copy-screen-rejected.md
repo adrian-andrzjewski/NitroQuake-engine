@@ -1,7 +1,7 @@
 # Z-span sign check before accumulator copy rejected (2026-10-21)
 
 Status: rejected on the negative strict pooled mean; the original instruction
-order remains active in `src/d_draw.s`.
+order remains active in `src/renderer/d_draw.s`.
 
 The experiment moved `testl %edx,%edx` ahead of `movl %edx,%eax` in the
 `ZSPAN_ADD_PAIR` and `ZSPAN_SUB_PAIR` macros. `MOV` preserves flags, so the

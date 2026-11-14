@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `CacheMoveImplementation=asm` selects `Cache_Move` in
-`src/zone_cachetryallocasm.s`; BENCH builds retain the C body as
+`src/memory/zone_cachetryallocasm.s`; BENCH builds retain the C body as
 `Cache_Move_C`, and the C-reference profile selects C. The routine requests a
 same-sized block with `nobottom=true`. On success it copies the payload,
 owner and name, frees the old block, then updates the user's data pointer. If
@@ -50,4 +50,4 @@ while hunk management remains C-owned. The BENCH inventory is recorded at
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_Move_C` | `src/zone_cachetryallocasm.s:Cache_Move` | Successful move and no-space fallback with full state comparison | Strict i486 gates pass; DOSBox-X fixture passes |
+| `src/memory/zone.c:Cache_Move_C` | `src/memory/zone_cachetryallocasm.s:Cache_Move` | Successful move and no-space fallback with full state comparison | Strict i486 gates pass; DOSBox-X fixture passes |

@@ -56,7 +56,7 @@ typedef struct vrect_s { int x,y,width,height; struct vrect_s *pnext; } vrect_t;
 typedef struct { unsigned width,height,rowbytes; int numpages,conrowbytes,conwidth,conheight;
  int maxwarpwidth,maxwarpheight,fullbright,recalc_refdef; float aspect;
  byte *buffer,*conbuffer,*direct,*colormap; } viddef_t;
-#include "vid_dos.h"
+#include "video/vid_dos.h"
 typedef struct { unsigned long address,size; } __dpmi_meminfo;
 typedef struct { struct { unsigned ax,bx,cx,dx,es,di; } x; } regs_t;
 regs_t regs;
@@ -309,10 +309,10 @@ int main(void) {
 }
 '''
 
-ext = (ROOT / "src/vid_ext.c").read_text()
+ext = (ROOT / "src/video/vid_ext.c").read_text()
 ext = re.sub(r'^#include (?!"vid_vesa.h").*$', '', ext, flags=re.M)
-dos = (ROOT / "src/vid_dos.c").read_text()
-vga = (ROOT / "src/vid_vga.c").read_text()
+dos = (ROOT / "src/video/vid_dos.c").read_text()
+vga = (ROOT / "src/video/vid_vga.c").read_text()
 source = (prefix + function(vga, "VGA_BeginDirectRect") + function(vga, "VGA_EndDirectRect")
           + function(vga, "VGA_SwapBuffersCopy")
           + ext + function(dos, "VID_SetMode") + function(dos, "VID_SetPalette")

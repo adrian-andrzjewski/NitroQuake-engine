@@ -6,7 +6,7 @@
 traversal called from `SV_Move`. The current i486 profile selects assembly;
 the C-reference profile selects the original C implementation. BENCH retains
 the C body as a parity oracle. The assembly procedure is in
-`src/sv_cliptolinks_asm.inc`, included by `src/asm486_experiments.s`.
+`src/collision/sv_cliptolinks_asm.inc`, included by `src/renderer/asm486_experiments.s`.
 
 This is a shared 3D collision path, not a `r_`/`d_` renderer entry. It walks
 linked solid entities, applies the movement, solidity, owner, and swept-bounds
@@ -17,7 +17,7 @@ entities in the solid list retain the original `Sys_Error` behavior.
 
 ## ABI and recursive behavior
 
-`src/asm_cliplinks.h` pins the i386 structure sizes and offsets used by the
+`src/collision/asm_cliplinks.h` pins the i386 structure sizes and offsets used by the
 assembly: `areanode_t` is 32 bytes, `moveclip_t` is 124 bytes, and `trace_t` is
 52 bytes. Compile-time assertions cover the node links, inline monster bounds,
 edict fields, server edict table, and selector constants.

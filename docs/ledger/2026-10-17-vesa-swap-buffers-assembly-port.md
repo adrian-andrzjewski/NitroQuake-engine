@@ -56,4 +56,4 @@ remain C-owned.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/vid_ext.c:VID_ExtraSwapBuffers_C` | `src/vid_vesaswapasm.s:VID_ExtraSwapBuffers_ASM` | Stubbed page-flip, display-coordinate, and single-page copy cases against C | Strict BENCH and release i486 gates pass; DOSBox-X fixture passes |
+| `src/video/vid_ext.c:VID_ExtraSwapBuffers_C` | `src/video/vid_vesaswapasm.s:VID_ExtraSwapBuffers_ASM` | Stubbed page-flip, display-coordinate, and single-page copy cases against C | Strict BENCH and release i486 gates pass; DOSBox-X fixture passes |

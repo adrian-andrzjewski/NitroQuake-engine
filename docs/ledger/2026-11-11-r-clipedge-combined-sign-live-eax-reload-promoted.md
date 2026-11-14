@@ -44,7 +44,7 @@ Both were Build 864.
 
 Control sourceTreeFingerprint: `C55DEFEAFF40D41CF3E6D85BE154519B5376C5ABFC1DF9BEC1A7684E17F1ADFE`.
 Candidate sourceTreeFingerprint: `2CCFC0940DA59CF00A6220CD9D666B28BA53DD712317E194AFFEE0B5A59B7CEF`.
-The only source difference was `src/r_drawa.s`.
+The only source difference was `src/renderer/r_drawa.s`.
 
 ## Matched timing
 
@@ -70,4 +70,4 @@ does not establish performance on a physical 486.
 - Control timing: `benchmarks/out/r-clipedge-sign-reload-control-01-20261111.json`, `-02-`, `-03-`
 - Candidate timing: `benchmarks/out/r-clipedge-sign-reload-candidate-01-20261111.json`, `-02-`, `-03-`
 
-The register-preserving reload implementation is retained in `src/r_drawa.s`.
+The register-preserving reload implementation is retained in `src/renderer/r_drawa.s`.

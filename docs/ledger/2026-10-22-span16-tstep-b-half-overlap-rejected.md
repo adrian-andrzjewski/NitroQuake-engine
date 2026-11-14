@@ -1,6 +1,6 @@
 # Span16 B-half T-step/store overlap rejected (2026-10-22)
 
-Status: rejected in `src/d_draw16.s`; the promoted first-store overlap remains
+Status: rejected in `src/renderer/d_draw16.s`; the promoted first-store overlap remains
 active.
 
 The first-store T-step schedule was tested at B-half word stores 9, 11, and

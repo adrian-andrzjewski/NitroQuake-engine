@@ -1,6 +1,6 @@
 # Z-span nonnegative fast path falls through (2026-10-25)
 
-Status: promoted in `src/d_draw.s` after exact frame parity, a positive strict
+Status: promoted in `src/renderer/d_draw.s` after exact frame parity, a positive strict
 mean, and the complete i486 ISA gate.
 
 The endpoint-proven nonnegative path in `D_DrawZSpans` previously jumped forward

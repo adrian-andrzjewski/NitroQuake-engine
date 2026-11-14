@@ -1,6 +1,6 @@
 # Alias transform stores projected fields in stack order (2026-10-25)
 
-Status: promoted in `src/r_aliasa.s` after exact frame parity, a positive strict
+Status: promoted in `src/renderer/r_aliasa.s` after exact frame parity, a positive strict
 mean, and the complete i486 ISA gate.
 
 After projection, the x87 stack already held the Y coordinate, X coordinate,

@@ -2,9 +2,9 @@
 
 ## Alias-stat leaf behavior and ownership
 
-`R_PrintAliasStats` in `src/r_misc.c` prints `r_amodels_drawn` using the exact
+`R_PrintAliasStats` in `src/renderer/r_misc.c` prints `r_amodels_drawn` using the exact
 format string `%3i polygon model drawn\n`. The assembly leaf in
-`src/r_aliasstatsasm.s` preserves this behavior by pushing the count and same
+`src/renderer/r_aliasstatsasm.s` preserves this behavior by pushing the count and same
 format string as cdecl varargs to `Con_Printf`. Formatting, console-buffer
 updates, and output policy remain owned by the existing C console routine.
 The assembly function uses only baseline 486 integer instructions and exports
@@ -19,7 +19,7 @@ from `i486-c-reference.json` is this selector. The current combined opt-in
 profile is `i486-asm-selectable-86.json`; historical selectable-84 and
 selectable-85 profiles are retained unchanged.
 
-`Bench486AliasStatsCases` in `src/bench486_aliasstats.h`, invoked with
+`Bench486AliasStatsCases` in `src/tests/bench486/bench486_aliasstats.h`, invoked with
 `-benchaliasstats`, redirects console writes into a guarded static 80 by 8
 ring. Each C and assembly call starts from identical bytes and console state.
 Cases cover zero, positive, negative, wide, signed-minimum, and signed-maximum

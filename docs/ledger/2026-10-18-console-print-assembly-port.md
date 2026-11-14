@@ -2,11 +2,11 @@
 
 ## Behavior and selector
 
-`src/console.c:Con_Print` performs word-boundary wrapping, writes bytes into
+`src/client/console.c:Con_Print` performs word-boundary wrapping, writes bytes into
 the scrollback ring, tracks carriage returns and color markers, advances
 console rows, and marks the notify timestamps. `Con_Linefeed` advances and
 clears one ring row. Both now have i486 implementations in
-`src/con_inputasm.s`, selected by the existing
+`src/client/con_inputasm.s`, selected by the existing
 `ConsoleImplementation=asm` profile. The C-reference profile continues to
 select the original C routines, and BENCH keeps independent C oracle state.
 The talk marker still calls `S_LocalSound("misc/talk.wav")` in release builds;
@@ -53,8 +53,8 @@ percentage.
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/console.c:Con_Print` | `src/con_inputasm.s:Con_Print` | Nine exact scrollback, wrapping, notify-time, marker, guard and ABI cases across four x87 rounding modes | Strict BENCH object, linked executable, startup and provider gates pass |
-| `src/console.c:Con_Linefeed` | `src/con_inputasm.s:Con_Linefeed` | Complete ring-buffer, guard, state and ABI comparison; also exercised by every print case that starts a new row | Strict BENCH object, linked executable, startup and provider gates pass |
+| `src/client/console.c:Con_Print` | `src/client/con_inputasm.s:Con_Print` | Nine exact scrollback, wrapping, notify-time, marker, guard and ABI cases across four x87 rounding modes | Strict BENCH object, linked executable, startup and provider gates pass |
+| `src/client/console.c:Con_Linefeed` | `src/client/con_inputasm.s:Con_Linefeed` | Complete ring-buffer, guard, state and ABI comparison; also exercised by every print case that starts a new row | Strict BENCH object, linked executable, startup and provider gates pass |
 
 This ports console text insertion and linefeed. Formatting in `Con_Printf`,
 debug logging, console rendering composition and unrelated menu/video paths

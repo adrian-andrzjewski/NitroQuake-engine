@@ -1,6 +1,6 @@
 # D_CacheSurface cache-hit key-store deferral (2026-10-27)
 
-Status: promoted in src/asm486_experiments.s after a positive strict three-run mean, exact frame and checksum parity, and the complete linked i486 ISA gate.
+Status: promoted in src/renderer/asm486_experiments.s after a positive strict three-run mean, exact frame and checksum parity, and the complete linked i486 ISA gate.
 
 The cache-hit predicate now checks the dlight flag, texture, and four light-style keys inline before filling global r_drawsurf fields or calling setup. A valid hit returns the existing cache without writing those five texture and light-style fields. A miss fills them before the existing setup and rebuild path. Dynamic-light validation and cache-miss behavior are unchanged.
 

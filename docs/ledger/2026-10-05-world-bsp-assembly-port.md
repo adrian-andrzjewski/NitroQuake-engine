@@ -17,7 +17,7 @@ frustum-clip helpers. `R_RenderFace` now has its own selectable assembly path;
 `R_RenderPoly` remains a shared C callee. `R_StoreEfrags` now has a separate
 assembly selector recorded in the efrag-store ledger.
 
-Compile-time offset checks in `src/r_bsp.c` protect the node, leaf, surface,
+Compile-time offset checks in `src/renderer/r_bsp.c` protect the node, leaf, surface,
 client-state, model, and polygon layouts read by the assembly. PROFILE486 builds
 retain the BSP node counters and the `R_RenderFace` timing scope through small C
 callbacks. The original C traversal remains separately selectable and the C
@@ -76,7 +76,7 @@ Continue the renderer port through the remaining active render-time closure.
 the release default; its framebuffer capture matches the C selector byte for
 byte for the pinned demo. The user-reported live-display smear has not been
 reproduced by that buffer capture and remains open for visual investigation.
-`R_ClipEdge` is already handwritten in legacy `src/r_drawa.s` under `id386`,
+`R_ClipEdge` is already handwritten in legacy `src/renderer/r_drawa.s` under `id386`,
 and the polygon renderer belongs to the optional polygon-driver branch. Normal
 DOS span rendering leaves `r_drawpolys=0` and `D_DrawPoly()` is a no-op. The
 active C closure still includes `R_DrawSubmodelPolygons`, `R_EdgeDrawing`,

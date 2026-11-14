@@ -1,0 +1,51 @@
+/*
+Copyright (C) 1996-1997 Id Software, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+*/
+/* BSP rotation, efrag lifetime and edge-frame control. */
+#if defined(ASM486_WORLD_CONTROL) || defined(ASM486_WORLD_ROTATION) || defined(ASM486_WORLD_EFRAGS) || defined(ASM486_WORLD_EDGE_FRAME)
+.arch i486
+.arch .387
+.code32
+#if defined(BENCH486) && defined(ASM486_WORLD_CONTROL_FIXTURE)
+#define _Con_Printf _Bench486WorldControlPrint
+#define _R_RenderPoly _Bench486WorldControlPoly
+#define _R_TransformFrustum _Bench486WorldControlFrustum
+#endif
+#ifdef PROFILE486
+#ifdef ASM486_WORLD_ROTATION
+#include "renderer/r_worldrotation_profile.inc"
+#endif
+#ifdef ASM486_WORLD_EFRAGS
+#include "renderer/r_worldefrags_profile.inc"
+#endif
+#ifdef ASM486_WORLD_EDGE_FRAME
+#include "renderer/r_worldedges_profile.inc"
+#endif
+#else
+#ifdef ASM486_WORLD_ROTATION
+#include "renderer/r_worldrotation_release.inc"
+#endif
+#ifdef ASM486_WORLD_EFRAGS
+#include "renderer/r_worldefrags_release.inc"
+#endif
+#ifdef ASM486_WORLD_EDGE_FRAME
+#include "renderer/r_worldedges_release.inc"
+#endif
+#endif
+#endif

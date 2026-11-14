@@ -4,13 +4,13 @@ Status: validated on 2026-10-10 with the strict i486 profile and DOSBox-X.
 
 ## Traceability
 
-`src/r_efrag.c:R_StoreEfrags` is the C reference for
-`src/asm486_experiments.s:R_StoreEfrags_asm486`. With
+`src/renderer/r_efrag.c:R_StoreEfrags` is the C reference for
+`src/renderer/asm486_experiments.s:R_StoreEfrags_asm486`. With
 `ASM486_EFRAG_STORE` and `BENCH486` selected, the C function is retained as
 `R_StoreEfrags_C`; the existing selector binding chooses the assembly body for
 assembly profiles, while the C reference remains selectable.
 
-`src/bench486_efragstore.h` compares the reference and assembly functions from
+`src/tests/bench486/bench486_efragstore.h` compares the reference and assembly functions from
 identical inputs. It covers an empty list, all three supported model types,
 duplicate and already-visible entities, one remaining visible-list slot, and
 a full visible list. The exact snapshot includes the entire `cl_visedicts`

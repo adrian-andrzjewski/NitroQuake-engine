@@ -2,7 +2,7 @@
 
 ## Driver algorithms and direct fixtures
 
-`src/d_driverasm.s` implements thirteen drawing-driver entries from `d_init.c`,
+`src/renderer/d_driverasm.s` implements thirteen drawing-driver entries from `d_init.c`,
 `d_modech.c`, `d_part.c`, `d_surf.c` and `d_edge.c`. The module preserves setup,
 row-pointer caching, mip selection, viewport and particle bounds, the original
 process-lifetime writable-code latch and surface-cache owner invalidation.

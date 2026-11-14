@@ -6,7 +6,7 @@ to the promoted key-pointer-retention layout.
 The candidate moved the `r_drawsurf.texture` argument load ahead of the
 `cache->dlight` test, aiming to overlap the stack load with the cache flag
 check. The change was confined to `D_CacheSurfaceHit_asm486` in
-`src/asm486_experiments.s`.
+`src/renderer/asm486_experiments.s`.
 
 Both variants used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the uninstrumented
 runner, and the pinned 32 MB i486 profile with SHA-256

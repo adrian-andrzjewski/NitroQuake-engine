@@ -2,7 +2,7 @@
 
 ## Scope and mapping
 
-This slice ports `SCR_DrawNet` from `src/screen.c` to `src/screen_netasm.s`.
+This slice ports `SCR_DrawNet` from `src/client/screen.c` to `src/client/screen_netasm.s`.
 The C implementation remains the reference and default. The new
 `ScreenNetImplementation` selector wires the assembly entry into the screen
 overlay dispatch while retaining the original C path for comparison.
@@ -16,7 +16,7 @@ Traceability:
 
 | Original routine | Assembly replacement | Correctness evidence |
 | --- | --- | --- |
-| `SCR_DrawNet` | `SCR_DrawNet_asm486` in `src/screen_netasm.s` | `bench486_screennet.h`, paired DOSBox-X render parity |
+| `SCR_DrawNet` | `SCR_DrawNet_asm486` in `src/client/screen_netasm.s` | `bench486_screennet.h`, paired DOSBox-X render parity |
 
 ## Validation
 

@@ -1,6 +1,6 @@
 # Span16 S-add before first A-half high-byte fetch promoted (2026-10-21)
 
-Status: promoted in `src/d_draw16.s` under the any-positive pooled mean rule.
+Status: promoted in `src/renderer/d_draw16.s` under the any-positive pooled mean rule.
 
 In the A half of the default Span16 word-store path, the first high-byte texel
 fetch now follows `addl %ebp,%ebx`. The intervening `movb (%esi),%ah` preserves

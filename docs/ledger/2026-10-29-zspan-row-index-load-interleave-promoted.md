@@ -2,7 +2,7 @@
 
 ## Strict 320x200 timing
 
-In both `LFSpanLoop` and `LFNegSpanLoop` in [`src/d_draw.s`](../../src/d_draw.s),
+In both `LFSpanLoop` and `LFNegSpanLoop` in [`src/renderer/d_draw.s`](../../src/renderer/d_draw.s),
 the independent `movl espan_t_v(%ebp),%ecx` row-table index load moved between
 the two coordinate `FILD` instructions. The x87 arithmetic order and stack
 contents are unchanged. The selected renderer profile kept

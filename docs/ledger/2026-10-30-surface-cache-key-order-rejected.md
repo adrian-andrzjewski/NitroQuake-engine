@@ -4,7 +4,7 @@ Status: rejected and reverted after a negative three-run 320x200 comparison.
 
 ## Candidate
 
-In `D_CacheSurface` (`src/asm486_experiments.s`), check the cached texture
+In `D_CacheSurface` (`src/renderer/asm486_experiments.s`), check the cached texture
 pointer before checking `cache->dlight`. This changes only the order of the two
 hit-key comparisons. It preserves the same miss and hit behavior, but measured
 slightly slower on the pinned DOSBox-X 486 profile. The source has been restored

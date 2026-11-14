@@ -2,10 +2,10 @@
 
 ## Original routine and assembly behavior
 
-`src/r_draw.c:R_RenderPoly` transforms and clips the polygon vertices, computes
+`src/renderer/r_draw.c:R_RenderPoly` transforms and clips the polygon vertices, computes
 the projected coordinates and reciprocal depth, then hands the live polygon
 descriptor to `D_DrawPoly`. The selectable replacement is
-`src/asm486_experiments.s:R_RenderPoly_asm486`; `RenderPolyImplementation`
+`src/renderer/asm486_experiments.s:R_RenderPoly_asm486`; `RenderPolyImplementation`
 now defaults to assembly in the i486 build, benchmark, and timedemo scripts;
 the explicit `i486-c-reference` profile continues to select C.
 
@@ -18,9 +18,9 @@ round-up mode.
 
 ## Direct differential oracle
 
-`src/bench486_renderpoly.h` runs C and assembly from the same fixture and
+`src/tests/bench486/bench486_renderpoly.h` runs C and assembly from the same fixture and
 captures the descriptor and projected vertices at the `D_DrawPoly` lifetime
-boundary. The capture hook in `src/d_edge.c` exists only in the BENCH,
+boundary. The capture hook in `src/renderer/d_edge.c` exists only in the BENCH,
 public-bindings and RenderPoly-assembly profile. The fixture checks raw float
 bits, vertex order, callback count and arguments, descriptor pointers, clipping
 links, `r_pedge`, other global state, and ABI guards over 14 geometry/axis
@@ -77,9 +77,9 @@ not a full-framebuffer comparison.
 
 | Original behavior | Assembly replacement | Correctness evidence |
 |---|---|---|
-| `R_RenderPoly` transform, near clipping and projection in `src/r_draw.c` | `R_RenderPoly_asm486` in `src/asm486_experiments.s` | BENCH-only direct C/assembly capture in `src/bench486_renderpoly.h` |
-| `D_DrawPoly` handoff boundary in `src/d_edge.c` | Same callback boundary after the assembly projection | 168 raw-bit C/ASM pairs, descriptor and ABI checks |
-| `R_ParseParticleEffect` packet reads and count decoding in `src/r_part.c` | `R_ParseParticleEffect_asm486` in `src/r_parseparticleeffectasm.s` | BENCH-only C/ASM state comparison in `src/bench486_parseparticleeffect.h`, including complete counts and packet lengths 0 through 10 |
+| `R_RenderPoly` transform, near clipping and projection in `src/renderer/r_draw.c` | `R_RenderPoly_asm486` in `src/renderer/asm486_experiments.s` | BENCH-only direct C/assembly capture in `src/tests/bench486/bench486_renderpoly.h` |
+| `D_DrawPoly` handoff boundary in `src/renderer/d_edge.c` | Same callback boundary after the assembly projection | 168 raw-bit C/ASM pairs, descriptor and ABI checks |
+| `R_ParseParticleEffect` packet reads and count decoding in `src/renderer/r_part.c` | `R_ParseParticleEffect_asm486` in `src/renderer/r_parseparticleeffectasm.s` | BENCH-only C/ASM state comparison in `src/tests/bench486/bench486_parseparticleeffect.h`, including complete counts and packet lengths 0 through 10 |
 | Renderer ownership and selected function-pointer dispatch | Exact build-object report from `tools/renderer-ownership.py` | 16 host tests and automatic `bench-dos.ps1` invocation |
 
 Run the host checks and the strict paired benchmark from `quake/`:

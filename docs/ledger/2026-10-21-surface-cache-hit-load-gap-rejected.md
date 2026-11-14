@@ -5,7 +5,7 @@ Status: rejected because the three-run mean tied the matched control mean.
 The candidate loaded the `surface` argument into `%edx` between loading the
 first light-style key and comparing that key with the cached value. The intent
 was to overlap an independent stack load with the cache-key load. The change
-was confined to `D_CacheSurfaceHit_asm486` in `src/asm486_experiments.s` and has
+was confined to `D_CacheSurfaceHit_asm486` in `src/renderer/asm486_experiments.s` and has
 been removed.
 
 The matched strict runs used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the

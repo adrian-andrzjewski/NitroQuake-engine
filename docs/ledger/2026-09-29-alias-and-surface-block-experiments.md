@@ -14,8 +14,8 @@ Index of every entry: [`../INDEX.md`](../INDEX.md).
 `alias-calcgradients`, `alias-linescan-setup`, `alias-scan-left-edge`, and
 `alias-draw-spans`. The enum entries go after `BENCH486_PROFILE_ALIAS_RASTER`
 in `src\quakedef.h`, the matching names after `"alias-raster"` in
-`src\host_cmd.c` (the two lists must stay in identical order), and the
-ENTER/LEAVE pairs are in `src\d_polyse.c` inside
+`src\core\host_cmd.c` (the two lists must stay in identical order), and the
+ENTER/LEAVE pairs are in `src\renderer\d_polyse.c` inside
 `D_RasterizeAliasPolySmooth`, wrapping each call individually. The two
 right-edge `linescan-setup` calls have no matching `ScanLeftEdge`; they exist
 only to set `ubastep`/`erroradjust*` for the `D_PolysetDrawSpans8` right-edge
@@ -64,7 +64,7 @@ attribution evidence only and must not be compared to release timings.
 The alias-model bucket is no longer a single flat bracket. `BENCH486_PROFILE_ALIAS_SETUP`,
 `BENCH486_PROFILE_ALIAS_TRANSFORM`, and `BENCH486_PROFILE_ALIAS_RASTER` were added to
 `src\quakedef.h` (immediately after `ALIAS_MODEL`) and to the name table in
-`src\host_cmd.c`. `src\r_alias.c` wraps three sub-regions of
+`src\core\host_cmd.c`. `src\renderer\r_alias.c` wraps three sub-regions of
 `R_AliasDrawModel` and its two prepare helpers: the once-per-model setup
 (`R_AliasSetupSkin` through `ziscale`, `r_alias.c:917-949`), the per-vertex
 transform/project loop (in both `R_AliasPrepareUnclippedPoints` and
@@ -96,9 +96,9 @@ both of which had prior rejected experiments in the ledger — could not have
 moved the needle.
 
 The remaining alias cost is the pixel work itself: `D_PolysetDrawSpans8` and
-`D_PolysetScanLeftEdge` in `src\d_polysa.s`, plus the three still-C helpers
+`D_PolysetScanLeftEdge` in `src\renderer\d_polysa.s`, plus the three still-C helpers
 they call, `D_PolysetSetEdgeTable`, `D_RasterizeAliasPolySmooth`, and
-`D_PolysetSetUpForLineScan` in `src\d_polyse.c`. Because the pixel loops
+`D_PolysetSetUpForLineScan` in `src\renderer\d_polyse.c`. Because the pixel loops
 in `d_polysa.s` are already heavily mined and the alignment experiment showed
 the loop body resists rearrangement, the remaining C-to-ASM surface in the
 alias raster path is the only unexhausted avenue, and it is now the
@@ -124,7 +124,7 @@ The Aff8 pixel loop had no alignment directives at all.
 
 **The experiment code has since been reverted.** The temporary
 `-Aff8LoopAlignment control|aligned` selector, its `ASM486_AFF8_ALIGN` define
-in `src\d_polysa.s`, and the `AFF8_ALIGN` macro sites have all been
+in `src\renderer\d_polysa.s`, and the `AFF8_ALIGN` macro sites have all been
 removed, along with the selector plumbing in `build-dos.ps1`, `bench-dos.ps1`,
 `timedemo-dos.ps1`, and `smoke-dos.ps1`. The tree is back to its pre-experiment
 state and this section is preserved as a record of the measurement. The

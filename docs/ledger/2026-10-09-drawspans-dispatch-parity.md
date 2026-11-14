@@ -5,7 +5,7 @@
 `D_DrawSurfaces` invokes the global `_d_drawspans` function pointer. The
 selected assembly `D_SetupFrame` assigns that pointer to `D_DrawSpans16` when
 `d_subdiv16` is enabled and to `D_DrawSpans8` when it is disabled. The kernels
-remain the existing routines in `src/d_draw16.s` and `src/d_draw.s`; this slice
+remain the existing routines in `src/renderer/d_draw16.s` and `src/renderer/d_draw.s`; this slice
 adds executable ownership evidence and deterministic coverage for both modes.
 
 The ownership report resolves the consumer load and indirect call, the two

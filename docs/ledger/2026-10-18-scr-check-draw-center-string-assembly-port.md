@@ -2,12 +2,12 @@
 
 ## Behavior and selector
 
-`src/screen.c:SCR_CheckDrawCenterString` sets `scr_copytop`, grows
+`src/client/screen.c:SCR_CheckDrawCenterString` sets `scr_copytop`, grows
 `scr_erase_lines` to cover the current center string, subtracts the double
 `host_frametime` from the float center-message timer, preserves live messages
 during intermission, and draws only while the game owns the key destination.
 
-`src/screen_centerasm.s:SCR_CheckDrawCenterString` now owns this per-frame
+`src/client/screen_centerasm.s:SCR_CheckDrawCenterString` now owns this per-frame
 timer and dispatch under `ScreenCenterStringImplementation=asm`. Its x87
 subtraction preserves the C double-timestep/float-result behavior. The selected
 release omits the C body; BENCH retains it as
@@ -49,7 +49,7 @@ graph is incomplete and it does not weight routines by size or complexity.
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/screen.c:SCR_CheckDrawCenterString` | `src/screen_centerasm.s:SCR_CheckDrawCenterString` | Eleven timer/state/draw/ABI cases across 12 x87 settings | Focused strict BENCH i486 object, linked executable, startup, and provider audits pass with zero exemptions |
+| `src/client/screen.c:SCR_CheckDrawCenterString` | `src/client/screen_centerasm.s:SCR_CheckDrawCenterString` | Eleven timer/state/draw/ABI cases across 12 x87 settings | Focused strict BENCH i486 object, linked executable, startup, and provider audits pass with zero exemptions |
 
 This slice ports the center-message timer and draw decision. It records
 correctness and instruction compatibility, not an FPS measurement. Other

@@ -6,7 +6,7 @@
 sequence. This removes the two-iteration counter loop left by the promoted
 eight-row body. Texture, destination, and row-step updates retain their order.
 The patch table adds sixteen horizontal-flat rows (I through P), and
-`R_Surf8Patch` accounts for 512 sites. The change is limited to `src/surf8.s`
+`R_Surf8Patch` accounts for 512 sites. The change is limited to `src/renderer/surf8.s`
 and continues to use the already-selected i486 assembly path.
 
 The candidate was based on `0e68112d414c0d06910a624e990cd65e74f131fe`. The

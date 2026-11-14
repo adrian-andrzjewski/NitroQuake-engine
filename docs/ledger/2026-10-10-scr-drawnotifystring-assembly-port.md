@@ -1,8 +1,8 @@
 # `SCR_DrawNotifyString` -> i486 assembly port (2026-10-10)
 
-`SCR_DrawNotifyString` in `src/screen.c` prints the centered notify block by
+`SCR_DrawNotifyString` in `src/client/screen.c` prints the centered notify block by
 walking newline-delimited text, positioning the character cursor, and calling
-`Draw_Character`. `src/screen_notifyasm.s` now provides the selectable
+`Draw_Character`. `src/client/screen_notifyasm.s` now provides the selectable
 `SCR_DrawNotifyString_asm486` implementation. The `ScreenNotifyImplementation`
 selector keeps C as the default; the assembly path is opt-in so scene-level
 selection remains a separate acceptance step.
@@ -37,7 +37,7 @@ compatibility. It does not establish combined-profile or full-scene parity, and
 it makes no performance claim. `Draw_Character`, other console and notify
 paths, menu/status overlays, and `_SCR_UpdateScreen` remain separately owned
 work. The relevant source-to-test mapping is `SCR_DrawNotifyString` ->
-`SCR_DrawNotifyString_asm486` -> `src/bench486_screennotify.h`.
+`SCR_DrawNotifyString_asm486` -> `src/tests/bench486/bench486_screennotify.h`.
 
 To reproduce the host checks, run `rtk python tools/test-rendering.py` and
 `rtk python tools/test-build-dos.py`. To rebuild, audit and execute the focused

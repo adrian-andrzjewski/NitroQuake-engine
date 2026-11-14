@@ -2,7 +2,7 @@
 
 Status: rejected after a neutral three-run 320x200 parity screen; the sixteen-way loop was restored.
 
-The candidate added sixteen more comparisons to `Lsortloopnb` in `src/r_edgea.s`, checking thirty-two active-surface keys before the backedge instead of sixteen. Each comparison retained its immediate signed exit to `LInsertAndExit`, and the `PROFILE486` counter and `EDGE_SCAN_PROBE_SORT` probe remained at every comparison. The hypothesis was that fewer taken backedges would offset the larger instruction footprint.
+The candidate added sixteen more comparisons to `Lsortloopnb` in `src/renderer/r_edgea.s`, checking thirty-two active-surface keys before the backedge instead of sixteen. Each comparison retained its immediate signed exit to `LInsertAndExit`, and the `PROFILE486` counter and `EDGE_SCAN_PROBE_SORT` probe remained at every comparison. The hypothesis was that fewer taken backedges would offset the larger instruction footprint.
 
 ## Matched 320x200 timedemo
 

@@ -4,9 +4,9 @@ Status: validated on 2026-10-10 with the strict i486 build and DOSBox-X.
 
 ## Traceability
 
-src/r_part.c:R_DrawParticles_C is the reference for
-src/asm486_experiments.s:R_DrawParticles_asm486. The fixture in
-src/bench486_particleupdate.h seeds a deterministic particle pool, then runs
+src/renderer/r_part.c:R_DrawParticles_C is the reference for
+src/renderer/asm486_experiments.s:R_DrawParticles_asm486. The fixture in
+src/tests/bench486/bench486_particleupdate.h seeds a deterministic particle pool, then runs
 the C routine and assembly routine from the same initial state. Both paths use
 the assembly particle rasterizer so the comparison isolates the update loop.
 

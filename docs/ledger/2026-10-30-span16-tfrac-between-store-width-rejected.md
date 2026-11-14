@@ -4,7 +4,7 @@ Status: reverted after a negligible negative 320x200 mean.
 
 ## Candidate
 
-In both `LZeroTSetup` and `LNonZeroSetup` in `src/d_draw16.s`, the candidate
+In both `LZeroTSetup` and `LNonZeroSetup` in `src/renderer/d_draw16.s`, the candidate
 moved `movl tfracf,%edx` between the `advancetable+4` store and the following
 `cachewidth` add. The intent was to overlap the independent global load with
 the address setup. No data or flag dependency required this ordering. The

@@ -34,7 +34,7 @@ The candidate build passed the complete strict i486 gates: 276,036 object
 instructions, 314,333 linked-object and executable instructions, 529 startup
 code rows, and 9,207 DPMI-provider instructions; there were zero above-i486,
 unknown, or exempt instructions. The negative five-pair mean rejects the
-candidate. `src/asm486_experiments.s` was restored to the saved control file
+candidate. `src/renderer/asm486_experiments.s` was restored to the saved control file
 (SHA-256 `ECC82E9E6D5C6C020901246DDD57384C72E657492A7CD6B8D5597F5E47192181`).
 
 ## Artifacts

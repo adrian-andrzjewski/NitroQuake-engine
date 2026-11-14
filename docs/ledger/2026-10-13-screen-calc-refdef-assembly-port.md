@@ -8,7 +8,7 @@ vertical FOV, selects the status-bar line count (including the intermission
 override), constructs the local view rectangle, clamps console height, then
 calls `R_SetVrect` and `R_ViewChanged`.
 
-`src/screen_refdefasm.s` implements that order directly using only `.arch i486`
+`src/client/screen_refdefasm.s` implements that order directly using only `.arch i486`
 and `.arch .387` instructions. The C implementation stays available as
 `SCR_CalcRefdef_Screen_C` for the BENCH486 oracle and as the default
 `ScreenRefdefImplementation=c` path. The assembly is selected with
@@ -16,7 +16,7 @@ and `.arch .387` instructions. The C implementation stays available as
 selector-controlled branch.
 
 The shared layout constants and compile-time C structure checks live in
-`src/asm_screenrefdef.h`. FOV calculation follows the existing view-control
+`src/client/asm_screenrefdef.h`. FOV calculation follows the existing view-control
 selector: when `ViewControlImplementation=asm`, the assembly calls
 `CalcFov_asm486`; otherwise it calls the C `CalcFov`. BENCH486-only observer
 calls are guarded by `bench486_screen_refdef_fixture_active`. With that flag
@@ -25,7 +25,7 @@ clear, the assembly calls the live `Sbar_Changed`, `Cvar_Set`, and
 
 ## Differential state fixture
 
-`src/bench486_screenrefdef.h` runs twelve cases covering low/high clamps,
+`src/tests/bench486/bench486_screenrefdef.h` runs twelve cases covering low/high clamps,
 status-bar boundaries, multiple resolutions, view sizes, FOV values, console
 heights and all three intermission values. Each case runs under four x87
 rounding modes. The fixture compares the resulting screen/refdef state,
@@ -61,7 +61,7 @@ strict smoke report supplies that separate evidence.
 
 | Original function | Assembly replacement | Correctness evidence |
 |---|---|---|
-| `screen.c:SCR_CalcRefdef` | `src/screen_refdefasm.s:SCR_CalcRefdef_asm486` | `src/bench486_screenrefdef.h`; seven-scene exact pair |
+| `screen.c:SCR_CalcRefdef` | `src/client/screen_refdefasm.s:SCR_CalcRefdef_asm486` | `src/tests/bench486/bench486_screenrefdef.h`; seven-scene exact pair |
 
 Run the focused exact state fixture (this diagnostic command skips its own ISA
 audit; use the strict command below for compatibility proof):

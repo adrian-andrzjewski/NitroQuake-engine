@@ -2,8 +2,8 @@
 
 ## Behavior and selector
 
-`src/sbar_frags_asm.inc` now implements `Sbar_DrawFrags`, and
-`src/sbar_sortfrags_asm.inc` implements its stable scoreboard sort. The current
+`src/client/sbar_frags_asm.inc` now implements `Sbar_DrawFrags`, and
+`src/client/sbar_sortfrags_asm.inc` implements its stable scoreboard sort. The current
 assembly profile selects both through `SbarFragsImplementation=asm`; the
 C-reference profile continues to select C. BENCH builds retain
 `Sbar_DrawFrags_C` and `Sbar_SortFrags_C` as direct parity oracles.
@@ -17,7 +17,7 @@ calls remain at the same C boundary.
 
 ## Direct C/assembly parity
 
-`src/bench486_sbarfrags.h` compares sort output and ordered drawing events for
+`src/tests/bench486/bench486_sbarfrags.h` compares sort output and ordered drawing events for
 six cases: empty scoreboard, deathmatch self and zero frags, wide cooperative
 ties with a blank name, signed extremes and the four-player cap, a narrow
 centered viewport, and all 16 scoreboard slots with stable ties. All six passed
@@ -45,7 +45,7 @@ does not refresh full-scene framebuffer parity or FPS measurements.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/sbar.c:Sbar_SortFrags` and `Sbar_DrawFrags` | `src/sbar_sortfrags_asm.inc:_Sbar_SortFrags_asm486` and `src/sbar_frags_asm.inc:_Sbar_DrawFrags_asm486` | Six exact C/assembly sort and draw-event cases | Strict i486 gates pass; all six DOSBox-X cases pass |
+| `src/client/sbar.c:Sbar_SortFrags` and `Sbar_DrawFrags` | `src/client/sbar_sortfrags_asm.inc:_Sbar_SortFrags_asm486` and `src/client/sbar_frags_asm.inc:_Sbar_DrawFrags_asm486` | Six exact C/assembly sort and draw-event cases | Strict i486 gates pass; all six DOSBox-X cases pass |
 
 This ports the status bar's top frag strip and its sort helper. The scoreboard,
 intermission and finale composition remain separate work; the overall

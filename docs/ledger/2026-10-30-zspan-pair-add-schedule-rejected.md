@@ -4,7 +4,7 @@ Status: reverted after a negative three-run 320x200 comparison.
 
 ## Candidate
 
-In `ZSPAN_ADD_PAIR_NONNEGATIVE` in `src/d_draw.s`, move the second
+In `ZSPAN_ADD_PAIR_NONNEGATIVE` in `src/renderer/d_draw.s`, move the second
 `addl %ebx,%edx` between `shldl $16,%edx,%eax` and `rorl $16,%eax`. The add
 advances the next inverse-depth sample and is independent of the packed pixel
 in `%eax`; the instruction order preserves both values. The i486 code path was

@@ -2,7 +2,7 @@
 
 ## Original behavior and direct tests
 
-`src/r_visibilityasm.s` owns `Mod_PointInLeaf`, `Mod_DecompressVis` and
+`src/renderer/r_visibilityasm.s` owns `Mod_PointInLeaf`, `Mod_DecompressVis` and
 `Mod_LeafPVS`. The maintained assembly follows the original BSP plane traversal,
 zero-run decompression and solid-leaf PVS selection. Point tests preserve x87
 evaluation order, extended intermediate precision and the strict positive-child
@@ -10,7 +10,7 @@ rule. An already-terminal leaf does not read the point argument. Decompression
 preserves the original row calculation, zero-count packets, do/while boundary
 behavior, persistent-buffer tail and canonical `mod_novis` identity.
 
-Seventeen layout assertions are in `src/asm_visibility.h`. The benchmark checks
+Seventeen layout assertions are in `src/renderer/asm_visibility.h`. The benchmark checks
 all 1,024 persistent buffer bytes, input/model/leaf immutability, exact leaf and
 PVS pointer identity, register/stack/x87 ownership and both guard bands. It
 passed 9,216 direct cases under twelve x87 settings and an 8,192-step continuous

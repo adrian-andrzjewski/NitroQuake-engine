@@ -1,7 +1,7 @@
 # Span16 `advancetable` store after `sfracf` load screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted setup
-order stores `advancetable` after both fractional shifts in `src/d_draw16.s`.
+order stores `advancetable` after both fractional shifts in `src/renderer/d_draw16.s`.
 
 The experiment moved `movl %eax,advancetable` from after both fraction shifts
 to immediately after the `sfracf` reload, before the T-step and S-step shifts.

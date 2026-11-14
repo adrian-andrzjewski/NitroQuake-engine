@@ -2,7 +2,7 @@
 
 ## Original algorithms and exact direct tests
 
-`src/r_skyasm.s` owns the five original sky functions: initialization, cached
+`src/renderer/r_skyasm.s` owns the five original sky functions: initialization, cached
 composition, 8-bit and 16-bit tile generation, and frame-time calculation.
 The maintained assembly preserves zero-index masking, the 131-byte wrapped
 bottom rows, unaligned four-pixel operations, the packed tile layout and the

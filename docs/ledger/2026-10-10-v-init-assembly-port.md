@@ -2,13 +2,13 @@
 
 ## Original command, cvar and gamma order
 
-`src/view.c:V_Init` registers three view commands (`v_cshift`, `bf`,
+`src/client/view.c:V_Init` registers three view commands (`v_cshift`, `bf`,
 `centerview`), registers 25 cvars in source order, builds the initial gamma
 table with `BuildGammaTable(1.0)`, then registers `v_gamma`. The C body remains
 available as `V_Init_View_C` in BENCH486 builds and the default implementation
 when `ViewControlImplementation=c`.
 
-`src/v_viewcontrolasm.s:V_Init_asm486` preserves that call order. The
+`src/client/v_viewcontrolasm.s:V_Init_asm486` preserves that call order. The
 `BuildGammaTable` parameter is a `float`, so the assembly passes the single
 word `0x3f800000` for 1.0. It uses cdecl pushes, calls, stack cleanup, and
 `ret`, without allocating callee-saved registers. Under
@@ -20,7 +20,7 @@ when another profile selects assembly for the public palette routine.
 
 ## Direct registration, gamma and ABI fixture
 
-`src/bench486_vinit.h:Bench486VInitCases` runs the retained C oracle, direct
+`src/tests/bench486/bench486_vinit.h:Bench486VInitCases` runs the retained C oracle, direct
 assembly entry, and selected public entry through the ABI checker. It captures
 the three registered command names and handler pointers, all 25 cvar pointers
 before gamma construction, and the final `gamma` cvar registration. Each call
@@ -45,7 +45,7 @@ zero and reported the full view-control benchmark correct.
 
 | Reference behavior | Assembly implementation | Correctness evidence | Compatibility evidence |
 | --- | --- | --- | --- |
-| `src/view.c:V_Init` | `src/v_viewcontrolasm.s:V_Init_asm486` | `src/bench486_vinit.h:Bench486VInitCases`; exact command/cvar registration, identity gamma table and ABI across C/ASM/public entries | Complete strict i486 executable, startup and CWSDPMI audits |
+| `src/client/view.c:V_Init` | `src/client/v_viewcontrolasm.s:V_Init_asm486` | `src/tests/bench486/bench486_vinit.h:Bench486VInitCases`; exact command/cvar registration, identity gamma table and ABI across C/ASM/public entries | Complete strict i486 executable, startup and CWSDPMI audits |
 
 From `quake/`, reproduce the direct fixture and strict instruction checks with:
 

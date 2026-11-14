@@ -1,6 +1,6 @@
 {
   "sourceSha256": "B3DA7FA68B803198033DFEA1E5A67FF986771C9DA15D2BF9E5B1E799C757AB27",
-  "assembly": "src/r_visibilityasm.s",
+  "assembly": "src/renderer/r_visibilityasm.s",
   "normalBuildRegeneratesAssembly": false,
   "origin": "Hand-maintained translation of the three original model.c routines.",
   "functions": [

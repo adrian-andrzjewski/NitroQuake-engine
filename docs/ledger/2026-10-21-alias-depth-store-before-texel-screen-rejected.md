@@ -1,7 +1,7 @@
 # Alias depth store before texel load screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted
-depth-store position after the texture load remains active in `src/d_polysa.s`.
+depth-store position after the texture load remains active in `src/renderer/d_polysa.s`.
 
 The experiment moved each passing pixel's Z-buffer store immediately after its
 depth comparison and before loading the texture byte. It covered the sixteen

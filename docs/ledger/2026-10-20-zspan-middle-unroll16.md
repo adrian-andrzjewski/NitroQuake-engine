@@ -2,7 +2,7 @@
 
 Status: promoted in the working source under the no-minimum-gain policy.
 
-The i486 path in `src/d_draw.s` now handles sixteen pixels per main-loop
+The i486 path in `src/renderer/d_draw.s` now handles sixteen pixels per main-loop
 iteration for both positive and negative depth gradients. Eight-, four-, two-,
 and one-pixel tails preserve the original pixel order and depth arithmetic. The
 `TARGET_I386` packing fallback remains on its prior path.

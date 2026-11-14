@@ -2,8 +2,8 @@
 
 ## Reference and selector boundary
 
-`src/screen.c:SCR_EraseCenterString_Screen_C` remains the BENCH486 reference.
-`src/screen_eraseasm.s:SCR_EraseCenterString_asm486` implements the routine,
+`src/client/screen.c:SCR_EraseCenterString_Screen_C` remains the BENCH486 reference.
+`src/client/screen_eraseasm.s:SCR_EraseCenterString_asm486` implements the routine,
 and `SCR_EraseCenterString` dispatches to it when
 `ScreenEraseCenterStringImplementation=asm`. The normal default remains C.
 The focused profiles are `tools/renderer-profiles/i486-screenerasecenter-c.json`
@@ -38,7 +38,7 @@ instruction and runtime/provider audits remain the compatibility authority.
 
 ## Exact differential fixture
 
-`src/bench486_screenerase.h` compares the retained C oracle, direct assembly
+`src/tests/bench486/bench486_screenerase.h` compares the retained C oracle, direct assembly
 entry, and public selector for seven deterministic states under all four x87
 rounding modes and all three precision-control settings: 252 calls in total.
 Coverage includes the page-count equality boundary, early exits, zero erase

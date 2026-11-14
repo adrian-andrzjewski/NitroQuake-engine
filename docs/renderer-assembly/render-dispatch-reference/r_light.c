@@ -20,12 +20,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_light.c
 
 #include "quakedef.h"
-#include "r_local.h"
+#include "renderer/r_local.h"
 
 #if defined(ASM486_MARK_LIGHTS) || defined(ASM486_DYNAMIC_LIGHT_PUSH) || defined(ASM486_ANIMATED_LIGHT) || defined(ASM486_POINT_LIGHT) || defined(BENCH486)
 #include <stddef.h>
-#include "asm_light.h"
-#include "asm_lightcontrol.h"
+#include "renderer/asm_light.h"
+#include "renderer/asm_lightcontrol.h"
 
 typedef char light_assembly_pointer_size[(sizeof(void *) == 4) ? 1 : -1];
 #endif

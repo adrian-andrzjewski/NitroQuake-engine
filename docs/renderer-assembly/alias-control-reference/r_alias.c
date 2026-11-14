@@ -20,9 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_alias.c: routines for setting up to draw alias models
 
 #include "quakedef.h"
-#include "r_local.h"
-#include "asm_renderdispatch.h"
-#include "d_local.h"	// FIXME: shouldn't be needed (is needed for patch
+#include "renderer/r_local.h"
+#include "renderer/asm_renderdispatch.h"
+#include "renderer/d_local.h"	// FIXME: shouldn't be needed (is needed for patch
 						// right now, but that should move)
 
 #if defined(ASM486_ALIAS_PREPARE) || defined(ASM486_ALIAS_SETUP_LIGHTING) || defined(ASM486_ALIAS_SETUP_FRAME) || defined(ASM486_ALIAS_SETUP_SKIN)
@@ -137,7 +137,7 @@ static aedge_t	aedges[12] = {
 #define NUMVERTEXNORMALS	162
 
 float	r_avertexnormals[NUMVERTEXNORMALS][3] = {
-#include "anorms.h"
+#include "renderer/anorms.h"
 };
 
 void R_AliasTransformAndProjectFinalVerts (finalvert_t *fv,

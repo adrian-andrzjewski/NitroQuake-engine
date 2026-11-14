@@ -36,4 +36,4 @@ parity but was rejected before a strict timedemo and full ISA audit.
 
 The variable-shift path's extra test, branch, and register preservation cost
 more than the removed multiply in this workload. The original `IMUL` setup
-remains in `src/d_draw16.s`; the temporary selector plumbing was removed.
+remains in `src/renderer/d_draw16.s`; the temporary selector plumbing was removed.

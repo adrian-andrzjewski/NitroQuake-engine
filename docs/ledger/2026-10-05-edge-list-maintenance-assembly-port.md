@@ -8,10 +8,10 @@ removal, and U stepping. It does not close the renderer conversion.
 
 `EdgeListMaintenanceImplementation=legacy|c|asm` selects the implementation.
 `legacy` remains the build default and preserves the original `id386` routines
-in `src/r_edgea.s`. `c` compiles the reference routines from `src/r_edge.c`
+in `src/renderer/r_edgea.s`. `c` compiles the reference routines from `src/renderer/r_edge.c`
 even in the DOS `id386` build. `asm` selects the new hand-written
 `R_InsertNewEdges_asm486`, `R_RemoveEdges_asm486`, and
-`R_StepActiveU_asm486` routines in `src/asm486_experiments.s`.
+`R_StepActiveU_asm486` routines in `src/renderer/asm486_experiments.s`.
 
 Both explicit C and replacement-assembly builds passed the pinned 969-frame
 timedemo with framebuffer checksum `1047377823`. The original single samples

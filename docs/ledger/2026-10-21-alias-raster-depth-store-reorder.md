@@ -1,6 +1,6 @@
 # Alias-raster depth-store schedule promoted (2026-10-21)
 
-Status: promoted in `src/d_polysa.s` under the positive-mean performance rule.
+Status: promoted in `src/renderer/d_polysa.s` under the positive-mean performance rule.
 The assembly moves each passing pixel's Z-buffer word store until after its
 colormap lookup and before the framebuffer pixel store. The self-modifying
 colormap patch labels remain directly after their lookup instructions.

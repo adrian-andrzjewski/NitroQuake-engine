@@ -2,7 +2,7 @@
 
 ## Change
 
-In `src/d_polysa.s`, `D_PolysetDrawSpans8` now decrements the computed span
+In `src/renderer/d_polysa.s`, `D_PolysetDrawSpans8` now decrements the computed span
 length once and uses one common-path conditional branch to separate multi-pixel
 spans from the short/empty cases. The short block still sends length one to
 `LExactlyOneLong` and skips lengths below one. For multi-pixel spans, the group

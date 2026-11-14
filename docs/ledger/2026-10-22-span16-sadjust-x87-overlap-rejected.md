@@ -4,7 +4,7 @@ The assembly-only candidate moved `movl C(sadjust),%ebp` from after the
 remaining-count decrement to between the first endpoint `fmul` and `fxch` in
 `LNotLastSegment`. The candidate retained exact output, but its three-run mean
 was below control. The load has been restored to its original position in
-`src/d_draw16.s`.
+`src/renderer/d_draw16.s`.
 
 Both variants used the same uninstrumented DOSBox-X `demo1` timedemo, CWSDPMI,
 and pinned 32 MB i486 profile

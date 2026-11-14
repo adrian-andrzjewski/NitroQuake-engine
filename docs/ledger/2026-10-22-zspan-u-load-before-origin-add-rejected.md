@@ -4,7 +4,7 @@ The assembly-only candidate moved `movl espan_t_u(%ebp),%edx` from after
 `fadds C(d_ziorigin)` to just before it, after the x87 `fxch`. The independent
 integer load was intended to overlap the origin addition. The strict candidate
 had a negative three-run mean, so the load was restored after the add in
-`src/d_draw.s`.
+`src/renderer/d_draw.s`.
 
 Both variants used the uninstrumented DOSBox-X `demo1` timedemo, CWSDPMI, and
 the pinned 32 MB i486 profile

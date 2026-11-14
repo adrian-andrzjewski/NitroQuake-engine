@@ -22,7 +22,7 @@ Control and candidate used DOSBox-X 2026.08.31, the pinned i486 profile
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`, `demo1`,
 320x200 output, `optimizationProfile=aggressive`, and the same `testdata/id1`
 root. Timing was uninstrumented, with no concurrent DOSBox-X workload. The
-source trees differed only in `src/r_edgea.s`.
+source trees differed only in `src/renderer/r_edgea.s`.
 
 | Variant | FPS samples | Mean FPS | Median FPS | Range |
 |---|---|---:|---:|---:|

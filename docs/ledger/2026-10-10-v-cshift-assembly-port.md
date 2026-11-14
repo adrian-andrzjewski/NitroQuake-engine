@@ -2,14 +2,14 @@
 
 ## Original `v_cshift` command semantics and argument stores
 
-`src/view.c:V_cshift_f` is the `v_cshift` console handler. It reads command
+`src/client/view.c:V_cshift_f` is the `v_cshift` console handler. It reads command
 arguments 1 through 4 with `Cmd_Argv`, converts each with `atoi`, then stores
 the three destination-color integers and percent into `cshift_empty`. The
 handler does not clamp these values. The C routine remains the reference
 implementation in BENCH486 builds and the default implementation outside the
 assembly-selected profile.
 
-`src/v_paletteasm.s:V_cshift_f_asm486` preserves that call and store order using
+`src/client/v_paletteasm.s:V_cshift_f_asm486` preserves that call and store order using
 ordinary 386-compatible `push`, `call`, `add`, `mov`, and `ret` instructions.
 `PaletteImplementation=asm` exports the public `V_cshift_f` entry from
 assembly. The shared palette selector avoids adding a separate profile for
@@ -18,7 +18,7 @@ the 32-bit integer and color-shift field offsets used by the assembly.
 
 ## Seven token cases and contents shift
 
-`src/bench486_palette.h:Bench486CshiftCases` uses real
+`src/tests/bench486/bench486_palette.h:Bench486CshiftCases` uses real
 `Cmd_TokenizeString` inputs to cover signed decimal values, `atoi` numeric
 prefix behavior, malformed values, missing arguments, ignored extra arguments,
 representable integer extremes, and no arguments. It compares the complete
@@ -42,7 +42,7 @@ and reported `ISA audit: PASS`.
 
 | Reference behavior | Assembly implementation | Correctness evidence | Compatibility evidence |
 | --- | --- | --- | --- |
-| `src/view.c:V_cshift_f` | `src/v_paletteasm.s:V_cshift_f_asm486` | `src/bench486_palette.h:Bench486CshiftCases`; complete shift state and ABI across seven command cases | Strict linked i486 executable, startup, and CWSDPMI audits |
+| `src/client/view.c:V_cshift_f` | `src/client/v_paletteasm.s:V_cshift_f_asm486` | `src/tests/bench486/bench486_palette.h:Bench486CshiftCases`; complete shift state and ABI across seven command cases | Strict linked i486 executable, startup, and CWSDPMI audits |
 
 From `quake/`, reproduce the focused state, ABI, palette, and instruction-set
 checks with:

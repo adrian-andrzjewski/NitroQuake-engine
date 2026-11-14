@@ -7,7 +7,7 @@ In `D_CacheSurfaceHit_asm486`, the first light-style comparison loads
 `%ecx` temporarily holds the `surface` argument for the `styles[1]` sentinel
 check. This removes the later stack reload of `r_drawsurf.lightadj` on the
 common path where additional styles are active. The change is in
-`src/asm486_experiments.s`.
+`src/renderer/asm486_experiments.s`.
 
 Both variants used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the uninstrumented
 runner, and the pinned 32 MB i486 profile

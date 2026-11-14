@@ -2,14 +2,14 @@
 
 ## Original C behavior and selector boundary
 
-`src/screen.c:CalcFov` validates horizontal FOV in the inclusive range 1 to 179
+`src/client/screen.c:CalcFov` validates horizontal FOV in the inclusive range 1 to 179
 degrees, computes the horizontal projection scale with `tan`, derives the
 vertical angle with `atan`, and converts the result back to degrees. The live
 caller is `SCR_CalcRefdef`, which uses this value to configure the view after a
 screen or FOV change.
 
 `ViewControlImplementation=asm` now selects
-`src/screen_fovasm.s:CalcFov_asm486`. The default remains C. In BENCH builds the
+`src/client/screen_fovasm.s:CalcFov_asm486`. The default remains C. In BENCH builds the
 original C body is retained as `CalcFov_C`, and its fatal-error call is replaced
 with a capture hook so invalid values can be compared without terminating the
 fixture process.
@@ -26,7 +26,7 @@ caller's x87 control word unchanged.
 
 ## Direct C/assembly and ABI fixture
 
-`src/bench486_viewcontrol.h:Bench486CalcFovCases` checks 17 directed FOV and
+`src/tests/bench486/bench486_viewcontrol.h:Bench486CalcFovCases` checks 17 directed FOV and
 dimension inputs under 12 x87 precision/rounding control words (204 paired
 calls). It compares result bits, x87 status and control state, captured error
 count/message/value, and the assembly call probe's preserved registers, stack,
@@ -61,7 +61,7 @@ strict executable and runtime evidence above came from the separate
 
 | Reference behavior | Assembly implementation | Correctness evidence | Compatibility evidence |
 | --- | --- | --- | --- |
-| `src/screen.c:CalcFov`; called by `SCR_CalcRefdef` | `src/screen_fovasm.s:CalcFov_asm486` | `src/bench486_viewcontrol.h:Bench486CalcFovCases`; exact `demo2-svcDamage-event` profile pair | Strict i486 BENCH executable, runtime-object, startup and CWSDPMI audits |
+| `src/client/screen.c:CalcFov`; called by `SCR_CalcRefdef` | `src/client/screen_fovasm.s:CalcFov_asm486` | `src/tests/bench486/bench486_viewcontrol.h:Bench486CalcFovCases`; exact `demo2-svcDamage-event` profile pair | Strict i486 BENCH executable, runtime-object, startup and CWSDPMI audits |
 
 From `quake/`, reproduce the strict assembly/ABI fixture and the short exact
 frame comparison with:

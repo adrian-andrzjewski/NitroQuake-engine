@@ -1,6 +1,6 @@
 # Texture-span clamp compares read extents directly (2026-10-25)
 
-Status: promoted in `src/d_draw.s` after exact parity and a positive strict i486 mean.
+Status: promoted in `src/renderer/d_draw.s` after exact parity and a positive strict i486 mean.
 
 In the full eight-pixel `D_DrawSpans8` path, the S and T clamp checks now
 compare their accumulators directly against `bbextents` and `bbextentt` in

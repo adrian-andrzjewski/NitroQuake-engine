@@ -2,7 +2,7 @@
 
 Status: promoted in the working source under the no-minimum-gain policy.
 
-The i486-only nonnegative-span fast path in `src/d_draw.s` now accepts spans of
+The i486-only nonnegative-span fast path in `src/renderer/d_draw.s` now accepts spans of
 at least 18 pixels, down from 20 in the screen candidate and up from the
 accepted 16-pixel control. The endpoint proof still checks the complete span
 before entering the sign-branch-free copy; the 16-pixel groups and 8/4/2/1-pixel

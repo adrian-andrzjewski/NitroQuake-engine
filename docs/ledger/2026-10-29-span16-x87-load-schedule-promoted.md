@@ -2,7 +2,7 @@
 
 ## Change and rationale
 
-`src/d_draw16.s:D_DrawSpans16` now issues both independent x87 `FILD` loads
+`src/renderer/d_draw16.s:D_DrawSpans16` now issues both independent x87 `FILD` loads
 before loading the span's integer row and `tadjust` values:
 
 ```asm

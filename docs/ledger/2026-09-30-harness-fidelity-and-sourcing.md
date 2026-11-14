@@ -39,7 +39,7 @@ depends on them:
    reports per-symbol x87 cost (new section 1b). `-s` is kept; dropping it would
    perturb an already non-reproducible image.
 
-**Four in-engine probes** (`src\host_cmd.c`, `-benchfidelity`, dispatched
+**Four in-engine probes** (`src\core\host_cmd.c`, `-benchfidelity`, dispatched
 via `+bench486`) whose 486 costs are known, used to judge whether an emulator
 prices them at all:
 

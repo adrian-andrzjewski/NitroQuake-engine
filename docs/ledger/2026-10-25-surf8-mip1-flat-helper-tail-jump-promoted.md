@@ -1,6 +1,6 @@
 # Mip-1 flat surface helpers tail-jump to block completion (2026-10-25)
 
-Status: promoted in `src/surf8.s` after exact parity and a positive strict i486 mean.
+Status: promoted in `src/renderer/surf8.s` after exact parity and a positive strict i486 mean.
 
 The mip-1 fully-flat and horizontal-flat helpers have a single local caller.
 Both paths now jump directly to their helper instead of using `call`; after

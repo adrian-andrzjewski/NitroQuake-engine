@@ -17,7 +17,7 @@ visual-parity screen skipped the strict ISA audit.
 
 ## Decision
 
-Rejected on the clear screen slowdown. Restored `src/d_draw16.s` to the control
+Rejected on the clear screen slowdown. Restored `src/renderer/d_draw16.s` to the control
 implementation; no strict audit or commit was made.
 
 Result: `out/dos-timedemo-20261026-190740/timedemo-result.json`.

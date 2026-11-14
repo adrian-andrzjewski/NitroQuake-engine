@@ -74,6 +74,23 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(REPO_ROOT, "tools")
 SOURCE_ROOT = os.path.join(REPO_ROOT, "src")
 
+
+def source_path(name: str) -> str:
+    """Resolve the build's stable basename inventory in the grouped source tree."""
+    direct = os.path.join(SOURCE_ROOT, name)
+    if os.path.isfile(direct):
+        return direct
+    matches = []
+    for root, _dirs, files in os.walk(SOURCE_ROOT):
+        if os.path.basename(name) in files:
+            matches.append(os.path.join(root, os.path.basename(name)))
+    if len(matches) != 1:
+        raise SystemExit(
+            "expected one source named %r under %s, found %d"
+            % (name, SOURCE_ROOT, len(matches))
+        )
+    return matches[0]
+
 ISA_RANK = {"i386": 0, "i486": 1, "i586": 2, "p6": 3, "unknown": 99}
 
 # Mnemonics that exist only from the i486 upwards.
@@ -539,7 +556,7 @@ def main() -> int:
     # are not lines OF that file and must not be cited as such. asmLineNumber is
     # what they are; see the report's lineNumberKind field.
     for name in flags["cSources"]:
-        source = os.path.join(SOURCE_ROOT, name)
+        source = source_path(name)
         source_flags = flags.get("cSourceExtraFlags", {}).get(name, [])
         scan(name, subprocess.run(
             [compiler, *flags["cFlags"], *source_flags, "-S", "-o", "-", source],
@@ -550,7 +567,7 @@ def main() -> int:
     # Here the line numbers really are lines of the named file's preprocessed text,
     # which is what the reader wants to see.
     for name in flags["assemblySources"]:
-        source = os.path.join(SOURCE_ROOT, name)
+        source = source_path(name)
         scan(name, subprocess.run(
             [compiler, *flags["asmFlags"], "-E", source],
             capture_output=True, text=True, env=env,

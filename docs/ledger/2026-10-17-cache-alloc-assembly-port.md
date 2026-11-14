@@ -3,13 +3,13 @@
 ## Behavior and selector
 
 `CacheAllocImplementation=asm` selects `Cache_Alloc` in
-`src/zone_cachetryallocasm.s`; BENCH builds retain the C body as
+`src/memory/zone_cachetryallocasm.s`; BENCH builds retain the C body as
 `Cache_Alloc_C`, and the C-reference profile selects C. The assembly rounds
 the requested payload with the 40-byte cache header to a 16-byte allocation,
 tries the selected `Cache_TryAlloc`, and when needed frees the least-recently
 used block through the selected `Cache_Free` before retrying. On success it
 copies the cache name, sets the user and block pointers, and returns the data
-pointer. `src/asm_cachealloc.h` pins the private structure layout and name
+pointer. `src/memory/asm_cachealloc.h` pins the private structure layout and name
 size against `zone.c` at compile time.
 
 `Cache_Move` now has a separate assembly entry and parity fixture. Hunk
@@ -57,4 +57,4 @@ C-owned. The current BENCH ownership report is
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_Alloc_C` | `src/zone_cachetryallocasm.s:Cache_Alloc` | Empty-cache allocation and forced LRU eviction, with full state comparison | Strict i486 gates pass; DOSBox-X fixture passes |
+| `src/memory/zone.c:Cache_Alloc_C` | `src/memory/zone_cachetryallocasm.s:Cache_Alloc` | Empty-cache allocation and forced LRU eviction, with full state comparison | Strict i486 gates pass; DOSBox-X fixture passes |

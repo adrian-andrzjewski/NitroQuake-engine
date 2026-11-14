@@ -1,7 +1,7 @@
 # Mip-2 light-delta reload prefetch rejected (2026-10-21)
 
 Status: reverted after a negative strict three-run mean. The promoted mip-2
-texel-load schedule remains active in `src/surf8.s`.
+texel-load schedule remains active in `src/renderer/surf8.s`.
 
 This candidate moved only the `lightdelta` reload from after the final
 colormap lookup to between the last two lookups. The `lightright` reload kept

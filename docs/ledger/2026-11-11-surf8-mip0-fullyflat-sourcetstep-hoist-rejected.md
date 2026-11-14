@@ -1,7 +1,7 @@
 # Mip-0 fully-flat source row-stride hoist (2026-11-11)
 
 Status: rejected after three matched uninstrumented runs produced a negative
-mean. The original memory-source row advances remain in `src/surf8.s`.
+mean. The original memory-source row advances remain in `src/renderer/surf8.s`.
 
 ## Experiment
 

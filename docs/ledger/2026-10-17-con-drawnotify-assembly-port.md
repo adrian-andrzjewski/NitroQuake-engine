@@ -2,10 +2,10 @@
 
 ## Behavior and selector
 
-`src/console.c:Con_DrawNotify` draws up to four recent console lines from the
+`src/client/console.c:Con_DrawNotify` draws up to four recent console lines from the
 timestamp ring, skips expired entries, updates the notification dirty-state,
 and optionally draws the `say:` prefix, chat text and blinking cursor. The new
-`src/con_inputasm.s:Con_DrawNotify_asm486` implements that logic while retaining
+`src/client/con_inputasm.s:Con_DrawNotify_asm486` implements that logic while retaining
 the original x87 timestamp comparison and the cursor conversion behavior.
 Glyph and string rendering stay on the public `Draw_Character` and `Draw_String`
 entry points.
@@ -56,7 +56,7 @@ measure whole-game FPS.
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/console.c:Con_DrawNotify` | `src/con_inputasm.s:Con_DrawNotify_asm486` | Eight exact C/assembly/public framebuffer and state cases across four x87 modes | Strict linked-object, final-executable, startup and provider gates pass with zero exemptions |
+| `src/client/console.c:Con_DrawNotify` | `src/client/con_inputasm.s:Con_DrawNotify_asm486` | Eight exact C/assembly/public framebuffer and state cases across four x87 modes | Strict linked-object, final-executable, startup and provider gates pass with zero exemptions |
 
 This is a 2D console overlay, not a 3D procedure. It does not close the
 remaining console printing, menu, video/cache and screen-support ownership, or

@@ -4,7 +4,7 @@
 
 | Reference behavior | Assembly implementation | Exact fixture |
 | --- | --- | --- |
-| `src/r_misc.c:R_TimeGraph` | `src/r_timegraphasm.s:R_TimeGraph` / `R_TimeGraph_asm486` | `src/bench486_timegraph.h:Bench486TimeGraphCases` |
+| `src/renderer/r_misc.c:R_TimeGraph` | `src/renderer/r_timegraphasm.s:R_TimeGraph` / `R_TimeGraph_asm486` | `src/tests/bench486/bench486_timegraph.h:Bench486TimeGraphCases` |
 | 100-byte history ring and `timex` | `r_timegraph_state.h`, with offsets pinned in `asm_timegraph.h` | independent ring and pixel model in `bench486_timegraph.h` |
 | Calls `R_LineGraph` for each history column | public `R_LineGraph` entry, selected independently by its own selector | TimeGraph ASM run keeps `LineGraphImplementation=c` |
 

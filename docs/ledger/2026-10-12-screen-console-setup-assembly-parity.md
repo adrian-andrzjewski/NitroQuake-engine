@@ -2,8 +2,8 @@
 
 ## Reference, implementation, and call boundary
 
-`src/screen.c:SCR_SetUpToDrawConsole_Screen_C` is the retained BENCH486
-reference. `src/screen_consolesetupasm.s:SCR_SetUpToDrawConsole_asm486` is the
+`src/client/screen.c:SCR_SetUpToDrawConsole_Screen_C` is the retained BENCH486
+reference. `src/client/screen_consolesetupasm.s:SCR_SetUpToDrawConsole_asm486` is the
 32-bit assembly implementation selected by
 `ScreenConsoleSetupImplementation=asm`; ordinary builds retain the C routine
 by default. The assembly entry keeps the normal C calls to `Con_CheckResize`,
@@ -19,7 +19,7 @@ while its direct C/assembly fixture is active.
 | Convert the animated float to the tile Y coordinate by C truncation | Temporarily set x87 RC to chop for `FISTP`, then restore the full control word | Control-word and ABI preservation checks |
 
 The assembly contract and compile-time layout checks are in
-`src/asm_screenconsolesetup.h`. They pin `viddef_t` dimensions and page count,
+`src/client/asm_screenconsolesetup.h`. They pin `viddef_t` dimensions and page count,
 `cl.worldmodel`, `cls.signon`, `cvar_t.value`, `key_console`, and `SIGNONS` to
 the offsets/constants used by the assembly. The routine uses DJGPP 32-bit
 cdecl, preserves callee-saved registers, and leaves the x87 stack balanced.
@@ -28,7 +28,7 @@ floating-point behavior; this is not a claim of 486SX operation without an FPU.
 
 ## Exact runtime fixture
 
-`src/bench486_screenconsolesetup.h` runs 14 named states under four x87
+`src/tests/bench486/bench486_screenconsolesetup.h` runs 14 named states under four x87
 rounding modes and three precision-control settings. For each mode it invokes
 the C oracle and assembly entry, then compares the complete affected state,
 backend-call trace, ABI probe, and control word. The fixture includes loading

@@ -6,7 +6,7 @@ Status: promoted assembly-only optimization in the working source.
 writing `r_drawsurf.texture` and `r_drawsurf.lightadj`. A cache hit returns the
 cache directly and does not consume these fields; cache misses and contributing
 dynamic lights still fill all five fields before rebuilding the surface. The
-implementation is in `src/asm486_experiments.s`.
+implementation is in `src/renderer/asm486_experiments.s`.
 
 ## Matched strict timedemo
 

@@ -1,7 +1,7 @@
 # Edge-scan span reset before x87 setup screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The original row
-setup order remains active in `src/asm486_experiments.s`.
+setup order remains active in `src/renderer/asm486_experiments.s`.
 
 The experiment moved the independent surface span-state reset ahead of each
 scanline's x87 coordinate setup in both the main-row and final-row paths.

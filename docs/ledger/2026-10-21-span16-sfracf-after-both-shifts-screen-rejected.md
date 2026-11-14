@@ -1,7 +1,7 @@
 # Span16 `sfracf` load after both shifts screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted order
-loads `sfracf` before either fractional shift in `src/d_draw16.s`.
+loads `sfracf` before either fractional shift in `src/renderer/d_draw16.s`.
 
 The experiment moved `movl sfracf,%ebx` after both the T-step and S-step
 fractional shifts, while keeping the promoted order of those shifts and the

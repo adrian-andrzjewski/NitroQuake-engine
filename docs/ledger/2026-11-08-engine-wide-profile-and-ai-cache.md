@@ -38,10 +38,10 @@ path, so their zero readings are not zero-cost evidence.
 
 ## Promoted immutable leaf-query cache
 
-The production change is confined to [pr_cmds.c](../../src/pr_cmds.c)
+The production change is confined to [pr_cmds.c](../../src/server/pr_cmds.c)
 (`PF_CheckClientLeaf` and its `PF_checkclient` caller),
 [progs.h](../../src/progs.h) (reset declaration), and
-[host.c](../../src/host.c) (`Host_ClearMemory` reset hook).
+[host.c](../../src/core/host.c) (`Host_ClearMemory` reset hook).
 The 64-entry direct-mapped table occupies 1536 bytes on DJGPP. It stores only the
 immutable world-BSP point-to-leaf result, keyed by actor, exact stored view bits
 and x87 control word. It preserves original target/PVS decisions and AI cadence.

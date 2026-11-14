@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `Sbar_DeathmatchOverlay` draws the full frag ranking during deathmatch
-intermission. `src/sbar_draw_asm.inc` now owns the selected implementation as
+intermission. `src/client/sbar_draw_asm.inc` now owns the selected implementation as
 `Sbar_DeathmatchOverlay` / `Sbar_DeathmatchOverlay_asm486`; the default i486
 selector profile sets `SbarDrawImplementation=asm`. The BENCH build retains
 `Sbar_DeathmatchOverlay_C` as the C oracle. The C
@@ -51,7 +51,7 @@ The result is `out/dos-bench-20261018-184053/bench-result.json`.
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/sbar.c:Sbar_DeathmatchOverlay` | `src/sbar_draw_asm.inc:Sbar_DeathmatchOverlay` | Six exact score-order, picture, draw-event, state, and ABI cases | Strict BENCH object, linked executable, startup, and provider gates pass |
+| `src/client/sbar.c:Sbar_DeathmatchOverlay` | `src/client/sbar_draw_asm.inc:Sbar_DeathmatchOverlay` | Six exact score-order, picture, draw-event, state, and ABI cases | Strict BENCH object, linked executable, startup, and provider gates pass |
 
 This ports the full deathmatch score drawing routine. The C intermission
 dispatcher, finale path, menu and screen dependencies, and other directly

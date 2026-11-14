@@ -1,6 +1,6 @@
 # Render-face capacity check loads the edge count early (2026-10-25)
 
-Status: promoted in `src/asm486_experiments.s` after a positive strict mean,
+Status: promoted in `src/renderer/asm486_experiments.s` after a positive strict mean,
 exact checksum parity, and the complete i486 ISA gate.
 
 `R_RenderFace_asm486` now loads `fa->numedges` before the surface-capacity

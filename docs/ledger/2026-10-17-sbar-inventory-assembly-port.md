@@ -2,7 +2,7 @@
 
 ## Behavior and selector
 
-`src/sbar_inventory_asm.inc` now contains the optimized i486 implementation of
+`src/client/sbar_inventory_asm.inc` now contains the optimized i486 implementation of
 `Sbar_DrawInventory`, selected by `SbarInventoryImplementation=asm` in the
 current assembly profile. It preserves the standard, Hipnotic, Rogue and
 combined-expansion branches, weapon flash timing, ammo formatting, item and
@@ -54,7 +54,7 @@ establish the cause of that older fault.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/sbar.c:Sbar_DrawInventory` | `src/sbar_inventory_asm.inc:_Sbar_DrawInventory_asm486` | 20 cases across five inventory states and four x87 modes | Strict i486 gates pass; three Demo 1 runs preserve 969 frames and checksum `1047377823` |
+| `src/client/sbar.c:Sbar_DrawInventory` | `src/client/sbar_inventory_asm.inc:_Sbar_DrawInventory_asm486` | 20 cases across five inventory states and four x87 modes | Strict i486 gates pass; three Demo 1 runs preserve 969 frames and checksum `1047377823` |
 
 This is status-bar composition support. The ownership report still lists 73
 directly reachable C renderer entries, primarily screen, menu, console and

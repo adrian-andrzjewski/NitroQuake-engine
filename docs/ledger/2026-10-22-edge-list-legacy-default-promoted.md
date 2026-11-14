@@ -31,7 +31,7 @@ Artifacts:
 - Replacement assembly: `out/dos-timedemo-20261022-001256/timedemo-result.json`
 
 The i486 assembly profile now selects `legacy`; its release flags omit
-`ASM486_EDGE_LIST` and keep the original assembly in `src/r_edgea.s` active.
+`ASM486_EDGE_LIST` and keep the original assembly in `src/renderer/r_edgea.s` active.
 Explicit `asm` replacement and `c` reference selections remain available. The
 small target-U schedule improvement remains promoted within the replacement
 assembly itself, but does not outweigh the faster legacy route.

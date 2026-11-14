@@ -5,7 +5,7 @@ immediately after their `FISTP` stores until after the first texel fetch,
 remaining-count update, and adjustment loads in `LNotLastSegment`. The endpoint
 values and subsequent clamps were unchanged. Its strict three-run mean was
 negative, so both reloads have been restored immediately after the `FISTP`s in
-`src/d_draw16.s`.
+`src/renderer/d_draw16.s`.
 
 Both variants used the uninstrumented DOSBox-X `demo1` timedemo, CWSDPMI, and
 the pinned 32 MB i486 profile

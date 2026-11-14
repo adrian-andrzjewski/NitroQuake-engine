@@ -7,11 +7,11 @@ from `SV_LinkEdict` to record the BSP leaves touched by a modeled entity for
 visibility/PVS processing. The current i486 profile selects assembly; the
 C-reference profile selects the original C body. BENCH retains the C body as a
 parity oracle. The implementation is in
-`src/sv_findtouchedleafs_asm.inc`, included by `src/asm486_experiments.s`.
+`src/collision/sv_findtouchedleafs_asm.inc`, included by `src/renderer/asm486_experiments.s`.
 
 ## ABI and recursive behavior
 
-`src/asm_findtouchedleafs.h` pins the 32-bit ABI and offsets used by the
+`src/collision/asm_findtouchedleafs.h` pins the 32-bit ABI and offsets used by the
 assembly, including 40-byte nodes, 48-byte leaves, 20-byte planes, the entity
 leaf fields and bounds, `sv.worldmodel`, and the model leaf array. Compile-time
 assertions also pin the 16-leaf limit and solid contents value.

@@ -5,7 +5,7 @@ The candidate moved the first accumulator add/subtract in each
 handler then packed the already-advanced sample and applied the second step.
 This preserved the per-pixel recurrence and framebuffer output, but its strict
 mean FPS was lower than control. The original `TEST`, branch, then add/subtract
-order remains active in `src/d_draw.s`.
+order remains active in `src/renderer/d_draw.s`.
 
 Both variants used the same uninstrumented DOSBox-X `demo1` timedemo, CWSDPMI,
 and pinned 32 MB i486 profile

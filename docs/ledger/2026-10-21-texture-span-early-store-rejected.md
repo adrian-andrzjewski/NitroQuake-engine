@@ -9,7 +9,7 @@ data below are unchanged.
 The candidate moved each packed word store to immediately after both texels
 were loaded, before the final carry-based source-address update. `MOV` leaves
 flags and the DDA registers unchanged, so this only changed the independent
-framebuffer-store schedule. The experiment touched `src/d_draw16.s` only and
+framebuffer-store schedule. The experiment touched `src/renderer/d_draw16.s` only and
 has been reverted.
 
 All samples used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the same uninstrumented

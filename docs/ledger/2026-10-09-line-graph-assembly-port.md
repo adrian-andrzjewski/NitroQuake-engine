@@ -2,7 +2,7 @@
 
 ## Leaf behavior and ownership
 
-`R_LineGraph` in `src/r_misc.c` is called by `R_TimeGraph` to paint the timing
+`R_LineGraph` in `src/renderer/r_misc.c` is called by `R_TimeGraph` to paint the timing
 overlay. It adds `r_refdef.vrect.x/y` to the input coordinates, computes the
 destination from `vid.buffer + vid.rowbytes * y + x`, and converts
 `r_graphheight.value` to `int` by truncation toward zero. It clamps `h` only
@@ -11,12 +11,12 @@ above for `i < h`; the second writes `0x30` to both locations for `i < s`.
 Each loop advances `dest` by two rowbytes after its stores, preserving the
 original store order and signed behavior for negative bounds.
 
-The assembly implementation is `src/r_linegraphasm.s`. `_R_LineGraph` and
+The assembly implementation is `src/renderer/r_linegraphasm.s`. `_R_LineGraph` and
 `_R_LineGraph_asm486` share the same entry. It uses 32-bit cdecl with
 caller-saved EAX/ECX/EDX and preserved EBX/ESI/EDI/EBP. It saves the x87
 control word, selects truncate mode for `FISTP`, restores the word, and leaves
-the x87 stack depth unchanged. `src/asm_draw.h` defines the video, viewport,
-and cvar offsets; `src/r_misc.c` checks them with `offsetof` when
+the x87 stack depth unchanged. `src/renderer/asm_draw.h` defines the video, viewport,
+and cvar offsets; `src/renderer/r_misc.c` checks them with `offsetof` when
 `ASM486_LINE_GRAPH` is enabled.
 
 ## Selection and oracle
@@ -26,7 +26,7 @@ profile is `tools/renderer-profiles/i486-asm-line-graph.json`; its matching
 C reference is `i486-c-reference.json`. The combined opt-in profile is
 `i486-asm-selectable-85.json`. BENCH486 assembly builds retain the C body as
 `R_LineGraph_C`. The direct-fixture entry point is
-`Bench486LineGraphCases` in `src/bench486_linegraph.h`, invoked by
+`Bench486LineGraphCases` in `src/tests/bench486/bench486_linegraph.h`, invoked by
 `-benchlinegraph`. Its seven cases compare the C oracle and assembly against an
 independent expected framebuffer. They use a 72-byte stride with 64 visible
 columns, check outer guards and row-padding canaries, and print progress before

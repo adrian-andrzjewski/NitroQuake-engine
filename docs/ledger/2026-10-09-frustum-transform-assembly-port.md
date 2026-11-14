@@ -5,10 +5,10 @@
 **Traceability.**
 
 The original implementations are `R_TransformFrustum` and
-`R_SetUpFrustumIndexes` in `src/r_misc.c`. Their C calculations remain
+`R_SetUpFrustumIndexes` in `src/renderer/r_misc.c`. Their C calculations remain
 available as benchmark oracles. The selectable replacements are in
-`src/r_frustumasm.s`; layout contracts are in `src/asm_frustum.h`, and guarded
-direct fixtures are in `src/bench486_frustum.h`.
+`src/renderer/r_frustumasm.s`; layout contracts are in `src/renderer/asm_frustum.h`, and guarded
+direct fixtures are in `src/tests/bench486/bench486_frustum.h`.
 
 The assembly uses an unrolled `.arch i486`/`.arch .387` x87 schedule. It follows
 the target compiler's expression order and retains the extended intermediates

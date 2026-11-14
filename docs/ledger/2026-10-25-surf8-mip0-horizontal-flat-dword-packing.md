@@ -1,6 +1,6 @@
 # Mip-0 horizontal-flat rows use packed dword stores (2026-10-25)
 
-Status: promoted assembly optimization in `src/surf8.s`.
+Status: promoted assembly optimization in `src/renderer/surf8.s`.
 
 `SURF8_MIP0_HORIZONTAL_FLAT_ROW` now packs each four adjacent colormapped
 texels in `%eax` and writes them with one `movl`. This replaces 16 byte stores

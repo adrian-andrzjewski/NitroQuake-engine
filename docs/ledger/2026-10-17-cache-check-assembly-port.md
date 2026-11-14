@@ -2,14 +2,14 @@
 
 ## Behavior and selector
 
-`src/zone_cacheasm.s` now owns the production `Cache_Check` entry when
+`src/memory/zone_cacheasm.s` now owns the production `Cache_Check` entry when
 `CacheCheckImplementation=asm` is selected in the current i486 profile. The
 C-reference profile selects C, and BENCH builds retain `Cache_Check_C` as the
 direct oracle. The assembly performs the null miss check, cache-header lookup,
 and exact LRU promotion in place; it also maintains the existing PROFILE486
 hit, miss, check and relink counters.
 
-`src/asm_cachecheck.h` pins the private cache-header size and LRU link offsets
+`src/memory/asm_cachecheck.h` pins the private cache-header size and LRU link offsets
 against `zone.c` at compile time. The cache allocator, eviction policy and hunk
 management remain C-owned.
 
@@ -62,4 +62,4 @@ presentation remain C-owned.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_Check` | `src/zone_cacheasm.s:_Cache_Check` | Four exact hit/miss and LRU cases, including counter parity | Strict i486 gates pass; DOSBox-X fixture passes |
+| `src/memory/zone.c:Cache_Check` | `src/memory/zone_cacheasm.s:_Cache_Check` | Four exact hit/miss and LRU cases, including counter parity | Strict i486 gates pass; DOSBox-X fixture passes |

@@ -2,7 +2,7 @@
 
 Status: reverted after a negative three-run parity screen. The promoted
 T-step-shift, S-step-shift, `advancetable` store order remains active in
-`src/d_draw16.s`.
+`src/renderer/d_draw16.s`.
 
 The experiment reordered the independent setup operations to shift the S-step
 fraction first, store `advancetable`, and then shift the T-step fraction. The

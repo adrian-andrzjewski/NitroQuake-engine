@@ -2,7 +2,7 @@
 
 Status: promoted under the positive pooled-mean rule.
 
-In `src/d_draw16.s`, the `LSetUpCommon` path now stores `%ecx` to `tstep`
+In `src/renderer/d_draw16.s`, the `LSetUpCommon` path now stores `%ecx` to `tstep`
 immediately after `addl %ecx,%edx` advances the T fraction and before
 `sbbl %ecx,%ecx` extracts the carry. `MOV` preserves the flags, so the carry
 extraction and following address update are unchanged. The change moves the

@@ -57,6 +57,6 @@ fixture.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/vid_ext.c:VID_ExtraWaitDisplayIfRequested_C` | `src/vid_vesawaitasm.s:VID_ExtraWaitDisplayIfRequested` | 36 exact mode/capability, polling, and ABI cases | DOSBox-X fixture and strict non-BENCH i486 release gates pass |
-| `src/vid_ext.c:VID_ExtraWaitVsyncIfRequested_C` | `src/vid_vesawaitasm.s:VID_ExtraWaitVsyncIfRequested` | 36 exact mode/capability, polling, and ABI cases | DOSBox-X fixture and strict non-BENCH i486 release gates pass |
-| `src/vid_ext.c:VID_ExtraDisplayStartWaitFlags_C` | `src/vid_vesawaitasm.s:VID_ExtraDisplayStartWaitFlags` | 36 exact mode/capability and ABI cases | DOSBox-X fixture and strict non-BENCH i486 release gates pass |
+| `src/video/vid_ext.c:VID_ExtraWaitDisplayIfRequested_C` | `src/video/vid_vesawaitasm.s:VID_ExtraWaitDisplayIfRequested` | 36 exact mode/capability, polling, and ABI cases | DOSBox-X fixture and strict non-BENCH i486 release gates pass |
+| `src/video/vid_ext.c:VID_ExtraWaitVsyncIfRequested_C` | `src/video/vid_vesawaitasm.s:VID_ExtraWaitVsyncIfRequested` | 36 exact mode/capability, polling, and ABI cases | DOSBox-X fixture and strict non-BENCH i486 release gates pass |
+| `src/video/vid_ext.c:VID_ExtraDisplayStartWaitFlags_C` | `src/video/vid_vesawaitasm.s:VID_ExtraDisplayStartWaitFlags` | 36 exact mode/capability and ABI cases | DOSBox-X fixture and strict non-BENCH i486 release gates pass |

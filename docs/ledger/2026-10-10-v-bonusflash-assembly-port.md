@@ -2,22 +2,22 @@
 
 ## Original command behavior and four assembly stores
 
-`src/view.c:V_BonusFlash_f` is the command handler registered as `bf`. The
+`src/client/view.c:V_BonusFlash_f` is the command handler registered as `bf`. The
 original routine writes RGB `(215, 186, 69)` and percent `50` into
 `cl.cshifts[CSHIFT_BONUS]`. The C implementation remains the default and is
 retained as `V_BonusFlash_C` in BENCH486 builds.
 
-`src/v_paletteasm.s:V_BonusFlash_asm486` performs the four corresponding
+`src/client/v_paletteasm.s:V_BonusFlash_asm486` performs the four corresponding
 32-bit stores. `PaletteImplementation=asm` exports the public
 `V_BonusFlash_f` entry from assembly; the C-reference profile keeps the
-original C entry. `src/asm_palette.h` names the shift index and field offsets,
+original C entry. `src/renderer/asm_palette.h` names the shift index and field offsets,
 and `view.c` compile-time assertions pin the client shift array, `cshift_t`
 layout, `CSHIFT_BONUS`, and destination-color offset before those constants
 are used. The handler makes no calls and leaves the x87 state untouched.
 
 ## 256-pattern full-state and ABI fixture
 
-`src/bench486_palette.h:Bench486BonusFlashCases` initializes all bytes of the
+`src/tests/bench486/bench486_palette.h:Bench486BonusFlashCases` initializes all bytes of the
 client state to 256 deterministic patterns. For each pattern it compares the
 C oracle, the assembly routine, and the selected public command entry against
 an expected full client-state image in which only the four bonus-shift fields
@@ -49,7 +49,7 @@ code zero and reported `ISA audit: PASS`.
 
 | Reference behavior | Assembly implementation | Correctness evidence | Compatibility evidence |
 | --- | --- | --- | --- |
-| `src/view.c:V_BonusFlash_f` | `src/v_paletteasm.s:V_BonusFlash_asm486` | `src/bench486_palette.h:Bench486BonusFlashCases` and palette output sequence | Strict linked i486 executable, startup, and CWSDPMI audits |
+| `src/client/view.c:V_BonusFlash_f` | `src/client/v_paletteasm.s:V_BonusFlash_asm486` | `src/tests/bench486/bench486_palette.h:Bench486BonusFlashCases` and palette output sequence | Strict linked i486 executable, startup, and CWSDPMI audits |
 
 From `quake/`, reproduce the focused state, ABI, and palette-output fixture
 with:

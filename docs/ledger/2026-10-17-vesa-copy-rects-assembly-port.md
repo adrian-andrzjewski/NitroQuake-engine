@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `VesaCopyRectsImplementation=asm` now selects
-`src/vid_vesacopyasm.s:VESA_CopyRects` for the dirty-rectangle validation and
+`src/video/vid_vesacopyasm.s:VESA_CopyRects` for the dirty-rectangle validation and
 copy loop used by `VID_ExtraSwapBuffers`. It preserves the C path's rejection
 of invalid rectangles, exact source and destination pitches, contiguous
 full-width collapse, and final one-to-three byte tails. The current i486
@@ -12,7 +12,7 @@ algorithm. BENCH builds retain the C implementation as a direct oracle.
 
 BIOS mode discovery, wait probing, page flips, mode changes, and the outer
 `VID_Update` state machine remain C-owned. The VGA planar and linear pixel-copy
-primitives remain in `src/d_copy.s`.
+primitives remain in `src/renderer/d_copy.s`.
 
 ## Direct C/assembly parity
 
@@ -53,4 +53,4 @@ profile; VESA mode discovery and presentation orchestration remain C-owned.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/vid_ext.c:VESA_CopyRects_C` (extracted from `VID_ExtraSwapBuffers`) | `src/vid_vesacopyasm.s:VESA_CopyRects` | Guarded rectangle, bounds, pitch, collapse and tail cases against C and scalar reference | Strict i486 gates pass; DOSBox-X fixture passes |
+| `src/video/vid_ext.c:VESA_CopyRects_C` (extracted from `VID_ExtraSwapBuffers`) | `src/video/vid_vesacopyasm.s:VESA_CopyRects` | Guarded rectangle, bounds, pitch, collapse and tail cases against C and scalar reference | Strict i486 gates pass; DOSBox-X fixture passes |

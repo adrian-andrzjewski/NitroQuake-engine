@@ -6,7 +6,7 @@
     {
       "originalFile": "render-dispatch-reference/d_sprite.c",
       "originalFunction": "D_SpriteScanLeftEdge",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "D_SpriteScanLeftEdge_Dispatch_C",
       "backend": "D_SpriteScanLeftEdge_asm486",
       "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
@@ -15,7 +15,7 @@
     {
       "originalFile": "render-dispatch-reference/d_sprite.c",
       "originalFunction": "D_SpriteScanRightEdge",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "D_SpriteScanRightEdge_Dispatch_C",
       "backend": "D_SpriteScanRightEdge_asm486",
       "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
@@ -24,7 +24,7 @@
     {
       "originalFile": "render-dispatch-reference/d_sprite.c",
       "originalFunction": "D_SpriteCalculateGradients",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "D_SpriteCalculateGradients_Dispatch_C",
       "backend": "D_SpriteCalculateGradients_asm486",
       "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
@@ -33,7 +33,7 @@
     {
       "originalFile": "render-dispatch-reference/d_sprite.c",
       "originalFunction": "D_DrawSprite",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "D_DrawSprite_Dispatch_C",
       "backend": "D_DrawSprite_asm486",
       "originalFileSha256": "9f17e884d3a330bbbba1bd8b71f8e1ffb58287cae5144e5da162a6948fd7ddbe",
@@ -42,7 +42,7 @@
     {
       "originalFile": "render-dispatch-reference/r_alias.c",
       "originalFunction": "R_AliasSetViewMatrix",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_AliasSetViewMatrix_Dispatch_C",
       "backend": "R_AliasSetViewMatrix_asm486",
       "originalFileSha256": "1e5fa9a28685fa611a1d908efa6e6292ab8ce24ba13e05464cac8dbc75aa6fbb",
@@ -51,7 +51,7 @@
     {
       "originalFile": "render-dispatch-reference/r_light.c",
       "originalFunction": "R_MarkLights_asm486",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_MarkLights_asm486_Dispatch_C",
       "backend": "R_MarkLightsTree_asm486",
       "originalFileSha256": "d34f9b30c399bb442642a598ceba243d1300f5567094ba789f632da0152eb7d8",
@@ -60,7 +60,7 @@
     {
       "originalFile": "render-dispatch-reference/r_light.c",
       "originalFunction": "R_MarkLights",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_MarkLights_Dispatch_C",
       "backend": "R_MarkLights_asm486",
       "originalFileSha256": "d34f9b30c399bb442642a598ceba243d1300f5567094ba789f632da0152eb7d8",
@@ -69,7 +69,7 @@
     {
       "originalFile": "render-dispatch-reference/r_light.c",
       "originalFunction": "R_PushDlights",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_PushDlights_Dispatch_C",
       "backend": "R_PushDlights_asm486",
       "originalFileSha256": "d34f9b30c399bb442642a598ceba243d1300f5567094ba789f632da0152eb7d8",
@@ -78,7 +78,7 @@
     {
       "originalFile": "render-dispatch-reference/r_draw.c",
       "originalFunction": "R_RenderFace",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_RenderFace_Dispatch_C",
       "backend": "R_RenderFace_asm486",
       "originalFileSha256": "5731f676d7a644b21f51ab2af916d048b529a6bd09fb826d8acf741c57d38c49",
@@ -87,7 +87,7 @@
     {
       "originalFile": "render-dispatch-reference/r_draw.c",
       "originalFunction": "R_RenderFaceGradient_asm486",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_RenderFaceGradient_asm486_Dispatch_C",
       "backend": "R_SetSurfaceZGradients",
       "originalFileSha256": "5731f676d7a644b21f51ab2af916d048b529a6bd09fb826d8acf741c57d38c49",
@@ -96,7 +96,7 @@
     {
       "originalFile": "render-dispatch-reference/r_draw.c",
       "originalFunction": "R_RenderBmodelFaceGradient_asm486",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_RenderBmodelFaceGradient_asm486_Dispatch_C",
       "backend": "R_SetSurfaceZGradients",
       "originalFileSha256": "5731f676d7a644b21f51ab2af916d048b529a6bd09fb826d8acf741c57d38c49",
@@ -105,7 +105,7 @@
     {
       "originalFile": "render-dispatch-reference/r_part.c",
       "originalFunction": "R_DrawParticles",
-      "assemblyFile": "../../src/r_renderdispatchasm.s",
+      "assemblyFile": "../../src/renderer/r_renderdispatchasm.s",
       "oracle": "R_DrawParticles_Dispatch_C",
       "backend": "R_DrawParticles_asm486",
       "originalFileSha256": "18abb4f3b8ce8d95064d6f756ee7786763399ee03b37a6cfe28669d813263f64",

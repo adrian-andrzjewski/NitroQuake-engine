@@ -2,8 +2,8 @@
 
 ## Traceability and scope
 
-`src/d_scan.c:D_DrawZSpans` is the C reference and
-`src/d_draw.s:D_DrawZSpans` is the active 32-bit assembly routine. The C body is
+`src/renderer/d_scan.c:D_DrawZSpans` is the C reference and
+`src/renderer/d_draw.s:D_DrawZSpans` is the active 32-bit assembly routine. The C body is
 retained as `D_DrawZSpans_C` in BENCH486 builds for direct comparison; normal
 non-`id386` builds retain the original C symbol. This work verifies and corrects
 the existing assembly-owned depth-span path; it does not convert the rest of
@@ -13,9 +13,9 @@ The trace is:
 
 | Reference or implementation | Role | Verification |
 | --- | --- | --- |
-| `src/d_scan.c:D_DrawZSpans_C` | Original C depth-step and packed-word behavior | `src/bench486_zspans.h` direct fixture |
-| `src/d_draw.s:D_DrawZSpans` | Runtime i486 depth-span routine | Exact DOSBox-X fixture and strict executable audit |
-| `D_DrawSurfaces` in `src/d_edge.c` | Supplies gradients and negative `SURF_DRAWBACKGROUND` depth | `background-depth` fixture case |
+| `src/renderer/d_scan.c:D_DrawZSpans_C` | Original C depth-step and packed-word behavior | `src/tests/bench486/bench486_zspans.h` direct fixture |
+| `src/renderer/d_draw.s:D_DrawZSpans` | Runtime i486 depth-span routine | Exact DOSBox-X fixture and strict executable audit |
+| `D_DrawSurfaces` in `src/renderer/d_edge.c` | Supplies gradients and negative `SURF_DRAWBACKGROUND` depth | `background-depth` fixture case |
 
 ## Arithmetic, stores, and ABI
 

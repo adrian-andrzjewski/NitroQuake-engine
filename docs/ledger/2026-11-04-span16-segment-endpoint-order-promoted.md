@@ -5,7 +5,7 @@
 Status: retained after exact parity, the complete strict i486 gate, and a
 positive pooled mean over three uninstrumented runs per variant.
 
-In `src/d_draw16.s` at `LNotLastSegment`, calculate and store the T endpoint
+In `src/renderer/d_draw16.s` at `LNotLastSegment`, calculate and store the T endpoint
 before the S endpoint. The candidate changes only the order of the two
 independent `z * (t/z)` and `z * (s/z)` products and their `FISTP` stores. Each
 product retains its original operands and rounding; after both pops, the x87

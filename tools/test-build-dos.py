@@ -2253,7 +2253,7 @@ def main() -> int:
                 fail("the hunk mark-release assembly selector omits ASM486_HUNK_MARK_RELEASE from %s" % flags_name)
         if "zone_hunkmarkfreeasm.s" not in hunk_mark_asm.get("assemblySources", []):
             fail("the hunk mark-release selector does not compile zone_hunkmarkfreeasm.s")
-        hunk_mark_asm_path = os.path.join(REPO_ROOT, "src", "zone_hunkmarkfreeasm.s")
+        hunk_mark_asm_path = os.path.join(REPO_ROOT, "src", "memory", "zone_hunkmarkfreeasm.s")
         with open(hunk_mark_asm_path, "r", encoding="utf-8") as source_file:
             hunk_mark_asm_source = source_file.read()
         if "C(Hunk_HighMark)" not in hunk_mark_asm_source:
@@ -2327,7 +2327,7 @@ def main() -> int:
                 fail("the zone-heap assembly selector omits ASM486_ZONE_HEAP from %s" % flags_name)
         if "zone_heapasm.s" not in zone_heap_asm.get("assemblySources", []):
             fail("the zone-heap selector does not compile zone_heapasm.s")
-        zone_heap_asm_path = os.path.join(REPO_ROOT, "src", "zone_heapasm.s")
+        zone_heap_asm_path = os.path.join(REPO_ROOT, "src", "memory", "zone_heapasm.s")
         with open(zone_heap_asm_path, "r", encoding="utf-8") as source_file:
             zone_heap_asm_source = source_file.read()
         if "C(Z_Malloc)" not in zone_heap_asm_source:

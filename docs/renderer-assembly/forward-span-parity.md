@@ -6,7 +6,7 @@ complete.
 
 | Reference behavior | 486 implementation | Verification |
 | --- | --- | --- |
-| `R_LeadingEdge` and `R_GenerateSpans` in `src/r_edge.c` | `_R_GenerateSpans` in `src/r_edgea.s`; `_R_GenerateSpans_asm486` is an alias at the same entry address | `src/bench486_forwardspans.h` compares C and assembly state exactly; `tools/renderer-ownership.py` binds and audits both symbols |
+| `R_LeadingEdge` and `R_GenerateSpans` in `src/renderer/r_edge.c` | `_R_GenerateSpans` in `src/renderer/r_edgea.s`; `_R_GenerateSpans_asm486` is an alias at the same entry address | `src/tests/bench486/bench486_forwardspans.h` compares C and assembly state exactly; `tools/renderer-ownership.py` binds and audits both symbols |
 | C trailing-edge and span cleanup used by the generator | Existing forward-edge assembly and its C ABI | The fixture runs the C oracle with C trailing/cleanup helpers and checks complete guarded buffers, links, span counts, globals, x87 state, and the assembly call ABI |
 
 The B-model equal-key ordering path uses the C thresholds `newzi * 0.99` and

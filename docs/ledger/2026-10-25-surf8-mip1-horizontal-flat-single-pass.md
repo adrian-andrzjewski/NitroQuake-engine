@@ -1,6 +1,6 @@
 # Mip-1 horizontal-flat blocks use a straight-line row body (2026-10-25)
 
-Status: promoted assembly optimization in `src/surf8.s`.
+Status: promoted assembly optimization in `src/renderer/surf8.s`.
 
 `LSurf8Mip1HorizontalFlat` already emits its eight scanlines as unrolled row
 bodies, but wrapped them in a stack counter initialized to one. The helper now

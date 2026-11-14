@@ -1,7 +1,7 @@
 # Span16 S-step shift after T-carry screen rejected (2026-10-21)
 
 Status: reverted after the strict three-run mean was negative. The existing
-S-step shift at the start of `LSetUpCommon` remains active in `src/d_draw16.s`.
+S-step shift at the start of `LSetUpCommon` remains active in `src/renderer/d_draw16.s`.
 
 The experiment deferred `shll $12,%ebp` until immediately after
 `sbbl %ecx,%ecx`, before the S-fraction add. The T-carry extraction therefore

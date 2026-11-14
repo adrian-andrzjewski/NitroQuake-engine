@@ -1,7 +1,7 @@
 # Span16 `sfracf` reload before S-step shift screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted
-S-step-shift then `sfracf` reload order remains active in `src/d_draw16.s`.
+S-step-shift then `sfracf` reload order remains active in `src/renderer/d_draw16.s`.
 
 The experiment moved the `sfracf` reload before the independent S-step shift
 in `LSetUpCommon`. The `advancetable` store remained between the reload and

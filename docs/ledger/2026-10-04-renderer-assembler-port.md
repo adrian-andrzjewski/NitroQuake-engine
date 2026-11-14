@@ -18,11 +18,11 @@ validation.
 
 ## `D_FillRect` is now an i486 assembly entry point
 
-`src/asm486_experiments.s` now exports `D_FillRect` directly when
+`src/renderer/asm486_experiments.s` now exports `D_FillRect` directly when
 `FillRectImplementation=asm` is selected. The routine performs rectangle clipping,
 destination calculation, and all row stores in 32-bit GNU assembler. It uses only
 i486-safe instructions, including `MUL`, `REP STOSL`, and `REP STOSB`. Compile-time
-layout assertions in `src/d_fill.c` protect the four `viddef_t` offsets used by the
+layout assertions in `src/renderer/d_fill.c` protect the four `viddef_t` offsets used by the
 assembly. The release build does not compile a C `D_FillRect` implementation in this
 configuration; the C implementation remains available with `FillRectImplementation=c`
 and as a benchmark oracle.
@@ -44,7 +44,7 @@ claim a game-wide speedup.
 
 ## `D_DrawZPoint` is now an i486 assembly entry point
 
-`src/asm486_experiments.s` now exports `D_DrawZPoint` when
+`src/renderer/asm486_experiments.s` now exports `D_DrawZPoint` when
 `ZPointImplementation=asm` is selected. It reads the precomputed `zspantable`
 row, performs the signed depth comparison, and writes the z value and palette
 pixel. Its x87 conversion temporarily selects truncate-toward-zero for the C
@@ -98,7 +98,7 @@ default while the conversion continues.
 
 ## `D_DrawSkyScans8` is now a complete i486 assembly entry point
 
-`src/asm486_experiments.s` now owns the whole 8-bit sky scan: viewport and
+`src/renderer/asm486_experiments.s` now owns the whole 8-bit sky scan: viewport and
 sky-phase setup, span traversal, 32-pixel chunking, UV projection, x87 vector
 normalization, fixed-point interpolation, destination addressing, and palette
 sampling. The C scan and UV routines remain available under the C selector and
@@ -118,7 +118,7 @@ baseline.
 ## `D_WarpScreen` is now a selectable i486 assembly entry point
 
 With `WarpScreenImplementation=asm`, the C `D_WarpScreen` body is omitted from
-that build. `src/asm486_experiments.s` owns the routine's local lookup arrays,
+that build. `src/renderer/asm486_experiments.s` owns the routine's local lookup arrays,
 ratio setup, x87 time-phase conversion, row and column table generation,
 destination calculation, and four-pixel copy loop. The table and pixel helpers
 use 486-safe integer instructions. `WarpScreenImplementation=c` retains the
@@ -142,7 +142,7 @@ threshold. C therefore remains the default.
 
 ## `D_DrawSolidSurface` now has a selectable i486 assembly path
 
-With `SolidSurfaceImplementation=asm`, `src/asm486_experiments.s` exports the
+With `SolidSurfaceImplementation=asm`, `src/renderer/asm486_experiments.s` exports the
 public `D_DrawSolidSurface` entry and traverses the surface's span list directly;
 the ASM build omits the C body. It preserves the C routine's distinct short-span
 dword pattern, byte tails, low-byte memset behavior for spans of 16 pixels or
@@ -294,7 +294,7 @@ baseline. A pinned timedemo completed 969 frames in 59.257651 s with checksum
 ## `R_DrawSurface` now has a selectable i486 assembly entry point
 
 `SurfaceDrawImplementation=c|asm` selects the full `R_DrawSurface` entry.
-With `asm`, `src/asm486_experiments.s` owns the surface rebuild dispatch and
+With `asm`, `src/renderer/asm486_experiments.s` owns the surface rebuild dispatch and
 8-bit draw setup: it calls the independently selected `R_BuildLightMap`, sets
 the surface row size, texture source and step limits, mip globals, and draw
 dimensions, then handles POT and NPOT texture wrapping while walking the
@@ -358,7 +358,7 @@ a performance comparison. `asm` remains the configured selector default.
 
 ## `D_MipLevelForScale` now exports its public i486 assembly entry directly
 
-With `MipLevelImplementation=asm`, `src/asm486_experiments.s` now exports
+With `MipLevelImplementation=asm`, `src/renderer/asm486_experiments.s` now exports
 `D_MipLevelForScale` itself at the x87 threshold routine. The selected build no
 longer keeps a C forwarding function around the assembly helper. The complete
 C implementation remains selectable, and benchmark builds keep

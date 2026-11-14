@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `HunkMarkReleaseImplementation=asm` selects `Hunk_FreeToLowMark` and
-`Hunk_FreeToHighMark` from `src/zone_hunkmarkfreeasm.s` in the current i486
+`Hunk_FreeToHighMark` from `src/memory/zone_hunkmarkfreeasm.s` in the current i486
 profile. BENCH builds retain `Hunk_FreeToLowMark_C` and
 `Hunk_FreeToHighMark_C` as independent parity references, and the C-reference
 profile selects those C entries.
@@ -64,4 +64,4 @@ establish full-scene framebuffer parity or measure FPS.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Hunk_FreeToLowMark_C`, `src/zone.c:Hunk_FreeToHighMark_C` | `src/zone_hunkmarkfreeasm.s:Hunk_FreeToLowMark`, `src/zone_hunkmarkfreeasm.s:Hunk_FreeToHighMark` | Twelve exact state cases across both procedures, including temp-mark unwind and full arena/state comparison | DOSBox-X fixture passes; strict i486 BENCH and release gates pass |
+| `src/memory/zone.c:Hunk_FreeToLowMark_C`, `src/memory/zone.c:Hunk_FreeToHighMark_C` | `src/memory/zone_hunkmarkfreeasm.s:Hunk_FreeToLowMark`, `src/memory/zone_hunkmarkfreeasm.s:Hunk_FreeToHighMark` | Twelve exact state cases across both procedures, including temp-mark unwind and full arena/state comparison | DOSBox-X fixture passes; strict i486 BENCH and release gates pass |

@@ -1,6 +1,6 @@
 # Edge-scan surface-index decode promoted (2026-10-21)
 
-Status: promoted in `src/r_edgea.s` under the any-positive pooled mean rule.
+Status: promoted in `src/renderer/r_edgea.s` under the any-positive pooled mean rule.
 
 `R_GenerateSpans` now loads `edge->surfs[0]` and `edge->surfs[1]` as separate
 unsigned halfwords. This replaces the packed dword load, register copy, and two

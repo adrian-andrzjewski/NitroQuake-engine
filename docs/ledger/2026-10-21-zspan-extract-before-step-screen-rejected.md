@@ -1,7 +1,7 @@
 # Z-span extraction-before-step schedule rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted
-accumulator-before-store schedule remains active in `src/d_draw.s`.
+accumulator-before-store schedule remains active in `src/renderer/d_draw.s`.
 
 The experiment moved the independent high-word extraction (`shrl $16,%eax`)
 before the first Z accumulator add/subtract in the normal and negative packed

@@ -1,6 +1,6 @@
 # Alias transform adds the first two terms before loading the third (2026-10-25)
 
-Status: promoted in `src/r_aliasa.s` after exact frame parity, a positive strict
+Status: promoted in `src/renderer/r_aliasa.s` after exact frame parity, a positive strict
 mean, and the complete i486 ISA gate.
 
 The transform previously loaded and multiplied component 2, then exchanged the

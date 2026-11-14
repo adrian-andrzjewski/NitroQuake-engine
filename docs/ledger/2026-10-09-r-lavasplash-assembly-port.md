@@ -3,10 +3,10 @@
 ## Scope and traceability
 
 `CL_ParseTEnt` calls `R_LavaSplash` for `TE_LAVASPLASH` in
-`src/cl_tent.c`. The C reference remains in `src/r_part.c`; when
+`src/client/cl_tent.c`. The C reference remains in `src/renderer/r_part.c`; when
 `LavaSplashImplementation=asm`, it is exposed as `R_LavaSplash_C` for
 `BENCH486`, while the assembly entry exports the normal `R_LavaSplash` symbol.
-The implementation is isolated in `src/r_lavasplashasm.s` and selected with
+The implementation is isolated in `src/renderer/r_lavasplashasm.s` and selected with
 `ASM486_LAVA_SPLASH`.
 
 The emitter follows the original fixed 32-by-32 grid. It allocates at most
@@ -27,7 +27,7 @@ normal mechanical ISA audit.
 
 ## Correctness fixture
 
-`src/bench486_lavasplash.h` supplies a guarded pool and compares the C oracle
+`src/tests/bench486/bench486_lavasplash.h` supplies a guarded pool and compares the C oracle
 with `R_LavaSplash_asm486` byte-for-byte. It checks active/free heads and links,
 all particle bytes, unchanged padding and ramp bytes, canaries, `cl.time`, ABI
 preservation, random-call counts, and the next random value. Scripted cases

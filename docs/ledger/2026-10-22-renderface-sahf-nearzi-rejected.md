@@ -25,5 +25,5 @@ Artifacts:
 - Candidate: `out/dos-timedemo-20261022-020040/timedemo-result.json`
 
 The negative mean rejects this instruction substitution. The restored
-`src/asm486_experiments.s` SHA-256 is
+`src/renderer/asm486_experiments.s` SHA-256 is
 `740265FC97698A2CFE34B875EB3E61519715C9C8EF9DE563AEA94E8F768776A2`.

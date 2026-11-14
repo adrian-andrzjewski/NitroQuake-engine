@@ -1,6 +1,6 @@
 # Edge-scan leading-pointer retention promoted (2026-10-21)
 
-Status: promoted in `src/r_edgea.s` under the any-positive pooled mean rule.
+Status: promoted in `src/renderer/r_edgea.s` under the any-positive pooled mean rule.
 
 On edges with both surfaces present, `R_GenerateSpans` now forms the leading
 surface pointer in `%edi` before calling `TrailingEdge`. The helper preserves

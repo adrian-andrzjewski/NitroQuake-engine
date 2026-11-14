@@ -1,6 +1,6 @@
 # Span16 S-step add before source-byte fetch screen rejected (2026-10-21)
 
-The default word-store schedule remains active in `src/d_draw16.s`. This
+The default word-store schedule remains active in `src/renderer/d_draw16.s`. This
 parity-only screen moved each `addl %ebp,%ebx` ahead of its paired
 `movb (%esi),%al` in the A and B halves. The `movb` preserves the carry consumed
 by the following `adcl`; no DDA arithmetic changed. The experiment's source

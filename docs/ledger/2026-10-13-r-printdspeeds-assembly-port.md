@@ -4,7 +4,7 @@
 
 | Reference behavior | Assembly implementation | Exact fixture |
 | --- | --- | --- |
-| `src/r_misc.c:R_PrintDSpeeds` | `src/r_printtimesasm.s:R_PrintDSpeeds` | `src/bench486_printtimes.h:Bench486PrintDSpeedsCases` |
+| `src/renderer/r_misc.c:R_PrintDSpeeds` | `src/renderer/r_printtimesasm.s:R_PrintDSpeeds` | `src/tests/bench486/bench486_printtimes.h:Bench486PrintDSpeedsCases` |
 | The six stage intervals and total frame milliseconds | The original x87 evaluation order, `1000.0f` constant and three truncating integer casts | Six stage-time pairs and fixed timer values compared through Quake's console ring |
 
 `PrintTimesImplementation=asm` now selects both timing diagnostics. The C body

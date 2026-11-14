@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #if defined(ASM486_PALETTE) || defined(BENCH486)
 #include <stddef.h>
-#include "asm_palette.h"
+#include "renderer/asm_palette.h"
 typedef char palette_client_layout[(offsetof(client_state_t,items)==p_client_items &&
     offsetof(client_state_t,cshifts)==p_client_shifts &&
     offsetof(client_state_t,prev_cshifts)==p_client_previous) ? 1 : -1];
@@ -39,7 +39,7 @@ void BuildGammaTable_C (float g);
 qboolean V_CheckGamma_C (void);
 void V_CalcPowerupCshift_C (void);
 
-#include "r_local.h"
+#include "renderer/r_local.h"
 
 /*
 

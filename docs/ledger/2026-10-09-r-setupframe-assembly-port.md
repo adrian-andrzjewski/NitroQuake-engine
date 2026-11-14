@@ -2,14 +2,14 @@
 
 ## Per-frame renderer setup
 
-`R_SetupFrame` in `src/r_misc.c` enforces multiplayer cvar restrictions,
+`R_SetupFrame` in `src/renderer/r_misc.c` enforces multiplayer cvar restrictions,
 records optional surface/edge statistics, advances frame and animated-light
 state, builds the camera basis, finds the current BSP leaf, updates waterwarp
 and viewport state, transforms the frustum, snapshots camera vectors, resets
 renderer counters, and calls `D_SetupFrame`.
 
-The selected assembly implementation is `src/r_setupframe_asm.inc`, included
-by `src/v_viewcontrolasm.s` under `ViewControlImplementation=asm`. The ordinary
+The selected assembly implementation is `src/renderer/r_setupframe_asm.inc`, included
+by `src/client/v_viewcontrolasm.s` under `ViewControlImplementation=asm`. The ordinary
 C selector remains the reference. BENCH486 builds retain the same C body as
 `R_SetupFrame_View_C` while the assembly entry owns the production symbol. The
 focused profiles `i486-viewcontrol-c.json` and `i486-viewcontrol-asm.json`
@@ -19,7 +19,7 @@ The assembly preserves the original ordering and delegates the same operations
 to the existing angle-vector, alias-view, BSP leaf, viewport, frustum, sky and
 drawing setup routines. It uses the 32-bit cdecl ABI, saves EBP, leaves
 EAX/ECX/EDX caller-owned, and keeps its x87 stack empty across calls. C layout
-contracts in `src/asm_viewcontrol.h` pin the refdef, video, client, server,
+contracts in `src/client/asm_viewcontrol.h` pin the refdef, video, client, server,
 leaf, surface, edge, and cvar fields used by the routine. Float-to-int casts
 use a temporary truncation mode and restore the caller's x87 control word. The
 viewport code retains the original assignment order, including the existing

@@ -7,7 +7,7 @@ existing promoted early-store schedule. No minimum-gain threshold was applied.
 The candidate used `TextureSpanLoadOrder=loadfirst` and moved each packed word
 store in both 16-pixel loop halves to immediately before the final carry-based
 source-address update. This tested the load-first order together with the
-promoted early-store placement. The change touched `src/d_draw16.s` only.
+promoted early-store placement. The change touched `src/renderer/d_draw16.s` only.
 
 All six timedemos used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the uninstrumented
 runner, and the pinned 32 MB i486 profile

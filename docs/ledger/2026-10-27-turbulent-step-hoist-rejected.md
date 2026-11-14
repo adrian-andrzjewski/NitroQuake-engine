@@ -24,5 +24,5 @@ variants rendered 969 frames per run and produced framebuffer checksum
 The full strict i486 audit passed: 403 exact object proofs, 314,300 linked
 instructions, 529 startup instructions, and 9,207 provider instructions, with
 zero above-i486, unknown, or exempt instructions. The result and audit evidence
-remain under `out/`. The candidate-only edit to `src/d_scana.s` was restored, so
+remain under `out/`. The candidate-only edit to `src/renderer/d_scana.s` was restored, so
 there is no source change to commit.

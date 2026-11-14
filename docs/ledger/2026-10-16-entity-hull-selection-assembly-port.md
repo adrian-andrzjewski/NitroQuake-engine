@@ -6,8 +6,8 @@
 `SV_HullForEntity` and its six-plane box builder, `SV_HullForBox`. The default
 i486 profile selects assembly; the C-reference profile selects the original C
 functions. BENCH builds retain both implementations for direct parity checks.
-The implementation lives in `src/sv_hullforentity_asm.inc`, included from
-`src/asm486_experiments.s`. `src/asm_hullforentity.h` pins the 32-bit ABI and
+The implementation lives in `src/collision/sv_hullforentity_asm.inc`, included from
+`src/renderer/asm486_experiments.s`. `src/collision/asm_hullforentity.h` pins the 32-bit ABI and
 the entity, model, hull, plane, and temporary box-hull layouts used by it.
 
 The brush path validates `SOLID_BSP`, `MOVETYPE_PUSH`, and `mod_brush`, then

@@ -2,7 +2,7 @@
 
 Status: rejected after the strict three-run recheck; the original load order was restored.
 
-The candidate moved `movl C(surfaces),%eax` before both `movzwl et_surfs` loads at `Lgs_edgeloop` in `src/r_edgea.s`. The experiment tested whether starting the independent global-base load earlier would hide its latency on the 486.
+The candidate moved `movl C(surfaces),%eax` before both `movzwl et_surfs` loads at `Lgs_edgeloop` in `src/renderer/r_edgea.s`. The experiment tested whether starting the independent global-base load earlier would hide its latency on the 486.
 
 ## Matched 320x200 timedemo
 

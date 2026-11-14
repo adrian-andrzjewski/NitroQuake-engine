@@ -6,7 +6,7 @@ The isolated candidate changed the view clip-plane chain from `0,1,2,3` to
 `1,0,2,3`, including the masked-chain setup and the left/right boundary tails.
 It was tested in `out/worktree-clipplane-census-20261104` against the matched
 packed-BSP control in `out/worktree-bsp-state-pack-20261103`. The candidate
-differs in `src/asm486_experiments.s` and `src/r_frustumasm.s`; the main
+differs in `src/renderer/asm486_experiments.s` and `src/renderer/r_frustumasm.s`; the main
 checkout was not changed.
 
 ## Parity screen

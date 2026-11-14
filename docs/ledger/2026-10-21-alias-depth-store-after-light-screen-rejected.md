@@ -2,7 +2,7 @@
 
 Status: reverted after a negative three-run parity screen. The promoted
 depth-store position immediately after the texture load remains active in
-`src/d_polysa.s`.
+`src/renderer/d_polysa.s`.
 
 The experiment moved each passing pixel's Z-buffer store after the light-byte
 move and before the colormap lookup. It covered the sixteen unrolled pixels

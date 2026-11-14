@@ -415,9 +415,9 @@
   ],
   "layoutAssertions": 99,
   "originalSource": "frame-control-reference.c",
-  "currentCOracle": "src/r_main.c: ASM486_FRAME_CONTROL/BENCH486 guards",
-  "assemblyEntry": "src/r_framecontrolasm.s",
-  "directCorrectnessFixture": "src/bench486_framecontrol.h",
+  "currentCOracle": "src/renderer/r_main.c: ASM486_FRAME_CONTROL/BENCH486 guards",
+  "assemblyEntry": "src/renderer/r_framecontrolasm.s",
+  "directCorrectnessFixture": "src/tests/bench486/bench486_framecontrol.h",
   "pairedCorrectnessProfile": "tools/renderer-profiles/i486-asm-frame-control.json",
   "compatibilityGate": "tools/build-dos.ps1: selected object, runtime and linked-byte audits"
 }

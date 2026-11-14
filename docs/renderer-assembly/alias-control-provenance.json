@@ -71,7 +71,7 @@
     {
       "originalFunction": "R_AliasCheckBBox",
       "variant": "release",
-      "assemblyFile": "src/r_aliasbounds_release.inc",
+      "assemblyFile": "src/renderer/r_aliasbounds_release.inc",
       "purpose": "Transform eight frame corners, clip the twelve original near-plane edges, reject XY bounds and retain the entity transform cache.",
       "calleeRegisters": [
         "%ebp",
@@ -88,7 +88,7 @@
     {
       "originalFunction": "R_AliasSetUpTransform",
       "variant": "release",
-      "assemblyFile": "src/r_aliastransform_release.inc",
+      "assemblyFile": "src/renderer/r_aliastransform_release.inc",
       "purpose": "Compose entity scale/origin, angle vectors and the cached camera matrix, retaining the original 31-bit projection scaling.",
       "calleeRegisters": [
         "%ebx"
@@ -100,7 +100,7 @@
     {
       "originalFunction": "R_AliasProjectFinalVert",
       "variant": "release",
-      "assemblyFile": "src/r_aliastransform_release.inc",
+      "assemblyFile": "src/renderer/r_aliastransform_release.inc",
       "purpose": "Compute reciprocal depth and the original screen/depth integer conversions without changing x87 stores.",
       "calleeRegisters": [],
       "stackReservations": []
@@ -108,7 +108,7 @@
     {
       "originalFunction": "R_AliasPreparePoints",
       "variant": "release",
-      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_release.inc",
       "purpose": "Transform clipped vertices, reject triangles by flag intersection and dispatch unclipped or clipped triangles in original order.",
       "calleeRegisters": [
         "%ebp",
@@ -124,7 +124,7 @@
     {
       "originalFunction": "R_AliasPrepareUnclippedPoints",
       "variant": "release",
-      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_release.inc",
       "purpose": "Transform/project vertices, optionally draw subdivision vertices and publish the full triangle batch.",
       "calleeRegisters": [
         "%ebx"
@@ -137,7 +137,7 @@
     {
       "originalFunction": "R_AliasSetupSkin",
       "variant": "release",
-      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_release.inc",
       "purpose": "Preserve invalid-skin fallback, animated selection and skin dimensions/seam correction.",
       "calleeRegisters": [],
       "stackReservations": [
@@ -148,7 +148,7 @@
     {
       "originalFunction": "R_AliasSetupLighting",
       "variant": "release",
-      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_release.inc",
       "purpose": "Pass the original model basis and light descriptor to the accepted lighting primitive.",
       "calleeRegisters": [],
       "stackReservations": [
@@ -158,7 +158,7 @@
     {
       "originalFunction": "R_AliasSetupFrame",
       "variant": "release",
-      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_release.inc",
       "purpose": "Preserve invalid-frame fallback and animated frame selection at client time plus sync base.",
       "calleeRegisters": [],
       "stackReservations": [
@@ -169,7 +169,7 @@
     {
       "originalFunction": "R_AliasDrawModel",
       "variant": "release",
-      "assemblyFile": "src/r_aliascontrol_release.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_release.inc",
       "purpose": "Retain aligned stack scratch, transform cache, setup order, colormap patching, depth scaling and triangle dispatch.",
       "calleeRegisters": [
         "%ebx"
@@ -188,7 +188,7 @@
     {
       "originalFunction": "R_AliasCheckBBox",
       "variant": "profile",
-      "assemblyFile": "src/r_aliasbounds_profile.inc",
+      "assemblyFile": "src/renderer/r_aliasbounds_profile.inc",
       "purpose": "Transform eight frame corners, clip the twelve original near-plane edges, reject XY bounds and retain the entity transform cache.",
       "calleeRegisters": [
         "%ebp",
@@ -205,7 +205,7 @@
     {
       "originalFunction": "R_AliasSetUpTransform",
       "variant": "profile",
-      "assemblyFile": "src/r_aliastransform_profile.inc",
+      "assemblyFile": "src/renderer/r_aliastransform_profile.inc",
       "purpose": "Compose entity scale/origin, angle vectors and the cached camera matrix, retaining the original 31-bit projection scaling.",
       "calleeRegisters": [
         "%ebx"
@@ -217,7 +217,7 @@
     {
       "originalFunction": "R_AliasProjectFinalVert",
       "variant": "profile",
-      "assemblyFile": "src/r_aliastransform_profile.inc",
+      "assemblyFile": "src/renderer/r_aliastransform_profile.inc",
       "purpose": "Compute reciprocal depth and the original screen/depth integer conversions without changing x87 stores.",
       "calleeRegisters": [],
       "stackReservations": []
@@ -225,7 +225,7 @@
     {
       "originalFunction": "R_AliasPreparePoints",
       "variant": "profile",
-      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_profile.inc",
       "purpose": "Transform clipped vertices, reject triangles by flag intersection and dispatch unclipped or clipped triangles in original order.",
       "calleeRegisters": [
         "%ebp",
@@ -242,7 +242,7 @@
     {
       "originalFunction": "R_AliasPrepareUnclippedPoints",
       "variant": "profile",
-      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_profile.inc",
       "purpose": "Transform/project vertices, optionally draw subdivision vertices and publish the full triangle batch.",
       "calleeRegisters": [
         "%ebx",
@@ -257,7 +257,7 @@
     {
       "originalFunction": "R_AliasSetupSkin",
       "variant": "profile",
-      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_profile.inc",
       "purpose": "Preserve invalid-skin fallback, animated selection and skin dimensions/seam correction.",
       "calleeRegisters": [],
       "stackReservations": [
@@ -268,7 +268,7 @@
     {
       "originalFunction": "R_AliasSetupLighting",
       "variant": "profile",
-      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_profile.inc",
       "purpose": "Pass the original model basis and light descriptor to the accepted lighting primitive.",
       "calleeRegisters": [],
       "stackReservations": [
@@ -278,7 +278,7 @@
     {
       "originalFunction": "R_AliasSetupFrame",
       "variant": "profile",
-      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_profile.inc",
       "purpose": "Preserve invalid-frame fallback and animated frame selection at client time plus sync base.",
       "calleeRegisters": [],
       "stackReservations": [
@@ -289,7 +289,7 @@
     {
       "originalFunction": "R_AliasDrawModel",
       "variant": "profile",
-      "assemblyFile": "src/r_aliascontrol_profile.inc",
+      "assemblyFile": "src/renderer/r_aliascontrol_profile.inc",
       "purpose": "Retain aligned stack scratch, transform cache, setup order, colormap patching, depth scaling and triangle dispatch.",
       "calleeRegisters": [
         "%ebx"

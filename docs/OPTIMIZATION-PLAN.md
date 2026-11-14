@@ -1151,7 +1151,7 @@ golden comparison with 12 of 64,000 pixels changed (mean absolute channel error
 skipped its separate ISA audit.
 
 The rejected branch-address implementation and its selector have since been
-removed from `src/d_draw16.s` and the DOS build, benchmark, smoke, and timedemo
+removed from `src/renderer/d_draw16.s` and the DOS build, benchmark, smoke, and timedemo
 wrappers. `TextureSpanAddressing` now accepts only `control`, preventing the
 known bad path from being selected again. A current-source i486 build passed
 the complete linked ISA audit (314,318 instructions; zero above-i486,
@@ -1543,7 +1543,7 @@ any-positive rule. All runs retained 969 frames and checksum `1047377823`;
 the complete strict i486 gate passed. See the
 [edge leading-pointer ledger](ledger/2026-10-21-edge-scan-leading-pointer-retained-promoted.md).
 
-`R_GenerateSpans` in `src/r_edgea.s` now reads the packed edge surface pair as
+`R_GenerateSpans` in `src/renderer/r_edgea.s` now reads the packed edge surface pair as
 two unsigned 16-bit indices, removing the register copy and masks from each
 edge iteration. The strict candidate averaged **15.564254 FPS** against the
 active strict control's **15.538384 FPS** (**+0.025870 FPS, +0.16649093%**);

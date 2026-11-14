@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `CacheFreeHighImplementation=asm` selects `Cache_FreeHigh` in
-`src/zone_cachefreehighasm.s`. The C implementation remains
+`src/memory/zone_cachefreehighasm.s`. The C implementation remains
 `Cache_FreeHigh_C` in BENCH builds and the C-reference profile. The current
 i486 release profile selects assembly, records the selector in its build
 manifest, links the assembly symbol, and omits `Cache_FreeHigh_C`.
@@ -15,7 +15,7 @@ the tail, it frees the associated user allocation, then repeats. The assembly
 preserves the C ABI and delegates allocation, relocation, and LRU changes to
 the existing selected `Cache_Move` and `Cache_Free` entries. The private cache
 header size, user offset, and sentinel `prev` offset are compile-time checked
-in `src/asm_cachefreehigh.h`.
+in `src/memory/asm_cachefreehigh.h`.
 
 ## Direct C/assembly parity
 
@@ -67,4 +67,4 @@ allocation/free management remains C-owned; `Cache_Compact` is an empty no-op.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_FreeHigh_C` | `src/zone_cachefreehighasm.s:Cache_FreeHigh` | Five exact empty, boundary, move, free, and repeated-reclamation states with full cache-state comparison and restoration | Strict i486 BENCH and release gates pass; DOSBox-X fixture passes |
+| `src/memory/zone.c:Cache_FreeHigh_C` | `src/memory/zone_cachefreehighasm.s:Cache_FreeHigh` | Five exact empty, boundary, move, free, and repeated-reclamation states with full cache-state comparison and restoration | Strict i486 BENCH and release gates pass; DOSBox-X fixture passes |

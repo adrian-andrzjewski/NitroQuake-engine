@@ -6,7 +6,7 @@ fourteen-comparison source.
 
 ## Change
 
-`Lsortloopnb` in `src/r_edgea.s` now checks fourteen surfaces before taking its
+`Lsortloopnb` in `src/renderer/r_edgea.s` now checks fourteen surfaces before taking its
 back-edge, up from twelve. The initial comparison remains outside the repeated
 body. Each comparison keeps the original order, signed `jl LInsertAndExit`, and
 immediate exit. The `PROFILE486` counter and optional sort probe remain attached

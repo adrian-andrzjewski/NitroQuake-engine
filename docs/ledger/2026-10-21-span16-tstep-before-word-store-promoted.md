@@ -1,6 +1,6 @@
 # Span16 T-step addition before word store promoted (2026-10-21)
 
-Status: promoted in `src/d_draw16.s` under the any-positive pooled mean rule.
+Status: promoted in `src/renderer/d_draw16.s` under the any-positive pooled mean rule.
 
 In the default Span16 word-store path, the next pixel's T-step addition now
 runs immediately before the current destination word store. The store and

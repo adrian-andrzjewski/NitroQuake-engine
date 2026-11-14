@@ -4,7 +4,7 @@
 
 `VideoUpdateImplementation=asm` now selects i486 assembly for
 `VID_GetModePtr`, `VID_ModeInfo`, `VID_SetMode`, `VID_SetPalette`,
-`VID_ShiftPalette`, and `VID_Shutdown` in `src/vid_updateasm.s`. The
+`VID_ShiftPalette`, and `VID_Shutdown` in `src/video/vid_updateasm.s`. The
 C-reference profile keeps the original C behavior; BENCH retains named C oracle
 entries while the public symbols resolve to assembly. The mode-layout header
 asserts the `vmode_t`, `viddef_t`, and DOS register offsets used by the

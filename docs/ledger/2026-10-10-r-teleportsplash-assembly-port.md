@@ -3,9 +3,9 @@
 ## Port mapping and contract
 
 `CL_ParseTEnt` invokes `R_TeleportSplash` for `TE_TELEPORT` in
-`src/cl_tent.c`. The C oracle remains in `src/r_part.c` as
+`src/client/cl_tent.c`. The C oracle remains in `src/renderer/r_part.c` as
 `R_TeleportSplash_C` when `TeleportSplashImplementation=asm` is selected; the
-assembly entry is `src/r_teleportsplashasm.s:R_TeleportSplash_asm486`, which
+assembly entry is `src/renderer/r_teleportsplashasm.s:R_TeleportSplash_asm486`, which
 exports the normal `R_TeleportSplash` symbol under `ASM486_TELEPORT_SPLASH`.
 The C and assembly profiles are
 `tools/renderer-profiles/i486-teleportsplash-c.json` and
@@ -22,7 +22,7 @@ uses the 32-bit cdecl interface, preserves callee-saved registers, and calls
 the same `VectorNormalize` and `VectorScale` helpers as the C routine. Its
 source declares `.arch i486` and `.arch .387`.
 
-`src/bench486_teleportsplash.h:Bench486TeleportSplashCases` is the direct
+`src/tests/bench486/bench486_teleportsplash.h:Bench486TeleportSplashCases` is the direct
 state/RNG oracle fixture. Its seven cases use free-list sizes 0, 1, 37, 895,
 896, and 897, plus a seeded libc-RNG continuation case. It verifies complete
 particle and list state, padding and ramp bytes, guard canaries, `cl.time`,

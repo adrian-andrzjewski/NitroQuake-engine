@@ -1,6 +1,6 @@
 # General Z-span subtract-pair store with STOSL (2026-10-26)
 
-Status: promoted in `src/d_draw.s` after exact framebuffer parity, a positive
+Status: promoted in `src/renderer/d_draw.s` after exact framebuffer parity, a positive
 strict mean, and the complete i486 ISA gate.
 
 The `ZSPAN_SUB_PAIR` fallback subtracts the depth step before writing each

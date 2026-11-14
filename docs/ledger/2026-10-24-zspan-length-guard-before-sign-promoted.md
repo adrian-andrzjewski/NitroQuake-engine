@@ -2,7 +2,7 @@
 
 Status: promoted in the working source under the no-minimum-gain policy.
 
-In the i486-only nonnegative Z-span path in `src/d_draw.s`, the 18-pixel span
+In the i486-only nonnegative Z-span path in `src/renderer/d_draw.s`, the 18-pixel span
 length check now runs before the nonnegative-start test. Short spans go to the
 general path without testing the start sign; long spans still pass the same
 start-sign and complete-endpoint proof before using the sign-branch-free pixel

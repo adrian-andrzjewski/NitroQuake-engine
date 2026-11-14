@@ -1,7 +1,7 @@
 {
   "source": "sky-reference.c",
   "sourceSha256": "95406C3804B5B19A1A34263BA0130649989BC6F0F1FFF937FCE4D2D85D94A657",
-  "assembly": "src/r_skyasm.s",
+  "assembly": "src/renderer/r_skyasm.s",
   "normalBuildRegeneratesAssembly": false,
   "origin": "Hand-maintained translation of the five original r_sky.c functions.",
   "functions": [

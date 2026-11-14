@@ -368,7 +368,7 @@ update, overlays, and the broader renderer ownership gaps below remain open.
 See the [R_PrintDSpeeds port ledger](ledger/2026-10-13-r-printdspeeds-assembly-port.md).
 
 `SCR_CalcRefdef` now has a selectable i486 assembly implementation in
-`src/screen_refdefasm.s`; the original C routine remains the default and direct
+`src/client/screen_refdefasm.s`; the original C routine remains the default and direct
 oracle. Its 12 deterministic input cases passed under four x87 rounding modes
 (48 exact state, event-order, ABI and x87-stack comparisons). The C-reference
 and assembly profiles differ only in `ScreenRefdefImplementation`; seven
@@ -499,7 +499,7 @@ builds. These builds pass the complete instruction, startup and provider gates;
 the broader initialization, effects, debug and indirect paths remain open.
 
 `R_SetupFrame` now has a selectable 486 assembly implementation in
-`src/r_setupframe_asm.inc`. Its focused C/assembly profile passed the strict
+`src/renderer/r_setupframe_asm.inc`. Its focused C/assembly profile passed the strict
 linked executable gate and three exact scene comparisons, including a reduced
 viewport and an alternate world. A four-case stress pair now also covers
 waterwarp off/on, debug counters, negative ambient and reduced viewport, with
@@ -867,7 +867,7 @@ remain open. See the
 [84-selector alias-control checkpoint](ledger/2026-10-09-selectable-84-alias-control-checkpoint.md).
 
 The `R_CheckVariables` frame-control slice is now implemented in
-`src/r_checkvariables_asm.inc` and replaces `r_misc.c:R_CheckVariables` when
+`src/renderer/r_checkvariables_asm.inc` and replaces `r_misc.c:R_CheckVariables` when
 `ASM486_VIEW_CONTROL` is selected. Its C-vs-assembly fixture passes 180 cases
 across twelve x87 control words; the combined all-84-selector aggressive BENCH
 run passes the 18,176-case ViewControl fixture. The candidate executable and

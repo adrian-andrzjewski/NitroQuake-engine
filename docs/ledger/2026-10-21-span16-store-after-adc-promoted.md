@@ -1,6 +1,6 @@
 # Span16 packed stores after the final address ADC promoted (2026-10-21)
 
-Status: promoted in `src/d_draw16.s` under the user's any-positive pooled-mean
+Status: promoted in `src/renderer/d_draw16.s` under the user's any-positive pooled-mean
 rule.
 
 In the default `ASM486_SPAN16_WORD_STORES` path, each `SPAN16_STORE_WORD` is

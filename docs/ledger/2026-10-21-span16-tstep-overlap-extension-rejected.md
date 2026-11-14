@@ -1,6 +1,6 @@
 # Span16 T-step/store overlap extension rejected (2026-10-21)
 
-Status: rejected in `src/d_draw16.s`; the earlier first-store T-step overlap
+Status: rejected in `src/renderer/d_draw16.s`; the earlier first-store T-step overlap
 remains active.
 
 The existing first-store schedule was extended by moving five additional

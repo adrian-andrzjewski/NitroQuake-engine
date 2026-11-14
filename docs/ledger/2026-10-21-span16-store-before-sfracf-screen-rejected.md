@@ -1,7 +1,7 @@
 # Span16 common store before `sfracf` reload screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The promoted
-`sfracf`-then-store order remains active in `src/d_draw16.s`.
+`sfracf`-then-store order remains active in `src/renderer/d_draw16.s`.
 
 The experiment moved the `advancetable` store ahead of the `sfracf` reload in
 `LSetUpCommon`, keeping it before the T-step fractional shift. The address

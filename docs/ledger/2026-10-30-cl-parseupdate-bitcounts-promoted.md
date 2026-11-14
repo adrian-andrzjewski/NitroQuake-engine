@@ -6,7 +6,7 @@ ISA gate.
 
 ## Change
 
-`CL_ParseUpdate` in `src/cl_parse.c` previously scanned all 16 update bits and
+`CL_ParseUpdate` in `src/client/cl_parse.c` previously scanned all 16 update bits and
 incremented `bitcounts[16]` for each entity update. A source-wide search found
 no reads of that array: the declaration and the increment loop were its only
 references. Removing both deletes diagnostic bookkeeping from the client

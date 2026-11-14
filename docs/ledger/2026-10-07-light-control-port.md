@@ -4,11 +4,11 @@
 
 The C `R_AnimateLight`, `RecursiveLightPoint`, and `R_LightPoint` algorithms now
 have independently selectable i486 assembly implementations in
-`src/r_lightcontrolasm.s`. The two selectors remain C by default until the
+`src/renderer/r_lightcontrolasm.s`. The two selectors remain C by default until the
 complete renderer profile is accepted. The assembly entries bind the public
 symbols directly; release builds do not execute C forwarding wrappers for
-these entries. `src/asm_lightcontrol.h` defines the shared layout constants,
-and `src/r_light.c` checks them against the C structures at compile time.
+these entries. `src/renderer/asm_lightcontrol.h` defines the shared layout constants,
+and `src/renderer/r_light.c` checks them against the C structures at compile time.
 
 The implementation preserves the 64 independent animated-style cursors,
 empty-style reset, signed style bytes, time-step modulo behavior, recursive
@@ -18,7 +18,7 @@ It uses the existing cdecl register rules, restores the x87 control word, and
 returns integers in EAX. The retained C implementations are independent test
 oracles in BENCH486 builds.
 
-`src/bench486_lightcontrol.h` compares 14,336 style-animation frames and 1,600
+`src/tests/bench486/bench486_lightcontrol.h` compares 14,336 style-animation frames and 1,600
 recursive/public point-light cases under 12 x87 control words. It covers
 continuous state, time jumps, negative times, all style slots, sampled/null/tiled
 surfaces, oblique planes, a 128-node chain, extreme coordinates, immutable input

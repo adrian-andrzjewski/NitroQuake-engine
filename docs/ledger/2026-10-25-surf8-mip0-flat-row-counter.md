@@ -1,6 +1,6 @@
 # Mip-0 flat surface row counter in AH (2026-10-25)
 
-Status: promoted assembly optimization in `src/surf8.s`.
+Status: promoted assembly optimization in `src/renderer/surf8.s`.
 
 The mip-0 horizontal-flat and fully-flat block helpers now keep their fixed
 16-row count in `%ah`, using `decb` and the existing `jnz` loop. Their row

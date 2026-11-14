@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `Sbar_MiniDeathmatchOverlay` draws the compact deathmatch list on wide status
-bars. `src/sbar_draw_asm.inc` now provides its assembly implementation, called
+bars. `src/client/sbar_draw_asm.inc` now provides its assembly implementation, called
 from the existing `Sbar_Draw` assembly dispatcher. The default
 `i486-asm-selectable-current` profile selects `SbarDrawImplementation=asm`;
 the C-reference profile keeps the original C implementation. BENCH retains the
@@ -60,7 +60,7 @@ correctness result for this port.
 
 | C reference | Assembly entry | Direct fixture | i486 evidence |
 | --- | --- | --- | --- |
-| `src/sbar.c:Sbar_MiniDeathmatchOverlay` | `src/sbar_draw_asm.inc:Sbar_MiniDeathmatchOverlay` | Eight exact score-order, draw-event, state and ABI cases | Focused strict BENCH object, linked executable, startup and provider audits pass |
+| `src/client/sbar.c:Sbar_MiniDeathmatchOverlay` | `src/client/sbar_draw_asm.inc:Sbar_MiniDeathmatchOverlay` | Eight exact score-order, draw-event, state and ABI cases | Focused strict BENCH object, linked executable, startup and provider audits pass |
 
 This ports the widescreen mini-scoreboard routine. The full intermission
 deathmatch score rendering is covered separately in the

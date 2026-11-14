@@ -57,7 +57,7 @@ production timing confirmation was pursued after this rejection.
 ## Disposition and retained artifacts
 
 Rejected. The primary renderer was never changed by the experiment. The
-isolated `src/d_draw16.s` was restored from the hash-verified accepted primary
+isolated `src/renderer/d_draw16.s` was restored from the hash-verified accepted primary
 source after preserving the narrow patch and candidate source. All builds,
 replays, diagnostics, and timing samples remain retained.
 

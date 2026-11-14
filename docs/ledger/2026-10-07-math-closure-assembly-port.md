@@ -3,14 +3,14 @@
 ## Accepted returning routines
 
 Twenty public entries from `mathlib.c` now have maintained assembly definitions
-in `src/r_mathclosureasm.s`. They cover projection, perpendicular vectors,
+in `src/renderer/r_mathclosureasm.s`. They cover projection, perpendicular vectors,
 axis rotation, angular wrapping, vector operations, length, matrix composition,
 floor quotient/remainder, GCD and the terminating plane-sign diagnostic.
 Normal builds assemble the file; they do not regenerate it with a C compiler.
 The original source, import flags and function mapping are retained in
 `docs/renderer-assembly/math-closure-reference.c` and
 `math-closure-provenance.json`. Layout/type assertions live in
-`src/asm_mathclosure.h`; the ABI and x87 store boundaries are documented beside
+`src/renderer/asm_mathclosure.h`; the ABI and x87 store boundaries are documented beside
 the instructions.
 
 The isolated direct fixture passed 29,184 comparisons of the nineteen returning

@@ -1,6 +1,6 @@
 # Span16 `advancetable` store after T-step shift promoted (2026-10-21)
 
-Status: promoted in `src/d_draw16.s` under the positive pooled-mean rule. This
+Status: promoted in `src/renderer/d_draw16.s` under the positive pooled-mean rule. This
 schedule supersedes the earlier placement before the T-step shift.
 
 `LSetUpCommon` now schedules the independent base-address store after both

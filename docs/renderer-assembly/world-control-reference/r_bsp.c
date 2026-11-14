@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_bsp.c
 
 #include "quakedef.h"
-#include "r_local.h"
+#include "renderer/r_local.h"
 
 #if defined(ASM486_BSP_WALK) || defined(ASM486_RENDER_WORLD) || \
 	defined(ASM486_DRAW_SUBMODEL_POLYGONS) || \

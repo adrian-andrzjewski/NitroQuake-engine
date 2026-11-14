@@ -5,7 +5,7 @@
 `Hunk_HighMark` returns `hunk_high_used`. If a temporary high-hunk allocation is
 active, it first clears `hunk_tempactive`, releases to `hunk_tempmark` through
 `Hunk_FreeToHighMark`, then returns the updated high mark. The procedure is now
-implemented in `src/zone_hunkmarkfreeasm.s` under the existing
+implemented in `src/memory/zone_hunkmarkfreeasm.s` under the existing
 `HunkMarkReleaseImplementation` selector. The default i486 profile already
 selects this module as assembly. BENCH retains `Hunk_HighMark_C` as the C
 reference.
@@ -50,4 +50,4 @@ and print routines. `Cache_Compact` is an empty no-op.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Hunk_HighMark_C` | `src/zone_hunkmarkfreeasm.s:Hunk_HighMark` | Five exact state comparisons, including temp unwind and full arena/state comparison | DOSBox-X fixture passes; strict i486 BENCH gate passes |
+| `src/memory/zone.c:Hunk_HighMark_C` | `src/memory/zone_hunkmarkfreeasm.s:Hunk_HighMark` | Five exact state comparisons, including temp unwind and full arena/state comparison | DOSBox-X fixture passes; strict i486 BENCH gate passes |

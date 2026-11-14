@@ -2,7 +2,7 @@
 
 Status: promoted under the positive pooled-mean rule.
 
-In `src/d_draw16.s`, `LSetUpCommon` now shifts the S-step fraction after the
+In `src/renderer/d_draw16.s`, `LSetUpCommon` now shifts the S-step fraction after the
 T-step fraction shift and before storing `advancetable`. The following
 T-fraction `addl` still sets the carry for `sbbl`; the later S-fraction `addl`
 still sets the carry for the address `adcl`. The fixed-point arithmetic and

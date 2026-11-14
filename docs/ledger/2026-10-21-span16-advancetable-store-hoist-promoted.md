@@ -1,7 +1,7 @@
 # Span16 advancetable store scheduling (2026-10-21)
 
 Status: originally promoted under the positive pooled-mean rule; superseded in
-`src/d_draw16.s` by
+`src/renderer/d_draw16.s` by
 [`2026-10-21-span16-store-after-tstep-shift-promoted.md`](2026-10-21-span16-store-after-tstep-shift-promoted.md).
 
 In the measured revision of `LSetUpCommon`, the store to `advancetable`

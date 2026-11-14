@@ -3,7 +3,7 @@
 ## Behavior and selector
 
 `CacheFreeLowImplementation=asm` selects the i486 assembly entry in
-`src/zone_cachefreelowasm.s`. The C body remains `Cache_FreeLow_C` in BENCH
+`src/memory/zone_cachefreelowasm.s`. The C body remains `Cache_FreeLow_C` in BENCH
 builds and the C-reference profile. The release build map contains
 `Cache_FreeLow` and omits `Cache_FreeLow_C`; its build manifest records the
 `asm` selector and includes `zone_cachefreelowasm.s`.
@@ -12,7 +12,7 @@ The entry scans the address-ordered cache list from its lowest block. It
 returns when the list is empty or its first block starts at or above the
 requested low-hunk boundary. Otherwise it calls the existing `Cache_Move`
 entry and repeats, preserving the original C routine's caller and callee
-contracts. `src/asm_cachefreelow.h` pins the cache header size and `next`
+contracts. `src/memory/asm_cachefreelow.h` pins the cache header size and `next`
 offset against `zone.c` at compile time.
 
 ## Direct C/assembly parity
@@ -64,4 +64,4 @@ not measure full-scene FPS or framebuffer parity.
 
 | C reference | Assembly entry | Direct fixture | Runtime evidence |
 | --- | --- | --- | --- |
-| `src/zone.c:Cache_FreeLow_C` | `src/zone_cachefreelowasm.s:Cache_FreeLow` | Five boundary, relocation, failure/free, and repeated-reclamation states with full cache/hunk restoration | Strict i486 BENCH and release gates pass; DOSBox-X C/ASM fixture passes |
+| `src/memory/zone.c:Cache_FreeLow_C` | `src/memory/zone_cachefreelowasm.s:Cache_FreeLow` | Five boundary, relocation, failure/free, and repeated-reclamation states with full cache/hunk restoration | Strict i486 BENCH and release gates pass; DOSBox-X C/ASM fixture passes |

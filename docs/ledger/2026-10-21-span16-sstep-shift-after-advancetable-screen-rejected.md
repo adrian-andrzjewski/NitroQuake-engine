@@ -1,7 +1,7 @@
 # Span16 S-step shift after `advancetable` store screen rejected (2026-10-21)
 
 Status: reverted after a negative three-run parity screen. The S-step shift at
-the start of `LSetUpCommon` remains active in `src/d_draw16.s`.
+the start of `LSetUpCommon` remains active in `src/renderer/d_draw16.s`.
 
 The experiment moved `shll $12,%ebp` from the start of `LSetUpCommon` to just
 after `movl %eax,advancetable` and before the T-fraction addition. The T-fraction

@@ -2,7 +2,7 @@
 
 ## C reference and behavior
 
-`R_BlobExplosion` in `src/r_part.c` is called by `CL_ParseTEnt` for
+`R_BlobExplosion` in `src/renderer/r_part.c` is called by `CL_ParseTEnt` for
 `TE_TAREXPLOSION`. It emits up to 1024 particles, stopping sooner if
 `free_particles` is empty. Each node moves to the head of `active_particles`.
 The routine sets the particle lifetime, alternates `pt_blob2` and `pt_blob`,
@@ -19,7 +19,7 @@ signed-remainder behavior exercised by negative fixture values.
 
 ## Assembly, selector and fixture
 
-`src/r_blobexplosionasm.s:R_BlobExplosion_asm486` implements the list updates,
+`src/renderer/r_blobexplosionasm.s:R_BlobExplosion_asm486` implements the list updates,
 type/color selection, coordinate and velocity generation, and the x87 lifetime
 calculation. It exports the public `R_BlobExplosion` name under
 `ASM486_BLOB_EXPLOSION`. Its source declares `.arch i486` and `.arch .387`;
@@ -31,7 +31,7 @@ combine the x87 values, then narrow to the particle float field.
 
 `BlobExplosionImplementation=asm` is the isolated selector in
 `tools/renderer-profiles/i486-asm-blob-explosion.json`; the candidate is also
-included in `i486-asm-selectable-92.json`. `src/bench486_blobexplosion.h`
+included in `i486-asm-selectable-92.json`. `src/tests/bench486/bench486_blobexplosion.h`
 contains `Bench486BlobExplosionCases`, with empty, one-node, alternating,
 short, almost-full, full and one-extra-node cases. It compares the complete
 guarded particle fixture and list links, checks ABI and unchanged `cl.time`,
@@ -41,7 +41,7 @@ intended for the disposable `-benchexit` benchmark process.
 
 ## Event-driven scene trace
 
-The BENCH486 `TE_TAREXPLOSION` branch in `src/cl_tent.c` calls
+The BENCH486 `TE_TAREXPLOSION` branch in `src/client/cl_tent.c` calls
 `Bench486RecordBlobExplosionEvent` immediately after `R_BlobExplosion`
 returns. `host_cmd.c` records the current zero-based rendered-frame index for
 up to 32 events, counts every call and records overflow. The frame index advances

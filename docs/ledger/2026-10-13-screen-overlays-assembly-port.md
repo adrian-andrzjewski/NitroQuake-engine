@@ -4,7 +4,7 @@
 
 | Reference behavior | Assembly implementation | Reference boundary |
 | --- | --- | --- |
-| `src/screen.c:SCR_UpdateScreen` inline overlay decision tree | `src/screen_overlaysasm.s:SCR_DrawScreenOverlays_asm486`, selected by `ScreenOverlaysImplementation=asm` | `SCR_DrawScreenOverlays_Screen_C` retains the C branch tree for the BENCH486 oracle; `ScreenOverlaysImplementation=c` uses it directly |
+| `src/client/screen.c:SCR_UpdateScreen` inline overlay decision tree | `src/client/screen_overlaysasm.s:SCR_DrawScreenOverlays_asm486`, selected by `ScreenOverlaysImplementation=asm` | `SCR_DrawScreenOverlays_Screen_C` retains the C branch tree for the BENCH486 oracle; `ScreenOverlaysImplementation=c` uses it directly |
 
 The helper preserves the original branch precedence and visible call order:
 dialog, loading, intermission 1, intermission 2/finale, intermission 3, then
@@ -13,7 +13,7 @@ turtle marker, pause marker, center-string check, status bar, console, and menu
 in that order. The dialog path still sets `scr_copyeverything`; intermission
 branches still require `key_dest == key_game`.
 
-`src/asm_screenoverlays.h` pins `client_state_t.intermission` at byte offset
+`src/client/asm_screenoverlays.h` pins `client_state_t.intermission` at byte offset
 548 and `key_game` at zero with compile-time checks. The assembly is `.arch
 i486`, follows cdecl, and reads its two trace parameters from the stack. The
 C and assembly profiles contain the same 108 selectors and differ only in
@@ -22,7 +22,7 @@ assembly for the other 107 selectors.
 
 ## Direct C/assembly branch fixture
 
-The guarded fixture in `src/bench486_screenoverlays.h` compares eight branch
+The guarded fixture in `src/tests/bench486/bench486_screenoverlays.h` compares eight branch
 and state cases, including dialog/loading precedence, all three intermission
 branches, menu destinations, and default-path state preservation. It checks
 the recorded callback sequence, `scr_copyeverything`, stack/register state,

@@ -1,6 +1,6 @@
 # Texture-span next-pointer carry (2026-10-25)
 
-Status: promoted assembly optimization in `src/d_draw.s`.
+Status: promoted assembly optimization in `src/renderer/d_draw.s`.
 
 `D_DrawSpans8` now pushes `espan_t_pnext(%ebx)` before reusing `%ebx`, then
 pops the next span after clearing the x87 temporaries. This replaces saving the

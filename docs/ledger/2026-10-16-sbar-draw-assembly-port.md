@@ -3,7 +3,7 @@
 ## Scope and selection
 
 `Sbar_Draw` now has an i486 assembly implementation in
-`src/sbar_draw_asm.inc`, included by `src/sbarasm.s`. The default
+`src/client/sbar_draw_asm.inc`, included by `src/client/sbarasm.s`. The default
 `i486-asm-selectable-current` profile selects `SbarDrawImplementation=asm`;
 `i486-c-reference` selects the original C implementation. BENCH builds retain
 `Sbar_Draw_C` as the direct oracle and can select `asm-fixture` to route helper
