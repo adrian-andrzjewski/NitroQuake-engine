@@ -86,24 +86,33 @@ class HistoryTests(unittest.TestCase):
         self.write('one-promoted.md', '# Accepted\nAnother five benchmark samples.\n')
         self.assertEqual(self.result()['buildNumber'], 2)
 
-    def test_runner_freshness_tracks_inventory(self):
+    def test_runner_freshness_ignores_inventory_but_tracks_revision_and_source(self):
         (self.root / 'src').mkdir()
+        (self.root / 'src' / 'r_main.c').write_text('void render(void) {}\n', encoding='ascii')
+        self.commit()
         common = str(Path(__file__).with_name('common.ps1')).replace("'", "''")
-        repo = str(self.root).replace("'", "''")
-        script = f". '{common}'; function Get-CompatibilityPolicyFingerprint {{ 'fixture' }}; "
-        script += "$resolved = [pscustomobject]@{outputRoot='out';profileSuffix='';executable='quake.exe';cFlags=@();asmFlags=@()}; "
-        script += f"Get-BuildFingerprint -RepoRoot '{repo}' -Resolved $resolved"
-        def fingerprint(snapshot=None):
-            command = script + (f" -OptimizationInventorySha256 '{snapshot}'" if snapshot else '')
+        def fingerprint(repo):
+            repo = str(repo).replace("'", "''")
+            script = f". '{common}'; function Get-CompatibilityPolicyFingerprint {{ 'fixture' }}; "
+            script += "$resolved = [pscustomobject]@{outputRoot='out';profileSuffix='';executable='quake.exe';cFlags=@();asmFlags=@()}; "
+            command = script + f"Get-BuildFingerprint -RepoRoot '{repo}' -Resolved $resolved"
             return subprocess.run(['pwsh', '-NoProfile', '-Command', command], check=True,
                                   capture_output=True, encoding='utf-8').stdout.strip()
-        first = fingerprint()
-        snapshot = self.result()['inventorySha256']
+        first = fingerprint(self.root)
         self.assertTrue(first)
-        self.assertEqual(first, fingerprint())
+        self.assertEqual(first, fingerprint(self.root))
         self.write('third-promoted.md', '# A newly accepted attempt\n')
-        self.assertNotEqual(first, fingerprint())
-        self.assertEqual(first, fingerprint(snapshot))
+        self.assertEqual(first, fingerprint(self.root))
+        self.assertEqual(3, self.result()['buildNumber'])
+        self.commit()
+        self.assertNotEqual(first, fingerprint(self.root))
+
+        clone = Path(self.temp.name) / 'shallow-fingerprint'
+        self.git('clone', '-q', '--depth=1', '--no-hardlinks', self.root.as_uri(), str(clone))
+        self.assertEqual(fingerprint(self.root), fingerprint(clone))
+
+        (self.root / 'src' / 'r_main.c').write_text('void render(void) { int changed; }\n', encoding='ascii')
+        self.assertNotEqual(fingerprint(self.root), fingerprint(clone))
 
     def test_duplicate_and_independent_variants(self):
         markers = '<!-- optimization-attempt: variant-a accepted -->\n<!-- optimization-attempt: variant-b rejected -->\n'

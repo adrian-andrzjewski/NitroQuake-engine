@@ -920,6 +920,27 @@ try {
         'wad.c'      = @('-fno-delete-null-pointer-checks')
     }
     $linkFingerprintFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s', '<objects>', '-lm', "-Wl,-Map=$linkMap", '-o', $executable)
+    $fingerprintConfig = [pscustomobject]@{
+        cpuTarget = $CpuTarget
+        cpuModel = $cpuModel
+        fpuModel = $fpuModel
+        fpuRequired = $true
+        floatingPointMode = $floatingPointMode
+        march = $marchFlag
+        mtune = $mtuneFlag
+        optimizationProfile = $OptimizationProfile
+        optimizationLevel = $optimizationLevel
+        profileSuffix = $profileSuffix
+        outputRoot = $outputRoot
+        executable = $executable
+        cFlags = @($cFlags)
+        cSourceExtraFlags = $cSourceExtraFlags
+        asmFlags = @($asmFlags)
+        linkFlags = $linkFingerprintFlags
+        cSources = @($cSources.Name)
+        assemblySources = @($asmSources.Name)
+        includedCSources = @($includedCSources)
+    }
     if ($DumpFlags) {
         # The link list is reported with a placeholder for the object files so
         # that the dump does not depend on the compile loop having run.
@@ -959,8 +980,10 @@ try {
     New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $objectRoot -Force | Out-Null
 
+    . (Join-Path $PSScriptRoot 'common.ps1')
     . (Join-Path $PSScriptRoot 'build-number.ps1')
-    $buildIdentity = New-NitroQuakeBuildIdentity -RepoRoot $repoRoot -HeaderPath $buildNumberHeader
+    $buildIdentity = New-NitroQuakeBuildIdentity -RepoRoot $repoRoot `
+        -HeaderPath $buildNumberHeader -Resolved $fingerprintConfig
     Write-Host $buildIdentity.version
     Write-Host $buildIdentity.build
 
@@ -1307,37 +1330,18 @@ try {
     # Placed after the ISA gate deliberately.  A build that failed the gate throws
     # before reaching this, so a failed build never leaves a fingerprint behind
     # claiming the tree matches.
-    . (Join-Path $PSScriptRoot 'common.ps1')
-    # The same fields -DumpFlags emits, so a runner's digest and this one are the
-    # same digest.  outputRoot and executable are included because they are part of
-    # the identity: -Benchmark and -Instrumentation change the name and the
-    # directory, and the profile suffix alone does not distinguish a release build
-    # from its bench sibling.
-    $fingerprintConfig = [pscustomobject]@{
-        outputRoot    = $outputRoot
-        profileSuffix = $profileSuffix
-        cFlags        = @($cFlags)
-        asmFlags      = @($asmFlags)
-        executable    = $executable
-        cSourceExtraFlags = $cSourceExtraFlags
-        linkFlags = $linkFingerprintFlags
-    }
-    # Bind freshness to the inventory actually embedded at build start. A report
-    # added during compilation must leave this binary stale for the next runner.
-    $buildFingerprint = Get-BuildFingerprint -RepoRoot $repoRoot -Resolved $fingerprintConfig `
-        -OptimizationInventorySha256 $buildIdentity.inventory.inventorySha256
-    Set-BuildFingerprint -Executable $executable -Fingerprint $buildFingerprint
+    # Reuse the source/configuration fingerprint embedded in the generated ID.
+    # Optimization history is manifest provenance and does not affect freshness.
+    Set-BuildFingerprint -Executable $executable -Fingerprint $buildIdentity.fingerprintSha256
 
     $version = ((& $compiler --version | Select-Object -First 1).ToString()).Trim()
-    $commit = $null
-    $git = Get-Command git.exe -ErrorAction SilentlyContinue
-    if ($null -ne $git) {
-        $commit = ((& $git.Source -C $repoRoot rev-parse HEAD 2>$null).ToString()).Trim()
-    }
     $manifest = [ordered]@{
         buildNumber = $buildIdentity.number
         productVersion = $buildIdentity.version
         productBuild = $buildIdentity.build
+        productBuildId = $buildIdentity.id
+        productBuildFingerprintSha256 = $buildIdentity.fingerprintSha256
+        sourceTreeSha256 = $buildIdentity.sourceTreeSha256
         optimizationAttempts = $buildIdentity.inventory
         buildNumberHeaderSha256 = (Get-FileHash -LiteralPath $buildNumberHeader -Algorithm SHA256).Hash
         compiler = $version
@@ -1381,7 +1385,7 @@ try {
             [IO.Path]::GetRelativePath($sourceRoot, $_.FullName) -replace '\\', '/'
         })
     }
-    $manifest['sourceCommit'] = $commit
+    $manifest['sourceCommit'] = $buildIdentity.sourceRevision
     $manifest['executable'] = $executable
     $manifest['objectRoot'] = $objectRoot
     $manifest['executableSha256'] = (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash

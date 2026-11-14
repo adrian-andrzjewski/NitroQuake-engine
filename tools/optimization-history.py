@@ -134,7 +134,8 @@ def inventory(root: Path) -> dict:
               for outcome in ("accepted", "rejected")}
     canonical = json.dumps(dict(attempts=records, sources=sources), sort_keys=True,
                            ensure_ascii=True, separators=(",", ":")).encode()
-    return dict(schemaVersion=1, buildNumber=len(records), **counts,
+    return dict(schemaVersion=1, status="complete", complete=True,
+                buildNumber=len(records), **counts,
                 inventorySha256=hashlib.sha256(canonical).hexdigest(),
                 gitRevision=git(root, "rev-parse", "HEAD").strip(),
                 attempts=records, sources=sources, excludedDocuments=excluded)

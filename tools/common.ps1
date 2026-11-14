@@ -283,7 +283,6 @@ function Get-CompatibilityPolicyFingerprint {
     # changed proof implementation or a changed source/listing bundle.
     $policyPaths = @('tools/build-dos.ps1', 'tools/build-dos-experimental.ps1',
             'tools/build-number.ps1', 'tools/common.ps1', 'tools/selectors.ps1',
-            'tools/optimization-history.py', 'tools/optimization-history-legacy.json',
             'tools/isa-audit.ps1', 'tools/isa-audit-linked.ps1', 'tools/dos-toolchain.json',
             'tools/isa-disassemble.py', 'tools/coff-code-data.py', 'tools/project-source-proofs.py',
             'tools/runtime-source-proofs.py', 'tools/djgpp-assembler-tool.py',
@@ -357,63 +356,90 @@ function Get-BuildFingerprint {
         Hash everything that determines a build: the sources and the configuration.
 
     .DESCRIPTION
-        A build is identified by more than its configuration.  Editing a .c or a
-        header changes the executable without changing any flag, so the digest
-        covers every source file under src\ as well.
+        The digest covers the source revision, source files, compatibility policy,
+        and the builder's resolved target and flag lists. It deliberately excludes
+        optimization-history data and physical output paths, so shallow clones and
+        equivalent builds in different directories retain the same identity.
 
-        The configuration half is taken from the builder's own resolved output --
-        the profile suffix and both flag lists.  That is deliberate, and it is the
-        reason this function takes flags rather than a selector table:
-
-          * it is already complete.  Every selector's effect is visible in the
-            suffix token or in a -D define, so this covers all forty of them
-            without any runner having to declare them.
-          * it is already the thing the project pins.  tools\golden\build-flags-*.json
-            compares exactly these fields, so the fingerprint cannot say a build is
-            fresh for a configuration the golden would reject.
-          * it needs no agreed order.  The two runners that build -Benchmark into
-            the same directory each used to spell out the same forty selectors by
-            hand, and the two lists had drifted in order (TurbulentImplementation
-            and MemoryImplementation are transposed).  Deriving the identity from
-            resolved output removes the question.
+        The resolved output is used instead of a second selector table. Every
+        selector's effect is reflected in the profile suffix or effective flags,
+        and the same resolved fields are golden-pinned and used by the runners.
 
     .PARAMETER RepoRoot
         Repository root.  src\ under it is the hashed source tree.
 
     .PARAMETER Resolved
         The resolved configuration, i.e. the object build-dos.ps1 -DumpFlags emits.
-        Both halves of the digest come from here, so the builder and the runners
-        cannot disagree about what a configuration is.
+        The builder and runners pass their resolved configuration here so they
+        cannot disagree about effective build settings.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$RepoRoot,
         [Parameter(Mandatory = $true)]$Resolved,
-        [string]$OptimizationInventorySha256
+        [string]$SourceRevision
     )
 
+    $repoRoot = [IO.Path]::GetFullPath($RepoRoot)
     $sourceRoot = Join-Path $repoRoot 'src'
-    $inputs = @(
-        Get-ChildItem -LiteralPath $sourceRoot -Include '*.c', '*.s', '*.h', '*.inc' -File -Recurse |
-            Sort-Object FullName |
-            ForEach-Object {
-                "$($_.FullName.Substring($sourceRoot.Length))=$((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)"
-            }
-    )
-    # Each on its own line so no combination of values can be re-partitioned into
-    # the same text as a different combination.
-    $inputs += 'build-fingerprint-schema=3'
     . (Join-Path $PSScriptRoot 'build-number.ps1')
-    if (-not $OptimizationInventorySha256) {
-        $OptimizationInventorySha256 = (Get-NitroQuakeOptimizationInventory -RepoRoot $RepoRoot).inventorySha256
+    if ([string]::IsNullOrWhiteSpace($SourceRevision)) {
+        $SourceRevision = Get-NitroQuakeSourceRevision -RepoRoot $repoRoot
     }
-    $inputs += ('optimizationInventory=' + $OptimizationInventorySha256)
-    $inputs += ('compatibilityPolicy=' + (Get-CompatibilityPolicyFingerprint -RepoRoot $RepoRoot))
-    $inputs += "outputRoot=$($Resolved.outputRoot)"
-    $inputs += "profileSuffix=$($Resolved.profileSuffix)"
-    $inputs += ('cFlags=' + (ConvertTo-Json -InputObject @($Resolved.cFlags) -Compress))
-    $inputs += ('asmFlags=' + (ConvertTo-Json -InputObject @($Resolved.asmFlags) -Compress))
-    $inputs += "executable=$($Resolved.executable)"
+
+    # Replace checkout/output-specific paths in argument values so identical
+    # inputs in different clones produce the same artifact identity.
+    $pathMappings = @(
+        [pscustomobject]@{ Path = $repoRoot; Token = '<repoRoot>' },
+        [pscustomobject]@{ Path = [IO.Path]::GetFullPath($sourceRoot); Token = '<sourceRoot>' }
+    )
+    if (-not [string]::IsNullOrWhiteSpace([string]$Resolved.outputRoot)) {
+        $outputRoot = [string]$Resolved.outputRoot
+        if (-not [IO.Path]::IsPathRooted($outputRoot)) {
+            $outputRoot = Join-Path $repoRoot $outputRoot
+        }
+        $pathMappings += [pscustomobject]@{ Path = [IO.Path]::GetFullPath($outputRoot); Token = '<outputRoot>' }
+    }
+    $pathMappings = @($pathMappings | Sort-Object { $_.Path.Length } -Descending)
+    $normalizeValue = {
+        param([AllowNull()][string]$Value)
+        $normalized = [string]$Value
+        foreach ($mapping in $pathMappings) {
+            $normalized = [Text.RegularExpressions.Regex]::Replace(
+                $normalized, [Text.RegularExpressions.Regex]::Escape($mapping.Path),
+                $mapping.Token, [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        }
+        return $normalized
+    }
+
+    # Each input is a separate line so distinct values cannot be repartitioned
+    # into the same fingerprint. This is a build-input fingerprint, not a
+    # documentation-history digest.
+    $inputs = @(
+        'build-fingerprint-schema=4'
+        ('sourceRevision=' + $SourceRevision)
+        ('sourceTree=' + (Get-SourceTreeFingerprint -RepoRoot $repoRoot))
+        ('compatibilityPolicy=' + (Get-CompatibilityPolicyFingerprint -RepoRoot $repoRoot))
+    )
+
+    $propertyNames = @('cpuTarget', 'cpuModel', 'fpuModel', 'fpuRequired',
+        'floatingPointMode', 'march', 'mtune', 'optimizationProfile',
+        'optimizationLevel', 'profileSuffix', 'cSources', 'assemblySources',
+        'includedCSources')
+    foreach ($name in $propertyNames) {
+        if (@($Resolved.PSObject.Properties.Name) -contains $name) {
+            $value = $Resolved.$name
+            if ($name -eq 'profileSuffix') { $value = & $normalizeValue ([string]$value) }
+            $inputs += ('resolved.' + $name + '=' +
+                (ConvertTo-Json -InputObject $value -Compress -Depth 10))
+        }
+    }
+    foreach ($name in @('cFlags', 'asmFlags')) {
+        if (@($Resolved.PSObject.Properties.Name) -contains $name) {
+            $arguments = @($Resolved.$name | ForEach-Object { & $normalizeValue ([string]$_) })
+            $inputs += ($name + '=' + (ConvertTo-Json -InputObject $arguments -Compress))
+        }
+    }
     if (@($Resolved.PSObject.Properties.Name) -contains 'cSourceExtraFlags') {
         $sourceFlags = if ($Resolved.cSourceExtraFlags -is [Collections.IDictionary]) {
             @($Resolved.cSourceExtraFlags.Keys | Sort-Object | ForEach-Object {
@@ -421,12 +447,21 @@ function Get-BuildFingerprint {
             })
         } else { @($Resolved.cSourceExtraFlags.PSObject.Properties | Sort-Object Name) }
         foreach ($entry in $sourceFlags) {
+            $values = @($entry.Value | ForEach-Object { & $normalizeValue ([string]$_) })
             $inputs += ('sourceFlags=' + $entry.Name + '=' +
-                (ConvertTo-Json -InputObject @($entry.Value) -Compress))
+                (ConvertTo-Json -InputObject $values -Compress))
         }
     }
     if (@($Resolved.PSObject.Properties.Name) -contains 'linkFlags') {
-        $inputs += ('linkFlags=' + (ConvertTo-Json -InputObject @($Resolved.linkFlags) -Compress))
+        $linkFlags = @($Resolved.linkFlags)
+        $canonicalLinkFlags = @()
+        for ($i = 0; $i -lt $linkFlags.Count; $i++) {
+            $flag = [string]$linkFlags[$i]
+            if ($flag -eq '-o') { $i++; continue }
+            if ($flag -match '^-Wl,-Map=') { continue }
+            $canonicalLinkFlags += (& $normalizeValue $flag)
+        }
+        $inputs += ('linkFlags=' + (ConvertTo-Json -InputObject $canonicalLinkFlags -Compress))
     }
 
     $hasher = [Security.Cryptography.SHA256]::Create()
