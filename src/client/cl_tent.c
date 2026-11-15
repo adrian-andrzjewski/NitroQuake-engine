@@ -19,7 +19,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_tent.c -- client side temporary entities
 
-#include "quakedef.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "client.h"
+#include "console.h"
+#include "model.h"
+#include "render.h"
+#include "sound.h"
+#include "sys.h"
+#include "vid.h"
 #include "tests/bench486/bench486_profile.h"
 
 int			num_temp_entities;
