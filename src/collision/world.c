@@ -19,7 +19,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // world.c -- world query functions
 
-#include "quakedef.h"
+#include <string.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "zone.h"
+#include "model.h"
+#include "progs.h"
+#include "server.h"
+#include "world.h"
+#include "console.h"
+#include "sys.h"
 #include "tests/bench486/bench486_profile.h"
 
 #ifdef ASM486_HULLCHECK
