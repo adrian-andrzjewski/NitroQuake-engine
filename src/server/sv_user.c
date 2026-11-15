@@ -19,13 +19,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sv_user.c -- server code for moving users
 
-#include "quakedef.h"
+#include <math.h>
+#include <string.h>
+
+#include "cmd.h"
+#include "console.h"
+#include "host.h"
+#include "keys.h"
+#include "net.h"
+#include "server.h"
+#include "sys.h"
+#include "view.h"
+#include "world.h"
 
 edict_t	*sv_player;
 
-extern	cvar_t	sv_friction;
 cvar_t	sv_edgefriction = {"edgefriction", "2"};
-extern	cvar_t	sv_stopspeed;
 
 static	vec3_t		forward, right, up;
 

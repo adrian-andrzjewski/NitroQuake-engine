@@ -19,7 +19,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sv_move.c -- monster movement
 
-#include "quakedef.h"
+#include <math.h>
+#include <stdlib.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "console.h"
+#include "server.h"
+#include "world.h"
 
 #define	STEPSIZE	18
 

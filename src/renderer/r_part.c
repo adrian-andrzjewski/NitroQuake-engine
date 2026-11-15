@@ -1029,8 +1029,6 @@ void R_RocketTrail (vec3_t start, vec3_t end, int type)
 R_DrawParticles
 ===============
 */
-extern	cvar_t	sv_gravity;
-
 #if !defined(ASM486_PARTICLE_UPDATE) || !id386 || defined(BENCH486)
 void R_DrawParticles_C (void)
 {

@@ -19,7 +19,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sv_phys.c
 
-#include "quakedef.h"
+#include <math.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "console.h"
+#include "host.h"
+#include "server.h"
+#include "sys.h"
+#include "world.h"
 #include "tests/bench486/bench486_profile.h"
 
 /*
