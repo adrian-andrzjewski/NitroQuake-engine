@@ -40,8 +40,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // !!! if this is changed, it must be changed in vid.h too !!!
 #define	MAXHEIGHT	1024
 
-// !!! if this is changed, it must be changed in quakedef.h too !!!
-#define CACHE_SIZE	32		// used to align key data structures
+// !!! if this is changed, it must be changed in render.h too !!!
+#define CACHE_SIZE	32		// used to align renderer scratch structures
 
 // particle_t structure
 // !!! if this is changed, it must be changed in d_iface.h too !!!

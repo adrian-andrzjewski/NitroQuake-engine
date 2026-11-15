@@ -54,7 +54,12 @@ if set(listed) != legacy_sources:
     )
 
 umbrella = (SOURCE / "quakedef.h").read_text(encoding="utf-8", errors="replace")
+renderer_header = (SOURCE / "render.h").read_text(encoding="utf-8", errors="replace")
 profile_header_text = PROFILE_HEADER.read_text(encoding="utf-8", errors="replace")
+if re.search(r"(?m)^\s*#\s*define\s+CACHE_SIZE\b", umbrella):
+    raise SystemExit("renderer alignment constant remains in quakedef.h")
+if not re.search(r"(?m)^\s*#\s*define\s+CACHE_SIZE\b", renderer_header):
+    raise SystemExit("render.h is missing the renderer alignment constant")
 if "#ifndef BENCH486_PROFILE_H" not in profile_header_text:
     raise SystemExit("benchmark profiling interface has no include guard")
 profile_symbols = set(PROFILE_SYMBOL.findall(profile_header_text))

@@ -20,7 +20,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // d_polyset.c: routines for drawing sets of polygons sharing the same
 // texture (used for Alias models)
 
-#include "quakedef.h"
+#include <math.h>
+
+#include "common.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "zone.h"
+#include "model.h"
+#include "client.h"
+#include "render.h"
+#include "d_iface.h"
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/asm_publicbindings.h"
 #include "renderer/r_local.h"

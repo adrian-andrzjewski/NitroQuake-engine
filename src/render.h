@@ -31,6 +31,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WARP_WIDTH		320
 #define WARP_HEIGHT		200
 
+// C renderer scratch structures use the same cache-line alignment as assembly.
+#define CACHE_SIZE		32
+
 #define	MAXCLIPPLANES	11
 
 #define	TOP_RANGE		16			// soldier uniform colors
