@@ -20,7 +20,6 @@ src/core/host.c
 src/network/net_dgrm.c
 src/network/net_main.c
 src/network/net_mp.c
-src/network/net_ser.c
 src/platform/dos/in_dos.c
 src/platform/dos/nonintel.c
 src/platform/dos/sys_dos.c

@@ -19,10 +19,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // net_ser.c
 
-#include "quakedef.h"
+#include "cmd.h"
+#include "common.h"
+#include "console.h"
+#include "keys.h"
+#include "net.h"
 #include "net_ser.h"
 #include "platform/dos/dosisms.h"
 #include "crc.h"
+#include "screen.h"
+#include "server.h"
+#include "sys.h"
 
 #include "network/net_comx.c"
 
