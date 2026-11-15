@@ -19,9 +19,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_sprite.c
 
-#include "quakedef.h"
-#include "renderer/r_local.h"
+#include <math.h>
 #include <stddef.h>
+
+#include "common.h"
+#include "bspfile.h"
+#include "client.h"
+#include "console.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "model.h"
+#include "render.h"
+#include "d_iface.h"
+#include "sys.h"
+#include "renderer/r_local.h"
 #include "renderer/asm_sprite.h"
 
 typedef char sprite_orientation_assembly_layout_assert[

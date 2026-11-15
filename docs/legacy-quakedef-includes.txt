@@ -25,6 +25,5 @@ src/renderer/r_light.c
 src/renderer/r_main.c
 src/renderer/r_misc.c
 src/renderer/r_part.c
-src/renderer/r_sprite.c
 src/renderer/r_surf.c
 src/video/vid_dos.c
