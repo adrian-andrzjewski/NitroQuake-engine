@@ -73,6 +73,8 @@ void InsertLinkAfter (link_t *l, link_t *after);
 #define NULL ((void *)0)
 #endif
 
+#define UNUSED(x)	(x = x)	// for pesky compiler / lint warnings
+
 #define Q_MAXCHAR ((char)0x7f)
 #define Q_MAXSHORT ((short)0x7fff)
 #define Q_MAXINT	((int)0x7fffffff)

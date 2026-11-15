@@ -24,14 +24,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: proper handling of page-swap failure
 
 #include <dos.h>
+#include <dpmi.h>
+#include <string.h>
 
-#include "quakedef.h"
-#include "renderer/d_local.h"
+#include "common.h"
+#include "console.h"
+#include "cvar.h"
+#include "host.h"
 #include "platform/dos/dosisms.h"
+#include "render.h"
+#include "vid.h"
 #include "video/vid_dos.h"
 #include "video/asm_viddirectrect.h"
 #include "video/asm_vgaswap.h"
-#include <dpmi.h>
+#include "zone.h"
 
 extern regs_t regs;
 

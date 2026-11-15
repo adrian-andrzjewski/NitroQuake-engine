@@ -17,11 +17,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
 // VBE 2.0 DOS video. Mode numbers always come from the BIOS mode list.
 #include <stdlib.h>
+#include <string.h>
 #include <dos.h>
 #include <dpmi.h>
-#include "quakedef.h"
-#include "renderer/d_local.h"
+
+#include "common.h"
+#include "console.h"
+#include "cvar.h"
+#include "host.h"
 #include "platform/dos/dosisms.h"
+#include "render.h"
+#include "sys.h"
+#include "vid.h"
 #include "video/vid_dos.h"
 #include "video/vid_vesa.h"
 #include "video/asm_vesacopy.h"

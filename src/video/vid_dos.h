@@ -19,6 +19,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // vid_dos.h: header file for DOS-specific video stuff
 
+#ifndef VID_DOS_H
+#define VID_DOS_H
+
+#include "cvar.h"
+#include "vid.h"
+
 typedef struct vmode_s {
 	struct vmode_s	*pnext;
 	char		*name;
@@ -98,4 +104,6 @@ void VGA_EndDirectRect_C (viddef_t *vid, struct vmode_s *pcurrentmode,
 #endif
 void VGA_UpdateLinearScreen (void *srcptr, void *destptr, int width,
 	int height, int srcrowbytes, int destrowbytes);
+
+#endif /* VID_DOS_H */
 

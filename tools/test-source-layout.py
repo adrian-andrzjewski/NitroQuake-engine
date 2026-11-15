@@ -89,11 +89,16 @@ interfaces = {
     "zone.h": {"q_types.h"},
     "client.h": {"common.h", "cvar.h", "mathlib.h", "protocol.h", "q_shared.h", "render.h", "sound.h", "vid.h"},
     "server.h": {"client.h", "common.h", "cvar.h", "mathlib.h", "progs.h", "q_shared.h"},
+    "host.h": {"q_types.h"},
     "net.h": {"common.h", "cvar.h"},
     "net_loop.h": {"net.h"},
     "wad.h": {"q_types.h"},
     "input.h": {"client.h"},
     "keys.h": {"q_types.h"},
+    "d_iface.h": {"render.h"},
+    "renderer/r_shared.h": {"vid.h"},
+    "video/vid_dos.h": {"cvar.h", "vid.h"},
+    "video/vid_vesa.h": {"vid.h"},
 }
 for name, dependencies in interfaces.items():
     text = (SOURCE / name).read_text(encoding="utf-8")
@@ -104,11 +109,28 @@ for name, dependencies in interfaces.items():
 
 host_text = (SOURCE / "host.h").read_text(encoding="utf-8")
 for declaration in (
+        "extern quakeparms_t host_parms;",
         "extern double realtime;",
         "extern double host_frametime;",
-        "extern int host_framecount;"):
+        "extern int host_framecount;",
+        "extern byte *host_colormap;",
+        "extern int minimum_memory;"):
     if declaration not in host_text:
         raise SystemExit(f"host.h is missing its owned declaration: {declaration}")
+
+video_text = (SOURCE / "vid.h").read_text(encoding="utf-8")
+for declaration in ("#define MAXHEIGHT", "#define MAXWIDTH"):
+    if declaration not in video_text:
+        raise SystemExit(f"vid.h is missing its owned dimension: {declaration}")
+
+render_text = (SOURCE / "render.h").read_text(encoding="utf-8")
+for declaration in (
+        "#define WARP_WIDTH",
+        "#define WARP_HEIGHT",
+        "#define SURFCACHE_SIZE_AT_320X200",
+        "extern short *d_pzbuffer;"):
+    if declaration not in render_text:
+        raise SystemExit(f"render.h is missing its owned declaration: {declaration}")
 
 quakedef_text = (SOURCE / "quakedef.h").read_text(encoding="utf-8")
 if '#include "host.h"' not in quakedef_text:
@@ -116,6 +138,10 @@ if '#include "host.h"' not in quakedef_text:
 common_text = (SOURCE / "common.h").read_text(encoding="utf-8")
 if not re.search(r"(?m)^\s*#\s*define\s+QUAKE_GAME\b", common_text):
     raise SystemExit("common.h no longer selects game-side BSP declarations")
+if not re.search(r"(?m)^\s*#\s*define\s+UNUSED\b", common_text):
+    raise SystemExit("common.h no longer owns the shared UNUSED helper")
+if re.search(r"(?m)^\s*#\s*define\s+UNUSED\b", quakedef_text):
+    raise SystemExit("UNUSED helper remains privately defined in quakedef.h")
 if re.search(r"(?m)^\s*#\s*define\s+QUAKE_GAME\b", quakedef_text):
     raise SystemExit("QUAKE_GAME context remains privately defined in quakedef.h")
 

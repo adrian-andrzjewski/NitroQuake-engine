@@ -17,13 +17,28 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// host.h -- timing state shared across subsystems
+// host.h -- host state shared across subsystems
 
 #ifndef HOST_H
 #define HOST_H
 
+#include "q_types.h"
+
+typedef struct
+{
+	char	*basedir;
+	char	*cachedir;		// for development over ISDN lines
+	int		argc;
+	char	**argv;
+	void	*membase;
+	int		memsize;
+} quakeparms_t;
+
+extern quakeparms_t host_parms;
 extern double realtime;
 extern double host_frametime;
 extern int host_framecount;
+extern byte *host_colormap;
+extern int minimum_memory;
 
 #endif /* HOST_H */

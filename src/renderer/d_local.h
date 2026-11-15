@@ -60,14 +60,6 @@ void D_DrawSolidSurface_C (surf_t *surf, int color);
 
 #define DS_SPAN_LIST_END	-128
 
-// The low-memory guard in vid_vga.c subtracts this same constant from
-// tbuffersize and adds it straight back, so at 320x200 it cancels and the
-// guard stays memsize - framebuffer + 192K. Raising this value therefore does
-// not weaken the guard on a small machine. 2400 KB measured 0.0634% faster
-// than 1800 KB with checksum 1047377823 on every run; 6000 KB added only a
-// further 0.015% for 2.5x the memory.
-#define SURFCACHE_SIZE_AT_320X200	2400*1024
-
 typedef struct surfcache_s
 {
 	struct surfcache_s	*next;
@@ -273,7 +265,6 @@ extern void D_PolysetAff8Start (void);
 extern void D_PolysetAff8End (void);
 #endif
 
-extern short *d_pzbuffer;
 extern unsigned int d_zrowbytes, d_zwidth;
 
 extern int	*d_pscantable;

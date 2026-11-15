@@ -2,6 +2,8 @@
 #ifndef VID_VESA_H
 #define VID_VESA_H
 
+#include "vid.h"
+
 typedef struct {
 	unsigned mode, attributes, width, height, pitch, pagesize, pages;
 	unsigned physical, window, segment, linear;

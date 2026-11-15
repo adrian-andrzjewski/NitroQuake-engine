@@ -58,8 +58,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
 #define CACHE_SIZE	32		// used to align key data structures
 
-#define UNUSED(x)	(x = x)	// for pesky compiler / lint warnings
-
 #define	MINIMUM_MEMORY			0x550000
 #define	MINIMUM_MEMORY_LEVELPAK	(MINIMUM_MEMORY + 0x100000)
 
@@ -182,23 +180,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //=============================================================================
 
-// the host system specifies the base of the directory tree, the
-// command line parms passed to the program, and the amount of memory
-// available for the program to use
-
-typedef struct
-{
-	char	*basedir;
-	char	*cachedir;		// for development over ISDN lines
-	int		argc;
-	char	**argv;
-	void	*membase;
-	int		memsize;
-} quakeparms_t;
-
-
-//=============================================================================
-
 
 
 extern qboolean noclip_anglehack;
@@ -207,15 +188,12 @@ extern qboolean noclip_anglehack;
 //
 // host
 //
-extern	quakeparms_t host_parms;
-
 extern	cvar_t		sys_ticrate;
 extern	cvar_t		sys_nostdout;
 extern	cvar_t		developer;
 
 extern	qboolean	host_initialized;		// true if into command execution
 extern	byte		*host_basepal;
-extern	byte		*host_colormap;
 
 void Host_ClearMemory (void);
 void Host_ServerFrame (void);
@@ -236,8 +214,6 @@ extern int			current_skill;		// skill level for currently loaded level (in case
 										//  running, this reflects the level actually in use)
 
 extern qboolean		isDedicated;
-
-extern int			minimum_memory;
 
 //
 // chase

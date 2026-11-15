@@ -28,6 +28,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "protocol.h"
 #include "vid.h"
 
+#define WARP_WIDTH		320
+#define WARP_HEIGHT		200
+
 #define	MAXCLIPPLANES	11
 
 #define	TOP_RANGE		16			// soldier uniform colors
@@ -156,6 +159,15 @@ void R_PushDlights (void);
 //
 // surface cache related
 //
+// The low-memory guard in vid_vga.c subtracts this same constant from
+// tbuffersize and adds it straight back, so at 320x200 it cancels and the
+// guard stays memsize - framebuffer + 192K. Raising this value therefore does
+// not weaken the guard on a small machine. 2400 KB measured 0.0634% faster
+// than 1800 KB with checksum 1047377823 on every run; 6000 KB added only a
+// further 0.015% for 2.5x the memory.
+#define SURFCACHE_SIZE_AT_320X200	2400*1024
+
+extern short *d_pzbuffer;
 extern	int		reinit_surfcache;	// if 1, surface cache is currently empty and
 extern qboolean	r_cache_thrash;	// set if thrashing the surface cache
 

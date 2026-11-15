@@ -63,5 +63,3 @@ src/server/sv_move.c
 src/server/sv_phys.c
 src/server/sv_user.c
 src/video/vid_dos.c
-src/video/vid_ext.c
-src/video/vid_vga.c

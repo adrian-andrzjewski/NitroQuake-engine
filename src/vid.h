@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "q_types.h"
 
+#define MAXHEIGHT		1024
+#define MAXWIDTH		1280
+
 #define VID_CBITS	6
 #define VID_GRADES	(1 << VID_CBITS)
 
