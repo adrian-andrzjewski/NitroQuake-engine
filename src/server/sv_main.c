@@ -19,7 +19,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sv_main.c -- server main program
 
-#include "quakedef.h"
+#include <string.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "nitroquake_version.h"
+#include "server.h"
+#include "zone.h"
+#include "model.h"
+
+#include "cmd.h"
+#include "console.h"
+#include "host.h"
+#include "net.h"
+#include "sound.h"
+#include "sys.h"
+#include "world.h"
 
 server_t		sv;
 server_static_t	svs;

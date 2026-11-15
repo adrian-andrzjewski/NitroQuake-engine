@@ -56,7 +56,4 @@ src/renderer/r_sky.c
 src/renderer/r_sprite.c
 src/renderer/r_surf.c
 src/renderer/r_vars.c
-src/server/pr_cmds.c
-src/server/pr_edict.c
-src/server/sv_main.c
 src/video/vid_dos.c
