@@ -19,7 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // snd_mem.c: sound caching
 
-#include "quakedef.h"
+#include <string.h>
+
+#include "common.h"
+#include "cvar.h"
+#include "console.h"
+#include "sys.h"
+#include "zone.h"
+#include "sound.h"
 
 int			cache_full_cycle;
 

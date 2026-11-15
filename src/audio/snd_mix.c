@@ -19,7 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // snd_mix.c -- portable code to mix sounds for snd_dma.c
 
-#include "quakedef.h"
+#include "common.h"
+#include "cvar.h"
+#include "sound.h"
 
 #define DWORD	unsigned long
 
@@ -31,7 +33,7 @@ short	*snd_out;
 
 void Snd_WriteLinearBlastStereo16 (void);
 
-#if	!id386
+#if !defined(__i386__)
 void Snd_WriteLinearBlastStereo16 (void)
 {
 	int		i;
@@ -243,7 +245,7 @@ void SND_InitScaletable (void)
 }
 
 
-#if	!id386
+#if !defined(__i386__)
 
 void SND_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int count)
 {
@@ -271,7 +273,7 @@ void SND_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int count)
 	ch->pos += count;
 }
 
-#endif	// !id386
+#endif	// !defined(__i386__)
 
 
 void SND_PaintChannelFrom16 (channel_t *ch, sfxcache_t *sc, int count)
