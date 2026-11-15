@@ -1,10 +1,11 @@
 /* Compare the pinned C adapters with the assembly entries at the outgoing ABI.
    Typed C backend observers never call an assembly implementation. Backend
    algorithms retain their independent exact-output fixtures and scene tests. */
+#include "tests/bench486/bench486_sprite_hooks.h"
+
 #ifdef ASM486_RENDER_DISPATCH
 extern void (*bench486_dispatch_probe)(unsigned,unsigned,const unsigned *);
 extern double (*bench486_dispatch_timer)(void);
-extern void (*bench486_sprite_project_hook)(const spritedesc_t *);
 extern int sprite_height,minindex,maxindex;
 extern sspan_t *sprite_spans;
 extern float r_dispatch_alias_viewmatrix[3][4];

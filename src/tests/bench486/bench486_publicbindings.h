@@ -2,6 +2,8 @@
    Backend algorithms have separate exact-result fixtures; a direct tail
    transfer must preserve their caller arguments, registers and return address.
 */
+#include "tests/bench486/bench486_sprite_hooks.h"
+
 #ifdef ASM486_PUBLIC_BINDINGS
 #if defined(BENCH486) && defined(ASM486_RENDER_POLY)
 #include "tests/bench486/bench486_renderpoly.h"

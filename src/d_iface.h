@@ -87,7 +87,7 @@ typedef struct {
 	float	u, v, zi, color;
 } screenpart_t;
 
-typedef struct
+typedef struct spritedesc_s
 {
 	int			nump;
 	emitpoint_t	*pverts;	// there's room for an extra element at [nump], 

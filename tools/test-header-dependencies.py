@@ -101,6 +101,33 @@ if '#include "renderer/asm_drawing.h"' not in (
         SOURCE / "tests" / "bench486" / "bench486_drawing.h").read_text(encoding="utf-8"):
     raise SystemExit("drawing benchmark fixture omits its renderer layout contract")
 
+sprite_hooks_path = SOURCE / "tests" / "bench486" / "bench486_sprite_hooks.h"
+sprite_hooks_text = sprite_hooks_path.read_text(encoding="utf-8", errors="replace")
+renderer_private_text = (
+    SOURCE / "renderer" / "r_local.h"
+).read_text(encoding="utf-8", errors="replace")
+if "#ifndef BENCH486_SPRITE_HOOKS_H" not in sprite_hooks_text:
+    raise SystemExit("benchmark sprite hook interface has no include guard")
+if "struct spritedesc_s;" not in sprite_hooks_text or '#include "d_iface.h"' in sprite_hooks_text:
+    raise SystemExit("benchmark sprite hook interface is not forward-declared")
+for declaration in (
+        "bench486_sprite_setup_hook",
+        "bench486_sprite_project_hook"):
+    if declaration not in sprite_hooks_text:
+        raise SystemExit(f"bench486_sprite_hooks.h is missing its declaration: {declaration}")
+    if declaration in renderer_private_text:
+        raise SystemExit(f"benchmark sprite hook remains in renderer/r_local.h: {declaration}")
+for relative in (
+        "src/renderer/d_sprite.c",
+        "src/renderer/r_sprite.c",
+        "src/core/host_cmd.c",
+        "src/tests/bench486/bench486_publicbindings.h",
+        "src/tests/bench486/bench486_renderdispatch.h",
+        "src/tests/bench486/bench486_sprite_orientation.h"):
+    text = (ROOT / relative).read_text(encoding="utf-8", errors="replace")
+    if '#include "tests/bench486/bench486_sprite_hooks.h"' not in text:
+        raise SystemExit(f"{relative} omits the sprite benchmark hook interface")
+
 print(
     "Header dependencies PASS: "
     f"{len(production_sources)} production C files, "

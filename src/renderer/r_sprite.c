@@ -35,6 +35,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "sys.h"
 #include "renderer/r_local.h"
 #include "renderer/asm_sprite.h"
+#ifdef BENCH486
+#include "tests/bench486/bench486_sprite_hooks.h"
+#endif
 
 typedef char sprite_orientation_assembly_layout_assert[
 	(offsetof(entity_t, angles) == so_entity_angles &&

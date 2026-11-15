@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "renderer/d_local.h"
 #include "renderer/asm_renderdispatch.h"
 #ifdef BENCH486
-extern void (*bench486_sprite_project_hook) (const spritedesc_t *desc);
+#include "tests/bench486/bench486_sprite_hooks.h"
 #endif
 
 typedef char sprite_gradient_assembly_layout_assert[

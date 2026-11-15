@@ -26,7 +26,9 @@ declarations live in `src/tests/bench486/bench486_profile.h`; fixture-specific
 assembly adapters and C-oracle declarations live with their BENCH486 interfaces,
 such as `src/tests/bench486/bench486_drawing_iface.h`. Consumers include those
 narrow interfaces directly instead of inheriting benchmark declarations from
-the umbrella or a production assembly contract.
+the umbrella or a production assembly contract. BENCH-only sprite observation
+hooks are declared in `src/tests/bench486/bench486_sprite_hooks.h`, not in the
+private renderer header.
 
 Native BENCH486 fixtures live under `src/tests/bench486/`. The fixtures are still
 included by the BENCH build and do not become standalone objects. Release and

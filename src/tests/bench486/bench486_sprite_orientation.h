@@ -1,5 +1,7 @@
 /* Included only by host_cmd.c's BENCH486 harness. The original C functions
  * remain independent oracles, compiled in their original translation units. */
+#include "tests/bench486/bench486_sprite_hooks.h"
+
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,
 		const unsigned *arguments, float *float_result);
 

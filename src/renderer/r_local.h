@@ -161,10 +161,6 @@ void R_DrawSprite (void);
 void R_DrawSprite_C (void);
 void R_DrawSprite_asm486 (void);
 mspriteframe_t *R_GetSpriteframePublic_asm486 (msprite_t *psprite);
-#ifdef BENCH486
-extern void (*bench486_sprite_setup_hook) (void);
-extern void (*bench486_sprite_project_hook) (const spritedesc_t *desc);
-#endif
 /* Keep the public argument type visible when its implementation is assembly.
  * An implicit declaration would promote beamlength to double at C call sites. */
 void R_RotateSprite (float beamlength);
