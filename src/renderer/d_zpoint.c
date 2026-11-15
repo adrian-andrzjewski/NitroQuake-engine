@@ -19,7 +19,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // d_zpoint.c: software driver module for drawing z-buffered points
 
-#include "quakedef.h"
+#include "common.h"
+#include "bspfile.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "cvar.h"
+#include "model.h"
+#include "d_iface.h"
 #include "renderer/d_local.h"
 
 #ifdef ASM486_ZPOINT
