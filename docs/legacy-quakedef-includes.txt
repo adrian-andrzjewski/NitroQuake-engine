@@ -10,7 +10,6 @@ src/core/host.c
 src/network/net_dgrm.c
 src/platform/dos/sys_dos.c
 src/renderer/d_polyse.c
-src/renderer/d_surf.c
 src/renderer/r_alias.c
 src/renderer/r_draw.c
 src/renderer/r_edge.c

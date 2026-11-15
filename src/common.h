@@ -90,6 +90,7 @@ void InsertLinkAfter (link_t *l, link_t *after);
 //============================================================================
 
 extern	qboolean		bigendien;
+extern qboolean		msg_suppress_1;	// suppresses resolution and cache size console output
 
 extern	short	(*BigShort) (short l);
 extern	short	(*LittleShort) (short l);
