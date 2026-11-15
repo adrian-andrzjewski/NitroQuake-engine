@@ -21,10 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "renderer/r_shared.h"
 
-#define ALIAS_BASE_SIZE_RATIO		(1.0 / 11.0)
-					// normalizing factor so player model works out to about
-					//  1 pixel per triangle
-
 #define BMODEL_FULLY_CLIPPED	0x10 // value returned by R_BmodelCheckBBox ()
 									 //  if bbox is trivially rejected
 
@@ -488,7 +484,6 @@ void	R_ZDrawSubmodelPolys (model_t *clmodel);
 // Alias models
 //=========================================================
 
-#define MAXALIASVERTS		2000	// TODO: tune this
 #define ALIAS_Z_CLIP_PLANE	5
 
 extern int				numverts;

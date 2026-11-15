@@ -231,6 +231,11 @@ Alias models are position independent, so the cache manager can move them.
 ==============================================================================
 */
 
+#define MAXALIASVERTS		2000	// TODO: tune this
+#define ALIAS_BASE_SIZE_RATIO	(1.0 / 11.0)
+					// normalizing factor so player model works out to about
+					//  1 pixel per triangle
+
 typedef struct
 {
 	aliasframetype_t	type;

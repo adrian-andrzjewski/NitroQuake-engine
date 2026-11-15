@@ -1,4 +1,3 @@
-src/assets/model.c
 src/audio/cd_audio.c
 src/audio/snd_dma.c
 src/audio/snd_dos.c

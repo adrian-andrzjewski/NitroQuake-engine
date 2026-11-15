@@ -22,7 +22,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // models are the only shared resource between a client and server running
 // on the same machine.
 
-#include "quakedef.h"
+#include <math.h>
+#include <string.h>
+
+#include "common.h"
+#include "bspfile.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "sys.h"
+#include "console.h"
+#include "cvar.h"
+#include "client.h"
+#include "model.h"
+#include "d_iface.h"
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 extern int bench486_screen_center_trace_active;
@@ -34,7 +46,6 @@ extern void Bench486ScreenCenterTraceGlyph (int phase, int x, int y, int charact
 #else
 #define MOD_TRACE(phase, x, y, character) ((void)0)
 #endif
-#include "renderer/r_local.h"
 #ifdef ASM486_ALIAS_CONTROL
 #include "assets/asm_modelload.h"
 #endif
