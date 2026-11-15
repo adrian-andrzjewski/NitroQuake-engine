@@ -19,7 +19,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // snd_dma.c -- main control for any streaming sound output device
 
-#include "quakedef.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "bspfile.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "model.h"
+#include "sound.h"
+#include "client.h"
+#include "host.h"
+#include "cmd.h"
+#include "console.h"
+#include "sys.h"
 #include "tests/bench486/bench486_profile.h"
 
 void S_Play(void);
