@@ -19,9 +19,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // d_edge.c
 
-#include "quakedef.h"
+#include <math.h>
+#include <stddef.h>
+
+#include "common.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "client.h"
+#include "model.h"
+#include "render.h"
+#include "sys.h"
+#include "zone.h"
+#include "d_iface.h"
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/d_local.h"
+#include "renderer/r_local.h"
 #include "renderer/asm_drawingdriver.h"
 #if defined(BENCH486) && defined(ASM486_PUBLIC_BINDINGS) && \
 		defined(ASM486_RENDER_POLY)
