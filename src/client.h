@@ -259,6 +259,7 @@ typedef struct
 //
 extern	cvar_t	cl_name;
 extern	cvar_t	cl_color;
+extern	cvar_t	teamplay;
 
 extern	cvar_t	cl_upspeed;
 extern	cvar_t	cl_forwardspeed;

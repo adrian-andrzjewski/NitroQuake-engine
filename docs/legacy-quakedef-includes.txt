@@ -6,7 +6,6 @@ src/client/cl_main.c
 src/client/cl_parse.c
 src/client/draw.c
 src/client/menu.c
-src/client/sbar.c
 src/client/screen.c
 src/client/view.c
 src/collision/world.c

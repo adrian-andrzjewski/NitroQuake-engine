@@ -19,7 +19,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sbar.c -- status bar code
 
-#include "quakedef.h"
+#include <string.h>
+
+#include "common.h"
+#include "client.h"
+#include "cmd.h"
+#include "draw.h"
+#include "protocol.h"
+#include "screen.h"
+#include "sbar.h"
+#include "vid.h"
 #include "client/asm_sbar.h"
 
 #if defined(BENCH486) && defined(ASM486_SBAR_FRAGS_FIXTURE)
