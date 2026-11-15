@@ -7545,7 +7545,6 @@ static void Bench486SpriteSetupCases (void)
 #if defined(BENCH486) && defined(ASM486_SCREEN_TURTLE)
 #include "tests/bench486/bench486_screenturtle.h"
 #endif
-#include "renderer/asm_drawing.h"
 #include "tests/bench486/bench486_drawing.h"
 #include "client/asm_chase.h"
 #include "tests/bench486/bench486_chase.h"

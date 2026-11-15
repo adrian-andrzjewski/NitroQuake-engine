@@ -21,8 +21,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // draw.c -- this is the only file outside the refresh that touches the
 // vid buffer
 
-#include "quakedef.h"
+#include <string.h>
+
+#include "nitroquake_version.h"
+#include "common.h"
+#include "bspfile.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "model.h"
+#include "d_iface.h"
+#include "draw.h"
+#include "sound.h"
+#include "sys.h"
+#include "vid.h"
 #include "renderer/asm_drawing.h"
+#if defined(BENCH486) && defined(ASM486_DRAWING)
+#include "tests/bench486/bench486_drawing_iface.h"
+#endif
 
 
 

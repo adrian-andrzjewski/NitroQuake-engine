@@ -21,10 +21,12 @@ move off the compatibility header.
 `tools/test-header-dependencies.py` compares production C includes of
 `quakedef.h` against `docs/legacy-quakedef-includes.txt`. A translation unit may
 leave that inventory only after it switches to its owning interfaces; new
-production files must not add umbrella dependencies silently. Profiling and
-BENCH486 declarations live in `src/tests/bench486/bench486_profile.h`, and C
-consumers include that interface directly instead of inheriting it from the
-umbrella.
+production files must not add umbrella dependencies silently. Profiling
+declarations live in `src/tests/bench486/bench486_profile.h`; fixture-specific
+assembly adapters and C-oracle declarations live with their BENCH486 interfaces,
+such as `src/tests/bench486/bench486_drawing_iface.h`. Consumers include those
+narrow interfaces directly instead of inheriting benchmark declarations from
+the umbrella or a production assembly contract.
 
 Native BENCH486 fixtures live under `src/tests/bench486/`. The fixtures are still
 included by the BENCH build and do not become standalone objects. Release and

@@ -23,35 +23,6 @@ extern cachepic_t menu_cachepics[MAX_CACHED_PICS];
 extern int menu_numcachepics;
 void Draw_DebugChar(char),Draw_CharToConback(int,byte *);
 void R_DrawRect8(vrect_t *,int,byte *,int),R_DrawRect16(vrect_t *,int,byte *,int);
-#ifdef BENCH486
-extern unsigned (*bench486_drawing_probe)(unsigned,unsigned,const unsigned *);
-void *Bench486DrawingLump(char *),*Bench486DrawingCacheCheck(cache_user_t *);
-void Bench486DrawingLoad(char *,cache_user_t *),Bench486DrawingSwap(qpic_t *);
-void Bench486DrawingBegin(int,int,byte *,int,int),Bench486DrawingEnd(int,int,int,int);
-void Bench486DrawingUnlock(void),Bench486DrawingLock(void),Bench486DrawingSound(void);
-void Bench486DrawingPointerCall(void);
-extern unsigned bench486_drawing_pointer_result;
-qpic_t	*Draw_PicFromWad_Drawing_C (char *name);
-qpic_t	*Draw_CachePic_Drawing_C (char *path);
-void Draw_Init_Drawing_C (void);
-void Draw_Character_Drawing_C (int x, int y, int num);
-void Draw_String_Drawing_C (int x, int y, char *str);
-void Draw_DebugChar_Drawing_C (char num);
-void Draw_Pic_Drawing_C (int x, int y, qpic_t *pic);
-void Draw_TransPic_Drawing_C (int x, int y, qpic_t *pic);
-void Draw_TransPicTranslate_Drawing_C (int x, int y, qpic_t *pic, byte *translation);
-void Draw_CharToConback_Drawing_C (int num, byte *dest);
-void Draw_ConsoleBackground_Drawing_C (int lines);
-void R_DrawRect8_Drawing_C (vrect_t *prect, int rowbytes, byte *psrc,
-	int transparent);
-void R_DrawRect16_Drawing_C (vrect_t *prect, int rowbytes, byte *psrc,
-	int transparent);
-void Draw_TileClear_Drawing_C (int x, int y, int w, int h);
-void Draw_Fill_Drawing_C (int x, int y, int w, int h, int c);
-void Draw_FadeScreen_Drawing_C (void);
-void Draw_BeginDisc_Drawing_C (void);
-void Draw_EndDisc_Drawing_C (void);
-#endif
 typedef char drawing_pointer_size_must_match[(sizeof(void *)==4U)?1:-1];
 typedef char drawing_int_size_must_match[(sizeof(int)==4U)?1:-1];
 typedef char drawing_vrect_size_must_match[(sizeof(vrect_t)==20U)?1:-1];

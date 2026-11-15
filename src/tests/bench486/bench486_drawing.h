@@ -1,5 +1,7 @@
 /* Exact original framebuffer algorithms, including persistent cache/descriptor state. */
 #ifdef ASM486_DRAWING
+#include "renderer/asm_drawing.h"
+#include "tests/bench486/bench486_drawing_iface.h"
 unsigned bench486_drawing_pointer_result;
 typedef struct {unsigned first[8];byte data[10496];unsigned last[8];} bench486_drawing_buffer_t;
 typedef struct {unsigned first[8];byte data[2560];unsigned last[8];} bench486_drawing_direct_t;

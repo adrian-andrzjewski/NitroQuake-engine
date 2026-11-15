@@ -74,6 +74,33 @@ for path in production_sources:
             )
         profile_consumers += 1
 
+drawing_asm_text = (SOURCE / "renderer" / "asm_drawing.h").read_text(encoding="utf-8")
+drawing_bench_text = (
+    SOURCE / "tests" / "bench486" / "bench486_drawing_iface.h"
+).read_text(encoding="utf-8")
+if "Bench486Drawing" in drawing_asm_text or "bench486_drawing_probe" in drawing_asm_text:
+    raise SystemExit("benchmark drawing declarations remain in the production assembly contract")
+if "#ifndef BENCH486_DRAWING_IFACE_H" not in drawing_bench_text:
+    raise SystemExit("benchmark drawing interface has no include guard")
+if '#include "renderer/asm_drawing.h"' in drawing_bench_text:
+    raise SystemExit("benchmark drawing interface depends on the production assembly contract")
+for declaration in (
+        "bench486_drawing_probe",
+        "Bench486DrawingLump",
+        "Draw_PicFromWad_Drawing_C",
+        "Draw_EndDisc_Drawing_C"):
+    if declaration not in drawing_bench_text:
+        raise SystemExit(f"bench486_drawing_iface.h is missing its owned declaration: {declaration}")
+for relative in (
+        "src/client/draw.c",
+        "src/tests/bench486/bench486_drawing.h"):
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    if '#include "tests/bench486/bench486_drawing_iface.h"' not in text:
+        raise SystemExit(f"{relative} omits the drawing benchmark interface")
+if '#include "renderer/asm_drawing.h"' not in (
+        SOURCE / "tests" / "bench486" / "bench486_drawing.h").read_text(encoding="utf-8"):
+    raise SystemExit("drawing benchmark fixture omits its renderer layout contract")
+
 print(
     "Header dependencies PASS: "
     f"{len(production_sources)} production C files, "
