@@ -39,6 +39,7 @@ extern quakeparms_t host_parms;
 extern double realtime;
 extern double host_frametime;
 extern int host_framecount;
+extern byte *host_basepal;
 extern byte *host_colormap;
 extern int minimum_memory;
 

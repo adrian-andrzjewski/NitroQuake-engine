@@ -19,7 +19,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_misc.c
 
-#include "quakedef.h"
+#include "render.h"
+#include "client.h"
+#include "view.h"
+#include "server.h"
+#include "host.h"
+#include "screen.h"
+#include "bspfile.h"
+#include "model.h"
+#include "d_iface.h"
+#include "console.h"
+#include "sys.h"
+#include "cvar.h"
 #include "renderer/r_local.h"
 #include <stddef.h>
 #include "renderer/asm_draw.h"
@@ -487,7 +498,7 @@ void R_TransformFrustum (void)
 #endif
 
 
-#if	!id386
+#if !defined(__i386__)
 
 /*
 ================
