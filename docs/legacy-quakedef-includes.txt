@@ -17,7 +17,6 @@ src/renderer/d_edge.c
 src/renderer/d_polyse.c
 src/renderer/d_surf.c
 src/renderer/r_alias.c
-src/renderer/r_bsp.c
 src/renderer/r_draw.c
 src/renderer/r_edge.c
 src/renderer/r_light.c
