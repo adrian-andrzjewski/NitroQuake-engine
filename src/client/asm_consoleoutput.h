@@ -28,13 +28,6 @@ typedef char co_cvar_value_offset_must_match[
 typedef char co_debuglog_open_flags_must_match[
 	((O_WRONLY | O_CREAT | O_APPEND) == co_open_flags) ? 1 : -1];
 
-#if defined(BENCH486) && defined(ASM486_CONSOLE_INPUT)
-int Bench486ConsoleOutputOpen (char *file, int flags, int mode);
-int Bench486ConsoleOutputWrite (int fd, char *data, unsigned count);
-int Bench486ConsoleOutputClose (int fd);
-void Bench486ConsoleOutputSysPrintf (char *format, ...);
-void Bench486ConsoleOutputUpdateScreen (void);
-#endif
 #endif
 
 #endif

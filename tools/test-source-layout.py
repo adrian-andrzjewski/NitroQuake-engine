@@ -76,20 +76,22 @@ fixture_files = [
     p for p in fixtures.iterdir()
     if p.is_file() and p.name != "bench486_profile.h"
 ]
-if len(fixture_files) != 105:
-    raise SystemExit(f"expected 105 moved BENCH486 fixtures, found {len(fixture_files)}")
+if len(fixture_files) != 106:
+    raise SystemExit(f"expected 106 BENCH486 fixture files, found {len(fixture_files)}")
 if any(not (p.name.startswith("bench486_") or p.name.endswith("_bench_hooks.inc")) for p in fixture_files):
     raise SystemExit("unexpected file in the BENCH486 fixture subtree")
 if any(SOURCE.glob("bench486_*")):
     raise SystemExit("BENCH486 fixtures remain beside production sources")
 
 interfaces = {
+    "console.h": {"common.h"},
+    "draw.h": {"wad.h"},
     "render.h": {"common.h", "mathlib.h", "protocol.h", "vid.h"},
     "vid.h": {"q_types.h"},
     "zone.h": {"q_types.h"},
     "client.h": {"common.h", "cvar.h", "mathlib.h", "protocol.h", "q_shared.h", "render.h", "sound.h", "vid.h"},
     "server.h": {"client.h", "common.h", "cvar.h", "mathlib.h", "progs.h", "q_shared.h"},
-    "host.h": {"q_types.h"},
+    "host.h": {"cvar.h", "q_types.h"},
     "net.h": {"common.h", "cvar.h"},
     "net_loop.h": {"net.h"},
     "wad.h": {"q_types.h"},
@@ -114,9 +116,34 @@ for declaration in (
         "extern double host_frametime;",
         "extern int host_framecount;",
         "extern byte *host_colormap;",
-        "extern int minimum_memory;"):
+        "extern int minimum_memory;",
+        "extern cvar_t sys_ticrate;",
+        "extern cvar_t sys_nostdout;",
+        "extern cvar_t developer;"):
     if declaration not in host_text:
         raise SystemExit(f"host.h is missing its owned declaration: {declaration}")
+
+bench_console_text = (
+    SOURCE / "tests" / "bench486" / "bench486_console.h"
+).read_text(encoding="utf-8")
+for declaration in (
+        "void Con_CheckResize_C (void);",
+        "int Bench486ConsoleResizeCases (void);",
+        "void Bench486ConPrintSound (char *sample);",
+        "int Bench486ConsoleOutputOpen (char *file, int flags, int mode);",
+        "int Bench486ConsoleOutputWrite (int fd, char *data, unsigned count);",
+        "int Bench486ConsoleOutputClose (int fd);",
+        "void Bench486ConsoleOutputSysPrintf (char *format, ...);",
+        "void Bench486ConsoleOutputUpdateScreen (void);"):
+    if declaration not in bench_console_text:
+        raise SystemExit(f"bench486_console.h is missing its test-only declaration: {declaration}")
+for relative in (
+        "client/asm_consolecheckresize.h",
+        "client/asm_consoleinput.h",
+        "client/asm_consoleoutput.h"):
+    text = (SOURCE / relative).read_text(encoding="utf-8")
+    if "Bench486" in text or "Con_CheckResize_C" in text:
+        raise SystemExit(f"{relative} contains declarations owned by the BENCH interface")
 
 video_text = (SOURCE / "vid.h").read_text(encoding="utf-8")
 for declaration in ("#define MAXHEIGHT", "#define MAXWIDTH"):

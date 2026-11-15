@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "tests/bench486/bench486_profile.h"
 
 #ifdef BENCH486
+#include "tests/bench486/bench486_console.h"
 #include "renderer/d_local.h"
 #include "renderer/r_local.h"
 extern float r_avertexnormals[][3];
@@ -74,9 +75,6 @@ extern int Bench486VesaLifecycleCases (void);
 #endif
 #if defined(ASM486_VESA_WAIT_FIXTURE)
 extern int Bench486VesaWaitCases (void);
-#endif
-#if defined(ASM486_SCREEN_CONSOLE_SETUP)
-extern int Bench486ConsoleResizeCases (void);
 #endif
 #if defined(ASM486_VID_UPDATE_FIXTURE)
 extern int Bench486VidUpdateCases (void);

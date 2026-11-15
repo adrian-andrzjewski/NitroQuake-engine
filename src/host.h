@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define HOST_H
 
 #include "q_types.h"
+#include "cvar.h"
 
 typedef struct
 {
@@ -40,5 +41,9 @@ extern double host_frametime;
 extern int host_framecount;
 extern byte *host_colormap;
 extern int minimum_memory;
+
+extern cvar_t sys_ticrate;
+extern cvar_t sys_nostdout;
+extern cvar_t developer;
 
 #endif /* HOST_H */

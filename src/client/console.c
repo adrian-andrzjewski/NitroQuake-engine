@@ -19,9 +19,31 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // console.c
 
-#include <unistd.h>
 #include <fcntl.h>
-#include "quakedef.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "common.h"
+#include "cvar.h"
+#include "client.h"
+#include "cmd.h"
+#include "console.h"
+#include "draw.h"
+#include "host.h"
+#include "keys.h"
+#include "render.h"
+#include "screen.h"
+#include "sound.h"
+#include "sys.h"
+#include "vid.h"
+#include "zone.h"
+
+#ifdef BENCH486
+#include "tests/bench486/bench486_console.h"
+#endif
+
 #include "client/asm_consolecheckresize.h"
 #include "client/asm_consoleoutput.h"
 
