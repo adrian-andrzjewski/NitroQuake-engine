@@ -1,6 +1,4 @@
 src/audio/snd_dma.c
-src/audio/snd_dos.c
-src/audio/snd_gus.c
 src/client/cl_main.c
 src/client/cl_parse.c
 src/client/draw.c

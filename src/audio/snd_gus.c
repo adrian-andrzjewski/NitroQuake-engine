@@ -23,7 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // Author(s): Jayeson Lee-Steere
 //=============================================================================
 
-#include "quakedef.h"
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "console.h"
+#include "sound.h"
 #include "platform/dos/dosisms.h"
 
 //=============================================================================
