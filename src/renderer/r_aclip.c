@@ -19,7 +19,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_aclip.c: clip routines for drawing Alias models directly to the screen
 
-#include "quakedef.h"
+#include "common.h"
+#include "bspfile.h"
+#include "client.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "model.h"
+#include "render.h"
+#include "d_iface.h"
+#include "sys.h"
 #include "renderer/r_local.h"
 #include "renderer/d_local.h"
 
@@ -194,7 +203,7 @@ void R_Alias_clip_z_bench (finalvert_t *pfv0, finalvert_t *pfv1,
 #endif
 
 
-#if	!id386
+#if !defined(__i386__)
 
 void R_Alias_clip_left (finalvert_t *pfv0, finalvert_t *pfv1, finalvert_t *out)
 {
@@ -499,4 +508,3 @@ void R_AliasClipTriangle (mtriangle_t *ptri)
 }
 #endif /* public entry is assembly-owned when selected */
 #endif
-
