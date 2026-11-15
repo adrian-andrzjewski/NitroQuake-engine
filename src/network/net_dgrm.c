@@ -45,8 +45,21 @@ char *inet_ntoa(struct in_addr in);
 unsigned long inet_addr(const char *cp);
 #endif
 
-#include "quakedef.h"
+#include <stdio.h>
+
+#include "common.h"
+#include "cmd.h"
+#include "cvar.h"
+#include "client.h"
+#include "progs.h"
+#include "server.h"
+#include "net.h"
 #include "net_dgrm.h"
+#include "protocol.h"
+#include "console.h"
+#include "screen.h"
+#include "keys.h"
+#include "sys.h"
 
 // these two macros are to make the code more readable
 #define sfunc	net_landrivers[sock->landriver]

@@ -5,7 +5,6 @@ src/client/view.c
 src/core/common.c
 src/core/host_cmd.c
 src/core/host.c
-src/network/net_dgrm.c
 src/platform/dos/sys_dos.c
 src/renderer/d_polyse.c
 src/renderer/r_alias.c
