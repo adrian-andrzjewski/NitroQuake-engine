@@ -19,8 +19,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // net_main.c
 
-#include "quakedef.h"
+#include "cmd.h"
+#include "client.h"
+#include "console.h"
+#include "net.h"
 #include "net_vcr.h"
+#include "server.h"
+#include "sys.h"
 
 qsocket_t	*net_activeSockets = NULL;
 qsocket_t	*net_freeSockets = NULL;
