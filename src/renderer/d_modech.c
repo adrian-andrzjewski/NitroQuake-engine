@@ -19,7 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // d_modech.c: called when mode has just changed
 
-#include "quakedef.h"
+#include "common.h"
+#include "bspfile.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "cvar.h"
+#include "model.h"
+#include "d_iface.h"
+#include "sys.h"
 #include "renderer/d_local.h"
 #include "renderer/asm_drawingdriver.h"
 
@@ -44,7 +51,7 @@ D_Patch
 #ifndef ASM486_DRAWING_DRIVER
 void D_Patch (void)
 {
-#if id386
+#if defined(__i386__)
 
 
 
@@ -55,7 +62,7 @@ void D_Patch (void)
 		protectset8 = true;
 	}
 
-#endif	// id386
+#endif	// __i386__
 }
 #endif
 
@@ -121,7 +128,7 @@ void D_ViewChanged (void)
 #if defined(BENCH486) && defined(ASM486_DRAWING_DRIVER)
 void D_Patch_Driver_C (void)
 {
-#if id386
+#if defined(__i386__)
 
 
 
@@ -132,7 +139,7 @@ void D_Patch_Driver_C (void)
 		protectset8 = true;
 	}
 
-#endif	// id386
+#endif	// __i386__
 }
 #endif
 

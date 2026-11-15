@@ -19,7 +19,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // d_part.c: software driver module for drawing particles
 
-#include "quakedef.h"
+#include "common.h"
+#include "bspfile.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "cvar.h"
+#include "model.h"
+#include "d_iface.h"
 #include "renderer/d_local.h"
 #include "renderer/asm_drawingdriver.h"
 
@@ -50,7 +56,7 @@ void D_StartParticles (void)
 #endif
 
 
-#if !id386
+#if !defined(__i386__)
 #define D_DRAW_PARTICLE_C_NAME D_DrawParticle
 #elif defined(BENCH486) || defined(ASM486_PARTICLE_DRAW_C)
 #define D_DRAW_PARTICLE_C_NAME D_DrawParticle_C
@@ -214,7 +220,7 @@ void D_DRAW_PARTICLE_C_NAME (particle_t *pparticle)
 }
 #endif
 
-#if id386 && defined(ASM486_PARTICLE_DRAW_C)
+#if defined(__i386__) && defined(ASM486_PARTICLE_DRAW_C)
 /* The original C rasterizer is the selectable implementation in this build. */
 void D_DrawParticle (particle_t *pparticle)
 {

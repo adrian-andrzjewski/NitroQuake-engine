@@ -306,7 +306,7 @@ int R_AliasCheckBBoxProject_C (auxvert_t *viewaux, finalvert_t *viewpts,
 void R_AliasTransformFinalVert_C (finalvert_t *fv, auxvert_t *av,
 	trivertx_t *pverts, stvert_t *pstverts);
 #endif
-#if id386
+#if defined(__i386__)
 texture_t *R_TextureAnimation_asm486 (texture_t *base);
 texture_t *R_TextureAnimationFrame_asm486 (texture_t *base, int relative);
 void R_BuildLightMapNormalize_asm486 (unsigned *lights, int size);
@@ -329,7 +329,7 @@ void R_AliasSetViewMatrix_asm486 (const float *right, const float *up,
 void R_AliasTransformVector_C (vec3_t in, vec3_t out);
 #endif
 
-#if	id386
+#if defined(__i386__)
 
 void R_DrawSurfaceBlock8_mip0 (void);
 void R_DrawSurfaceBlock8_mip1 (void);
@@ -384,7 +384,7 @@ maliasskindesc_t *R_AliasSetupSkinSelect_C (int skinnum, double cltime,
 		float syncbase);
 maliasskindesc_t *R_AliasSetupSkinSelect_asm486 (int skinnum,
 		double cltime, float syncbase);
-#if id386
+#if defined(__i386__)
 void R_AliasProjectFinalVert_asm486 (finalvert_t *fv, auxvert_t *av);
 #endif
 #if defined(ASM486_ALIAS_PROJECT)

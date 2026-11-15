@@ -24,11 +24,8 @@ src/platform/dos/in_dos.c
 src/platform/dos/sys_dos.c
 src/renderer/d_edge.c
 src/renderer/d_init.c
-src/renderer/d_modech.c
-src/renderer/d_part.c
 src/renderer/d_polyse.c
 src/renderer/d_scan.c
-src/renderer/d_sky.c
 src/renderer/d_sprite.c
 src/renderer/d_surf.c
 src/renderer/r_aclip.c

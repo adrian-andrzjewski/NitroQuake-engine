@@ -144,7 +144,7 @@ void D_PolysetSetUpForLineScan_C (fixed8_t startvertu, fixed8_t startvertv,
 		fixed8_t endvertu, fixed8_t endvertv);
 void D_PolysetSetEdgeTable_C (void);
 void D_PolysetUpdateTables_C (void);
-#if id386
+#if defined(__i386__)
 void D_PolysetSetUpForLineScan_asm486 (fixed8_t startvertu,
 		fixed8_t startvertv, fixed8_t endvertu, fixed8_t endvertv);
 void D_PolysetSetEdgeTable_asm486 (void);
@@ -260,7 +260,7 @@ void D_CacheSurfaceSetDlight_C (surfcache_t *cache,
 
 extern int D_MipLevelForScale (float scale);
 
-#if id386
+#if defined(__i386__)
 extern void D_PolysetAff8Start (void);
 extern void D_PolysetAff8End (void);
 #endif
