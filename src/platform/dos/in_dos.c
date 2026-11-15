@@ -19,8 +19,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // in_mouse.c -- dos mouse code
 
-#include "quakedef.h"
+#include <math.h>
+
+#include "client.h"
+#include "cmd.h"
+#include "console.h"
+#include "cvar.h"
+#include "host.h"
+#include "keys.h"
 #include "tests/bench486/bench486_profile.h"
+#include "sys.h"
 #include "platform/dos/dosisms.h"
 
 #ifdef PROFILE486

@@ -383,6 +383,8 @@ void CL_NewTranslation (int slot);
 //
 // view
 //
+extern qboolean noclip_anglehack;
+
 void V_StartPitchDrift (void);
 void V_StopPitchDrift (void);
 
