@@ -20,8 +20,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // net_mpath.c
 
 #include <dpmi.h>
-#include "quakedef.h"
+#include <stdio.h>
+#include <string.h>
+
+#include "net.h"
+#include "console.h"
+#include "sys.h"
 #include "network/mpdosock.h"
+#include "net_mp.h"
 
 short flat_selector;
 
@@ -39,9 +45,6 @@ static int net_broadcastsocket = 0;
 static struct qsockaddr broadcastaddr;
 
 static unsigned long myAddr;
-
-#include "net_mp.h"
-
 
 //=============================================================================
 
