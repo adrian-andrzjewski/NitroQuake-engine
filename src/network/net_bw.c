@@ -23,8 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <dpmi.h>
 
-#include "quakedef.h"
+#include "net.h"
 #include "platform/dos/dosisms.h"
+#include "sys.h"
 
 
 // this section is general Unix stuff that we need
