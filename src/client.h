@@ -282,6 +282,11 @@ extern	cvar_t	lookspring;
 extern	cvar_t	lookstrafe;
 extern	cvar_t	sensitivity;
 
+extern	cvar_t	chase_back;
+extern	cvar_t	chase_up;
+extern	cvar_t	chase_right;
+extern	cvar_t	chase_active;
+
 extern	cvar_t	m_pitch;
 extern	cvar_t	m_yaw;
 extern	cvar_t	m_forward;
@@ -392,5 +397,14 @@ void V_SetContentsColor (int contents);
 //
 void CL_InitTEnts (void);
 void CL_SignonReply (void);
+
+//
+// chase
+//
+extern	vec3_t	chase_pos, chase_angles, chase_dest, chase_dest_angles;
+
+void Chase_Init (void);
+void Chase_Reset (void);
+void Chase_Update (void);
 
 #endif /* CLIENT_H */

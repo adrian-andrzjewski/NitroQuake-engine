@@ -211,12 +211,3 @@ extern qboolean		msg_suppress_1;		// suppresses resolution and cache size consol
 										//  an fullscreen DIB focus gain/loss
 
 extern qboolean		isDedicated;
-
-//
-// chase
-//
-extern	cvar_t	chase_active;
-
-void Chase_Init (void);
-void Chase_Reset (void);
-void Chase_Update (void);

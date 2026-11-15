@@ -5,7 +5,6 @@ src/audio/snd_dos.c
 src/audio/snd_gus.c
 src/audio/snd_mem.c
 src/audio/snd_mix.c
-src/client/chase.c
 src/client/cl_main.c
 src/client/cl_parse.c
 src/client/cl_tent.c

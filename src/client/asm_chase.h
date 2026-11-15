@@ -4,8 +4,6 @@
 #ifndef __ASSEMBLER__
 #include <stddef.h>
 #include "collision/asm_hullcheck.h"
-extern cvar_t chase_back,chase_up,chase_right,chase_active;
-extern vec3_t chase_pos,chase_angles,chase_dest,chase_dest_angles;
 void TraceLine(vec3_t,vec3_t,vec3_t);
 #ifdef BENCH486
 extern void (*bench486_chase_register_probe)(cvar_t *);

@@ -19,7 +19,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // chase.c -- chase camera code
 
-#include "quakedef.h"
+#include <math.h>
+#include <string.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "client.h"
+#include "progs.h"
+#include "zone.h"
+#include "model.h"
+#include "world.h"
+
 #include "client/asm_chase.h"
 
 cvar_t	chase_back = {"chase_back", "100"};
@@ -58,6 +69,7 @@ void TraceLine (vec3_t start, vec3_t end, vec3_t impact)
 	trace_t	trace;
 
 	memset (&trace, 0, sizeof(trace));
+	/* Keep this legacy call unprototyped: its integer 0/1 stack bits are part of C/ASM parity. */
 	SV_RecursiveHullCheck (cl.worldmodel->hulls, 0, 0, 1, start, end, &trace);
 
 	VectorCopy (trace.endpos, impact);
