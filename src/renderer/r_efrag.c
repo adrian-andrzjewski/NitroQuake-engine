@@ -19,7 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_efrag.c
 
-#include "quakedef.h"
+#include "render.h"
+#include "client.h"
+#include "bspfile.h"
+#include "model.h"
+#include "d_iface.h"
+#include "console.h"
+#include "sys.h"
+#include <string.h>
 #include "renderer/r_local.h"
 #include "renderer/asm_worldcontrol.h"
 

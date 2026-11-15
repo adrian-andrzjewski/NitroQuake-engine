@@ -20,7 +20,6 @@ src/renderer/r_alias.c
 src/renderer/r_bsp.c
 src/renderer/r_draw.c
 src/renderer/r_edge.c
-src/renderer/r_efrag.c
 src/renderer/r_light.c
 src/renderer/r_main.c
 src/renderer/r_part.c
