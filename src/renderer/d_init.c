@@ -19,7 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // d_init.c: rasterization driver initialization
 
-#include "quakedef.h"
+#include "common.h"
+#include "bspfile.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "cvar.h"
+#include "model.h"
+#include "vid.h"
+#include "d_iface.h"
 #include "renderer/d_local.h"
 #include "renderer/asm_drawingdriver.h"
 
@@ -177,7 +184,7 @@ void D_SetupFrame (void)
 	for (i=0 ; i<(NUM_MIPS-1) ; i++)
 		d_scalemip[i] = basemip[i] * d_mipscale.value;
 
-#if	id386
+#if defined(__i386__)
 				if (d_subdiv16.value)
 					d_drawspans = D_DrawSpans16;
 				else
@@ -302,7 +309,7 @@ void D_SetupFrame_Driver_C (void)
 	for (i=0 ; i<(NUM_MIPS-1) ; i++)
 		d_scalemip[i] = basemip[i] * d_mipscale.value;
 
-#if	id386
+#if defined(__i386__)
 				if (d_subdiv16.value)
 					d_drawspans = D_DrawSpans16;
 				else

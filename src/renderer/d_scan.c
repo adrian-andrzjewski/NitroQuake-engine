@@ -21,7 +21,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 // Portable C scan-level rasterization code, all pixel depths.
 
-#include "quakedef.h"
+#include "common.h"
+#include "bspfile.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "cvar.h"
+#include "model.h"
+#include "client.h"
+#include "vid.h"
+#include "d_iface.h"
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
 #include "renderer/d_local.h"
@@ -78,7 +86,7 @@ fixed16_t		r_turb_s, r_turb_t, r_turb_sstep, r_turb_tstep;
 int				*r_turb_turb;
 int				r_turb_spancount;
 
-#if id386
+#if defined(__i386__)
 void D_DrawTurbulent8Span_asm486 (void);
 #if defined(BENCH486) || defined(ASM486_TURBULENT_C)
 void D_DrawTurbulent8Span_C (void);
@@ -153,7 +161,7 @@ void D_WarpScreen (void)
 
 
 
-#if	!id386
+#if !defined(__i386__)
 
 /*
 =============
@@ -177,7 +185,7 @@ void D_DrawTurbulent8Span (void)
 #endif	// !id386
 
 
-#if id386 && (defined(BENCH486) || defined(ASM486_TURBULENT_C))
+#if defined(__i386__) && (defined(BENCH486) || defined(ASM486_TURBULENT_C))
 
 /*
 =============
@@ -369,7 +377,7 @@ void Turbulent8 (espan_t *pspan)
 #endif
 
 
-#if	!id386
+#if !defined(__i386__)
 
 /*
 =============
@@ -508,7 +516,7 @@ void D_DrawSpans8 (espan_t *pspan)
 #endif
 
 
-#if	!id386 || defined(BENCH486)
+#if !defined(__i386__) || defined(BENCH486)
 
 /*
 =============

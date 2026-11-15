@@ -24,6 +24,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "q_types.h"
 
+/* The DOS framebuffer is directly accessible; no explicit lock is needed. */
+#define VID_LockBuffer()
+#define VID_UnlockBuffer()
+
 #define MAXHEIGHT		1024
 #define MAXWIDTH		1280
 

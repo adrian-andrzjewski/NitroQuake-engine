@@ -40,9 +40,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdlib.h>
 #include <setjmp.h>
 
-#define	VID_LockBuffer()
-#define	VID_UnlockBuffer()
-
 #if defined __i386__
 #define id386	1
 #else
