@@ -19,9 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cmd.c -- Quake script command processing module
 
-#include "quakedef.h"
+#include <string.h>
 
-void Cmd_ForwardToServer (void);
+#include "client.h"
+#include "cmd.h"
+#include "console.h"
+#include "cvar.h"
+#include "host.h"
+#include "sys.h"
 
 #define	MAX_ALIAS_NAME	32
 

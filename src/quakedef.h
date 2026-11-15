@@ -109,9 +109,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 // host
 //
-extern	qboolean	host_initialized;		// true if into command execution
-extern	byte		*host_basepal;
-
 void Host_ClearMemory (void);
 void Host_ServerFrame (void);
 void Host_InitCommands (void);

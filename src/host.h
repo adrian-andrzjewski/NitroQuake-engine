@@ -36,6 +36,7 @@ typedef struct
 } quakeparms_t;
 
 extern quakeparms_t host_parms;
+extern qboolean host_initialized;		// true if into command execution
 extern double realtime;
 extern double host_frametime;
 extern int host_framecount;
