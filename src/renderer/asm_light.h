@@ -31,20 +31,3 @@
 
 #define ml_texinfo_vecs         0
 #define ml_texinfo_size        44
-
-// BENCH486-only per-surface diagnostics shared by r_light.c, r_lightasm.s,
-// and the direct parity fixture in host_cmd.c.
-#define ml_probe_planedist      0
-#define ml_probe_rad            4
-#define ml_probe_fmin           8
-#define ml_probe_local0        12
-#define ml_probe_local1        16
-#define ml_probe_cs            20
-#define ml_probe_ct            24
-#define ml_probe_fmin_scaled   28
-#define ml_probe_sd            32
-#define ml_probe_td            36
-#define ml_probe_idist         40
-#define ml_probe_stage         44
-#define ml_probe_marked        48
-#define ml_probe_size          52

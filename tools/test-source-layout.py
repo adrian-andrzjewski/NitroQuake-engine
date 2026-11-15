@@ -76,8 +76,8 @@ fixture_files = [
     p for p in fixtures.iterdir()
     if p.is_file() and p.name != "bench486_profile.h"
 ]
-if len(fixture_files) != 108:
-    raise SystemExit(f"expected 108 BENCH486 fixture files, found {len(fixture_files)}")
+if len(fixture_files) != 109:
+    raise SystemExit(f"expected 109 BENCH486 fixture files, found {len(fixture_files)}")
 if any(not (p.name.startswith("bench486_") or p.name.endswith("_bench_hooks.inc")) for p in fixture_files):
     raise SystemExit("unexpected file in the BENCH486 fixture subtree")
 if any(SOURCE.glob("bench486_*")):

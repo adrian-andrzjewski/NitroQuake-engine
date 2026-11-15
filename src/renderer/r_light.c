@@ -19,9 +19,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_light.c
 
-#include "quakedef.h"
+#include "render.h"
+#include "client.h"
+#include "bspfile.h"
+#include "model.h"
+#include "d_iface.h"
+#include <math.h>
 #include "renderer/r_local.h"
 #include "renderer/asm_renderdispatch.h"
+
+#ifdef BENCH486
+#include "tests/bench486/bench486_light_probe.h"
+#endif
 
 #if defined(ASM486_MARK_LIGHTS) || defined(ASM486_DYNAMIC_LIGHT_PUSH) || defined(ASM486_ANIMATED_LIGHT) || defined(ASM486_POINT_LIGHT) || defined(BENCH486)
 #include <stddef.h>

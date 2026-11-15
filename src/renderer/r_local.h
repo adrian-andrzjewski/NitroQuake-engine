@@ -583,24 +583,3 @@ void R_SplitEntityOnNode2 (mnode_t *node);
 void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
 void R_MarkLights_asm486 (dlight_t *light, int bit, mnode_t *node);
 void R_PushDlights (void);
-#ifdef BENCH486
-typedef struct
-{
-	float planedist;
-	float rad;
-	float fmin;
-	float local0;
-	float local1;
-	float cs;
-	float ct;
-	int fmin_scaled;
-	int sd;
-	int td;
-	int idist;
-	int stage;
-	int marked;
-} bench486_mark_lights_probe_t;
-extern bench486_mark_lights_probe_t *bench486_mark_lights_probe;
-void R_MarkLights_C (dlight_t *light, int bit, mnode_t *node);
-void R_PushDlights_C (void);
-#endif

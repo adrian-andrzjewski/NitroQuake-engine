@@ -128,6 +128,33 @@ for relative in (
     if '#include "tests/bench486/bench486_sprite_hooks.h"' not in text:
         raise SystemExit(f"{relative} omits the sprite benchmark hook interface")
 
+light_probe_path = SOURCE / "tests" / "bench486" / "bench486_light_probe.h"
+light_probe_text = light_probe_path.read_text(encoding="utf-8", errors="replace")
+light_asm_text = (SOURCE / "renderer" / "asm_light.h").read_text(
+    encoding="utf-8", errors="replace")
+if "#ifndef BENCH486_LIGHT_PROBE_H" not in light_probe_text:
+    raise SystemExit("benchmark light probe interface has no include guard")
+for declaration in (
+        "bench486_mark_lights_probe_t",
+        "bench486_mark_lights_probe",
+        "R_MarkLights_C",
+        "R_PushDlights_C",
+        "ml_probe_planedist",
+        "ml_probe_size"):
+    if declaration not in light_probe_text:
+        raise SystemExit(
+            f"bench486_light_probe.h is missing its owned declaration: {declaration}")
+    if declaration in renderer_private_text or declaration in light_asm_text:
+        raise SystemExit(
+            f"BENCH light declaration remains in a production renderer header: {declaration}")
+for relative in (
+        "src/renderer/r_light.c",
+        "src/renderer/r_lightasm.s",
+        "src/core/host_cmd.c"):
+    text = (ROOT / relative).read_text(encoding="utf-8", errors="replace")
+    if '#include "tests/bench486/bench486_light_probe.h"' not in text:
+        raise SystemExit(f"{relative} omits the light benchmark interface")
+
 print(
     "Header dependencies PASS: "
     f"{len(production_sources)} production C files, "

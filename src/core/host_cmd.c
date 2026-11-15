@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 #include "tests/bench486/bench486_profile.h"
+#include "tests/bench486/bench486_light_probe.h"
 
 #ifdef BENCH486
 #include "tests/bench486/bench486_sprite_hooks.h"

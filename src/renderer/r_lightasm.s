@@ -8,6 +8,10 @@
 #include "asm_i386.h"
 #include "renderer/asm_light.h"
 
+#ifdef BENCH486
+#include "tests/bench486/bench486_light_probe.h"
+#endif
+
 #ifdef ASM486_MARK_LIGHTS
 
         .extern C(r_dlightframecount)
