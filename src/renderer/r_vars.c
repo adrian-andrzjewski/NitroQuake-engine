@@ -19,9 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_vars.c: global refresh variables
 
-#include	"quakedef.h"
-
-#if	!id386
+#if !defined(__i386__)
 
 // all global and static refresh variables are collected in a contiguous block
 // to avoid cache conflicts.
@@ -35,5 +33,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 int	r_bmodelactive;
 
-#endif	// !id386
+#endif	// !defined(__i386__)
 

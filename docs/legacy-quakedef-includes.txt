@@ -52,5 +52,4 @@ src/renderer/r_part.c
 src/renderer/r_sky.c
 src/renderer/r_sprite.c
 src/renderer/r_surf.c
-src/renderer/r_vars.c
 src/video/vid_dos.c
