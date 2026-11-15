@@ -48,4 +48,16 @@ extern cvar_t sys_ticrate;
 extern cvar_t sys_nostdout;
 extern cvar_t developer;
 
+void Host_ClearMemory (void);
+void Host_ServerFrame (void);
+void Host_InitCommands (void);
+void Host_Init (quakeparms_t *parms);
+void Host_Shutdown (void);
+void Host_Error (char *error, ...);
+void Host_EndGame (char *message, ...);
+void Host_Frame (float time);
+void Host_Quit_f (void);
+void Host_ClientCommands (char *fmt, ...);
+void Host_ShutdownServer (qboolean crash);
+
 #endif /* HOST_H */

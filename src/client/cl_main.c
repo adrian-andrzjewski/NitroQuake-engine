@@ -19,7 +19,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_main.c  -- client main loop
 
-#include "quakedef.h"
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "cmd.h"
+#include "cvar.h"
+#include "zone.h"
+#include "bspfile.h"
+#include "model.h"
+#include "client.h"
+#include "console.h"
+#include "host.h"
+#include "input.h"
+#include "net.h"
+#include "protocol.h"
+#include "render.h"
+#include "screen.h"
+#include "server.h"
+#include "sound.h"
+#include "vid.h"
+#include "tests/bench486/bench486_profile.h"
 
 #if defined(BENCH486) && defined(ASM486_SCREEN_CENTER_STRING)
 extern int bench486_screen_center_trace_active;
