@@ -19,7 +19,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_sky.c
 
-#include "quakedef.h"
+#include <math.h>
+
+#include "common.h"
+#include "bspfile.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "model.h"
+#include "render.h"
+#include "d_iface.h"
+#include "client.h"
 #include "renderer/r_local.h"
 #include "renderer/d_local.h"
 #include "renderer/asm_sky.h"
