@@ -9,7 +9,16 @@ SOURCE = ROOT / "src"
 LEGACY_LIST = ROOT / "docs" / "legacy-quakedef-includes.txt"
 PROFILE_HEADER = SOURCE / "tests" / "bench486" / "bench486_profile.h"
 
-INCLUDE_QUAKEDEF = re.compile(r'^\s*#\s*include\s*"quakedef\.h"\s*$', re.MULTILINE)
+INCLUDE_QUAKEDEF = re.compile(
+    r'^\s*#\s*include\s*[<"]quakedef\.h[>"]', re.MULTILINE
+)
+for include_form in (
+    '#include "quakedef.h"',
+    "# include <quakedef.h>",
+    '#include "quakedef.h" // legacy dependency',
+):
+    if not INCLUDE_QUAKEDEF.search(include_form):
+        raise SystemExit(f"umbrella include detector missed: {include_form}")
 INCLUDE_PROFILE = re.compile(
     r'^\s*#\s*include\s*"tests/bench486/bench486_profile\.h"\s*$',
     re.MULTILINE,

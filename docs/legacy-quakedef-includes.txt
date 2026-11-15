@@ -6,7 +6,6 @@ src/audio/snd_gus.c
 src/audio/snd_mem.c
 src/audio/snd_mix.c
 src/client/chase.c
-src/client/cl_demo.c
 src/client/cl_input.c
 src/client/cl_main.c
 src/client/cl_parse.c
@@ -23,8 +22,6 @@ src/core/cmd.c
 src/core/common.c
 src/core/host_cmd.c
 src/core/host.c
-src/core/mathlib.c
-src/memory/zone.c
 src/network/net_bw.c
 src/network/net_dgrm.c
 src/network/net_dos.c
@@ -37,7 +34,6 @@ src/platform/dos/in_dos.c
 src/platform/dos/nonintel.c
 src/platform/dos/sys_dos.c
 src/renderer/d_edge.c
-src/renderer/d_fill.c
 src/renderer/d_init.c
 src/renderer/d_modech.c
 src/renderer/d_part.c
@@ -64,7 +60,6 @@ src/renderer/r_surf.c
 src/renderer/r_vars.c
 src/server/pr_cmds.c
 src/server/pr_edict.c
-src/server/pr_exec.c
 src/server/sv_main.c
 src/server/sv_move.c
 src/server/sv_phys.c

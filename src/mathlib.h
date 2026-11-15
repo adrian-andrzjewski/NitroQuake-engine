@@ -32,6 +32,15 @@ typedef	int	fixed4_t;
 typedef	int	fixed8_t;
 typedef	int	fixed16_t;
 
+// up / down
+#define PITCH	0
+
+// left / right
+#define YAW		1
+
+// fall over
+#define ROLL	2
+
 #ifndef M_PI
 #define M_PI		3.14159265358979323846	// matches value in gcc v2 math.h
 #endif

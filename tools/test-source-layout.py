@@ -100,6 +100,20 @@ for name, dependencies in interfaces.items():
     if missing:
         raise SystemExit(f"{name} is missing direct interface dependencies: {sorted(missing)}")
 
+host_text = (SOURCE / "host.h").read_text(encoding="utf-8")
+for declaration in ("extern double realtime;", "extern int host_framecount;"):
+    if declaration not in host_text:
+        raise SystemExit(f"host.h is missing its owned declaration: {declaration}")
+
+quakedef_text = (SOURCE / "quakedef.h").read_text(encoding="utf-8")
+if '#include "host.h"' not in quakedef_text:
+    raise SystemExit("quakedef.h no longer imports the host compatibility interface")
+common_text = (SOURCE / "common.h").read_text(encoding="utf-8")
+if not re.search(r"(?m)^\s*#\s*define\s+QUAKE_GAME\b", common_text):
+    raise SystemExit("common.h no longer selects game-side BSP declarations")
+if re.search(r"(?m)^\s*#\s*define\s+QUAKE_GAME\b", quakedef_text):
+    raise SystemExit("QUAKE_GAME context remains privately defined in quakedef.h")
+
 for relative in ("src/core/crc.c", "src/core/cvar.c"):
     text = (ROOT / relative).read_text(encoding="utf-8")
     if '#include "quakedef.h"' in text:

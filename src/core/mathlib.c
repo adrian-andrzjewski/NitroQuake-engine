@@ -20,9 +20,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // mathlib.c -- math primitives
 
 #include <math.h>
-#include "quakedef.h"
+#include <stdlib.h>
+#include <string.h>
 
-void Sys_Error (char *error, ...);
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "zone.h"
+#include "model.h"
+#include "sys.h"
 
 vec3_t vec3_origin = {0,0,0};
 int nanmask = 255<<23;
@@ -233,7 +239,7 @@ void BOPS_Error (void)
 
 
 
-#if	!id386
+#if !defined(__i386__)
 
 /*
 ==================
@@ -682,7 +688,7 @@ int GreatestCommonDivisor (int i1, int i2)
 
 
 
-#if	!id386
+#if !defined(__i386__)
 
 // TODO: move to nonintel.c
 

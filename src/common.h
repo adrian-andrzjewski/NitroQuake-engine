@@ -22,6 +22,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef COMMON_H
 #define COMMON_H
 
+/* Engine code uses the game-side BSP types rather than the utility epair_t. */
+#ifndef QUAKE_GAME
+#define QUAKE_GAME
+#endif
+
 #include <stdio.h>
 
 #include "q_shared.h"

@@ -6,10 +6,13 @@ Production sources are grouped under `src/` by subsystem: `assets`, `audio`,
 subsystem; C reference implementations and their selectors remain independent.
 
 The public headers `render.h`, `vid.h`, `zone.h`, `client.h`, and `server.h`
-define the renderer, video, memory, client, and server entry points. They use
-`q_types.h` for primitive engine types and `q_shared.h` for limits shared across
-wire, client, model, and sound interfaces. `quakedef.h` remains the compatibility
-umbrella for legacy translation units that still depend on cross-module state.
+define the renderer, video, memory, client, and server entry points. The narrow
+`host.h` carries the host timing values shared across those subsystems. The
+subsystem headers use `q_types.h` for primitive engine types and `q_shared.h`
+for limits shared across wire, client, model, and sound interfaces. `common.h`
+selects game-side BSP declarations for engine translation units. `quakedef.h`
+remains the compatibility umbrella for legacy translation units that still
+depend on cross-module state.
 New translation units should include the smallest subsystem interfaces they use.
 The renderer's existing shared state remains in place while individual callers
 move off the compatibility header.

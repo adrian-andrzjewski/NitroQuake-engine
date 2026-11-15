@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //#define	GLTEST			// experimental stuff
 
-#define	QUAKE_GAME			// as opposed to utilities
-
 #define	VERSION				1.09
 
 #include "nitroquake_version.h"
@@ -66,16 +64,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	MINIMUM_MEMORY_LEVELPAK	(MINIMUM_MEMORY + 0x100000)
 
 #define MAX_NUM_ARGVS	50
-
-// up / down
-#define	PITCH	0
-
-// left / right
-#define	YAW		1
-
-// fall over
-#define	ROLL	2
-
 
 #define	ON_EPSILON		0.1			// point on plane side epsilon
 
@@ -158,6 +146,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // #define IDGODS
 
 #include "common.h"
+#include "host.h"
 #include "q_shared.h"
 #include "bspfile.h"
 #include "vid.h"
@@ -228,9 +217,6 @@ extern	qboolean	host_initialized;		// true if into command execution
 extern	double		host_frametime;
 extern	byte		*host_basepal;
 extern	byte		*host_colormap;
-extern	int			host_framecount;	// incremented every frame, never reset
-extern	double		realtime;			// not bounded in any way, changed at
-										// start of every frame, never reset
 
 void Host_ClearMemory (void);
 void Host_ServerFrame (void);

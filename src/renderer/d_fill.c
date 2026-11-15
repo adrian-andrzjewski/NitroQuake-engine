@@ -19,7 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // d_clear: clears a specified rectangle to the specified color
 
-#include "quakedef.h"
+#include "common.h"
+#include "vid.h"
 
 #ifdef ASM486_FILLRECT
 typedef char d_fillrect_vid_buffer_offset[

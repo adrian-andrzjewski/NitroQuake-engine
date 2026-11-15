@@ -18,7 +18,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "quakedef.h"
+#include <string.h>
+
+#include "cmd.h"
+#include "client.h"
+#include "console.h"
+#include "host.h"
+#include "net.h"
+#include "sys.h"
 #include "tests/bench486/bench486_profile.h"
 
 void CL_FinishTimeDemo (void);
