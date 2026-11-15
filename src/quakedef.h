@@ -214,7 +214,6 @@ extern	cvar_t		sys_nostdout;
 extern	cvar_t		developer;
 
 extern	qboolean	host_initialized;		// true if into command execution
-extern	double		host_frametime;
 extern	byte		*host_basepal;
 extern	byte		*host_colormap;
 

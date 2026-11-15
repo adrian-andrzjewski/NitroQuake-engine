@@ -92,6 +92,8 @@ interfaces = {
     "net.h": {"common.h", "cvar.h"},
     "net_loop.h": {"net.h"},
     "wad.h": {"q_types.h"},
+    "input.h": {"client.h"},
+    "keys.h": {"q_types.h"},
 }
 for name, dependencies in interfaces.items():
     text = (SOURCE / name).read_text(encoding="utf-8")
@@ -101,7 +103,10 @@ for name, dependencies in interfaces.items():
         raise SystemExit(f"{name} is missing direct interface dependencies: {sorted(missing)}")
 
 host_text = (SOURCE / "host.h").read_text(encoding="utf-8")
-for declaration in ("extern double realtime;", "extern int host_framecount;"):
+for declaration in (
+        "extern double realtime;",
+        "extern double host_frametime;",
+        "extern int host_framecount;"):
     if declaration not in host_text:
         raise SystemExit(f"host.h is missing its owned declaration: {declaration}")
 

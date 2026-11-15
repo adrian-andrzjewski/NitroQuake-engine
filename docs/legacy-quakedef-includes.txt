@@ -6,13 +6,11 @@ src/audio/snd_gus.c
 src/audio/snd_mem.c
 src/audio/snd_mix.c
 src/client/chase.c
-src/client/cl_input.c
 src/client/cl_main.c
 src/client/cl_parse.c
 src/client/cl_tent.c
 src/client/console.c
 src/client/draw.c
-src/client/keys.c
 src/client/menu.c
 src/client/sbar.c
 src/client/screen.c

@@ -17,7 +17,19 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "quakedef.h"
+#include <stdio.h>
+#include <string.h>
+
+#include "cmd.h"
+#include "common.h"
+#include "console.h"
+#include "cvar.h"
+#include "input.h"
+#include "keys.h"
+#include "menu.h"
+#include "screen.h"
+#include "sys.h"
+#include "zone.h"
 
 /*
 
