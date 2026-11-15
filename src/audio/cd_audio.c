@@ -21,10 +21,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // rights reserved.
 
 #include <dpmi.h>
-#include "quakedef.h"
-#include "platform/dos/dosisms.h"
 
-extern	cvar_t	bgmvolume;
+#include "common.h"
+#include "cdaudio.h"
+#include "client.h"
+#include "cmd.h"
+#include "console.h"
+#include "host.h"
+#include "sound.h"
+#include "platform/dos/dosisms.h"
 
 #define ADDRESS_MODE_HSG		0
 #define ADDRESS_MODE_RED_BOOK	1
