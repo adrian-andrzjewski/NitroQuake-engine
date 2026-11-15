@@ -173,6 +173,43 @@ void D_PolysetScanLeftEdgeProfiled (int height)
 
 void D_PolysetDrawSpansProfiled (spanpackage_t *spans)
 {
+	spanpackage_t	*span;
+	int				span_count, span_pixels, span_width;
+	int				span_aspancount, span_errorterm;
+
+	/*
+	 * Count the samples submitted to the 486 span drawer without changing its
+	 * state.  The stepping below mirrors D_PolysetDrawSpans8: PROFILE486 uses
+	 * this wrapper around the assembly drawer, while the C reference uses the
+	 * same wrapper around the C drawer.
+	 */
+	span_count = 0;
+	span_pixels = 0;
+	span_aspancount = d_aspancount;
+	span_errorterm = errorterm;
+	for (span = spans; span->count != -999999; span++)
+	{
+		span_width = span_aspancount - span->count;
+		if (span_width > 0)
+		{
+			span_count++;
+			span_pixels += span_width;
+		}
+
+		span_errorterm += erroradjustup;
+		if (span_errorterm >= 0)
+		{
+			span_aspancount += d_countextrastep;
+			span_errorterm -= erroradjustdown;
+		}
+		else
+		{
+			span_aspancount += ubasestep;
+		}
+	}
+	BENCH486_PROFILE_WORK (BENCH486_PROFILE_ALIAS_DRAW_SPANS,
+			(unsigned long)span_count, (unsigned long)span_pixels);
+
 	BENCH486_PROFILE_ENTER (BENCH486_PROFILE_ALIAS_DRAW_SPANS);
 	D_PolysetDrawSpans8 (spans);
 	BENCH486_PROFILE_LEAVE ();
