@@ -20,14 +20,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // d_sprite.c: software top-level rasterization driver module for drawing
 // sprites
 
-#include "quakedef.h"
+#include <math.h>
+#include <stddef.h>
+
+#include "common.h"
+#include "bspfile.h"
+#include "client.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "zone.h"
+#include "model.h"
+#include "render.h"
+#include "d_iface.h"
+#include "renderer/r_local.h"
 #include "renderer/d_local.h"
 #include "renderer/asm_renderdispatch.h"
 #ifdef BENCH486
 extern void (*bench486_sprite_project_hook) (const spritedesc_t *desc);
 #endif
-
-#include <stddef.h>
 
 typedef char sprite_gradient_assembly_layout_assert[
 	(offsetof(spritedesc_t, vup) == 12 &&
@@ -45,7 +55,7 @@ int			sprite_height;
 int			minindex, maxindex;
 sspan_t		*sprite_spans;
 
-#if	!id386
+#if !defined(__i386__)
 
 /*
 =====================
