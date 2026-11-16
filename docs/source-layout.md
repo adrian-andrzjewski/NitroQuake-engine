@@ -12,16 +12,20 @@ host timing, and shared palette state to other subsystems.
 Subsystem headers use `q_types.h` for primitive engine types and `q_shared.h`
 for limits shared across wire, client, model, and sound interfaces. `common.h`
 selects game-side BSP declarations for engine translation units. `quakedef.h`
-remains the compatibility umbrella for legacy translation units that still
-depend on cross-module state.
+remains available as a compatibility umbrella for downstream and reference
+code. The checked production inventory currently has no translation units that
+include it; the compatibility header stays in place while public subsystem
+interfaces continue to stabilize.
 New translation units should include the smallest subsystem interfaces they use.
-The renderer's existing shared state remains in place while individual callers
-move off the compatibility header.
+Renderer shared state remains broad despite the header migration; continue
+introducing narrow interfaces incrementally without changing legacy symbols or
+calling conventions.
 
 `tools/test-header-dependencies.py` compares production C includes of
-`quakedef.h` against `docs/legacy-quakedef-includes.txt`. A translation unit may
-leave that inventory only after it switches to its owning interfaces; new
-production files must not add umbrella dependencies silently. Profiling
+`quakedef.h` against `docs/legacy-quakedef-includes.txt`. That inventory is
+currently empty, and the test prevents production files from adding umbrella
+dependencies silently. New translation units should use their owning
+interfaces. Profiling
 declarations live in `src/tests/bench486/bench486_profile.h`; fixture-specific
 assembly adapters and C-oracle declarations live with their BENCH486 interfaces,
 such as `src/tests/bench486/bench486_drawing_iface.h`. Consumers include those
