@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/d_local.h"
 #include "renderer/asm_drawingdriver.h"
+#include "renderer/asm_draw.h"
 #include "renderer/r_local.h"
 
 #ifdef ASM486_SURFACE_CACHE_CHECK
@@ -45,14 +46,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef char surface_cache_setup_extents_layout[
 		(offsetof(msurface_t, extents) == 48) ? 1 : -1];
 typedef char surface_cache_entry_layout[
-		(offsetof(msurface_t, dlightframe) == 4 &&
-		offsetof(msurface_t, cachespots) == 28 &&
-		offsetof(msurface_t, texinfo) == 52 &&
-		offsetof(msurface_t, styles) == 56 &&
-		offsetof(mtexinfo_t, texture) == 36 &&
-		offsetof(texture_t, anim_total) == 24 &&
-		offsetof(texture_t, alternate_anims) == 40 &&
-		offsetof(entity_t, frame) == 140) ? 1 : -1];
+		(offsetof(msurface_t, dlightframe) == cs_surface_dlightframe &&
+		offsetof(msurface_t, cachespots) == cs_surface_cachespots &&
+		offsetof(msurface_t, texinfo) == cs_surface_texinfo &&
+		offsetof(msurface_t, styles) == cs_surface_styles &&
+		offsetof(mtexinfo_t, texture) == cs_texinfo_texture &&
+		offsetof(texture_t, anim_total) == cs_texture_anim_total &&
+		offsetof(texture_t, anim_min) == cs_texture_anim_min &&
+		offsetof(texture_t, anim_max) == cs_texture_anim_max &&
+		offsetof(texture_t, anim_next) == cs_texture_anim_next &&
+		offsetof(texture_t, alternate_anims) == cs_texture_alternate_anims &&
+		offsetof(entity_t, frame) == cs_entity_frame &&
+		offsetof(client_state_t, time) == cs_cl_time) ? 1 : -1];
 typedef char surface_cache_setup_drawsurf_layout[
 		(MAXLIGHTMAPS == 4 && MIPLEVELS == 4 &&
 		offsetof(msurface_t, cachespots) == 28 &&

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // texture (used for Alias models)
 
 #include <math.h>
+#include <stddef.h>
 
 #include "common.h"
 #include "cvar.h"
@@ -35,6 +36,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "renderer/asm_publicbindings.h"
 #include "renderer/r_local.h"
 #include "renderer/d_local.h"
+#include "renderer/asm_draw.h"
 
 // TODO: put in span spilling to shrink list size
 // !!! if this is changed, it must be changed in d_polysa.s too !!!
@@ -49,6 +51,17 @@ typedef struct {
 	byte			*ptex;
 	int				sfrac, tfrac, light, zi;
 } spanpackage_t;
+
+typedef char d_polyset_spanpackage_assembly_layout_must_match[
+	(sizeof(spanpackage_t) == spanpackage_t_size &&
+	 offsetof(spanpackage_t, pdest) == spanpackage_t_pdest &&
+	 offsetof(spanpackage_t, pz) == spanpackage_t_pz &&
+	 offsetof(spanpackage_t, count) == spanpackage_t_count &&
+	 offsetof(spanpackage_t, ptex) == spanpackage_t_ptex &&
+	 offsetof(spanpackage_t, sfrac) == spanpackage_t_sfrac &&
+	 offsetof(spanpackage_t, tfrac) == spanpackage_t_tfrac &&
+	 offsetof(spanpackage_t, light) == spanpackage_t_light &&
+	 offsetof(spanpackage_t, zi) == spanpackage_t_zi) ? 1 : -1];
 
 typedef struct {
 	int		isflattop;

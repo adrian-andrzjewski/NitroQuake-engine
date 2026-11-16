@@ -152,11 +152,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define rd_yOrigin					108
 #define rd_vieworg					112
 #define rd_viewangles				124
-#define rd_ambientlight				136
-#define rd_size						140
 
 // R_BuildLightMap assembly entry layout. These offsets are checked against
-// offsetof() in r_surf.c whenever ASM486_LIGHTMAP_BUILD is selected.
+// offsetof() in r_surf.c in every build.
 #define lm_drawsurf_surf			8
 #define lm_drawsurf_lightadj		12
 #define lm_surface_dlightframe		4
@@ -169,13 +167,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define lm_cvar_value				16
 
 // R_AddDynamicLights assembly orchestration layout, checked with offsetof()
-// whenever ASM486_DYNAMIC_LIGHT_ORCHESTRATION is selected.
+// in r_surf.c in every build.
 #define dl_drawsurf_surf 8
 #define dl_surface_dlightbits 8
 #define dl_surface_extents 48
 
 // R_DrawSurface assembly entry layout. Checked against offsetof() in r_surf.c
-// whenever ASM486_SURFACE_DRAW is selected.
+// in every build.
 #define sd_drawsurf_surfdat 0
 #define sd_drawsurf_rowbytes 4
 #define sd_drawsurf_surf 8
@@ -189,7 +187,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define sd_surface_texturemins 44
 #define sd_surface_extents 48
 
-// D_CacheSurface assembly entry layout. d_surf.c checks all C offsets.
+// D_CacheSurface assembly entry layout. r_surf.c validates these offsets in
+// every build; d_surf.c repeats the checks for the selected assembly path.
 #define cs_surface_dlightframe 4
 #define cs_surface_cachespots 28
 #define cs_surface_texinfo 52

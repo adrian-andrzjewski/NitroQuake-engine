@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_iface.h"
 #include "renderer/r_local.h"
 #include "renderer/d_local.h"
+#include "renderer/asm_draw.h"
 #include "renderer/asm_renderdispatch.h"
 #ifdef BENCH486
 #include "tests/bench486/bench486_sprite_hooks.h"
@@ -45,10 +46,12 @@ typedef char sprite_gradient_assembly_layout_assert[
 	 offsetof(spritedesc_t, vpn) == 36) ? 1 : -1];
 typedef char sprite_scan_left_assembly_layout_assert[
 	(offsetof(emitpoint_t, u) == 0 && offsetof(emitpoint_t, v) == 4 &&
-	 sizeof(emitpoint_t) == 20 && offsetof(sspan_t, count) == 8 &&
-	 sizeof(sspan_t) == 12) ? 1 : -1];
+	 sizeof(emitpoint_t) == 20 && offsetof(sspan_t, u) == sspan_t_u &&
+	 offsetof(sspan_t, v) == sspan_t_v &&
+	 offsetof(sspan_t, count) == sspan_t_count &&
+	 sizeof(sspan_t) == sspan_t_size) ? 1 : -1];
 typedef char sprite_draw_assembly_layout_assert[
-	(MAXHEIGHT == 1024 && sizeof(sspan_t) == 12 &&
+	(MAXHEIGHT == 1024 && sizeof(sspan_t) == sspan_t_size &&
 	 sizeof(emitpoint_t) == 20) ? 1 : -1];
 
 int			sprite_height;

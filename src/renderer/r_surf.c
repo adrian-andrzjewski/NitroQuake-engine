@@ -35,6 +35,136 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "sys.h"
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
+#include "renderer/asm_draw.h"
+
+/* Keep the offsets consumed by hand-written drawing assembly tied to the C
+ * declarations in every build, including the C-reference profile. */
+typedef char r_asm_draw_pointer_size_must_match[
+	(sizeof(void *) == 4) ? 1 : -1];
+typedef char r_asm_draw_espan_layout_must_match[
+	(sizeof(espan_t) == espan_t_size &&
+	 offsetof(espan_t, u) == espan_t_u &&
+	 offsetof(espan_t, v) == espan_t_v &&
+	 offsetof(espan_t, count) == espan_t_count &&
+	 offsetof(espan_t, pnext) == espan_t_pnext) ? 1 : -1];
+typedef char r_asm_draw_edge_layout_must_match[
+	(sizeof(edge_t) == et_size &&
+	 offsetof(edge_t, u) == et_u &&
+	 offsetof(edge_t, u_step) == et_u_step &&
+	 offsetof(edge_t, prev) == et_prev &&
+	 offsetof(edge_t, next) == et_next &&
+	 offsetof(edge_t, surfs) == et_surfs &&
+	 sizeof(((edge_t *)0)->surfs[0]) == 2 &&
+	 offsetof(edge_t, nextremove) == et_nextremove &&
+	 offsetof(edge_t, nearzi) == et_nearzi &&
+	 offsetof(edge_t, owner) == et_owner) ? 1 : -1];
+typedef char r_asm_draw_surface_layout_must_match[
+	(sizeof(surf_t) == st_size && sizeof(surf_t) == (1 << SURF_T_SHIFT) &&
+	 offsetof(surf_t, next) == st_next &&
+	 offsetof(surf_t, prev) == st_prev &&
+	 offsetof(surf_t, spans) == st_spans &&
+	 offsetof(surf_t, key) == st_key &&
+	 offsetof(surf_t, last_u) == st_last_u &&
+	 offsetof(surf_t, spanstate) == st_spanstate &&
+	 offsetof(surf_t, flags) == st_flags &&
+	 offsetof(surf_t, data) == st_data &&
+	 offsetof(surf_t, entity) == st_entity &&
+	 offsetof(surf_t, nearzi) == st_nearzi &&
+	 offsetof(surf_t, insubmodel) == st_insubmodel &&
+	 offsetof(surf_t, d_ziorigin) == st_d_ziorigin &&
+	 offsetof(surf_t, d_zistepu) == st_d_zistepu &&
+	 offsetof(surf_t, d_zistepv) == st_d_zistepv &&
+	 offsetof(surf_t, pad) == st_pad) ? 1 : -1];
+typedef char r_asm_draw_clipplane_layout_must_match[
+	(sizeof(clipplane_t) == cp_size &&
+	 offsetof(clipplane_t, normal) == cp_normal &&
+	 offsetof(clipplane_t, dist) == cp_dist &&
+	 offsetof(clipplane_t, next) == cp_next &&
+	 offsetof(clipplane_t, leftedge) == cp_leftedge &&
+	 offsetof(clipplane_t, rightedge) == cp_rightedge &&
+	 offsetof(clipplane_t, reserved) == cp_reserved &&
+	 sizeof(((clipplane_t *)0)->reserved) == 2) ? 1 : -1];
+typedef char r_asm_draw_medge_layout_must_match[
+	(sizeof(medge_t) == me_size &&
+	 offsetof(medge_t, v) == me_v &&
+	 offsetof(medge_t, cachededgeoffset) == me_cachededgeoffset) ? 1 : -1];
+typedef char r_asm_draw_mvertex_layout_must_match[
+	(sizeof(mvertex_t) == mv_size &&
+	 offsetof(mvertex_t, position) == mv_position) ? 1 : -1];
+typedef char r_asm_draw_mtriangle_layout_must_match[
+	(sizeof(mtriangle_t) == mtri_size &&
+	 sizeof(mtriangle_t) == (1 << mtri_shift) &&
+	 offsetof(mtriangle_t, facesfront) == mtri_facesfront &&
+	 offsetof(mtriangle_t, vertindex) == mtri_vertindex) ? 1 : -1];
+typedef char r_asm_draw_vrect_layout_must_match[
+	(offsetof(vrect_t, x) == rd_vrect_x &&
+	 offsetof(vrect_t, y) == rd_vrect_y &&
+	 offsetof(vrect_t, width) == rd_vrect_width &&
+	 offsetof(vrect_t, height) == rd_vrect_height) ? 1 : -1];
+typedef char r_asm_draw_refdef_layout_must_match[
+	(offsetof(refdef_t, vrect) == rd_vrect &&
+	 offsetof(refdef_t, aliasvrect) == rd_aliasvrect &&
+	 offsetof(refdef_t, vrectright) == rd_vrectright &&
+	 offsetof(refdef_t, vrectbottom) == rd_vrectbottom &&
+	 offsetof(refdef_t, aliasvrectright) == rd_aliasvrectright &&
+	 offsetof(refdef_t, aliasvrectbottom) == rd_aliasvrectbottom &&
+	 offsetof(refdef_t, vrectrightedge) == rd_vrectrightedge &&
+	 offsetof(refdef_t, fvrectx) == rd_fvrectx &&
+	 offsetof(refdef_t, fvrecty) == rd_fvrecty &&
+	 offsetof(refdef_t, fvrectx_adj) == rd_fvrectx_adj &&
+	 offsetof(refdef_t, fvrecty_adj) == rd_fvrecty_adj &&
+	 offsetof(refdef_t, vrect_x_adj_shift20) == rd_vrect_x_adj_shift20 &&
+	 offsetof(refdef_t, vrectright_adj_shift20) == rd_vrectright_adj_shift20 &&
+	 offsetof(refdef_t, fvrectright_adj) == rd_fvrectright_adj &&
+	 offsetof(refdef_t, fvrectbottom_adj) == rd_fvrectbottom_adj &&
+	 offsetof(refdef_t, fvrectright) == rd_fvrectright &&
+	 offsetof(refdef_t, fvrectbottom) == rd_fvrectbottom &&
+	 offsetof(refdef_t, horizontalFieldOfView) == rd_horizontalFieldOfView &&
+	 offsetof(refdef_t, xOrigin) == rd_xOrigin &&
+	 offsetof(refdef_t, yOrigin) == rd_yOrigin &&
+	 offsetof(refdef_t, vieworg) == rd_vieworg &&
+	 offsetof(refdef_t, viewangles) == rd_viewangles &&
+	 offsetof(refdef_t, ambientlight) == lm_refdef_ambientlight) ? 1 : -1];
+typedef char r_asm_draw_lightmap_entry_layout_must_match[
+	(offsetof(drawsurf_t, surf) == lm_drawsurf_surf &&
+	 offsetof(drawsurf_t, lightadj) == lm_drawsurf_lightadj &&
+	 offsetof(msurface_t, dlightframe) == lm_surface_dlightframe &&
+	 offsetof(msurface_t, extents) == lm_surface_extents &&
+	 offsetof(msurface_t, styles) == lm_surface_styles &&
+	 offsetof(msurface_t, samples) == lm_surface_samples &&
+	 offsetof(client_state_t, worldmodel) == lm_client_worldmodel &&
+	 offsetof(model_t, lightdata) == lm_model_lightdata &&
+	 offsetof(cvar_t, value) == lm_cvar_value) ? 1 : -1];
+typedef char r_asm_draw_dynamic_light_layout_must_match[
+	(offsetof(drawsurf_t, surf) == dl_drawsurf_surf &&
+	 offsetof(msurface_t, dlightbits) == dl_surface_dlightbits &&
+	 offsetof(msurface_t, extents) == dl_surface_extents) ? 1 : -1];
+typedef char r_asm_draw_surface_entry_layout_must_match[
+	(offsetof(drawsurf_t, surfdat) == sd_drawsurf_surfdat &&
+	 offsetof(drawsurf_t, rowbytes) == sd_drawsurf_rowbytes &&
+	 offsetof(drawsurf_t, surf) == sd_drawsurf_surf &&
+	 offsetof(drawsurf_t, texture) == sd_drawsurf_texture &&
+	 offsetof(drawsurf_t, surfmip) == sd_drawsurf_surfmip &&
+	 offsetof(drawsurf_t, surfwidth) == sd_drawsurf_surfwidth &&
+	 offsetof(drawsurf_t, surfheight) == sd_drawsurf_surfheight &&
+	 offsetof(texture_t, width) == sd_texture_width &&
+	 offsetof(texture_t, height) == sd_texture_height &&
+	 offsetof(texture_t, offsets) == sd_texture_offsets &&
+	 offsetof(msurface_t, texturemins) == sd_surface_texturemins &&
+	 offsetof(msurface_t, extents) == sd_surface_extents) ? 1 : -1];
+typedef char r_asm_draw_cache_surface_layout_must_match[
+	(offsetof(msurface_t, dlightframe) == cs_surface_dlightframe &&
+	 offsetof(msurface_t, cachespots) == cs_surface_cachespots &&
+	 offsetof(msurface_t, texinfo) == cs_surface_texinfo &&
+	 offsetof(msurface_t, styles) == cs_surface_styles &&
+	 offsetof(mtexinfo_t, texture) == cs_texinfo_texture &&
+	 offsetof(texture_t, anim_total) == cs_texture_anim_total &&
+	 offsetof(texture_t, anim_min) == cs_texture_anim_min &&
+	 offsetof(texture_t, anim_max) == cs_texture_anim_max &&
+	 offsetof(texture_t, anim_next) == cs_texture_anim_next &&
+	 offsetof(texture_t, alternate_anims) == cs_texture_alternate_anims &&
+	 offsetof(entity_t, frame) == cs_entity_frame &&
+	 offsetof(client_state_t, time) == cs_cl_time) ? 1 : -1];
 
 #ifdef ASM486_TEXTURE_ANIMATION
 #include <stddef.h>
