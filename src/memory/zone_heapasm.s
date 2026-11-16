@@ -267,6 +267,8 @@ C(Memory_Init):
 	movl	%eax,C(hunk_size)
 	movl	$0,C(hunk_low_used)
 	movl	$0,C(hunk_high_used)
+	movl	$0,C(hunk_low_peak_used)
+	movl	$0,C(hunk_high_peak_used)
 	movl	$0xc000,-16(%ebp)		/* DYNAMIC_SIZE */
 	call	C(Cache_Init)
 	pushl	$.Lzone_memory_zone_parameter

@@ -561,6 +561,8 @@ int		hunk_size;
 
 int		hunk_low_used;
 int		hunk_high_used;
+int		hunk_low_peak_used;
+int		hunk_high_peak_used;
 
 qboolean	hunk_tempactive;
 int		hunk_tempmark;
@@ -825,6 +827,8 @@ void *HUNK_ALLOC_NAME_C_ENTRY (int size, char *name)
 	bench486_hunk_low_bytes += size;
 #endif
 	hunk_low_used += size;
+	if (hunk_low_used > hunk_low_peak_used)
+		hunk_low_peak_used = hunk_low_used;
 
 	Cache_FreeLow (hunk_low_used);
 	HUNK_TRACE (74, size, hunk_low_used, hunk_high_used);
@@ -1008,6 +1012,8 @@ void *HUNK_HIGH_ALLOC_NAME_C_ENTRY (int size, char *name)
 	}
 
 	hunk_high_used += size;
+	if (hunk_high_used > hunk_high_peak_used)
+		hunk_high_peak_used = hunk_high_used;
 	HUNK_TRACE (79, size, hunk_low_used, hunk_high_used);
 #ifdef PROFILE486
 	bench486_hunk_high_calls++;
@@ -1794,6 +1800,46 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name)
 #include "tests/bench486/bench486_cachealloc.h"
 #endif
 
+/*
+========================
+Memory_ReportBudget
+
+Cache blocks occupy the gap between the low and high hunks. Report their live
+use as a subset of that gap, not as extra bytes beyond the engine arena.
+========================
+*/
+void Memory_ReportBudget (void)
+{
+	cache_system_t *entry;
+	unsigned long cache_bytes = 0;
+	unsigned int cache_blocks = 0;
+	int hunk_gap;
+
+	if (!hunk_base || hunk_size <= 0)
+	{
+		Con_Printf ("Engine arena: not initialized\n");
+		return;
+	}
+
+	hunk_gap = hunk_size - hunk_low_used - hunk_high_used;
+	if (cache_head.next)
+	{
+		for (entry = cache_head.next; entry != &cache_head; entry = entry->next)
+		{
+			cache_bytes += entry->size;
+			cache_blocks++;
+		}
+	}
+
+	Con_Printf ("Engine arena: zone=%d bytes; hunk low=%d (peak %d), "
+			"high=%d (peak %d), gap=%d bytes\n",
+			mainzone ? mainzone->size : 0,
+			hunk_low_used, hunk_low_peak_used,
+			hunk_high_used, hunk_high_peak_used, hunk_gap);
+	Con_Printf ("  Cache: %lu bytes in %u blocks (included in hunk gap)\n",
+			cache_bytes, cache_blocks);
+}
+
 //============================================================================
 
 
@@ -1818,6 +1864,8 @@ void MEMORY_INIT_C_ENTRY (void *buf, int size)
 	hunk_size = size;
 	hunk_low_used = 0;
 	hunk_high_used = 0;
+	hunk_low_peak_used = 0;
+	hunk_high_peak_used = 0;
 	
 	Cache_Init ();
 	p = COM_CheckParm ("-zone");

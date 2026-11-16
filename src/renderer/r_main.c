@@ -81,6 +81,21 @@ static qboolean	r_warp_depth_valid;
 static qboolean	r_render_stack_headroom_reported;
 static qboolean	r_render_stack_failure_reported;
 static qboolean	r_warp_stack_status_reported;
+static qboolean	r_render_stack_sampled;
+static unsigned long	r_render_stack_last_available;
+static unsigned long	r_render_stack_min_available;
+static qboolean	r_warp_storage_attempted;
+static int		r_warp_last_route;
+static unsigned long	r_warp_allocated_routes;
+static unsigned long	r_warp_stack_routes;
+static unsigned long	r_warp_skipped_routes;
+
+#define R_WARP_ROUTE_UNINITIALIZED	0
+#define R_WARP_ROUTE_ALLOCATED		1
+#define R_WARP_ROUTE_STACK		2
+#define R_WARP_ROUTE_SKIPPED		3
+#define R_WARP_ROUTE_DISABLED		4
+#define R_WARP_ROUTE_ALLOC_FAILED	5
 #ifdef BENCH486
 static qboolean r_bench_warp_force_short_stack;
 static unsigned long r_bench_warp_actual_stack_available;
@@ -1411,15 +1426,19 @@ void R_InitWarpBuffer (void)
 		warp_commands_registered = true;
 	}
 #endif
+	r_warp_storage_attempted = true;
 
 	if (r_warpbuffer_storage)
 	{
+		r_warp_last_route = R_WARP_ROUTE_ALLOCATED;
 		r_warpbuffer = r_warpbuffer_storage;
 		return;
 	}
 
 	r_warpbuffer_storage = (byte *)malloc (R_WARP_BUFFER_BYTES);
 	r_warpbuffer = r_warpbuffer_storage;
+	r_warp_last_route = r_warpbuffer_storage ?
+			R_WARP_ROUTE_ALLOCATED : R_WARP_ROUTE_ALLOC_FAILED;
 }
 
 void R_InvalidateWarpStackCache (void)
@@ -1569,6 +1588,9 @@ static qboolean R_WarpWorldTreeDepth (unsigned long *depth_out)
 }
 
 static qboolean R_RenderStackRequirement (unsigned long *required_out)
+	__attribute__((noinline));
+
+static qboolean R_RenderStackRequirement (unsigned long *required_out)
 {
 	unsigned long world_depth, fixed_bytes;
 
@@ -1622,6 +1644,11 @@ static qboolean R_RenderStackHasRoom (unsigned long required,
 
 	*bounds_valid_out = true;
 	*available_out = stack_pointer - __djgpp_stack_limit;
+	if (!r_render_stack_sampled ||
+			*available_out < r_render_stack_min_available)
+		r_render_stack_min_available = *available_out;
+	r_render_stack_last_available = *available_out;
+	r_render_stack_sampled = true;
 #ifdef BENCH486
 	r_bench_warp_actual_stack_available = *available_out;
 	if (allow_forced_short && r_bench_warp_force_short_stack)
@@ -1652,6 +1679,37 @@ static void R_RenderViewWithoutWarp (void (*render_view) (void))
 	r_waterwarp.value = 0;
 	render_view ();
 	r_waterwarp.value = old_waterwarp;
+}
+
+static void R_RecordRendererMemoryBudgetFrame (void)
+{
+	unsigned long start, end, used;
+
+	/* Edge and surface storage may be frame-local. Compare the saved flat DOS
+	 * addresses after the render callback returns; do not dereference them. */
+	if (r_edges && edge_p && r_numallocatededges > 0)
+	{
+		start = (unsigned long)r_edges;
+		end = (unsigned long)edge_p;
+		if (end >= start)
+		{
+			used = (end - start) / sizeof(edge_t);
+			if (used > (unsigned long)r_maxedgesseen)
+				r_maxedgesseen = used;
+		}
+	}
+
+	if (surfaces && surface_p && r_cnumsurfs > 0)
+	{
+		start = (unsigned long)surfaces;
+		end = (unsigned long)surface_p;
+		if (end >= start)
+		{
+			used = (end - start) / sizeof(surf_t);
+			if (used > (unsigned long)r_maxsurfsseen)
+				r_maxsurfsseen = used;
+		}
+	}
 }
 
 void R_RenderViewDispatch (void (*render_view) (void))
@@ -1694,13 +1752,23 @@ void R_RenderViewDispatch (void (*render_view) (void))
 	if (r_warpbuffer_storage)
 	{
 		r_warpbuffer = r_warpbuffer_storage;
+		if (r_waterwarp.value)
+		{
+			r_warp_last_route = R_WARP_ROUTE_ALLOCATED;
+			r_warp_allocated_routes++;
+		}
+		else
+			r_warp_last_route = R_WARP_ROUTE_DISABLED;
 		render_view ();
+		R_RecordRendererMemoryBudgetFrame ();
 		return;
 	}
 
 	if (!r_waterwarp.value)
 	{
+		r_warp_last_route = R_WARP_ROUTE_DISABLED;
 		render_view ();
+		R_RecordRendererMemoryBudgetFrame ();
 		return;
 	}
 
@@ -1725,9 +1793,14 @@ void R_RenderViewDispatch (void (*render_view) (void))
 	#endif
 			r_warp_stack_status_reported = true;
 		}
+		r_warp_last_route = R_WARP_ROUTE_STACK;
+		r_warp_stack_routes++;
 		R_RenderViewStackFallback (render_view);
+		R_RecordRendererMemoryBudgetFrame ();
 		return;
 	}
+	r_warp_last_route = R_WARP_ROUTE_SKIPPED;
+	r_warp_skipped_routes++;
 
 	if (!r_warp_stack_status_reported)
 	{
@@ -1765,6 +1838,98 @@ void R_RenderViewDispatch (void (*render_view) (void))
 		r_warp_stack_status_reported = true;
 	}
 	R_RenderViewWithoutWarp (render_view);
+	R_RecordRendererMemoryBudgetFrame ();
+}
+
+static const char *R_WarpRouteName (void)
+{
+	switch (r_warp_last_route)
+	{
+	case R_WARP_ROUTE_ALLOCATED: return "allocated buffer";
+	case R_WARP_ROUTE_STACK: return "guarded stack fallback";
+	case R_WARP_ROUTE_SKIPPED: return "skipped for stack capacity";
+	case R_WARP_ROUTE_DISABLED: return "warp not requested";
+	case R_WARP_ROUTE_ALLOC_FAILED: return "allocation failed; not yet routed";
+	default: return "not initialized";
+	}
+}
+
+void R_ReportMemoryBudget (void)
+{
+	unsigned long edge_stack_bytes, surface_stack_bytes;
+	unsigned long edge_hunk_bytes, surface_hunk_bytes;
+	unsigned long normal_required, fallback_required, world_depth;
+	qboolean have_requirement;
+
+	edge_stack_bytes = (NUMSTACKEDGES +
+			((CACHE_SIZE - 1) / sizeof(edge_t)) + 1) * sizeof(edge_t);
+	surface_stack_bytes = (NUMSTACKSURFACES +
+			((CACHE_SIZE - 1) / sizeof(surf_t)) + 1) * sizeof(surf_t);
+	edge_hunk_bytes = auxedges && r_numallocatededges > 0 ?
+			(unsigned long)r_numallocatededges * sizeof(edge_t) : 0;
+	surface_hunk_bytes = !r_surfsonstack && r_cnumsurfs > 0 ?
+			(unsigned long)r_cnumsurfs * sizeof(surf_t) : 0;
+
+	Con_Printf ("Renderer edges: capacity=%d peak=%d (%lu bytes), hunk=%lu\n",
+			r_numallocatededges, r_maxedgesseen,
+			(unsigned long)r_maxedgesseen * sizeof(edge_t), edge_hunk_bytes);
+	Con_Printf ("Renderer surfaces: capacity=%d peak=%d (%lu bytes), hunk=%lu\n",
+			r_cnumsurfs, r_maxsurfsseen,
+			(unsigned long)r_maxsurfsseen * sizeof(surf_t), surface_hunk_bytes);
+	Con_Printf ("Renderer local arrays=%lu bytes; generated edge frame=%lu bytes\n",
+			edge_stack_bytes + surface_stack_bytes,
+			(unsigned long)R_RENDER_EDGE_FRAME_BYTES);
+
+	if (!r_warp_storage_attempted)
+		Con_Printf ("Waterwarp: renderer not initialized; buffer=%lu bytes\n",
+				(unsigned long)R_WARP_BUFFER_BYTES);
+	else if (r_warpbuffer_storage)
+		Con_Printf ("Waterwarp: allocated buffer=%lu bytes; last route=%s "
+				"(allocated=%lu stack=%lu skipped=%lu)\n",
+				(unsigned long)R_WARP_BUFFER_BYTES, R_WarpRouteName (),
+				r_warp_allocated_routes, r_warp_stack_routes,
+				r_warp_skipped_routes);
+	else
+		Con_Printf ("Waterwarp: allocation failed (%lu bytes); last route=%s "
+				"(stack=%lu skipped=%lu)\n",
+				(unsigned long)R_WARP_BUFFER_BYTES, R_WarpRouteName (),
+				r_warp_stack_routes, r_warp_skipped_routes);
+
+	have_requirement = R_WarpWorldTreeDepth (&world_depth) &&
+			R_RenderStackRequirement (&normal_required) &&
+			R_WarpStackRequirement (&fallback_required);
+	if (!have_requirement)
+	{
+		Con_Printf ("Renderer stack: BSP depth/requirement unavailable; "
+				"available at render guard=%s\n",
+				r_render_stack_sampled ? "sampled" : "not sampled yet");
+		return;
+	}
+
+	if (!r_render_stack_sampled)
+	{
+		Con_Printf ("Renderer stack: BSP depth=%lu normal=%lu fallback=%lu; "
+				"available at render guard=not sampled yet\n",
+				world_depth, normal_required, fallback_required);
+		return;
+	}
+
+	Con_Printf ("Renderer stack: BSP depth=%lu available last=%lu min=%lu; "
+			"normal=%lu, fallback=%lu bytes\n",
+			world_depth, r_render_stack_last_available,
+			r_render_stack_min_available, normal_required, fallback_required);
+	if (r_render_stack_min_available >= normal_required)
+		Con_Printf ("  Normal headroom at observed minimum: %lu bytes\n",
+				r_render_stack_min_available - normal_required);
+	else
+		Con_Printf ("  Normal path short at observed minimum: %lu bytes\n",
+				normal_required - r_render_stack_min_available);
+	if (r_render_stack_min_available >= fallback_required)
+		Con_Printf ("  Warp fallback headroom at observed minimum: %lu bytes\n",
+				r_render_stack_min_available - fallback_required);
+	else
+		Con_Printf ("  Warp fallback short at observed minimum: %lu bytes\n",
+				fallback_required - r_render_stack_min_available);
 }
 
 #ifdef FRAME_CONTROL_RESTORE_EDGE_SELECTOR

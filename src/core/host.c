@@ -1071,7 +1071,10 @@ void Host_Init (quakeparms_t *parms)
 	host_parms = *parms;
 
 	if (parms->memsize < minimum_memory)
-		Sys_Error ("Only %4.1f megs of memory available, can't execute game", parms->memsize / (float)0x100000);
+		Sys_Error ("Engine memory block too small: have %d bytes, need %d "
+				"bytes for %s game data",
+				parms->memsize, minimum_memory,
+				standard_quake ? "standard" : "registered-data");
 
 	com_argc = parms->argc;
 	com_argv = parms->argv;
@@ -1136,7 +1139,7 @@ void Host_Init (quakeparms_t *parms)
 		CL_Init ();
 	}
 
-	Cbuf_InsertText ("exec quake.rc\n");
+	Cbuf_InsertText ("meminfo\nexec quake.rc\n");
 
 	Hunk_AllocName (0, "-HOST_HUNKLEVEL-");
 	host_hunklevel = Hunk_LowMark ();

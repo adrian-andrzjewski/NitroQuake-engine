@@ -145,6 +145,7 @@ void R_RemoveEfrags (entity_t *ent);
 
 void R_NewMap (void);
 void R_InvalidateWarpStackCache (void);
+void R_ReportMemoryBudget (void);
 
 
 void R_ParseParticleEffect (void);

@@ -309,6 +309,9 @@ The historical instructions and measurements for this topic are preserved in
 the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
 options are described above; runtime tools execute from the suite checkout.
 
+The startup `meminfo` report and its capture procedure are documented in
+[`docs/memory-budget.md`](docs/memory-budget.md).
+
 ## 486-class timedemo
 
 The historical instructions and measurements for this topic are preserved in

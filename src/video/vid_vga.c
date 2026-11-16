@@ -48,6 +48,12 @@ vmode_t	*VGA_pcurmode;
 int		VGA_planar;
 static int		VGA_numpages;
 static int		VGA_buffersize;
+static int		VGA_zbuffersize;
+static int		VGA_framebuffersize;
+static int		VGA_bufferpad;
+static int		VGA_video_hunkbytes;
+static int		VGA_hunk_gap_after_setup;
+static qboolean	VGA_hunk_gap_after_setup_valid;
 
 void	*vid_surfcache;
 int		vid_surfcachesize;
@@ -282,7 +288,8 @@ VGA_FreeAndAllocVidbuffer
 */
 qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 {
-	int		tsize, tbuffersize, bufferpad;
+	int		tsize, tbuffersize, bufferpad, adjusted_memory;
+	int		zbuffersize, framebuffersize;
 
 	// Add one cache line between the surface cache and single-buffer 320x200
 	// framebuffer. The high hunk grows downward, so this changes the relative
@@ -292,17 +299,19 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 	// Sixteen bytes preserves packed-store alignment.
 	bufferpad = allocnewbuffer && lvid->width == 320 && lvid->height == 200 ?
 			16 : 0;
+	zbuffersize = lvid->width * lvid->height * sizeof (*d_pzbuffer);
+	framebuffersize = allocnewbuffer ?
+			lvid->rowbytes * (lvid->height + 1) : 0;
 
 	if (allocnewbuffer)
 	{
 	// alloc an extra line in case we want to wrap, and allocate the z-buffer
-		tbuffersize = (lvid->rowbytes * (lvid->height + 1)) +
-				(lvid->width * lvid->height * sizeof (*d_pzbuffer));
+		tbuffersize = framebuffersize + zbuffersize;
 	}
 	else
 	{
 	// just allocate the z-buffer
-		tbuffersize = lvid->width * lvid->height * sizeof (*d_pzbuffer);
+		tbuffersize = zbuffersize;
 	}
 
 	tsize = D_SurfaceCacheForRes (lvid->width, lvid->height);
@@ -311,17 +320,26 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 
 // see if there's enough memory, allowing for the normal mode 0x13 pixel,
 // z, and surface buffers
-	if ((host_parms.memsize - tbuffersize + SURFCACHE_SIZE_AT_320X200 +
-		 0x10000 * 3) < minimum_memory)
+	adjusted_memory = host_parms.memsize - tbuffersize +
+			SURFCACHE_SIZE_AT_320X200 + 0x10000 * 3;
+	if (adjusted_memory < minimum_memory)
 	{
-		Con_Printf ("Not enough memory for video mode\n");
+		Con_Printf ("Not enough memory for video mode %dx%d: block payload "
+				"%d bytes, engine block %d, minimum %d, mode allowance %d\n",
+				lvid->width, lvid->height, tbuffersize,
+				host_parms.memsize, minimum_memory, adjusted_memory);
 		VGA_pcurmode = NULL;	// so no further accesses to the buffer are
 								//  attempted, particularly when clearing
 		return false;		// not enough memory for mode
 	}
 
+	VGA_zbuffersize = zbuffersize;
+	VGA_framebuffersize = framebuffersize;
+	VGA_bufferpad = bufferpad;
 	VGA_buffersize = tbuffersize;
 	vid_surfcachesize = tsize;
+	VGA_video_hunkbytes = 0;
+	VGA_hunk_gap_after_setup_valid = false;
 
 	if (d_pzbuffer)
 	{
@@ -338,8 +356,16 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 		vid_surfcache = NULL;
 		lvid->buffer = lvid->conbuffer = NULL;
 		VGA_pcurmode = NULL;
+		Con_Printf ("Video high-hunk allocation failed: payload %d bytes "
+				"(cache %d, Z %d, framebuffer %d, pad %d)\n",
+				VGA_buffersize, vid_surfcachesize, VGA_zbuffersize,
+				VGA_framebuffersize, VGA_bufferpad);
 		return false;
 	}
+	VGA_video_hunkbytes = Hunk_HighMark () - VGA_highhunkmark;
+	VGA_hunk_gap_after_setup = host_parms.memsize - Hunk_LowMark () -
+			Hunk_HighMark ();
+	VGA_hunk_gap_after_setup_valid = true;
 
 	vid_surfcache = (byte *)d_pzbuffer
 		+ lvid->width * lvid->height * sizeof (*d_pzbuffer);
@@ -352,6 +378,34 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 	}
 
 	return true;
+}
+
+/*
+================
+VID_ReportMemoryBudget
+================
+*/
+void VID_ReportMemoryBudget (void)
+{
+	int requested_cache, allocated_cache;
+	const char *mode_name;
+
+	requested_cache = D_SurfaceCacheForRes (vid.width, vid.height);
+
+	allocated_cache = d_pzbuffer && vid_surfcache ? vid_surfcachesize : 0;
+	mode_name = VGA_pcurmode ? VGA_pcurmode->name : "unavailable";
+
+	Con_Printf ("Video: %s %dx%d; cache request=%d allocated=%d usable=%d bytes\n",
+			mode_name, vid.width, vid.height, requested_cache, allocated_cache,
+			allocated_cache > 4 ? allocated_cache - 4 : 0);
+	Con_Printf ("  Z=%d framebuffer=%d pad=%d; video high-hunk=%d bytes "
+			"(payload=%d); gap after setup=",
+			VGA_zbuffersize, VGA_framebuffersize, VGA_bufferpad,
+			VGA_video_hunkbytes, d_pzbuffer ? VGA_buffersize : 0);
+	if (VGA_hunk_gap_after_setup_valid)
+		Con_Printf ("%d bytes\n", VGA_hunk_gap_after_setup);
+	else
+		Con_Printf ("unavailable\n");
 }
 
 

@@ -76,6 +76,10 @@ C(Hunk_AllocName):
 	movl	C(hunk_low_used),%eax
 	addl	%edi,%eax
 	movl	%eax,C(hunk_low_used)
+	cmpl	C(hunk_low_peak_used),%eax
+	jle	.Lhunk_alloc_name_peak_ready
+	movl	%eax,C(hunk_low_peak_used)
+.Lhunk_alloc_name_peak_ready:
 	pushl	%eax
 	call	C(Cache_FreeLow)
 	addl	$4,%esp
@@ -171,6 +175,10 @@ C(Hunk_HighAllocName):
 	movl	C(hunk_high_used),%eax
 	addl	%edi,%eax
 	movl	%eax,C(hunk_high_used)
+	cmpl	C(hunk_high_peak_used),%eax
+	jle	.Lhunk_high_alloc_peak_ready
+	movl	%eax,C(hunk_high_peak_used)
+.Lhunk_high_alloc_peak_ready:
 	HNA_TRACE 79,%edi,C(hunk_low_used),C(hunk_high_used)
 #ifdef PROFILE486
 	incl	C(bench486_hunk_high_calls)

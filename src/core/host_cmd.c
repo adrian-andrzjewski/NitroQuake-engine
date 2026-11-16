@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "host.h"
 #include "bspfile.h"
 #include "vid.h"
+#include "video/vid_dos.h"
 #include "sys.h"
 #include "zone.h"
 #include "mathlib.h"
@@ -15075,9 +15076,21 @@ Host_InitCommands
 #include "tests/bench486/bench486_gameplay_profile.inc"
 #endif
 
+static void Host_Meminfo_f (void)
+{
+	Con_Printf ("Memory budget (bytes; cache and video allocations are inside the engine block)\n");
+	Con_Printf ("Engine block: supplied=%d minimum=%d%s\n",
+			host_parms.memsize, minimum_memory,
+			COM_CheckParm ("-minmemory") ? " (-minmemory)" : "");
+	Memory_ReportBudget ();
+	VID_ReportMemoryBudget ();
+	R_ReportMemoryBudget ();
+}
+
 void Host_InitCommands (void)
 {
 	Cmd_AddCommand ("status", Host_Status_f);
+	Cmd_AddCommand ("meminfo", Host_Meminfo_f);
 	Cmd_AddCommand ("quit", Host_Quit_f);
 	Cmd_AddCommand ("god", Host_God_f);
 	Cmd_AddCommand ("notarget", Host_Notarget_f);
