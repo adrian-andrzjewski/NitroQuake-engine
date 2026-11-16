@@ -1,3 +1,2 @@
 src/core/common.c
 src/core/host_cmd.c
-src/platform/dos/sys_dos.c

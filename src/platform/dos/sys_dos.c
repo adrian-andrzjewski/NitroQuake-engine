@@ -35,7 +35,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/nearptr.h>
 #include <conio.h>
 
-#include "quakedef.h"
+#include "common.h"
+#include "client.h"
+#include "console.h"
+#include "host.h"
+#include "keys.h"
+#include "nitroquake_version.h"
+#include "sys.h"
+#include "zone.h"
 #include "platform/dos/dosisms.h"
 
 #define MINIMUM_WIN_MEMORY			0x800000
