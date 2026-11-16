@@ -18,7 +18,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "quakedef.h"
+#include <math.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "cmd.h"
+#include "console.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "zone.h"
+#include "model.h"
+#include "client.h"
+#include "host.h"
+#include "render.h"
+#include "server.h"
+#include "vid.h"
+#include "sound.h"
+#include "sys.h"
+#include "d_iface.h"
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
 #include "renderer/asm_renderdispatch.h"

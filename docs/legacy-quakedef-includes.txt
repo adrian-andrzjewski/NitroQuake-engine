@@ -5,6 +5,3 @@ src/core/common.c
 src/core/host_cmd.c
 src/core/host.c
 src/platform/dos/sys_dos.c
-src/renderer/r_alias.c
-src/renderer/r_main.c
-src/renderer/r_part.c
