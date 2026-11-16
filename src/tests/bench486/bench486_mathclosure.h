@@ -1,4 +1,4 @@
-/* Included only by host_cmd.c's BENCH486 harness.
+/* Included only by the test-owned BENCH486 harness.
  * Independent C oracles preserve the original algorithms and call graph.
  * Exact state/result comparison; no floating-point or pixel tolerance.
  */

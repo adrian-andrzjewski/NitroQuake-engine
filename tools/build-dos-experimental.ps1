@@ -648,7 +648,9 @@ if ([string]::IsNullOrWhiteSpace($LocalOutputDirectoryName) -and
 # which is also what let this whole script's flag arithmetic be pinned against a
 # golden with no compiler installed.
 
-$allCSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.c' -File -Recurse | Sort-Object Name, FullName)
+$allCSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.c' -File -Recurse |
+    Where-Object { $Benchmark -or $_.Name -ne 'bench486_harness.c' } |
+    Sort-Object Name, FullName)
 $includedCSources = @('net_comx.c')
 $cSources = @($allCSources | Where-Object { $_.Name -notin $includedCSources })
 $allAsmSources = @(Get-ChildItem -LiteralPath $sourceRoot -Filter '*.s' -File -Recurse | Sort-Object Name, FullName)
@@ -770,6 +772,10 @@ if (-not $DumpFlags) {
     $expectedAllCSourceCount = [int]$goldenFlags.cSourceCount
     $expectedStandaloneCSourceCount = [int]$goldenFlags.standaloneCSourceCount
     $expectedAllAssemblySourceCount = [int]$goldenFlags.allAssemblySourceCount
+}
+if ($Benchmark) {
+    $expectedAllCSourceCount++
+    $expectedStandaloneCSourceCount++
 }
 
 # The expected active-assembly count is the total minus the one file that is never
@@ -918,6 +924,9 @@ try {
         'host_cmd.c' = @('-fno-jump-tables')
         'pr_edict.c' = @('-fno-delete-null-pointer-checks')
         'wad.c'      = @('-fno-delete-null-pointer-checks')
+    }
+    if ($Benchmark) {
+        $cSourceExtraFlags['bench486_harness.c'] = @('-fno-jump-tables')
     }
     $linkFingerprintFlags = @($optimizationLevel, $marchFlag, $mtuneFlag, '-s', '<objects>', '-lm', "-Wl,-Map=$linkMap", '-o', $executable)
     $fingerprintConfig = [pscustomobject]@{
@@ -1105,26 +1114,26 @@ try {
         'libc-dpmiexcp.obj:.text:0x2b8:0x2fc'
     )
     $isaExemptRanges = @()
-    $hostCmdObjectPath = Join-Path $objectRoot 'host_cmd.obj'
-    if (Test-Path -LiteralPath $hostCmdObjectPath -PathType Leaf) {
-        $hostCmdSymbolLines = @(& $objdump -t $hostCmdObjectPath)
-        if ($LASTEXITCODE -ne 0) { throw "objdump -t failed for '$hostCmdObjectPath'." }
-        $hostCmdHeaders = @(& $objdump -h $hostCmdObjectPath)
-        if ($LASTEXITCODE -ne 0) { throw "objdump -h failed for '$hostCmdObjectPath'." }
-        $hostCmdTextHeaders = @($hostCmdHeaders | Where-Object { $_ -match '^\s*\d+\s+\.text\s+' })
-        if ($hostCmdTextHeaders.Count -ne 1) { throw 'Expected one host_cmd .text section.' }
-        $hostCmdTextNumber = [int]([regex]::Match($hostCmdTextHeaders[0], '^\s*(\d+)').Groups[1].Value) + 1
-        $modeNameTextPattern = '\(sec\s+' + $hostCmdTextNumber + '\).*\s_mode_names\.\d+$'
+    $benchHarnessObjectPath = Join-Path $objectRoot 'bench486_harness.obj'
+    if ($Benchmark -and (Test-Path -LiteralPath $benchHarnessObjectPath -PathType Leaf)) {
+        $benchHarnessSymbolLines = @(& $objdump -t $benchHarnessObjectPath)
+        if ($LASTEXITCODE -ne 0) { throw "objdump -t failed for '$benchHarnessObjectPath'." }
+        $benchHarnessHeaders = @(& $objdump -h $benchHarnessObjectPath)
+        if ($LASTEXITCODE -ne 0) { throw "objdump -h failed for '$benchHarnessObjectPath'." }
+        $benchHarnessTextHeaders = @($benchHarnessHeaders | Where-Object { $_ -match '^\s*\d+\s+\.text\s+' })
+        if ($benchHarnessTextHeaders.Count -ne 1) { throw 'Expected one bench486_harness .text section.' }
+        $benchHarnessTextNumber = [int]([regex]::Match($benchHarnessTextHeaders[0], '^\s*(\d+)').Groups[1].Value) + 1
+        $modeNameTextPattern = '\(sec\s+' + $benchHarnessTextNumber + '\).*\s_mode_names\.\d+$'
         # A label table already stored in .data needs no .text boundary handling.
-        $modeNameSymbolLines = @($hostCmdSymbolLines | Where-Object { $_ -match $modeNameTextPattern })
+        $modeNameSymbolLines = @($benchHarnessSymbolLines | Where-Object { $_ -match $modeNameTextPattern })
         if ($modeNameSymbolLines.Count -gt 1) {
-            throw "Expected at most one benchmark mode-name table in '$hostCmdObjectPath'."
+            throw "Expected at most one benchmark mode-name table in '$benchHarnessObjectPath'."
         }
         if ($modeNameSymbolLines.Count -eq 1) {
             $modeNameSymbolLine = [string]$modeNameSymbolLines[0]
             $modeNameMatch = [regex]::Match($modeNameSymbolLine, '0x(?<address>[0-9a-fA-F]+) (?<symbol>_mode_names\.\d+)$')
             if (-not $modeNameMatch.Success) {
-                throw "Could not parse the benchmark mode-name table symbol in '$hostCmdObjectPath': $modeNameSymbolLine"
+                throw "Could not parse the benchmark mode-name table symbol in '$benchHarnessObjectPath': $modeNameSymbolLine"
             }
             $modeNameSymbol = $modeNameMatch.Groups['symbol'].Value
             $modeNameStart = [Convert]::ToInt64($modeNameMatch.Groups['address'].Value, 16)
@@ -1135,11 +1144,11 @@ try {
             # MINPS, although all five words are linker relocations to .text.
             # Discover the range from the local symbol and fail closed unless
             # every expected word has exactly one DIR32 relocation.
-            $hostCmdRelocationLines = @(& $objdump -r $hostCmdObjectPath)
-            if ($LASTEXITCODE -ne 0) { throw "objdump -r failed for '$hostCmdObjectPath'." }
+            $benchHarnessRelocationLines = @(& $objdump -r $benchHarnessObjectPath)
+            if ($LASTEXITCODE -ne 0) { throw "objdump -r failed for '$benchHarnessObjectPath'." }
             $currentRelocationSection = $null
             $modeNameRelocations = New-Object System.Collections.Generic.List[object]
-            foreach ($relocationLine in $hostCmdRelocationLines) {
+            foreach ($relocationLine in $benchHarnessRelocationLines) {
                 $sectionMatch = [regex]::Match($relocationLine, '^RELOCATION RECORDS FOR \[(?<section>[^\]]+)\]:$')
                 if ($sectionMatch.Success) {
                     $currentRelocationSection = $sectionMatch.Groups['section'].Value
@@ -1158,7 +1167,7 @@ try {
                 }
             }
             if ($modeNameRelocations.Count -ne 5) {
-                throw "Expected five relocated pointers for $modeNameSymbol in '$hostCmdObjectPath'; found $($modeNameRelocations.Count)."
+                throw "Expected five relocated pointers for $modeNameSymbol in '$benchHarnessObjectPath'; found $($modeNameRelocations.Count)."
             }
             for ($pointerIndex = 0; $pointerIndex -lt 5; $pointerIndex++) {
                 $expectedOffset = $modeNameStart + (4 * $pointerIndex)
@@ -1170,7 +1179,7 @@ try {
                 }
             }
 
-            $modeNameRange = 'host_cmd.obj:.text:0x{0:x}:0x{1:x}' -f $modeNameStart, $modeNameEnd
+            $modeNameRange = 'bench486_harness.obj:.text:0x{0:x}:0x{1:x}' -f $modeNameStart, $modeNameEnd
             $isaExemptRanges += $modeNameRange
             $linkedIsaExemptRanges += $modeNameRange
             Write-Host ("Recognized relocated benchmark label data: {0} ({1})" -f $modeNameRange, $modeNameSymbol)
@@ -1208,10 +1217,9 @@ try {
     if ((-not $SkipIsaAudit) -or $RecordIsaBaseline) {
         $isaReport = Get-Content -LiteralPath $isaReportPath -Raw | ConvertFrom-Json
         $isaBaseline = Get-Content -LiteralPath $isaBaselinePath -Raw | ConvertFrom-Json
-        # Key on the variant as well as the target.  -Benchmark compiles the
-        # ~4335-line bench harness in host_cmd.c and -Instrumentation compiles
-        # the PROFILE486 counters, so those builds are strictly larger code sets
-        # with their own instruction mix, so each variant has its own baseline.
+        # Key on the variant as well as the target. -Benchmark compiles the
+        # test-owned BENCH486 harness and -Instrumentation compiles the PROFILE486
+        # counters, so each build has its own instruction mix and baseline.
         $isaVariantKey = '{0}/{1}' -f $CpuTarget, $executableName
         $isaTarget = $isaBaseline.targets.PSObject.Properties[$isaVariantKey]
 

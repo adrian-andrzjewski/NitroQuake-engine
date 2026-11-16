@@ -38,7 +38,7 @@ unsigned int	cacheoffset;
 // local and expect -O3 to keep it: the store is provably dead and gets
 // deleted, which silently turns the probe into a no-op that measures nothing.
 // So the duplicated arithmetic is accumulated into this external global, which
-// host_cmd.c reports.  That makes the sink's own load/add/store part of the
+// bench486_harness.c reports.  That makes the sink's own load/add/store part
 // measured instruction count -- it is counted, not hidden -- and it is the
 // reason a C probe needs an execution count as well as a delta.
 unsigned long	bench486_rf_probe_sink;
@@ -1856,4 +1856,3 @@ void R_ZDrawSubmodelPolys (model_t *pmodel)
 		}
 	}
 }
-

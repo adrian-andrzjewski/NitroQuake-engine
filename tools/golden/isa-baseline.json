@@ -1,7 +1,7 @@
 {
   "schema": "nitroquake-isa-ratchet-baseline/2",
   "note": "Blocking ISA gate baseline for build-dos.ps1. Every i486 release, benchmark and instrumentation variant is recorded at zero above-i486 instructions. The i386 variant records the remaining i486 instructions. Any new or increased above-target encoding, any unclassified instruction, or any non-exempt P6 instruction fails the build.",
-  "variantKey": "<cpuTarget>/<executableName>, where executableName is quake.exe (release), qbench.exe (-Benchmark), or qprof.exe (-Instrumentation). One figure per target is not enough: -Benchmark compiles the ~4335-line bench harness in host_cmd.c and -Instrumentation compiles the PROFILE486 counters, so those are strictly larger code sets with their own instruction mix.",
+  "variantKey": "<cpuTarget>/<executableName>, where executableName is quake.exe (release), qbench.exe (-Benchmark), or qprof.exe (-Instrumentation). One figure per target is not enough: -Benchmark compiles the test-owned BENCH486 harness and -Instrumentation compiles the PROFILE486 counters, so those builds have their own instruction mix.",
   "hardRules": {
     "unclassifiedMustBeZero": true,
     "p6MustBeZero": true,

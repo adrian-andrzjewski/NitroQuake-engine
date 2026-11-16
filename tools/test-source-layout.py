@@ -65,7 +65,9 @@ for source in sources:
     relative = source.relative_to(SOURCE).as_posix()
     first = relative.split("/", 1)[0]
     if first == "tests":
-        raise SystemExit(f"test source is part of the production inventory: {relative}")
+        if relative == "tests/bench486/bench486_harness.c":
+            continue
+        raise SystemExit(f"unexpected test source in the build inventory: {relative}")
     if first not in production_groups:
         raise SystemExit(f"production source is not grouped by subsystem: {relative}")
 
@@ -74,14 +76,47 @@ if not fixtures.is_dir():
     raise SystemExit("BENCH486 fixture subtree is missing")
 fixture_files = [
     p for p in fixtures.iterdir()
-    if p.is_file() and p.name != "bench486_profile.h"
+    if p.is_file() and p.name not in {
+        "bench486_profile.h", "bench486_commands.h", "bench486_harness.c"
+    }
 ]
 if len(fixture_files) != 109:
     raise SystemExit(f"expected 109 BENCH486 fixture files, found {len(fixture_files)}")
 if any(not (p.name.startswith("bench486_") or p.name.endswith("_bench_hooks.inc")) for p in fixture_files):
     raise SystemExit("unexpected file in the BENCH486 fixture subtree")
+if not (fixtures / "bench486_commands.h").is_file():
+    raise SystemExit("BENCH486 command registration interface is missing")
+if not (fixtures / "bench486_harness.c").is_file():
+    raise SystemExit("BENCH486 harness source is missing")
 if any(SOURCE.glob("bench486_*")):
     raise SystemExit("BENCH486 fixtures remain beside production sources")
+
+host_commands = (SOURCE / "core" / "host_cmd.c").read_text(encoding="utf-8")
+harness_source = (fixtures / "bench486_harness.c").read_text(encoding="utf-8")
+if '#include "tests/bench486/bench486_commands.h"' not in host_commands:
+    raise SystemExit("host_cmd.c omits the narrow BENCH486 registration interface")
+if not re.search(
+        r"(?m)^#ifdef BENCH486\s*\n\s*Bench486_InitCommands \(\);\s*\n#endif$",
+        host_commands):
+    raise SystemExit("host_cmd.c does not isolate BENCH486 command registration")
+host_init = host_commands[host_commands.index("void Host_InitCommands (void)"):]
+if (host_init.find('Cmd_AddCommand ("mcache", Mod_Print);') < 0 or
+        host_init.find('Bench486_InitCommands ();') < 0 or
+        host_init.find('Cmd_AddCommand ("mcache", Mod_Print);') >
+        host_init.find('Bench486_InitCommands ();')):
+    raise SystemExit("BENCH486 registration no longer follows the mcache command")
+hook_start = harness_source.find("void Bench486_InitCommands (void)")
+if hook_start < 0:
+    raise SystemExit("BENCH486 harness has no command registration hook")
+hook = harness_source[hook_start:]
+registered_commands = re.findall(
+    r'Cmd_AddCommand\s*\("([^"]+)",\s*([A-Za-z0-9_]+)\);', hook
+)
+if registered_commands != [
+        ("bench486", "Bench486_f"),
+        ("benchprofile", "Bench486Gameplay_f"),
+        ("bench486_renderpolys", "Bench486RenderPolys_f")]:
+    raise SystemExit("BENCH486 command names or registration order changed")
 
 interfaces = {
     "console.h": {"common.h"},

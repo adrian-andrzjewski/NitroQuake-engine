@@ -62,6 +62,9 @@ renderer_header = (SOURCE / "render.h").read_text(encoding="utf-8", errors="repl
 video_header = (SOURCE / "vid.h").read_text(encoding="utf-8", errors="replace")
 driver_interface = (SOURCE / "d_iface.h").read_text(encoding="utf-8", errors="replace")
 profile_header_text = PROFILE_HEADER.read_text(encoding="utf-8", errors="replace")
+benchmark_harness_text = (
+    SOURCE / "tests" / "bench486" / "bench486_harness.c"
+).read_text(encoding="utf-8", errors="replace")
 if '#include "core/cpu.h"' not in umbrella or '#include "core/cpu.h"' not in common_header:
     raise SystemExit("common and legacy headers must expose the shared CPU target interface")
 if "extern qboolean isDedicated;" not in host_header:
@@ -115,6 +118,8 @@ if not re.search(r"(?m)^\s*#\s*define\s+CACHE_SIZE\b", renderer_header):
     raise SystemExit("render.h is missing the renderer alignment constant")
 if "#ifndef BENCH486_PROFILE_H" not in profile_header_text:
     raise SystemExit("benchmark profiling interface has no include guard")
+if not INCLUDE_PROFILE.search(benchmark_harness_text):
+    raise SystemExit("BENCH486 harness omits its direct profiling interface include")
 profile_symbols = set(PROFILE_SYMBOL.findall(profile_header_text))
 if any(re.search(r"\b" + re.escape(symbol) + r"\b", umbrella) for symbol in profile_symbols):
     raise SystemExit("profiling declarations remain in quakedef.h")
@@ -178,7 +183,7 @@ for declaration in (
 for relative in (
         "src/renderer/d_sprite.c",
         "src/renderer/r_sprite.c",
-        "src/core/host_cmd.c",
+        "src/tests/bench486/bench486_harness.c",
         "src/tests/bench486/bench486_publicbindings.h",
         "src/tests/bench486/bench486_renderdispatch.h",
         "src/tests/bench486/bench486_sprite_orientation.h"):
@@ -208,7 +213,7 @@ for declaration in (
 for relative in (
         "src/renderer/r_light.c",
         "src/renderer/r_lightasm.s",
-        "src/core/host_cmd.c"):
+        "src/tests/bench486/bench486_harness.c"):
     text = (ROOT / relative).read_text(encoding="utf-8", errors="replace")
     if '#include "tests/bench486/bench486_light_probe.h"' not in text:
         raise SystemExit(f"{relative} omits the light benchmark interface")

@@ -17,7 +17,7 @@ class CoarseProfileTests(unittest.TestCase):
         header=(ROOT/'src/tests/bench486/bench486_profile.h').read_text()
         start=header.index('typedef enum',header.index('#ifdef PROFILE486'))
         end=header.index('} bench486_profile_node_id_t;',start)+len('} bench486_profile_node_id_t;')
-        source=(ROOT/'src/core/host_cmd.c').read_text()
+        source=(ROOT/'src/tests/bench486/bench486_harness.c').read_text()
         declarations=source[source.index('#define BENCH486_PROFILE_MAX_DEPTH'):source.index('\n#endif',source.index('#define BENCH486_PROFILE_MAX_DEPTH'))]
         harness='''#include <assert.h>
 #include <stdlib.h>

@@ -64,8 +64,8 @@ typedef struct
 	void (*draw_hook)(void);
 } bench486_renderpoly_saved_state_t;
 
-/* Defined here once by host_cmd.c through bench486_publicbindings.h and read
-   by the C D_DrawPoly seam in d_edge.c. */
+/* Defined here once by bench486_harness.c through
+   bench486_publicbindings.h and read by the C D_DrawPoly seam in d_edge.c. */
 void (*bench486_renderpoly_draw_hook)(void);
 extern medge_t *r_pedge;
 

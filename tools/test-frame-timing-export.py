@@ -29,7 +29,7 @@ def extract(source, name):
 @unittest.skipUnless(COMPILER,'Native host GCC is required for the controlled-clock harness')
 class NativeTimingTests(unittest.TestCase):
     def test_original_order_endpoints_and_post_measurement_io(self):
-        source=(ROOT/'src/core/host_cmd.c').read_text(encoding='utf-8')
+        source=(ROOT/'src/tests/bench486/bench486_harness.c').read_text(encoding='utf-8')
         end=source.index('} bench486_timedemo_fps_stats_t;')+len('} bench486_timedemo_fps_stats_t;')
         start=source.rfind('typedef struct',0,end)
         stats_type=source[start:end]

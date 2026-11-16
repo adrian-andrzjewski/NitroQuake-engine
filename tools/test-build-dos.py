@@ -377,6 +377,17 @@ def main() -> int:
             fail("the benchmark assembly flags omit -DBENCH486")
         if "-DBENCH486" in i486.get("cFlags", []) or "-DBENCH486" in i486.get("asmFlags", []):
             fail("the release i486 flags include benchmark-only -DBENCH486")
+        if "bench486_harness.c" not in benchmark.get("cSources", []):
+            fail("the benchmark source list omits the test-owned BENCH486 harness")
+        if benchmark.get("cSourceCount") != 84 or benchmark.get("standaloneCSourceCount") != 83:
+            fail("the benchmark source inventory does not include exactly one test-owned C source")
+        expected_benchmark_source_flags = dict(expected_source_flags)
+        expected_benchmark_source_flags["bench486_harness.c"] = ["-fno-jump-tables"]
+        if benchmark.get("cSourceExtraFlags") != expected_benchmark_source_flags:
+            fail("the benchmark harness does not retain its no-jump-tables compiler flag")
+        for target_name, target_flags in (("i486", i486), ("i386", i386)):
+            if target_flags and "bench486_harness.c" in target_flags.get("cSources", []):
+                fail("the test-owned BENCH486 harness leaked into the %s release sources" % target_name)
 
     console_output_benchmark = dump_flags(
         "-Benchmark", "-ConsoleOutputOnlyBenchmark",

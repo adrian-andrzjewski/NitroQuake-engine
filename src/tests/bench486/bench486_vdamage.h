@@ -1,6 +1,6 @@
 /* Direct C-oracle/assembly differential checks for V_ParseDamage.
  *
- * Integration contract: include this header from host_cmd.c after
+ * Integration contract: include this header from bench486_harness.c after
  * quakedef.h and the BENCH486 declarations.  The view implementation must
  * export V_ParseDamage_C and V_ParseDamage_asm486, and the selected build
  * must define ASM486_V_PARSE_DAMAGE.  Call Bench486VParseDamageCases from

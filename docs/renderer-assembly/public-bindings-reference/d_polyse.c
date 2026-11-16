@@ -110,8 +110,9 @@ adivtab_t	adivtab[64*64] = {
 
 #ifdef ASM486_ALIAS_GLUE_PROBE
 // Dead-scratch probe sink and execution count for the alias-glue C block.
-// Defined here rather than in host_cmd.c, exactly as bench486_rf_probe_sink is
-// in r_draw.c: a C probe cannot accumulate into a dead local, because -O3
+// Defined here rather than in bench486_harness.c. Like the
+// bench486_rf_probe_sink in r_draw.c, a C probe cannot accumulate into a
+// dead local, because -O3
 // deletes the store and turns the probe into a silent no-op that measures
 // zero.  An external global is the only form -O3 has to keep, and the sink's
 // own load/add/store is counted as part of the probe rather than hidden.
@@ -1337,4 +1338,3 @@ split:
 }
 
 #endif
-
