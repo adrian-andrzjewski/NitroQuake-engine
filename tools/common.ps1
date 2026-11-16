@@ -635,8 +635,9 @@ function Get-TextFileHash {
         difference cannot change what DOSBox-X does with the file, and the frames,
         checksum and median gates below still catch any behavioural change.
 
-        tools\guard-i486-release.py does the same normalisation for __TIME__ and
-        __DATE__, for the same reason: the thing being pinned is not the clock.
+        tools\guard-i486-release.py normalizes the generated source/configuration
+        label and __TIME__/__DATE__: the content pin covers executable code, while
+        the manifest carries product identity and the clock is not a build input.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory = $true)][string]$Path)

@@ -29,7 +29,9 @@ frame checksums and framebuffer/palette comparison. The broader
 expectation mismatches; source counts and the release/C-reference build
 inventories match. This work has not been measured on physical 486 hardware,
 and the focused parity scenario does not replace the full six-scene suite.
-The clean release artifact hash inventory was refreshed after the split.
+The clean release artifact hash inventory was refreshed after the split. Its
+content pin normalizes the generated build identity and timestamps; the build
+manifest retains the full source revision and resolved configuration identity.
 
 ### Current i486 selector policy (2026-10-16)
 

@@ -13,13 +13,14 @@ It is a content pin, not a source pin.  `tools/test-build-dos.py` already pins
 the resolved flags, so between the two there is no path by which a release object
 changes without someone deciding to change it.
 
-The one wrinkle: `host.c` and `host_cmd.c` print `__TIME__ " " __DATE__` in
-their `sysinfo` output, so those two objects and the linked executable embed the
-build timestamp and can never hash the same twice.  For those three artefacts the
-pin is taken over the file's bytes with the timestamp patterns replaced by
-same-length literals, which keeps the comparison meaningful without making it
-impossible to pass.  Those entries are marked `normalized` in the golden file so
-that the weakening is visible rather than assumed.
+`host.c` embeds the displayed build identity, which changes when the source
+revision changes. `host.c` and `host_cmd.c` also print `__TIME__ " " __DATE__`
+in their `sysinfo` output. The two objects and linked executable therefore
+contain revision/configuration or clock data that can change without changing
+the i486 code being pinned. Those exact fixed-format strings are replaced with
+same-length literals before hashing. The build manifest and resolved-flags
+checks retain the product identity and configuration. Affected entries are
+marked `normalized` in the golden file so the exclusion is visible.
 
 Usage
 -----
@@ -46,8 +47,10 @@ from _nq import BuildFlagsError, dump_flags  # noqa: E402
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GOLDEN_PATH = os.path.join(REPO_ROOT, "tools", "golden", "i486-release.sha256")
 
-# Same-length replacements, so object section sizes and offsets are untouched
-# and the normalized hash is a faithful digest of everything except the clock.
+# Same-length replacements, so object section sizes and offsets are untouched.
+# The product build ID is also present in host.obj and quake.exe. That ID is
+# expected to change across source revisions and resolved configurations; the
+# build manifest records it, while this content pin checks the emitted code.
 #
 # The date pattern used to be `\d{2}-[A-Za-z]{3}-\d{4}` ("DD-Mon-YYYY"), which no C
 # compiler emits.  C spells __DATE__ as "Mmm dd yyyy" with a space-padded day, so
@@ -63,7 +66,9 @@ GOLDEN_PATH = os.path.join(REPO_ROOT, "tools", "golden", "i486-release.sha256")
 # pair always appears as `<hh:mm:ss> <Mmm dd yyyy>`.  Anchoring on that is what
 # keeps the pattern from matching unrelated text in .text.  The bare time
 # pattern stays as a fallback for a lone __TIME__.
-TIMESTAMP_PATTERNS = (
+NORMALIZATION_PATTERNS = (
+    (re.compile(rb"Build [0-9a-f]{12}-[0-9a-f]{12}", re.IGNORECASE),
+     b"Build 000000000000-000000000000"),
     (re.compile(rb"\d{2}:\d{2}:\d{2} [A-Z][a-z]{2} [ 0-9][0-9] \d{4}"), b"HH:MM:SS DD-MMM-YYYY"),
     (re.compile(rb"\d{2}:\d{2}:\d{2}"), b"HH:MM:SS"),
 )
@@ -88,9 +93,17 @@ def digest(path: str, normalize: bool) -> str:
     with open(path, "rb") as handle:
         data = handle.read()
     if normalize:
-        for pattern, replacement in TIMESTAMP_PATTERNS:
-            data = pattern.sub(replacement, data)
+        data, _ = normalize_artifact_bytes(data)
     return hashlib.sha256(data).hexdigest().upper()
+
+
+def normalize_artifact_bytes(data: bytes) -> tuple[bytes, bool]:
+    """Normalize generated build identity and clock fields without hiding code."""
+    normalized = any(pattern.search(data) for pattern, _ in NORMALIZATION_PATTERNS)
+    if normalized:
+        for pattern, replacement in NORMALIZATION_PATTERNS:
+            data = pattern.sub(replacement, data)
+    return data, normalized
 
 
 def hash_artifact(path: str) -> tuple[str, bool]:
@@ -103,10 +116,7 @@ def hash_artifact(path: str) -> tuple[str, bool]:
     """
     with open(path, "rb") as handle:
         data = handle.read()
-    normalized = any(pattern.search(data) for pattern, _ in TIMESTAMP_PATTERNS)
-    if normalized:
-        for pattern, replacement in TIMESTAMP_PATTERNS:
-            data = pattern.sub(replacement, data)
+    data, normalized = normalize_artifact_bytes(data)
     return hashlib.sha256(data).hexdigest().upper(), normalized
 
 
@@ -166,7 +176,7 @@ def main() -> int:
         normalized = sum(1 for _, was in entries.values() if was)
         print("guard-i486-release: recorded %d artefacts" % len(entries))
         print("  golden           %s" % os.path.relpath(GOLDEN_PATH, REPO_ROOT))
-        print("  normalized       %d (embed __DATE__/__TIME__)" % normalized)
+        print("  normalized       %d (build identity or __DATE__/__TIME__)" % normalized)
         return 0
 
     golden = load_golden()
@@ -193,7 +203,7 @@ def main() -> int:
     normalized = sum(1 for _, was in entries.values() if was)
     print("guard-i486-release: PASS")
     print("  artefacts        %d objects + executable" % (len(entries) - 1))
-    print("  normalized       %d (embed __DATE__/__TIME__)" % normalized)
+    print("  normalized       %d (build identity or __DATE__/__TIME__)" % normalized)
     print("  release root     %s" % os.path.basename(root))
     return 0
 
