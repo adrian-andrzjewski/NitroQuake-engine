@@ -19,7 +19,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // r_surf.c: surface-related refresh code
 
-#include "quakedef.h"
+#include <math.h>
+#include <stddef.h>
+
+#include "common.h"
+#include "cvar.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "zone.h"
+#include "model.h"
+#include "client.h"
+#include "render.h"
+#include "vid.h"
+#include "d_iface.h"
+#include "sys.h"
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
 
@@ -1792,4 +1805,3 @@ void R_GenTile (msurface_t *psurf, void *pdest)
 		Sys_Error ("Unknown tile type");
 	}
 }
-

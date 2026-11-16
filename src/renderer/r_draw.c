@@ -20,13 +20,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // r_draw.c
 
-#include "quakedef.h"
+#include <math.h>
+#include <stddef.h>
+
+#include "common.h"
+#include "mathlib.h"
+#include "bspfile.h"
+#include "zone.h"
+#include "cvar.h"
+#include "client.h"
+#include "model.h"
+#include "render.h"
+#include "d_iface.h"
 #include "tests/bench486/bench486_profile.h"
 #include "renderer/r_local.h"
 #include "renderer/asm_renderdispatch.h"
 #include "renderer/asm_zsubmodel.h"
 #include "renderer/d_local.h"	// FIXME: shouldn't need to include this
-#include <stddef.h>
 
 #define MAXLEFTCLIPEDGES		100
 
