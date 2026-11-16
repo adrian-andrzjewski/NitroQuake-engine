@@ -92,7 +92,8 @@ def main() -> int:
     documentation = (ROOT / "docs" / "renderer-assembly" / "warp-scratch.md").read_text(encoding="utf-8")
     for term in ("Call-path ledger", "R_RecursiveWorldNode_C", "R_RecursiveWorldNode_asm486",
                  "R_RecursiveClipBPoly", "R_RenderPoly", "TransformVector",
-                 "R_RenderViewStackFallback", "dispatch callback return"):
+                 "R_RenderViewStackFallback", "dispatch callback return",
+                 "preprocessed runtime formula"):
         if term not in documentation:
             fail(f"renderer stack documentation is missing call-path term: {term}")
 

@@ -35,6 +35,7 @@ def _safe_expression(expression: str, names: dict[str, int]) -> int:
     """Evaluate only integer arithmetic and already-resolved assembler names."""
     expression = expression.strip().replace("$", "")
     expression = re.sub(r"(?<=\d)[uUlL]+\b", "", expression)
+    expression = " ".join(expression.split())
     tree = ast.parse(expression, mode="eval")
 
     def visit(node: ast.AST) -> int:
@@ -149,6 +150,93 @@ def choose_frame(frames: dict[str, list[FunctionFrame]], names: list[str], role:
     # Some release objects provide a public jump veneer alongside the real
     # implementation. The nonzero prologue is the frame that consumes stack.
     return max(candidates, key=lambda item: item.frame_bytes)
+
+
+def c_function_body(source: str, signature: str) -> str:
+    start = source.find(signature)
+    if start < 0:
+        raise ValueError(f"preprocessed renderer source is missing {signature}")
+    opening = source.find("{", start)
+    if opening < 0:
+        raise ValueError(f"preprocessed renderer source has no body for {signature}")
+    depth = 0
+    for index in range(opening, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[opening + 1:index]
+    raise ValueError(f"preprocessed renderer source has an unterminated body for {signature}")
+
+
+def assigned_expression(body: str, target: str, role: str) -> str:
+    match = re.search(rf"{re.escape(target)}\s*=\s*(?P<expression>[^;]+);", body,
+                      re.DOTALL)
+    if not match:
+        raise ValueError(f"preprocessed renderer source is missing the {role} assignment")
+    return match.group("expression").strip()
+
+
+def evaluate_runtime_expression(expression: str, role: str) -> int:
+    try:
+        return _safe_expression(expression, {})
+    except (SyntaxError, ValueError, ZeroDivisionError) as error:
+        raise ValueError(f"cannot parse preprocessed {role} stack expression {expression!r}: {error}") from error
+
+
+def runtime_stack_formula_from_source(source: str) -> tuple[int, int, int]:
+    """Parse the selected runtime formula from preprocessed renderer C."""
+    requirement = c_function_body(source, "static qboolean R_RenderStackRequirement (")
+    fixed_expression = assigned_expression(requirement, "fixed_bytes", "fixed stack cost")
+    fixed_bytes = evaluate_runtime_expression(fixed_expression, "fixed")
+    required_expression = assigned_expression(requirement, "*required_out", "normal requirement")
+    step_match = re.search(
+        r"\bworld_depth\s*\*\s*((?:0[xX][0-9A-Fa-f]+|\d+)[uUlL]*)",
+        required_expression)
+    if not step_match:
+        raise ValueError("preprocessed renderer source is missing the normal per-depth stack cost")
+    tree_step = evaluate_runtime_expression(step_match.group(1), "tree-step")
+
+    warp_requirement = c_function_body(source, "static qboolean R_WarpStackRequirement (")
+    warp_expression = assigned_expression(warp_requirement, "*required_out", "warp requirement")
+    warp_match = re.fullmatch(r"normal_required\s*\+\s*(?P<additional>.+)",
+                              warp_expression, re.DOTALL)
+    if not warp_match:
+        raise ValueError("preprocessed renderer source has an unrecognized warp requirement formula")
+    warp_additional = evaluate_runtime_expression(warp_match.group("additional"), "warp fallback")
+    return fixed_bytes, tree_step, warp_additional
+
+
+def runtime_stack_formula(object_root: Path) -> tuple[int, int, int]:
+    """Read the selected runtime formulas from the build's preprocessed C."""
+    candidates = sorted(object_root.rglob("r_main.i"))
+    if len(candidates) != 1:
+        raise ValueError(
+            f"expected one generated r_main.i for runtime stack verification, found {len(candidates)}")
+    try:
+        source = candidates[0].read_text(encoding="latin-1")
+    except OSError as error:
+        raise ValueError(f"cannot read preprocessed renderer source {candidates[0]}: {error}") from error
+    return runtime_stack_formula_from_source(source)
+
+
+def verify_runtime_stack_formula(runtime: tuple[int, int, int], expected_fixed: int,
+                                 expected_step: int,
+                                 expected_warp_additional: int) -> None:
+    runtime_fixed, runtime_step, runtime_warp_additional = runtime
+    if runtime_fixed != expected_fixed:
+        raise ValueError(
+            f"runtime normal stack formula uses {runtime_fixed} fixed bytes "
+            f"(generated-frame model uses {expected_fixed})")
+    if runtime_step != expected_step:
+        raise ValueError(
+            f"runtime tree step uses {runtime_step} bytes "
+            f"(generated-frame model uses {expected_step})")
+    if runtime_warp_additional != expected_warp_additional:
+        raise ValueError(
+            f"runtime warp fallback adds {runtime_warp_additional} bytes "
+            f"(generated-frame model uses {expected_warp_additional})")
 
 
 def choose_equate(object_root: Path, name: str) -> tuple[int, Path]:
@@ -339,9 +427,12 @@ def check(object_root: Path, *, asm_frame_control: bool, asm_edge: bool,
     # Two call returns remain through view->edge and edge->world. A third is
     # charged for the dispatcher callback so the no-warp call path remains
     # covered even when other compiled branches become tail jumps.
-    normal_fixed = (view.frame_bytes + expected_edge + expected_world +
+    normal_fixed = (expected_view + expected_edge + expected_world +
                     POLY_CALL_PATH_BYTES + 3 * CALL_BYTES + world_walk_fixed)
     warp_fixed = normal_fixed + FALLBACK_FRAME_BYTES + CALL_BYTES
+    runtime_warp_budget = FALLBACK_FRAME_BYTES + CALL_BYTES
+    verify_runtime_stack_formula(runtime_stack_formula(object_root), normal_fixed,
+                                 expected_step, runtime_warp_budget)
     return {
         "normalFixedBytes": normal_fixed,
         "normalTreeStepBytes": expected_step,
@@ -388,6 +479,28 @@ def self_test() -> None:
     poly_path, transform_path, draw_poly_path = polygon_call_path_bytes(4624, 0, 0)
     if (poly_path, transform_path, draw_poly_path) != (4648, 12, 4):
         raise ValueError("polygon-call model self-test did not preserve the 4648-byte path")
+    runtime_source = """
+static qboolean R_RenderStackRequirement (unsigned long *required_out)
+{
+    fixed_bytes = (3UL * 4UL) + 12UL + 128176UL + 40020UL + 4648UL;
+    *required_out = fixed_bytes + world_depth * 128UL;
+}
+static qboolean R_WarpStackRequirement (unsigned long *required_out)
+{
+    *required_out = normal_required + 64012UL + 4UL;
+}
+"""
+    runtime_formula = runtime_stack_formula_from_source(runtime_source)
+    if runtime_formula != (172868, 128, 64016):
+        raise ValueError("runtime stack formula parser did not preserve the release profile model")
+    verify_runtime_stack_formula(runtime_formula, 172868, 128, 64016)
+    for mismatched_model in ((172872, 128, 64016), (172868, 132, 64016),
+                             (172868, 128, 64020)):
+        try:
+            verify_runtime_stack_formula(runtime_formula, *mismatched_model)
+        except ValueError:
+            continue
+        raise ValueError("runtime stack formula checker accepted a mismatched stack term")
     print("renderer stack budget parser self-test: PASS")
 
 

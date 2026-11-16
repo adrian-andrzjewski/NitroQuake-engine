@@ -9,8 +9,10 @@ not fit, it skips the whole render and reports the requirement, available
 bytes, and shortfall. If the normal path fits but the allocation-failure warp
 fallback does not, it renders with waterwarp temporarily disabled.
 
-The build checks generated release, C-reference, and instrumented assembly
-frames before linking. The checked bounds are:
+Before linking, each build checks its generated release, C-reference, or
+instrumented assembly frames and cross-checks the preprocessed runtime formula
+in `r_main.i` against the modeled fixed, per-depth, and fallback costs. The
+checked bounds are:
 
 | Profile | Normal renderer | Warp fallback |
 | --- | --- | --- |
@@ -22,7 +24,7 @@ frames before linking. The checked bounds are:
 
 | Model term | Caller and callee path | Charged stack | Build check |
 | --- | --- | --- | --- |
-| Preflight | `R_RenderView` → `R_RenderViewDispatch` → `R_RenderStackRequirement` → `R_WarpWorldTreeDepth` | Dispatcher and requirement frames stay below 512 bytes each; this work completes before the large render path. | Generated frame checks in `tools/renderer-stack-budget.py`. |
+| Preflight | `R_RenderView` → `R_RenderViewDispatch` → `R_RenderStackRequirement` → `R_WarpWorldTreeDepth` | Dispatcher and requirement frames stay below 512 bytes each; this work completes before the large render path. | Generated frame and preprocessed formula checks in `tools/renderer-stack-budget.py`. |
 | Fixed renderer frames | `R_RenderView_` → `R_EdgeDrawing` → `R_RenderWorld` | Selected generated view, edge, and world frames. | Release/C-reference/profile selectors choose the matching generated entry. |
 | Renderer call returns | `R_RenderView_` → `R_EdgeDrawing` → `R_RenderWorld`; dispatch → render callback | Two 4-byte returns for view-to-edge and edge-to-world, plus one 4-byte callback return. The callback word covers the no-warp recovery call without relying on the tail jumps used by the common allocated and fallback branches. | `R_RenderStackRequirement` charges three `R_WARP_CALL_BYTES`. |
 | Polygon path | `R_RecursiveWorldNode` or `R_RenderWorld` → `R_RenderPoly` → `TransformVector` | Generated `R_RenderPoly` frame, 8 bytes of caller arguments and one return word, then the `TransformVector` frame, 8 argument bytes, and one return word. The current polygon path is 4,648 bytes. | The checker reads both generated leaf frames and compares the complete path with the pinned bound. `D_DrawPoly` is also checked as the alternate child path. |
