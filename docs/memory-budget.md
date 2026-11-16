@@ -25,6 +25,28 @@ These are the default 320x200 values. Resolution, `-surfcachesize`, renderer
 capacity cvars, and the loaded BSP change the live report. At larger resolutions
 the default surface cache grows by three bytes per pixel above 320x200.
 
+## Example runtime capture
+
+This i486 release capture used VGA BIOS mode 0x13 at 320x200. It ran `map e1m1`
+and entered `meminfo` after 40 `wait` commands. Values are observations from
+one DOSBox-X/CWSDPMI run; the stack measurements describe that DPMI environment.
+
+| Pool | Observed value |
+| --- | --- |
+| Engine block | 30,008,668 supplied; 5,570,560 minimum |
+| Engine arena | Zone 49,152; low hunk 3,343,232 (peak 3,456,736); high hunk 2,660,192 (peak 4,015,152); gap 24,005,244 |
+| Cache | 1,453,408 bytes in 34 blocks, included in the hunk gap |
+| Video | 320x200; cache request/allocated 2,457,600, usable 2,457,596; Z 128,000; framebuffer 64,320; pad 16; video hunk 2,649,952; gap after setup 26,962,700 |
+| Edges and surfaces | Edges: capacity 2,400, peak 405 (12,960 bytes), extra hunk 0; surfaces: capacity 800, peak 209 (13,376 bytes), extra hunk 0 |
+| Renderer stack arrays | 128,096 local bytes; 128,176 generated edge frame |
+| Waterwarp | 64,000-byte buffer allocated; last route used the allocated buffer (37 allocated, 0 stack, 0 skipped) |
+| DPMI stack | BSP depth 63; available minimum 523,940; normal 180,932 with 343,008 headroom; fallback 244,948 with 278,992 headroom |
+
+A separate standard `-minmemory` startup reached video setup with the engine
+block exactly at 5,570,560 bytes. That capture did not reach a rendered map.
+The registered-data minimum remains source-derived; no Hipnotic or Rogue PAKs
+were available for a registered-data runtime capture.
+
 ## Reading `meminfo`
 
 - The engine block line shows total supplied and the active startup minimum.
