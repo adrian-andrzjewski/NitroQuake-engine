@@ -17,7 +17,27 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-#include "quakedef.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "host.h"
+#include "vid.h"
+#include "draw.h"
+#include "cvar.h"
+#include "screen.h"
+#include "net.h"
+#include "cmd.h"
+#include "sound.h"
+#include "render.h"
+#include "client.h"
+#include "server.h"
+#include "bspfile.h"
+#include "model.h"
+#include "keys.h"
+#include "console.h"
+#include "view.h"
 #include "client/asm_menutext.h"
 #include "client/asm_playertranslation.h"
 

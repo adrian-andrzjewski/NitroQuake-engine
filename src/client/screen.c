@@ -19,9 +19,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // screen.c -- master for refresh, status bar, console, chat, notify, etc
 
-#include "quakedef.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "common.h"
+#include "cmd.h"
+#include "console.h"
+#include "cvar.h"
+#include "client.h"
+#include "draw.h"
+#include "host.h"
+#include "keys.h"
+#include "menu.h"
+#include "mathlib.h"
+#include "render.h"
+#include "screen.h"
+#include "sbar.h"
+#include "sound.h"
+#include "sys.h"
+#include "vid.h"
+#include "view.h"
+#include "zone.h"
 #include "tests/bench486/bench486_profile.h"
-#include "renderer/r_local.h"
 #include "client/asm_screenfov.h"
 #include "client/asm_screennotify.h"
 #include "client/asm_screenerase.h"

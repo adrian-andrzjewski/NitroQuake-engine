@@ -142,7 +142,6 @@ extern vec3_t	r_pright, r_pup, r_ppn;
 
 
 void D_Aff8Patch (void *pcolormap);
-void D_DisableBackBufferAccess (void);
 void D_PolysetDraw (void);
 void D_PolysetDrawFinalVerts (finalvert_t *fv, int numverts);
 void D_DrawParticle (particle_t *pparticle);
@@ -150,7 +149,6 @@ void D_DrawPoly (void);
 void D_DrawSprite (void);
 void D_DrawSurfaces (void);
 void D_DrawZPoint (void);
-void D_EnableBackBufferAccess (void);
 void D_EndParticles (void);
 void D_Init (void);
 void D_ViewChanged (void);
@@ -161,7 +159,6 @@ void D_WarpScreen (void);
 
 void D_FillRect (vrect_t *vrect, int color);
 void D_DrawRect (void);
-void D_UpdateRects (vrect_t *prect);
 
 // currently for internal use only, and should be a do-nothing function in
 // hardware drivers

@@ -76,6 +76,19 @@ for declaration in (
         raise SystemExit(f"vid.h is missing the video-owned declaration: {declaration}")
     if declaration in driver_interface:
         raise SystemExit(f"video-owned declaration remains in d_iface.h: {declaration}")
+for declaration in (
+        "void D_EnableBackBufferAccess (void);",
+        "void D_DisableBackBufferAccess (void);",
+        "void D_UpdateRects (vrect_t *prect);"):
+    if declaration not in renderer_header:
+        raise SystemExit(f"render.h is missing the renderer-owned declaration: {declaration}")
+    if declaration in driver_interface:
+        raise SystemExit(f"renderer-owned declaration remains in d_iface.h: {declaration}")
+screen_source = (
+    SOURCE / "client" / "screen.c"
+).read_text(encoding="utf-8", errors="replace")
+if '#include "renderer/r_local.h"' in screen_source:
+    raise SystemExit("client screen code depends on the renderer-private header")
 if re.search(r"(?m)^\s*#\s*define\s+CACHE_SIZE\b", umbrella):
     raise SystemExit("renderer alignment constant remains in quakedef.h")
 if not re.search(r"(?m)^\s*#\s*define\s+CACHE_SIZE\b", renderer_header):

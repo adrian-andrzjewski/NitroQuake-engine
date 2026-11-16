@@ -1,5 +1,3 @@
-src/client/menu.c
-src/client/screen.c
 src/core/common.c
 src/core/host_cmd.c
 src/core/host.c
