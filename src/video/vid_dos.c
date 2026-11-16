@@ -29,9 +29,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <dpmi.h>
 #include <go32.h>
 
-#include "quakedef.h"
+#include "common.h"
+#include "cmd.h"
+#include "console.h"
+#include "cvar.h"
+#include "draw.h"
+#include "host.h"
+#include "keys.h"
+#include "screen.h"
+#include "sound.h"
+#include "sys.h"
+#include "vid.h"
 #include "tests/bench486/bench486_profile.h"
-#include "renderer/d_local.h"
 #include "platform/dos/dosisms.h"
 #include "video/vid_dos.h"
 #include "video/asm_vidupdate.h"

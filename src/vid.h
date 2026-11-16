@@ -71,6 +71,10 @@ extern	unsigned	d_8to24table[256];
 extern void (*vid_menudrawfn)(void);
 extern void (*vid_menukeyfn)(int key);
 
+/* Legacy direct-framebuffer overlay hooks used by client drawing code. */
+void D_BeginDirectRect (int x, int y, byte *pbitmap, int width, int height);
+void D_EndDirectRect (int x, int y, int width, int height);
+
 void	VID_SetPalette (unsigned char *palette);
 // called at startup and after any gamma correction
 

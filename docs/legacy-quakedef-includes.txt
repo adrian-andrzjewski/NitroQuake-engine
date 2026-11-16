@@ -9,4 +9,3 @@ src/platform/dos/sys_dos.c
 src/renderer/r_alias.c
 src/renderer/r_main.c
 src/renderer/r_part.c
-src/video/vid_dos.c
