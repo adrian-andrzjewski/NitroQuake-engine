@@ -25,26 +25,66 @@ These are the default 320x200 values. Resolution, `-surfcachesize`, renderer
 capacity cvars, and the loaded BSP change the live report. At larger resolutions
 the default surface cache grows by three bytes per pixel above 320x200.
 
-## Example runtime capture
+## Runtime captures
 
-This i486 release capture used VGA BIOS mode 0x13 at 320x200. It ran `map e1m1`
-and entered `meminfo` after 40 `wait` commands. Values are observations from
-one DOSBox-X/CWSDPMI run; the stack measurements describe that DPMI environment.
+These captures use the i486 release build `94734246d4aa-efcec970319b`, DOSBox-X
+2026.08.31, and CWSDPMI. The emulator reports an 80486 CPU, DOS 5.00, DPMI 0.90,
+and 31,280 KiB of physical RAM. They describe this DOSBox/DPMI setup, not a
+physical 486 or other DPMI hosts.
 
-| Pool | Observed value |
+### Startup at 320x200
+
+The first `meminfo` runs before `quake.rc`, before a map loads, and before a
+render frame samples the stack guard.
+
+| Pool | Startup observation |
 | --- | --- |
 | Engine block | 30,008,668 supplied; 5,570,560 minimum |
-| Engine arena | Zone 49,152; low hunk 3,343,232 (peak 3,456,736); high hunk 2,660,192 (peak 4,015,152); gap 24,005,244 |
-| Cache | 1,453,408 bytes in 34 blocks, included in the hunk gap |
+| Engine arena | Zone 49,152; low hunk 480,544; high hunk 2,649,952; gap 26,878,172 |
+| Cache | 64,064 bytes in 1 block, included in the hunk gap |
 | Video | 320x200; cache request/allocated 2,457,600, usable 2,457,596; Z 128,000; framebuffer 64,320; pad 16; video hunk 2,649,952; gap after setup 26,962,700 |
-| Edges and surfaces | Edges: capacity 2,400, peak 405 (12,960 bytes), extra hunk 0; surfaces: capacity 800, peak 209 (13,376 bytes), extra hunk 0 |
-| Renderer stack arrays | 128,096 local bytes; 128,176 generated edge frame |
-| Waterwarp | 64,000-byte buffer allocated; last route used the allocated buffer (37 allocated, 0 stack, 0 skipped) |
-| DPMI stack | BSP depth 63; available minimum 523,940; normal 180,932 with 343,008 headroom; fallback 244,948 with 278,992 headroom |
+| Renderer | Edges and surfaces both 0 used; 128,096 local array bytes; 128,176 generated edge frame |
+| Waterwarp and stack | 64,000-byte warp buffer allocated; no warp route yet; renderer stack not sampled until the first render guard |
 
-A separate standard `-minmemory` startup reached video setup with the engine
-block exactly at 5,570,560 bytes. That capture did not reach a rendered map.
-The registered-data minimum remains source-derived; no Hipnotic or Rogue PAKs
+### Large-map render capture
+
+The base-game PAK directory identifies `e4m7` as the largest supplied BSP
+(1,495,232 bytes). This run loaded `e4m7`, executed 40 `wait` commands, then
+entered `meminfo` while still on that map.
+
+| Pool | Observation after `e4m7` rendering |
+| --- | --- |
+| Engine block | 30,008,668 supplied; 5,570,560 minimum |
+| Engine arena | Zone 49,152; low hunk 3,624,832 (peak 3,806,144); high hunk 2,731,872 (peak 4,145,216); gap 23,651,964 |
+| Cache | 2,199,856 bytes in 47 blocks, included in the hunk gap |
+| Video | 320x200; cache request/allocated 2,457,600, usable 2,457,596; Z 128,000; framebuffer 64,320; pad 16; video hunk 2,649,952; gap after setup 26,962,700 |
+| Edges and surfaces | Edges: capacity 2,400, peak 510 (16,320 bytes), extra hunk 0; surfaces: capacity 800, peak 255 (16,320 bytes), extra hunk 0 |
+| Renderer stack arrays | 128,096 local bytes; 128,176 generated edge frame |
+| Waterwarp | 64,000-byte buffer allocated; allocated-buffer route 37 times, stack 0, skipped 0 |
+| DPMI stack | BSP depth 87; available minimum 523,940; normal 184,004 with 339,936 headroom; fallback 248,020 with 275,920 headroom |
+
+### Low-memory map boundary
+
+| Run | Engine block | `e1m1` result |
+| --- | ---: | --- |
+| `-minmemory` | 5,570,560 bytes | Startup and video setup pass; map command stops before `POSTMAP`. |
+| `-mem 6.90625` | 7,241,728 bytes | Map command stops before `POSTMAP`. |
+| `-mem 6.921875` | 7,258,112 bytes | Map completes; 40 `wait` commands complete and `meminfo` runs. |
+
+This brackets the observed `e1m1` transition within 16,384 bytes for this build
+and DPMI setup. It is not a new minimum-memory requirement for other hosts or
+maps. After the successful low-memory run, hunk use was low 3,343,232 bytes
+(peak 3,538,032), high 2,693,824 bytes (peak 4,015,152), with a 1,221,056-byte
+gap; cache use was 957,248 bytes in 25 blocks.
+
+The failed `-minmemory` and 7,241,728-byte runs stop after `PREMAP`, before
+`POSTMAP`. Neither `GUEST.ERR` nor `QCONSOLE.LOG` reports a `Sys_Error`,
+`Host_Error`, or hunk allocation failure, so the evidence does not identify
+which pool or request prevented the map from completing. The startup minimum
+therefore remains a startup guarantee, not a guarantee that every map loads.
+
+The registered-data minimum remains source-derived. The supplied
+`testdata/id1` contains only `pak0.pak` and `pak1.pak`; no Hipnotic or Rogue PAKs
 were available for a registered-data runtime capture.
 
 ## Reading `meminfo`
