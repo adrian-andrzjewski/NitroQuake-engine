@@ -95,7 +95,6 @@ static unsigned long	r_warp_skipped_routes;
 #define R_WARP_ROUTE_STACK		2
 #define R_WARP_ROUTE_SKIPPED		3
 #define R_WARP_ROUTE_DISABLED		4
-#define R_WARP_ROUTE_ALLOC_FAILED	5
 #ifdef BENCH486
 static qboolean r_bench_warp_force_short_stack;
 static unsigned long r_bench_warp_actual_stack_available;
@@ -1430,15 +1429,12 @@ void R_InitWarpBuffer (void)
 
 	if (r_warpbuffer_storage)
 	{
-		r_warp_last_route = R_WARP_ROUTE_ALLOCATED;
 		r_warpbuffer = r_warpbuffer_storage;
 		return;
 	}
 
 	r_warpbuffer_storage = (byte *)malloc (R_WARP_BUFFER_BYTES);
 	r_warpbuffer = r_warpbuffer_storage;
-	r_warp_last_route = r_warpbuffer_storage ?
-			R_WARP_ROUTE_ALLOCATED : R_WARP_ROUTE_ALLOC_FAILED;
 }
 
 void R_InvalidateWarpStackCache (void)
@@ -1849,8 +1845,7 @@ static const char *R_WarpRouteName (void)
 	case R_WARP_ROUTE_STACK: return "guarded stack fallback";
 	case R_WARP_ROUTE_SKIPPED: return "skipped for stack capacity";
 	case R_WARP_ROUTE_DISABLED: return "warp not requested";
-	case R_WARP_ROUTE_ALLOC_FAILED: return "allocation failed; not yet routed";
-	default: return "not initialized";
+	default: return "no render yet";
 	}
 }
 

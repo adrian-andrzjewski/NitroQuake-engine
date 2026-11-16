@@ -296,6 +296,8 @@ C(Memory_Init):
 	addl	$4,%esp			/* C retains the default size if it returns */
 
 .Lzone_memory_allocate:
+	movl	-16(%ebp),%eax
+	movl	%eax,C(memory_zone_size)
 	pushl	$.Lzone_memory_zone_name
 	pushl	-16(%ebp)
 	call	C(Hunk_AllocName)

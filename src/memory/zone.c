@@ -561,6 +561,7 @@ int		hunk_size;
 
 int		hunk_low_used;
 int		hunk_high_used;
+int		memory_zone_size;
 int		hunk_low_peak_used;
 int		hunk_high_peak_used;
 
@@ -1833,7 +1834,7 @@ void Memory_ReportBudget (void)
 
 	Con_Printf ("Engine arena: zone=%d bytes; hunk low=%d (peak %d), "
 			"high=%d (peak %d), gap=%d bytes\n",
-			mainzone ? mainzone->size : 0,
+			memory_zone_size,
 			hunk_low_used, hunk_low_peak_used,
 			hunk_high_used, hunk_high_peak_used, hunk_gap);
 	Con_Printf ("  Cache: %lu bytes in %u blocks (included in hunk gap)\n",
@@ -1876,6 +1877,7 @@ void MEMORY_INIT_C_ENTRY (void *buf, int size)
 		else
 			Sys_Error ("Memory_Init: you must specify a size in KB after -zone");
 	}
+	memory_zone_size = zonesize;
 	mainzone = Hunk_AllocName (zonesize, "zone" );
 	Z_ClearZone (mainzone, zonesize);
 }
