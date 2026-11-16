@@ -18,7 +18,44 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "quakedef.h"
+#include <math.h>
+#include <setjmp.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "host.h"
+#include "bspfile.h"
+#include "vid.h"
+#include "sys.h"
+#include "zone.h"
+#include "mathlib.h"
+#include "wad.h"
+#include "draw.h"
+#include "cvar.h"
+#include "screen.h"
+#include "net.h"
+#include "protocol.h"
+#include "cmd.h"
+#include "sbar.h"
+#include "sound.h"
+#include "render.h"
+#include "client.h"
+#include "progs.h"
+#include "server.h"
+#include "model.h"
+#include "d_iface.h"
+#include "input.h"
+#include "world.h"
+#include "keys.h"
+#include "console.h"
+#include "view.h"
+#include "menu.h"
+#include "crc.h"
+#include "cdaudio.h"
+#include "nitroquake_version.h"
 #include "tests/bench486/bench486_profile.h"
 #include "tests/bench486/bench486_light_probe.h"
 
