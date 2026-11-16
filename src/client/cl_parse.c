@@ -19,7 +19,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_parse.c  -- parse a message received from the server
 
-#include "quakedef.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "cmd.h"
+#include "console.h"
+#include "client.h"
+#include "bspfile.h"
+#include "draw.h"
+#include "host.h"
+#include "model.h"
+#include "net.h"
+#include "render.h"
+#include "sbar.h"
+#include "screen.h"
+#include "sound.h"
+#include "cdaudio.h"
+#include "server.h"
+#include "sys.h"
+#include "view.h"
+#include "vid.h"
+#include "zone.h"
 #include "tests/bench486/bench486_profile.h"
 #include "client/asm_playertranslation.h"
 

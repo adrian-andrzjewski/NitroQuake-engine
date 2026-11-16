@@ -1,4 +1,3 @@
-src/client/cl_parse.c
 src/client/menu.c
 src/client/screen.c
 src/core/common.c
