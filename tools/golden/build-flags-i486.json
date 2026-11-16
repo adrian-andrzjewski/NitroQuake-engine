@@ -18,8 +18,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 86,
-  "assemblySourceCount": 86,
+  "allAssemblySourceCount": 87,
+  "assemblySourceCount": 87,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -463,6 +463,7 @@
   ],
   "assemblySources": [
     "asm486_experiments.s",
+    "asm486_sprite_geometry.s",
     "con_inputasm.s",
     "d_copy.s",
     "d_draw.s",

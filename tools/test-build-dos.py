@@ -2364,9 +2364,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 86:
+        if dump.get("allAssemblySourceCount") != 87:
             fail(
-                "%s: expected 86 assembly sources, got %r"
+                "%s: expected 87 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 
