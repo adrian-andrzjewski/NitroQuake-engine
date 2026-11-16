@@ -18,8 +18,8 @@
   "includedCSources": [
     "net_comx.c"
   ],
-  "allAssemblySourceCount": 87,
-  "assemblySourceCount": 87,
+  "allAssemblySourceCount": 98,
+  "assemblySourceCount": 98,
   "cFlags": [
     "-I<repo>\\src",
     "-O3",
@@ -462,8 +462,19 @@
     "zone.c"
   ],
   "assemblySources": [
-    "asm486_experiments.s",
-    "asm486_sprite_geometry.s",
+    "asm486_alias.s",
+    "asm486_bsp.s",
+    "asm486_collision.s",
+    "asm486_edge.s",
+    "asm486_lighting.s",
+    "asm486_memory.s",
+    "asm486_particles.s",
+    "asm486_raster.s",
+    "asm486_sky_warp.s",
+    "asm486_sprite.s",
+    "asm486_surface_cache.s",
+    "asm486_surface_draw.s",
+    "asm486_world.s",
     "con_inputasm.s",
     "d_copy.s",
     "d_draw.s",

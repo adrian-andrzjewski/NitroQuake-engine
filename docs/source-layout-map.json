@@ -38,7 +38,21 @@
     },
     {
       "from": "src/asm486_experiments.s",
-      "to": "src/renderer/asm486_experiments.s",
+      "to": [
+        "src/collision/asm486_collision.s",
+        "src/renderer/asm486_alias.s",
+        "src/renderer/asm486_bsp.s",
+        "src/renderer/asm486_edge.s",
+        "src/renderer/asm486_lighting.s",
+        "src/renderer/asm486_memory.s",
+        "src/renderer/asm486_particles.s",
+        "src/renderer/asm486_raster.s",
+        "src/renderer/asm486_sky_warp.s",
+        "src/renderer/asm486_sprite.s",
+        "src/renderer/asm486_surface_cache.s",
+        "src/renderer/asm486_surface_draw.s",
+        "src/renderer/asm486_world.s"
+      ],
       "kind": "production"
     },
     {

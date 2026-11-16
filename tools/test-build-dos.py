@@ -1431,7 +1431,7 @@ def main() -> int:
     if long_renderer_profile:
         object_root = str(long_renderer_profile.get("objectRoot", ""))
         object_root = object_root.replace("<repo>", REPO_ROOT)
-        object_path = os.path.join(object_root, "asm486_experiments.obj")
+        object_path = os.path.join(object_root, "asm486_surface_cache.obj")
         if "renderpolyasm" not in long_renderer_profile.get("profileSuffix", ""):
             fail("the long renderer profile suffix omits the render-poly selector token")
         if "renderworldasm" not in long_renderer_profile.get("profileSuffix", ""):
@@ -1456,7 +1456,7 @@ def main() -> int:
             str(long_renderer_profile.get("outputRoot", "")).replace("<repo>", REPO_ROOT),
             "obj-bench",
         )
-        unhashed_object_path = os.path.join(unhashed_object_root, "asm486_experiments.obj")
+        unhashed_object_path = os.path.join(unhashed_object_root, "asm486_surface_cache.obj")
         if len(unhashed_object_path) > 259:
             if os.path.normcase(os.path.dirname(object_root)) != os.path.normcase(
                 os.path.join(REPO_ROOT, "out")
@@ -2352,8 +2352,8 @@ def main() -> int:
             fail("the zone-heap fixture omits its isolated profile token")
 
     # 6. Source inventory is pinned: 83 retained C (82 standalone, net_comx.c
-    #    included by another unit), 86 assembly sources (one is omitted only
-    #    when no assembly renderer is selected).
+    #    included by another unit), 98 assembly sources (six selector-independent
+    #    helper units are omitted from the C-reference configuration).
     for target, dump in (("i486", i486), ("i386", i386)):
         if not dump:
             continue
@@ -2364,9 +2364,9 @@ def main() -> int:
                 "%s: expected 82 standalone C sources, got %r"
                 % (target, dump.get("standaloneCSourceCount"))
             )
-        if dump.get("allAssemblySourceCount") != 87:
+        if dump.get("allAssemblySourceCount") != 98:
             fail(
-                "%s: expected 87 assembly sources, got %r"
+                "%s: expected 98 assembly sources, got %r"
                 % (target, dump.get("allAssemblySourceCount"))
             )
 

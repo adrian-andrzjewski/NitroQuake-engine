@@ -4,6 +4,10 @@ Production sources are grouped under `src/` by subsystem: `assets`, `audio`,
 `client`, `collision`, `core`, `memory`, `network`, `platform/dos`, `renderer`,
 `server`, and `video`. Assembly implementations stay beside their owning
 subsystem; C reference implementations and their selectors remain independent.
+The former large `asm486_experiments.s` unit is split into renderer units for
+alias, BSP, edges, lighting, memory, particles, rasterization, sky and warp,
+sprite rendering, surface cache, surface drawing, and world rendering, plus a
+collision unit.
 
 The public headers `render.h`, `vid.h`, `zone.h`, `client.h`, and `server.h`
 define the renderer, video, memory, client, and server entry points. The narrow
@@ -40,5 +44,6 @@ profile include schedules remain separate.
 
 `tools/build-dos-experimental.ps1` discovers production C and assembly sources
 recursively, preserves their unique basename ordering and object names, and
-records repository-relative paths in the build manifest. The historical path
-map is in `source-layout-map.json`.
+records repository-relative paths in the build manifest. The path map in
+`source-layout-map.json` records the original flat paths and supports
+one-to-many mappings where a source was later split by subsystem.

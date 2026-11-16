@@ -24,7 +24,7 @@ Param       the parameter name on build-dos-experimental.ps1
       4. which .s files are compiled
       5. the expected active-assembly count, which is what the inventory pin checks
 
-    They had drifted. For instance asm486_experiments.s is excluded by name in one
+    They had drifted. For instance selector-independent helper units are excluded by name in one
     place and by an implementation-selector test in two others, and the count that
     the pin compares was computed from a fourth, slightly different list. A selector
     added to three of the four and missed in the fourth would produce a build whose

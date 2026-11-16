@@ -9,6 +9,28 @@ and run details remain in `BUILD-DOS.md`.
 
 ## Current state
 
+### Renderer assembly source split (2026-11-16)
+
+The former `asm486_experiments.s` compilation unit is split by subsystem. Its
+renderer routines now live in `asm486_alias.s`, `asm486_bsp.s`,
+`asm486_edge.s`, `asm486_lighting.s`, `asm486_memory.s`,
+`asm486_particles.s`, `asm486_raster.s`, `asm486_sky_warp.s`,
+`asm486_sprite.s`, `asm486_surface_cache.s`, `asm486_surface_draw.s`, and
+`asm486_world.s`; the sprite unit also retains the earlier geometry helpers.
+Collision helpers live in `src/collision/asm486_collision.s`. The build
+inventory contains 98 assembly sources, with six selector-independent helpers
+omitted from the 92-source C-reference assembly set.
+
+The i486 release and C-reference configurations passed their strict linked ISA
+gates. The benchmark host suite passed 20/20 gates. The focused
+`demo1-drawspans8` DOSBox-X parity run passed two repeats per profile with exact
+frame checksums and framebuffer/palette comparison. The broader
+`tools/test-build-dos.py` profile check still reports 29 selector/profile
+expectation mismatches; source counts and the release/C-reference build
+inventories match. This work has not been measured on physical 486 hardware,
+and the focused parity scenario does not replace the full six-scene suite.
+The clean release artifact hash inventory was refreshed after the split.
+
 ### Current i486 selector policy (2026-10-16)
 
 The default i486 selector set is now
@@ -1052,7 +1074,7 @@ the same map.
 - Exact framebuffer checksum is the automated parity gate.  It does not prove
   complete visual or gameplay parity outside the timedemo.
 - `R_AliasTransformFinalVert_asm486` uses static scratch labels in
-  `asm486_experiments.s`; this is acceptable for the current single-threaded
+  `asm486_alias.s`; this is acceptable for the current single-threaded
   DOS renderer, but the helper is not reentrant.
 - DOSBox-X timing is an emulated 486-class model.  No physical 486 measurement
   has been made, and only `demo1` has been used for the documented matched
@@ -1762,8 +1784,8 @@ and run the focused command with the matching selector:
 
 The relevant source entry points are
 `R_AliasTransformFinalVert` and
-`R_AliasTransformFinalVert_asm486` in `src\r_alias.c` and
-`src\asm486_experiments.s`.  Use `src\host_cmd.c` for the focused
+`R_AliasTransformFinalVert_asm486` in `src\renderer\r_alias.c` and
+`src\renderer\asm486_alias.s`. Use `src\core\host_cmd.c` for the focused
 benchmark harness and `tools\profile-report.ps1` for profile JSON.
 ## The experiment ledger
 

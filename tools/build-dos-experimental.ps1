@@ -664,20 +664,17 @@ $asmIsLive = $Benchmark -or (@(
             Where-Object { $_.SelectsAsm -and ((Get-SelectorValue -Name $_.Param) -eq 'asm') }
     ).Count -gt 0)
 
-# Read the disjunction carefully, because it does not say what it looks like it
-# says. This is a chain of -or, and -eq binds tighter, so the original condition
-# parsed as "any implementation selector is asm, OR this file is not
-# asm486_experiments.s". The name test is therefore an extra way for a file to be
-# INCLUDED, not a way to exclude one: in the default release build every one of the
-# 22 .s files is compiled, asm486_experiments.s among them, and the inventory pin
-# below expects 21. Only when every implementation selector is 'c' and this is not a
-# -Benchmark build does the name test do any work, and then it drops that one file
-# and the expected count drops with it.
-#
-# Rewriting this as an exclusion -- "include the file unless it is
-# asm486_experiments.s" -- compiles 20 and fails the inventory pin. That is what
-# happened the first time this was table-driven, which is the pin doing its job.
-$asmSources = @($allAsmSources | Where-Object { $asmIsLive -or $_.Name -ne 'asm486_experiments.s' })
+# Alias, BSP, lighting, memory, surface-cache, and world units contain
+# selector-independent assembly helpers. Keep them out of strict C-reference
+# builds; the other assembly units guard their implementation bodies and can remain
+# in the source inventory when no ASM selector is active.
+$unconditionalAssemblySources = @(
+    'asm486_alias.s', 'asm486_bsp.s', 'asm486_lighting.s',
+    'asm486_memory.s', 'asm486_surface_cache.s', 'asm486_world.s'
+)
+$asmSources = @($allAsmSources | Where-Object {
+    $asmIsLive -or $_.Name -notin $unconditionalAssemblySources
+})
 $allSources = @($cSources + $asmSources)
 
 # Keep descriptive selector suffixes in the executable output path. If their
@@ -762,7 +759,7 @@ if ($Clean) {
 # its own literal pin, so the invariant is still enforced independently.
 $expectedAllCSourceCount = 83
 $expectedStandaloneCSourceCount = 82
-$expectedAllAssemblySourceCount = 87
+$expectedAllAssemblySourceCount = 98
 if (-not $DumpFlags) {
     $goldenFlagsPath = Join-Path $PSScriptRoot ('golden\build-flags-{0}.json' -f $CpuTarget)
     if (-not (Test-Path -LiteralPath $goldenFlagsPath -PathType Leaf)) {
@@ -778,15 +775,13 @@ if ($Benchmark) {
     $expectedStandaloneCSourceCount++
 }
 
-# The expected active-assembly count is the total minus the one file that is never
-# part of a release build, and it is derived from $asmIsLive -- the same flag that
-# decided which .s files were compiled -- rather than from a fourth copy of the
-# implementation-selector list.
+# The expected active-assembly count is derived from $asmIsLive -- the same flag
+# that selected the source files -- rather than from another selector list.
 $expectedAssemblySourceCount = if ($asmIsLive) {
     $expectedAllAssemblySourceCount
 }
 else {
-    $expectedAllAssemblySourceCount - 1
+    $expectedAllAssemblySourceCount - $unconditionalAssemblySources.Count
 }
 if (($allCSources.Count -ne $expectedAllCSourceCount) -or ($cSources.Count -ne $expectedStandaloneCSourceCount) -or
 	($allAsmSources.Count -ne $expectedAllAssemblySourceCount) -or ($asmSources.Count -ne $expectedAssemblySourceCount)) {

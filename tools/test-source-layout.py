@@ -21,13 +21,16 @@ seen_from = set()
 seen_to = set()
 for entry in LAYOUT["migrations"]:
     old = entry["from"]
-    new = entry["to"]
-    if old in seen_from or new in seen_to:
-        raise SystemExit(f"duplicate source-layout mapping: {old} -> {new}")
+    targets = entry["to"]
+    if isinstance(targets, str):
+        targets = [targets]
+    if old in seen_from or any(new in seen_to for new in targets):
+        raise SystemExit(f"duplicate source-layout mapping: {old} -> {targets}")
     seen_from.add(old)
-    seen_to.add(new)
-    if (ROOT / new).is_file() is False:
-        raise SystemExit(f"mapped source is missing: {new}")
+    for new in targets:
+        seen_to.add(new)
+        if (ROOT / new).is_file() is False:
+            raise SystemExit(f"mapped source is missing: {new}")
     if (ROOT / old).exists():
         raise SystemExit(f"legacy flat path still exists: {old}")
 

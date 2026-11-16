@@ -38,7 +38,7 @@
     Audit only these object file names (e.g. surf8.obj, math.obj), resolved
     inside each object directory.  A build recompiles its sources in place, so
     an object directory also accumulates objects from selector sets that are no
-    longer active -- asm486_experiments.s when every implementation selector is
+    longer active -- selector-independent helper units when every implementation selector is
     'c', net_comx.c which is #included rather than compiled.  Those are stale,
     and auditing a directory therefore audits them too, which makes the count
     depend on build history rather than on the current sources.  Naming the
