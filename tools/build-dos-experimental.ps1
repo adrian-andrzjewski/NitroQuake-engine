@@ -1024,7 +1024,8 @@ try {
             @{ Flag = '-DASM486_EDGE_DRAWING'; Argument = '--asm-edge' },
             @{ Flag = '-DASM486_RENDER_WORLD'; Argument = '--asm-world' },
             @{ Flag = '-DASM486_RENDER_POLY'; Argument = '--asm-poly' },
-            @{ Flag = '-DASM486_BMODEL_POLYGON_CLIP'; Argument = '--asm-clip' })) {
+            @{ Flag = '-DASM486_BMODEL_POLYGON_CLIP'; Argument = '--asm-clip' },
+            @{ Flag = '-DASM486_BSP_WALK'; Argument = '--asm-bsp-walk' })) {
         if ($rendererStackFlags -contains $selection.Flag) {
             $rendererStackBudgetArguments += $selection.Argument
         }

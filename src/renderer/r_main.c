@@ -92,16 +92,21 @@ static void R_BenchWarpShort_f (void);
 #endif
 
 /* Stack costs are pinned by tools/renderer-stack-budget.py against the
- * generated renderer assembly. The assembly edge frame includes its saved
- * registers and 128160-byte aligned-array reservation; the C frame is
- * 128108 bytes. The C world frame is 40012 bytes and the release assembly
- * world frame is 40020 bytes. Clipped-bmodel recursion costs 124 bytes per
- * level in the C reference and 128 bytes in release assembly (136 when
- * PROFILE486 callbacks are enabled). The terminal polygon path is bounded by
- * 4648 bytes. The dispatcher derives depth from the loaded BSP and adds no
- * environment-specific reserve. */
+ * generated renderer assembly. The edge frame includes its saved registers
+ * and aligned-array reservation; the selected world frame includes the
+ * back-to-front polygon list. The tree step is the larger of clipped-bmodel
+ * recursion and world traversal. The assembly BSP walker adds its fixed frame
+ * and entry return separately; its continuation record is checked against the
+ * selected tree step. The polygon path is bounded by its generated frame plus
+ * the nested call path. The dispatcher derives depth from the loaded BSP and
+ * adds no environment-specific reserve. */
 #define R_WARP_BUFFER_BYTES		(WARP_WIDTH * WARP_HEIGHT)
 #define R_WARP_FALLBACK_FRAME_BYTES	64012UL /* push ebx + sub esp,64008 */
+#ifdef ASM486_BSP_WALK
+#define R_WARP_WORLD_WALK_FIXED_BYTES	68UL /* 64-byte frame + entry return */
+#else
+#define R_WARP_WORLD_WALK_FIXED_BYTES	0UL
+#endif
 #define R_RENDER_C_WORLD_FRAME_BYTES	40012UL
 #define R_RENDER_ASM_WORLD_FRAME_BYTES	40020UL
 #if defined(ASM486_BMODEL_POLYGON_CLIP)
@@ -1571,12 +1576,14 @@ static qboolean R_RenderStackRequirement (unsigned long *required_out)
 		return false;
 
 	/* The recursive world and terminal polygon paths share the world frame;
-	 * charging both bounds either deepest path. The dispatch restores its frame
-	 * before tail-jumping to R_RenderView_, so only the later view-to-edge and
-	 * edge-to-world calls add new return addresses. */
-	fixed_bytes = (2UL * R_WARP_CALL_BYTES) +
+	 * charging both bounds either deepest path. The two renderer calls are
+	 * view-to-edge and edge-to-world. Charge a third return address for the
+	 * dispatch-to-render callback even though the common allocated-buffer path
+	 * tail-jumps: the no-warp recovery path makes a normal callback call. */
+	fixed_bytes = (3UL * R_WARP_CALL_BYTES) +
 			R_WARP_RENDER_VIEW_FRAME_BYTES + R_RENDER_EDGE_FRAME_BYTES +
-			R_RENDER_WORLD_FRAME_BYTES + R_WARP_RENDER_POLY_PATH_BYTES;
+			R_RENDER_WORLD_FRAME_BYTES + R_WARP_RENDER_POLY_PATH_BYTES +
+			R_WARP_WORLD_WALK_FIXED_BYTES;
 	if (world_depth > (0xffffffffUL - fixed_bytes) /
 			R_WARP_TREE_STEP_BYTES)
 		return false;
