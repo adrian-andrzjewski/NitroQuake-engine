@@ -73,6 +73,15 @@ if re.search(r"(?m)^\s*#\s*define\s+MINIMUM_MEMORY\b", umbrella):
 for definition in ("MINIMUM_MEMORY", "MINIMUM_MEMORY_LEVELPAK"):
     if not re.search(r"(?m)^\s*#\s*define\s+" + definition + r"\b", host_source):
         raise SystemExit(f"host.c is missing its local startup threshold: {definition}")
+if re.search(r"(?m)^\s*#\s*define\s+MAX_NUM_ARGVS\b", umbrella):
+    raise SystemExit("common command-line capacity remains in quakedef.h")
+if re.search(r"(?m)^\s*#\s*define\s+GAMENAME\b", umbrella):
+    raise SystemExit("common default game directory remains in quakedef.h")
+common_source = (SOURCE / "core" / "common.c").read_text(encoding="utf-8", errors="replace")
+if not re.search(r"(?m)^\s*#\s*define\s+MAX_NUM_ARGVS\b", common_source):
+    raise SystemExit("common.c is missing its local argument capacity")
+if not re.search(r"(?m)^\s*#\s*define\s+GAMENAME\b", common_source):
+    raise SystemExit("common.c is missing its local default game directory")
 for definition in (
         "#define id386 1",
         "#define id386 0",

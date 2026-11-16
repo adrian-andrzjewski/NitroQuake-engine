@@ -19,8 +19,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // common.c -- misc functions used in client and server
 
-#include "quakedef.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cmd.h"
+#include "common.h"
+#include "console.h"
+#include "cvar.h"
+#include "draw.h"
+#include "host.h"
+#include "net.h"
+#include "crc.h"
+#include "sys.h"
+#include "zone.h"
 #include "tests/bench486/bench486_profile.h"
+
+#define MAX_NUM_ARGVS 50
+#define GAMENAME "id1"
 
 #define NUM_SAFE_ARGVS  7
 
