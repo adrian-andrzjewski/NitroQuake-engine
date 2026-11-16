@@ -807,6 +807,7 @@ Hunk_AllocName
 void *HUNK_ALLOC_NAME_C_ENTRY (int size, char *name)
 {
 	hunk_t	*h;
+	int		available;
 	HUNK_TRACE (72, size, hunk_low_used, hunk_high_used);
 	
 #ifdef PARANOID
@@ -817,10 +818,12 @@ void *HUNK_ALLOC_NAME_C_ENTRY (int size, char *name)
 		Sys_Error ("Hunk_Alloc: bad size: %i", size);
 		
 	size = sizeof(hunk_t) + ((size+15)&~15);
-	HUNK_TRACE (73, size, hunk_size - hunk_low_used - hunk_high_used, hunk_size);
+	available = hunk_size - hunk_low_used - hunk_high_used;
+	HUNK_TRACE (73, size, available, hunk_size);
 	
-	if (hunk_size - hunk_low_used - hunk_high_used < size)
-		Sys_Error ("Hunk_Alloc: failed on %i bytes",size);
+	if (available < size)
+		Sys_Error ("Hunk_Alloc: failed on %i bytes; %i bytes available",
+				size, available);
 	
 	h = (hunk_t *)(hunk_base + hunk_low_used);
 #ifdef PROFILE486
@@ -988,6 +991,7 @@ Hunk_HighAllocName
 void *HUNK_HIGH_ALLOC_NAME_C_ENTRY (int size, char *name)
 {
 	hunk_t	*h;
+	int		available;
 	HUNK_TRACE (77, size, hunk_low_used, hunk_high_used);
 
 	if (size < 0)
@@ -1004,11 +1008,13 @@ void *HUNK_HIGH_ALLOC_NAME_C_ENTRY (int size, char *name)
 #endif
 
 	size = sizeof(hunk_t) + ((size+15)&~15);
-	HUNK_TRACE (78, size, hunk_size - hunk_low_used - hunk_high_used, hunk_size);
+	available = hunk_size - hunk_low_used - hunk_high_used;
+	HUNK_TRACE (78, size, available, hunk_size);
 
-	if (hunk_size - hunk_low_used - hunk_high_used < size)
+	if (available < size)
 	{
-		Con_Printf ("Hunk_HighAlloc: failed on %i bytes\n",size);
+		Con_Printf ("Hunk_HighAlloc: failed on %i bytes; %i bytes available\n",
+				size, available);
 		return NULL;
 	}
 

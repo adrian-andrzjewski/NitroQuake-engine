@@ -60,10 +60,11 @@ C(Hunk_AllocName):
 	subl	C(hunk_high_used),%eax
 	cmpl	%edi,%eax
 	jge	.Lhunk_alloc_name_space
+	pushl	%eax
 	pushl	%edi
 	pushl	$.Lhunk_alloc_name_failed_text
 	call	C(Sys_Error)
-	addl	$8,%esp
+	addl	$12,%esp
 	/* Match the C path if Sys_Error unexpectedly returns. */
 
 .Lhunk_alloc_name_space:
@@ -164,10 +165,11 @@ C(Hunk_HighAllocName):
 	subl	C(hunk_high_used),%eax
 	cmpl	%edi,%eax
 	jge	.Lhunk_high_alloc_space
+	pushl	%eax
 	pushl	%edi
 	pushl	$.Lhunk_high_alloc_failed_text
 	call	C(Con_Printf)
-	addl	$8,%esp
+	addl	$12,%esp
 	xorl	%eax,%eax
 	jmp	.Lhunk_high_alloc_done
 
@@ -221,9 +223,9 @@ C(Hunk_HighAllocName):
 .Lhunk_alloc_name_bad_size_text:
 	.asciz	"Hunk_Alloc: bad size: %i"
 .Lhunk_alloc_name_failed_text:
-	.asciz	"Hunk_Alloc: failed on %i bytes"
+	.asciz	"Hunk_Alloc: failed on %i bytes; %i bytes available"
 .Lhunk_high_alloc_bad_size_text:
 	.asciz	"Hunk_HighAllocName: bad size: %i"
 .Lhunk_high_alloc_failed_text:
-	.asciz	"Hunk_HighAlloc: failed on %i bytes\n"
+	.asciz	"Hunk_HighAlloc: failed on %i bytes; %i bytes available\n"
 #endif /* ASM486_HUNK_NAMED_ALLOC */

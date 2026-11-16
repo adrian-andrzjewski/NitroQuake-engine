@@ -719,8 +719,9 @@ void Sys_Error (char *error, ...)
     vsprintf (string,error,argptr);
     va_end (argptr);
 
-	Host_Shutdown();
 	fprintf(stderr, "Error: %s\n", string);
+	/* Report the original failure before shutdown can use an exhausted pool. */
+	Host_Shutdown();
 // Sys_AtExit is called by exit to shutdown the system
 	exit(0);
 } 

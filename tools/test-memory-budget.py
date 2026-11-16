@@ -21,6 +21,7 @@ host_cmd = read("src/core/host_cmd.c")
 zone = read("src/memory/zone.c")
 zone_asm = read("src/memory/zone_heapasm.s")
 hunk_asm = read("src/memory/zone_hunknamedallocasm.s")
+sys_dos = read("src/platform/dos/sys_dos.c")
 video = read("src/video/vid_vga.c")
 renderer = read("src/renderer/r_main.c")
 doc = read("docs/memory-budget.md")
@@ -52,6 +53,17 @@ require("hunk_low_peak_used" in zone_asm and
 require("C(hunk_low_peak_used)" in hunk_asm and
         "C(hunk_high_peak_used)" in hunk_asm,
         "assembly hunk allocators must update high-water marks")
+sys_error = sys_dos.split("void Sys_Error", 1)[1].split(
+    "int Sys_FileOpenRead", 1)[0]
+error_write = sys_error.find('fprintf(stderr, "Error: %s\\n", string);')
+shutdown = sys_error.find("Host_Shutdown();")
+require(error_write >= 0 and shutdown >= 0 and error_write < shutdown,
+        "fatal error text must be written before shutdown can fail")
+require('Hunk_Alloc: failed on %i bytes; %i bytes available' in zone and
+        'Hunk_Alloc: failed on %i bytes; %i bytes available' in hunk_asm and
+        'Hunk_HighAlloc: failed on %i bytes; %i bytes available\\n' in zone and
+        'Hunk_HighAlloc: failed on %i bytes; %i bytes available\\n' in hunk_asm,
+        "C and assembly hunk failures must report requested and available bytes")
 require("cache_bytes += entry->size;" in zone and
         "included in hunk gap" in zone,
         "live cache must be shown as a subset of the hunk gap")
