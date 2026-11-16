@@ -54,8 +54,19 @@ if set(listed) != legacy_sources:
     )
 
 umbrella = (SOURCE / "quakedef.h").read_text(encoding="utf-8", errors="replace")
+common_header = (SOURCE / "common.h").read_text(encoding="utf-8", errors="replace")
+cpu_header = (SOURCE / "core" / "cpu.h").read_text(encoding="utf-8", errors="replace")
 renderer_header = (SOURCE / "render.h").read_text(encoding="utf-8", errors="replace")
 profile_header_text = PROFILE_HEADER.read_text(encoding="utf-8", errors="replace")
+if '#include "core/cpu.h"' not in umbrella or '#include "core/cpu.h"' not in common_header:
+    raise SystemExit("common and legacy headers must expose the shared CPU target interface")
+for definition in (
+        "#define id386 1",
+        "#define id386 0",
+        "#define UNALIGNED_OK 1",
+        "#define UNALIGNED_OK 0"):
+    if definition not in cpu_header:
+        raise SystemExit(f"core/cpu.h is missing {definition}")
 if re.search(r"(?m)^\s*#\s*define\s+CACHE_SIZE\b", umbrella):
     raise SystemExit("renderer alignment constant remains in quakedef.h")
 if not re.search(r"(?m)^\s*#\s*define\s+CACHE_SIZE\b", renderer_header):
