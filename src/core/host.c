@@ -19,9 +19,43 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // host.c -- coordinates spawning and killing of local servers
 
-#include "quakedef.h"
+#include <setjmp.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "common.h"
+#include "cdaudio.h"
+#include "bspfile.h"
+#include "cmd.h"
+#include "console.h"
+#include "cvar.h"
+#include "client.h"
+#include "draw.h"
+#include "host.h"
+#include "input.h"
+#include "keys.h"
+#include "menu.h"
+#include "model.h"
+#include "net.h"
+#include "protocol.h"
+#include "progs.h"
+#include "render.h"
+#include "screen.h"
+#include "sbar.h"
+#include "server.h"
+#include "sound.h"
+#include "sys.h"
+#include "vid.h"
+#include "view.h"
+#include "wad.h"
+#include "zone.h"
+#include "nitroquake_version.h"
 #include "tests/bench486/bench486_profile.h"
-#include "renderer/r_local.h"
+
+#define MINIMUM_MEMORY			0x550000
+#define MINIMUM_MEMORY_LEVELPAK	(MINIMUM_MEMORY + 0x100000)
 
 const char nitroquake_version[] = NITROQUAKE_VERSION_STRING;
 const char nitroquake_build[] = NITROQUAKE_BUILD_STRING;

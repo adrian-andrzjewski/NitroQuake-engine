@@ -55,6 +55,8 @@ if set(listed) != legacy_sources:
 
 umbrella = (SOURCE / "quakedef.h").read_text(encoding="utf-8", errors="replace")
 common_header = (SOURCE / "common.h").read_text(encoding="utf-8", errors="replace")
+host_header = (SOURCE / "host.h").read_text(encoding="utf-8", errors="replace")
+host_source = (SOURCE / "core" / "host.c").read_text(encoding="utf-8", errors="replace")
 cpu_header = (SOURCE / "core" / "cpu.h").read_text(encoding="utf-8", errors="replace")
 renderer_header = (SOURCE / "render.h").read_text(encoding="utf-8", errors="replace")
 video_header = (SOURCE / "vid.h").read_text(encoding="utf-8", errors="replace")
@@ -62,6 +64,15 @@ driver_interface = (SOURCE / "d_iface.h").read_text(encoding="utf-8", errors="re
 profile_header_text = PROFILE_HEADER.read_text(encoding="utf-8", errors="replace")
 if '#include "core/cpu.h"' not in umbrella or '#include "core/cpu.h"' not in common_header:
     raise SystemExit("common and legacy headers must expose the shared CPU target interface")
+if "extern qboolean isDedicated;" not in host_header:
+    raise SystemExit("host.h is missing the host-owned dedicated-mode declaration")
+if "extern qboolean isDedicated;" in umbrella:
+    raise SystemExit("dedicated-mode declaration remains in quakedef.h")
+if re.search(r"(?m)^\s*#\s*define\s+MINIMUM_MEMORY\b", umbrella):
+    raise SystemExit("host startup memory thresholds remain in quakedef.h")
+for definition in ("MINIMUM_MEMORY", "MINIMUM_MEMORY_LEVELPAK"):
+    if not re.search(r"(?m)^\s*#\s*define\s+" + definition + r"\b", host_source):
+        raise SystemExit(f"host.c is missing its local startup threshold: {definition}")
 for definition in (
         "#define id386 1",
         "#define id386 0",

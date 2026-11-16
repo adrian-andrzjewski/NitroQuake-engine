@@ -42,9 +42,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "core/cpu.h"
 
-#define	MINIMUM_MEMORY			0x550000
-#define	MINIMUM_MEMORY_LEVELPAK	(MINIMUM_MEMORY + 0x100000)
-
 #define MAX_NUM_ARGVS	50
 
 #define	ON_EPSILON		0.1			// point on plane side epsilon
@@ -90,7 +87,3 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cdaudio.h"
 
 //=============================================================================
-
-
-
-extern qboolean		isDedicated;
