@@ -20,6 +20,29 @@ checked bounds are:
 | C reference | `172792 + 124 * world_depth` bytes | `236808 + 124 * world_depth` bytes |
 | PROFILE486 assembly | `172992 + 136 * world_depth` bytes | `237008 + 136 * world_depth` bytes |
 
+## Fresh i486 build checks (2026-11-17)
+
+The generated-frame and preprocessed-runtime checks passed in fresh builds of
+all three renderer configurations from game revision
+`ab81c94b83765e78723c48c62cb335c96fc41d96`:
+
+| Configuration | Build command | Stack result | Linked ISA result |
+| --- | --- | --- | --- |
+| i486 release | `tools/build-dos.ps1 -Configuration i486-release -CpuTarget i486` | `172868 + 128 * world_depth`; fallback `236884 + 128 * world_depth` | PASS; 166,300 instructions, zero above-i486, unknown, or exempt instructions |
+| C reference | `tools/build-dos.ps1 -Configuration c-reference -CpuTarget i486` | `172792 + 124 * world_depth`; fallback `236808 + 124 * world_depth` | PASS; 176,959 instructions, zero above-i486, unknown, or exempt instructions |
+| PROFILE486 | `tools/build-dos-experimental.ps1 -Benchmark -Instrumentation -CpuTarget i486` | `172992 + 136 * world_depth`; fallback `237008 + 136 * world_depth` | PASS; 326,951 linked instructions checked, zero above-i486, unknown, or exempt instructions |
+
+The release and C-reference builds produced product build IDs
+`ab81c94b8376-088896c5df66` and `ab81c94b8376-54203b8712fd`. The PROFILE486
+executable SHA-256 was
+`3c7213909c286c22482f09b3ae193413d0aeaddebe13dcb76050cada030570ab`; its
+source revision is recorded in `out/local-action-stack-profile486-20261117`'s
+build output. All generated build artifacts remain under ignored `out/`.
+
+These builds verify generated frames and the runtime formula for each current
+configuration. They do not qualify stack margin on physical hardware. The
+reduced-stack checks below remain DOSBox-X regression evidence only.
+
 ## Call-path ledger
 
 | Model term | Caller and callee path | Charged stack | Build check |
