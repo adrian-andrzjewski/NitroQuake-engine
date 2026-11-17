@@ -59,7 +59,14 @@ int main(int argc,char **argv) {
 }
 '''
 vid = (ROOT / 'src/video/vid_dos.c').read_text()
-init = vid[vid.index('void    VID_Init'):vid.index('VID_GetModePtr')]
+init_start = vid.index('void    VID_Init')
+init_open = vid.index('{', init_start)
+depth = 1
+init_end = init_open + 1
+while depth:
+    depth += (vid[init_end] == '{') - (vid[init_end] == '}')
+    init_end += 1
+init = vid[init_start:init_end]
 assert init.index('VID_InitExtra ();') < init.index('VID_ReportSystem ();') < init.index('VID_SetMode (')
 assert src.index('dos_registerintr(9, TrapKey)') < src.index('Host_Init(&quakeparms)')
 with tempfile.TemporaryDirectory(prefix='quake-sysinfo-') as tmp:
