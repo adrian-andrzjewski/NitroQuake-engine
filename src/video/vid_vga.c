@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "console.h"
 #include "cvar.h"
 #include "host.h"
+#include "host_assets.h"
 #include "platform/dos/dosisms.h"
 #include "render.h"
 #include "vid.h"
@@ -480,7 +481,7 @@ int VGA_InitMode (viddef_t *lvid, vmode_t *pcurrentmode)
 	else
 		VGA_rowbytes = lvid->rowbytes;
 	VGA_bufferrowbytes = lvid->rowbytes;
-	lvid->colormap = host_colormap;
+	lvid->colormap = Host_GetColormap ();
 	lvid->fullbright = 256 - LittleLong (*((int *)lvid->colormap + 2048));
 
 	lvid->maxwarpwidth = WARP_WIDTH;

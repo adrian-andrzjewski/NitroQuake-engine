@@ -56,6 +56,9 @@ if set(listed) != legacy_sources:
 umbrella = (SOURCE / "quakedef.h").read_text(encoding="utf-8", errors="replace")
 common_header = (SOURCE / "common.h").read_text(encoding="utf-8", errors="replace")
 host_header = (SOURCE / "host.h").read_text(encoding="utf-8", errors="replace")
+host_assets_header = (SOURCE / "host_assets.h").read_text(
+    encoding="utf-8", errors="replace"
+)
 host_source = (SOURCE / "core" / "host.c").read_text(encoding="utf-8", errors="replace")
 cpu_header = (SOURCE / "core" / "cpu.h").read_text(encoding="utf-8", errors="replace")
 renderer_header = (SOURCE / "render.h").read_text(encoding="utf-8", errors="replace")
@@ -71,6 +74,21 @@ if "extern qboolean isDedicated;" not in host_header:
     raise SystemExit("host.h is missing the host-owned dedicated-mode declaration")
 if "extern qboolean isDedicated;" in umbrella:
     raise SystemExit("dedicated-mode declaration remains in quakedef.h")
+if "byte *Host_GetColormap (void);" not in host_assets_header:
+    raise SystemExit("host_assets.h is missing the host-owned colormap interface")
+host_colormap_accessor = "byte *Host_GetColormap (void)" in host_source
+if not host_colormap_accessor or "return host_colormap;" not in host_source:
+    raise SystemExit("host.c does not provide the host-owned colormap interface")
+for relative in ("src/video/vid_vga.c", "src/video/vid_ext.c"):
+    source_text = (ROOT / relative).read_text(encoding="utf-8", errors="replace")
+    includes_interface = '#include "host_assets.h"' in source_text
+    uses_accessor = "Host_GetColormap ()" in source_text
+    if not includes_interface or not uses_accessor:
+        raise SystemExit(f"{relative} omits the host asset interface")
+    if "host_colormap" in source_text:
+        raise SystemExit(f"{relative} directly depends on host_colormap")
+if "byte\t\t*host_colormap;" not in host_source:
+    raise SystemExit("host_colormap legacy data symbol was removed")
 if re.search(r"(?m)^\s*#\s*define\s+MINIMUM_MEMORY\b", umbrella):
     raise SystemExit("host startup memory thresholds remain in quakedef.h")
 for definition in ("MINIMUM_MEMORY", "MINIMUM_MEMORY_LEVELPAK"):

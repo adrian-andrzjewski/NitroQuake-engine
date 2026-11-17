@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #include "console.h"
 #include "cvar.h"
 #include "host.h"
+#include "host_assets.h"
 #include "platform/dos/dosisms.h"
 #include "render.h"
 #include "sys.h"
@@ -450,7 +451,7 @@ int VID_ExtraInitMode (viddef_t *lvid, vmode_t *mode)
 	VGA_pagebase = VID_membase + VID_currentpage * VID_pagesize;
 	if (lvid->numpages > 1) lvid->buffer = lvid->conbuffer = VGA_pagebase;
 	lvid->direct = VID_membase;
-	lvid->colormap = host_colormap;
+	lvid->colormap = Host_GetColormap ();
 	lvid->fullbright = 256 - LittleLong (*((int *)lvid->colormap + 2048));
 	lvid->conrowbytes = lvid->rowbytes;
 	lvid->conwidth = lvid->width;

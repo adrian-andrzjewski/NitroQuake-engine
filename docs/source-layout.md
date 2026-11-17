@@ -13,6 +13,10 @@ The public headers `render.h`, `vid.h`, `zone.h`, `client.h`, and `server.h`
 define the renderer, video, memory, client, and server entry points. The narrow
 `host.h` exposes startup parameters, host lifecycle and frame entry points,
 host timing, and shared palette state to other subsystems.
+`host_assets.h` exposes host-owned game assets through explicit accessors. Video
+drivers use it to obtain the loaded colormap instead of reading the host's
+legacy `host_colormap` global directly; that pointer is sampled during mode
+initialization and is outside the frame-rendering hot path.
 Subsystem headers use `q_types.h` for primitive engine types and `q_shared.h`
 for limits shared across wire, client, model, and sound interfaces. `common.h`
 selects game-side BSP declarations for engine translation units. `quakedef.h`

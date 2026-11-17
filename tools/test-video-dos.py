@@ -89,7 +89,7 @@ static int copycalls, copywidth, copyheight, planar_calls, vga_calls, palette_ca
 static int many_modes, banked_bios, no_vesa, lastbank;
 static unsigned alloc_cursor;
 static byte cmap[9000];
-byte *host_colormap = cmap;
+static byte *Host_GetColormap(void) { return cmap; }
 vmode_t *pvidmodes,*pcurrentmode,*VGA_pcurmode;
 int numvidmodes,vid_modenum,vid_realmode;
 int VGA_width,VGA_height,VGA_rowbytes,VGA_bufferrowbytes,VGA_planar;

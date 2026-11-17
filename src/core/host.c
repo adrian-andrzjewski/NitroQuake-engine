@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "draw.h"
 #include "host.h"
+#include "host_assets.h"
 #include "input.h"
 #include "keys.h"
 #include "menu.h"
@@ -103,6 +104,11 @@ jmp_buf 	host_abortserver;
 
 byte		*host_basepal;
 byte		*host_colormap;
+
+byte *Host_GetColormap (void)
+{
+	return host_colormap;
+}
 
 cvar_t	host_framerate = {"host_framerate","0"};	// set for slow motion
 cvar_t	host_speeds = {"host_speeds","0"};			// set for running times
