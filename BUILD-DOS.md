@@ -40,6 +40,15 @@ assembly variants and dead-scratch probes are available through the benchmark
 suite; the internal `tools/build-dos-experimental.ps1` backend is not a shipping
 build interface.
 
+Before adding, changing, or removing a selector, follow the
+[selector change review](docs/SELECTOR-CHANGE-CHECKLIST.md). In particular,
+record the parity, measurement, or historical-reproduction need; keep the
+ordered selector table, profiles, golden flag schedules and source inventories
+in sync; and verify that effective selector settings are represented in the
+resolved inputs used for build identity. The selector matrix and profile tests
+pin those contracts, while `test-build-fingerprints.ps1` verifies that a changed
+profile suffix changes the artifact identity.
+
 ### DOS video startup
 
 The game automatically selects available 320x200 VESA/VGA presentation.

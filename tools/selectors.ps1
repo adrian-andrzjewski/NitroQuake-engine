@@ -41,6 +41,11 @@ Param       the parameter name on build-dos-experimental.ps1
     Every value a ValidateSet allows must appear in Suffix, C and Asm, or be
     deliberately absent from Suffix. A value that appears in none of them is
     silently inert, which is the failure this table makes visible.
+
+    Before adding or removing a selector, follow docs\SELECTOR-CHANGE-CHECKLIST.md.
+    New selectors require a recorded parity, measurement, or historical-reproduction
+    need, and their effective settings must remain visible to the tests and build
+    identity.
 #>
 
 # The C implementations that have hand-written assembly behind them. Selecting 'asm'

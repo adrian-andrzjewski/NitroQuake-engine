@@ -34,6 +34,14 @@ try {
     }
     $tree = Get-SourceTreeFingerprint -RepoRoot $fixtureRoot
     $build = Get-BuildFingerprint -RepoRoot $fixtureRoot -Resolved $resolved
+    $resolved.profileSuffix = '-fixture-selector'
+    if ((Get-BuildFingerprint -RepoRoot $fixtureRoot -Resolved $resolved) -eq $build) {
+        throw 'A changed selector profile suffix did not invalidate build identity.'
+    }
+    $resolved.profileSuffix = '-fixture'
+    if ((Get-BuildFingerprint -RepoRoot $fixtureRoot -Resolved $resolved) -ne $build) {
+        throw 'Restoring the selector profile suffix did not restore build identity.'
+    }
     [IO.File]::WriteAllText((Join-Path $fixtureRoot 'docs/ledger/attempt-rejected.md'),
         '# Rejected fixture')
     [IO.File]::WriteAllText((Join-Path $toolFolder 'optimization-history-legacy.json'),
