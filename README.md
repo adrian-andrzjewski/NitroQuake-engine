@@ -22,8 +22,11 @@ built and developed without that suite.
 Native BENCH486 fixtures, optional profiling hooks and renderer selector profiles
 remain here because they compile against engine interfaces. Historical decisions
 in `docs/ledger/` and `ASM486-HANDOFF.md` preserve optimization provenance and
-determine the reproducible build number. Runtime measurements in those historical
-records describe their original environment and layout.
+provide the accepted/rejected attempt inventory recorded in build manifests when
+the history is complete. Product build identity comes from the source revision
+and resolved build configuration, as described in [BUILD-DOS.md](BUILD-DOS.md).
+Runtime measurements in those historical records describe their original
+environment and layout.
 
 Game data is not distributed. Use legally obtained PAKs. Existing licenses are
 preserved in [gnu.txt](gnu.txt) and [readme.txt](readme.txt).
