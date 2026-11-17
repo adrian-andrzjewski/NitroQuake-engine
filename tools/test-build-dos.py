@@ -85,6 +85,14 @@ def fail(message: str) -> None:
     failures.append(message)
 
 
+def adds_one_profile_token(candidate: str, reference: str, token: str) -> bool:
+    """Check one selector's token even when another selector shares its name."""
+    if candidate.count(token) != reference.count(token) + 1:
+        return False
+    token_index = candidate.rfind(token)
+    return candidate[:token_index] + candidate[token_index + len(token):] == reference
+
+
 def dump_flags(*extra: str, builder: str = EXPERIMENTAL_BUILD_SCRIPT) -> dict:
     """Resolved configuration with repo paths made checkout-portable.
 
@@ -490,6 +498,9 @@ def main() -> int:
                 "-mtune=i486",
                 "-mtune=i386",
                 "-DTARGET_I386",
+                # This compare binding is present in i486 release flags, but
+                # its C body is compiled only in BENCH486 builds.
+                "-DBENCH486_ALIAS_CLIP_Z_COMPARE",
             }
             # Paths differ between the targets by design, and the link list
             # carries the output executable as its last argument.
@@ -891,7 +902,7 @@ def main() -> int:
             reference_suffix = reference.get("profileSuffix", "")
             candidate_suffix = candidate.get("profileSuffix", "")
             token_suffix = "-" + token
-            if candidate_suffix.count(token_suffix) != 1 or candidate_suffix.replace(token_suffix, "", 1) != reference_suffix:
+            if not adds_one_profile_token(candidate_suffix, reference_suffix, token_suffix):
                 fail(selector + " does not isolate its assembly profile")
             for language in ("cFlags", "asmFlags"):
                 if "-D" + define in reference.get(language, []):
@@ -1044,18 +1055,32 @@ def main() -> int:
             if "-DASM486_RENDER_BMODEL_FACE" not in render_bmodel_face_asm.get(flags_name, []):
                 fail("the bmodel render-face assembly selector omits ASM486_RENDER_BMODEL_FACE from %s" % flags_name)
 
-    alias_prepare_control = dump_flags("-AliasPrepareImplementation", "control")
-    alias_prepare_local = dump_flags("-AliasPrepareImplementation", "local")
-    alias_prepare_asm = dump_flags("-AliasPrepareImplementation", "asm")
+    alias_prepare_control = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasPrepareImplementation", "control",
+    )
+    alias_prepare_local = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasPrepareImplementation", "local",
+    )
+    alias_prepare_asm = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasPrepareImplementation", "asm",
+    )
     if alias_prepare_control and alias_prepare_local and alias_prepare_asm:
-        if alias_prepare_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
-            fail("the default alias-prepare assembly selector changes the retained i486 profile suffix")
-        if alias_prepare_control.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
-            "-aliasmatrixasm", "-aliaspreparecontrol-aliasmatrixasm"
+        alias_prepare_base = alias_prepare_asm.get("profileSuffix", "")
+        if not adds_one_profile_token(
+            alias_prepare_control.get("profileSuffix", ""),
+            alias_prepare_base,
+            "-aliaspreparecontrol",
         ):
-            fail("the alias-prepare control selector does not add its reference profile token")
-        if "aliaslocal" not in alias_prepare_local.get("profileSuffix", ""):
-            fail("the alias-prepare local selector does not add its profile token")
+            fail("the alias-prepare control selector does not isolate its profile token")
+        if not adds_one_profile_token(
+            alias_prepare_local.get("profileSuffix", ""),
+            alias_prepare_base,
+            "-aliaslocal",
+        ):
+            fail("the alias-prepare local selector does not isolate its profile token")
         for flags_name in ("cFlags", "asmFlags"):
             if "-DASM486_ALIAS_PREPARE" in alias_prepare_control.get(flags_name, []):
                 fail("the alias-prepare control selector enables ASM486_ALIAS_PREPARE in %s" % flags_name)
@@ -1070,8 +1095,14 @@ def main() -> int:
         if "-DASM486_ALIAS_PREPARE_LOCAL" in alias_prepare_local.get("asmFlags", []):
             fail("the alias-prepare local selector enables ASM486_ALIAS_PREPARE_LOCAL in asmFlags")
 
-    alias_clip_c = dump_flags("-AliasClipImplementation", "c")
-    alias_clip_asm = dump_flags("-AliasClipImplementation", "asm")
+    alias_clip_c = dump_flags(
+        "-AliasClipZImplementation", "c",
+        "-AliasClipImplementation", "c",
+    )
+    alias_clip_asm = dump_flags(
+        "-AliasClipZImplementation", "c",
+        "-AliasClipImplementation", "asm",
+    )
     alias_clip_z_c = dump_flags("-AliasClipZImplementation", "c")
     alias_clip_z_asm = dump_flags(
         "-AliasClipImplementation", "asm",
@@ -1103,7 +1134,10 @@ def main() -> int:
             fail("the alias Z-clip assembly selector leaks ASM486_ALIAS_CLIP_Z into cFlags")
 
     try:
-        _dump_flags("-AliasClipZImplementation", "asm")
+        _dump_flags(
+            "-AliasClipImplementation", "c",
+            "-AliasClipZImplementation", "asm",
+        )
         fail("the alias Z-clip assembly selector is accepted without the alias-clip assembly path")
     except BuildFlagsError:
         pass
@@ -1116,8 +1150,14 @@ def main() -> int:
         if "-DASM486_ALIAS_PROJECT" not in alias_project_asm.get("asmFlags", []):
             fail("the alias-project assembly selector omits ASM486_ALIAS_PROJECT from asmFlags")
 
-    alias_matrix_c = dump_flags("-AliasMatrixCompositionImplementation", "c")
-    alias_matrix_asm = dump_flags("-AliasMatrixCompositionImplementation", "asm")
+    alias_matrix_c = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasMatrixCompositionImplementation", "c",
+    )
+    alias_matrix_asm = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasMatrixCompositionImplementation", "asm",
+    )
     if alias_matrix_c and alias_matrix_asm:
         if "aliasmatrixc" not in alias_matrix_c.get("profileSuffix", ""):
             fail("the alias-matrix C selector does not name its implementation profile")
@@ -1129,8 +1169,14 @@ def main() -> int:
             if "-DASM486_ALIAS_MATRIX_COMPOSE_ASM" not in alias_matrix_asm.get(flags_name, []):
                 fail("the alias-matrix assembly selector omits its macro from %s" % flags_name)
 
-    alias_setup_lighting_c = dump_flags("-AliasSetupLightingImplementation", "c")
-    alias_setup_lighting_asm = dump_flags("-AliasSetupLightingImplementation", "asm")
+    alias_setup_lighting_c = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasSetupLightingImplementation", "c",
+    )
+    alias_setup_lighting_asm = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasSetupLightingImplementation", "asm",
+    )
     if alias_setup_lighting_c and alias_setup_lighting_asm:
         if alias_setup_lighting_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
             fail("the alias-lighting C selector shares the retained i486 profile suffix")
@@ -1142,8 +1188,14 @@ def main() -> int:
             if "-DASM486_ALIAS_SETUP_LIGHTING" not in alias_setup_lighting_asm.get(flags_name, []):
                 fail("the alias-lighting assembly selector omits its macro from %s" % flags_name)
 
-    alias_setup_frame_c = dump_flags("-AliasSetupFrameImplementation", "c")
-    alias_setup_frame_asm = dump_flags("-AliasSetupFrameImplementation", "asm")
+    alias_setup_frame_c = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasSetupFrameImplementation", "c",
+    )
+    alias_setup_frame_asm = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasSetupFrameImplementation", "asm",
+    )
     if alias_setup_frame_c and alias_setup_frame_asm:
         if alias_setup_frame_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
             fail("the alias-frame C selector shares the retained i486 profile suffix")
@@ -1155,8 +1207,14 @@ def main() -> int:
             if "-DASM486_ALIAS_SETUP_FRAME" not in alias_setup_frame_asm.get(flags_name, []):
                 fail("the alias-frame assembly selector omits its macro from %s" % flags_name)
 
-    alias_setup_skin_c = dump_flags("-AliasSetupSkinImplementation", "c")
-    alias_setup_skin_asm = dump_flags("-AliasSetupSkinImplementation", "asm")
+    alias_setup_skin_c = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasSetupSkinImplementation", "c",
+    )
+    alias_setup_skin_asm = dump_flags(
+        "-AliasControlImplementation", "c",
+        "-AliasSetupSkinImplementation", "asm",
+    )
     if alias_setup_skin_c and alias_setup_skin_asm:
         if alias_setup_skin_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
             fail("the alias-skin C selector shares the retained i486 profile suffix")
@@ -1202,7 +1260,7 @@ def main() -> int:
         if alias_edge_table_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
             fail("the default alias-edge-table assembly selector changes the retained i486 release suffix")
         if alias_edge_table_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
-            "-aliasedgetableasm", "-aliasedgetablec"
+            "-lightmapstylesasm", "-aliasedgetablec-lightmapstylesasm"
         ):
             fail("the alias-edge-table C selector does not add its reference profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1217,7 +1275,7 @@ def main() -> int:
         if alias_skin_table_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
             fail("the default alias skin-table assembly selector changes the retained i486 release suffix")
         if alias_skin_table_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
-            "-aliasskintableasm", "-aliasskintablec"
+            "-lightmapstylesasm", "-aliasskintablec-lightmapstylesasm"
         ):
             fail("the alias skin-table C selector does not add its reference profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1232,7 +1290,7 @@ def main() -> int:
         if alias_rasterize_asm.get("profileSuffix") != RELEASE_I486_SUFFIX:
             fail("the default alias rasterization assembly selector changes the retained i486 release suffix")
         if alias_rasterize_c.get("profileSuffix") != RELEASE_I486_SUFFIX.replace(
-            "-aliasrasterizeasm", "-aliasrasterizec"
+            "-lightmapstylesasm", "-aliasrasterizec-lightmapstylesasm"
         ):
             fail("the alias rasterization C selector does not add its reference profile token")
         for flags_name in ("cFlags", "asmFlags"):
@@ -1515,9 +1573,11 @@ def main() -> int:
         fail("the release build did not retain its own manifest")
 
     dlight_orchestration_c = dump_flags(
+        "-DlightContributesImplementation", "c",
         "-DynamicLightOrchestrationImplementation", "c"
     )
     dlight_orchestration_asm = dump_flags(
+        "-DlightContributesImplementation", "c",
         "-DynamicLightOrchestrationImplementation", "asm"
     )
     if dlight_orchestration_c and dlight_orchestration_asm:
@@ -1532,8 +1592,14 @@ def main() -> int:
                 if "-D" + macro not in dlight_orchestration_asm.get(flags_name, []):
                     fail("the dynamic-light orchestration assembly selector omits %s from %s" % (macro, flags_name))
 
-    dlight_contributes_c = dump_flags("-DlightContributesImplementation", "c")
-    dlight_contributes_asm = dump_flags("-DlightContributesImplementation", "asm")
+    dlight_contributes_c = dump_flags(
+        "-DynamicLightOrchestrationImplementation", "c",
+        "-DlightContributesImplementation", "c",
+    )
+    dlight_contributes_asm = dump_flags(
+        "-DynamicLightOrchestrationImplementation", "c",
+        "-DlightContributesImplementation", "asm",
+    )
     if dlight_contributes_c and dlight_contributes_asm:
         if dlight_contributes_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
             fail("the dynamic-light predicate C selector shares the retained i486 profile suffix")
@@ -1819,8 +1885,14 @@ def main() -> int:
             if "r_runparticleeffectasm.s" not in dump.get("assemblySources", []):
                 fail("the R_RunParticleEffect %s selector omits r_runparticleeffectasm.s from the source inventory" % dump_name)
 
-    parse_particle_effect_c = dump_flags("-ParseParticleEffectImplementation", "c")
-    parse_particle_effect_asm = dump_flags("-ParseParticleEffectImplementation", "asm")
+    parse_particle_effect_c = dump_flags(
+        "-RunParticleEffectImplementation", "c",
+        "-ParseParticleEffectImplementation", "c",
+    )
+    parse_particle_effect_asm = dump_flags(
+        "-RunParticleEffectImplementation", "c",
+        "-ParseParticleEffectImplementation", "asm",
+    )
     if parse_particle_effect_c and parse_particle_effect_asm:
         if parse_particle_effect_c.get("profileSuffix") == RELEASE_I486_SUFFIX:
             fail("the R_ParseParticleEffect C selector shares the promoted i486 suffix")
