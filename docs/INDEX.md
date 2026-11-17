@@ -1,62 +1,57 @@
 # NitroQuake documentation
 
-Use this page to find the maintained workflow guides, implementation rules, and
-historical evidence. Each document below has one clear subject; dated reports
-remain available as evidence and are not the current source of policy.
+This index separates maintained guidance from dated evidence. Build and
+verification rules live with the game checkout; emulator workflows and
+performance reports live in the sibling benchmark repository.
 
-## Current workflow
+## Start here
 
-| Need | Start here |
+| Need | Read |
 |---|---|
-| Build and inspect the native DOS renderer | [`../BUILD-DOS.md`](../BUILD-DOS.md) |
-| Run deterministic rendering checks and review image differences | Benchmark suite: `docs/RENDERING-VALIDATION.md` |
-| Verify selector ownership, object code, linked binaries, and allowed ISA | [`ISA-VERIFICATION.md`](ISA-VERIFICATION.md) |
-| Read the current i486 status, accepted and reverted work, baseline, and open work | [`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md) |
-| Read optimization policy, performance acceptance, and current decisions | [`OPTIMIZATION-PLAN.md`](OPTIMIZATION-PLAN.md) |
-| Find a dated experiment and its recorded result | [`ledger/INDEX.md`](ledger/INDEX.md) |
+| Build the DOS game and run game-side checks | [Build guide](../BUILD-DOS.md) |
+| Understand the current engine and repository boundaries | [Current architecture](architecture/current-state.md) |
+| Review renderer implementation and evidence status | [Renderer status](architecture/renderer-status.md) |
+| Verify source and linked-image i486 compatibility | [ISA verification](ISA-VERIFICATION.md) |
+| Change or add renderer selectors | [Selector change checklist](SELECTOR-CHANGE-CHECKLIST.md) |
+| Review C/assembly conventions and ABI rules | [Renderer assembly conventions](RENDERER-ASSEMBLY-CONVENTIONS.md) |
+| Understand memory and stack limits | [Memory budget](memory-budget.md) |
 
-## Implementation references
+## Optimization work
 
-| Subject | Document |
+| Need | Read |
 |---|---|
-| Assembly module ownership, ABI, register use, and arithmetic conventions | [`RENDERER-ASSEMBLY-CONVENTIONS.md`](RENDERER-ASSEMBLY-CONVENTIONS.md) |
-| Remaining assembly ownership and validation gates | [`RENDERER-COMPLETION-GAPS.md`](RENDERER-COMPLETION-GAPS.md) |
-| Functions considered for full assembler conversion | [`PURE-ASSEMBLER-CANDIDATES.md`](PURE-ASSEMBLER-CANDIDATES.md) |
-| VESA 320x200 performance proposal and its acceptance gates | [`VESA-320X200-PERFORMANCE-PLAN.md`](VESA-320X200-PERFORMANCE-PLAN.md) |
+| Performance acceptance, attempt definitions, and build numbering | [Optimization policy](optimization/policy.md) |
+| Select and qualify a new renderer candidate | [Candidate workflow](optimization/candidates.md) |
+| Find an accepted or rejected experiment | [Optimization ledger index](ledger/INDEX.md) |
 
-## Benchmark and historical references
+The build number is calculated from the distinct accepted and rejected
+optimization attempts in the ledger and its documented legacy source. It is
+not a commit count or a manually maintained release counter. The policy page
+documents the current inventory and the deterministic classification rules.
 
-These documents record a specific comparison, experiment, or checkpoint. Use
-the current workflow guides above for present-day instructions and defaults.
+## Benchmarking and dated results
 
-| Record | Scope |
-|---|---|
-| Benchmark suite: `docs/BENCHMARK-COMPARISON.md` | Comparison with the supplied DOS executables |
-| Benchmark suite: `docs/VIDEO-DOS-VALIDATION.md` | Dated DOS VESA validation from 2026-09-26 |
-| Benchmark suite: `docs/DPMI-HDPMI32.md` | CWSDPMI and HDPMI32 host experiment |
-| [`../RESTART-HANDOFF-20261007.md`](../RESTART-HANDOFF-20261007.md) | Restart checkpoint from 2026-10-07 |
+The [benchmark suite guide](../../benchmarks/README.md) documents DOSBox-X setup,
+runtime commands, and input data. Use its [documentation index](../../benchmarks/docs/INDEX.md)
+to find validation procedures and reports. The
+[2026-11-17 current-source profile](../../benchmarks/docs/results/current-source-engine-profile-2026-11-17.md)
+is a dated attribution capture; it ranks work but is not repeated timing or
+physical-486 evidence.
 
-The root [`../readme.txt`](../readme.txt) and [`../gnu.txt`](../gnu.txt) are
-upstream project documentation and licensing material.
+## Historical records
+
+[History index](history/INDEX.md) lists preserved planning documents,
+assessments, and handoffs. Historical records retain the decisions and evidence
+available when written; they do not override current policy or current source.
+The complete experiment records remain in the [optimization ledger](ledger/INDEX.md).
+
+The upstream [Quake readme](../readme.txt) and [GNU license](../gnu.txt) remain
+at the game repository root.
 
 ## Evidence and citations
 
-**Cite by heading, never by line number.** An audit on 2026-10-03 found ten of
-twelve line-number citations in this material wrong. Later insertions had
-invalidated each citation. The recorded rule and its rationale are in
-[`../ASM486-HANDOFF.md`](../ASM486-HANDOFF.md) under “Process rules”.
-
-For a historical result, cite both the file and its heading. The ledger index
-links each record file and reports its subsection count; the file itself holds
-the full evidence. Its date and measured result do not make it a current
-baseline. The [`ledger/INDEX.md`](ledger/INDEX.md) also contains a curated
-cross-reference by renderer region.
-
-> good: `docs/ledger/2026-10-03-clamp-fusion-and-the-1.0-rate.md`, under
-> “The clamp fusion is measured at **0.0000%**”.
->
-> bad: `ASM486-HANDOFF.md:1851`.
-
-`tools/doc-structure-check.ps1` checks citations, relative Markdown links,
-heading levels, and the ledger file inventory with its per-file subsection
-counts. It is the first gate in `tools/run-tests.ps1`.
+Cite a document by its heading, never by line number. The
+[`doc-structure-check.ps1`](../tools/doc-structure-check.ps1) gate checks
+Markdown links, heading structure, citations, and the exact ledger inventory.
+The ledger index links each experiment and includes a renderer-region
+cross-reference.

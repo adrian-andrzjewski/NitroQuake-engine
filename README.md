@@ -20,13 +20,16 @@ game checkout with `-GameRoot` or `NITROQUAKE_GAME_ROOT`. This game can be clone
 built and developed without that suite.
 
 Native BENCH486 fixtures, optional profiling hooks and renderer selector profiles
-remain here because they compile against engine interfaces. Historical decisions
-in `docs/ledger/` and `ASM486-HANDOFF.md` preserve optimization provenance and
-provide the accepted/rejected attempt inventory recorded in build manifests when
-the history is complete. Product build identity comes from the source revision
-and resolved build configuration, as described in [BUILD-DOS.md](BUILD-DOS.md).
-Runtime measurements in those historical records describe their original
-environment and layout.
+remain here because they compile against engine interfaces. The experiment
+ledger and archived [ASM486 handoff](docs/history/ASM486-HANDOFF.md) preserve
+optimization provenance and provide the accepted/rejected attempt inventory
+used for the automatic console build number. The build identity and numbering
+rules are documented in [BUILD-DOS.md](BUILD-DOS.md) and the
+[optimization policy](docs/optimization/policy.md). Runtime measurements in
+historical records describe their original environment and layout.
+
+See the [documentation index](docs/INDEX.md) for maintained build, architecture,
+renderer, and optimization guidance.
 
 Game data is not distributed. Use legally obtained PAKs. Existing licenses are
 preserved in [gnu.txt](gnu.txt) and [readme.txt](readme.txt).

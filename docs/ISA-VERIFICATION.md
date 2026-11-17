@@ -162,4 +162,4 @@ Maintain routine-to-reference/test mappings in `docs/renderer-assembly` and
 retain execution-bound binaries and reports with each acceptance result.
 Timing measurements detect material regressions; a speed improvement is not a
 conversion completion criterion. Remaining scope is tracked in
-[renderer completion gaps](RENDERER-COMPLETION-GAPS.md).
+[renderer status](architecture/renderer-status.md).

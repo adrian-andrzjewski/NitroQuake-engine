@@ -195,7 +195,8 @@ def main() -> int:
             print("  - %s" % problem)
         print(
             "\nThe i486 release build has moved. If that was deliberate, re-record\n"
-            "with --record and say so in ASM486-HANDOFF.md; otherwise the change\n"
+            "with --record and document the reason in the release review; record it in the\n"
+            "optimization ledger when it is an optimization attempt. Otherwise the change\n"
             "leaked out of an #ifdef TARGET_I386 guard."
         )
         return 1

@@ -114,4 +114,4 @@ relocations unless an intentional change has its own validation.
 
 Timing measurements detect significant regressions. They do not authorize
 visual changes or make a faster implementation the completion criterion.
-Keep unresolved scope in [completion gaps](RENDERER-COMPLETION-GAPS.md).
+Keep current ownership status in [renderer status](architecture/renderer-status.md).

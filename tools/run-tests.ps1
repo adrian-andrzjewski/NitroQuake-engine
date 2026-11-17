@@ -182,14 +182,10 @@ if ($failed.Count -gt 0) {
 }
 
 Write-Host ''
-# The list of what the suite still does not cover lives in ASM486-HANDOFF.md, under
-# "Coverage gates still missing".  It used to be printed here, and that was wrong
-# twice over: a checklist maintained in a script's tail drifts from the code it
-# describes, and this one had already gone stale -- it was dated and cited the
-# source by line number, which is the exact form docs\INDEX.md's citation rule
-# exists to prevent.
-Write-Host '  Coverage gaps are tracked in ASM486-HANDOFF.md, under' -ForegroundColor Yellow
-Write-Host '  "Coverage gates still missing".' -ForegroundColor Yellow
+# Current qualification limits are documented with renderer status and the
+# benchmark suite's physical-486 acceptance procedure.
+Write-Host '  See docs/architecture/renderer-status.md and' -ForegroundColor Yellow
+Write-Host '  ../benchmarks/docs/PHYSICAL-486-ACCEPTANCE.md for open qualification gates.' -ForegroundColor Yellow
 
 Set-Location $pushLocation
 

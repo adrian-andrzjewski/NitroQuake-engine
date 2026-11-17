@@ -2,17 +2,17 @@
 
 This index covers measurements, rejections, and corrections from the i486
 optimization work and renderer port. Historical experiment records moved from
-`ASM486-HANDOFF.md` beginning 2026-10-03; their evidence remains in the ledger.
+the [archived ASM486 handoff](../history/ASM486-HANDOFF.md) beginning
+2026-10-03; their evidence remains in the ledger.
 
 The **Files** table is the complete inventory. Its entry count is the number of
 level-two headings in that file. The region map below is a curated cross-reference
 for selected work; use the Files table to find any record. Date-named records are
 ordered newest first, followed by undated records imported from source reports.
 
-Read the entry by its heading, never by a line number - see the process rule in
-`ASM486-HANDOFF.md` under "Process rules". Ten of twelve line-number citations in
-this material were found wrong by an audit on 2026-10-03, each invalidated by a
-later insertion above it.
+Read the entry by its heading, never by a line number. The rule and its rationale
+are preserved in the [archived process notes](../history/ASM486-HANDOFF.md#process-rules)
+and summarized in the [current documentation index](../INDEX.md).
 
 ## Files
 

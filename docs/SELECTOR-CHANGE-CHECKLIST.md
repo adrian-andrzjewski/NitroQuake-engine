@@ -6,7 +6,7 @@ Do not add one for hypothetical future use.
 
 ## Before adding a selector
 
-- Record the concrete need in `docs/OPTIMIZATION-PLAN.md` or a focused ledger
+- Record the concrete need in `docs/optimization/policy.md` or a focused ledger
   entry. State whether the selector supports C/assembly parity, a measured
   alternative, or historical experiment reproduction, and link its evidence.
 - Name the control and candidate values, the affected workloads, and the expected

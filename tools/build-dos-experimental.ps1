@@ -1341,7 +1341,7 @@ try {
                 Write-Host ('  {0}' -f ($isaFailures -join [Environment]::NewLine + '  '))
                 throw (("ISA gate failed for variant '{0}'. The nominal target is a ratchet, not yet an absolute pass:" -f $isaVariantKey) +
                 ' an above-target instruction count regressed. See tools\golden\isa-baseline.json and the' +
-                " 'A separate i386 codepath exists' entry in ASM486-HANDOFF.md.")
+                " 'A separate i386 codepath exists' entry in docs/history/ASM486-HANDOFF.md.")
             }
         }
     }

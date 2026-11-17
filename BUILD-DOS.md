@@ -111,8 +111,9 @@ own pinned emulator using a separate manifest and the same installer code.
 Licensed PAK files and local output are not committed. Existing output archives,
 accepted artifacts and worktrees retain their original locations; preserve
 evidence before removing generated files. Protocol/save versions are independent
-of product build identity. Historical optimization decisions stay in `docs/ledger/`
-and `ASM486-HANDOFF.md` as reproducible version provenance.
+of product build identity. Historical optimization decisions stay in
+`docs/ledger/` and `docs/history/ASM486-HANDOFF.md`; current rules are in
+`docs/optimization/policy.md`.
 
 ## Product build identity and optimization history
 
@@ -135,7 +136,7 @@ and fails rather than emitting a partial or missing count. Python 3.9+ remains a
 build-tool prerequisite.
 
 `tools/optimization-history.py` inventories `docs/ledger/` and the early
-`ASM486-HANDOFF.md` decisions. Git supplies reachable historical documents,
+`docs/history/ASM486-HANDOFF.md` decisions. Git supplies reachable historical documents,
 including deleted reports. Only HEAD ancestry participates; unrelated branches
 do not contribute. Working-tree reports participate so an optimization can be
 built before its report is committed. The reviewed legacy classifications in
@@ -182,192 +183,18 @@ Run `pwsh -NoProfile -File tools/test-build-number.ps1` for deterministic produc
 identity, full-history requirements, history provenance, and generated-header checks.
 Inspect the full inventory with `python tools/optimization-history.py --output
 out/optimization-inventory.json`.
+## Runtime and historical workflows
 
-## Text-mode startup summary
+Runtime smoke tests, deterministic replay, timing, profiling, selector
+comparisons, and physical-machine acceptance are owned by the sibling
+benchmarks/ repository. Start with its [documentation index](../benchmarks/docs/INDEX.md)
+and [operations guide](../benchmarks/docs/OPERATIONS.md). The full dated
+operations notebook is preserved at
+[benchmarks/docs/history/OPERATIONS.md](../benchmarks/docs/history/OPERATIONS.md).
 
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Deterministic full-frame correctness replays
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Current i486 renderer selector defaults
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## The i386 target, and what it is and is not
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Read this before calling it a 386 binary
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## What the i386 build did fix
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Measured residual for the i386 target
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Correctness
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Guards on the i486 build
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Two pre-existing bugs found while adding the target
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## The fingerprint, and who records it
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## `smoke-dos.ps1` and `coverage-dos.ps1` had neither
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Profiling and probe tooling
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Premise-measurement counters (PROFILE486 only)
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Current promoted defaults
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## `tools\probe-ab.ps1` — the A/B a probe needs, and the PowerShell traps around it (2026-10-02)
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## `-SpanSetupProbe` — the span16 per-segment setup (2026-10-02)
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## `-RenderFaceProbe` — the same switch for C, and two C-only traps (2026-10-02)
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## `-EdgeScanProbe` — dead-scratch measurement switch, never a candidate (2026-10-02)
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Sections moved out of this document
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Alias triangle rasterization
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Runtime smoke test
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-The startup `meminfo` report and its capture procedure are documented in
-[`docs/memory-budget.md`](docs/memory-budget.md).
-
-## 486-class timedemo
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Current seeded A/B reference
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Cross-version comparison (2026-09-28)
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Latest validation notes
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Historical pre-experiment reference
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Alternate DPMI host (HDPMI32 experiment)
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Current committed default baseline
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Per-frame FPS statistics
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
-
-## Optimization profiles and instrumentation
-
-The historical instructions and measurements for this topic are preserved in
-the benchmark suite's `docs/OPERATIONS.md`, under this heading. Native build
-options are described above; runtime tools execute from the suite checkout.
+The current i486 release selector profile is maintained under
+tools/renderer-profiles/; C-reference comparisons and selector changes
+are covered by the [selector review checklist](docs/SELECTOR-CHANGE-CHECKLIST.md).
+The i386 C-reference build is a diagnostic target, not a shipping product
+configuration. Historical startup, profiling, and target notes remain in
+the archived operations notebook.

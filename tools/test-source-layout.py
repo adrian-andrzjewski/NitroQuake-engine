@@ -49,7 +49,7 @@ for base in (ROOT / "src", ROOT / "tools", ROOT / "docs"):
                 path == ROOT / "docs" / "source-layout-map.json"):
             continue
         relative = path.relative_to(ROOT).as_posix()
-        if relative.startswith("docs/ledger/"):
+        if relative.startswith(("docs/ledger/", "docs/history/")):
             continue
         data = path.read_bytes()
         for old in seen_from:
