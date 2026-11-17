@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // Z_zone.c
 
+#include <stdio.h>
 #include <string.h>
 
 #include "cmd.h"
@@ -27,6 +28,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "sys.h"
 #include "zone.h"
 #include "tests/bench486/bench486_profile.h"
+
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+static qboolean memory_trace_active;
+static FILE *memory_trace_file;
+static void Memory_TraceFailure (const char *pool, const char *name,
+		int requested, int block_size, int available);
+static int Memory_TraceZoneFreeBytes (void);
+#endif
 
 #define	DYNAMIC_SIZE	0xc000
 
@@ -296,7 +305,13 @@ void *Z_MALLOC_C_ENTRY (int size)
 #endif
 	buf = Z_TagMalloc (size, 1);
 	if (!buf)
+	{
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+		Memory_TraceFailure ("zone", "Z_Malloc", size, size,
+				Memory_TraceZoneFreeBytes ());
+#endif
 		Sys_Error ("Z_Malloc: failed on allocation of %i bytes",size);
+	}
 	Q_memset (buf, 0, size);
 
 	return buf;
@@ -808,6 +823,9 @@ void *HUNK_ALLOC_NAME_C_ENTRY (int size, char *name)
 {
 	hunk_t	*h;
 	int		available;
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	int		requested;
+#endif
 	HUNK_TRACE (72, size, hunk_low_used, hunk_high_used);
 	
 #ifdef PARANOID
@@ -816,14 +834,21 @@ void *HUNK_ALLOC_NAME_C_ENTRY (int size, char *name)
 
 	if (size < 0)
 		Sys_Error ("Hunk_Alloc: bad size: %i", size);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	requested = size;
+#endif
 		
 	size = sizeof(hunk_t) + ((size+15)&~15);
 	available = hunk_size - hunk_low_used - hunk_high_used;
 	HUNK_TRACE (73, size, available, hunk_size);
-	
 	if (available < size)
+	{
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+		Memory_TraceFailure ("hunk-low", name, requested, size, available);
+#endif
 		Sys_Error ("Hunk_Alloc: failed on %i bytes; %i bytes available",
 				size, available);
+	}
 	
 	h = (hunk_t *)(hunk_base + hunk_low_used);
 #ifdef PROFILE486
@@ -992,10 +1017,16 @@ void *HUNK_HIGH_ALLOC_NAME_C_ENTRY (int size, char *name)
 {
 	hunk_t	*h;
 	int		available;
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	int		requested;
+#endif
 	HUNK_TRACE (77, size, hunk_low_used, hunk_high_used);
 
 	if (size < 0)
 		Sys_Error ("Hunk_HighAllocName: bad size: %i", size);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	requested = size;
+#endif
 
 	if (hunk_tempactive)
 	{
@@ -1013,6 +1044,9 @@ void *HUNK_HIGH_ALLOC_NAME_C_ENTRY (int size, char *name)
 
 	if (available < size)
 	{
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+		Memory_TraceFailure ("hunk-high", name, requested, size, available);
+#endif
 		Con_Printf ("Hunk_HighAlloc: failed on %i bytes; %i bytes available\n",
 				size, available);
 		return NULL;
@@ -1127,6 +1161,102 @@ void Cache_MakeLRU_C (cache_system_t *cs);
 cache_system_t *Cache_TryAlloc (int size, qboolean nobottom);
 
 cache_system_t	cache_head;
+
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+static unsigned long Memory_TraceCacheBytes (void)
+{
+	cache_system_t *entry;
+	unsigned long bytes = 0;
+
+	if (!cache_head.next)
+		return 0;
+
+	for (entry = cache_head.next; entry != &cache_head; entry = entry->next)
+		bytes += entry->size;
+
+	return bytes;
+}
+
+static void Memory_TracePrint (const char *kind, const char *pool,
+		const char *name, int requested, int block_size, int available)
+{
+	if (!memory_trace_file)
+		return;
+
+	fprintf (memory_trace_file, "MEMTRACE %s pool=%s name=%s request=%d block=%d "
+			"available=%d low=%d high=%d gap=%d cache=%lu zone-free=%d\n",
+			kind, pool, name, requested, block_size, available,
+			hunk_low_used, hunk_high_used,
+			hunk_size - hunk_low_used - hunk_high_used,
+			Memory_TraceCacheBytes (), Memory_TraceZoneFreeBytes ());
+	fflush (memory_trace_file);
+}
+
+static int Memory_TraceZoneFreeBytes (void)
+{
+	memblock_t *block;
+	int available = 0;
+
+	if (!mainzone)
+		return 0;
+
+	for (block = mainzone->blocklist.next;
+			block != &mainzone->blocklist; block = block->next)
+	{
+		if (!block->tag)
+			available += block->size;
+	}
+
+	return available;
+}
+
+static void Memory_TraceFailure (const char *pool, const char *name,
+		int requested, int block_size, int available)
+{
+	if (!memory_trace_active)
+		return;
+
+	Memory_TracePrint ("failure", pool, name ? name : "(null)",
+			requested, block_size, available);
+}
+
+void Memory_TraceStage (const char *stage)
+{
+	if (!memory_trace_active)
+		return;
+
+	Memory_TracePrint ("stage", "map", stage, 0, 0,
+			hunk_size - hunk_low_used - hunk_high_used);
+}
+
+void Memory_SetAllocationTrace (int enabled)
+{
+	if (enabled)
+	{
+		if (memory_trace_file)
+			fclose (memory_trace_file);
+		memory_trace_file = fopen ("MEMTRACE.LOG", "w");
+		if (!memory_trace_file)
+		{
+			memory_trace_active = false;
+			Con_Printf ("memtrace: couldn't open MEMTRACE.LOG\n");
+			return;
+		}
+
+		memory_trace_active = true;
+		Memory_TraceStage ("trace-enabled");
+		return;
+	}
+
+	Memory_TraceStage ("trace-disabled");
+	memory_trace_active = false;
+	if (memory_trace_file)
+	{
+		fclose (memory_trace_file);
+		memory_trace_file = NULL;
+	}
+}
+#endif
 
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 void Bench486CachePrintEvent (cache_system_t *entry);
@@ -1369,7 +1499,13 @@ cache_system_t *CACHE_TRYALLOC_C_ENTRY (int size, qboolean nobottom)
 	if (!nobottom && cache_head.prev == &cache_head)
 	{
 		if (hunk_size - hunk_high_used - hunk_low_used < size)
+		{
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+			Memory_TraceFailure ("cache", "Cache_TryAlloc",
+					size, size, hunk_size - hunk_high_used - hunk_low_used);
+#endif
 			Sys_Error ("Cache_TryAlloc: %i is greater then free hunk", size);
+		}
 
 		new = (cache_system_t *) (hunk_base + hunk_low_used);
 		memset (new, 0, sizeof(*new));
@@ -1755,16 +1891,22 @@ Cache_Alloc
 void *CACHE_ALLOC_C_ENTRY (cache_user_t *c, int size, char *name)
 {
 	cache_system_t	*cs;
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	int				requested;
+#endif
 
 	if (c->data)
 		Sys_Error ("Cache_Alloc: allready allocated");
 	
 	if (size <= 0)
 		Sys_Error ("Cache_Alloc: size %i", size);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	requested = size;
+#endif
 
 	size = (size + sizeof(cache_system_t) + 15) & ~15;
 
-// find memory for it	
+// find memory for it
 	while (1)
 	{
 		cs = Cache_TryAlloc (size, false);
@@ -1781,8 +1923,14 @@ void *CACHE_ALLOC_C_ENTRY (cache_user_t *c, int size, char *name)
 	
 	// free the least recently used cahedat
 		if (cache_head.lru_prev == &cache_head)
+		{
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+			Memory_TraceFailure ("cache", name, requested,
+					size, hunk_size - hunk_low_used - hunk_high_used);
+#endif
 			Sys_Error ("Cache_Alloc: out of memory");
-													// not enough memory at all
+		}
+												// not enough memory at all
 #ifdef PROFILE486
 		bench486_cache_evictions++;
 #endif

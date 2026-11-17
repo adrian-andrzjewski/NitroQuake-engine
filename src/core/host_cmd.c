@@ -305,6 +305,10 @@ void Host_Map_f (void)
 	if (cmd_source != src_command)
 		return;
 
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("host-map-enter");
+#endif
+
 	cls.demonum = -1;		// stop demo loop in case this fails
 
 	CL_Disconnect ();
@@ -323,13 +327,24 @@ void Host_Map_f (void)
 
 	svs.serverflags = 0;			// haven't completed an episode yet
 	strcpy (name, Cmd_Argv(1));
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("host-map-before-spawn");
+#endif
 #ifdef QUAKE2
 	SV_SpawnServer (name, NULL);
 #else
 	SV_SpawnServer (name);
 #endif
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("host-map-spawn-return");
+#endif
 	if (!sv.active)
+	{
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+		Memory_TraceStage ("host-map-inactive");
+#endif
 		return;
+	}
 	
 	if (cls.state != ca_dedicated)
 	{
@@ -341,7 +356,13 @@ void Host_Map_f (void)
 			strcat (cls.spawnparms, " ");
 		}
 		
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+		Memory_TraceStage ("host-map-before-connect");
+#endif
 		Cmd_ExecuteString ("connect local", src_command);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+		Memory_TraceStage ("host-map-after-connect");
+#endif
 	}	
 }
 
@@ -1932,10 +1953,31 @@ static void Host_Meminfo_f (void)
 	R_ReportMemoryBudget ();
 }
 
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+static void Host_Memtrace_f (void)
+{
+	if (Cmd_Argc () != 2)
+	{
+		Con_Printf ("usage: memtrace on|off\n");
+		return;
+	}
+
+	if (!strcmp (Cmd_Argv (1), "on"))
+		Memory_SetAllocationTrace (1);
+	else if (!strcmp (Cmd_Argv (1), "off"))
+		Memory_SetAllocationTrace (0);
+	else
+		Con_Printf ("usage: memtrace on|off\n");
+}
+#endif
+
 void Host_InitCommands (void)
 {
 	Cmd_AddCommand ("status", Host_Status_f);
 	Cmd_AddCommand ("meminfo", Host_Meminfo_f);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Cmd_AddCommand ("memtrace", Host_Memtrace_f);
+#endif
 	Cmd_AddCommand ("quit", Host_Quit_f);
 	Cmd_AddCommand ("god", Host_God_f);
 	Cmd_AddCommand ("notarget", Host_Notarget_f);

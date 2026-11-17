@@ -81,27 +81,40 @@ observations and do not qualify a physical 486 or other DPMI stack size.
 
 ### Low-memory map boundary
 
-| Run | Engine block | Map result |
-| --- | ---: | --- |
-| `-minmemory` | 5,570,560 bytes | Startup and video setup pass; map command stops before `POSTMAP`. |
-| `-mem 6.90625` | 7,241,728 bytes | Map command stops before `POSTMAP`. |
-| `-mem 6.921875` | 7,258,112 bytes | Map completes; 40 `wait` commands complete and `meminfo` runs. |
-| `-hipnotic -minmemory`, `hip1m1` | 6,619,136 bytes | Startup and video setup pass; map command stops after `PREMAP`, before `POSTMAP`. |
-| `-rogue -minmemory`, `r1m1` | 6,619,136 bytes | Startup and video setup pass; map command stops after `PREMAP`, before `POSTMAP`. |
+These controlled map-load traces used the `i486-c-reference` selector set with
+the opt-in `MEMORY_ALLOCATION_TRACE` diagnostic build mode. The build was
+`762d22afa0db-e53a4a60da19` (source revision
+`762d22afa0db7e093363d8c4c7d3522dbbfd40f0`), executable SHA256
+`A9892488B1462BC080635E6DC11B0055BBB2B15018D146E4F4A4AC873D68A338`, and
+manifest SHA256
+`69057909F18FC252237D9D5E97CF84A9EFA99AAEBB01E7A9CD34589EDAEAE7DF`. DOSBox-X
+2026.08.31 with CWSDPMI reported an 80486 CPU, DOS 5.00, DPMI 0.90, and
+31,280 KiB of physical RAM. This is emulator evidence for that configuration,
+not a physical-486 or general DPMI guarantee.
+
+| Run | Engine block | First limiting allocation | Map result |
+| --- | ---: | --- | --- |
+| `-minmemory`, `e1m1` | 5,570,560 bytes | Low hunk: request 107,984; aligned block 108,000; 47,760 bytes available. | Startup and video setup pass; map stops before `POSTMAP`. |
+| `-mem 6.90625`, `e1m1` | 7,241,728 bytes | Low hunk: request 22,000; aligned block 22,016; 15,056 bytes available. | Map stops before `POSTMAP`. |
+| `-mem 6.921875`, `e1m1` | 7,258,112 bytes | No allocation failure. After world-model loading, the hunk gap is 9,424 bytes. | Map completes; 40 `wait` commands complete and `meminfo` runs. |
+| `-hipnotic -minmemory`, `hip1m1` | 6,619,136 bytes | Low hunk: request 129,772; aligned block 129,792; 47,168 bytes available. | Startup and video setup pass; map stops before `POSTMAP`. |
+| `-rogue -minmemory`, `r1m1` | 6,619,136 bytes | Low hunk: request 141,172; aligned block 141,200; 63,328 bytes available. | Startup and video setup pass; map stops before `POSTMAP`. |
 
 This brackets the observed `e1m1` transition within 16,384 bytes for this build
-and DPMI setup. It is not a new minimum-memory requirement for other hosts or
-maps. After the successful low-memory run, hunk use was low 3,343,232 bytes
-(peak 3,538,032), high 2,693,824 bytes (peak 4,015,152), with a 1,221,056-byte
-gap; cache use was 957,248 bytes in 25 blocks.
+and DPMI setup; it is not a new minimum-memory requirement for other hosts or
+maps. The successful low-memory run finished with low hunk use 3,343,232 bytes
+(peak 3,538,032), high hunk use 2,693,824 bytes (peak 4,015,152), a gap of
+1,221,056 bytes, and 957,248 cache bytes in 25 blocks. At the failing boundaries, the
+allocator trace identifies the low hunk as the first exhausted pool; the
+remaining gap is smaller than that allocation's aligned block.
 
-The failed `-minmemory` and 7,241,728-byte base-game runs stop after `PREMAP`,
-before `POSTMAP`. Both registered-data `-minmemory` runs stop at the same point.
-The captured `GUEST.ERR` and `QCONSOLE.LOG` files report no `Sys_Error`,
-`Host_Error`, or hunk allocation failure for these runs, so the evidence does
-not identify which pool or request prevented a map from completing. The
-startup minimum therefore remains a startup guarantee, not a guarantee that
-every map loads.
+The standard startup minimum (`5,570,560` bytes) and registered-data startup
+minimum (`6,619,136` bytes) describe startup and video setup only. They do not
+guarantee that a selected map will load. The diagnostic logs and run manifests
+were captured under `benchmarks/out/memory-maptrace-20261117-125228/`; the
+registered-data runs used Hipnotic PAK SHA256
+`62B83569BA975015535BE73407796CE0829EBCFA75A68FB29C67514649DC655F` and Rogue
+PAK SHA256 `C3C40408F953E2DE99F241DD85BF7854B69F1AE264B4E55A5657EF2AB12201A7`.
 
 ## Reading `meminfo`
 

@@ -12,6 +12,7 @@ param(
     [switch]$Clean,
     [switch]$Benchmark,
     [switch]$Instrumentation,
+    [switch]$MemoryAllocationTrace,
     [switch]$NoBootstrap,
     # Minimum CPU the build targets. i486 is the default and retained release
     # profile; i386 is a separate, separately audited codepath whose object
@@ -399,6 +400,12 @@ if ($Instrumentation -and -not $Benchmark) {
 if ($ConsoleOutputOnlyBenchmark -and -not $Benchmark) {
     throw '-ConsoleOutputOnlyBenchmark requires -Benchmark.'
 }
+if ($MemoryAllocationTrace -and ($Benchmark -or $Instrumentation)) {
+    throw '-MemoryAllocationTrace is a standalone diagnostic build mode.'
+}
+if ($MemoryAllocationTrace -and [string]::IsNullOrWhiteSpace($LocalOutputDirectoryName)) {
+    throw '-MemoryAllocationTrace requires -LocalOutputDirectoryName to isolate its executable and manifest.'
+}
 if ($TextureSpanLoadOrder -eq 'loadfirst' -and $TextureSpanStores -ne 'word') {
     throw 'The loadfirst texture-span path requires -TextureSpanStores word.'
 }
@@ -567,7 +574,10 @@ elseif (-not [string]::IsNullOrWhiteSpace($DiagnosticOutputRoot)) {
     $outputRoot = $diagnosticOutputRoot
 }
 $objectDirectoryName = 'obj'
-if ($Benchmark -and $Instrumentation) {
+if ($MemoryAllocationTrace) {
+    $objectDirectoryName += '-memtrace'
+}
+elseif ($Benchmark -and $Instrumentation) {
     # Combined selector suffixes can push object filenames beyond Windows'
     # legacy MAX_PATH limit. Keep the instrumented benchmark objects in a
     # compact, distinct directory while leaving release and qbench paths intact.
@@ -841,6 +851,9 @@ try {
     )
     if ($Benchmark) {
         $cFlags += '-DBENCH486'
+    }
+    if ($MemoryAllocationTrace) {
+        $cFlags += '-DMEMORY_ALLOCATION_TRACE'
     }
     if ($ConsoleOutputOnlyBenchmark) {
         $cFlags += '-DBENCH486_CONSOLE_OUTPUT_ONLY'
@@ -1390,6 +1403,9 @@ try {
         benchmarkBuild = [bool]$Benchmark
         profileBuild = [bool]$Instrumentation
         linkMap = $linkMap
+    }
+    if ($MemoryAllocationTrace) {
+        $manifest['memoryAllocationTraceBuild'] = $true
     }
 
     # The selector echo, in the order the manifest has always listed it. That order

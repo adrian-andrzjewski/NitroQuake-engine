@@ -1089,7 +1089,13 @@ void SV_SpawnServer (char *server)
 //
 // set up the new server
 //
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-before-clear-memory");
+#endif
 	Host_ClearMemory ();
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-clear-memory");
+#endif
 
 	memset (&sv, 0, sizeof(sv));
 
@@ -1100,12 +1106,24 @@ void SV_SpawnServer (char *server)
 #endif
 
 // load progs to get entity field count
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-before-progs");
+#endif
 	PR_LoadProgs ();
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-progs");
+#endif
 
 // allocate server memory
 	sv.max_edicts = MAX_EDICTS;
 	
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-before-edicts");
+#endif
 	sv.edicts = Hunk_AllocName (sv.max_edicts*pr_edict_size, "edicts");
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-edicts");
+#endif
 
 	sv.datagram.maxsize = sizeof(sv.datagram_buf);
 	sv.datagram.cursize = 0;
@@ -1134,7 +1152,13 @@ void SV_SpawnServer (char *server)
 	
 	strcpy (sv.name, server);
 	sprintf (sv.modelname,"maps/%s.bsp", server);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-before-world-model");
+#endif
 	sv.worldmodel = Mod_ForName (sv.modelname, false);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-world-model");
+#endif
 	if (!sv.worldmodel)
 	{
 		Con_Printf ("Couldn't spawn server %s\n", sv.modelname);
@@ -1152,11 +1176,17 @@ void SV_SpawnServer (char *server)
 
 	sv.model_precache[0] = pr_strings;
 	sv.model_precache[1] = sv.modelname;
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-before-inline-models");
+#endif
 	for (i=1 ; i<sv.worldmodel->numsubmodels ; i++)
 	{
 		sv.model_precache[1+i] = localmodels[i];
 		sv.models[i+1] = Mod_ForName (localmodels[i], false);
 	}
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-inline-models");
+#endif
 
 //
 // load the rest of the entities
@@ -1182,7 +1212,13 @@ void SV_SpawnServer (char *server)
 // serverflags are for cross level information (sigils)
 	pr_global_struct->serverflags = svs.serverflags;
 	
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-before-entities");
+#endif
 	ED_LoadFromFile (sv.worldmodel->entities);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-entities");
+#endif
 
 	sv.active = true;
 
@@ -1191,11 +1227,20 @@ void SV_SpawnServer (char *server)
 	
 // run two frames to allow everything to settle
 	host_frametime = 0.1;
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-before-settle-frames");
+#endif
 	SV_Physics ();
 	SV_Physics ();
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-settle-frames");
+#endif
 
 // create a baseline for more efficient communications
 	SV_CreateBaseline ();
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-after-baseline");
+#endif
 
 // send serverinfo to all connected clients
 	for (i=0,host_client = svs.clients ; i<svs.maxclients ; i++, host_client++)
@@ -1203,5 +1248,8 @@ void SV_SpawnServer (char *server)
 			SV_SendServerinfo (host_client);
 	
 	Con_DPrintf ("Server spawned.\n");
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+	Memory_TraceStage ("spawn-complete");
+#endif
 }
 

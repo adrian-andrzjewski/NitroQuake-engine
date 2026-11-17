@@ -90,6 +90,10 @@ Zone block
 
 void Memory_Init (void *buf, int size);
 void Memory_ReportBudget (void);
+#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)
+void Memory_SetAllocationTrace (int enabled);
+void Memory_TraceStage (const char *stage);
+#endif
 
 void Z_Free (void *ptr);
 void *Z_Malloc (int size);			// returns 0 filled memory

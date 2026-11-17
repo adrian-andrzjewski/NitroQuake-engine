@@ -18,7 +18,10 @@ def require(condition: bool, message: str) -> None:
 
 host = read("src/core/host.c")
 host_cmd = read("src/core/host_cmd.c")
+server = read("src/server/sv_main.c")
 zone = read("src/memory/zone.c")
+zone_header = read("src/zone.h")
+build_backend = read("tools/build-dos-experimental.ps1")
 zone_asm = read("src/memory/zone_heapasm.s")
 hunk_asm = read("src/memory/zone_hunknamedallocasm.s")
 sys_dos = read("src/platform/dos/sys_dos.c")
@@ -41,6 +44,29 @@ require('Cmd_AddCommand ("meminfo", Host_Meminfo_f)' in host_cmd and
         "VID_ReportMemoryBudget ();" in host_cmd and
         "R_ReportMemoryBudget ();" in host_cmd,
         "meminfo must report each owning subsystem")
+require('#if defined(BENCH486) || defined(MEMORY_ALLOCATION_TRACE)\nstatic void Host_Memtrace_f' in host_cmd and
+        'Cmd_AddCommand ("memtrace", Host_Memtrace_f);' in host_cmd and
+        "Memory_SetAllocationTrace (1);" in host_cmd,
+        "allocation tracing must be an opt-in diagnostic command")
+require("[switch]$MemoryAllocationTrace" in build_backend and
+        "-DMEMORY_ALLOCATION_TRACE" in build_backend and
+        "$manifest['memoryAllocationTraceBuild'] = $true" in build_backend and
+        "-MemoryAllocationTrace requires -LocalOutputDirectoryName" in build_backend,
+        "allocation tracing must have an isolated, identified build mode")
+require("void Memory_SetAllocationTrace (int enabled);" in zone_header and
+        'Memory_TraceFailure ("hunk-low", name' in zone and
+        'Memory_TraceFailure ("hunk-high", name' in zone and
+        'Memory_TraceFailure ("cache", "Cache_TryAlloc"' in zone and
+        'Memory_TraceFailure ("zone", "Z_Malloc"' in zone and
+        'fopen ("MEMTRACE.LOG", "w")' in zone and
+        'fprintf (memory_trace_file, "MEMTRACE %s' in zone and
+        "static int Memory_TraceZoneFreeBytes (void)" in zone,
+        "map diagnostics must report hunk, cache, and zone allocation requests")
+require('Memory_TraceStage ("spawn-before-world-model");' in server and
+        'Memory_TraceStage ("spawn-after-world-model");' in server and
+        'Memory_TraceStage ("spawn-before-entities");' in server and
+        'Memory_TraceStage ("spawn-after-entities");' in server,
+        "map diagnostics must bracket BSP and entity loading stages")
 require("hunk_low_peak_used" in zone and "hunk_high_peak_used" in zone and
         "hunk_low_peak_used = 0;" in zone and "hunk_high_peak_used = 0;" in zone,
         "C hunk allocator must reset and update high-water marks")
