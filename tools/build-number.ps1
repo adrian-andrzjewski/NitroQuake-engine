@@ -1,5 +1,5 @@
-# Product identity comes from the source revision and resolved build inputs.
-# Optimization history is collected separately as manifest provenance.
+# Product identity covers the source revision, resolved inputs, and classified
+# optimization inventory; the numeric count is also embedded in the console.
 function Get-NitroQuakeSourceRevision {
     param([Parameter(Mandatory)][string]$RepoRoot)
 
@@ -43,7 +43,7 @@ function Get-NitroQuakeOptimizationProvenance {
         else {
             'inventory-unavailable'
         }
-        Write-Warning "Optimization attempt provenance is unavailable ($reason); continuing with the source-based build identity."
+        Write-Warning "Optimization attempt provenance is unavailable ($reason); numeric build numbering cannot continue."
         $unavailable = [ordered]@{
             schemaVersion = 1
             status = 'unavailable'
@@ -69,12 +69,18 @@ function New-NitroQuakeBuildIdentity {
           [Parameter(Mandatory)][string]$HeaderPath,
           [Parameter(Mandatory)]$Resolved)
 
-    $sourceRevision = Get-NitroQuakeSourceRevision -RepoRoot $RepoRoot
-    $fingerprint = Get-BuildFingerprint -RepoRoot $RepoRoot -Resolved $Resolved `
-        -SourceRevision $sourceRevision
-    $sourceTreeSha256 = Get-SourceTreeFingerprint -RepoRoot $RepoRoot
     $inventoryPath = Join-Path (Split-Path -Parent $HeaderPath) 'optimization-inventory.json'
     $inventory = Get-NitroQuakeOptimizationProvenance -RepoRoot $RepoRoot -OutputPath $inventoryPath
+    if ($inventory.status -ne 'complete' -or $null -eq $inventory.buildNumber -or
+            $inventory.buildNumber -ne ($inventory.accepted + $inventory.rejected) -or
+            $inventory.inventorySha256 -notmatch '^[0-9a-f]{64}$') {
+        throw 'A complete optimization-attempt history is required to generate the numeric build number. Fetch the full Git history and classify every optimization report.'
+    }
+
+    $sourceRevision = Get-NitroQuakeSourceRevision -RepoRoot $RepoRoot
+    $fingerprint = Get-BuildFingerprint -RepoRoot $RepoRoot -Resolved $Resolved `
+        -SourceRevision $sourceRevision -OptimizationInventorySha256 $inventory.inventorySha256
+    $sourceTreeSha256 = Get-SourceTreeFingerprint -RepoRoot $RepoRoot
     $id = $sourceRevision.Substring(0, 12) + '-' + $fingerprint.Substring(0, 12).ToLowerInvariant()
 
     $headerLines = @(
@@ -93,7 +99,7 @@ function New-NitroQuakeBuildIdentity {
         sourceRevision = $sourceRevision
         sourceTreeSha256 = $sourceTreeSha256
         version = 'NitroQuake v0.999'
-        build = "Build $id"
+        build = "Build $($inventory.buildNumber)"
         inventory = $inventory
     }
 }

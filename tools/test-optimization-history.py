@@ -86,7 +86,7 @@ class HistoryTests(unittest.TestCase):
         self.write('one-promoted.md', '# Accepted\nAnother five benchmark samples.\n')
         self.assertEqual(self.result()['buildNumber'], 2)
 
-    def test_runner_freshness_ignores_inventory_but_tracks_revision_and_source(self):
+    def test_runner_freshness_tracks_inventory_revision_source_and_full_history(self):
         (self.root / 'src').mkdir()
         (self.root / 'src' / 'r_main.c').write_text('void render(void) {}\n', encoding='ascii')
         self.commit()
@@ -102,14 +102,19 @@ class HistoryTests(unittest.TestCase):
         self.assertTrue(first)
         self.assertEqual(first, fingerprint(self.root))
         self.write('third-promoted.md', '# A newly accepted attempt\n')
-        self.assertEqual(first, fingerprint(self.root))
+        self.assertNotEqual(first, fingerprint(self.root))
         self.assertEqual(3, self.result()['buildNumber'])
         self.commit()
         self.assertNotEqual(first, fingerprint(self.root))
 
-        clone = Path(self.temp.name) / 'shallow-fingerprint'
-        self.git('clone', '-q', '--depth=1', '--no-hardlinks', self.root.as_uri(), str(clone))
+        clone = Path(self.temp.name) / 'full-fingerprint'
+        self.git('clone', '-q', '--no-hardlinks', self.root.as_uri(), str(clone))
         self.assertEqual(fingerprint(self.root), fingerprint(clone))
+
+        shallow = Path(self.temp.name) / 'shallow-fingerprint'
+        self.git('clone', '-q', '--depth=1', '--no-hardlinks', self.root.as_uri(), str(shallow))
+        with self.assertRaises(subprocess.CalledProcessError):
+            fingerprint(shallow)
 
         (self.root / 'src' / 'r_main.c').write_text('void render(void) { int changed; }\n', encoding='ascii')
         self.assertNotEqual(fingerprint(self.root), fingerprint(clone))

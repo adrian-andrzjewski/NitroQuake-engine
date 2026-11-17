@@ -2,9 +2,9 @@
 
 This standalone repository contains native C/assembly, game assets, the DJGPP
 build and source-bound ISA verification. PowerShell 7, Python 3.9+ (standard
-library), a Git checkout with `HEAD`, and the pinned compiler are required. Full
-Git history is needed only for a complete optimization-attempt inventory. DOSBox,
-Matplotlib and a benchmark checkout are not build dependencies.
+library), a complete non-shallow Git checkout, and the pinned compiler are
+required by the supported numbered builder. DOSBox, Matplotlib and a benchmark
+checkout are not build dependencies.
 
 ## Build
 
@@ -117,25 +117,22 @@ and `ASM486-HANDOFF.md` as reproducible version provenance.
 ## Product build identity and optimization history
 
 The console background, startup banner, `version`, status, server greeting, and
-DOS exit screen display `NitroQuake v0.999` and `Build <revision>-<configuration>`
-on separate lines. The 12-character revision prefix identifies `HEAD`; the
-12-character configuration prefix comes from a SHA-256 fingerprint of the
-source files and resolved target, compiler/linker settings, and compatibility
-policy. Checkout and output paths are normalized out of that fingerprint.
-Changes to the revision, source inputs, or effective build configuration produce
-a different identifier. Rebuilding identical inputs in another checkout or
-output directory keeps the same identifier.
+DOS exit screen display `NitroQuake v0.999` and `Build <number>` on separate
+lines. The build number is the total number of distinct accepted and rejected
+optimization attempts in the complete inventory. The product build ID remains a
+separate 12-character source-revision and 12-character configuration prefix in
+the manifest; its SHA-256 fingerprint covers source files, resolved
+target/compiler/linker settings, compatibility policy, and the optimization
+inventory. Checkout and output paths are normalized out of that fingerprint.
+Rebuilding identical inputs in another checkout or output directory keeps the
+same build number and product build ID.
 
 The manifest records the full source commit, full build fingerprint, source tree
-fingerprint, and product build ID. Optimization history is separate provenance:
-the manifest retains the accepted/rejected attempt count and inventory digest
-when they can be derived. Shallow clones still build from their available HEAD;
-if their history is incomplete, the manifest records null counts with an
-unavailable status instead of presenting a partial count as complete. The
-standalone history inventory remains strict and reports incomplete history or
-unclassified ledger entries as errors. Git with a resolvable `HEAD` is required
-for product identity. Full Git history is needed only for a complete
-optimization inventory; Python 3.9+ remains a build-tool prerequisite.
+fingerprint, product build ID, and accepted/rejected attempt inventory. The
+standalone history inventory reports incomplete history or unclassified ledger
+entries as errors. The supported numbered builder requires complete Git history
+and fails rather than emitting a partial or missing count. Python 3.9+ remains a
+build-tool prerequisite.
 
 `tools/optimization-history.py` inventories `docs/ledger/` and the early
 `ASM486-HANDOFF.md` decisions. Git supplies reachable historical documents,
@@ -174,15 +171,15 @@ counter or source version needs updating. Accepted and rejected are historical
 decisions, not promises about present performance or physical 486 hardware.
 
 Every build writes `nitroquake-build.h` and `optimization-inventory.json` beside
-its executable. Runner freshness uses the same source/configuration fingerprint
-as the build ID; ledger edits alone do not invalidate an executable. The
-optimization inventory is captured as manifest provenance at build start and
-does not participate in that fingerprint. The former local reservation counter
-is unused and left intact. Legacy compiles bypassing the supported builder
-remain explicitly build zero. Protocol/save versions remain independent.
+its executable. Runner freshness uses the same fingerprint as the product build
+ID, including the inventory digest, so adding, removing, or reclassifying an
+attempt regenerates the header, executable, and manifest. The former local
+reservation counter is unused and left intact. Legacy compiles bypassing the
+supported builder remain explicitly build zero. Protocol/save versions remain
+independent.
 
 Run `pwsh -NoProfile -File tools/test-build-number.ps1` for deterministic product
-identity, shallow-clone behavior, history provenance, and generated-header checks.
+identity, full-history requirements, history provenance, and generated-header checks.
 Inspect the full inventory with `python tools/optimization-history.py --output
 out/optimization-inventory.json`.
 

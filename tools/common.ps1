@@ -357,9 +357,9 @@ function Get-BuildFingerprint {
 
     .DESCRIPTION
         The digest covers the source revision, source files, compatibility policy,
-        and the builder's resolved target and flag lists. It deliberately excludes
-        optimization-history data and physical output paths, so shallow clones and
-        equivalent builds in different directories retain the same identity.
+        optimization-attempt inventory, and the builder's resolved target and flag
+        lists. Physical output paths are normalized so equivalent builds in
+        different directories retain the same identity.
 
         The resolved output is used instead of a second selector table. Every
         selector's effect is reflected in the profile suffix or effective flags,
@@ -372,12 +372,17 @@ function Get-BuildFingerprint {
         The resolved configuration, i.e. the object build-dos.ps1 -DumpFlags emits.
         The builder and runners pass their resolved configuration here so they
         cannot disagree about effective build settings.
+
+    .PARAMETER OptimizationInventorySha256
+        A digest already computed by the builder. Runners omit it and resolve the
+        current complete inventory when checking executable freshness.
     #>
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)][string]$RepoRoot,
         [Parameter(Mandatory = $true)]$Resolved,
-        [string]$SourceRevision
+        [string]$SourceRevision,
+        [string]$OptimizationInventorySha256
     )
 
     $repoRoot = [IO.Path]::GetFullPath($RepoRoot)
@@ -385,6 +390,13 @@ function Get-BuildFingerprint {
     . (Join-Path $PSScriptRoot 'build-number.ps1')
     if ([string]::IsNullOrWhiteSpace($SourceRevision)) {
         $SourceRevision = Get-NitroQuakeSourceRevision -RepoRoot $repoRoot
+    }
+    if ([string]::IsNullOrWhiteSpace($OptimizationInventorySha256)) {
+        $optimizationInventory = Get-NitroQuakeOptimizationInventory -RepoRoot $repoRoot
+        $OptimizationInventorySha256 = [string]$optimizationInventory.inventorySha256
+    }
+    if ($OptimizationInventorySha256 -notmatch '^[0-9a-f]{64}$') {
+        throw 'A complete optimization-attempt inventory is required to calculate the build fingerprint.'
     }
 
     # Replace checkout/output-specific paths in argument values so identical
@@ -414,12 +426,13 @@ function Get-BuildFingerprint {
 
     # Each input is a separate line so distinct values cannot be repartitioned
     # into the same fingerprint. This is a build-input fingerprint, not a
-    # documentation-history digest.
+    # generic documentation-history digest.
     $inputs = @(
-        'build-fingerprint-schema=4'
+        'build-fingerprint-schema=5'
         ('sourceRevision=' + $SourceRevision)
         ('sourceTree=' + (Get-SourceTreeFingerprint -RepoRoot $repoRoot))
         ('compatibilityPolicy=' + (Get-CompatibilityPolicyFingerprint -RepoRoot $repoRoot))
+        ('optimizationInventory=' + $OptimizationInventorySha256)
     )
 
     $propertyNames = @('cpuTarget', 'cpuModel', 'fpuModel', 'fpuRequired',

@@ -40,9 +40,10 @@ try {
     $before = [IO.File]::ReadAllText($header)
     $second = New-NitroQuakeBuildIdentity -RepoRoot $repo -HeaderPath $header -Resolved $resolved
     if ($first.id -ne $second.id -or $first.number -ne $second.number -or
-        $first.version -ne 'NitroQuake v0.999' -or $first.build -ne "Build $($first.id)" -or
+        $first.version -ne 'NitroQuake v0.999' -or $first.build -ne "Build $($first.number)" -or
         $before -ne [IO.File]::ReadAllText($header) -or
         $before -notmatch ('#define NITROQUAKE_BUILD_ID "' + [regex]::Escape($first.id) + '"') -or
+        $before -notmatch ('#define NITROQUAKE_BUILD_NUMBER ' + $first.number + '(\r?\n|$)') -or
         $first.number -ne ($first.inventory.accepted + $first.inventory.rejected) -or
         $first.inventory.status -ne 'complete' -or $first.inventory.complete -ne $true) {
         throw 'Repeated product identities, generated header, or full-history provenance disagree.'
@@ -95,22 +96,23 @@ try {
         cSourceExtraFlags = @{}
         linkFlags = @('-lm')
     }
-    $shallowIdentity = New-NitroQuakeBuildIdentity -RepoRoot $shallow `
-        -HeaderPath (Join-Path $shallow 'out/nitroquake-build.h') -Resolved $shallowResolved
-    $shallowHeader = [IO.File]::ReadAllText((Join-Path $shallow 'out/nitroquake-build.h'))
-    if ($shallowIdentity.inventory.status -ne 'unavailable' -or
-        $shallowIdentity.inventory.reason -ne 'incomplete-history' -or
-        $null -ne $shallowIdentity.number -or $shallowIdentity.inventory.complete -ne $false -or
-        $shallowIdentity.id -notmatch '^[0-9a-f]{12}-[0-9a-f]{12}$' -or
-        $shallowHeader -notmatch ('#define NITROQUAKE_BUILD_ID "' + [regex]::Escape($shallowIdentity.id) + '"')) {
-        throw 'Shallow history prevented product identity generation or produced misleading attempt counts.'
+    $shallowRejected = $false
+    try {
+        New-NitroQuakeBuildIdentity -RepoRoot $shallow `
+            -HeaderPath (Join-Path $shallow 'out/nitroquake-build.h') -Resolved $shallowResolved | Out-Null
+    } catch {
+        if ($_.Exception.Message -notmatch 'complete optimization-attempt history is required') { throw }
+        $shallowRejected = $true
+    }
+    if (-not $shallowRejected -or (Test-Path -LiteralPath (Join-Path $shallow 'out/nitroquake-build.h'))) {
+        throw 'A shallow clone generated a build without a complete numeric attempt count.'
     }
     $unavailableInventory = Get-Content -LiteralPath (Join-Path $shallow 'out/optimization-inventory.json') -Raw | ConvertFrom-Json
     if ($unavailableInventory.status -ne 'unavailable' -or $null -ne $unavailableInventory.buildNumber) {
         throw 'Shallow inventory output does not record its unavailable status.'
     }
 
-    Write-Host "Source/configuration build identity PASS: $($first.build); shallow provenance remains optional."
+    Write-Host "Build identity PASS: $($first.version), $($first.build); incomplete history is rejected."
 } finally {
     $full = [IO.Path]::GetFullPath($scratch)
     if ([IO.Path]::GetDirectoryName($full) -ne [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\', '/') -or

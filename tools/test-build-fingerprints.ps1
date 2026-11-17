@@ -7,7 +7,7 @@ $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('nq-fingerprints-' + [guid]
 $source = Join-Path $fixtureRoot 'src'
 New-Item -ItemType Directory -Path (Join-Path $source 'frozen') -Force | Out-Null
 try {
-    # Fingerprint fixtures need a Git revision; optimization history is not an input.
+    # Fingerprint fixtures need a complete Git history and classified attempts.
     $toolFolder = Join-Path $fixtureRoot 'tools'
     New-Item -ItemType Directory -Path $toolFolder -Force | Out-Null
     New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'docs/ledger') -Force | Out-Null
@@ -44,10 +44,12 @@ try {
     }
     [IO.File]::WriteAllText((Join-Path $fixtureRoot 'docs/ledger/attempt-rejected.md'),
         '# Rejected fixture')
-    [IO.File]::WriteAllText((Join-Path $toolFolder 'optimization-history-legacy.json'),
-        '{"schemaVersion":1,"records":{"attempt-promoted.md":[]},"supersededDocuments":{}}')
+    if ((Get-BuildFingerprint -RepoRoot $fixtureRoot -Resolved $resolved) -eq $build) {
+        throw 'A newly recorded optimization attempt did not invalidate build freshness.'
+    }
+    Remove-Item -LiteralPath (Join-Path $fixtureRoot 'docs/ledger/attempt-rejected.md')
     if ((Get-BuildFingerprint -RepoRoot $fixtureRoot -Resolved $resolved) -ne $build) {
-        throw 'Optimization-history documents changed build identity or freshness.'
+        throw 'Restoring the optimization inventory did not restore build freshness.'
     }
     [IO.File]::WriteAllText($include, 'addl %ebx,%eax')
     if ((Get-SourceTreeFingerprint -RepoRoot $fixtureRoot) -eq $tree) { throw 'Assembly include change did not invalidate source identity.' }
@@ -121,7 +123,7 @@ try {
     if ((Get-BuildFingerprint -RepoRoot $fixtureRoot -Resolved $resolved) -ne $pathA) {
         throw 'Output paths changed an otherwise identical build fingerprint.'
     }
-    Write-Host 'Build fingerprint regression: PASS (source/config changes invalidate; history and output paths do not).'
+    Write-Host 'Build fingerprint regression: PASS (source/config/history changes invalidate; output paths do not).'
 } finally {
     $absolute = [IO.Path]::GetFullPath($fixtureRoot)
     $temp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar

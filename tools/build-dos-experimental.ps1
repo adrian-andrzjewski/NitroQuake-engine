@@ -1372,8 +1372,8 @@ try {
     # Placed after the ISA gate deliberately.  A build that failed the gate throws
     # before reaching this, so a failed build never leaves a fingerprint behind
     # claiming the tree matches.
-    # Reuse the source/configuration fingerprint embedded in the generated ID.
-    # Optimization history is manifest provenance and does not affect freshness.
+    # Reuse the source/configuration and optimization-inventory fingerprint
+    # embedded in the generated identity. Ledger changes affect the banner.
     Set-BuildFingerprint -Executable $executable -Fingerprint $buildIdentity.fingerprintSha256
 
     $version = ((& $compiler --version | Select-Object -First 1).ToString()).Trim()
