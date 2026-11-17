@@ -20,7 +20,32 @@ checked bounds are:
 | C reference | `172792 + 124 * world_depth` bytes | `236808 + 124 * world_depth` bytes |
 | PROFILE486 assembly | `172992 + 136 * world_depth` bytes | `237008 + 136 * world_depth` bytes |
 
-## Fresh i486 build checks (2026-11-17)
+## Current-source i486 build checks (2026-11-17)
+
+Fresh release, C-reference, and PROFILE486 builds passed the generated-frame
+and preprocessed-runtime checks from game revision
+`5d3a31fe8be35540b86cca1067f8cfa9f30176ba`:
+
+| Configuration | Build command | Stack result | Linked ISA result |
+| --- | --- | --- | --- |
+| i486 release | `tools/build-dos.ps1 -Configuration i486-release -CpuTarget i486 -NoBootstrap -LocalOutputDirectoryName stack-81581f7-i486-release` | `172868 + 128 * world_depth`; fallback `236884 + 128 * world_depth` | PASS; 166,287 instructions, zero above-i486, unknown, or exempt instructions |
+| C reference | `tools/build-dos.ps1 -Configuration c-reference -CpuTarget i486 -NoBootstrap -LocalOutputDirectoryName stack-81581f7-c-reference` | `172792 + 124 * world_depth`; fallback `236808 + 124 * world_depth` | PASS; 176,946 instructions, zero above-i486, unknown, or exempt instructions |
+| PROFILE486 | `tools/build-dos-experimental.ps1 -Benchmark -Instrumentation -CpuTarget i486 -NoBootstrap -LocalOutputDirectoryName stack-81581f7-profile486` | `172992 + 136 * world_depth`; fallback `237008 + 136 * world_depth` | PASS; 327,390 instructions, zero above-i486, unknown, or exempt instructions |
+
+The product build IDs are `5d3a31fe8be3-fea6f8197369` (release),
+`5d3a31fe8be3-d0ae26160063` (C reference), and
+`5d3a31fe8be3-8be289edfcc6` (PROFILE486). Their executable SHA-256 values are
+`6a36871d5a605e0eee91619924e1ef11acf2d47ff448df9ac04a0054ea9a14a9`,
+`768a2a5c73e9fb6b42a5aacdf7c055b6d86320d59b45c2f02cfb6507f47a434`, and
+`01069f551368af80cd10d952d6db7e0bf7c0a123c47b0d66273a35b40f52821c`,
+respectively. The generated-frame formulas are unchanged from the earlier
+source snapshot. All generated artifacts remain under ignored `out/`.
+
+These builds verify generated frames, the runtime formula, and strict linked
+i486 compatibility for the current source. They do not qualify stack margin on
+physical hardware. Reduced-stack checks remain DOSBox-X regression evidence.
+
+## Earlier fresh i486 build checks (2026-11-17; source `ab81c94`)
 
 The generated-frame and preprocessed-runtime checks passed in fresh builds of
 all three renderer configurations from game revision
@@ -39,9 +64,9 @@ executable SHA-256 was
 source revision is recorded in `out/local-action-stack-profile486-20261117`'s
 build output. All generated build artifacts remain under ignored `out/`.
 
-These builds verify generated frames and the runtime formula for each current
-configuration. They do not qualify stack margin on physical hardware. The
-reduced-stack checks below remain DOSBox-X regression evidence only.
+These earlier builds preserve the initial stack-model qualification record.
+Their emulator and stack-margin limits are the same as for the current-source
+builds above.
 
 ## Call-path ledger
 
@@ -86,12 +111,41 @@ the guarded fallback, an insufficient fallback capacity, and waterwarp
 disabled. The `benchwarp_short` scenario forces the test capacity to zero only
 after confirming the real DJGPP bounds; it does not change those bounds.
 
-After adding the normal-path preflight, all four scenarios were rerun with the
-`i486-asm-selectable-current` renderer selector profile and `con_notifytime -1`
-on DOSBox-X 2026.08.31/CWSDPMI. Allocated storage, guarded fallback,
-forced-insufficient fallback, and waterwarp-disabled output each matched the
-committed 320x200 reference exactly: 985 frames, checksum `1843917972`, and
-zero changed pixels out of 64,000.
+At game revision `5d3a31fe8be35540b86cca1067f8cfa9f30176ba`,
+`benchmarks/tools/render-parity-dos.ps1` compared the C-reference and
+`i486-asm-selectable-current` profiles using the warp-memory scenario file,
+one run per scenario, and the local `id1` data. The exact comparison report is
+`benchmarks/out/render-parity-stack-5d3a31f-shared-20261117/render-parity-result.json`.
+The command, run from `benchmarks/`, was:
+
+```powershell
+pwsh -NoProfile -File tools/render-parity-dos.ps1 `
+  -ReferenceProfile tools/renderer-profiles/i486-c-reference.json `
+  -CandidateProfile tools/renderer-profiles/i486-asm-selectable-current.json `
+  -ScenarioFile tools/render-scenarios-warp-memory.json -CpuTarget i486 `
+  -RunsOverride 1 -DataRoot workspace\quake\testdata\id1 `
+  -OutputRoot out/render-parity-stack-5d3a31f-shared-20261117 `
+  -NoBootstrap -TimeoutSeconds 1800
+```
+
+Both profile suites passed allocated storage, guarded fallback,
+forced-insufficient fallback, and waterwarp-disabled scenarios. Every run
+produced 985 expected demo frames and final checksum `1843917972`. The paired
+C-versus-assembly comparison matched all 980 compared per-frame checksum
+records after six warmup records, with zero framebuffer pixel or palette
+mismatches across the 64,000-pixel captures. This paired runner defers a
+separate comparison against the committed golden image. Both profiles passed
+the strict i486 build gate. The run
+used DOSBox-X 2026.08.31 (executable SHA-256
+`f17f47dfd6da895747acfc70a533077d0b4c55b3a8b79551a04750e2a51b8d34`), the
+pinned DOSBox profile (SHA-256
+`532284ea01c1a93c8b96d70fb538625b694dfad0172ba13b9ba9c36c8fe845ba`), and
+CWSDPMI (SHA-256
+`ff3501b50bcf320e6615e025bdff94261a087f83212858d4b12e42c19c7e3883`).
+These are emulator results, not physical-486 evidence.
+
+The `benchwarp_short` scenario forces the test capacity to zero only after
+confirming the real DJGPP bounds; it does not reduce the actual DPMI stack.
 
 The 2026-11-14 DOSBox-X 2026.08.31/CWSDPMI parity run used a measured
 `world_depth` of 72. The earlier runtime reports recorded 523,720 available
@@ -103,9 +157,11 @@ generated-frame formulas, including the dispatch callback return word, gives:
 | i486 release assembly | 182,084 | 246,100 | 277,672 |
 | C reference | 181,720 | 245,736 | 277,984 |
 
-These available-stack and headroom values describe that DOSBox/DPMI setup;
-they are not real-hardware measurements. The source and runtime formulas are
-checked against the generated frames by `tools/renderer-stack-budget.py`.
+These available-stack and headroom values are the earlier 2026-11-14 reading
+from that DOSBox/DPMI setup; the 2026-11-17 parity refresh did not remeasure
+runtime stack bounds. They are not real-hardware measurements. The source and
+runtime formulas are checked against generated frames by
+`tools/renderer-stack-budget.py`.
 
 A reduced-stack executable was also exercised on that DOSBox-X/CWSDPMI setup.
 The audited PROFILE486 executable was copied to an isolated staging directory
