@@ -11,17 +11,33 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def function(source, name):
-    signature = re.compile(r"(?m)^(?:int|void|vmode_t \*)\s+" + re.escape(name) + r"\s*\(")
-    match = signature.search(source)
-    if match is None:
-        aliases = re.findall(
-            r"(?m)^\s*#define\s+([A-Za-z_]\w*)\s+" + re.escape(name) + r"\s*$",
-            source,
+def function(source, name, prefer_alias=False):
+    """Extract one implementation, optionally choosing its C-entry alias."""
+    def signature_for(symbol):
+        return re.compile(
+            r"(?m)^(?:int|void|vmode_t \*)\s+" + re.escape(symbol) + r"\s*\("
         )
+
+    aliases = re.findall(
+        r"(?m)^\s*#define\s+([A-Za-z_]\w*)\s+" + re.escape(name) + r"\s*$",
+        source,
+    )
+    match = None
+    alias_used = None
+    if prefer_alias:
         for alias in aliases:
-            source = re.sub(r"\b" + re.escape(alias) + r"\b", name, source)
-        match = signature.search(source)
+            match = signature_for(alias).search(source)
+            if match is not None:
+                alias_used = alias
+                break
+    if match is None:
+        match = signature_for(name).search(source)
+    if match is None:
+        for alias in aliases:
+            match = signature_for(alias).search(source)
+            if match is not None:
+                alias_used = alias
+                break
     if match is None:
         raise ValueError("could not find C function %s" % name)
     start = match.start()
@@ -31,7 +47,10 @@ def function(source, name):
     while depth:
         depth += (source[end] == "{") - (source[end] == "}")
         end += 1
-    return source[start:end]
+    result = source[start:end]
+    if alias_used is not None:
+        result = re.sub(r"\b" + re.escape(alias_used) + r"\b", name, result)
+    return result
 
 
 prefix = r'''
@@ -40,23 +59,26 @@ prefix = r'''
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-typedef unsigned char byte;
-typedef int qboolean;
-#define true 1
-#define false 0
-#define UNUSED(x) (void)(x)
-#define MAXWIDTH 1280
-#define MAXHEIGHT 1024
 #define WARP_WIDTH 320
 #define WARP_HEIGHT 200
-#define LittleLong(x) (x)
-#define Q_memcpy memcpy
-typedef struct { float value; } cvar_t;
-typedef struct vrect_s { int x,y,width,height; struct vrect_s *pnext; } vrect_t;
-typedef struct { unsigned width,height,rowbytes; int numpages,conrowbytes,conwidth,conheight;
- int maxwarpwidth,maxwarpheight,fullbright,recalc_refdef; float aspect;
- byte *buffer,*conbuffer,*direct,*colormap; } viddef_t;
 #include "video/vid_dos.h"
+#include "video/asm_vesapalette.h"
+static int test_little_long(int value) { return value; }
+int (*LittleLong)(int) = test_little_long;
+void Q_memcpy(void *dest, void *src, int count) { memcpy(dest, src, (size_t)count); }
+/* Bind selector aliases to the C implementation under test. */
+#define VID_GET_MODE_PTR_C_CALL VID_GetModePtr
+#define VID_MODE_INFO_C_CALL VID_ModeInfo
+#define VID_SET_MODE_C_CALL VID_SetMode
+#define VID_MODE_SET_VALUE Cvar_SetValue
+#define VID_MODE_PRINTF Con_Printf
+#define VID_MODE_ERROR Sys_Error
+#define VID_MODE_RELEASE_EXTRA VID_ExtraReleaseMode
+#define VID_MODE_PALETTE_OK VID_ExtraPaletteOK
+#define VID_UPDATE_SET_MODE(mode,palette) VID_SetMode((mode),(palette))
+#define VID_UPDATE_DEFAULT_MODE() VID_ExtraDefaultMode()
+#define VID_UPDATE_SET_CVAR(name,value) Cvar_SetValue((name),(value))
+#define VID_UPDATE_NO_VESA_MESSAGE(text) Con_Printf(text)
 typedef struct { unsigned long address,size; } __dpmi_meminfo;
 typedef struct { struct { unsigned ax,bx,cx,dx,es,di; } x; } regs_t;
 regs_t regs;
@@ -75,7 +97,8 @@ byte *VGA_pagebase;
 void *vid_surfcache;
 int vid_surfcachesize;
 cvar_t vid_mode,vid_wait,vid_nopageflip,_vid_wait_override,_vid_default_mode;
-static int firstupdate=1,startup_mode_requested,host_framecount,vid_testingmode;
+int vid_firstupdate=1,vid_startup_mode_requested;
+static int host_framecount,vid_testingmode;
 static int force_std,explicit_mode;
 static unsigned report_mode,report_pitch;
 static char report_video[80];
@@ -87,14 +110,14 @@ static double realtime,vid_testendtime;
 #define BENCH486_PROFILE_ENTER(x)
 #define BENCH486_PROFILE_WORK(x,y,z)
 #define BENCH486_PROFILE_LEAVE()
-static int COM_CheckParm(const char *s) { return !strcmp(s,"-stdvid")?force_std:explicit_mode; }
+int COM_CheckParm(char *s) { return !strcmp(s,"-stdvid")?force_std:explicit_mode; }
 viddef_t vid;
 byte vid_current_palette[768];
-int nomodecheck,scr_disabled_for_loading;
+int vid_nomodecheck,scr_disabled_for_loading;
 static void Con_Printf(const char *f, ...) { (void)f; }
 #define Con_SafePrintf Con_Printf
 static void Sys_Error(const char *f, ...) { fprintf(stderr,"%s\n",f); abort(); }
-static void Cvar_SetValue(const char *s,float v) {
+void Cvar_SetValue(char *s,float v) {
  if (!strcmp(s,"vid_mode")) vid_mode.value=v;
  if (!strcmp(s,"vid_wait")) vid_wait.value=v;
  if (!strcmp(s,"_vid_default_mode")) _vid_default_mode.value=v;
@@ -135,7 +158,7 @@ static void dos_int86(int irq) {
 static double Sys_FloatTime(void) { static double t; return t+=0.2; }
 static int inportb(int p) { (void)p; return (++probes & 1)?9:0; }
 void VGA_WaitVsync(void) {}
-static byte backingbuf[48*24];
+byte VGA_directrect_backingbuf[48*24];
 #define SC_INDEX 0
 #define SC_DATA 1
 #define MAP_MASK 2
@@ -161,7 +184,7 @@ static int fake_vga(viddef_t *v,vmode_t*m) {
 static void fake_palette(viddef_t*v,vmode_t*m,byte*p) { (void)v;(void)m;(void)p; }
 static void fake_swap(viddef_t*v,vmode_t*m,vrect_t*r) { (void)v;(void)m;(void)r; }
 vmode_t *VID_GetModePtr(int n) { vmode_t *m=pvidmodes;while(n--)m=m->pnext;assert(m);return m; }
-static char *VID_ModeInfo(int n,char **h) { (void)n;(void)h;return "test"; }
+char *VID_ModeInfo(int n,char **h) { (void)n;(void)h;return "test"; }
 '''
 
 tests = r'''
@@ -177,8 +200,8 @@ static void reset(void) {
   copycalls=planar_calls=vga_calls=palette_calls=probes=many_modes=banked_bios=no_vesa=0;
  alloc_cursor=0x1000; pvidmodes=NULL;pcurrentmode=NULL;numvidmodes=0;
  vid_mode.value=vid_wait.value=_vid_wait_override.value=0;
- vid_modenum=vid_realmode=0;scr_disabled_for_loading=nomodecheck=0;
- firstupdate=1;startup_mode_requested=host_framecount=vid_testingmode=0;
+ vid_modenum=vid_realmode=0;scr_disabled_for_loading=vid_nomodecheck=0;
+ vid_firstupdate=1;vid_startup_mode_requested=host_framecount=vid_testingmode=0;
  force_std=explicit_mode=0;_vid_default_mode.value=0;
  word(biosinfo,0x99);biosinfo[2]=7;word(biosinfo+4,64);word(biosinfo+6,64);
  word(biosinfo+8,0xa000);word(biosinfo+16,320);word(biosinfo+18,320);
@@ -236,7 +259,7 @@ int main(void) {
   fail_ram=fault==1;fail_map=fault==2;fail_mode=fault==3;fail_bank=fault==4;fail_palette=fault==5;
   assert(VID_SetMode(1,vid_current_palette)==(fault==0));
   assert(vid_modenum==(fault?0:1));assert(vga_calls==(fault?1:0));
-  assert(!scr_disabled_for_loading && !nomodecheck);
+  assert(!scr_disabled_for_loading && !vid_nomodecheck);
   if(fault)assert(maps==unmaps);
   else {assert(vid.numpages==1 && !bankcalls && !startcalls && !probes);
    assert(VID_SetMode(0,vid_current_palette));assert(maps==unmaps);}
@@ -310,13 +333,14 @@ int main(void) {
 '''
 
 ext = (ROOT / "src/video/vid_ext.c").read_text()
-ext = re.sub(r'^#include (?!"vid_vesa.h").*$', '', ext, flags=re.M)
+ext = re.sub(r'^#include (?!"video/vid_vesa.h").*$', '', ext, flags=re.M)
 dos = (ROOT / "src/video/vid_dos.c").read_text()
 vga = (ROOT / "src/video/vid_vga.c").read_text()
-source = (prefix + function(vga, "VGA_BeginDirectRect") + function(vga, "VGA_EndDirectRect")
-          + function(vga, "VGA_SwapBuffersCopy")
+source = (prefix + function(vga, "VGA_BeginDirectRect", prefer_alias=True)
+          + function(vga, "VGA_EndDirectRect", prefer_alias=True)
+          + function(vga, "VGA_SwapBuffersCopy", prefer_alias=True)
           + ext + function(dos, "VID_SetMode") + function(dos, "VID_SetPalette")
-          + function(dos, "VID_Update") + tests)
+          + function(dos, "VID_Update", prefer_alias=True) + tests)
 with tempfile.TemporaryDirectory(prefix="quake-video-") as tmp:
     cfile = Path(tmp) / "video.c"
     exe = Path(tmp) / "video.exe"
