@@ -18,9 +18,11 @@ Promote any positive pooled mean FPS from at least three matched, uninstrumented
 runs per variant, regardless of the gain size or whether it is smaller than the
 observed run-to-run spread. Use the same pinned DOSBox-X profile, executable
 settings, workload, frame count, and framebuffer checksum. Record all samples
-and their spread with the result. Keep the strict i486 ISA audit and exact output
-parity as required gates. A non-positive matched mean, parity failure, or ISA
-violation still rejects a candidate.
+and their spread with the result. For correctness, require byte-for-byte equal
+full per-frame color/Z checksum streams or exact framebuffer captures for the
+affected workloads; a matching terminal checksum alone is insufficient. Keep
+the complete linked-image strict i486 ISA audit as a required gate. A
+non-positive matched mean, parity failure, or ISA violation rejects a candidate.
 
 The 0.05% threshold and its 1,022.8-cycles/frame equivalent below are historical
 policy. They no longer exclude small candidates. Static cycle pricing is only a
