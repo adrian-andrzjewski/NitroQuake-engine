@@ -1,7 +1,8 @@
 """Bind DJGPP's source-rebuilt MZ loader to exact, source-typed ISA ranges.
 
 The MZ loaded image must match a fresh DJASM assembly of the pinned primary
-source. Every byte is CODE or a verified data directive/alignment byte. Decode
+source with the maintained CPU-guard fragment. Every byte is CODE or a verified
+data directive/alignment byte. Decode
 16-bit CODE continuously and verify direct targets, including the deliberate
 TEST-AX/REPNE-SCASB overlap. The synthetic COFF file is only an audit container;
 its .text bytes are identical to the loaded MZ image, never a replacement loader.
@@ -17,6 +18,11 @@ import struct
 import subprocess
 import tempfile
 import zipfile
+import importlib.util
+
+_guard_spec=importlib.util.spec_from_file_location('mz_cpu_guard',Path(__file__).with_name('dos-cpu-guard.py'))
+guard=importlib.util.module_from_spec(_guard_spec)
+_guard_spec.loader.exec_module(guard)
 
 ARCHIVE_SHA='80690B6E44FF8BC6C6081FCA1F4FAEBA1591C4490B76EF0EC8B35847BAA5DEEA'
 SOURCE_SHA='EB3AEDE63C1F01D09F4956FFB95D7145EC7C9BEB52B9E97470CEF47B12AFC035'
@@ -81,8 +87,8 @@ def decode(objdump: Path,raw: Path,start: int,end: int):
 def build(args):
     archive=args.archive.read_bytes()
     if sha(archive)!=ARCHIVE_SHA: raise ValueError('Primary source archive hash changed.')
-    with zipfile.ZipFile(args.archive) as package: source=package.read('src/stub/stub.asm')
-    if sha(source)!=SOURCE_SHA: raise ValueError('Primary loader source hash changed.')
+    primary=guard.primary_source(args.archive)
+    source=guard.guarded_source(primary)
     fields,image=mz_image(args.executable.read_bytes())
     with tempfile.TemporaryDirectory(prefix='djgpp-loader-proof-') as directory:
         work=Path(directory);(work/'stub.asm').write_bytes(source)
@@ -105,7 +111,11 @@ def build(args):
         end=min(end,len(image))
         if end<offset: raise ValueError('Nonmonotonic DJASM source map.')
         operation=lines[number-1].split(';',1)[0].strip()
-        if operation.startswith(('.db','.dw','.dd')):
+        if '; NQ CODE:' in lines[number-1]:
+            if data_bytes(operation,labels)!=image[offset:end]:
+                raise ValueError(f'CPU guard instruction bytes differ at source line {number}.')
+            kind='code'
+        elif operation.startswith(('.db','.dw','.dd')):
             if operation=='.db\t0xa9' or re.fullmatch(r'\.db\s+0xa9',operation):
                 if offset!=0xa6 or image[offset:end]!=b'\xa9': raise ValueError('Changed overlap opcode.')
                 kind='code'
@@ -168,6 +178,8 @@ def build(args):
                     'loaded-image.bin','loader-audit.obj','isa-ranges.json')
     record={'schema':2,'executable':str(args.executable.resolve()),'executableSha256':sha(args.executable.read_bytes()),
         'primaryArchiveSha256':ARCHIVE_SHA,'primarySourceSha256':SOURCE_SHA,
+        'cpuGuardSourceSha256':sha(guard.FRAGMENT.read_bytes()),
+        'cpuGuardPolicySha256':sha(Path(guard.__file__).read_bytes()),
         'djasmSha256':sha(args.djasm.read_bytes()),'objdumpSha256':sha(args.objdump.read_bytes()),
         'policySha256':sha(Path(__file__).read_bytes()),
         'mzHeaderFields':list(fields),'loadedImageSha256':sha(image),'loadedBytes':len(image),

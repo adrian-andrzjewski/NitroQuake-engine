@@ -53,6 +53,7 @@ def main():
         case=copy.copy(valid);case.executable=executable;case.output=work/name
         reject(name,lambda case=case:module.build(case))
     for name,offset,value in [('header_entry',20,fields[10]+1),('header_relocations',6,1),
+                             ('bypass_cpu_guard',20,0x54),
                              ('header_code_segment',22,1),('header_image_size',4,fields[2]+1)]:
         modified=bytearray(original);struct.pack_into('<H',modified,offset,value)
         executable=work/(name+'.exe');executable.write_bytes(modified)
@@ -64,6 +65,19 @@ def main():
     changed_archive=work/'changed-source.zip';changed_archive.write_bytes(archive.read_bytes()+b'X')
     case=copy.copy(valid);case.archive=changed_archive;case.output=work/'changed_source'
     reject('changed_primary_archive',lambda:module.build(case))
+
+    # Installing the guard only changes the MZ loader. The exact linked COFF
+    # image (including all engine/runtime instructions and data) must survive.
+    pristine=module.guard.assemble(archive,djasm,work/'original-loader',guarded=False)
+    installable=work/'installable.exe'
+    coff=original[module.guard.mz_length(original):]
+    installable.write_bytes(pristine+coff)
+    module.guard.install(archive,djasm,installable)
+    installed=installable.read_bytes()
+    assert installed[module.guard.mz_length(installed):]==coff
+    assert module.mz_image(installed)==module.mz_image(original)
+    checks.append('guard installation preserves exact COFF image')
+    reject('install_over_unknown_loader',lambda:module.guard.install(archive,djasm,installable))
 
     def forged(name,edit,artifact=None):
         directory=work/name;shutil.copytree(valid.output,directory)

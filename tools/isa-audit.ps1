@@ -394,8 +394,23 @@ function Get-TargetCodeRanges {
         # -d stops at every symbol, including a patch label in the immediate
         # byte of an INT instruction. -D crosses those labels correctly, but
         # must be restricted to actual CODE sections so it never decodes .data.
-        $headers = & $objdump -h $Target.path 2>$null
-        if ($LASTEXITCODE -ne 0) { throw "objdump section discovery failed on '$($Target.path)'." }
+        $inspectionPath = $Target.path
+        $coffTemporary = $null
+        try {
+            if ($Target.kind -eq 'executable' -and
+                    [BitConverter]::ToUInt16([IO.File]::ReadAllBytes($Target.path), 0) -eq 0x5a4d) {
+                . (Join-Path $PSScriptRoot 'common.ps1')
+                $coffTemporary = Join-Path ([IO.Path]::GetTempPath()) ('nq-isa-' + [guid]::NewGuid().ToString('N') + '.coff')
+                $inspectionPath = Export-Go32CoffImage -Executable $Target.path -Output $coffTemporary
+            }
+            $headers = & $objdump -h $inspectionPath 2>$null
+            if ($LASTEXITCODE -ne 0) { throw "objdump section discovery failed on '$($Target.path)'." }
+        }
+        finally {
+            if ($null -ne $coffTemporary -and (Test-Path -LiteralPath $coffTemporary)) {
+                Remove-Item -LiteralPath $coffTemporary
+            }
+        }
         $pendingSection = $null
         foreach ($headerLine in $headers) {
             if ($headerLine -match '^\s*\d+\s+(\S+)\s+([0-9a-fA-F]+)\s+([0-9a-fA-F]+)\s+') {

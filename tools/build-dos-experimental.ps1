@@ -1063,11 +1063,25 @@ try {
         throw "DJGPP link failed with exit code $LASTEXITCODE."
     }
 
+    # Gate the shipping ISA before even the real-mode loader/DPMI provider.
+    # The separate i386 C-reference diagnostic retains its original loader.
+    if ($CpuTarget -eq 'i486') {
+        $cpuGuardAssemblerRoot = Join-Path $outputRoot 'cpu-guard-djasm'
+        & python (Join-Path $PSScriptRoot 'djgpp-assembler-tool.py') `
+            --bundle (Join-Path $PSScriptRoot 'isa-runtime-reference') --output $cpuGuardAssemblerRoot
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to build the CPU-guard assembler.' }
+        & python (Join-Path $PSScriptRoot 'dos-cpu-guard.py') `
+            --archive (Join-Path $ToolRoot 'downloads/djlsr205.zip') `
+            --djasm (Join-Path $cpuGuardAssemblerRoot 'djasm-host.exe') --executable $executable
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to install the startup CPU guard.' }
+    }
+
     if (-not (Test-Path -LiteralPath $executable -PathType Leaf)) {
         throw "Link reported success but '$executable' was not created."
     }
 
-    $format = (& $objdump -f $executable | Out-String)
+    $coffImage = Export-Go32CoffImage -Executable $executable -Output (Join-Path $outputRoot 'linked.coff')
+    $format = (& $objdump -f $coffImage | Out-String)
     if ($LASTEXITCODE -ne 0) {
         throw 'Unable to inspect the linked DOS executable with objdump.'
     }

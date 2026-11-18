@@ -32,6 +32,12 @@ The Windows host-only DJASM verifier is built from its pinned source and
 requires a native Windows GCC. It is generated under `out/` and is not checked
 in.
 
+The DOS CPU guard rebuilds the pinned DJGPP loader with the maintained
+`tools/dos-cpu-guard.asm` fragment; bootstrap downloads `djlsr205.zip`, and
+`tools/dos-cpu-guard.py` contains the reproducible transformation. Original
+loader notices are retained. This product includes software developed by
+DJ Delorie and contributors to the djgpp project.
+
 ## Other tools
 
 DOSBox-X and the optional HX/HDPMI runtime are not included. Obtain them

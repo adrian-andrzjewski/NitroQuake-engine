@@ -38,6 +38,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'common.ps1')
 
 if (-not (Test-Path -LiteralPath $BuildRoot -PathType Container)) { throw "Build root not found: '$BuildRoot'." }
 if (-not (Test-Path -LiteralPath $MapPath -PathType Leaf)) { throw "Link map not found: '$MapPath'." }
@@ -346,9 +347,10 @@ if ($strictProof) { $proofParameters['ObjectCodeDataProofJson'] = $ObjectCodeDat
     -ExemptRange $ExemptRange -FailOnViolation
 $auditReport = Get-Content -LiteralPath $objectAudit -Raw | ConvertFrom-Json
 
-$format = (& $objdump -f $executable | Out-String)
+$coffImage = Export-Go32CoffImage -Executable $executable -Output (Join-Path $runtimeExtractRoot ('linked-' + $runId + '.coff'))
+$format = (& $objdump -f $coffImage | Out-String)
 if ($LASTEXITCODE -ne 0 -or $format -notmatch 'coff-go32') { throw "Cannot inspect linked executable format:`n$format" }
-$headers = & $objdump -h $executable
+$headers = & $objdump -h $coffImage
 if ($LASTEXITCODE -ne 0) { throw "objdump -h failed for '$executable'." }
 $binaryText = $null
 $executableCodeSections = New-Object System.Collections.Generic.HashSet[string]([StringComparer]::Ordinal)
@@ -380,7 +382,7 @@ if ($binaryText.address -ne $mainText.address -or $binaryText.size -ne $mainText
 }
 
 $textDumpPath = Join-Path $runtimeExtractRoot ('isa-linked-text-' + $runId + '.bin')
-& $objcopy --dump-section ".text=$textDumpPath" $executable
+& $objcopy --dump-section ".text=$textDumpPath" $coffImage
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $textDumpPath -PathType Leaf)) {
     throw "Could not extract the executable .text bytes from '$executable'."
 }
@@ -727,7 +729,7 @@ if ($mismatches.Count -gt 0) {
 # inspection record. The ISA gate above uses object-derived boundaries because
 # GO32 combines code and linker tables in .text.
 $fullExecutableDisassembly = Join-Path $ReportRoot 'isa-audit-linked-executable-disassembly.txt'
-& $objdump -d --insn-width=16 $executable 2>$null | Set-Content -LiteralPath $fullExecutableDisassembly -Encoding ASCII
+& $objdump -d --insn-width=16 $coffImage 2>$null | Set-Content -LiteralPath $fullExecutableDisassembly -Encoding ASCII
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $fullExecutableDisassembly -PathType Leaf)) {
     throw "objdump -d failed on linked executable '$executable'."
 }

@@ -14,7 +14,8 @@ def main():
     original={name:hashlib.sha256(getattr(args,name).read_bytes()).hexdigest() for name in ['archive','executable','map','crt_object','djasm','objdump']}
     args.output=work/'valid'
     with contextlib.redirect_stdout(io.StringIO()):valid=module.build(args)
-    assert valid['exactPrimarySourcesAndFinalBytes'] and valid['instructionRows']==529 and valid['isaAuditRequired']
+    # Pinned DJGPP loader + maintained CPU guard + the two embedded CRT helpers.
+    assert valid['exactPrimarySourcesAndFinalBytes'] and valid['instructionRows']==645 and valid['isaAuditRequired']
     exe=args.executable.read_bytes();mapping=args.map.read_text(encoding='latin1')
     last,pages=struct.unpack_from('<HH',exe,2);base=pages*512-(512-last if last else 0)
     count=struct.unpack_from('<H',exe,base+2)[0];optional=struct.unpack_from('<H',exe,base+16)[0]

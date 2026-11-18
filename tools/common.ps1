@@ -1,4 +1,25 @@
 # Standalone game build and verification API. No emulator or benchmark-suite dependency.
+
+function Export-Go32CoffImage {
+    param([Parameter(Mandatory)][string]$Executable, [Parameter(Mandatory)][string]$Output)
+    # Pinned binutils assumes a 2048-byte MZ stub. Decode the actual MZ length
+    # and give it the exact COFF suffix when our guarded loader is larger.
+    $bytes = [IO.File]::ReadAllBytes($Executable)
+    if ($bytes.Length -lt 28 -or [BitConverter]::ToUInt16($bytes, 0) -ne 0x5a4d) {
+        throw 'Expected a DOS MZ executable.'
+    }
+    $last = [BitConverter]::ToUInt16($bytes, 2)
+    $start = 512 * [int][BitConverter]::ToUInt16($bytes, 4)
+    if ($last -ne 0) { $start -= 512 - $last }
+    if ($start -lt 28 -or $start + 20 -gt $bytes.Length -or
+            [BitConverter]::ToUInt16($bytes, $start) -ne 0x14c) {
+        throw 'The DOS loader is not followed by i386 COFF.'
+    }
+    $coff = [byte[]]::new($bytes.Length - $start)
+    [Array]::Copy($bytes, $start, $coff, 0, $coff.Length)
+    [IO.File]::WriteAllBytes($Output, $coff)
+    return $Output
+}
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'selectors.ps1')
 
@@ -287,6 +308,7 @@ function Get-CompatibilityPolicyFingerprint {
             'tools/isa-disassemble.py', 'tools/coff-code-data.py', 'tools/project-source-proofs.py',
             'tools/runtime-source-proofs.py', 'tools/djgpp-assembler-tool.py',
             'tools/verify-executable-isa.ps1', 'tools/mz-loader-proof.py',
+            'tools/dos-cpu-guard.py', 'tools/dos-cpu-guard.asm',
             'tools/djgpp-startup-helpers-proof.py', 'tools/startup-linked-proof.py',
             'tools/final-executable-isa-ranges.py', 'tools/isa-runtime-reference/manifest.json',
             'tools/cws-provider-proof.py', 'tools/isa-provider-reference/manifest.json',

@@ -50,6 +50,66 @@ resolved inputs used for build identity. The selector matrix and profile tests
 pin those contracts, while `test-build-fingerprints.ps1` verifies that a changed
 profile suffix changes the artifact identity.
 
+### Startup CPU compatibility
+
+Every i486 build (release, C reference and instrumented builds) checks the CPU
+at the DOS MZ entry, before the DJGPP loader, CWSDPMI and C runtime execute.
+The minimum is an Intel 486DX-compatible integer instruction set and a usable
+387-compatible x87 FPU. CPUID, Pentium instructions, MMX and SSE are not required.
+A 486SX without a working FPU is unsupported.
+
+The guard uses 8086-safe FLAGS tests before any 32-bit instruction, then tests
+the 486 AC flag. It never executes CPUID, so early 486DX CPUs remain supported.
+It checks the x87 disable/task-switch bits before the non-waiting
+FNINIT/FNSTSW/FNSTCW presence test. The subsequent infinity comparison uses
+8087/287-safe operations to reject an older FPU before any 387-only instruction
+can run. Failures print the missing capability and minimum hardware using DOS
+INT 21h, then return ERRORLEVEL 1. There is no prompt
+or dependency on graphics, game data, an FPU emulator, or a DPMI provider for
+these diagnostics. The guard restores registers, stack and FLAGS on success;
+the engine and linked runtime COFF image are unchanged. It adds 512 bytes to
+the DOS loader and a single bounded check at launch, with no frame-loop cost.
+
+The algorithm follows Intel [AP-485, examples 1 and 2](https://bochs.sourceforge.io/techspec/intel-proc-identification-and-cpuid.pdf).
+The pinned upstream loader is rebuilt with the maintained
+`tools/dos-cpu-guard.asm` fragment. The source-bound startup audit covers the
+guard and the complete loader; skipping an ISA audit still installs the guard.
+The separate `-CpuTarget i386` C-reference diagnostic keeps its original loader
+and is not a shipping hardware-compatibility target.
+
+Run the optional CPU matrix against an audited i486 executable:
+
+```powershell
+python tools/test-cpu-guard-dos.py --executable <build-root>/quake.exe --dosbox <path>/dosbox-x.exe
+```
+
+It uses the normal interpreter core, including `486old` (pre-CPUID), and tests
+8086, 80186, 286, 386, 486 with/without an FPU, and Pentium. The older 8087/287
+FPU models are also rejected. Unsupported cases
+are staged without CWSDPMI or game data; supported cases reach protected-mode
+engine startup. This emulator evidence does not qualify physical 486 hardware
+or every DOS memory manager. A V86 monitor must expose the FLAGS and x87 state
+needed by the standard probes; disabled or hidden capabilities are rejected.
+Add `--djasm <build-root>/cpu-guard-djasm/djasm-host.exe` to also verify register,
+stack and FLAGS preservation with both stack alignments, and safe rejection
+with either CR0.EM or CR0.TS set.
+
+Validation on 2026-11-18 used DOSBox-X 2026.08.31: all 15 release CPU/state
+cases and all 11 C-reference CPU cases passed. Loader binding/installation
+passed 24 adversarial checks; linked ISA fixtures passed 13 checks. The ISA
+classifier accepted 505 permitted encodings and rejected 544 forbidden ones.
+Both i486 configurations passed complete source-bound ISA verification:
+166,288 release / 176,947 C-reference relocated instructions, 645 startup rows
+and 9,207 CWSDPMI provider instructions, with zero exemptions in each build.
+An existing PROFILE486 demo1 binary, before and after guard installation,
+completed 969 timedemo frames with identical per-frame checksum streams under
+`-parityclock`, and final framebuffer checksum `1047377823`. The installer
+also preserves the entire linked COFF image byte for byte; no engine routine
+or frame-loop instruction changes. This is correctness evidence, not a new
+physical-hardware performance measurement. The host suite passed 16 of 17
+gates; its existing failure is the unindexed ledger file
+`docs/ledger/2026-10-25-mip0-fully-flat-blocks-promoted.md`.
+
 ### DOS video startup
 
 The game automatically selects available 320x200 VESA/VGA presentation.
