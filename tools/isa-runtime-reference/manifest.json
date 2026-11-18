@@ -4915,7 +4915,7 @@
       "object": "libgcc-unwind-dw2-fde.obj",
       "objectSha256": "43F73020EAA1125CA473B503AD8CF41C65368D3E2EB52DD671BA65B3361D67CF",
       "assembly": "listings/libgcc-unwind-dw2-fde.s",
-      "assemblySha256": "B4CD98165A02C65C8A60340C21629939F14D0869EAA974F56217A7E716309A69",
+      "assemblySha256": "E56BDEE2F759470446D0C905DDB8DE590D0511F5194A1483044EDBDFA4293EB5",
       "handwrittenAssembly": false,
       "allocatedSectionsCompared": [
         ".bss",
@@ -4947,7 +4947,7 @@
       "object": "libgcc-_divdi3.obj",
       "objectSha256": "C706D5B0E2DCE945E14C50FB876A385E3705FD2275F9BB7F30DA13D84C861DBF",
       "assembly": "listings/libgcc-_divdi3.s",
-      "assemblySha256": "EBE2BB6DA3194622ED54742085C92FF3194E76C548C67468C32B1969D9954AE3",
+      "assemblySha256": "9DFC215F2A0939C387C0B77BC5FAE99CDA94CC51B7081CC35F1C6E1C7E811882",
       "handwrittenAssembly": false,
       "allocatedSectionsCompared": [
         ".bss",
@@ -4980,7 +4980,7 @@
       "object": "libgcc-_moddi3.obj",
       "objectSha256": "74523DB2E3F7E05F839581562B062944B8854C060E1217C033B393FCA50875E7",
       "assembly": "listings/libgcc-_moddi3.s",
-      "assemblySha256": "E14413E4625A4FC1E277D6EECA93369A30842C664E05154F16C438E7AD66EA7F",
+      "assemblySha256": "96CF6F16E8E33C9918BE2C7DB1B43D8090BBC8ACF717A651A2CB85ED40270945",
       "handwrittenAssembly": false,
       "allocatedSectionsCompared": [
         ".bss",
@@ -5013,7 +5013,7 @@
       "object": "libgcc-_udivdi3.obj",
       "objectSha256": "47DFDB8D490B1FB36827D88D0BA2488CD8CE09D06C2AEB70F97ECC594C5328F8",
       "assembly": "listings/libgcc-_udivdi3.s",
-      "assemblySha256": "1C7721489635331F0C7A42D3916EB3039895EDEF8CF5BECD1462D3E04ED3DF4C",
+      "assemblySha256": "DA3C6239D613376240CC24A80A6689E6A59C7382DEB015C123292B9ACEBB717F",
       "handwrittenAssembly": false,
       "allocatedSectionsCompared": [
         ".bss",
@@ -5046,7 +5046,7 @@
       "object": "libgcc-_umoddi3.obj",
       "objectSha256": "ED9DEB84E8967AD3C6AEC4C53C71DF9EE410950E2E2E1FC400F12152C6A9733F",
       "assembly": "listings/libgcc-_umoddi3.s",
-      "assemblySha256": "730E20281D83DF2D7981AFFE25910378AE8D21FC55A02F2950E33263AA4D076E",
+      "assemblySha256": "44D428EA7D6A41B530138CFF51B45913F7BD7A3F5A1C220E7F4AA6A1A83D0C4B",
       "handwrittenAssembly": false,
       "allocatedSectionsCompared": [
         ".bss",
@@ -6199,28 +6199,28 @@
     },
     {
       "path": "listings/libgcc-_divdi3.s",
-      "sha256": "EBE2BB6DA3194622ED54742085C92FF3194E76C548C67468C32B1969D9954AE3",
-      "bytes": 29160
+      "sha256": "9DFC215F2A0939C387C0B77BC5FAE99CDA94CC51B7081CC35F1C6E1C7E811882",
+      "bytes": 29044
     },
     {
       "path": "listings/libgcc-_moddi3.s",
-      "sha256": "E14413E4625A4FC1E277D6EECA93369A30842C664E05154F16C438E7AD66EA7F",
-      "bytes": 31284
+      "sha256": "96CF6F16E8E33C9918BE2C7DB1B43D8090BBC8ACF717A651A2CB85ED40270945",
+      "bytes": 31132
     },
     {
       "path": "listings/libgcc-_udivdi3.s",
-      "sha256": "1C7721489635331F0C7A42D3916EB3039895EDEF8CF5BECD1462D3E04ED3DF4C",
-      "bytes": 33530
+      "sha256": "DA3C6239D613376240CC24A80A6689E6A59C7382DEB015C123292B9ACEBB717F",
+      "bytes": 33414
     },
     {
       "path": "listings/libgcc-_umoddi3.s",
-      "sha256": "730E20281D83DF2D7981AFFE25910378AE8D21FC55A02F2950E33263AA4D076E",
-      "bytes": 35402
+      "sha256": "44D428EA7D6A41B530138CFF51B45913F7BD7A3F5A1C220E7F4AA6A1A83D0C4B",
+      "bytes": 35250
     },
     {
       "path": "listings/libgcc-unwind-dw2-fde.s",
-      "sha256": "B4CD98165A02C65C8A60340C21629939F14D0869EAA974F56217A7E716309A69",
-      "bytes": 316492
+      "sha256": "E56BDEE2F759470446D0C905DDB8DE590D0511F5194A1483044EDBDFA4293EB5",
+      "bytes": 316356
     },
     {
       "path": "listings/libm-e_pow.s",
