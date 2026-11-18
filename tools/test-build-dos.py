@@ -182,6 +182,7 @@ def main() -> int:
     for contract in (
         '"-Wl,-Map=$linkMap"',
         "verify-executable-isa.ps1",
+        "-ToolRoot $ToolRoot",
         "linkedInstructionsVerified",
     ):
         if contract not in build_script:

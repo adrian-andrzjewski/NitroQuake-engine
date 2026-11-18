@@ -1348,7 +1348,7 @@ try {
 
     if ((-not $SkipIsaAudit) -and $CpuTarget -eq 'i486') {
         & (Join-Path $PSScriptRoot 'verify-executable-isa.ps1') -BuildRoot $outputRoot -MapPath $linkMap `
-            -ReportRoot $isaReportRoot -ProjectProofIndex $projectProofIndex `
+            -ReportRoot $isaReportRoot -ProjectProofIndex $projectProofIndex -ToolRoot $ToolRoot `
             -ExecutableName $executableName -ObjectRoot $objectRoot -ObjectNames $isaObjectNames
         if (-not (Test-Path -LiteralPath $linkedIsaReportPath -PathType Leaf)) {
             throw 'The linked ISA audit did not produce a report; the executable compatibility gate cannot be evaluated.'
