@@ -115,20 +115,6 @@ def inventory(root: Path) -> dict:
                     raise ValueError("Conflicting outcomes for " + attempt_id)
                 continue
             attempts[attempt_id] = record
-    # A few early accepted changes were committed without their own report.
-    # Pin those exact revisions; never infer attempts from commit-message counts.
-    reachable = set(git(root, "rev-list", "HEAD").splitlines())
-    for entry in metadata.get("gitOnlyAttempts", []):
-        revision = entry["commit"]
-        if revision not in reachable:
-            continue
-        if entry["outcome"] not in ("accepted", "rejected") or entry["id"] in attempts:
-            raise ValueError("Invalid or duplicate Git-only optimization: " + entry["id"])
-        source = "git:" + revision
-        evidence = git(root, "cat-file", "commit", revision)
-        sources[source] = hashlib.sha256(evidence.encode()).hexdigest()
-        attempts[entry["id"]] = dict(id=entry["id"], outcome=entry["outcome"],
-                                     document=source, description=entry["description"])
     records = sorted(attempts.values(), key=lambda x: x["id"])
     counts = {outcome: sum(r["outcome"] == outcome for r in records)
               for outcome in ("accepted", "rejected")}

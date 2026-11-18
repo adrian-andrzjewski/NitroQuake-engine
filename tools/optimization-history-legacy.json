@@ -1,13 +1,5 @@
 {
   "schemaVersion": 1,
-  "gitOnlyAttempts": [
-    {
-      "id": "2026-10-25-mip0-fully-flat-blocks",
-      "commit": "2165d9182415bea5580c894b60869945b499ef38",
-      "outcome": "accepted",
-      "description": "Retained mip-0 fully-flat block specialization. This source-only commit adds the helper; the later flat-dword-packing report describes a separate optimization to that helper. No standalone FPS claim."
-    }
-  ],
   "description": "Legacy ledger classification and distinct variants; counts are derived, never stored. Empty lists are non-attempt evidence or duplicate write-ups. New outcome-named reports are automatic.",
   "supersededDocuments": {
     "2026-11-03-r-clipedge-projection-cache-promoted.md": "2026-11-03-r-clipedge-projection-cache-withdrawn.md"

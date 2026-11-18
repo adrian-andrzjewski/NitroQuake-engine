@@ -35,9 +35,11 @@ The inventory reads `docs/ledger/` and one preserved legacy source at
 supplies reachable deleted ledger records. The legacy map
 [`tools/optimization-history-legacy.json`](../../tools/optimization-history-legacy.json)
 resolves multi-attempt reports and duplicate write-ups by stable IDs and source
-evidence; it does not contain a numeric offset. A retained early change without
-a standalone ledger record is tied to its exact commit and counted only while
-that commit is reachable from `HEAD`.
+evidence; it does not contain a numeric offset. The retained early mip-0
+specialization has a [stable ledger record](../ledger/2026-10-25-mip0-fully-flat-blocks-promoted.md).
+Build numbering depends on
+classified reports and ledger history, not commit hashes, so a clean
+publication history does not change the count.
 
 New `*-promoted.md`, `*-promotion.md`, `*-assembly-port.md`, and
 `*-release-default.md` files contribute one accepted attempt; `*-rejected.md`
@@ -64,7 +66,8 @@ Build 888
 ```
 
 The inventory at game revision `7983e53` derived `Build 888` from 494 accepted
-and 394 rejected attempts. The builder recalculates this value from the current
+and 394 rejected attempts, including the early mip-0 specialization recorded
+in the ledger. The builder recalculates this value from the current
 checkout each time. The count can change only when a distinct attempt is
 recorded or its reviewed classification changes. Unrelated commits, builds,
 output paths, and worktree locations do not affect it.

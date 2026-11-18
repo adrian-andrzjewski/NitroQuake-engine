@@ -61,20 +61,19 @@ class HistoryTests(unittest.TestCase):
         self.write('four-rejected.md', '# Wrong output\n')
         self.assertEqual(self.result()['buildNumber'], 4)
 
-    def test_git_only_attempt_requires_reachable_revision(self):
-        revision = self.git('rev-parse', 'HEAD')
-        self.metadata['gitOnlyAttempts'] = [dict(id='early-port', commit=revision,
-            outcome='accepted', description='An early retained port without a report')]
-        self.save_metadata()
+    def test_stable_ledger_attempt_survives_commit_rewrite(self):
+        self.write('early-promoted.md', '# Early retained change\n'
+                   '<!-- optimization-attempt: early-port accepted -->\n')
+        self.commit()
+        first = self.result()
         self.assertEqual(self.result()['buildNumber'], 3)
-        self.metadata['gitOnlyAttempts'][0]['commit'] = '0' * 40
-        self.save_metadata()
-        self.assertEqual(self.result()['buildNumber'], 2)
+        self.git('commit', '--amend', '--no-edit', '--author', 'Rewritten History <rewrite@example.invalid>')
+        rewritten = self.result()
+        self.assertNotEqual(first['gitRevision'], rewritten['gitRevision'])
+        self.assertEqual(first['buildNumber'], rewritten['buildNumber'])
+        self.assertEqual(first['inventorySha256'], rewritten['inventorySha256'])
 
     def test_user_git_presentation_settings_do_not_change_identity(self):
-        self.metadata['gitOnlyAttempts'] = [dict(id='early-port', commit=self.git('rev-parse', 'HEAD'),
-            outcome='accepted', description='Retained historical port')]
-        self.save_metadata()
         (self.root / 'docs/ledger/one-promoted.md').unlink()
         self.commit()
         first = self.result()
