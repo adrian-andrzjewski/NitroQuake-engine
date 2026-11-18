@@ -3,7 +3,7 @@ from pathlib import Path
 import argparse,hashlib,importlib.util,json,re,struct,subprocess
 
 TOOLS=Path(__file__).resolve().parent
-BUNDLE_SHA256='43564D410A58E4C6DCD8A0AB5EEDAF4FD6004C12194A70A5AAB18CF9526C7CAD'
+BUNDLE_SHA256='47138FB0064617653510FE17C5C06A1C9BE6DE5CF45249455A58653ED33F3637'
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest().upper()
 def load(path):return json.loads(path.read_text(encoding='utf-8-sig'))
 def save(path,record):path.write_text(json.dumps(record,indent=2)+'\n',encoding='utf-8')
@@ -19,7 +19,7 @@ def validate_bundle(bundle):
         if name in seen or not path.is_relative_to(bundle.resolve()):raise ValueError('Duplicate or escaping provider input.')
         seen.add(name)
         if path.stat().st_size!=item['bytes'] or sha(path)!=item['sha256']:raise ValueError('Changed provider input: '+name)
-    if len(seen)!=43:raise ValueError('Incomplete provider inputs.')
+    if len(seen)!=41:raise ValueError('Incomplete provider inputs.')
     return record
 
 def exact(image,start,value):

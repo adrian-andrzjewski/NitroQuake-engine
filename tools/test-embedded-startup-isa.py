@@ -10,6 +10,7 @@ sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest().upper()
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--manifest',type=Path)
+    parser.add_argument('--tool-root',type=Path)
     args=parser.parse_args()
     path=args.manifest or Path(dump_flags('-CpuTarget','i486')['outputRoot'])/'build-manifest.json'
     manifest=load(path);exe=Path(manifest['executable']);linked=load(Path(manifest['isaLinkedAuditReport']))
@@ -21,9 +22,14 @@ def main():
     spec=importlib.util.spec_from_file_location('startup_host_tool',ROOT/'tools/djgpp-assembler-tool.py')
     tool=importlib.util.module_from_spec(spec);spec.loader.exec_module(tool)
     host=tool.build(ROOT/'tools/isa-runtime-reference',None,work/'djasm')
+    local_app_data=Path(os.environ.get('LOCALAPPDATA') or Path.home())
+    tool_root=args.tool_root or local_app_data/'486quake/tools'
+    archive=tool_root/'downloads/djlsr205.zip'
+    if not archive.is_file():
+        raise FileNotFoundError(f'Pinned DJGPP startup source archive is missing: {archive}; run tools/bootstrap-dos.ps1 first')
     config=load(ROOT/'tools/dos-toolchain.json')
-    objdump=Path(os.environ['LOCALAPPDATA'])/'486quake/tools'/config['djgpp']['installDirectory']/config['djgpp']['objdump']
-    common=['--archive',str(ROOT/'tools/isa-runtime-reference/primary/djlsr205.zip'),
+    objdump=tool_root/config['djgpp']['installDirectory']/config['djgpp']['objdump']
+    common=['--archive',str(archive),
             '--djasm',host['executable'],'--objdump',str(objdump)]
     records=[]
     for name,extra in [('test-mz-loader-proof.py',['--executable',str(exe)]),

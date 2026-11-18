@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the pinned, offline DJASM host-helper fallback and its tamper gate."""
+"""Check the source-built Windows host helper and its pinned inputs."""
 from pathlib import Path
 import hashlib
 import importlib.util
@@ -20,24 +20,14 @@ def main():
     with tempfile.TemporaryDirectory(prefix="djasm-host-tool-test-") as temporary:
         temporary = Path(temporary)
         output = temporary / "verified-output"
-        original_compiler = assembler.host_compiler
-
-        def no_host_compiler(explicit=None):
-            raise ValueError("test compiler unavailable")
-
-        assembler.host_compiler = no_host_compiler
-        try:
-            report = assembler.build(BUNDLE, None, output)
-        finally:
-            assembler.host_compiler = original_compiler
-
+        report = assembler.build(BUNDLE, None, output)
         executable = output / "djasm-host.exe"
-        if report.get("method") != "hash-bound-prebuilt-host-helper":
-            raise AssertionError("the missing-compiler path did not use the pinned helper")
+        if report.get("method") != "rebuilt-from-pinned-DJGPP-source":
+            raise AssertionError("the helper was not built from the pinned source files")
         if not report.get("hostToolOnly") or not executable.is_file():
-            raise AssertionError("the pinned helper did not produce a host-only executable")
+            raise AssertionError("the source-built helper is missing")
         if hashlib.sha256(executable.read_bytes()).hexdigest().upper() != report["executableSha256"]:
-            raise AssertionError("the copied helper differs from its reported executable hash")
+            raise AssertionError("the helper differs from its reported executable hash")
 
         original_executable = executable.read_bytes()
         header = struct.unpack_from("<I", original_executable, 60)[0]
@@ -61,19 +51,10 @@ def main():
             else:
                 raise AssertionError(f"the Windows helper validator accepted {name}")
 
-        compiler_dir = temporary / "host-bin"
-        compiler_dir.mkdir()
-        compiler = compiler_dir / "gcc.exe"
-        compiler.write_bytes(b"probe")
+        compiler = Path(report["hostCompiler"])
         cross_names = (
-            "DJDIR",
-            "DJGPP",
-            "GCC_EXEC_PREFIX",
-            "COMPILER_PATH",
-            "LIBRARY_PATH",
-            "CPATH",
-            "C_INCLUDE_PATH",
-            "CPLUS_INCLUDE_PATH",
+            "DJDIR", "DJGPP", "GCC_EXEC_PREFIX", "COMPILER_PATH", "LIBRARY_PATH",
+            "CPATH", "C_INCLUDE_PATH", "CPLUS_INCLUDE_PATH",
         )
         saved_environment = {name: os.environ.get(name) for name in cross_names}
         for name in cross_names:
@@ -88,7 +69,7 @@ def main():
                     os.environ[name] = value
         if any(name in clean_environment for name in cross_names):
             raise AssertionError("target compiler environment leaked into the host helper")
-        if clean_environment["PATH"].split(os.pathsep)[0] != str(compiler_dir):
+        if clean_environment["PATH"].split(os.pathsep)[0] != str(compiler.parent):
             raise AssertionError("the requested host compiler directory is not first on PATH")
 
         original_run = assembler.subprocess.run
@@ -106,22 +87,26 @@ def main():
             assembler.subprocess.run = original_run
 
         broken = temporary / "tampered-bundle"
-        for relative in ("manifest.json", "prebuilt/djasm-host.exe", "prebuilt/djasm-host-provenance.json"):
+        for relative in (
+            "manifest.json",
+            "primary/djgpp-host/src/djasm.c",
+            "primary/djgpp-host/include/coff.h",
+        ):
             source = BUNDLE / relative
             target = broken / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(source.read_bytes())
-        bad_executable = broken / "prebuilt/djasm-host.exe"
-        bad_executable.write_bytes(bad_executable.read_bytes() + b"\0")
+        bad_source = broken / "primary/djgpp-host/src/djasm.c"
+        bad_source.write_bytes(bad_source.read_bytes() + b"\n")
         try:
-            assembler.build_prebuilt_host(broken, temporary / "rejected-output", "test")
+            assembler.build(broken, compiler, temporary / "rejected-output")
         except ValueError as error:
-            if "Changed pinned host-helper input: prebuilt/djasm-host.exe" not in str(error):
-                raise AssertionError("the fallback failed for a reason other than its tampered helper") from error
+            if "Changed pinned host-helper input: primary/djgpp-host/src/djasm.c" not in str(error):
+                raise AssertionError("the source gate failed for an unexpected reason") from error
         else:
-            raise AssertionError("the host-helper gate accepted a changed prebuilt executable")
+            raise AssertionError("the host-helper gate accepted changed pinned source")
 
-    print("test-djgpp-assembler-tool: PASS (fallback source/archive/executable binding and tamper rejection)")
+    print("test-djgpp-assembler-tool: PASS (source build, host isolation, and pinned-input rejection)")
     return 0
 
 

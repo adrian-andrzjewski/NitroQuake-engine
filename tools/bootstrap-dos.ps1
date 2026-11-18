@@ -175,4 +175,27 @@ foreach ($artifact in $manifest.PSObject.Properties) {
     }
     Write-Host "$($artifact.Name): $installed"
 }
+
+# The strict startup ISA proof rebuilds the exact DJGPP 2.05 loader and CRT
+# helpers. Keep this upstream source archive in the local download cache rather
+# than vendoring a third-party package in the repository.
+$runtimeManifestPath = Join-Path $PSScriptRoot 'isa-runtime-reference/manifest.json'
+$runtimeManifest = Get-Content -LiteralPath $runtimeManifestPath -Raw | ConvertFrom-Json
+$startupSources = @($runtimeManifest.sources | Where-Object {
+        -not [string]::IsNullOrWhiteSpace([string]$_.sourceUrl) -and
+        [IO.Path]::GetFileName(([Uri]$_.sourceUrl).AbsolutePath) -eq 'djlsr205.zip'
+    })
+if ($startupSources.Count -ne 1) {
+    throw "Expected one pinned djlsr205.zip source entry in '$runtimeManifestPath'."
+}
+$startupSource = $startupSources[0]
+$startupDefinition = [pscustomobject]@{
+    url = [string]$startupSource.sourceUrl
+    sha256 = [string]$startupSource.sha256
+}
+$startupArchive = Get-VerifiedArchive -Definition $startupDefinition
+if ([int64](Get-Item -LiteralPath $startupArchive).Length -ne [int64]$startupSource.bytes) {
+    throw "Size mismatch for pinned startup source archive '$startupArchive'."
+}
+Write-Host "startup source: $startupArchive"
 Write-Host 'Toolchain bootstrap complete.'

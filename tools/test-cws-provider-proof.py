@@ -29,7 +29,7 @@ def main():
     for name,offset in [('post486_code',base),('entry_header',20),('relocation_table',header[12]),('data_byte',base+0x235)]:
         altered=bytearray(candidate);altered[offset]^=1;path=work/(name+'.exe');path.write_bytes(altered)
         reject(name,lambda path=path,name=name:tool.build(path,compiler,bundle,work/name))
-    for name in ['primary/MSWITCH.ASM','cpu486-and-hex.s','original-cwsdpmi.exe','boundaries.json','control-review.json','csdpmi1s.zip']:
+    for name in ['primary/MSWITCH.ASM','primary/COPYING','primary/COPYING.CWS','cpu486-and-hex.s','original-cwsdpmi.exe','boundaries.json','control-review.json']:
         path=bundle/name;original=path.read_bytes();path.write_bytes(original+b'X')
         try:reject('changed_'+name,lambda:tool.validate_bundle(bundle))
         finally:path.write_bytes(original)

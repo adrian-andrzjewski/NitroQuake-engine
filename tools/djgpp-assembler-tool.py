@@ -12,7 +12,6 @@ import os
 import shutil
 import struct
 import subprocess
-import zipfile
 
 
 def sha(path):
@@ -82,63 +81,10 @@ def require_host_executable(path):
         raise ValueError(f"Unsupported Windows DJASM host machine: {machine:#x}")
 
 
-def primary_archives(bundle, files):
-    archives = {}
-    for name in ("djlsr205.zip", "djdev205.zip"):
-        archives[name] = pinned_file(bundle, files, f"primary/{name}")
-    return archives
-
-
-def verify_prebuilt_host(bundle, files):
-    executable = pinned_file(bundle, files, "prebuilt/djasm-host.exe")
-    provenance_path = pinned_file(bundle, files, "prebuilt/djasm-host-provenance.json")
-    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
-    if provenance.get("schemaVersion") != 1:
-        raise ValueError("Unsupported prebuilt DJASM provenance schema.")
-
-    archives = primary_archives(bundle, files)
-    for name, path in archives.items():
-        if sha(path) != provenance["archiveSha256"].get(name):
-            raise ValueError(f"Prebuilt DJASM provenance does not match {name}.")
-
-    with zipfile.ZipFile(archives["djlsr205.zip"]) as package:
-        source = package.read("src/djasm/djasm.c")
-    with zipfile.ZipFile(archives["djdev205.zip"]) as package:
-        header = package.read("include/coff.h")
-    if hashlib.sha256(source).hexdigest().upper() != provenance["sourceSha256"]:
-        raise ValueError("Prebuilt DJASM source identity differs from the primary archive.")
-    if hashlib.sha256(header).hexdigest().upper() != provenance["coffHeaderSha256"]:
-        raise ValueError("Prebuilt DJASM header identity differs from the primary archive.")
-    if sha(executable) != provenance["executableSha256"]:
-        raise ValueError("Prebuilt DJASM executable hash does not match its provenance.")
-    require_host_executable(executable)
-    return executable, provenance
-
-
-def build_prebuilt_host(bundle, output, reason):
-    index, files = load_bundle(bundle)
-    executable, provenance = verify_prebuilt_host(bundle, files)
-    output.mkdir(parents=True, exist_ok=True)
-    target = output / "djasm-host.exe"
-    shutil.copyfile(executable, target)
-    report = {
-        "passed": True,
-        "hostToolOnly": True,
-        "method": "hash-bound-prebuilt-host-helper",
-        "compilerDiscoveryFallback": reason,
-        "sourceSha256": provenance["sourceSha256"],
-        "headerSha256": provenance["coffHeaderSha256"],
-        "hostCompiler": provenance["hostCompiler"],
-        "hostCompilerSha256": provenance["hostCompilerSha256"],
-        "prebuiltExecutable": str(executable.resolve()),
-        "prebuiltExecutableSha256": sha(executable),
-        "executable": str(target.resolve()),
-        "executableSha256": sha(target),
-        "archiveSha256": provenance["archiveSha256"],
-        "runtimeBundleManifestSha256": sha(bundle / "manifest.json"),
-    }
-    (output / "provenance.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    return report
+def primary_sources(bundle, files):
+    source = pinned_file(bundle, files, "primary/djgpp-host/src/djasm.c")
+    header = pinned_file(bundle, files, "primary/djgpp-host/include/coff.h")
+    return source, header
 
 
 def host_environment(compiler):
@@ -159,30 +105,20 @@ def host_environment(compiler):
 
 
 def build(bundle, compiler, output):
-    try:
-        compiler = host_compiler(compiler)
-    except ValueError as error:
-        if compiler is not None:
-            raise
-        return build_prebuilt_host(bundle, output, str(error))
-
+    compiler = host_compiler(compiler)
     index, files = load_bundle(bundle)
-    archives = primary_archives(bundle, files)
+    source, header = primary_sources(bundle, files)
     output.mkdir(parents=True, exist_ok=True)
-    members = (
-        ("djlsr205.zip", "src/djasm/djasm.c", "src/djasm/djasm.c"),
-        ("djdev205.zip", "include/coff.h", "include/coff.h"),
-    )
-    for archive, member, target in members:
-        with zipfile.ZipFile(archives[archive]) as package:
-            content = package.read(member)
-        path = output / target
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(content)
+    source_target = output / "src/djasm.c"
+    header_target = output / "include/coff.h"
+    source_target.parent.mkdir(parents=True, exist_ok=True)
+    header_target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, source_target)
+    shutil.copyfile(header, header_target)
 
     executable = output / "djasm-host.exe"
     process = subprocess.run(
-        [str(compiler), "-O2", "-std=gnu89", str(output / "src/djasm/djasm.c"), "-o", str(executable)],
+        [str(compiler), "-O2", "-std=gnu89", "-I", str(header_target.parent), str(source_target), "-o", str(executable)],
         capture_output=True,
         text=True,
         env=host_environment(compiler),
@@ -194,14 +130,13 @@ def build(bundle, compiler, output):
     report = {
         "passed": True,
         "hostToolOnly": True,
-        "method": "rebuilt-from-primary-source",
-        "sourceSha256": sha(output / "src/djasm/djasm.c"),
-        "headerSha256": sha(output / "include/coff.h"),
+        "method": "rebuilt-from-pinned-DJGPP-source",
+        "sourceSha256": sha(source_target),
+        "headerSha256": sha(header_target),
         "hostCompiler": str(compiler.resolve()),
         "hostCompilerSha256": sha(compiler),
         "executable": str(executable.resolve()),
         "executableSha256": sha(executable),
-        "archiveSha256": {name: sha(path) for name, path in archives.items()},
         "runtimeBundleManifestSha256": sha(bundle / "manifest.json"),
     }
     (output / "provenance.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

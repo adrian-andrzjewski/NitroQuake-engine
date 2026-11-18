@@ -6273,19 +6273,14 @@
       "bytes": 9930
     },
     {
-      "path": "prebuilt/djasm-host-provenance.json",
-      "bytes": 739,
-      "sha256": "DD1D22368E5ED31E0655900A12B860F12BA1C180BA12459A9173C8F73F72E4D2"
+      "path": "primary/djgpp-host/include/coff.h",
+      "bytes": 11365,
+      "sha256": "EB7083EDCEDDF5A962AC913C5192CDD910B035B16FFEC6E51534F0069188AB53"
     },
     {
-      "path": "prebuilt/djasm-host.exe",
-      "bytes": 154552,
-      "sha256": "01C1C46B211E046D069F6C30DB28E5B6DF77F681F69058D7DFA5FBA1C0DE82AF"
-    },
-    {
-      "path": "primary/djdev205.zip",
-      "sha256": "4557DFB6C161D326680AE5FA71F0098AC49425A1B11B90A020B83162EB705DDA",
-      "bytes": 2509574
+      "path": "primary/djgpp-host/src/djasm.c",
+      "bytes": 214191,
+      "sha256": "F52F885A26BE4B2C2FED84C0DC6FE8D7460B53A96C99DB96C3EDDAB18F12F284"
     },
     {
       "path": "primary/djgpp/src/libc/ansi/locale/lconv.c",
@@ -7386,11 +7381,6 @@
       "path": "primary/djgpp/src/libm/math/w_pow.c",
       "sha256": "9E4FAC6FB8CBC190B856E3F3BA1F031BB3B52BE51FBE3B44F426D575A2EBD9C7",
       "bytes": 2462
-    },
-    {
-      "path": "primary/djlsr205.zip",
-      "sha256": "80690B6E44FF8BC6C6081FCA1F4FAEBA1591C4490B76EF0EC8B35847BAA5DEEA",
-      "bytes": 2047171
     },
     {
       "path": "primary/gcc-12.2.0/COPYING.RUNTIME",

@@ -42,10 +42,24 @@ if($LASTEXITCODE -ne 0){throw 'Primary DJGPP startup assembler compilation faile
 $manifest=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'dos-toolchain.json') -Raw | ConvertFrom-Json
 if([string]::IsNullOrWhiteSpace($ToolRoot)){$ToolRoot=Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) '486quake/tools'}
 $objdump=Join-Path (Join-Path $ToolRoot $manifest.djgpp.installDirectory) $manifest.djgpp.objdump
+$startupArchive=Join-Path $ToolRoot 'downloads/djlsr205.zip'
+if(-not (Test-Path -LiteralPath $startupArchive -PathType Leaf)){
+    throw "Pinned DJGPP startup source archive is missing: '$startupArchive'. Run tools/bootstrap-dos.ps1 first."
+}
+$runtimeManifest=Get-Content -LiteralPath (Join-Path $bundle 'manifest.json') -Raw | ConvertFrom-Json
+$startupSource=@($runtimeManifest.sources | Where-Object {
+    -not [string]::IsNullOrWhiteSpace([string]$_.sourceUrl) -and
+    [IO.Path]::GetFileName(([Uri]$_.sourceUrl).AbsolutePath) -eq 'djlsr205.zip'
+})
+if($startupSource.Count -ne 1){throw 'The pinned DJGPP startup-source manifest entry is missing or ambiguous.'}
+$actualStartupArchiveHash=(Get-FileHash -LiteralPath $startupArchive -Algorithm SHA256).Hash
+if($actualStartupArchiveHash -ne [string]$startupSource[0].sha256){
+    throw "Pinned DJGPP startup source archive hash mismatch: '$startupArchive'. Run tools/bootstrap-dos.ps1 -Force to replace it."
+}
 $crt=@($linked.runtimeInputs | Where-Object {$_.kind -eq 'runtime-object' -and [IO.Path]::GetFileName($_.path) -eq 'crt0.o'})
 if($crt.Count -ne 1){throw 'Exactly one linked CRT object must provide the embedded 16-bit startup helpers.'}
 $startupRoot=Join-Path $ReportRoot ('startup-' + $runId)
-& python (Join-Path $PSScriptRoot 'startup-linked-proof.py') --archive (Join-Path $bundle 'primary/djlsr205.zip') `
+& python (Join-Path $PSScriptRoot 'startup-linked-proof.py') --archive $startupArchive `
     --executable (Join-Path $BuildRoot $ExecutableName) --map $MapPath --crt-object $crt[0].path `
     --djasm (Join-Path $djasmRoot 'djasm-host.exe') --objdump $objdump --output $startupRoot
 if($LASTEXITCODE -ne 0){throw 'Primary startup sources do not match their final executable bytes.'}
