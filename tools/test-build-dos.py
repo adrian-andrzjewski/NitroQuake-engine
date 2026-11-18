@@ -173,7 +173,7 @@ def main() -> int:
         text=True,
     )
     if host_tool_test.returncode:
-        fail("the hash-bound DJASM host-helper fallback failed: " + host_tool_test.stderr.strip())
+        fail("the source-built DJASM host-helper validation failed: " + host_tool_test.stderr.strip())
     elif host_tool_test.stdout.strip():
         print(host_tool_test.stdout.strip())
 

@@ -109,7 +109,8 @@ def build(bundle, compiler, output):
     index, files = load_bundle(bundle)
     source, header = primary_sources(bundle, files)
     output.mkdir(parents=True, exist_ok=True)
-    source_target = output / "src/djasm.c"
+    # Keep the upstream relative layout: djasm.c includes ../../include/coff.h.
+    source_target = output / "src/djasm/djasm.c"
     header_target = output / "include/coff.h"
     source_target.parent.mkdir(parents=True, exist_ok=True)
     header_target.parent.mkdir(parents=True, exist_ok=True)
