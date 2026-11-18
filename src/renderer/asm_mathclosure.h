@@ -1,4 +1,5 @@
 /* Math support ABI: packed float vectors/matrices, original C scalar types. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_MATHCLOSURE_H
 #define ASM_MATHCLOSURE_H
 typedef char mc_pointer_size[(sizeof(void *) == 4) ? 1 : -1];

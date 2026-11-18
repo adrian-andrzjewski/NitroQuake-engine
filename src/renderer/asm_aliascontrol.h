@@ -1,4 +1,5 @@
 /* Original alias control layout and independently observed test boundaries. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_ALIASCONTROL_H
 #define ASM_ALIASCONTROL_H
 #ifndef __ASSEMBLER__

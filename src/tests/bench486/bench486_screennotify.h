@@ -1,4 +1,5 @@
 /* Direct SCR_DrawNotifyString C/assembly argument and framebuffer parity. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SCREEN_NOTIFY_H
 #define BENCH486_SCREEN_NOTIFY_H
 

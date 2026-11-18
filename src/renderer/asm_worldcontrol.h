@@ -1,4 +1,5 @@
 /* World-control storage contracts and independent original-C boundaries. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_WORLDCONTROL_H
 #define ASM_WORLDCONTROL_H
 #define WORLD_BMODEL_CACHE_SLOTS 8

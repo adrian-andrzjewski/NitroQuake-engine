@@ -1,4 +1,5 @@
 /* i486 assembly layout shared with src/renderer/r_misc.c. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_TIMEGRAPH_H
 #define ASM_TIMEGRAPH_H
 

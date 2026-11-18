@@ -1,4 +1,5 @@
 /* ABI contract for the i486 Mod_LoadModel dispatcher. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_MODELLOAD_H
 #define ASM_MODELLOAD_H
 #ifndef __ASSEMBLER__

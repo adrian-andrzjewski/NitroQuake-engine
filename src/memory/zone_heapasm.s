@@ -1,4 +1,5 @@
 /* i486 zone heap initialization, tagged allocation, and free/coalesce. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "memory/asm_zoneheap.h"
 #include "memory/asm_cachealloc.h"

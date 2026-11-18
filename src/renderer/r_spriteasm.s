@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // Complete top-level sprite orientation and dispatch: r_sprite.c:R_DrawSprite.
 // 32-bit cdecl, no parameters; reads the same renderer/entity globals as C.
 // EBP is the frame pointer; EBX owns psprite; ESI/EDI are copy scratch.

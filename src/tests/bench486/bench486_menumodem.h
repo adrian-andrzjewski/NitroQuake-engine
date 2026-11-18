@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENUMODEM_H
 #define BENCH486_MENUMODEM_H
 

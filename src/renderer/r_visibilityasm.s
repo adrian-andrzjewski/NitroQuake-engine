@@ -4,6 +4,7 @@ This program is free software; you can redistribute it and/or modify it under
 the GNU General Public License, version 2 or (at your option) any later version.
 This program is distributed without any warranty. See the accompanying license.
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 
 /* Runtime visibility support: model.c Mod_PointInLeaf, Mod_DecompressVis,
  * Mod_LeafPVS. C owns models, BSP nodes, planes and mod_novis; this module owns

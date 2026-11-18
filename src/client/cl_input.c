@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // cl.input.c  -- builds an intended movement command to send to the server
 
 // Quake is a trademark of Id Software, Inc., (c) 1996 Id Software, Inc. All

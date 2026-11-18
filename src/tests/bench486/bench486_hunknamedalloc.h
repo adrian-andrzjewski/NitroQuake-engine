@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for low/high named hunk allocation and wrapper. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_HUNK_NAMED_ALLOC_FIXTURE)
 #define BHNA_ARENA_SIZE 1024
 #define BHNA_CASE_COUNT 6

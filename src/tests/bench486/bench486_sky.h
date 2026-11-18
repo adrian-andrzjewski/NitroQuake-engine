@@ -1,5 +1,6 @@
 /* Independent sky oracles: exact pixels, palette words, cached state and ABI.
    Included only by the BENCH486 harness. No similarity threshold or tolerance. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_SKY
 extern void R_InitSky_C(texture_t *);
 extern void R_MakeSky_C(void);

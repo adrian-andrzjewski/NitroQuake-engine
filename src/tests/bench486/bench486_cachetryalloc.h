@@ -1,4 +1,5 @@
 /* Direct Cache_TryAlloc C/assembly parity over bounded hunk layouts. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_CACHE_TRY_ALLOC_FIXTURE)
 typedef struct bench486_cache_tryalloc_snapshot_s
 {

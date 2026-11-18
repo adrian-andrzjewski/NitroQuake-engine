@@ -1,4 +1,5 @@
 /* C/assembly parity for renderer-reachable menu state entry points. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENU_STATE_ENTRIES_H
 #define BENCH486_MENU_STATE_ENTRIES_H
 

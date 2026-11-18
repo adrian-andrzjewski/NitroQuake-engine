@@ -1,4 +1,5 @@
 /* Exact C/assembly state parity for screen.c:SCR_CalcRefdef. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SCREEN_REFDEF_H
 #define BENCH486_SCREEN_REFDEF_H
 

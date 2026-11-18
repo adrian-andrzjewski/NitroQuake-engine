@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for the multiplayer search menu draw path. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENU_SEARCH_DRAW_H
 #define BENCH486_MENU_SEARCH_DRAW_H
 

@@ -3,6 +3,7 @@
  * Normal builds assemble this maintained schedule; no C renderer generation.
  * Cdecl. Preserve EBX/ESI/EDI/EBP, ESP, DF and x87 control/stack depth.
  * Matrix stores, linked-list updates and traversal order are parity contracts. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 
 .text
 .p2align 3

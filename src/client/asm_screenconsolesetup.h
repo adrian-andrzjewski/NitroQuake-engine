@@ -1,4 +1,5 @@
 /* Layout and entry contract for SCR_SetUpToDrawConsole's i486 assembly core. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_SCREEN_CONSOLE_SETUP_H
 #define ASM_SCREEN_CONSOLE_SETUP_H
 

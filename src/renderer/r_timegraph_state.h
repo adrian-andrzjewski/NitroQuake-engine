@@ -1,4 +1,5 @@
 /* Shared C state layout for the R_TimeGraph reference and assembly paths. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef R_TIMEGRAPH_STATE_H
 #define R_TIMEGRAPH_STATE_H
 

@@ -1,4 +1,5 @@
 /* Stable scoreboard frag sort from src/client/sbar.c:Sbar_SortFrags. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_SBAR_FRAGS
 
 .extern _cl

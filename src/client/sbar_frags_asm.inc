@@ -1,4 +1,5 @@
 /* Status-bar top frag strip from src/client/sbar.c:Sbar_DrawFrags. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_SBAR_FRAGS
 
 #if defined(BENCH486) && defined(ASM486_SBAR_FRAGS_FIXTURE)

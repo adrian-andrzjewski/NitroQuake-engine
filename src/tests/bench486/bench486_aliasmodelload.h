@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_ALIAS_MODEL_LOAD_FIXTURE)
 #include <stdarg.h>
 #include "assets/asm_modelload.h"

@@ -1,4 +1,5 @@
 /* Audited view/camera storage and constant contracts. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_VIEWCONTROL_H
 #define ASM_VIEWCONTROL_H
 

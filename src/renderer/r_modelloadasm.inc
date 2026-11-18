@@ -1,4 +1,5 @@
 /* Cold model-cache miss dispatcher used by the alias rendering path. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 .equ MOD_NEEDLOAD_OFFSET, 64
 .equ MOD_TYPE_OFFSET, 68
 .equ MOD_NUMFRAMES_OFFSET, 72

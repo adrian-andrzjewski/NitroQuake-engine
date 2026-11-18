@@ -1,4 +1,5 @@
 /* i486/387 compiler-scheduled body for SV_RecursiveHullCheck. The C function remains the reference. Keep this x87 schedule and recursive argument order intact. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 	.data
 	.p2align 2
 .Lsvhc_LC12:

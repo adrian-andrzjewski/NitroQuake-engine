@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // asm486_world.s
 // World, brush-model, and clipped-submodel rendering routines.
 

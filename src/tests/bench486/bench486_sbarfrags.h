@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for status-bar frag-strip composition. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SBARFRAGS_H
 #define BENCH486_SBARFRAGS_H
 

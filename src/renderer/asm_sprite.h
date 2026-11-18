@@ -1,4 +1,5 @@
 /* DJGPP i486 sprite orientation ABI. r_sprite.c asserts each consumed layout. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #define so_entity_angles          120
 #define so_entity_model           132
 #define so_entity_frame           140

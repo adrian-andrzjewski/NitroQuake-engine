@@ -1,4 +1,5 @@
 /* Original chase storage contracts and independent benchmark boundaries. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_CHASE_H
 #define ASM_CHASE_H
 #ifndef __ASSEMBLER__

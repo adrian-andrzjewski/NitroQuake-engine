@@ -1,4 +1,5 @@
 /* Benchmark-only drawing assembly adapters and C-oracle entry points. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_DRAWING_IFACE_H
 #define BENCH486_DRAWING_IFACE_H
 

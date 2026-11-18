@@ -1,4 +1,5 @@
 /* Direct Cache_Free C/assembly parity over address and LRU list removals. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_CACHE_FREE_FIXTURE)
 typedef struct bench486_cache_free_snapshot_s
 {

@@ -11,7 +11,6 @@ and policy live in the [documentation index](../INDEX.md).
 | [Pure-assembler candidates](PURE-ASSEMBLER-CANDIDATES.md) | Historical conversion survey and individual source notes |
 | [Renderer completion gaps](RENDERER-COMPLETION-GAPS.md) | Older selector and renderer-ownership snapshots |
 | [VESA 320x200 performance plan](VESA-320X200-PERFORMANCE-PLAN.md) | Dated proposal and its original assumptions |
-| [Restart handoff from 2026-10-07](RESTART-HANDOFF-20261007.md) | Development checkpoint and continuation notes |
 
 The full experiment ledger is maintained separately and remains the canonical
 record of accepted and rejected attempts.

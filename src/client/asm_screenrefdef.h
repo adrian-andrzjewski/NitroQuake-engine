@@ -1,4 +1,5 @@
 /* Audited structure contracts for screen.c:SCR_CalcRefdef. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_SCREEN_REFDEF_H
 #define ASM_SCREEN_REFDEF_H
 

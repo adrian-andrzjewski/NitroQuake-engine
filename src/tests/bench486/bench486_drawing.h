@@ -1,4 +1,5 @@
 /* Exact original framebuffer algorithms, including persistent cache/descriptor state. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_DRAWING
 #include "renderer/asm_drawing.h"
 #include "tests/bench486/bench486_drawing_iface.h"

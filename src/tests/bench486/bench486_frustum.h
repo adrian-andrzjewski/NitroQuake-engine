@@ -1,4 +1,5 @@
 /* Direct C/i486 parity fixture for R_TransformFrustum's numerical core. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_FRUSTUM_H
 #define BENCH486_FRUSTUM_H
 

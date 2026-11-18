@@ -1,4 +1,5 @@
 /* Layout and constants shared by the console scrollback resize routine. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_CONSOLE_CHECK_RESIZE_H
 #define ASM_CONSOLE_CHECK_RESIZE_H
 

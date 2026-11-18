@@ -10,6 +10,7 @@ x87 starts/ends empty and retains the caller's control word on every path.
 The 131-byte bottom rows deliberately include three wrap pixels for unaligned
 dword sampling. Palette index zero has the original transparent-mask behavior.
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "renderer/asm_sky.h"
 #undef i486

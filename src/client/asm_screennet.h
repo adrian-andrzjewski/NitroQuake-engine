@@ -1,4 +1,5 @@
 /* Layout contract for screen.c:SCR_DrawNet. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_SCREEN_NET_H
 #define ASM_SCREEN_NET_H
 

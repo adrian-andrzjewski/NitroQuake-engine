@@ -1,4 +1,5 @@
 /* Direct Cache_Alloc C/assembly parity for empty and eviction paths. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_CACHE_ALLOC_FIXTURE)
 typedef struct bench486_cache_alloc_snapshot_s
 {

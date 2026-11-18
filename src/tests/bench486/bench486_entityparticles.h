@@ -1,4 +1,5 @@
 /* Exact C-oracle versus i486 state/RNG coverage for R_EntityParticles. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_ENTITYPARTICLES_H
 #define BENCH486_ENTITYPARTICLES_H
 

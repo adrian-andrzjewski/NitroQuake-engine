@@ -1,4 +1,5 @@
 /* Exact console-output fixture for src/renderer/r_misc.c:R_PrintAliasStats. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_ALIASSTATS_H
 #define BENCH486_ALIASSTATS_H
 

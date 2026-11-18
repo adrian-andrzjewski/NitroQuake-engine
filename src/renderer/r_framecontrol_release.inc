@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 /* Frame control: release instruction body. Initial C source SHA256:
  * 7450F6A210849FA0272B07AB284DFAE6A21640FB6671E216E8440B211F3B3E87
  * GCC 12.2.0 DJGPP -march=i486 -mtune=i486; see docs/renderer-assembly/frame-control-provenance.json.

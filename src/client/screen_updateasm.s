@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_UpdateScreen orchestration, kept in source order and 486 instruction set.
 // The rendering algorithms remain in their independently selected routines.
 #include "asm_i386.h"

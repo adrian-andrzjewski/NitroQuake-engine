@@ -1,4 +1,5 @@
 /* C/assembly parity for the key-binding menu and its lookup helper. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENUKEYS_H
 #define BENCH486_MENUKEYS_H
 

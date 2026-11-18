@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for temporary high-hunk allocation. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_HUNK_TEMP_ALLOC_FIXTURE)
 #define BHTA_ARENA_SIZE 512
 #define BHTA_CASE_COUNT 10

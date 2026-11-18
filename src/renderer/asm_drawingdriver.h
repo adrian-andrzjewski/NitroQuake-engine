@@ -1,4 +1,5 @@
 /* Audited 32-bit drawing-driver storage contracts. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_DRAWINGDRIVER_H
 #define ASM_DRAWINGDRIVER_H
 #define dd_pointer_size 4

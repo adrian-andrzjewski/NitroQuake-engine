@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // VBE 2.0 DOS video. Mode numbers always come from the BIOS mode list.
 #include <stdlib.h>
 #include <string.h>

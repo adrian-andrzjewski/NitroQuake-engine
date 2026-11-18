@@ -1,6 +1,65 @@
 # Windows-hosted DOS build output and emulator staging.
 /out/
 /testdata/
+**/out/
+**/id1/
+
+# Quake game data and captures are never part of this source repository.
+*.pak
+*.PAK
+*.wad
+*.WAD
+*.bsp
+*.BSP
+*.mdl
+*.MDL
+*.md2
+*.MD2
+*.spr
+*.SPR
+*.lmp
+*.LMP
+*.dem
+*.DEM
+*.wav
+*.WAV
+*.ogg
+*.OGG
+*.mp3
+*.MP3
+*.pcx
+*.PCX
+*.bmp
+*.BMP
+*.png
+*.PNG
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.tga
+*.TGA
+
+# Generated/vendor binaries and package archives. The two CWSDPMI executables
+# below are intentionally tracked under the accompanying GPL/CWSDPMI notices.
+*.exe
+*.EXE
+!/src/cwsdpmi.exe
+!/tools/isa-provider-reference/original-cwsdpmi.exe
+*.dll
+*.DLL
+*.zip
+*.ZIP
+*.ncb
+*.NCB
+*.lib
+*.LIB
+!tools/isa-runtime-reference/licenses/djgpp/copying.lib
+*.obj
+*.o
+*.a
+*.pdb
+*.ilk
 
 # Stray files from legacy direct-to-repository DOS runs. The supported runners
 # stage these under /out/; keep accidental root-level output out of Git too.

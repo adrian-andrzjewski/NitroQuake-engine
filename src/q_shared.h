@@ -1,4 +1,5 @@
 /* Limits shared by the client, server, model and sound interfaces. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef Q_SHARED_H
 #define Q_SHARED_H
 

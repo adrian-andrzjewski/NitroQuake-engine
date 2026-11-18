@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // r_alias.c: routines for setting up to draw alias models
 
 #include <math.h>

@@ -1,4 +1,5 @@
 /* BENCH-only typed boundaries. Null probes execute the unchanged real calls. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include <stdarg.h>
 aliashdr_t *(*bench486_aliascontrol_model_probe)(model_t *);
 void (*bench486_aliascontrol_probe)(unsigned,unsigned,const unsigned *);

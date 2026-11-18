@@ -6,6 +6,7 @@
  * when the comparison is ordered and unequal.  The benchmark C oracle uses
  * separately exposed state so direct tests can save and restore both paths.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 .section .bss
 .balign 4
 #ifdef BENCH486

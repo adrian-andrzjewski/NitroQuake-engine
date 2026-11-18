@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // r_lightasm.s
 //
 // i486 assembly implementation of the renderer's BSP dynamic-light marking

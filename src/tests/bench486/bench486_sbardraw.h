@@ -1,4 +1,5 @@
 /* Direct C/assembly parity for the per-frame status-bar dispatcher. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #ifndef BENCH486_SBAR_DRAW_H
 #define BENCH486_SBAR_DRAW_H

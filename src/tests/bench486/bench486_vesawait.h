@@ -1,4 +1,5 @@
 /* C reference versus i486 VESA wait-gate and retrace-port cases. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_VESA_WAIT_H
 #define BENCH486_VESA_WAIT_H
 

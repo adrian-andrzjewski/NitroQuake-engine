@@ -7,6 +7,7 @@
  * only baseline 486 integer instructions, preserves EBX/ESI/EDI/EBP, leaves
  * the x87 state unchanged, and restores its two stack arguments after the call.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 
 .arch i486

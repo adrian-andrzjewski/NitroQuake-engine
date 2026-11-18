@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for the zone heap core. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_ZONE_HEAP_FIXTURE)
 #define BZH_ARENA_SIZE 1024
 #define BZH_RESULT_COUNT 8

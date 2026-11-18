@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_VESA_LIFECYCLE_H
 #define ASM_VESA_LIFECYCLE_H
 

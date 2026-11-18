@@ -1,4 +1,5 @@
 /* Shared key-state constants for the i486 console drawing implementations. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_CONSOLEINPUT_H
 #define ASM_CONSOLEINPUT_H
 

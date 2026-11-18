@@ -1,4 +1,5 @@
 /* C-reference versus i486 VESA resource-lifecycle cases. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_VESA_LIFECYCLE_H
 #define BENCH486_VESA_LIFECYCLE_H
 

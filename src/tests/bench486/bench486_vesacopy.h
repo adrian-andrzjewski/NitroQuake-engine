@@ -1,4 +1,5 @@
 /* Direct VESA C/assembly rectangle-copy parity over guarded frame buffers. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_VESA_COPY_RECTS_FIXTURE)
 
 static void Bench486VesaRect (vrect_t *rect, int x, int y, int width,

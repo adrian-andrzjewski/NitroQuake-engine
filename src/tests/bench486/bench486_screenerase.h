@@ -1,4 +1,5 @@
 /* Direct SCR_EraseCenterString state, tile-clear trace and ABI parity. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SCREEN_ERASE_H
 #define BENCH486_SCREEN_ERASE_H
 

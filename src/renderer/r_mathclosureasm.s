@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 
 /* Math support instruction ownership, imported once from the pinned C oracle.
  * Source SHA256: A57CC56F7BF565AEA70BC6E324B82CD393DC5F2A075E0B5F184019A76B798D70

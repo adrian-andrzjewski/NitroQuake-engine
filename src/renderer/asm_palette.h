@@ -1,4 +1,5 @@
 /* view.c palette state layout; independently asserted by the C oracle. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #define p_client_items 156
 #define p_client_shifts 292
 #define p_client_previous 356

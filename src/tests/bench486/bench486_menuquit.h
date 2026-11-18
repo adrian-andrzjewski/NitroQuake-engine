@@ -1,4 +1,5 @@
 /* C/assembly parity for the quit dialog and its recursive menu redraw. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENUQUIT_H
 #define BENCH486_MENUQUIT_H
 

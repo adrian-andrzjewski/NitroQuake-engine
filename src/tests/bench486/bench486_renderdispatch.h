@@ -1,6 +1,7 @@
 /* Compare the pinned C adapters with the assembly entries at the outgoing ABI.
    Typed C backend observers never call an assembly implementation. Backend
    algorithms retain their independent exact-output fixtures and scene tests. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "tests/bench486/bench486_sprite_hooks.h"
 
 #ifdef ASM486_RENDER_DISPATCH

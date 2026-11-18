@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for high-hunk cache reclamation. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_CACHE_FREE_HIGH_FIXTURE)
 #define BCFH_ARENA_SIZE 512
 #define BCFH_USER_COUNT 3

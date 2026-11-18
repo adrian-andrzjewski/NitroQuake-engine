@@ -1,4 +1,5 @@
 /* Hand-maintained sky layout, checked against the original C definitions. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_SKY_H
 #define ASM_SKY_H
 #define sky_texture_mip_offsets 44

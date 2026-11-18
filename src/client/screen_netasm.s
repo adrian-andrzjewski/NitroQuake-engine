@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_DrawNet from screen.c. Preserve the source order and the compiler's
 // x87 comparison sequence so finite values and unordered values take the
 // same branches as the current i486 C build.

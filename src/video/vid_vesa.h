@@ -1,4 +1,5 @@
 /* VBE 2.0 mode-info decoding, kept independent of BIOS calls for testing. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef VID_VESA_H
 #define VID_VESA_H
 

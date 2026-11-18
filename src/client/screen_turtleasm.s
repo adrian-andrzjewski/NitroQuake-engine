@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_DrawTurtle from screen.c. The x87 comparisons mirror the current
 // i486 C object, including its condition-code tests for unordered values.
 #include "asm_i386.h"

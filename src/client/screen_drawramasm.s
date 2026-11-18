@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_DrawRam from screen.c, translated without changing the indicator rule.
 // Quake uses IEEE binary32 cvars. Clearing the sign bit and testing the
 // remaining bits is exactly C's !float truth test: both signed zeros are false,

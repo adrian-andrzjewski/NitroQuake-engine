@@ -1,4 +1,5 @@
 /* Direct C-oracle/assembly state and ABI coverage for R_TransformPlane. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_TRANSFORMPLANE_H
 #define BENCH486_TRANSFORMPLANE_H
 

@@ -14,6 +14,7 @@
  * All integer opcodes are valid on the i486; the floating-point operations
  * are baseline 80387 instructions. No compiler-generated code is involved.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 
 .arch i486

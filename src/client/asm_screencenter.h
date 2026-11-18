@@ -1,4 +1,5 @@
 /* Layout contract for the centered-message 486 assembly path. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_SCREEN_CENTER_H
 #define ASM_SCREEN_CENTER_H
 

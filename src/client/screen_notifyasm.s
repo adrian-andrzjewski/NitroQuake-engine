@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_DrawNotifyString from screen.c, expressed as auditable i486 assembly.
 //
 // 32-bit DJGPP cdecl, no arguments or return value. The routine uses only

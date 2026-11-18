@@ -1,4 +1,5 @@
 /* Direct Con_DrawInput C/assembly state and indexed-framebuffer parity. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_CONSOLE_INPUT_H
 #define BENCH486_CONSOLE_INPUT_H
 

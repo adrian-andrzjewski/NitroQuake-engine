@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // Renderer-visible math, equivalent to mathlib.c under the pinned i486 profile.
 // 32-bit cdecl: EBX/ESI/EDI/EBP preserved; EAX/ECX/EDX and x87 scratch.
 // x87 is empty on entry; VectorNormalize returns one extended value in ST(0).

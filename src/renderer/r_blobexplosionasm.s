@@ -5,6 +5,7 @@
  * random calls per emitted particle follow the C oracle.  IDIV is used for
  * each signed C remainder; no post-486 integer instruction is needed.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "quakeasm.h"
 

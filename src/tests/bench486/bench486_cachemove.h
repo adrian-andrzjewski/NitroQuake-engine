@@ -1,4 +1,5 @@
 /* Direct Cache_Move C/assembly parity for successful and failed relocation. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_CACHE_MOVE_FIXTURE)
 typedef struct bench486_cache_move_snapshot_s
 {

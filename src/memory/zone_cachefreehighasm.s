@@ -1,4 +1,5 @@
 /* i486 cache reclamation from the high hunk boundary. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "memory/asm_cachefreehigh.h"
 #undef i386

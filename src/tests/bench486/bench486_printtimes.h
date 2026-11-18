@@ -1,4 +1,5 @@
 /* Deterministic console/state fixtures for R_PrintTimes and R_PrintDSpeeds. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_PRINTTIMES_H
 #define BENCH486_PRINTTIMES_H
 

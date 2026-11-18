@@ -2,6 +2,7 @@
  * Independent C oracles preserve the original algorithms and call graph.
  * Exact state/result comparison; no floating-point or pixel tolerance.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_MATH_CLOSURE
 extern void ProjectPointOnPlane (vec3_t, const vec3_t, const vec3_t);
 extern void ProjectPointOnPlane_C (vec3_t, const vec3_t, const vec3_t);

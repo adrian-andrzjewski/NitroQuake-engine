@@ -1,4 +1,5 @@
 /* Renderer light-control ABI. r_light.c pins every consumed offset. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #define lc_client_time          572
 #define lc_client_worldmodel   2692
 #define lc_model_nodes          164

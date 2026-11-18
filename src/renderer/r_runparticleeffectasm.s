@@ -6,6 +6,7 @@
  * explosion types. Keep the random calls in the source order: they are part
  * of Quake's visible particle state and the libc RNG stream.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "quakeasm.h"
 

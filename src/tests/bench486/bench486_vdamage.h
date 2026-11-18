@@ -7,6 +7,7 @@
  * the BENCH486 correctness phase.  The fixture owns only private static test
  * storage and restores every global it changes.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_VDAMAGE_H
 #define BENCH486_VDAMAGE_H
 

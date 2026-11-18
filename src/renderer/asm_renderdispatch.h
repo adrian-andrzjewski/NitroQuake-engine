@@ -1,4 +1,5 @@
 /* Hand-maintained argument-adapter layouts; shared C storage owns no algorithms. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_RENDERDISPATCH_H
 #define ASM_RENDERDISPATCH_H
 #define rd_desc_nump 0

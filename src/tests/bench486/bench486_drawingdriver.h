@@ -1,4 +1,5 @@
 /* Exact original drawing-driver state, argument order, x87 and cdecl fixtures. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_DRAWING_DRIVER
 extern void (*bench486_driver_probe)(unsigned,unsigned,const unsigned *);
 extern cvar_t d_mipcap,d_mipscale;

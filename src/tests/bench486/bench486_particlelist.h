@@ -1,4 +1,5 @@
 /* Direct state/ABI comparison for R_ClearParticles's intrusive free list. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 extern particle_t *active_particles, *free_particles, *particles;
 extern int r_numparticles;
 extern void R_ClearParticles_C (void);

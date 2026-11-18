@@ -1,4 +1,5 @@
 /* C/assembly parity for menu page picture drawing. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENUPAGEDRAW_H
 #define BENCH486_MENUPAGEDRAW_H
 

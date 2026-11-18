@@ -1,4 +1,5 @@
 /* i486 translation of the recursive BSP entity-to-leaf traversal. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "collision/asm_findtouchedleafs.h"
 
 	.text

@@ -8,6 +8,7 @@
  * types 3 and 5. A BENCH486 fixture starts both independent counters at zero
  * and compares the two implementations in lockstep before gameplay begins.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "quakeasm.h"
 

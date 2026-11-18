@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_SetUpToDrawConsole from screen.c, expressed as auditable i486 + 387 code.
 //
 // 32-bit DJGPP cdecl, no arguments or return value. The C-compatible public

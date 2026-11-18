@@ -1,4 +1,5 @@
 /* Frozen frame-control ABI/layout contract. C owns shared state; assembly owns instructions. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_FRAMECONTROL_H
 #define ASM_FRAMECONTROL_H
 #include <stddef.h>

@@ -1,4 +1,5 @@
 /* Shared scalar types for renderer, video, memory, client and server APIs. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef Q_TYPES_H
 #define Q_TYPES_H
 

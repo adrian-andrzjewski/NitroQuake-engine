@@ -1,4 +1,5 @@
 /* Direct C/assembly state, buffer and ABI parity for console resize. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_SCREEN_CONSOLE_SETUP)
 #ifndef BENCH486_CON_RESIZE_H
 #define BENCH486_CON_RESIZE_H

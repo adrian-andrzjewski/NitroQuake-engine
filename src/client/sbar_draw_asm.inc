@@ -1,4 +1,5 @@
 /* Per-frame status-bar composition from src/client/sbar.c:Sbar_Draw. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_SBAR_DRAW_FIXTURE)
 #define SBAR_DRAW_TILE_CLEAR _Bench486SbarDrawTileClear
 #define SBAR_DRAW_INVENTORY _Bench486SbarDrawInventory

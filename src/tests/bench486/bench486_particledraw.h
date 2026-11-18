@@ -1,4 +1,5 @@
 /* Direct C-oracle versus i486 framebuffer/depth/ABI checks for D_DrawParticle. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_PARTICLEDRAW_H
 #define BENCH486_PARTICLEDRAW_H
 

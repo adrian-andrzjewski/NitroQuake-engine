@@ -7,6 +7,7 @@
  * rand() contract is nonnegative; the signed cases in the BENCH fixture make
  * this property auditable rather than relying on power-of-two masking.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "quakeasm.h"
 

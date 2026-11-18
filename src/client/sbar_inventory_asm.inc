@@ -1,6 +1,7 @@
 /* i486 -O3 assembly for src/client/sbar.c:Sbar_DrawInventory.
  * Keep the C implementation in BENCH builds as an exact rendering/state oracle.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 .section .rodata
 .p2align 2
 LC99:

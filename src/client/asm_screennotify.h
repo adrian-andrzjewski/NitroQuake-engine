@@ -1,4 +1,5 @@
 /* Shared viddef layout for SCR_DrawNotifyString's 486 assembly path. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_SCREEN_NOTIFY_H
 #define ASM_SCREEN_NOTIFY_H
 

@@ -1,4 +1,5 @@
 /* Reset the particle free list using the C renderer's particle_t layout. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "quakeasm.h"
 #include "renderer/asm_particlelist.h"

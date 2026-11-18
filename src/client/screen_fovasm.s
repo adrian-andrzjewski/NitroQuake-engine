@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // i486 x87 translation of screen.c:CalcFov (the selected GCC 12.2 -O3 path).
 // Keep the binary32 constants and operation order used by the C reference:
 // fov * (1/360f) * pi, FPTAN, width/tan, height/x, FPATAN, *360f, *(1/pi).

@@ -1,4 +1,5 @@
 /* Direct C/assembly parity for the multiplayer game-options renderer. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENUGAMEOPTIONS_H
 #define BENCH486_MENUGAMEOPTIONS_H
 

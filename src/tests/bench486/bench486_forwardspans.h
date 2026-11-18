@@ -1,4 +1,5 @@
 /* Direct C-oracle parity coverage for the legacy forward span generator. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_FORWARDSPANS_H
 #define BENCH486_FORWARDSPANS_H
 

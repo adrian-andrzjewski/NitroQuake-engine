@@ -1,4 +1,5 @@
 /* Independent original camera C, real hull traversal, full state and cdecl ABI. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_CHASE
 typedef struct {unsigned first[8];model_t model;unsigned last[8];} bench486_chase_model_t;
 typedef struct {unsigned first[8];dclipnode_t nodes[32];mplane_t planes[32];unsigned last[8];} bench486_chase_hull_t;

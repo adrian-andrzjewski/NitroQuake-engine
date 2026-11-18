@@ -2,6 +2,7 @@
    Backend algorithms have separate exact-result fixtures; a direct tail
    transfer must preserve their caller arguments, registers and return address.
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "tests/bench486/bench486_sprite_hooks.h"
 
 #ifdef ASM486_PUBLIC_BINDINGS

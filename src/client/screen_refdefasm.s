@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_CalcRefdef from screen.c, expressed as auditable i486 + 387 code.
 // The operation order follows the original scalar C routine. Renderer calls
 // remain explicit so their separately verified implementations stay visible.

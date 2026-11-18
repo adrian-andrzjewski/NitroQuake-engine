@@ -5,6 +5,7 @@
  * are integer stack bits, so p2f is 0x00000001, not the float encoding of 1.
  * TraceLine uses a 68-byte local frame; trace occupies 52 bytes at ESP+12.
  * Chase_Update uses a 112-byte frame; comments name each original operation. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 	.section .text
 	.p2align 3
 	.globl	_Chase_Init

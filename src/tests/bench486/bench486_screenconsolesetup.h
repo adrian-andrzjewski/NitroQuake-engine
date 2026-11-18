@@ -1,4 +1,5 @@
 /* Direct C/assembly state and call-trace parity for SCR_SetUpToDrawConsole. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SCREEN_CONSOLE_SETUP_H
 #define BENCH486_SCREEN_CONSOLE_SETUP_H
 

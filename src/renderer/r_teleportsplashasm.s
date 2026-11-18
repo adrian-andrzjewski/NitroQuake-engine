@@ -5,6 +5,7 @@
  * six rand calls per particle, and floating-point helper sequence follow the
  * C reference. VectorNormalize and VectorScale remain shared C routines.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "quakeasm.h"
 

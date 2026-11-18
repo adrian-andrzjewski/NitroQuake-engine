@@ -1,4 +1,5 @@
 /* Original C algorithms, real plane/frustum math, complete list/cache state and ABI. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "renderer/asm_worldcontrol.h"
 #ifdef ASM486_WORLD_CONTROL_FIXTURE
 typedef struct {unsigned first[8];model_t data[2];unsigned last[8];} wc_models_t;

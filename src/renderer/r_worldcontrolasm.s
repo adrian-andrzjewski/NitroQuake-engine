@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 /* BSP rotation, efrag lifetime and edge-frame control. */
 #if defined(ASM486_WORLD_CONTROL) || defined(ASM486_WORLD_ROTATION) || defined(ASM486_WORLD_EFRAGS) || defined(ASM486_WORLD_EDGE_FRAME)
 .arch i486

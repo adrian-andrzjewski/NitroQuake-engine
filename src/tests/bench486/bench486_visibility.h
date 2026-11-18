@@ -1,5 +1,6 @@
 /* Exact visibility buffer, leaf identity, unchanged-input and ABI comparisons.
  * Independent C routines use their own static buffer and call each other. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_VISIBILITY
 extern mleaf_t *Mod_PointInLeaf_C (vec3_t,model_t *);
 extern byte *Mod_DecompressVis (byte *,model_t *);

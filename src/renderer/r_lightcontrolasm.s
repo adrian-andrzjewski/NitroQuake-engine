@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // r_light.c light-style state and BSP point-light sampling.
 // i486 32-bit cdecl; preserve EBX/ESI/EDI/EBP, scratch EAX/ECX/EDX and x87.
 // x87 enters/leaves empty and the caller's control word is restored exactly.

@@ -1,4 +1,5 @@
 /* i486/387 translation of SV_ClipMoveToEntity for QuakeWorld/DOS. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 	.text
 	.extern C(SV_HullForEntity)
 	#ifdef ASM486_HULLCHECK

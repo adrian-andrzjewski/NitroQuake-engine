@@ -12,6 +12,7 @@ never convert these into cdecl arguments. Profiling and test hooks below retain
 the original C entry behavior and are excluded from release builds.
 Normal builds assemble this maintained source; no C-to-assembly generation.
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "renderer/asm_publicbindings.h"
 #undef i386 /* GCC's predefined macro must not rewrite the architecture name. */
 .arch i386

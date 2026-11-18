@@ -1,4 +1,5 @@
 /* Exact C-oracle parity coverage for the active i486 Z-span renderer. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_ZSPANS_H
 #define BENCH486_ZSPANS_H
 

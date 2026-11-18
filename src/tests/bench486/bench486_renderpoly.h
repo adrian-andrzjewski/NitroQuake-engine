@@ -2,6 +2,7 @@
    D_DrawPoly is the lifetime boundary: both implementations keep pverts in
    their stack frame, so the BENCH-only driver hook copies the descriptor and
    vertex records before that frame returns. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_RENDERPOLY_H
 #define BENCH486_RENDERPOLY_H
 

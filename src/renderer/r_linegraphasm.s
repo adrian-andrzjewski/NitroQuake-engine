@@ -15,6 +15,7 @@
  * stack depth is unchanged. The code uses baseline i486 integer instructions
  * and 387 instructions only.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "renderer/asm_draw.h"
 

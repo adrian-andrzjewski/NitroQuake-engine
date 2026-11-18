@@ -3,6 +3,7 @@
  * EBX/ESI/EDI/EBP preserved; EAX/ECX/EDX caller-owned.
  * Original loops, transparent indices, byte strides and division semantics.
  * Original source SHA256: 2A3CB6610EF604885AFF99B1A7F341494D8A0F43D2A46CBB183C3ABBD7FA6A45 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
  /* GNU C89 (GCC) version 12.2.0 (i586-pc-msdosdjgpp) */
  /* compiled by GNU C version 9.2.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version none */
  /* GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072 */

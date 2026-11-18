@@ -1,4 +1,5 @@
 /* VGA BIOS page-copy presentation path for i486 builds. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "video/asm_vgaswap.h"
 #undef i386

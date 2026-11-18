@@ -1,4 +1,5 @@
 /* Exact C/assembly framebuffer, state and ABI parity for SCR_DrawRam. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SCREEN_DRAW_RAM_H
 #define BENCH486_SCREEN_DRAW_RAM_H
 

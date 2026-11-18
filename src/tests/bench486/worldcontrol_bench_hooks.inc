@@ -1,4 +1,5 @@
 /* Typed BENCH486 call boundaries; the production algorithms are unchanged. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 void (*bench486_worldcontrol_probe)(unsigned,unsigned,const unsigned *);
 void Bench486WorldControlPrint(char *message,...)
 {

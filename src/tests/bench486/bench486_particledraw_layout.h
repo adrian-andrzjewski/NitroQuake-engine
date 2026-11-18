@@ -1,4 +1,5 @@
 /* Shared guarded raster-buffer dimensions for the particle parity fixtures. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_PARTICLEDRAW_LAYOUT_H
 #define BENCH486_PARTICLEDRAW_LAYOUT_H
 

@@ -1,4 +1,5 @@
 /* VESA dirty-rectangle bounds and copy path from VID_ExtraSwapBuffers. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "video/asm_vesacopy.h"
 #undef i386

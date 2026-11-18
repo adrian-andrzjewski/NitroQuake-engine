@@ -8,6 +8,7 @@
  * arguments; EBP is saved, and EAX/ECX/EDX are caller-owned.  Local vrect_t
  * layout and every accessed C structure offset are pinned in asm_viewcontrol.h.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "client/asm_viewcontrol.h"
 
 .macro VC_TEST_FLOAT symbol, true_label, false_label

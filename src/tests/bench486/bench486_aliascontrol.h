@@ -1,4 +1,5 @@
 /* Independent original C control, live vertex state, triangle routing and ABI. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "renderer/asm_aliascontrol.h"
 #ifdef ASM486_ALIAS_CONTROL
 extern int a_skinwidth,r_anumverts,r_amodels_drawn,r_ambientlight;

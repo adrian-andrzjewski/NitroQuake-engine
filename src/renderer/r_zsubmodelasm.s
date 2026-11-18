@@ -9,6 +9,7 @@
  * cdecl: model_t * at 4(%esp); EBX/ESI/EDI are preserved.  All instructions are
  * baseline i486 integer or 387 instructions.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "renderer/asm_zsubmodel.h"
 #undef i386

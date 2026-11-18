@@ -1,4 +1,5 @@
 /* i486/387 translation of SV_HullForBox and SV_HullForEntity. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 	.section .rodata
 	.p2align 2
 .Lhfe_solid_bsp:

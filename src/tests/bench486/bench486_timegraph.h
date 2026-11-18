@@ -1,4 +1,5 @@
 /* Exact C-reference and i486 coverage for R_TimeGraph's history and layout. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_TIMEGRAPH_H
 #define BENCH486_TIMEGRAPH_H
 

@@ -1,4 +1,5 @@
 /* Direct C/assembly parity for the VID_Update state machine. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_VID_UPDATE_FIXTURE)
 #ifndef BENCH486_VIDUPDATE_H
 #define BENCH486_VIDUPDATE_H

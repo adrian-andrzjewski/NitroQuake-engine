@@ -9,6 +9,7 @@ casts temporarily select truncation and restore the complete caller control
 word. Row tables and surface-cache objects remain canonical shared storage.
 Normal builds assemble this maintained file; no C-to-assembly generation.
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "renderer/asm_drawingdriver.h"
 #undef i386

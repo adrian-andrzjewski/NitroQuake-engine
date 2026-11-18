@@ -1,4 +1,5 @@
 /* Layout and selector contract for screen.c:SCR_UpdateScreen. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_SCREEN_UPDATE_H
 #define ASM_SCREEN_UPDATE_H
 

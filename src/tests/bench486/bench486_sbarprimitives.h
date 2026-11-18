@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for the status-bar digit and coordinate primitives. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SBAR_PRIMITIVES_H
 #define BENCH486_SBAR_PRIMITIVES_H
 

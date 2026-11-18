@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 //
 // d_copy.s
 // x86 assembly-language screen copying code.

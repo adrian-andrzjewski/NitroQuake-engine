@@ -1,4 +1,5 @@
 /* Direct C/assembly parity fixture for R_ZDrawSubmodelPolys. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_ZSUBMODEL_H
 #define BENCH486_ZSUBMODEL_H
 

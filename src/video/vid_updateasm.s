@@ -1,4 +1,5 @@
 /* i486 per-frame video update state machine from vid_dos.c:VID_Update. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "video/asm_vidupdate.h"
 #include "video/asm_viddirectrect.h"

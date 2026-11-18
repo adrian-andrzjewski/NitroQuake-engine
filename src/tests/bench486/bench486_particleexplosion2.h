@@ -1,4 +1,5 @@
 /* Exact C-oracle versus i486 state/ABI coverage for TE_EXPLOSION2 particles. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_PARTICLEEXPLOSION2_H
 #define BENCH486_PARTICLEEXPLOSION2_H
 

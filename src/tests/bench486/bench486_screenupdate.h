@@ -1,4 +1,5 @@
 /* Direct C/assembly SCR_UpdateScreen state, call-order and rect parity. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_SCREEN_UPDATE_H
 #define BENCH486_SCREEN_UPDATE_H
 

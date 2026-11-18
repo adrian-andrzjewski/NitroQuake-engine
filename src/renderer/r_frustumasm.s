@@ -12,6 +12,7 @@
  * forward vector, right vector, up vector. EBX/ESI/EDI/EBP and ESP are
  * preserved. x87 starts and ends empty; its control word is never changed.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "renderer/asm_frustum.h"
 #undef i486

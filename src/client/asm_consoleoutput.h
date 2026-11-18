@@ -1,4 +1,5 @@
 /* Shared layout and constants for the console output i486 implementation. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_CONSOLE_OUTPUT_H
 #define ASM_CONSOLE_OUTPUT_H
 

@@ -6,6 +6,7 @@
  * EBX/ESI/EDI/EBP preserved when used; EAX/ECX/EDX caller-owned.
  * Preserve the documented x87 operation order and every rounding store.
  * Constants are typed data outside the instruction section. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 
 .text
 .p2align 3

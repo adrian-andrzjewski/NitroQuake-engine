@@ -11,6 +11,7 @@
  * are preserved. The x87 control word and stack depth are restored. Integer
  * instructions are limited to the i486 ISA; the floating-point path uses 387.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "renderer/asm_timegraph.h"
 

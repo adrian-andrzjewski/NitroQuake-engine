@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // asm486_surface_cache.s
 // Surface gradients, texture animation, and surface-cache routines.
 

@@ -4,6 +4,7 @@
  * Cdecl, except R_AliasDrawModel receives its light pointer in EAX (regparm 1).
  * EBX/ESI/EDI/EBP are callee-owned; EAX/ECX/EDX and arithmetic flags are caller-owned.
  * Integer stores, x87 order, truncating CW changes and rounding stores are parity contracts. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 
 .text
 .p2align 3

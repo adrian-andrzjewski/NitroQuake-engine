@@ -1,4 +1,5 @@
 /* BENCH486 direct oracles for the complete r_light.c state/sample paths. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 extern void R_AnimateLight_C (void);
 extern void R_AnimateLight_asm486 (void);
 extern void Bench486AnimateState_C (int *state, int restore);

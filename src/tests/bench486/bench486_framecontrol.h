@@ -1,5 +1,6 @@
 /* Independent BENCH486 oracles for viewport, frustum and visibility control.
  * Frame submission is also checked by the paired full-renderer demo suite. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_FRAME_CONTROL
 extern void R_SetVrect_C (vrect_t *, vrect_t *, int);
 extern void R_ViewChanged_C (vrect_t *, int, float);

@@ -1,4 +1,5 @@
 /* Exact, independent view.c palette/gamma oracles; BENCH486 only. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 extern byte gammatable[256], bench486_gamma_before[32], bench486_gamma_after[32];
 extern cvar_t v_gamma;
 extern cshift_t cshift_empty, cshift_water, cshift_slime, cshift_lava;

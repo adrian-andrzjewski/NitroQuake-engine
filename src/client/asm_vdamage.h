@@ -1,4 +1,5 @@
 /* Assembly-visible layout contracts for V_ParseDamage. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_VDAMAGE_H
 #define ASM_VDAMAGE_H
 

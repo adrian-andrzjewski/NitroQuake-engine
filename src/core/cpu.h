@@ -12,6 +12,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 
 #ifndef NITROQUAKE_CPU_H
 #define NITROQUAKE_CPU_H

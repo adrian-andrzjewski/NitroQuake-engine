@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // SCR_UpdateScreen overlay decision block, split out without changing branch
 // order or the order of visible subsystem calls.
 #include "asm_i386.h"

@@ -1,4 +1,5 @@
 /* Direct Cache_Check C/assembly parity over controlled LRU rings. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_CACHE_CHECK_FIXTURE)
 
 typedef struct

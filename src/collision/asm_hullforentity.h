@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_HULL_FOR_ENTITY_H
 #define ASM_HULL_FOR_ENTITY_H
 

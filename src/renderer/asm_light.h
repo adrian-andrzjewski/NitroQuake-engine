@@ -4,6 +4,7 @@
  * consumed offset with offsetof/sizeof when either lighting assembly path is
  * selected.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #define ml_dlight_origin       0
 #define ml_dlight_radius       12
 #define ml_dlight_die          16

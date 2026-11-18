@@ -1,3 +1,4 @@
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 // Palette/gamma algorithms from view.c, kept in a separate auditable module.
 // i486 DJGPP cdecl. Preserve EBX/ESI/EDI/EBP; scratch EAX/ECX/EDX, x87.
 // Every entry leaves the x87 stack empty and preserves the control word.

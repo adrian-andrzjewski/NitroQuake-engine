@@ -1,4 +1,5 @@
 /* i486 cache free-block search and address/LRU list insertion. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "memory/asm_cachefree.h"
 #include "memory/asm_cachealloc.h"

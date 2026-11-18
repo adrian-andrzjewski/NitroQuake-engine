@@ -1,4 +1,5 @@
 /* Public renderer entry ABI; constants shared with the assembly module. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_PUBLIC_BINDINGS_H
 #define ASM_PUBLIC_BINDINGS_H
 #define ASM_PUBLIC_BINDINGS_ALIAS_GLUE_PROFILE 28

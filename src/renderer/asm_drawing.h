@@ -1,4 +1,5 @@
 /* 32-bit drawing storage contracts shared by C data and maintained assembly. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef ASM_DRAWING_H
 #define ASM_DRAWING_H
 #ifndef __ASSEMBLER__

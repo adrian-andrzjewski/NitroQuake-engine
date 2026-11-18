@@ -1,5 +1,6 @@
 /* Included only by the test-owned BENCH486 harness. The original C functions
  * remain independent oracles, compiled in their original translation units. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "tests/bench486/bench486_sprite_hooks.h"
 
 extern unsigned Bench486Call_asm486 (void (*function)(void), unsigned words,

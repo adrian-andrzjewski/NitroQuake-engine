@@ -1,6 +1,7 @@
 /* particle_t fields used by the selectable i486 particle-state routines.
  * The matching compile-time layout assertion lives in r_part.c.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef __ASM_PARTICLELIST_H__
 #define __ASM_PARTICLELIST_H__
 

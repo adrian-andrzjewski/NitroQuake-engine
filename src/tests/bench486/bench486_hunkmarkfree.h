@@ -1,4 +1,5 @@
 /* Exact C/assembly parity for low/high hunk mark reclamation. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #if defined(BENCH486) && defined(ASM486_HUNK_MARK_RELEASE_FIXTURE)
 #define BHMF_ARENA_SIZE 512
 

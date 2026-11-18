@@ -1,4 +1,5 @@
 /* C/assembly parity for server-cache sorting and server-list menu drawing. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifndef BENCH486_MENU_SERVERLIST_H
 #define BENCH486_MENU_SERVERLIST_H
 

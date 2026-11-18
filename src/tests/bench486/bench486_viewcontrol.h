@@ -1,4 +1,5 @@
 /* Independent original C camera algorithms; exact state, trace and ABI checks. */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #ifdef ASM486_VIEW_CONTROL
 #include "client/asm_screenfov.h"
 extern void (*bench486_view_probe)(unsigned,unsigned,const unsigned *);

@@ -6,6 +6,7 @@
  * shared TransformVector entry is the existing 32-bit x87 implementation in
  * math.s, which keeps its view-axis product and accumulation schedule intact.
  */
+/* NitroQuake modifications: see Git history for dates and details (notice: 2026-11-18). */
 #include "asm_i386.h"
 #include "quakeasm.h"
 
