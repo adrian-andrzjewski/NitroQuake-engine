@@ -48,8 +48,10 @@ if(-not (Test-Path -LiteralPath $startupArchive -PathType Leaf)){
 }
 $runtimeManifest=Get-Content -LiteralPath (Join-Path $bundle 'manifest.json') -Raw | ConvertFrom-Json
 $startupSource=@($runtimeManifest.sources | Where-Object {
-    -not [string]::IsNullOrWhiteSpace([string]$_.sourceUrl) -and
-    [IO.Path]::GetFileName(([Uri]$_.sourceUrl).AbsolutePath) -eq 'djlsr205.zip'
+    $sourceUrl=$_.PSObject.Properties['sourceUrl']
+    $null -ne $sourceUrl -and
+    -not [string]::IsNullOrWhiteSpace([string]$sourceUrl.Value) -and
+    [IO.Path]::GetFileName(([Uri]$sourceUrl.Value).AbsolutePath) -eq 'djlsr205.zip'
 })
 if($startupSource.Count -ne 1){throw 'The pinned DJGPP startup-source manifest entry is missing or ambiguous.'}
 $actualStartupArchiveHash=(Get-FileHash -LiteralPath $startupArchive -Algorithm SHA256).Hash

@@ -182,15 +182,17 @@ foreach ($artifact in $manifest.PSObject.Properties) {
 $runtimeManifestPath = Join-Path $PSScriptRoot 'isa-runtime-reference/manifest.json'
 $runtimeManifest = Get-Content -LiteralPath $runtimeManifestPath -Raw | ConvertFrom-Json
 $startupSources = @($runtimeManifest.sources | Where-Object {
-        -not [string]::IsNullOrWhiteSpace([string]$_.sourceUrl) -and
-        [IO.Path]::GetFileName(([Uri]$_.sourceUrl).AbsolutePath) -eq 'djlsr205.zip'
+        $sourceUrl = $_.PSObject.Properties['sourceUrl']
+        $null -ne $sourceUrl -and
+        -not [string]::IsNullOrWhiteSpace([string]$sourceUrl.Value) -and
+        [IO.Path]::GetFileName(([Uri]$sourceUrl.Value).AbsolutePath) -eq 'djlsr205.zip'
     })
 if ($startupSources.Count -ne 1) {
     throw "Expected one pinned djlsr205.zip source entry in '$runtimeManifestPath'."
 }
 $startupSource = $startupSources[0]
 $startupDefinition = [pscustomobject]@{
-    url = [string]$startupSource.sourceUrl
+    url = [string]$startupSource.PSObject.Properties['sourceUrl'].Value
     sha256 = [string]$startupSource.sha256
 }
 $startupArchive = Get-VerifiedArchive -Definition $startupDefinition
