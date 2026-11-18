@@ -1,0 +1,91 @@
+name: NitroQuake engine CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engine-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  i486-release:
+    name: i486 release build and verification
+    runs-on: windows-2022
+    timeout-minutes: 60
+
+    steps:
+      - name: Clone workspace for cross-repository documentation links
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch main https://github.com/adrian-andrzjewski/NitroQuake.git .
+          if ($LASTEXITCODE -ne 0) { throw 'Could not clone the public NitroQuake workspace.' }
+
+      - name: Clone complete engine history at the event revision
+        shell: pwsh
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          $engineRoot = Join-Path $env:GITHUB_WORKSPACE 'quake'
+          git clone --no-checkout --no-single-branch https://github.com/adrian-andrzjewski/NitroQuake-engine.git $engineRoot
+          if ($LASTEXITCODE -ne 0) { throw 'Could not clone the NitroQuake engine repository.' }
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
+            $fetchRef = "refs/pull/$env:PR_NUMBER/merge"
+          }
+          else {
+            $fetchRef = $env:GITHUB_REF
+          }
+          git -C $engineRoot fetch origin $fetchRef
+          if ($LASTEXITCODE -ne 0) { throw "Could not fetch engine revision ref '$fetchRef'." }
+          git -C $engineRoot checkout --detach $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Could not check out the event engine commit.' }
+          $actual = (git -C $engineRoot rev-parse HEAD).Trim()
+          if ($actual -ne $env:GITHUB_SHA) { throw "Engine checkout is $actual, expected $env:GITHUB_SHA." }
+          $shallow = (git -C $engineRoot rev-parse --is-shallow-repository).Trim()
+          if ($shallow -ne 'false') { throw 'The numbered build requires complete engine history.' }
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: 3.14.9
+
+      - name: Verify native Windows GCC
+        shell: pwsh
+        run: |
+          $gcc = Get-Command gcc -ErrorAction Stop
+          $target = (& $gcc.Source -dumpmachine).Trim()
+          if ($target -notmatch 'mingw32') {
+            throw "A native MinGW host compiler is required; found '$target'."
+          }
+          $version = (& $gcc.Source -dumpfullversion).Trim()
+          if ($version -ne '14.2.0') {
+            throw "Expected the reviewed runner-image MinGW GCC 14.2.0; found '$version'."
+          }
+          Write-Host "Host compiler: GCC $version ($target)"
+          "Host compiler: GCC $version ($target)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+
+      - name: Resolve DJGPP download cache path
+        id: tool-cache-path
+        shell: pwsh
+        run: |
+          $path = Join-Path $env:LOCALAPPDATA '486quake\tools\downloads'
+          "downloads=$path" | Add-Content -LiteralPath $env:GITHUB_OUTPUT
+
+      - name: Cache pinned toolchain archives
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.tool-cache-path.outputs.downloads }}
+          key: dos-tools-${{ runner.os }}-${{ hashFiles('quake/tools/dos-toolchain.json', 'quake/tools/isa-runtime-reference/manifest.json') }}
+
+      - name: Bootstrap pinned DJGPP toolchain
+        shell: pwsh
+        run: pwsh -NoProfile -File quake/tools/bootstrap-dos.ps1
+
+      - name: Run host, numbered i486 build, and ISA verification gates
+        shell: pwsh
+        run: pwsh -NoProfile -File quake/tools/run-tests.ps1 -NoBootstrap

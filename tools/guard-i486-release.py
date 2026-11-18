@@ -187,7 +187,10 @@ def main() -> int:
         elif name not in golden:
             problems.append("not in the golden:    %s" % name)
         elif golden[name] != entries[name][0]:
-            problems.append("changed:             %s" % name)
+            problems.append(
+                "changed:             %s (expected %s, actual %s)"
+                % (name, golden[name], entries[name][0])
+            )
 
     if problems:
         print("guard-i486-release: FAIL (%d)" % len(problems))

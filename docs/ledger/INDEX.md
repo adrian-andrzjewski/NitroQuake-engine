@@ -312,6 +312,7 @@ and summarized in the [current documentation index](../INDEX.md).
 | [2026-10-25-surf8-mip0-flat-row-counter.md](2026-10-25-surf8-mip0-flat-row-counter.md) | 1 | Mip-0 flat surface row counter in AH (2026-10-25) |
 | [2026-10-25-surf8-mip0-flat-helper-tail-jump-promoted.md](2026-10-25-surf8-mip0-flat-helper-tail-jump-promoted.md) | 1 | Mip-0 flat surface helpers tail-jump to block completion (2026-10-25) |
 | [2026-10-25-surf8-mip0-flat-dword-packing.md](2026-10-25-surf8-mip0-flat-dword-packing.md) | 1 | Mip-0 fully-flat rows use packed dword stores (2026-10-25) |
+| [2026-10-25-mip0-fully-flat-blocks-promoted.md](2026-10-25-mip0-fully-flat-blocks-promoted.md) | 0 | Mip-0 fully flat surface-block specialization / retain the historical accepted source-only change; later dword-packing work is a separate attempt |
 | [2026-10-25-surf8-mip0-first-texel-load-before-lightdelta-strict-rejected.md](2026-10-25-surf8-mip0-first-texel-load-before-lightdelta-strict-rejected.md) | 0 | Mip-0 first texel load before light-delta save rejected |
 | [2026-10-25-span16-u-load-early-screen-rejected.md](2026-10-25-span16-u-load-early-screen-rejected.md) | 0 | Span16 U-coordinate load moved into initial setup rejected |
 | [2026-10-25-span16-split-adjustment-load-schedule-promoted.md](2026-10-25-span16-split-adjustment-load-schedule-promoted.md) | 0 | Span16 split adjustment-load schedule promoted |
