@@ -17,7 +17,7 @@ implementation of table construction or pixel copying.
 
 ## Independent correctness and compatibility
 
-Control source is `fd2b7a5`. Only `asm486_experiments.s` differs after normalizing
+Control source is `93e22507fcfd`. Only `asm486_experiments.s` differs after normalizing
 line endings across 435 C/H/S/INC files. Its source SHA-256 is
 `8bece8906cd87c4ddbb902cb882b4a8de6457c10edb84525556be241c3485a88`.
 

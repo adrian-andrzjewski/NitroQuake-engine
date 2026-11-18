@@ -10,7 +10,7 @@ The new stack schedule removes five `FXCH` instructions for each clip-plane
 test pair. It adds no cache state and changes no clipping, projection, or edge
 emission decisions.
 
-The control and candidate both use source revision `23672ac13a39a955eb7dc389143ff07ef195eb22`,
+The control and candidate both use source revision `124316804cbebba73b893cae6fad971e36ee40c3`,
 Build 857, and the `i486-asm-selectable-current` profile. Their only source
 difference after line-ending normalization is `src/renderer/r_drawa.s`. The timedemo
 records identify source fingerprints `97C0D0C3B01A33A1FFA6805AAEE297B4739D6F287362842B7DE733E640578B01`

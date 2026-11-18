@@ -6,7 +6,7 @@ and low words directly. It accepts positive finite values, both signed zeros,
 and positive infinity; it rejects negative nonzero values and unordered NaNs,
 matching the C comparison while removing the reload and x87 status-word test.
 
-The candidate was measured against committed baseline `5f6db38` in the same
+The candidate was measured against committed baseline `6db77a3b17c1` in the same
 aggressive i486 profile with `BspWalkImplementation=asm` and
 `BmodelPolygonClipImplementation=asm`. Both used the pinned 32 MB DOSBox-X
 profile

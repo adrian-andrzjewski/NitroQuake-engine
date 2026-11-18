@@ -13,7 +13,7 @@ are untouched. The root invocation restores its original saved registers once.
 ## Native correctness and compatibility
 
 Only sv_cliptolinks_asm.inc differs across 435 normalized C/H/S/INC sources
-against b7aef96. Its SHA-256 is
+against 682998a8a3eb. Its SHA-256 is
 `bf1bc57fd26ef03d646ab0945789b0af4d78502a46f8bad49e3f9f4b195fc015`.
 
 The native old-assembly/new-assembly fixture passes 6,912 cases: balanced trees

@@ -6,7 +6,7 @@ Both the regular and submodel surfedge loops keep the existing strict-positive b
 
 ## Matched timedemo
 
-The committed parent control was `1fbd49e`. All runs used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the aggressive i486 selector profile, and the pinned 32 MB profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`.
+The committed parent control was `3a212e2086e4`. All runs used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the aggressive i486 selector profile, and the pinned 32 MB profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`.
 
 | Variant | Evidence | FPS samples | Spread | Mean FPS |
 |---|---|---|---:|---:|

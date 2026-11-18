@@ -16,7 +16,7 @@ opportunities rather than the cost of the runtime lookup path.
 
 The candidate qbench passed the strict i486 audit: 315,442 relocated
 instructions, with no above-target, unknown, or exempt instructions. The
-control was the clean renderer at 2b8be3a; both variants used the pinned
+control was the clean renderer at 19088c5f65cd; both variants used the pinned
 DOSBox-X 486 profile, 320x200 demo1, host_framerate 0.0783, frame checksums,
 Z checksums, and a frame-482 capture.
 

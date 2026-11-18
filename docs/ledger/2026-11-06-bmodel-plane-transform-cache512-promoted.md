@@ -37,7 +37,7 @@ undecoded, or non-instruction bytes. All 403 source proofs matched exactly.
 
 ## Matched uninstrumented timing
 
-The control is the clean 256-entry renderer at commit `56068a4`; the candidate
+The control is the clean 256-entry renderer at commit `8a5dfe9f809c`; the candidate
 changes only the cache entry count and mask. Both used DOSBox-X 2026.08.31,
 `cputype=486`, the 320-by-200 `demo1` workload, and the pinned profile SHA-256
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. Neither

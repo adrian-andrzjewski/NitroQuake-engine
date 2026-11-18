@@ -13,7 +13,7 @@ profile (`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`).
 
 | Variant | Artifact | FPS samples | Mean FPS |
 |---|---|---|---:|
-| Accepted control (`6ca3860`) | `out/dos-timedemo-20261027-044245/timedemo-result.json` | 16.156418 / 16.156441 / 16.156448 | 16.156435667 |
+| Accepted control (`d0e00f250c60`) | `out/dos-timedemo-20261027-044245/timedemo-result.json` | 16.156418 / 16.156441 / 16.156448 | 16.156435667 |
 | Positive-depth `rep stosl` | `out/dos-timedemo-20261027-060739/timedemo-result.json` | 16.165754 / 16.165786 / 16.165774 | 16.165771333 |
 
 The mean increased by **0.009335666 FPS (+0.05778%)**. All six runs rendered

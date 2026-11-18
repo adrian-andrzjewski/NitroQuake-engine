@@ -331,7 +331,7 @@ cannot measure" above) the result would be uninterpretable either way. Not
 pursued.
 
 The selector and its output directory have been removed; the tree is back to
-`43ebcab` with the release build re-verified.
+`d3a058139248` with the release build re-verified.
 
 ## What this harness can and cannot measure (2026-09-29)
 
@@ -477,7 +477,7 @@ emulating x87 rounding in integer arithmetic — far more expensive than the
 
 Recorded so the 7.8% figure is not resurrected. The probe, its
 `-ZSpanArithmetic` selector, and its `out\` directory have all been removed; the
-tree is back to `1f01959` and the release build re-verified at 969 frames and
+tree is back to `6326298b308d` and the release build re-verified at 969 frames and
 checksum `1047377823`, 59.265510 s.
 
 **Method note worth keeping:** the safe way to price a hot sequence is to

@@ -51,7 +51,7 @@ objects) matched exactly. The audit result is PASS.
 
 ## Matched release timing
 
-The control source is `f3804dc`; its renderer sources match the candidate base
+The control source is `4bc0d1dd6134`; its renderer sources match the candidate base
 before this change. Both variants used DOSBox-X 2026.08.31, the 320-by-200
 `demo1` workload, `cputype=486`, and profile SHA-256
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. Neither
@@ -76,7 +76,7 @@ about performance on physical 486 hardware.
 ## Rendering test suite
 
 `rtk python tools/test-rendering.py` ran 112 tests: 107 passed and five failed.
-The same five failures occurred at the clean control revision `f3804dc`:
+The same five failures occurred at the clean control revision `4bc0d1dd6134`:
 
 - Alias stats and linegraph fixtures expect 122 selectors but contain 140.
 - The smoke-runner fixture does not expose `VideoUpdateImplementation`.

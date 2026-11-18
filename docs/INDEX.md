@@ -55,3 +55,7 @@ Cite a document by its heading, never by line number. The
 Markdown links, heading structure, citations, and the exact ledger inventory.
 The ledger index links each experiment and includes a renderer-region
 cross-reference.
+
+## Publication history
+
+The [commit reference map](PUBLICATION-COMMIT-REFERENCES.md) links source history references in the preserved optimization records to their rewritten public commits.

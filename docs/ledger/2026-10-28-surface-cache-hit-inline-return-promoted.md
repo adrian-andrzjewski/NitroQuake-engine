@@ -20,7 +20,7 @@ matching renderer event traces.
 
 | Variant | Artifact | FPS samples | Mean FPS | Median FPS |
 |---|---|---|---:|---:|
-| Strict control (`c9da308`) | `out/dos-timedemo-20261028-193608/timedemo-result.json` | 16.241473 / 16.241484 / 16.241490 | 16.241482333 | 16.241484 |
+| Strict control (`098264281005`) | `out/dos-timedemo-20261028-193608/timedemo-result.json` | 16.241473 / 16.241484 / 16.241490 | 16.241482333 | 16.241484 |
 | Inline cache-hit epilogue | `out/dos-timedemo-20261028-204019/timedemo-result.json` | 16.241862 / 16.241913 / 16.241886 | 16.241887000 | 16.241886 |
 
 The candidate gained **0.000404667 FPS (+0.00249156%) by mean**. Every

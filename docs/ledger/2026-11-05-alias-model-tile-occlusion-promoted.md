@@ -45,7 +45,7 @@ release run rendered 969 frames and ended at framebuffer checksum
 Both variants used DOSBox-X 2026.08.31, the pinned 320-by-200 `demo1` workload,
 and the `cputype=486` profile with SHA-256
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. The
-timing control was the clean source at commit `1ca2ef9`; neither variant used
+timing control was the clean source at commit `0b33158b4044`; neither variant used
 per-frame FPS instrumentation.
 
 | Variant | FPS samples | Mean FPS |

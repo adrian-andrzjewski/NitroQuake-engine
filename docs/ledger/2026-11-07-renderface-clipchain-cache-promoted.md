@@ -25,7 +25,7 @@ not use this cache. The instrumented run's FPS is not release timing evidence.
 ## Output parity
 
 The candidate at `out/dos-timedemo-20261107-083815` matches the clean
-`6747b3d` control at
+`8563138efc33` control at
 `out/worktree-renderface-clipchain-control-20261107/out/dos-timedemo-20261107-085849`
 for every recorded color and Z row and for the captured frame 482 PCX. Their
 SHA-256 values are:

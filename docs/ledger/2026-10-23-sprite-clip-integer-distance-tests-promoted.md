@@ -7,7 +7,7 @@ preserve both signed zeros, ordered positive and negative values, infinities,
 and unordered NaNs while removing six x87 `FTST` / status-word sequences from
 each vertex iteration.
 
-The candidate was measured against committed baseline `817bd59` in the same
+The candidate was measured against committed baseline `3e0a2beab117` in the same
 aggressive i486 profile with `SpriteClipImplementation=asm`,
 `BspWalkImplementation=asm`, and `BmodelPolygonClipImplementation=asm`. Both
 used the pinned 32 MB DOSBox-X profile

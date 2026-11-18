@@ -2,7 +2,7 @@
 
 ## Candidate
 
-Starting from `e303693`, `src/renderer/r_edgea.s` cached `current_iv << 16` once
+Starting from `b851813c11e3`, `src/renderer/r_edgea.s` cached `current_iv << 16` once
 at `R_GenerateSpans` entry. The three forward span-emission sites loaded
 that cached word, inserted U with `movw %dx,%ax`, and stored the adjacent
 16-bit U/V fields together with one `movl`. This replaced two short stores

@@ -24,7 +24,7 @@ checked bounds are:
 
 Fresh release, C-reference, and PROFILE486 builds passed the generated-frame
 and preprocessed-runtime checks from game revision
-`5d3a31fe8be35540b86cca1067f8cfa9f30176ba`:
+`20e9b0d690c4747ff5b37b11befbb7c2658a2875`:
 
 | Configuration | Build command | Stack result | Linked ISA result |
 | --- | --- | --- | --- |
@@ -32,9 +32,9 @@ and preprocessed-runtime checks from game revision
 | C reference | `tools/build-dos.ps1 -Configuration c-reference -CpuTarget i486 -NoBootstrap -LocalOutputDirectoryName stack-81581f7-c-reference` | `172792 + 124 * world_depth`; fallback `236808 + 124 * world_depth` | PASS; 176,946 instructions, zero above-i486, unknown, or exempt instructions |
 | PROFILE486 | `tools/build-dos-experimental.ps1 -Benchmark -Instrumentation -CpuTarget i486 -NoBootstrap -LocalOutputDirectoryName stack-81581f7-profile486` | `172992 + 136 * world_depth`; fallback `237008 + 136 * world_depth` | PASS; 327,390 instructions, zero above-i486, unknown, or exempt instructions |
 
-The product build IDs are `5d3a31fe8be3-fea6f8197369` (release),
-`5d3a31fe8be3-d0ae26160063` (C reference), and
-`5d3a31fe8be3-8be289edfcc6` (PROFILE486). Their executable SHA-256 values are
+The product build IDs are `20e9b0d690c4-fea6f8197369` (release),
+`20e9b0d690c4-d0ae26160063` (C reference), and
+`20e9b0d690c4-8be289edfcc6` (PROFILE486). Their executable SHA-256 values are
 `6a36871d5a605e0eee91619924e1ef11acf2d47ff448df9ac04a0054ea9a14a9`,
 `768a2a5c73e9fb6b42a5aacdf7c055b6d86320d59b45c2f02cfb6507f47a434`, and
 `01069f551368af80cd10d952d6db7e0bf7c0a123c47b0d66273a35b40f52821c`,
@@ -45,11 +45,11 @@ These builds verify generated frames, the runtime formula, and strict linked
 i486 compatibility for the current source. They do not qualify stack margin on
 physical hardware. Reduced-stack checks remain DOSBox-X regression evidence.
 
-## Earlier fresh i486 build checks (2026-11-17; source `ab81c94`)
+## Earlier fresh i486 build checks (2026-11-17; source `42c8964ae3a8`)
 
 The generated-frame and preprocessed-runtime checks passed in fresh builds of
 all three renderer configurations from game revision
-`ab81c94b83765e78723c48c62cb335c96fc41d96`:
+`42c8964ae3a8f9976f6846369d5b4802b3591633`:
 
 | Configuration | Build command | Stack result | Linked ISA result |
 | --- | --- | --- | --- |
@@ -58,7 +58,7 @@ all three renderer configurations from game revision
 | PROFILE486 | `tools/build-dos-experimental.ps1 -Benchmark -Instrumentation -CpuTarget i486` | `172992 + 136 * world_depth`; fallback `237008 + 136 * world_depth` | PASS; 326,951 linked instructions checked, zero above-i486, unknown, or exempt instructions |
 
 The release and C-reference builds produced product build IDs
-`ab81c94b8376-088896c5df66` and `ab81c94b8376-54203b8712fd`. The PROFILE486
+`42c8964ae3a8-088896c5df66` and `42c8964ae3a8-54203b8712fd`. The PROFILE486
 executable SHA-256 was
 `3c7213909c286c22482f09b3ae193413d0aeaddebe13dcb76050cada030570ab`; its
 source revision is recorded in `out/local-action-stack-profile486-20261117`'s
@@ -111,11 +111,11 @@ the guarded fallback, an insufficient fallback capacity, and waterwarp
 disabled. The `benchwarp_short` scenario forces the test capacity to zero only
 after confirming the real DJGPP bounds; it does not change those bounds.
 
-At game revision `5d3a31fe8be35540b86cca1067f8cfa9f30176ba`,
+At game revision `20e9b0d690c4747ff5b37b11befbb7c2658a2875`,
 `benchmarks/tools/render-parity-dos.ps1` compared the C-reference and
 `i486-asm-selectable-current` profiles using the warp-memory scenario file,
 one run per scenario, and the local `id1` data. The exact comparison report is
-`benchmarks/out/render-parity-stack-5d3a31f-shared-20261117/render-parity-result.json`.
+`benchmarks/out/render-parity-stack-20e9b0d690c4-shared-20261117/render-parity-result.json`.
 The command, run from `benchmarks/`, was:
 
 ```powershell
@@ -124,7 +124,7 @@ pwsh -NoProfile -File tools/render-parity-dos.ps1 `
   -CandidateProfile tools/renderer-profiles/i486-asm-selectable-current.json `
   -ScenarioFile tools/render-scenarios-warp-memory.json -CpuTarget i486 `
   -RunsOverride 1 -DataRoot workspace\quake\testdata\id1 `
-  -OutputRoot out/render-parity-stack-5d3a31f-shared-20261117 `
+  -OutputRoot out/render-parity-stack-20e9b0d690c4-shared-20261117 `
   -NoBootstrap -TimeoutSeconds 1800
 ```
 

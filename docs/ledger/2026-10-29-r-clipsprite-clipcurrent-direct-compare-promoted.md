@@ -6,7 +6,7 @@ Status: promoted after a positive strict three-run mean, exact frame and framebu
 
 ## Matched timedemo
 
-The current parent source had the same assembly as commit `ea48a87`; the intervening `6c48972` commit only recorded a rejected experiment. All runs used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the aggressive i486 selector profile, and the pinned 32 MB profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`.
+The current parent source had the same assembly as commit `63d74958829f`; the intervening `7ae21e47681b` commit only recorded a rejected experiment. All runs used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the aggressive i486 selector profile, and the pinned 32 MB profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`.
 
 | Variant | Evidence | FPS samples | Spread | Mean FPS |
 |---|---|---|---:|---:|

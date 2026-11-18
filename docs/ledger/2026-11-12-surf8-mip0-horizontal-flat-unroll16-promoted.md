@@ -9,7 +9,7 @@ The patch table adds sixteen horizontal-flat rows (I through P), and
 `R_Surf8Patch` accounts for 512 sites. The change is limited to `src/renderer/surf8.s`
 and continues to use the already-selected i486 assembly path.
 
-The candidate was based on `0e68112d414c0d06910a624e990cd65e74f131fe`. The
+The candidate was based on `d9f54df562b6a6a316ac402d35e4b90c2c21c289`. The
 parent and candidate source-tree fingerprints were respectively
 `4E3011371D2DD100969C0C124B19F0DC370FAC55B68F60CE2ADB6496858EAF5C` and
 `444527EFABCC5D7882F08C058651B2F927F173EE85297E72C3CB063774AD7FEA`.

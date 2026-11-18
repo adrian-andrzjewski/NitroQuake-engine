@@ -321,7 +321,7 @@ instrumented `qprof.exe` hashes are
 `3729E13DECDB7F203E0F939E1ABE5193882976AEB3A5C7792F0D3A255CBEBEDE`.
 The build manifests record the selector and keep the candidate in the
 `...-aliaslocal...` output family. Their `sourceCommit` is
-`de1d41d12d3e54286291c59e35822e27182e2228`; the selector and source-cursor
+`167c6e0824f0d0a02f730608a01409dd253f0fd4`; the selector and source-cursor
 change are the intentional working-tree patch under test.
 
 The benchmark, timedemo, and smoke wrapper auto-build paths also use named

@@ -31,7 +31,7 @@ positive mean from at least three matched uninstrumented runs.
 The strict source-bound ISA audit passed with zero above-i486, unknown, or
 exempt instructions: 314,214 relocated instruction sites, 529 startup
 instructions, and 9,207 DPMI provider instructions. The audit was built from
-source commit `a77fce722f57803d14db322e9b671aefb4d504c1`.
+source commit `972c7a474c99a0dd84f886e72f3f0fb259b63ffc`.
 
 Candidate source fingerprint: `F1BCB422006E72387049E220D425847171C75DEE403B9882F7D96FA19AFD83CB`.
 Candidate source-tree fingerprint: `736D371FC4D85D0881822BBBA599C5792C98E326DF3C1F17D50B424C7051DF4B`.

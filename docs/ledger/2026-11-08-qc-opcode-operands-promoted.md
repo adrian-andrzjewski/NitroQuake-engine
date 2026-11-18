@@ -13,7 +13,7 @@ predecoded into an additional table. There is no new runtime state or allocation
 
 ## Generated code and correctness
 
-Control source is `fd2b7a5`. Across 435 normalized C/H/S/INC files, only pr_exec.c
+Control source is `93e22507fcfd`. Across 435 normalized C/H/S/INC files, only pr_exec.c
 differs. Its source SHA-256 is
 `e19a3c3a2fe33956adfad2d726a87d71bc5a1dae47d9090d39588e68d786baa1`.
 

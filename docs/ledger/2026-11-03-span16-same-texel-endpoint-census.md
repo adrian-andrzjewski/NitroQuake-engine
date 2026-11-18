@@ -25,7 +25,7 @@ no uninstrumented timing result and makes no FPS claim.
 
 ## Reproduction and checksum limits
 
-The counter was added only to a detached scratch build based on `a534c24` and
+The counter was added only to a detached scratch build based on `88c77df4516a` and
 compiled under `PROFILE486`:
 
 ```powershell

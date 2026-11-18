@@ -10,7 +10,7 @@ not newly translate the rasterizer into assembly. `ParticleDrawImplementation`
 selects the C oracle or the existing assembly path in the focused profiles
 `i486-particledraw-c` and `i486-particledraw-asm`.
 
-The code tranche is inner-repository commit `7bb1a9b`, referenced by outer
+The code tranche is inner-repository commit `1c1e411932b2`, referenced by outer
 workspace commit `0bd562c`.
 
 Traceability is:

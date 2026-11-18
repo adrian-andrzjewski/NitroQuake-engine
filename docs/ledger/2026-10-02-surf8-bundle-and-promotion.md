@@ -223,7 +223,7 @@ delta   -0.020890 s = 0.03529% faster;  969 frames and checksum 1047377823 on al
 Every candidate run beat every control run and the delta is 271x the control
 spread, so the effect is real and not noise. **It is below the 0.05% gate on its
 own, so it was not promotable on its own.** The selector was withdrawn, the
-release path restored to byte-identical with `b99a7ea`, and the change re-applied
+release path restored to byte-identical with `10374adcea77`, and the change re-applied
 later as one component of a bundle that does clear the gate — see the entry at
 the top of this section. The selector is back, and `-SurfaceBlockMip1IndexHoist
 control` now reproduces exactly the body measured here.

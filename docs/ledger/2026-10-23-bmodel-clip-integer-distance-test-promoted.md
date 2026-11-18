@@ -7,7 +7,7 @@ preserves the `dist > 0` branch result for signed zero, finite values,
 infinities, and NaNs while removing each `FLDS` / `FTST` / `FNSTSW` / `SAHF` /
 `FSTP` status-word round trip.
 
-The candidate was measured against committed baseline `86ea2be` in the same
+The candidate was measured against committed baseline `bac8aed18a06` in the same
 aggressive i486 profile with `BmodelPolygonClipImplementation=asm`. Both used
 the pinned 32 MB DOSBox-X profile
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. The

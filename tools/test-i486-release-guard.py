@@ -27,7 +27,7 @@ class I486ReleaseGuardTests(unittest.TestCase):
             b"\x90\x90\xc3"
         )
         second = (
-            b"Build 2a965f34217d-99cbf4b72f62\n"
+            b"Build 71fbc0887d7b-99cbf4b72f62\n"
             b"Exe: 08:20:01 Nov 17 2026\n"
             b"\x90\x90\xc3"
         )
@@ -46,7 +46,7 @@ class I486ReleaseGuardTests(unittest.TestCase):
 
     def test_code_changes_remain_visible_after_identity_normalization(self) -> None:
         first = b"Build a2b2db4a1f22-0123456789ab\n\x90\xc3"
-        changed = b"Build 2a965f34217d-99cbf4b72f62\n\x91\xc3"
+        changed = b"Build 71fbc0887d7b-99cbf4b72f62\n\x91\xc3"
         normalized_first, _ = GUARD.normalize_artifact_bytes(first)
         normalized_changed, _ = GUARD.normalize_artifact_bytes(changed)
 

@@ -5,7 +5,7 @@ The loop now starts `fdivrs Lfloat_1` before loading `stv_t` and storing it to
 486 can execute it while the x87 computes inverse depth. Transform arithmetic
 and the output values are unchanged.
 
-The candidate was measured against committed control `26cb873` in the same
+The candidate was measured against committed control `72954dc4dd44` in the same
 aggressive i486 `demo1` timedemo, with
 `AliasTransformFinalImplementation=asm` and the pinned 32 MB DOSBox-X profile
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. The

@@ -12,7 +12,7 @@ the added index pointer increased model_t from 392 to 396 bytes.
 
 ## Exact-output and i486 gates
 
-The clean control at source revision f3804dc and the candidate used the pinned
+The clean control at source revision 4bc0d1dd6134 and the candidate used the pinned
 DOSBox-X 2026.08.31 i486 profile, 320x200 demo1, host_framerate 0.0783, and
 con_notifytime -1. Both produced byte-identical per-frame color and Z
 checksum streams, each with 970 per-frame rows plus a completion footer, and

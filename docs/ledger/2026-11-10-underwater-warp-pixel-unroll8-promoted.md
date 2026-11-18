@@ -9,7 +9,7 @@ mapping. The experiment targets the underwater warp path; the 2026-11-10
 `demo2` detailed profile attributed 1.877079 seconds (3.13%) to 210 warp
 calls. That instrumented profile ranked the path but is not timing evidence.
 
-The control is nested repository revision `2a2448a`. After normalizing line
+The control is nested repository revision `973c444e17cf`. After normalizing line
 endings, the candidate differs only in `src/renderer/asm486_experiments.s`; the promoted
 file has the same assembly lines. The run artifacts report source fingerprints
 `5B25DC782817314DEBB975F7EC01C3682BEDCFCB202113FD792C896453E47512` for the

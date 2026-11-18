@@ -7,7 +7,7 @@ texture-coordinate work. A zero-extending first-coordinate load clears the
 index register for the next loop iteration, replacing the one-time initial
 clear while preserving each unsigned byte value.
 
-The candidate was measured against committed control `3eabb0e` in the same
+The candidate was measured against committed control `b6aa155048b2` in the same
 aggressive i486 `demo1` timedemo, with
 `AliasTransformFinalImplementation=asm` and the pinned 32 MB DOSBox-X profile
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. The

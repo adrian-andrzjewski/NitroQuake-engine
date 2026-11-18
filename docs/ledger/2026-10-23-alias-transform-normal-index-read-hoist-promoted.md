@@ -5,7 +5,7 @@ the vertex pointer immediately after loading the third coordinate. This moves
 the normal-index work and pointer update into the remaining x87 transform
 arithmetic while preserving the original index and vertex values.
 
-The candidate was measured against committed control `214358b` in the same
+The candidate was measured against committed control `c3f7f707e30a` in the same
 aggressive i486 `demo1` timedemo, with
 `AliasTransformFinalImplementation=asm` and the pinned 32 MB DOSBox-X profile
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. The

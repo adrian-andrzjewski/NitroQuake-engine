@@ -14,7 +14,7 @@ profile (`532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`).
 
 | Variant | Artifact | FPS samples | Mean FPS |
 |---|---|---|---:|
-| Accepted control (`d9c1b36`) | `out/dos-timedemo-20261027-060739/timedemo-result.json` | 16.165754 / 16.165786 / 16.165774 | 16.165771333 |
+| Accepted control (`b7b3bd80ee39`) | `out/dos-timedemo-20261027-060739/timedemo-result.json` | 16.165754 / 16.165786 / 16.165774 | 16.165771333 |
 | EBX cache parity screen | `out/dos-timedemo-20261027-065400/timedemo-result.json` | 16.178407 / 16.178418 / 16.178426 | 16.178417000 |
 | EBX cache strict run | `out/dos-timedemo-20261027-071815/timedemo-result.json` | 16.178397 / 16.178429 / 16.178426 | 16.178417333 |
 

@@ -27,7 +27,7 @@ these validation builds do not replace or extend the benchmark samples.
 
 The broad host run passes **11 of 19 gates**. The complete host suite is not
 green, and the full DOS verification suite was not rerun for this commit task.
-An untouched archive of starting commit `e303693` reproduces the failing gates:
+An untouched archive of starting commit `b851813c11e3` reproduces the failing gates:
 
 | Gate | Observed existing failure |
 |---|---|

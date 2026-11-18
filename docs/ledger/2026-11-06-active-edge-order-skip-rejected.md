@@ -17,12 +17,12 @@ added.
 
 The release candidate at source fingerprint
 `D6F546671794FEF7B61D34B3E5F9BF5D4389D748B759324B44AB3A8E3CACD81F` and the
-clean control at revision `f3804dc` used the DOSBox-X 2026.08.31 high i486
+clean control at revision `4bc0d1dd6134` used the DOSBox-X 2026.08.31 high i486
 profile (SHA-256
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`),
 `cwsdpmi`, demo1, 320x200, `host_framerate 0.0783`, and
-`con_notifytime -1`. The renderer sources at `f3804dc` and the candidate's
-base revision `6e8f32d` were identical; intervening commits changed documents
+`con_notifytime -1`. The renderer sources at `4bc0d1dd6134` and the candidate's
+base revision `c8ad90ba8c03` were identical; intervening commits changed documents
 only.
 
 The candidate and a fresh clean-control release replay rendered 969 timed

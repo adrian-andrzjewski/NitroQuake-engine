@@ -14,7 +14,7 @@ expression is removed. The i386 ABI has no unassigned padding in this layout.
 
 The actual i486 compiler previously emitted a 31-dword rep stosl; this clear is
 absent in the candidate. The trace-copy remains. Across 435 normalized C/H/S/INC
-files, only world.c differs from b7aef96. Candidate world.c SHA-256 is
+files, only world.c differs from 682998a8a3eb. Candidate world.c SHA-256 is
 `78a999bf521b2950a0a2b914223df2bfbd8aaaf5e8190b0848925ded23997357`.
 
 The native differential fixture passes 18,432 cases using actual extracted

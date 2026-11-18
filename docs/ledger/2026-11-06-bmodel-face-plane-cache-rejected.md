@@ -15,7 +15,7 @@ The control and candidate used the pinned DOSBox-X 2026.08.31 i486 profile
 (SHA-256
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`),
 320x200 `demo1`, `host_framerate 0.0783`, per-frame framebuffer checksums, and
-Z checksums. The control was built from source commit `f3804dc`; it has the same
+Z checksums. The control was built from source commit `4bc0d1dd6134`; it has the same
 renderer sources as the current base because the intervening source commit
 records documentation only.
 

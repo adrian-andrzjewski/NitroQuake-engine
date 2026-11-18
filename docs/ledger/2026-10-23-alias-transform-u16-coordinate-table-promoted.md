@@ -5,7 +5,7 @@ values as 16-bit integers. `FILD` reads each entry as a signed 16-bit integer;
 all values from 0 through 255 remain exact and positive. This halves the table
 footprint from 1 KiB to 512 bytes while retaining the same coordinate values.
 
-The candidate was measured against committed control `5c10c8e` in the same
+The candidate was measured against committed control `95ae4f9d253f` in the same
 aggressive i486 `demo1` timedemo, with
 `AliasTransformFinalImplementation=asm` and the pinned 32 MB DOSBox-X profile
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. The

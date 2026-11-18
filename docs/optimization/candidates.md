@@ -4,7 +4,7 @@ Start from measured work in the
 [current-source engine profile](../../../benchmarks/docs/results/current-source-engine-profile-2026-11-17.md),
 then check the [optimization ledger](../ledger/INDEX.md) for prior attempts and
 the current [renderer status](../architecture/renderer-status.md). The profile
-is a DOSBox-X attribution capture from game revision `644fb3a`; it is useful for
+is a DOSBox-X attribution capture from game revision `ae559389c9d4`; it is useful for
 ranking work, but its single uninstrumented sample per workload does not
 establish repeatable performance.
 

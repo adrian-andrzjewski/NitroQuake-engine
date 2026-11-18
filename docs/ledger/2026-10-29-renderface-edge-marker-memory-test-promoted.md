@@ -6,7 +6,7 @@ The regular edge loop tests the cached-offset high bit directly at `4(%ecx)`. It
 
 ## Matched timedemo
 
-The committed parent control was `5ae927c`. All runs used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the aggressive i486 selector profile, and the pinned 32 MB profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`.
+The committed parent control was `39cbd5afa97e`. All runs used DOSBox-X 2026.08.31, `demo1`, CWSDPMI, the aggressive i486 selector profile, and the pinned 32 MB profile SHA-256 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`.
 
 | Variant | Evidence | FPS samples | Spread | Mean FPS |
 |---|---|---|---:|---:|

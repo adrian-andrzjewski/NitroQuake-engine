@@ -722,16 +722,16 @@ the same map.
   6.3 ms faster than the mipscale-table default.  Worst-frame min FPS
   rose from 6.325980 to 6.326751.  Every run was faster than every
   previous-default run.
-- Previous default through commit `f6ea9c6` (`out\dos-timedemo-20260914-121838`):
+- Previous default through commit `122f877c1c77` (`out\dos-timedemo-20260914-121838`):
   `66.962797 / 66.962567 / 66.962657` s, median
   **66.962567 s / 14.470771 FPS**, checksum `4154140932` on all three runs.
   About 123 ms (0.18%) faster than the pre-unroll default above.  Eight
   further commits landed after this doc's 67.085585 s snapshot: solid-surface
-  `viewspantable` spans (`e869b7d`), integer dlight contribution and test
-  (`03bb815`, `06ab02b`), 4x fused lightmap loops (`41757fc`), hoisted
-  `R_DrawSurface` mip dispatch (`53a7d7f`), lightstyle counter + `rep` tails +
-  16B align (`41aa622`, `3cc85f5`), and `R_RenderFace` / `R_BuildLightMap`
-  unrolling (`33c0ebf`, `f6ea9c6`).
+  `viewspantable` spans (`eb62259f1172`), integer dlight contribution and test
+  (`2519951406ae`, `963d038310b0`), 4x fused lightmap loops (`09865b086cee`), hoisted
+  `R_DrawSurface` mip dispatch (`8df9260c0546`), lightstyle counter + `rep` tails +
+  16B align (`eaff854fba17`, `8963f76d6ab0`), and `R_RenderFace` / `R_BuildLightMap`
+  unrolling (`be67ab1cd9f3`, `122f877c1c77`).
   Matching instrumented diagnostic (`out\dos-timedemo-20260914-122314`,
   12.950385 FPS) ranks self time as texture spans 26.24%, surface cache
   13.56%, alias model 13.16%, Z spans 10.98%, world BSP 10.48%, edge-scan
@@ -742,7 +742,7 @@ the same map.
 - Previous default re-lock without `-funroll-loops`
   (`out\dos-timedemo-20260914-134340`): `66.962837 / 66.962633 / 66.962597` s,
   median **66.962633 s / 14.470758 FPS**, checksum `4154140932` on all three
-  runs.  Matches the `f6ea9c6` reference within run noise.
+  runs.  Matches the `122f877c1c77` reference within run noise.
 - Previous default after `R_MarkLights` plane cull
   (`out\dos-timedemo-20260914-140045`): `66.776961 / 66.776735 / 66.776824` s,
   median **66.776824 s / 14.511022 FPS**, checksum `4154140932` on all three

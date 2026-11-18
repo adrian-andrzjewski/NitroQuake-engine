@@ -7,7 +7,7 @@ transform and projection work, so the integer updates can execute while the
 FPU finishes the current vertex. The transform arithmetic, x87 operation
 order, and output stores are unchanged.
 
-The candidate was measured against committed baseline `cd5f7f0` in the same
+The candidate was measured against committed baseline `ead06bd1b0a8` in the same
 aggressive i486 `demo1` timedemo, with `AliasTransformFinalImplementation=asm`
 and the pinned 32 MB DOSBox-X profile
 `532284EA01C1A93C8B96D70FB538625B694DFAD0172BA13B9BA9C36C8FE845BA`. The

@@ -40,7 +40,7 @@ startup CODE rows, 9,207 DPMI-provider instructions, and 316,137 relocated
 instructions, with zero above-i486, unknown, or exempt instructions.
 
 A fresh Build 866 candidate rebuild from source commit
-`a285fceb1a70b7a21bd4d319cefb14ebdbce70af` also passed the complete gate. It
+`dc08d26da8160180fdfa207cd666a85f52fd2467` also passed the complete gate. It
 verified 316,137 relocated instructions, 529 startup rows, and 9,207 provider
 instructions, with zero exemptions. Its `d_draw16.obj` SHA-256
 `0CD1E63FB894237974448AA8DD925F936B768F99085FC8143DCD322F3CDD7B04` is

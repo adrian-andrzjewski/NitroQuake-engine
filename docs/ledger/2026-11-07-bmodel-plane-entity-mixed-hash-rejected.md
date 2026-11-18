@@ -35,7 +35,7 @@ the promoted plane-pointer hash. No FPS gain or exact-output claim is made.
 
 - Profile build: `out/local-bmodel-plane-entity-mix-20261107/`.
 - Profile run: `out/dos-timedemo-20261107-021324/`.
-- Base revision: `3796c30195cb1e6cde1dee7215b87df79c84e76e`.
+- Base revision: `a84fb16c3bb39c657bbc5f2f6ce0d3203f3115dd`.
 
 The profile run used the build and timedemo scripts with
 `-Instrumentation -NoBootstrap -Runs 1`, data root

@@ -27,7 +27,7 @@ the default surface cache grows by three bytes per pixel above 320x200.
 
 ## Runtime captures
 
-These captures use the i486 release build `94734246d4aa-efcec970319b`, DOSBox-X
+These captures use the i486 release build `ba68f9c75723-efcec970319b`, DOSBox-X
 2026.08.31, and CWSDPMI. The emulator reports an 80486 CPU, DOS 5.00, DPMI 0.90,
 and 31,280 KiB of physical RAM. They describe this DOSBox/DPMI setup, not a
 physical 486 or other DPMI hosts.
@@ -83,8 +83,8 @@ observations and do not qualify a physical 486 or other DPMI stack size.
 
 These controlled map-load traces used the `i486-c-reference` selector set with
 the opt-in `MEMORY_ALLOCATION_TRACE` diagnostic build mode. The build was
-`762d22afa0db-e53a4a60da19` (source revision
-`762d22afa0db7e093363d8c4c7d3522dbbfd40f0`), executable SHA256
+`f811a411e2fa-e53a4a60da19` (source revision
+`f811a411e2fa69455c4734c6bc9f5ed9ac91913c`), executable SHA256
 `A9892488B1462BC080635E6DC11B0055BBB2B15018D146E4F4A4AC873D68A338`, and
 manifest SHA256
 `69057909F18FC252237D9D5E97CF84A9EFA99AAEBB01E7A9CD34589EDAEAE7DF`. DOSBox-X
