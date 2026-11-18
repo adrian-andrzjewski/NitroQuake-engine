@@ -5,6 +5,8 @@
 **/id1/
 /tools/pcem/
 /QW/dxsdk/
+/WinQuake/dxsdk/
+/QW/scitech/
 /WinQuake/kit/
 /QW/client/quakeworld.bmp
 /QW/quakeworld.bmp
@@ -94,8 +96,13 @@
 *.d
 *.blob
 *.rom
+*.dat
+*.3dfxgl
+*.001
 *.aps
 *.plg
+*.opt
+*.mdp
 *.map
 *.err
 *.log
