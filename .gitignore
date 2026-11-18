@@ -3,6 +3,13 @@
 /testdata/
 **/out/
 **/id1/
+/tools/pcem/
+/QW/dxsdk/
+/QW/client/quakeworld.bmp
+/QW/quakeworld.bmp
+/QW/quake.gif
+/QW/progs/files.dat
+/QW/progs/qwprogs.dat
 
 # Quake game data and captures are never part of this source repository.
 *.pak
@@ -31,6 +38,8 @@
 *.PCX
 *.bmp
 *.BMP
+*.gif
+*.GIF
 *.png
 *.PNG
 *.jpg
@@ -39,6 +48,8 @@
 *.JPEG
 *.tga
 *.TGA
+*.ico
+*.ICO
 
 # Generated/vendor binaries and package archives. The two CWSDPMI executables
 # below are intentionally tracked under the accompanying GPL/CWSDPMI notices.
@@ -78,6 +89,12 @@
 # Legacy/compiler intermediates.
 *.obj
 *.o
+*.a
+*.d
+*.blob
+*.rom
+*.aps
+*.plg
 *.map
 *.err
 *.log
