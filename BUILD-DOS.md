@@ -1,7 +1,8 @@
 # Building NitroQuake for MS-DOS
 
-This standalone repository contains native C/assembly, game assets, the DJGPP
-build and source-bound ISA verification. PowerShell 7, Python 3.9+ (standard
+This standalone repository contains native C/assembly, the DJGPP build and
+source-bound ISA verification. Quake game data is supplied separately by the
+user. PowerShell 7, Python 3.9+ (standard
 library), a complete non-shallow Git checkout, and the pinned compiler are
 required by the supported numbered builder. DOSBox, Matplotlib and a benchmark
 checkout are not build dependencies.
@@ -142,9 +143,10 @@ do not contribute. Working-tree reports participate so an optimization can be
 built before its report is committed. The reviewed legacy classifications in
 `tools/optimization-history-legacy.json` resolve aggregate reports and duplicate
 write-ups; they contain source references and decisions, never a numeric offset.
-One retained early mip-0 specialization has no standalone report; its exact Git
-revision is classified in the same map and counted only when reachable from HEAD.
-The later dword-packing optimization to its helper is a separate attempt.
+The retained early mip-0 specialization has a stable ledger record, so its
+classification and build-number contribution survive publication history
+rewrites. The later dword-packing optimization to its helper is a separate
+attempt.
 
 An attempt is a separately documented implemented candidate or independent
 variant with an acceptance or rejection decision. Accepted C-to-assembly ports

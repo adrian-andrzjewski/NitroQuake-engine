@@ -65,8 +65,8 @@ NitroQuake v0.999
 Build 888
 ```
 
-The inventory at game revision `7983e53` derived `Build 888` from 494 accepted
-and 394 rejected attempts, including the early mip-0 specialization recorded
+The current inventory derives `Build 888` from 494 accepted and 394 rejected
+attempts, including the early mip-0 specialization recorded
 in the ledger. The builder recalculates this value from the current
 checkout each time. The count can change only when a distinct attempt is
 recorded or its reviewed classification changes. Unrelated commits, builds,
